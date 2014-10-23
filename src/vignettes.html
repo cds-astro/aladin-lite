@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+        
+        <script src="js/libs/jquery-1.9.1.min.js"></script>
+        <script src="js/libs/jquery.mousewheel.min.js"></script>
+        <script src="js/libs/RequestAnimationFrame.js"></script>
+        <script src="js/libs/Stats.js"></script>
+        
+        <script src="js/libs/healpix.min.js"></script>
+        <script src="js/libs/astro/astroMath.js"></script>
+        <script src="js/libs/astro/projection.js"></script>
+        <script src="js/libs/astro/coo.js"></script>
+        
+
+        
+        <script src="js/CooConversion.js"></script>
+        <script src="js/Sesame.js"></script>
+        <script src="js/HealpixCache.js"></script>
+        <script src="js/Utils.js"></script>
+        <script src="js/AladinUtils.js"></script>
+        <script src="js/ProjectionEnum.js"></script>
+        <script src="js/CooFrameEnum.js"></script>
+        <script src="js/Downloader.js"></script>
+        <script src="js/Source.js"></script>
+        <script src="js/Catalog.js"></script>
+        <script src="js/Tile.js"></script>
+        <script src="js/TileBuffer.js"></script>
+        <script src="js/HpxImageSurvey.js"></script>
+        <script src="js/HealpixGrid.js"></script>
+        <script src="js/Location.js"></script>
+        <script src="js/View.js"></script>
+        <script src="js/Aladin.js"></script>
+        
+        <script>
+        $(document).ready(function() {
+            
+            var aladin = new Aladin($('#divAladin')[0]);
+            
+            var curSurveyIdx = 0;
+            var surveys = ["DSS Color", "2MASS Color", "DSS Red", "SDSS DR7 Color", "GALEX AIS Color", "XMM-Newton"];
+            
+            aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[0]));
+            
+            $(document).keydown(function(e){
+                if (e.keyCode == 39) {
+                	curSurveyIdx = (curSurveyIdx+1) % surveys.length;
+                	aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
+                   return false;
+                }
+                
+                if (e.keyCode == 37) {
+                    curSurveyIdx = (curSurveyIdx-1) % surveys.length;
+                    if (curSurveyIdx==-1) {
+                    	curSurveyIdx = surveys.length - 1;
+                    }
+                    aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
+                   return false;
+                }
+            });
+            
+        });
+        </script>
+    </head>
+    <body>
+       <noscript><h2>Javascript is needed !</h2></noscript>
+            
+    
+            <div id="divAladin" style="width: 300px; height: 300px; border: 1px solid;"></div>
+            Use left/right arrows to change survey
+    </body>
+</html>
+    

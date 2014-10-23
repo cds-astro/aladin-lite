@@ -1,0 +1,1688 @@
+<!doctype html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<link href="http://cdsweb.u-strasbg.fr/cds-navbar-resources/css/cdshead.min.css" rel="stylesheet">
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script type="text/javascript">var jqMenu = jQuery.noConflict();</script>
+<script type="text/javascript" src="http://cdsweb.u-strasbg.fr/cds-navbar-resources/js/cdsmenu.min.js"></script>
+<link rel="stylesheet" href="http://simbad.u-strasbg.fr/Simlib/tables.css" type="text/css">
+<link rel="search" type="application/opensearchdescription+xml" title="SIMBAD basic" href="http://simbad.u-strasbg.fr/Simlib/simbadBasic.xml">
+<script src="http://simbad.u-strasbg.fr/Simlib/simbad.js" type="text/javascript"></script>
+<style type="text/css">
+#dataTable tr:hover {
+    cursor: pointer;
+    background: #dddddd;
+}
+<!--
+TEXTAREA { background-color: #FFF0DC; }
+-->
+</style>
+</head>
+<body>
+<div class="navbar navbar-top">
+<div class="navbar-inner simbad">
+<div class="container-fluid minwidth920">
+<a class="brand" title="CDS home" href="http://cds.u-strasbg.fr/"><img src="http://cdsweb.u-strasbg.fr/cds-navbar-resources/img/cds_small.png" alt="CDS"></a>
+<div class="nav-collapse">
+<ul class="nav">
+<li id="portalNavbarItem"><a href="http://cdsportal.u-strasbg.fr/">Portal</a></li>
+<li id="simbadNavbarItem" class="active"><a href="http://simbad.u-strasbg.fr/simbad">Simbad</a></li>
+<li id="vizierNavbarItem"><a href="http://vizier.u-strasbg.fr/viz-bin/VizieR">VizieR</a></li>
+<li id="aladinNavbarItem"><a href="http://aladin.u-strasbg.fr/aladin.gml">Aladin</a></li>
+<li id="xmatchNavbarItem"><a href="http://cdsxmatch.u-strasbg.fr/">X-Match</a></li>
+<li class="dropdown">
+<a href="http://simbad.u-strasbg.fr/simbad/sim-sam#" class="dropdown-toggle" data-toggle="dropdown">Other<b class="caret"></b></a>
+<ul class="dropdown-menu">
+<li><a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame name resolver</a></li>
+<li><a href="http://cdsarc.u-strasbg.fr/viz-bin/Cat">Catalogue collection</a></li>
+<li><a href="http://tapvizier.u-strasbg.fr/adql/" alt="TAP VizieR">TAP VizieR</a></li>
+<li><a href="http://cds.u-strasbg.fr/cgi-bin/Dic-Simbad">Dictionary of nomenclature</a></li>
+<li><a href="http://cdsweb.u-strasbg.fr/SimPlay">SimPlay</a></li>
+<li><a href="http://cdsbib.u-strasbg.fr/cgi-bin/cdsbib">Bibliography</a></li>
+<li class="divider"></li>
+<li><a href="mailto:cds-question@unistra.fr">Contact us</a></li>
+</ul>
+</li>
+<li class="divider"></li>
+<li><a href="http://cdsweb.u-strasbg.fr/help">Help</a></li>
+</ul>
+<div class="nav pull-right serviceLogo simbad">
+</div>
+</div><!--/.nav-collapse -->
+</div>
+</div>
+</div>
+<script type="text/javascript">setMenuItem("simbad");</script>
+<div class="cdsPageTitle"><h1>SIMBAD query result</h1></div><div style="margin: 10px"> <table cellpadding="6">
+  <tbody><tr align="LEFT" valign="TOP" id="menu">
+   <td>
+    <b>
+     <i>
+other query<br>modes :      </i>
+    </b>
+   </td>
+   <td align="CENTER" bgcolor="#CCCCFF" id="nav-1">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fid">
+     <font size="+0" color="#000000">
+Identifier<br>query     </font>
+    </a>
+   </td>
+   <td align="CENTER" bgcolor="#CCCCFF" id="nav-2">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fcoo">
+     <font size="+0" color="#000000">
+Coordinate<br>query     </font>
+    </a>
+   </td>
+   <td align="CENTER" bgcolor="#CCCCFF" id="nav-3">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fsam">
+     <font size="+0" color="#000000">
+Criteria<br>query     </font>
+    </a>
+   </td>
+   <td align="CENTER" bgcolor="#CCCCFF" id="nav-5">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fref">
+     <font size="+0" color="#000000">
+Reference<br>query     </font>
+    </a>
+   </td>
+   <td align="CENTER" bgcolor="#CCCCFF" id="nav-6">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fbasic">
+     <font size="+0" color="#000000">
+Basic<br>query     </font>
+    </a>
+   </td>
+   <td align="CENTER">
+   </td><td align="CENTER" bgcolor="#CCCCFF" id="nav-4">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fscript">
+     <font size="+0" color="#000000">
+Script<br>submission     </font>
+    </a>
+   </td>
+   <td align="CENTER">
+   </td><td align="CENTER" bgcolor="#FFFF99" id="nav-7">
+    <a href="http://simbad.u-strasbg.fr/simbad/sim-fout" target="_blank">
+     <font size="+0" color="#000000">
+Output<br>options     </font>
+    </a>
+   </td>
+   <td align="RIGHT" bgcolor="#CCFFCC">
+    <font size="+0" color="#000000">
+<a href="http://simbad.u-strasbg.fr/simbad/sim-help?Page=sim-sam">Help</a>    </font>
+   </td>
+  </tr>
+ </tbody></table>
+<p></p><p></p><hr><p> <script language="JavaScript" type="text/javascript" src="http://vizier.u-strasbg.fr/lib/viz2.js"> </script></p><div id="xplain" style="position:absolute; visibility:show; left:25px; top:-50px; z-index:2"><br></div>
+<b>Click on a row to point to the corresponding location.</b>
+ <table width="100%" cellpadding="3">
+  <tbody><tr>
+   <td>
+    <font size="+1">
+   </td>
+   <td align="RIGHT" valign="TOP" width="40%">
+   </td>
+  </tr>
+ </tbody></table>
+<p> </p><table>
+  <tbody><tr>
+   <td valign="MIDDLE">
+   </td>
+   <td valign="MIDDLE">
+&nbsp;&nbsp;&nbsp;<form action="http://simbad.u-strasbg.fr/simbad/sim-plot" method="GET">
+ <input type="hidden" name="listDescription" value="otype=&#39;IG&#39; &amp; Bmag&lt;12">
+ <input type="hidden" name="listID" value="243FAD7A5A3553F142E93AB5B4AF8B90662261">
+ <input type="submit" name="submit" value="plot this list of objects">
+&nbsp;&nbsp;&nbsp; <input type="radio" name="gridframe" value="ICRS" checked="">
+Equat.
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="Gal">
+Gal
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="SGal">
+SGal
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="Ecliptic">
+Ecl
+</form>
+   </td>
+  </tr>
+ </tbody></table>
+<p> </p>
+<div>
+<div style="float:right">
+  <div id="aladinDiv" style="width: 300px; height: 300px;border: solid 1px"></div>
+</div>
+<div>
+<table id="dataTable" class="sortable">
+  <thead class="datatable">
+   <tr>
+    <th class="sort-int clickable">
+N
+    </th>
+    <th class="sort-alpha clickable">
+Identifier
+    </th>
+    <th class="sort-alpha clickable">
+<a href="http://simbad.u-strasbg.fr/simbad/sim-display?data=otypes">Otype</a>    </th>
+    <th class="lon sort-sexa clickable">
+ICRS (J2000)<br>RA    </th>
+    <th class="lat sort-sexa clickable">
+ICRS (J2000)<br>DEC    </th>
+    <th class="sort-sp clickable">
+Sp type
+    </th>
+    <th class="sort-int clickable">
+#ref
+<br>1850
+-
+2013
+    </th>
+    <th class="sort-int clickable">
+#notes
+    </th>
+    <th class="sort-int clickable">
+#CDSnotes
+    </th>
+   </tr>
+  </thead>
+  <tbody class="datatable">
+   <tr>
+    <td>
+1
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40528406&Name=NGC%20%205474&submit=submit">NGC  5474</a>    </td>
+    <td>
+GiG
+    </td>
+    <td class="lon">
+14 05 01.608     </td>
+    <td class="lat">
++53 39 43.95    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+265
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+2
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401072808&Name=NGC%20%202559&submit=submit">NGC  2559</a>    </td>
+    <td>
+GiG
+    </td>
+    <td class="lon">
+08 17 06.074     </td>
+    <td class="lat">
+-27 27 20.95    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+47
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+3
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%403038315&Name=NGC%20%201672&submit=submit">NGC  1672</a>    </td>
+    <td>
+SyG
+    </td>
+    <td class="lon">
+04 45 42.552     </td>
+    <td class="lat">
+-59 14 50.68    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+247
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+4
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401924381&Name=NGC%20%204490&submit=submit">NGC  4490</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+12 30 36.71     </td>
+    <td class="lat">
++41 38 26.6    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+390
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+5
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401805209&Name=NGC%20%203628&submit=submit">NGC  3628</a>    </td>
+    <td>
+rG
+    </td>
+    <td class="lon">
+11 20 17.018     </td>
+    <td class="lat">
++13 35 22.16    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+581
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+6
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%405147350&Name=NGC%20%204039&submit=submit">NGC  4039</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+12 01 53.7     </td>
+    <td class="lat">
+-18 53 08    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1039
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+7
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%403096323&Name=NGC%20%203263&submit=submit">NGC  3263</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+10 29 13.396     </td>
+    <td class="lat">
+-44 07 22.52    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+35
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+8
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401949419&Name=NGC%20%204618&submit=submit">NGC  4618</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+12 41 32.842     </td>
+    <td class="lat">
++41 09 02.74    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+204
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+9
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401385714&Name=NGC%20%207715&submit=submit">NGC  7715</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+23 36 21.768     </td>
+    <td class="lat">
++02 09 25.30    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+98
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+10
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40587337&Name=M%20%2051&submit=submit">M  51</a>    </td>
+    <td>
+Sy2
+    </td>
+    <td class="lon">
+13 29 52.698     </td>
+    <td class="lat">
++47 11 42.93    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+2680
+    </td>
+    <td class="r">
+3
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+11
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40589408&Name=NGC%20%204088&submit=submit">NGC  4088</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+12 05 34.189     </td>
+    <td class="lat">
++50 32 20.50    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+276
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+12
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40320263&Name=NGC%20%201961&submit=submit">NGC  1961</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+05 42 04.775     </td>
+    <td class="lat">
++69 22 42.17    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+204
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+13
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%403431554&Name=NGC%20%206300&submit=submit">NGC  6300</a>    </td>
+    <td>
+Sy2
+    </td>
+    <td class="lon">
+17 16 59.473     </td>
+    <td class="lat">
+-62 49 13.98    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+267
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+14
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401228859&Name=NGC%20%20%20613&submit=submit">NGC   613</a>    </td>
+    <td>
+AGN
+    </td>
+    <td class="lon">
+01 34 18.235     </td>
+    <td class="lat">
+-29 25 06.56    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+252
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+15
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401504964&Name=NGC%20%20%20672&submit=submit">NGC   672</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+01 47 54.523     </td>
+    <td class="lat">
++27 25 58.00    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+187
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+16
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401226270&Name=NGC%20%20%20289&submit=submit">NGC   289</a>    </td>
+    <td>
+AGN
+    </td>
+    <td class="lon">
+00 52 42.365     </td>
+    <td class="lat">
+-31 12 20.99    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+138
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+17
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40932186&Name=NGC%20%202292&submit=submit">NGC  2292</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+06 47 39.8     </td>
+    <td class="lat">
+-26 44 46    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+32
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+18
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%405147349&Name=NGC%20%204038&submit=submit">NGC  4038</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+12 01 52.48     </td>
+    <td class="lat">
+-18 52 02.9    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1093
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+19
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%4011662&Name=NGC%20%201023&submit=submit">NGC  1023</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+02 40 23.90     </td>
+    <td class="lat">
++39 03 46.3    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+431
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+20
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401569144&Name=M%20%2032&submit=submit">M  32</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+00 42 41.87     </td>
+    <td class="lat">
++40 51 57.2    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1592
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+21
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%403166551&Name=NGC%20%201313&submit=submit">NGC  1313</a>    </td>
+    <td>
+G
+    </td>
+    <td class="lon">
+03 18 16.046     </td>
+    <td class="lat">
+-66 29 53.74    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+446
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+22
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40932496&Name=NGC%20%202293&submit=submit">NGC  2293</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+06 47 42.912     </td>
+    <td class="lat">
+-26 45 15.70    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+48
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+23
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401939677&Name=NGC%20%204496&submit=submit">NGC  4496</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+12 31 39.207     </td>
+    <td class="lat">
++03 56 22.08    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+247
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+24
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401805061&Name=M%20%2066&submit=submit">M  66</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+11 20 15.026     </td>
+    <td class="lat">
++12 59 28.64    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+813
+    </td>
+    <td class="r">
+3
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+25
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401149931&Name=NGC%20%207552&submit=submit">NGC  7552</a>    </td>
+    <td>
+AGN
+    </td>
+    <td class="lon">
+23 16 10.8     </td>
+    <td class="lat">
+-42 35 05    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+365
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+26
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401313807&Name=NGC%20%207727&submit=submit">NGC  7727</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+23 39 53.870     </td>
+    <td class="lat">
+-12 17 34.84    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+110
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+27
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40433918&Name=M%20%2082&submit=submit">M  82</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+09 55 52.19     </td>
+    <td class="lat">
++69 40 48.8    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+3854
+    </td>
+    <td class="r">
+5
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+28
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40393850&Name=UGC%20%204305&submit=submit">UGC  4305</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+08 19 04.977     </td>
+    <td class="lat">
++70 43 12.11    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+494
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+29
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40626813&Name=NGC%20%201232&submit=submit">NGC  1232</a>    </td>
+    <td>
+EmG
+    </td>
+    <td class="lon">
+03 09 45.514     </td>
+    <td class="lat">
+-20 34 45.48    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+207
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+30
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40915646&Name=ESO%20490-22&submit=submit">ESO 490-22</a>    </td>
+    <td>
+G
+    </td>
+    <td class="lon">
+06 39 44.1     </td>
+    <td class="lat">
+-27 14 37    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+6
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+31
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%403096668&Name=NGC%20%203256&submit=submit">NGC  3256</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+10 27 51.60     </td>
+    <td class="lat">
+-43 54 18.0    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+567
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+32
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%405035585&Name=NGC%20%204027&submit=submit">NGC  4027</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+11 59 30.168     </td>
+    <td class="lat">
+-19 15 54.62    </td>
+    <td>
+S...
+    </td>
+    <td class="r">
+179
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+1
+    </td>
+   </tr>
+   <tr>
+    <td>
+33
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40533745&Name=NAME%20NGC%203690%20West&submit=submit">NAME NGC 3690 West</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+11 28 30.69     </td>
+    <td class="lat">
++58 33 33.4    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+559
+    </td>
+    <td class="r">
+4
+    </td>
+    <td class="r">
+1
+    </td>
+   </tr>
+   <tr>
+    <td>
+34
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40657415&Name=NGC%20%201316&submit=submit">NGC  1316</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+03 22 41.52     </td>
+    <td class="lat">
+-37 12 33.5    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+884
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+35
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%402255366&Name=NGC%20%205566&submit=submit">NGC  5566</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+14 20 20.03     </td>
+    <td class="lat">
++03 55 59.9    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+119
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+36
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401960988&Name=NGC%20%204651&submit=submit">NGC  4651</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+12 43 42.627     </td>
+    <td class="lat">
++16 23 36.23    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+348
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+37
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401477047&Name=NGC%20%20%20772&submit=submit">NGC   772</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+01 59 19.582     </td>
+    <td class="lat">
++19 00 27.14    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+246
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+38
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401148931&Name=NGC%20%207496&submit=submit">NGC  7496</a>    </td>
+    <td>
+AGN
+    </td>
+    <td class="lon">
+23 09 47.292     </td>
+    <td class="lat">
+-43 25 40.87    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+178
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+39
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401961356&Name=M%20%2060&submit=submit">M  60</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+12 43 40.008     </td>
+    <td class="lat">
++11 33 09.40    </td>
+    <td>
+S0//E
+    </td>
+    <td class="r">
+914
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+40
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401763217&Name=NGC%20%203432&submit=submit">NGC  3432</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+10 52 31.132     </td>
+    <td class="lat">
++36 37 07.60    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+177
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+41
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40586527&Name=NGC%20%205195&submit=submit">NGC  5195</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+13 29 59.590     </td>
+    <td class="lat">
++47 15 58.06    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+533
+    </td>
+    <td class="r">
+3
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+42
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40533163&Name=NAME%20NGC%203690%20East&submit=submit">NAME NGC 3690 East</a>    </td>
+    <td>
+AGN
+    </td>
+    <td class="lon">
+11 28 33.07     </td>
+    <td class="lat">
++58 33 54.2    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+560
+    </td>
+    <td class="r">
+4
+    </td>
+    <td class="r">
+1
+    </td>
+   </tr>
+   <tr>
+    <td>
+43
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401935130&Name=NGC%20%204438&submit=submit">NGC  4438</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+12 27 45.652     </td>
+    <td class="lat">
++13 00 30.92    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+443
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+44
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40282624&Name=NGC%20%201569&submit=submit">NGC  1569</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+04 30 49.186     </td>
+    <td class="lat">
++64 50 52.52    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+926
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+45
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40657395&Name=NGC%20%201365&submit=submit">NGC  1365</a>    </td>
+    <td>
+Sy1
+    </td>
+    <td class="lon">
+03 33 36.4     </td>
+    <td class="lat">
+-36 08 24    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1050
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+46
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40529086&Name=M%20101&submit=submit">M 101</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+14 03 12.51     </td>
+    <td class="lat">
++54 20 53.1    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1864
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+47
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401954851&Name=NGC%20%204631&submit=submit">NGC  4631</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+12 42 08.009     </td>
+    <td class="lat">
++32 32 29.44    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+766
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+48
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40609478&Name=M%20106&submit=submit">M 106</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+12 18 57.620     </td>
+    <td class="lat">
++47 18 13.39    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+1621
+    </td>
+    <td class="r">
+2
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+49
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40590490&Name=NGC%20%203769&submit=submit">NGC  3769</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+11 37 44.106     </td>
+    <td class="lat">
++47 53 35.13    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+100
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+50
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40569860&Name=NGC%20%203718&submit=submit">NGC  3718</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+11 32 34.940     </td>
+    <td class="lat">
++53 04 04.18    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+253
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+51
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%404056299&Name=NGC%20%204105&submit=submit">NGC  4105</a>    </td>
+    <td>
+LIN
+    </td>
+    <td class="lon">
+12 06 40.767     </td>
+    <td class="lat">
+-29 45 36.64    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+96
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+52
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40552799&Name=NGC%20%203631&submit=submit">NGC  3631</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+11 21 02.944     </td>
+    <td class="lat">
++53 10 09.95    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+240
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+53
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%405181742&Name=NGC%20%206872&submit=submit">NGC  6872</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+20 16 56.484     </td>
+    <td class="lat">
+-70 46 05.70    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+57
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+54
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40333186&Name=NGC%20%202146&submit=submit">NGC  2146</a>    </td>
+    <td>
+GiP
+    </td>
+    <td class="lon">
+06 18 37.710     </td>
+    <td class="lat">
++78 21 25.27    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+466
+    </td>
+    <td class="r">
+1
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+55
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%401873931&Name=NGC%20%203981&submit=submit">NGC  3981</a>    </td>
+    <td>
+GiG
+    </td>
+    <td class="lon">
+11 56 07.445     </td>
+    <td class="lat">
+-19 53 46.24    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+70
+    </td>
+    <td class="r">
+0
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+   <tr>
+    <td>
+56
+    </td>
+    <td>
+<a href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=%40880859&Name=NGC%20%202207&submit=submit">NGC  2207</a>    </td>
+    <td>
+IG
+    </td>
+    <td class="lon">
+06 16 22.093     </td>
+    <td class="lat">
+-21 22 21.80    </td>
+    <td>
+~
+    </td>
+    <td class="r">
+177
+    </td>
+    <td class="r">
+3
+    </td>
+    <td class="r">
+0
+    </td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+</div>
+<p></p><form action="http://simbad.u-strasbg.fr/simbad/sim-plot" method="GET">
+ <input type="hidden" name="listDescription" value="otype=&#39;IG&#39; &amp; Bmag&lt;12">
+ <input type="hidden" name="listID" value="243FAD7A5A3553F142E93AB5B4AF8B90662261">
+ <input type="submit" name="submit" value="plot this list of objects">
+&nbsp;&nbsp;&nbsp; <input type="radio" name="gridframe" value="ICRS" checked="">
+Equat.
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="Gal">
+Gal
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="SGal">
+SGal
+&nbsp;&nbsp; <input type="radio" name="gridframe" value="Ecliptic">
+Ecl
+</form>
+<p></p><p><a href="http://cdsportal.u-strasbg.fr/StoreSimbadData.html?requestURL=http%3A%2F%2Fsimbad.u-strasbg.fr%2Fsimbad%2Fsim-sam%3Foutput.format%3DVOTable%26Criteria%3Dotype%3D%27IG%27+%2526+Bmag%3C12%26maxObject%3D10000%26OutputMode%3DLIST&destURL=http%3A%2F%2Fsimbad.u-strasbg.fr%2Fsimbad%2Fsim-sam%3FCriteria%3Dotype%3D%27IG%27+%2526+Bmag%3C12%26submit%3Dsubmit+query%26maxObject%3D10000%26OutputMode%3DLIST&target=otype='IG'%20%26%20Bmag%3C12">Store this result in the CDS portal</a></p><p>To bookmark this query, right click on this link: <a href="http://simbad.u-strasbg.fr/simbad/sim-sam?Criteria=otype%3d%27IG%27%20%26%20Bmag%3c12&submit=submit%20query&maxObject=10000&OutputMode=LIST">simbad:otype='IG' &amp; Bmag&lt;12</a> and select 'bookmark this link' or equivalent in the popup menu</p></div>
+<div class="cdstail">
+<hr class="simbad">
+<div>
+<div>2013.04.08-15:12:59</div>
+<div>
+<p>© UDS/CNRS</p>
+<p><a href="mailto:cds-question@unistra.fr?Subject=Simbad"><i class="icon-envelope"></i> Contact</a></p>
+</div>
+</div>
+</div>
+
+<script type="text/javascript" src="file:///home/boch/workspace/AladinLite/distrib/aladin-0.5.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+    var aladin = $.aladin('#aladinDiv', {target: 'NGC 5474', zoom: 0.2, cooFrame: 'J2000'});
+</script>
+<script>
+$(document).ready(function() {
+    //var aladin = $.aladin('aladinDiv', {target: 'NGC 5474', zoom: 0.2, frame: 'J2000'});
+    $('#dataTable tr').click(function() {
+        var raStr = $(this).find('td').eq(3).html();
+        var decStr = $(this).find('td').eq(4).html();
+        var coo = new Coo();
+        coo.parse(raStr + " " + decStr.substr(1));
+        aladin.gotoPosition(coo.lon, coo.lat);
+    });
+});
+</script>
+
+
+</body></html>

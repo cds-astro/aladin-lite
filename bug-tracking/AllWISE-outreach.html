@@ -1,0 +1,78 @@
+<html>
+
+<head>
+  
+  <meta charset="utf-8">
+  <title>AllWISE visualized in Aladin Lite</title>
+  
+  <link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+      <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+  <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script> 
+  
+  <style>
+  section {
+/*    width: 80%;*/
+    margin: auto;
+    padding: 10px;
+}
+div#aladin-lite {
+    float: left;
+    margin-right: 20px;
+}
+div#jump li {
+cursor: pointer;
+text-decoration: underline;
+color: blue;
+}
+  </style>
+
+</head>
+
+<body>
+
+<h2>AllWISE color composition</h2>
+<h3>(Red = w3, Green = w2, Blue = w1)</h3>
+
+<section>
+
+<div id="aladin-lite" style="width: 800px; height: 500px;"></div>
+<div id="jump">Hello</div>
+</section>
+  
+  
+  <script>
+    var aladin = $.aladin('#aladin-lite', {zoom: 120, cooFrame: 'galactic'});
+    aladin.setImageSurvey(aladin.createImageSurvey('AllWISE', 'AllWISE', 'http://alasky.u-strasbg.fr/AllWISE/RGB', 'j2000', 8));
+    
+    var pois = [
+               {name: 'Lagoon Nebula', ra:270.90416667, dec: -24.38666667, fov: 1},
+               {name: 'M 83', ra:204.25382917 , dec: -29.86576111, fov: 0.3},
+               {name: 'Omega Centauri', ra: 201.6970000, dec: -47.47947222, fov: 1},
+               {name: 'Pleiades', ra: 56.75000000, dec: 24.11666667, fov: 2.3},
+               {name: 'IC 342', ra: 56.70214167, dec: 68.09610556, fov: 0.6}
+               //{name: '', ra:, dec:, fov: }
+               
+               
+               ];
+    
+    var html = "Jump to:\n";
+    html += "<ul>\n";
+    for (var k=0; k<pois.length; k++) {
+        var poi = pois[k];
+        html += "<li data-index='" + k + "'>" + poi.name + "</li>\n"
+    }
+    html += "</ul>";
+    
+    $('#jump').html(html);
+    
+    $('#jump').delegate("li", "click", function() {
+        var poi = pois[$(this).data().index];
+        aladin.gotoRaDec(poi.ra, poi.dec);
+        aladin.setZoom(poi.fov);
+    });
+    
+  </script>
+
+</body>
+
+</html>

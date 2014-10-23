@@ -1,0 +1,316 @@
+<html>
+
+<head>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/jquery.snippet-peachpuff.css" rel="stylesheet">
+  
+  <style>
+    #options {border: #000 solid 1px;padding: 10px;}
+    #availableSurveysSelect {width: 350px;}
+    .dimension {width: 80px;}
+    .form-horizontal .control-group {margin-bottom: 5px;}
+    .form-horizontal .control-label {padding-top: 5px;}
+    body {margin: 15px;}
+    input[type="number"], input[type="text"] {height: initial;}
+    #embedding-code pre {height: 360px;font-size: 12px;}
+  </style>
+
+<script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="js/jquery.snippet.min.js"></script>
+    
+</head>
+
+<body>
+    Choose options:
+    <form id="options" class="form-horizontal">
+
+     <div class="control-group">
+        <label class="control-label" for="width">Width</label>
+          <div class="controls">
+            <input id="width" class="dimension" type="number" value="400" pattern="\d*"> px
+          </div>
+      </div>
+     <div class="control-group">
+        <label class="control-label" for="height">Height</label>
+          <div class="controls">
+            <input id="height" class="dimension" type="number" value="400" pattern="\d*"> px
+          </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label" for="availableSurveysSelect">Image survey</label>
+          <div class="controls">
+            <select id="availableSurveysSelect">
+
+            </select>
+          </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label" for="target">Initial location</label>
+          <div class="controls">
+            <input id="target" type="text" placeholder="Position or object name">
+          </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label" for="zoom">Initial FoV</label>
+          <div class="controls">
+            <input id="zoom" class="dimension" type="text" value="60" > degrees
+          </div>
+      </div>
+      <!--
+      <div class="control-group">
+        <div class="controls">
+          <label class="checkbox">
+            <input id="loadVOTable" type="checkbox"> Load VOTable
+          </label>
+        </div>
+      <div class="control-group">
+        <div class="controls">
+          <label class="checkbox">
+            <input id="loadVOTable" type="text" value="http://">
+          </label>
+        </div>
+      </div>
+      -->
+    </form>
+    
+    Then copy/paste the following code in your page:
+    <div id="embedding-code">
+      <pre></pre>
+    </div>
+</body>
+
+<script>
+$(document).ready(function() {
+
+    var availableSurveys;
+
+    var generateEmbeddedCode = function() {
+        var w, h;
+        w = parseInt($('#width').val());
+        h = parseInt($('#height').val());
+        if (isNaN(w)) {
+            w = 400;
+        }
+        if (isNaN(h)) {
+            h = 400;
+        }
+        
+        var zoom = parseFloat($('#zoom').val());
+        var target = $('#target').val();
+        
+
+        var surveyId = $('#availableSurveysSelect').find(':selected').val();
+        
+        var options = '{survey: "' + surveyId + '"'
+        if (!isNaN(zoom)) {
+            options += ', fov:' + zoom;
+        }            
+        if (target.length!="") {
+            options += ', target: "' + target + '"';
+        }
+        options += '}';
+        
+        var code = "&lt;!-- include Aladin Lite CSS file in the head section of your page --&gt;\n" +
+                   "&lt;link rel=\"stylesheet\" href=\"http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css\" /&gt;\n&nbsp;\n" +
+                   "&lt;!-- you can skip the following line if your page already integrates the jQuery library --&gt;\n" + 
+                   "&lt;script type=\"text/javascript\" src=\"http://code.jquery.com/jquery-1.9.1.min.js\" charset=\"utf-8\"&gt;&lt;/sc" + "ript&gt;\n&nbsp;\n" +
+                   "&lt;!-- insert this snippet where you want Aladin Lite viewer to appear and after the loading of jQuery --&gt;\n\n" +
+                   "&lt;div id=\"aladin-lite-div\" style=\"width:" + w + "px;height:" + h + "px;\"&gt;&lt;/div&gt;\n" +
+                   "&lt;script type=\"text/javascript\" src=\"http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js\" charset=\"utf-8\"&gt;&lt;/sc" + "ript&gt;\n" +
+                   "&lt;script type=\"text/javascript\"&gt;\n" +
+                   "    var aladin = A.aladin('#aladin-lite-div', " + options + ");\n" +
+                   "&lt;/sc" + "ript&gt;";
+        $("#embedding-code").empty();          
+        $("#embedding-code").html("<pre>" + code.replace("<", "&lt;").replace(">", "&gt;") + "</pre>");
+        $("#embedding-code pre").snippet("html", {style: "peachpuff", menu: false, showNum: false});
+
+
+    };
+    
+    var getSurveyFromId = function(id) {
+        for (var k=0, len=availableSurveys.length; k<len; k++) {
+            if (id==surveys[k].id) {
+                return surveys[k];
+            }
+        }
+        
+        return null;
+    }
+    
+    var fillAvailableSurveysDropdown = function(surveys) {
+        surveys = surveys.sort(function(a, b) {return a.order > b.order ? 1 : -1;});
+        var str = "";
+        var s;
+        for (var k=0, len=surveys.length; k<len; k++) {
+            s = surveys[k];
+            var selected = "";
+            if (s.id=="P/DSS2/color") {
+                selected = "selected";
+            }
+            
+            str += "<option value='" + s.id + "' " + selected + " >" + s.name + "</option>\n";
+        }
+        $('#availableSurveysSelect').append(str);
+    }
+    
+    var callbackFunctionSuccess = function(data) {
+        availableSurveys = data;
+        
+        fillAvailableSurveysDropdown(availableSurveys);
+        generateEmbeddedCode();
+    };
+    
+    var callbackFunctionError = function() {
+        // default list of surveys
+        availableSurveys = [
+                            {
+                                "id": "P/2MASS/color",
+                                "description": "2MASS colored",
+                                "url": "http://alasky.u-strasbg.fr/2MASS/Color",
+                                "copyright": "from IPAC/NASA - healpixed by CDS",
+                                "copyrightUrl": "http://www.ipac.caltech.edu/2mass/",
+                                "name": "2MASS colored",
+                                "treePath": "Image/Infrared/2MASS",
+                                "maxOrder": 9,
+                                "frame": "galactic",
+                                "order": "04-04-00"
+                             },
+                             {
+                                "id": "P/DSS2/color",
+                                "description": "DSS2 optical HEALPix survey, color",
+                                "url": "http://alaskybis.u-strasbg.fr/DssColor",
+                                "copyright": "Digitized Sky Survey - STScI/NASA, Healpixed by CDS",
+                                "copyrightUrl": "http://archive.stsci.edu/dss/acknowledging.html",
+                                "name": "DSS colored",
+                                "order": "00",
+                                "treePath": "Image/Optical/DSS",
+                                "maxOrder": 9,
+                                "frame": "galactic"
+                             },
+                             {
+                                "id": "P/DSS2/red",
+                                "description": "DSS2-F North and DSS2-R South merged survey (Red)",
+                                "url": "http://alaskybis.u-strasbg.fr/DSS/DSS2Merged",
+                                "copyright": "Digitized Sky Survey - STScI/NASA, Healpixed by CDS",
+                                "copyrightUrl": "http://archive.stsci.edu/dss/acknowledging.html",
+                                "name": "DSS2 Red (F+R)",
+                                "treePath": "Image/Optical/DSS",
+                                "maxOrder": 9,
+                                "frame": "galactic",
+                                "order": "03-01-02"
+                             },
+                             {
+                                "id": "P/Finkbeiner",
+                                "description": "Finkbeiner Halpha composite survey",
+                                "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
+                                "copyright": "Composite map by Douglas Finkbeiner (2004).",
+                                "maxOrder": 3,
+                                "frame": "galactic",
+                                "treePath": "Image/Line/Halpha",
+                                "name": "Halpha",
+                                "order": "06-03-G0"
+                             },
+                             {
+                                "id": "P/GALEXGR6AIS/color",
+                                "description": "GALEX GR6 AIS - vsn02 - Color composition",
+                                "url": "http://alasky.u-strasbg.fr/GALEX/GR6-02-Color",
+                                "copyright": "from STScI (NASA) - healpixed by CDS",
+                                "treePath": "Image/UV/GALEX-AIS",
+                                "copyrightUrl": "http://galex.stsci.edu/GR6/",
+                                "name": "GALEX AIS Colored",
+                                "maxOrder": 8,
+                                "frame": "galactic",
+                                "order": "02-01-03"
+                             },
+                             {
+                                "id": "P/IRAC/color",
+                                "description": "IRAC color survey in Healpix",
+                                "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
+                                "copyright": "Spitzer mission - JPL/NASA",
+                                "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+                                "order": "04-03-00",
+                                "treePath": "Image/Infrared/Spitzer",
+                                "maxOrder": 3,
+                                "frame": "galactic"
+                             },
+                             {
+                                "id": "P/IRIS/color",
+                                "description": "IRAS-IRIS colored",
+                                "url": "http://alasky.u-strasbg.fr/IRISColor",
+                                "name": "IRAS-IRIS colored",
+                                "treePath": "Image/Infrared/IRAS",
+                                "maxOrder": 3,
+                                "frame": "galactic",
+                                "order": "04-02-01"
+                             },
+                             {
+                                "id": "P/Mellinger/color",
+                                "description": "Mellinger optical survey, color",
+                                "url": "http://alaskybis.u-strasbg.fr/MellingerRGB",
+                                "copyright": "(c) Axel Mellinger. Permission is granted for use in research and personal,non-commercial use. Please contact Axel Mellinger for permission for other use",
+                                "name": "Mellinger colored",
+                                "treePath": "Image/Optical",
+                                "maxOrder": 4,
+                                "frame": "galactic",
+                                "order": "03-03"
+                             },
+                             {
+                                "id": "P/SDSS7/color",
+                                "description": "SDSS 7 color",
+                                "url": "http://alaskybis.u-strasbg.fr/SDSS/Color",
+                                "copyright": "SLOAN Digitized Sky Survey - Healpixed by CDS",
+                                "copyrightUrl": "http://www.sdss.org/",
+                                "name": "SDSS colored",
+                                "order": "03-02",
+                                "treePath": "Image/Optical",
+                                "maxOrder": 10,
+                                "frame": "galactic"
+                             },
+                             {
+                                "id": "P/XMM/EPIC",
+                                "description": "XMM-Newton stacked EPIC images (no phot. normalization)",
+                                "url": "http://saada.u-strasbg.fr/xmmallsky",
+                                "copyright": "SSC/XMM-Newton",
+                                "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
+                                "treePath": "Image/X",
+                                "maxOrder": 3,
+                                "frame": "galactic",
+                                "order": "01-01"
+                             },
+                          ];
+        
+        fillAvailableSurveysDropdown(availableSurveys);
+        generateEmbeddedCode();
+    };
+    
+    // retrieve available surveys
+    $.ajax({
+        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
+        data: {"frame": "aladinLiteDic"},
+        method: 'GET',
+        dataType: 'jsonp',
+        success: callbackFunctionSuccess,
+        error: callbackFunctionError
+    });
+    
+    // various listeners
+    $('#width').on("change keyup", function() {
+        generateEmbeddedCode();
+    });
+    $('#height').on("change keyup", function() {
+        generateEmbeddedCode();
+    });
+    $('#zoom').on("change keyup", function() {
+        generateEmbeddedCode();
+    });
+    $('#target').on("change keyup", function() {
+        generateEmbeddedCode();
+    });
+    $('#availableSurveysSelect').change(function() {
+        generateEmbeddedCode();
+    });
+    
+});
+</script>
+
+</html>

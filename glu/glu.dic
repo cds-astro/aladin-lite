@@ -1,0 +1,37 @@
+################ Marques GLU Aladin lite ########
+
+%A AladinLite
+%D Instance d'AladinLite pour une dimension, une target, un zoom et un survey donnés
+%O portal
+%Z CDS
+%U http://aladin.u-strasbg.fr/AladinLite/app/?survey=$1&zoom=$2&target=$3&width=$4&height=$5
+%P.D 1: Survey identifier (e.g: P/DSS2/red)
+%P.D 2: Zoom value in degrees
+%P.D 3: Target (object name or position)
+%P.D 4: Width of Aladin Lite
+%P.D 5: Height of Aladin Lite
+
+
+%A AladinLite.home
+%D Home page Aladin Lite
+%O portal
+%Z CDS
+%U http://aladin.u-strasbg.fr/AladinLite/
+%L <a href="$url" title="Aladin Lite home page">Aladin Lite</a>
+%Test noparam pattern="Aladin Lite"
+
+%A AladinLite.js
+%D Javascript file for Aladin Lite
+%O portal
+%Z CDS
+%U <&AladinLite.home,u>api/v1/aladin.min.js
+%Test noparam pattern="Aladin=function"
+
+#################################################
+
+%A Sesame.jsonp
+%D Service Sesame retournant du JSONP [utilisé par Aladin Lite]
+%O portal
+%Z CDS
+%U http://cds.u-strasbg.fr/cgi-bin/nph-sesame.jsonp?object=$1&callback=$2
+%Test param="hd42195 myCallback" pattern="92.8"

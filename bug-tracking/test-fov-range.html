@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<style>
+
+    html, body, #aladin-lite-div {
+        height: 600px;
+        width: 800px;
+    }
+</style>
+
+<!-- <link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+ -->
+<link rel="stylesheet" href="../distrib/aladin-0.5.1.min.css" /> </head>
+
+
+</head>
+
+
+
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" ></div>
+<!-- <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script> 
+ -->
+ <script type="text/javascript" src="../distrib/aladin-0.5.1.js" charset="utf-8"></script>
+ 
+ <script>
+
+var aladin = $.aladin('#aladin-lite-div', {survey: 'P/SPITZER/color', zoom: 20, cooFrame: 'gal'});
+aladin.setFOVRange(0.5, 30);
+aladin.gotoPosition(0.0, 0.0);
+    
+    
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+.container-fluid {padding-left: 0px;}
+
+.navbar {
+	padding-bottom: 0px;
+}
+
+.subhead {
+	padding: 20px 0;
+	color: rgb(255, 255, 255);
+	background-image:url('img/random_grey.png');
+    background-repeat:repeat;
+}
+
+.aladinlite-sidenav {
+	width: 200px;
+}
+
+.subhead p {
+	font-size: 24px;
+}
+
+.subhead h1 {
+	font-size: 50px;
+	line-height: 1;
+}
+
+.content {
+	margin-top: 30px;
+	margin-bottom: 15px;
+}
+
+.affix {
+	top: 10px;
+}

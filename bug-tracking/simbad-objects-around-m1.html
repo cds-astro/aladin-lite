@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<style>
+
+/*     body {
+      padding: 0;
+      margin: 0;
+    }
+ */
+    html, body, #aladin-lite-div {
+        height: 600px;
+        width: 800px;
+    }
+</style>
+
+<link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" ></div>
+<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = A.aladin('#aladin-lite-div', {target: "M1", survey: "P/DSS2/color", zoom: 1, reticleColor: '#099', reticleSize: 50});
+    
+    aladin.addCatalog(aladin.createCatalogFromVOTable('http://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-cs.py?target=M1&SR=14.0&format=votable&SRUNIT=arcmin'));
+    
+
+    
+    
+</script>
+</body>
+</html>

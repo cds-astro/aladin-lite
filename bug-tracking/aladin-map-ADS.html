@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+<style>
+#aladin-lite-div {
+    height: 650px;
+    width: 650px;
+}
+
+#bibcodeList {
+    width: 400px;
+}
+</style>
+
+<!-- <link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" /> -->
+<link rel="stylesheet" href="../distrib/aladin-0.5.1.min.css" />
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<form id="bibcodeForm">Bibcodes: <input type="text" id="bibcodeList" value="1992ApJ...392L...9D 1992ApJ...393..193W 2006ApJ...640L..35B 2011MNRAS.414.2812D" /><input type="submit" /></form>
+<br />
+<input type="button" id="selectBtn" value="Select objects" />
+
+
+<div id="aladin-lite-div" ></div>
+<!-- <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script> -->
+<script type="text/javascript" src="../distrib/aladin-0.5.1.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+
+    function newCatLayer(aladinLite, objArray, layerName) {
+        var catalogLayer = a.createCatalog({name: layerName, sourceSize: 10});
+        aladinLite.addCatalog(catalogLayer);
+        var sources = [];
+        for (var k=0; k<objArray.length; k++) {
+            sources.push(aladinLite.createSource(objArray[k].ra, objArray[k].dec, objArray[k].data));
+        }
+        catalogLayer.addSources(sources);
+        
+    }
+
+
+    var a = $.aladin('#aladin-lite-div', {zoom: 180});
+        var url = 'http://cdsannotations.u-strasbg.fr/ADSAllSkySurvey/SimbadHeatMaps/healpix/allSources';
+          a.setImageSurvey(a.createImageSurvey('Simbad healpix layer', 'Simbad healpix layer', url, 'equatorial', 3));
+    //a.setImageSurvey(a.createImageSurvey('SIMBAD heatmap', 'SIMBAD heatmap', 'http://cdsannotations.u-strasbg.fr/ADSAllSkySurvey/SimbadHeatMaps/healpix/allSources', 'equatorial', 3));
+    //a.setImageSurvey(a.createImageSurvey('SIMBAD heatmap2000', 'SIMBAD 2000', 'http://cdsannotations.u-strasbg.fr/ADSAllSkySurvey/SimbadHeatMaps/healpix/date-2000', 'equatorial', 3));
+    //a.setImageSurvey(a.createImageSurvey('SIMBAD heatmap2001', 'SIMBAD 2001', 'http://cdsannotations.u-strasbg.fr/ADSAllSkySurvey/SimbadHeatMaps/healpix/date-2001', 'equatorial', 3));
+    //a.setImageSurvey(a.createImageSurvey('SIMBAD heatmap2002', 'SIMBAD 2002', 'http://cdsannotations.u-strasbg.fr/ADSAllSkySurvey/SimbadHeatMaps/healpix/date-2002', 'equatorial', 3));
+
+    $('#bibcodeForm').submit(function() {
+var base = a.getBaseImageLayer();
+console.log(base);
+var cm = base.getColorMap();
+console.log(cm);;
+cm.update('rainbow');
+
+        return false;
+
+        a.removeLayers();
+        var list = $('#bibcodeList').val().replace(' ', ',');
+        // query SIMBAD with list of bibcodes
+                $.ajax({
+            url: "http://simbad.harvard.edu/simbad/sim-nameresolver",
+            data: {"bibcode": list, 'data': 'I.0,b,C.0(S;1),J,S(S,Q,B),T(M,Q,B)', 'output': 'json'},
+            method: 'GET',
+            dataType: 'jsonp',
+            success: function(data) {
+                layersData = {'Stars': [], 'ISM': [], 'Galaxy': [], 'Radio sources': [], 'Other': []};
+                var otype, category;
+                for (var k=0; k<data.length; k++) {
+                    otype = data[k].otype;
+                    if (otype=='Star') {
+                        category = 'Stars';
+                    }
+                    else if (otype=='ISM') {
+                        category = 'ISM';
+                    }
+                    else if (otype=='Galaxy') {
+                        category = 'Galaxy';
+                    }
+                    else {
+                        category = 'Other';
+                    }
+                    layersData[category].push({ra: data[k].ra, dec: data[k].dec, data: {reflist: data[k].reflist, otype: data[k].otype}});
+                }
+                for (var category in layersData) {
+                    if (layersData[category].length==0) {
+                        continue;
+                    }
+                    newCatLayer(a, layersData[category], category);
+                }
+            },
+            error: function() {
+                console.log('Something wrong occured');
+            }
+        });
+        return false;
+    });
+    
+    a.on('select', function(sources) {
+     // do something with the selected sources
+     
+        console.log(sources.length);
+        console.log(sources);
+     });
+    
+    $('#selectBtn').click(function() {
+         a.select();
+    });
+    
+    
+</script>
+</body>
+</html>
+

@@ -1,0 +1,48 @@
+23 octobre 2014:
+- bug fix méthode on('objectClicked') était appelée de manière intempestive 
+quand la souris quittait le canvas
+
+21 octobre 2014:
+- ajout option shape (plus ou square) pour les catalogues
+
+20 octobre 2014:
+- amélioration on objectClicked et objectHivered. On envoie une valeur nulle pour signifier qu'on quitte l'objet
+- ajout méthode pour dessiner un cercle (A.circle)
+
+16 septembre 2014:
+- bug fix pour nouvelle version de Firefox. Aladin lite freezait. On ne crée plus les textures individuelles pour le allsky
+
+24 avril 2014 :
+Ajout dans API :
+- getSize
+- getFov
+- world2pix
+- pix2world
+- getFovCorners
+
+Novembre 2013:
+- ajout catalogues progressifs
+- ajout option pour fullScreen mode au démarrage
+- ajout méthode setFOVRange
+- polyfill pour Function.prototype.bind (pour Firefox < 4)
+
+Septembre 2013:
+- color maps
+
+Août 2013:
+- ajout page exemple full-screen.html
+- ajout bouton maximize in fullscreen
+- CSS dans fichier séparé
+- image réticule "cachée"
+- options pour personnaliser le réticule
+- revamped UI for layers
+- export PNG (nécessite support CORS)
+
+Juillet 2013 :
+- ajout boutons zoom
+- ajout sélection d'objets
+
+Fin 2013 :
+- ajout catalogue progressif
+- ajout on select, objectClicked, objectHovered
+

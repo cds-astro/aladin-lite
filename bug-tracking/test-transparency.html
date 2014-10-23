@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+<style>
+html, body {
+padding: 10px;
+}
+</style>
+</head>
+<body>
+
+<link href="http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+
+Utilisez le slider ci-dessous pour faire varier le niveau d'opacite :
+
+  <br/>
+  <div id="slider" style="width: 400px;"></div>
+  
+<br/>
+<div id="aladin-lite-div" style="width: 800px;height: 600px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = $.aladin('#aladin-lite-div', {target: "gal center",zoom: 12, cooFrame: 'gal'});
+
+    aladin.setBaseImageLayer("P/DSS2/red");
+    aladin.setOverlayImageLayer(aladin.createImageSurvey("XMM Color", "XMM Color", "http://saada.unistra.fr/xmmpnsky/", "equatorial", 7, {imgFormat: 'png'}));
+    
+    var initialValue = 0.5;
+    aladin.getOverlayImageLayer().setAlpha(initialValue);
+    
+    $( "#slider" ).slider({slide: function( event, ui ) {aladin.getOverlayImageLayer().setAlpha(ui.value/100.0);}, value: initialValue*100, min: 0, max: 100 });
+
+    
+    /*
+    aladin.setImageSurvey(aladin.createImageSurvey('SHS2', 'SHS2',
+            'http://alaskybis.u-strasbg.fr/SHS/', 'equatorial', 10));
+    aladin.getBaseImageLayer().getColorMap().reverse();
+    */
+    
+
+    
+    
+</script>
+</body>
+</html>

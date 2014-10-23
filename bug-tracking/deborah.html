@@ -1,0 +1,17 @@
+
+<html>
+
+<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script>
+<!-- insert this snippet where you want Aladin Lite viewer to appear and after the loading of jQuery -->
+<div id="aladin-lite-div" style="width:300px;height:300px;"></div>
+<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/aladin.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+var aladin = $.aladin('#aladin-lite-div', {zoom:120});
+
+aladin.setImageSurvey(aladin.createImageSurvey("P/CGPS/II", "P/CGPS/II", 'http://cade.irap.omp.eu/documents/Ancillary/4Aladin/CGPS_II/', 'galactic', 4));
+aladin.setFrame('Galactic');
+aladin.gotoPosition(340, 65);
+
+</script>
+</html>
+

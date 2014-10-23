@@ -1,0 +1,33 @@
+<html>
+
+
+<body>
+
+
+<!-- you can skip this snippet if your page already integrates jQuery library -->
+<script type="text/javascript" src="../src/js/libs/jquery-1.9.1.min.js" charset="utf-8"></script>
+
+
+<!-- insert this snippet where you want Aladin Lite viewer to appear and after the loading of jQuery -->
+<div id="aladin-lite-div" style="width:500px;height:400px;"></div>
+<script type="text/javascript" src="../distrib/aladin-0.5.js" charset="utf-8"></script>
+<script type="text/javascript">
+    //var aladin = $.aladin('#aladin-lite-div', {survey: "P/2MASS/color", target: "M51", zoom: 0.3, catalogUrls: ['http://vizier.u-strasbg.fr/viz-bin/votable?-source=II/246/out&-c=13+29+52.55+%2B47+10+33.7&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=15.8496666666666666', 'http://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-cs.py?target=M51&SR=1.0&format=votable&SRUNIT=arcmin']});
+    //var aladin = $.aladin('#aladin-lite-div', {survey: "P/2MASS/color", target: "12:01:52.60 -18:50:54.4", zoom: 0.5, catalogUrls: ['http://vizier.u-strasbg.fr/viz-bin/votable?-source=II/246/out&-c=M51&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=4.8496666666666666']});
+    var aladin = $.aladin('#aladin-lite-div', {survey: "P/DSS2/red", target: "12 01 10.19 -18 45 34.42", zoom: 0.5});
+
+    var overlay = aladin.createOverlay({color: '#00ff00'});
+    aladin.addOverlay(overlay);
+    var fps = aladin.createFootprintsFromSTCS('Polygon J2000 180.28364 -18.96335 180.29188 -18.96335 180.35920 -18.83957 180.35921 -18.83956 180.35921 -18.83351 180.22834 -18.77013 180.22010 -18.77013 180.15269 -18.89383 180.15268 -18.89988 180.15268 -18.89992');
+    fps[0].select();
+    overlay.addFootprints(fps);
+    overlay.addFootprints(aladin.createFootprintsFromSTCS('Polygon J2000 180.74436 -18.90167 180.75044 -18.90167 180.78824 -18.76744 180.78823 -18.76191 180.78822 -18.76185 180.64612 -18.72635 180.64003 -18.72635 180.60216 -18.86057 180.60216 -18.86059 180.60216 -18.86613'));
+    overlay.addFootprints(aladin.createFootprintsFromSTCS('Polygon J2000 180.44564 -19.07151 180.45411 -19.07151 180.52130 -18.94748 180.52130 -18.94143 180.39021 -18.87788 180.38174 -18.87788 180.31447 -19.00185 180.31446 -19.00789 180.31448 -19.00792 180.44562 -19.07150'));
+    overlay = aladin.createOverlay();
+    aladin.addOverlay(overlay);
+    overlay.addFootprints(aladin.createFootprintsFromSTCS('Polygon J2000 180.35216 -18.83702 180.36063 -18.83702 180.42784 -18.71320 180.42784 -18.70715 180.29736 -18.64320 180.28890 -18.64320 180.28886 -18.64322 180.22165 -18.76695 180.22163 -18.76699 180.22162 -18.77304'));
+    overlay.addFootprints(aladin.createFootprintsFromSTCS('Polygon J2000 180.51601 -18.94593 180.52243 -18.94593 180.52244 -18.94592 180.58957 -18.82190 180.58956 -18.81477 180.58956 -18.81475 180.45857 -18.75122 180.45215 -18.75122 180.45213 -18.75122 180.38494 -18.87520 180.38494 -18.87521 180.38494 -18.88234'));
+</script>
+
+</body>
+</html>

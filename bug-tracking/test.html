@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+<style>
+
+/*     body {
+      padding: 0;
+      margin: 0;
+    }
+ */
+    html, body, #aladin-lite-div {
+        height: 600px;
+        width: 800px;
+    }
+</style>
+
+<link rel="stylesheet" href="..//distrib/aladin-0.5.1.min.css" />
+</head>
+<body>
+
+<!-- <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script> -->
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<input type="button" id="selectBtn" value="Select" />
+<!-- <div id="aladin-statsDiv"></div> -->
+
+
+<div id="aladin-lite-div" ></div>
+<script type="text/javascript" src="../distrib/aladin-0.5.1.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    //var aladin = $.aladin('#aladin-lite-div', {target: "M 81", survey: "P/DSS2/red", zoom: 0.5, reticleColor: '#099', reticleSize: 50});
+    var aladin = $.aladin('#aladin-lite-div', {target: "Veil Nebula", survey: "P/DSS2/color", zoom: 3, reticleColor: '#099', reticleSize: 50});
+    
+    //aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=HIP2&-c=09+55+33.17+%2B69+03+55.1&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=228.0', {name: 'HIP2', sourceSize: 10, color: '#FF702B'}));
+    //aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=AKARI&-c=09+55+33.17+%2B69+03+55.1&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=228.0', {color: '#6688DD'}));
+    
+
+    var baseImage = aladin.getBaseImageLayer();
+    aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=Planck-DR1&-c=20+49+36.94+%2B31+08+54.8&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=113.39999999999999', {sourceSize:12}));
+    aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=HIP2&-c=20+49+36.94+%2B31+08+54.8&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=113.39999999999999'));
+    //baseImage.getColorMap().update('rainbow');
+    //aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=IRAS&-c=09+55+33.17+%2B69+03+55.1&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=228.0'));
+
+    //aladin.addCatalog(aladin.createCatalogFromVOTable('http://vizier.u-strasbg.fr/viz-bin/votable?-source=2MASX&-c=09+55+33.17+%2B69+03+55.1&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=999999&-c.rm=228.0', {name: '2MASX', sourceSize: 10, color: '#A82FA0'}));
+
+    aladin.on('select', function(sources) {
+     // do something with the selected sources
+     
+        console.log(sources.length);
+     });
+    
+    $('#selectBtn').click(function() {
+         aladin.select();
+    });
+    
+/*     $(document).ready(function() {
+        var c = document.createElement('canvas');
+        c.width = 200;
+        c.height = 200;
+        var ctx = c.getContext('2d');
+        
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        //img.crossOrigin = '';
+        //var src = "http://corsproxy.com/alasky.u-strasbg.fr/2MASS/Color/Norder7/Dir30000/Npix30277.jpg";
+        var src = "http://alasky.u-strasbg.fr/2MASS/Color/Norder7/Dir30000/Npix30277.jpg";
+
+        img.onload = function() {
+            ctx.drawImage(img, 100, 100);
+            console.log('onload');
+            var dataURL = c.toDataURL("image/png");
+            window.open(dataURL, "Aladin Lite snapshot");
+
+        }
+         img.src = src;
+  console.log(img.crossOrigin); 
+        
+        
+    });
+    */
+    
+    
+</script>
+</body>
+</html>

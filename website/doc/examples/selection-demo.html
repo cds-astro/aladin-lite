@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Aladin Lite selection demo</title>
+<link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+  </head>
+  
+  <body>
+    <div>
+      <div  id="aladinDiv" style="width:500px;height:500px;float: left;margin-right: 20px;"></div>
+    
+      <div style="overflow: hidden;">
+        <button id="selectBtn">Start selection</button>
+        <div id="explain"></div>
+      </div>
+    </div>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+    <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
+
+    <script>
+    // Aladin Lite initialization
+    var aladin = $.aladin('#aladinDiv', {target: 'M41', zoom: 0.4, cooFrame: 'J2000', showControl: true, survey: 'P/DSS2/color'});
+    // load and add SIMBAD tabular data
+    var cat = aladin.createCatalogFromVOTable('http://cdsxmatch.u-strasbg.fr/QueryCat/QueryCat?catName=SIMBAD&mode=cone&pos=M41&r=12arcmin&format=votable&limit=1000');
+    aladin.addCatalog(cat);
+    // what we do when objects are selected
+    aladin.on('select', function(sources) {
+        var html = '<pre>Selected objects:\n';
+        var s;
+        for (var k=0; k<sources.length; k++) {
+            s = sources[k];
+            s.select();
+            if (s.data && s.data['main_id']) {
+                html += '\n' + s.data['main_id'];
+            }
+            else {
+                html += '\nUnknown';
+            }
+        }
+        html += '</pre>';
+        $('#explain').html(html);
+    });
+    
+    // bind selectBtn
+    $(document).ready(function() {
+        $('#selectBtn').click(function() {
+             cat.deselectAll();
+             $('#explain').html("Drag a rectangle in Aladin Lite view to select some objects");
+             // start selection
+             aladin.select();
+        });
+       
+    });
+    </script>
+
+
+  </body>
+</html>

@@ -1,0 +1,40 @@
+.halfWidth {
+    position: relative;
+    width: 50%;
+    float: left;
+}
+
+.bordered {
+    border: 1px solid #ddd;
+    margin-right: 30px;
+    margin-bottom: 10px;
+}
+
+.parent {
+    padding-left: 30px;
+    padding-right: 30px;
+}
+
+.explain {
+    padding-left: 30px;
+    font-size: 20px;
+
+}
+
+#js {
+    height: 400px;
+    font-size: 14px;
+}
+
+#html {
+    height: 180px;
+    font-size: 14px;
+}
+
+#result {
+    border: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.

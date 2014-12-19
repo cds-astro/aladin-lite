@@ -1,0 +1,10 @@
+[
+    {"title": "Aladin Lite initialization in responsive div", "url": "AL-in-responsive-div/"},
+    {"title": "Aladin Lite created with initial options", "url": "AL-init-custom-options/"},
+    {"title": "Set an image layer by name", "url": "image-layer-by-name/"},
+    {"title": "Overlay an image layer on a base image layer", "url": "overlay-image-layer/"},
+    {"title": "Set the color map of an image layer", "url": "color-map/"},
+    {"title": "Load a table from a VOTable URL", "url": "load-votable/"},
+    {"title": "Add some footprints overlays", "url": "footprints/"},
+    {"title": "Demo page for AAS 225", "url": "AAS225/"}
+]

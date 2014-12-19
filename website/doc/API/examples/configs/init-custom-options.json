@@ -1,0 +1,6 @@
+{
+    "title": "Custom options at initialization",
+    "html": "<link rel='stylesheet' href='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 500px; height:500px;'></div>\n<script type='text/javascript' src='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
+    "js": "var aladin = A.aladin('#aladin-lite-div',\n                  {\n                    survey: 'P/allWISE/color', // set initial image survey\n                    fov: 1.5, // initial field of view in degrees\n                    target: 'NGC 2175', // initial target\n                    cooFrame: 'galactic', // set galactic frame\n                    reticleColor: '#ff89ff', // change reticle color\n                    reticleSize: 64 // change reticle size\n});",
+    "explain": "Aladin Lite created with multiple custom options (initial FoV size, initial target, initial survey, etc)"
+}

@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<style type="text/css">
+#footprintTable tr:hover {
+    cursor: pointer;
+    background: #dddddd;
+}
+</style>
+<link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+
+<body>
+
+
+<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script>
+
+Footprints extracted from <a href="http://cxc.harvard.edu/cda/footprint/cdaview_help.html">Chandra Footprint service</a> (in red) and <a href="http://hla.stsci.edu/">HLA</a> SIAP service (in blue).
+<br/>
+Hover one of the row of the table to highlight the corresponding footprint.
+<br/><br/>
+<div>
+  <!-- insert this snippet where you want Aladin Lite viewer to appear and after the loading of jQuery -->
+  <div style="position:fixed">
+    <div id="aladin-lite-div" style="width:500px;height:400px;"></div>
+  </div>
+  <div style="margin-left: 510px;">
+    <table id="footprintTable">
+      <thead>
+        <tr><th></th><th>Origin</th><th>RA</th><th>Dec</th><th>Image access</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>180.47375</td><td>-18.8765277777778</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=315&imagetype=fits&resole>ution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>12:01:53.70</td><td>-18:52:35.5</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=315&imagetype=fits&resolution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>12:01:53.70</td><td>-18:52:35.5</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=315&imagetype=fits&resolution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>12:01:53.70</td><td>-18:52:35.5</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=3040&imagetype=fits&resolution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>12:01:53.70</td><td>-18:52:35.5</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=3040&imagetype=fits&resolution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>Chandra</td><td>12:01:53.70</td><td>-18:52:35.5</td><td><a href="http://cxc.harvard.edu/cgi-gen/cda/get_image.pl?obsid=3040&imagetype=fits&resolution=low">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:02:06.37</td><td>-18:51:57.8</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=HST_10187_03_ACS_WFC_total">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:50.72</td><td>-18:53:15.2</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=HST_10188_10_ACS_WFC_F435W">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:43.03</td><td>-19:00:06.9</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=HST_10188_21_ACS_WFC_F550M">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:32.23</td><td>-19:00:59.3</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=HST_10188_30_ACS_WFC_F550M">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:58.97</td><td>-18:47:04.3</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=hst_07553_0y_wfpc2_total_wf">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:34.29</td><td>-18:48:41.2</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=hst_08027_01_wfpc2_total_wf">URL</a></td></tr>
+        <tr><td><input type="checkbox" checked></td><td>HLA</td><td>12:01:51.39</td><td>-18:52:33.7</td><td><a href="http://hla.stsci.edu/cgi-bin/getdata.cgi?dataset=hst_11962_11_wfpc2_total_wf">URL</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+    var aladin = $.aladin('#aladin-lite-div', {survey: "P/DSS2/color", target: "12 01 53.170 -18 52 37.92", zoom: 0.5});
+
+    var stcsArrayChandra = ['Polygon J2000 180.74436 -18.90167 180.75044 -18.90167 180.78824 -18.76744 180.78823 -18.76191 180.78822 -18.76185 180.64612 -18.72635 180.64003 -18.72635 180.60216 -18.86057 180.60216 -18.86059 180.60216 -18.86613', 'Polygon J2000 180.52285 -18.96682 180.52893 -18.96682 180.52896 -18.96682 180.56694 -18.83220 180.56694 -18.82666 180.56694 -18.82665 180.42501 -18.79073 180.41892 -18.79073 180.41892 -18.79074 180.38081 -18.92533 180.38081 -18.93087 180.38083 -18.93089', 'Polygon J2000 180.49008 -19.10418 180.49014 -19.10418 180.52818 -18.96956 180.52818 -18.96402 180.38612 -18.92807 180.38004 -18.92807 180.34185 -19.06265 180.34185 -19.06819 180.34190 -19.06822 180.48400 -19.10418', 'Polygon J2000 180.72458 -18.97053 180.73117 -18.97053 180.79180 -18.84372 180.79179 -18.83775 180.79179 -18.83773 180.65769 -18.78069 180.65110 -18.78069 180.59040 -18.90748 180.59040 -18.90749 180.59040 -18.91346', 'Polygon J2000 180.66231 -19.10061 180.66890 -19.10061 180.66891 -19.10060 180.72957 -18.97379 180.72958 -18.97378 180.72957 -18.96781 180.59570 -18.91010 180.58911 -18.91010 180.52833 -19.03689 180.52834 -19.04286', 'Polygon J2000 180.55712 -18.87059 180.56371 -18.87059 180.62437 -18.74362 180.62437 -18.73766 180.62436 -18.73765 180.49033 -18.68021 180.49032 -18.68021 180.48373 -18.68021 180.42300 -18.80714 180.42300 -18.81311'];
+    var stcsArrayHLA = ['Polygon J2000 180.50217550 -18.83468380 180.49063840 -18.89034230 180.52065280 -18.89390640 180.53218020 -18.83824610 Polygon J2000  180.55014260 -18.89687470 180.56230260 -18.84201220 180.53327000 -18.83878300 180.52110060 -18.89364360', 'Polygon J2000 180.42780530 -18.89193710 180.45438210 -18.90557680 180.45442265 -18.90551638 180.45519270 -18.90591150 180.45533181 -18.90570425 180.48071410 -18.91848920 180.48075191 -18.91843448 180.48152580 -18.91882420 180.51393380 -18.87191050 180.48813680 -18.85891900 180.48809779 -18.85897547 180.48732500 -18.85858620 180.47425057 -18.87751178 180.48731400 -18.85803820 180.46074110 -18.84440270 180.46069943 -18.84446480 180.45993060 -18.84407020 180.42784589 -18.89187664', 'Polygon J2000 180.41895388 -19.02839061 180.41888520 -19.02856220 180.44787380 -19.03682620 180.44794243 -19.03665467 180.46909480 -18.98376910 180.46890989 -18.98371641 180.46897870 -18.98354430 180.43999800 -18.97528350 180.41876870 -19.02833780 Polygon J2000  180.38970430 -19.01984470 180.38989272 -19.01989699 180.38982100 -19.02006910 180.41790410 -19.02786030 180.41797619 -19.02768818 180.43962560 -18.97569710 180.43943709 -18.97564483 180.43950920 -18.97547160 180.41143360 -18.96768360', 'Polygon J2000 180.36880709 -19.04023812 180.39881270 -18.99209170 180.39864047 -18.99201452 180.39873630 -18.99186070 180.37229610 -18.98000890 180.34218910 -19.02830480 180.34236160 -19.02838215 180.34226610 -19.02853530 180.36871160 -19.04039130 Polygon J2000  180.36956410 -19.04122990 180.39682600 -19.05368700 180.39691847 -19.05353399 180.42658270 -19.00443120 180.42641381 -19.00435405 180.42650660 -19.00420040 180.39925030 -18.99174740 180.36948740 -19.04099940 180.36965667 -19.04107677', 'Polygon J2000 180.48079483 -18.78685179 180.46896000 -18.78591000 180.46700500 -18.80795300 180.49031000 -18.80980500 180.49031749 -18.80972062 180.51149700 -18.81120600 180.51302110 -18.79172967 180.51322600 -18.79174300 180.51482700 -18.76968300 180.51474632 -18.76967775 180.49399237 -18.76832698 180.49304103 -18.76826501 180.49150600 -18.76816500 180.49068930 -18.77939744 180.48146300 -18.77871500', 'Polygon J2000 180.41471600 -18.79492900 180.39886100 -18.77867800 180.38167900 -18.79370000 180.38174044 -18.79376300 180.36627800 -18.80754800 180.38042392 -18.82176483 180.38027500 -18.82189900 180.38195047 -18.82356490 180.39638300 -18.83791300 180.41331600 -18.82265500 180.40511520 -18.81449956 180.41187800 -18.80851700 180.40599014 -18.80255660', 'Polygon J2000 180.45583700 -18.90148800 180.45590483 -18.90145843 180.45593517 -18.90152071 180.45596600 -18.90158400 180.45610049 -18.90152537 180.45613100 -18.90158800 180.47738100 -18.89232000 180.47734301 -18.89224199 180.49655200 -18.88364900 180.48772929 -18.86599325 180.48791500 -18.86590900 180.47781200 -18.84597000 180.47774665 -18.84599964 180.47768300 -18.84587400 180.47755129 -18.84593374 180.47751900 -18.84587000 180.45881261 -18.85435501 180.45868019 -18.85441507 180.45642900 -18.85543600 180.46157136 -18.86559001 180.45318500 -18.86930300 180.45684402 -18.87669376 180.44618607 -18.88134055 180.44605200 -18.88139900'];
+    var footprintsArrayChandra = [];
+    var footprintsArrayHLA = [];
+
+    var curFp = null;
+
+    for (var k=0, len=stcsArrayChandra.length; k<len; k++) {
+        footprintsArrayChandra.push(aladin.createFootprintsFromSTCS(stcsArrayChandra[k]));
+    }
+    var chandraOverlay = aladin.createOverlay();
+    aladin.addOverlay(chandraOverlay);
+    for (var k=0, len=footprintsArrayChandra.length; k<len; k++) {
+        chandraOverlay.addFootprints(footprintsArrayChandra[k]);
+    }
+
+    for (var k=0, len=stcsArrayHLA.length; k<len; k++) {
+        footprintsArrayHLA.push(aladin.createFootprintsFromSTCS(stcsArrayHLA[k]));
+    }
+    var hlaOverlay = aladin.createOverlay({color: '#4484ff'});
+    aladin.addOverlay(hlaOverlay);
+    for (var k=0, len=footprintsArrayHLA.length; k<len; k++) {
+        hlaOverlay.addFootprints(footprintsArrayHLA[k]);
+    }
+
+    $('#footprintTable tbody tr').mouseenter(function() {
+        //console.log($('#dataTable tr').index(this));
+        var idx = $('#footprintTable tbody tr').index(this)
+        if (curFp) {
+            for (var k=0, len=curFp.length; k<len; k++) {
+                curFp[k].deselect();
+            }
+        }
+        var fp = null;
+        if (idx<footprintsArrayChandra.length) {
+            fp = footprintsArrayChandra[idx];
+        }
+        else {
+            idx = idx - footprintsArrayChandra.length;
+            fp = footprintsArrayHLA[idx];
+        }
+        if (fp) {
+            for (var k=0, len=fp.length; k<len; k++) {
+                fp[k].select();
+            }
+            curFp = fp;
+        }
+    });
+    $('#footprintTable tbody tr').mouseleave(function() {
+       if (curFp) {
+            for (var k=0, len=curFp.length; k<len; k++) {
+                curFp[k].deselect();
+            }
+       } 
+    });
+
+    // listener on checkboxes
+    var cbs = $('#footprintTable tbody tr td input');
+    for (var i=0; i<cbs.length; i++) {
+        $(cbs[i]).change(function () {
+           var idx = $('#footprintTable tbody tr td input').index(this)
+
+           var isChecked = $(this).is(':checked');
+           if (idx<footprintsArrayChandra.length) {
+               fp = footprintsArrayChandra[idx];
+           }
+           else {
+               idx = idx - footprintsArrayChandra.length;
+               fp = footprintsArrayHLA[idx];
+           }
+           if (isChecked) {
+            for (var k=0, len=fp.length; k<len; k++) {
+                fp[k].show();
+            }
+           }
+        else {
+            for (var k=0, len=fp.length; k<len; k++) {
+                fp[k].hide();
+            }
+        }
+        });
+    }
+
+</script>
+
+</body>
+</html>

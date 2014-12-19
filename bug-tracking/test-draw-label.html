@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+var aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'M1', fov: 0.3});
+//var cat = A.catalogFromURL('http://vizier.u-strasbg.fr/viz-bin/votable?-source=HIP2&-c=M51&-out.add=_RAJ,_DEJ&-oc.form=dm&-out.meta=DhuL&-out.max=9999&-c.rm=180', {sourceSize:12, color: 'pink', displayLabel: true, labelColumn: 'Plx', labelColor: 'white', labelFont: '15px Arial'});
+var cat = A.catalogFromURL('http://cdsxmatch.u-strasbg.fr/QueryCat/QueryCat?catName=SIMBAD&mode=cone&pos=M1&r=50arcmin&format=votable&limit=3000', {sourceSize:12, color: '#cc99bb', displayLabel: true, labelColumn: 'main_id', labelColor: '#ee4', labelFont: '9px sans-serif'});
+aladin.addCatalog(cat);
+
+    
+    
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+<style>
+html, body {
+padding: 10px;
+}
+</style>
+</head>
+<body>
+
+  <form id="url-form"><input type="text" id="url" style="width: 550px;" /></form>
+  
+<br/>
+<div id="aladin-lite-div" style="width: 800px;height: 600px"></div>
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = $.aladin('#aladin-lite-div', {target: "gal center",zoom: 12, cooFrame: 'gal'});
+
+    $('#url-form').submit(function(e) {
+        e.preventDefault();
+        console.log(aladin);
+        aladin.displayJPG($('#url').val());
+        return false;
+    });
+    //aladin.setBaseImageLayer("P/DSS2/red");
+    //aladin.setOverlayImageLayer(aladin.createImageSurvey("XMM Color", "XMM Color", "http://saada.unistra.fr/xmmpnsky/", "equatorial", 7, {imgFormat: 'png'}));
+    
+    
+    /*
+    aladin.setImageSurvey(aladin.createImageSurvey('SHS2', 'SHS2',
+            'http://alaskybis.u-strasbg.fr/SHS/', 'equatorial', 10));
+    aladin.getBaseImageLayer().getColorMap().reverse();
+    */
+    
+
+    
+    
+</script>
+</body>
+</html>

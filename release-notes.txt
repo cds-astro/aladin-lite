@@ -1,3 +1,11 @@
+Décembre 2014:
+- ajout displayLabel pour afficher d'un label d'un overlay Catalog
+- ajout option lineWidth pour objet A.graphicOverlay
+- bug fix : la liste déroulante est mise à jour correctement quand on change de frame programmatiquement
+
+Novembre 2014:
+- ajout nouvelles formes pour les sources
+
 23 octobre 2014:
 - bug fix méthode on('objectClicked') était appelée de manière intempestive 
 quand la souris quittait le canvas

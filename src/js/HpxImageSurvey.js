@@ -226,7 +226,24 @@ HpxImageSurvey = (function() {
           "maxOrder": 7,
           "frame": "equatorial",
           "format": "png jpeg"
-     }
+     },
+     {
+         "id": "P/allWISE/color",
+         "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+         "name": "AllWISE color",
+         "maxOrder": 8,
+         "frame": "equatorial",
+         "format": "jpeg"
+     },
+     {
+         "id": "P/GLIMPSE360",
+         "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+         "name": "GLIMPSE360",
+         "maxOrder": 9,
+         "frame": "equatorial",
+         "format": "jpeg"
+   }
+
   ];
 
 
@@ -390,6 +407,7 @@ HpxImageSurvey = (function() {
             });
             cornersXYViewMap = newCornersXYViewMap;
         }
+
         
     	for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
     		cornersXYView = cornersXYViewMap[k];

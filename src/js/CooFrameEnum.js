@@ -34,3 +34,17 @@ CooFrameEnum.fromString = function(str, defaultValue) {
         return defaultValue ? defaultValue : null;
     }
 };
+
+/**
+returns a short name for 
+*/
+CooFrameEnum.shortName = function(frameValue) {
+    if (frameValue==CooFrameEnum.J2000) {
+        return 'J2000';
+    }
+    if (frameValue==CooFrameEnum.GAL) {
+        return 'GAL';
+    }
+
+    return null;
+};

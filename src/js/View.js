@@ -621,14 +621,17 @@ View = (function() {
 		
 
 		// TODO : does not work if different frames 
-		// TODO : does not work if norder_max is greater than norder_max from imageSurvey
 		if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
 		    imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 	        if (this.fov>50) {
 		        this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
 	        }
 	        if (this.curNorder>=3) {
-	            this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
+                var norderOverlay = Math.min(this.curNorder, this.overlayImageSurvey.maxOrder);
+                if ( norderOverlay != this.curNorder ) {
+				    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
+                }
+	            this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, norderOverlay);
 	        }
            imageCtx.globalAlpha = 1.0;
 

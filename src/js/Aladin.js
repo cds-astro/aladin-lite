@@ -83,15 +83,14 @@ Aladin = (function() {
 		var frameInJ2000 = cooFrame==CooFrameEnum.J2000;
         
 		var locationDiv = $('<div class="aladin-location">'
-		                    + (options.showFrame ? '<select class="aladin-frameChoice"><option '
-		                    + (frameInJ2000 ? 'selected="selected"' : '') + '>J2000</option><option '
+		                    + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000 + '" '
+		                    + (frameInJ2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.GAL + '" '
 		                    + (! frameInJ2000 ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
 		                    + '<span class="aladin-location-text"></span></div>')
 		                    .appendTo(aladinDiv);
 		// div où on écrit la FoV
 		var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
 		
-		// TODO : mettre tous les styles dans un CSS !
 		
 		// zoom control
         if (options.showZoomControl) {
@@ -113,7 +112,7 @@ Aladin = (function() {
 
 
 		// Aladin logo
-		$("<div class='aladin-logo-container'><a href='http://aladin.u-strasbg.fr/AladinLite/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
+		$("<div class='aladin-logo-container'><a href='http://aladin.u-strasbg.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
 		
 		
 		// we store the boxes
@@ -365,13 +364,14 @@ Aladin = (function() {
         if (! frameName) {
             return;
         }
-        frameName = frameName.toLowerCase();
-        if (frameName.indexOf('j2000')==0) {
-            this.view.changeFrame(CooFrameEnum.J2000);
+        var newFrame = CooFrameEnum.fromString(frameName, CooFrameEnum.J2000);
+        if (newFrame==this.view.cooFrame)  {
+            return;
         }
-        else if (frameName.indexOf('gal')==0) {
-            this.view.changeFrame(CooFrameEnum.GAL);
-        }
+
+        this.view.changeFrame(newFrame);
+        // màj select box
+        $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame);
     };
 
 	Aladin.prototype.setProjection = function(projectionName) {
@@ -492,6 +492,13 @@ Aladin = (function() {
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
         return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);        
     };
+
+    // @api
+    // ne fonctionne pas : effet de bord étrange --> TODO
+    A.imageLayer = function(id, name, rootUrl, cooFrame, maxOrder, options) {
+        return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);
+    };
+
  
     // @api
     Aladin.prototype.getBaseImageLayer = function() {
@@ -524,7 +531,6 @@ Aladin = (function() {
         this.view.setOverlayImageSurvey(imageSurvey, callback);
     };
     
-    Aladin
 
     Aladin.prototype.increaseZoom = function(step) {
         if (!step) {
@@ -554,6 +560,7 @@ Aladin = (function() {
     Aladin.prototype.createSource = function(ra, dec, data) {
         return new cds.Source(ra, dec, data);
     };
+    // @oldAPI
     Aladin.prototype.createMarker = function(ra, dec, options, data) {
         options = options || {};
         options['marker'] = true;
@@ -574,13 +581,20 @@ Aladin = (function() {
         return fps;
     };
     
-    // API
+    // @oldAPI
     Aladin.prototype.createCatalogFromVOTable = function(url, options) {
-        var self = this;
-        var catalog = self.createCatalog(options);
+        return A.catalogFromURL(url, options);
+    };
+
+    // API
+    A.catalogFromURL = function(url, options, successCallback) {
+        var catalog = A.catalog(options);
         cds.Catalog.parseVOTable(url, function(sources) {
             catalog.addSources(sources);
-         });
+            if (successCallback) {
+                successCallback(sources);
+            }
+        });
         return catalog;
      };
      
@@ -626,6 +640,7 @@ Aladin = (function() {
          
      };
      
+     // TODO : LayerBox should be a separate object
      Aladin.prototype.showLayerBox = function() {
          var self = this;
          
@@ -662,7 +677,7 @@ Aladin = (function() {
              }
              var nbSources = cats[k].getSources().length;
              var title = nbSources + ' source' + ( nbSources>1 ? 's' : '');
-             str += '<li><div class="aladin-layerIcon" style="background: ' + cats[k].color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" title="' + title + '">' + name + '</label></li>'
+             str += '<li><div class="aladin-layerIcon" style="background: ' + cats[k].color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + cats[k].color + ';" title="' + title + '">' + name + '</label></li>';
          }
          str += '</ul>';
          layerBox.append(str);
@@ -837,14 +852,14 @@ Aladin = (function() {
      };
      
      /**
-      * Transform world coordinates to pixel coordinates
+      * Transform world coordinates to pixel coordinates in the view
       * 
       * @API
       * 
       * @param ra  
       * @param dec
       * 
-      * @return a [x, y] array with pixel coordinates. Returns null if the projection failed somehow
+      * @return a [x, y] array with pixel coordinates in the view. Returns null if the projection failed somehow
       *   
       */
      Aladin.prototype.world2pix = function(ra, dec) {
@@ -877,7 +892,7 @@ Aladin = (function() {
       */
      Aladin.prototype.getFovCorners = function(nbSteps) {
          // default value: 1
-         if (!nbSteps || nbSteps<1) {
+         if (!nbSteps || nbSteps<1) {
              nbSteps = 1;
          }
          
@@ -949,8 +964,15 @@ A.imageLayer = function(id, name, rootUrl, options) {
 };
 
 // @API
-A.source = function(ra, dec, data) {
-    return new cds.Source(ra, dec, data);
+A.source = function(ra, dec, data, options) {
+    return new cds.Source(ra, dec, data, options);
+};
+
+// @API
+A.marker = function(ra, dec, options, data) {
+    options = options || {};
+    options['marker'] = true;
+    return A.source(ra, dec, data, options);
 };
 
 // @API
@@ -978,6 +1000,60 @@ A.graphicOverlay = function(options) {
 // @API
 A.catalog = function(options) {
     return new cds.Catalog(options);
+};
+
+// @API
+/*
+ * Creates remotely a HiPS from a FITS image URL and displays it
+ */
+Aladin.prototype.displayFITS = function(url, options) {
+    options = options || {};
+    var data = {url: url};
+    if (options.color) {
+        data.color = true;
+    }
+    if (options.outputFormat) {
+        data.format = options.outputFormat;
+    }
+    if (options.order) {
+        data.order = options.order;
+    }
+    if (options.nocache) {
+        data.nocache = options.nocache;
+    }
+    $.ajax({
+        url: 'http://alasky.u-strasbg.fr/cgi/fits2HiPS',
+        data: data,
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.status!='success') {
+                alert('An error occured: ' + response.message);
+                return;
+            }
+            var label = options.label || "FITS image"; 
+            aladin.setOverlayImageLayer(aladin.createImageSurvey(label, label, response.data.url, "equatorial", response.data.meta.max_norder, {imgFormat: 'png'}));
+            aladin.setFoV(response.data.meta.fov);
+            aladin.gotoRaDec(response.data.meta.ra, response.data.meta.dec);
+            var transparency = (options && options.transparency) || 1.0;
+            aladin.getOverlayImageLayer().setAlpha(transparency);
+
+        }
+    });
+
+};
+
+// @API
+/*
+ * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
+ * and display it
+ */
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function(url, options) {
+    options = options || {};
+    options.color = true;
+    options.label = "JPG/PNG image";
+    options.outputFormat = 'png';
+    this.displayFITS(url, options);
 };
 
 

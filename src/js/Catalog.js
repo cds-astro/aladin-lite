@@ -15,7 +15,18 @@ cds.Catalog = (function() {
     	this.name = options.name || "catalog";
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 6;
+    	this.markerSize = options.sourceSize || 12;
     	this.shape = options.shape || "square";
+
+        this.displayLabel = options.displayLabel || false;
+        this.labelColor = options.labelColor || this.color;
+        this.labelFont = options.labelFont || '10px sans-serif';
+        if (this.displayLabel) {
+            this.labelColumn = options.labelColumn;
+            if (!this.labelColumn) {
+                this.displayLabel = false;
+            }
+        }
     	
         this.selectSize = this.sourceSize + 2;
         
@@ -31,35 +42,19 @@ cds.Catalog = (function() {
     	
     	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
         this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
-        /*
-            document.createElement('canvas');
-        this.cacheCanvas.width = this.sourceSize;
-        this.cacheCanvas.height = this.sourceSize;
-        var cacheCtx = this.cacheCanvas.getContext('2d');
-        cacheCtx.beginPath();
-        cacheCtx.strokeStyle = this.color;
-        cacheCtx.lineWidth = 2.0;
-        cacheCtx.moveTo(0, 0);
-        cacheCtx.lineTo(0,  this.sourceSize);
-        cacheCtx.lineTo( this.sourceSize,  this.sourceSize);
-        cacheCtx.lineTo( this.sourceSize, 0);
-        cacheCtx.lineTo(0, 0);
-        cacheCtx.stroke();
-        */
 
         this.cacheMarkerCanvas = document.createElement('canvas');
-        this.cacheMarkerCanvas.width = this.sourceSize;
-        this.cacheMarkerCanvas.height = this.sourceSize;
+        this.cacheMarkerCanvas.width = this.markerSize;
+        this.cacheMarkerCanvas.height = this.markerSize;
         var cacheMarkerCtx = this.cacheMarkerCanvas.getContext('2d');
         cacheMarkerCtx.fillStyle = this.color;
         cacheMarkerCtx.beginPath();
-        var half = (this.sourceSize)/2.;
+        var half = (this.markerSize)/2.;
         cacheMarkerCtx.arc(half, half, half-2, 0, 2 * Math.PI, false);
         cacheMarkerCtx.fill();
         cacheMarkerCtx.lineWidth = 2;
         cacheMarkerCtx.strokeStyle = '#ccc';
         cacheMarkerCtx.stroke();
-        //cacheMarkerCtx.fillRect(0, 0, this.sourceSize, this.sourceSize);
         
         this.cacheSelectCanvas = document.createElement('canvas');
         this.cacheSelectCanvas.width = this.selectSize;
@@ -91,6 +86,30 @@ cds.Catalog = (function() {
             
             ctx.moveTo(0, sourceSize/2.);
             ctx.lineTo(sourceSize, sourceSize/2.);
+            ctx.stroke();
+        }
+        else if (shapeName=="cross") {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(sourceSize-1, sourceSize-1);
+            ctx.stroke();
+            
+            ctx.moveTo(sourceSize-1, 0);
+            ctx.lineTo(0, sourceSize-1);
+            ctx.stroke();
+        }
+        else if (shapeName=="rhomb") {
+            ctx.moveTo(sourceSize/2, 0);
+            ctx.lineTo(0, sourceSize/2);
+            ctx.lineTo(sourceSize/2, sourceSize);
+            ctx.lineTo(sourceSize, sourceSize/2);
+            ctx.lineTo(sourceSize/2, 0);
+            ctx.stroke();
+        }
+        else if (shapeName=="triangle") {
+            ctx.moveTo(sourceSize/2, 0);
+            ctx.lineTo(0, sourceSize-1);
+            ctx.lineTo(sourceSize-1, sourceSize-1);
+            ctx.lineTo(sourceSize/2, 0);
             ctx.stroke();
         }
         else { // default shape: square
@@ -211,6 +230,7 @@ cds.Catalog = (function() {
         this.view.requestRedraw();
     };
     
+    // return the currnet list of Source objects
     cds.Catalog.prototype.getSources = function() {
         return this.sources;
     };
@@ -250,7 +270,7 @@ cds.Catalog = (function() {
         this.view = view;
     };
     
-    cds.Catalog.prototype.removeAll = function() {
+    cds.Catalog.prototype.removeAll = cds.Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
         this.sources = [];
     };
@@ -271,7 +291,7 @@ cds.Catalog = (function() {
 
     	// tracé sélection
         ctx.strokeStyle= this.selectionColor;
-        ctx.beginPath();
+        //ctx.beginPath();
         for (var k=0, len = this.sources.length; k<len; k++) {
             if (! this.sources[k].isSelected) {
                 continue;
@@ -279,7 +299,17 @@ cds.Catalog = (function() {
             this.drawSourceSelection(this.sources[k], ctx);
             
         }
-    	ctx.stroke();
+        // NEEDED ?
+    	//ctx.stroke();
+
+        // tracé label
+        if (this.displayLabel) {
+            ctx.fillStyle = this.labelColor;
+            ctx.font = this.labelFont;
+            for (var k=0, len = this.sources.length; k<len; k++) {
+                this.drawSourceLabel(this.sources[k], ctx);
+            }
+        }
     };
     
     
@@ -326,11 +356,6 @@ cds.Catalog = (function() {
                     s.popup.setPosition(s.x, s.y);
                 }
                 
-//                ctx.moveTo(xyview.vx+sourceSize/2, xyview.vy+sourceSize/2);
-//                ctx.lineTo(xyview.vx+sourceSize/2, xyview.vy-sourceSize/2);
-//                ctx.lineTo(xyview.vx-sourceSize/2, xyview.vy-sourceSize/2);
-//                ctx.lineTo(xyview.vx-sourceSize/2, xyview.vy+sourceSize/2);
-//                ctx.lineTo(xyview.vx+sourceSize/2, xyview.vy+sourceSize/2);
                 
             }
         }
@@ -343,12 +368,19 @@ cds.Catalog = (function() {
         var sourceSize = this.selectSize;
         
         ctx.drawImage(this.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+    };
 
-//        ctx.moveTo(xyview.vx-sourceSize/2, xyview.vy-sourceSize/2);
-//        ctx.lineTo(xyview.vx-sourceSize/2, xyview.vy+sourceSize/2);
-//        ctx.lineTo(xyview.vx+sourceSize/2, xyview.vy+sourceSize/2);
-//        ctx.lineTo(xyview.vx+sourceSize/2, xyview.vy-sourceSize/2);
-//        ctx.lineTo(xyview.vx-sourceSize/2, xyview.vy-sourceSize/2);
+    cds.Catalog.prototype.drawSourceLabel = function(s, ctx) {
+        if (!s || !s.isShowing || !s.x || !s.y) {
+            return;
+        }
+
+        var label = s.data[this.labelColumn];
+        if (!label) {
+            return;
+        }
+
+        ctx.fillText(label, s.x, s.y);
     };
 
     

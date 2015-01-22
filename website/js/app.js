@@ -5,29 +5,55 @@
         return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(queryString)||[,""])[1].replace(/\+/g, '%20'))||null;
     };
 
-    var surveys = {};
-
     var curSurveyId = null;
-    var survey = getURLParam('survey') || "P/DSS2/color";
-    var fov = getURLParam('fov') || 3;
-    if (isNaN(fov)) {
-        fov = 3;
-    }
-    var defaultTarget = 'NGC 2024';
-    var target = getURLParam('target') || 'NGC 2024';
-    var aladin = A.aladin('#aladin-lite-div', {survey: survey, fov: fov, target: target, showGotoControl:false, showFullscreenControl: false});
-    curSurveyId = survey;
+    var aladin = null;
+    $(document).ready(function() {
 
-    if (target!=defaultTarget) {
-        $('#target').val(target);
-    }
-    $('#target').focus();
+        $(window).resize(function() {
+            setSize();
+        });
+        setSize();
+        var surveys = {};
 
-    $("#target").keypress(function(event) {
-        if (event.which == 13) {
-            goto();
+        var survey = getURLParam('survey') || "P/DSS2/color";
+        var fov = getURLParam('fov') || 3;
+        if (isNaN(fov)) {
+            fov = 3;
         }
+        var defaultTarget = 'NGC 2024';
+        var target = getURLParam('target') || 'NGC 2024';
+        aladin = A.aladin('#aladin-lite-div', {survey: survey, fov: fov, target: target, showGotoControl:false, showFullscreenControl: false});
+        // change link on Aladin Lite logo to point to project page
+        $('.aladin-logo-container a').attr('href', 'http://aladin.u-strasbg.fr/');
+        curSurveyId = survey;
+
+        if (target!=defaultTarget) {
+            $('#target').val(target);
+        }
+        $('#target').focus();
+
+        $("#target").keypress(function(event) {
+            if (event.which == 13) {
+                goto();
+            }
+        });
+
+
     });
+
+    function setSize() {
+        var width = $(window).width();
+        var maxWidth  = 1200;
+        width = Math.min(width, maxWidth);
+        var alWidth = width - 220 - 40;
+        alWidth = Math.max(300, alWidth) + 'px';
+        $('#aladin-lite-div').css('width', alWidth);
+        $('#central').css('width', alWidth);
+        //$('#container').css('width', (width-100)+'px');
+        
+    }
+
+
     function goto() {
        var newTarget = $("#target").val();
        aladin.gotoObject(newTarget);
@@ -82,14 +108,6 @@
                   var imgPath = 'survey-previews/' + id.replace(/\//g, "_") + '.jpg';
                   res += '<div class="survey" data-surveyId="' + id + '"><div class="survey-label">' + s1 + '</div><img class="survey-preview" src="' + imgPath + '" /><div class="survey-selected" style="display: none;"><div class="survey-selected-img"></div></div></div>';
                   tooltipDescriptions[id] = '<div>Band: ' + w + '</div><div>' + data[k].description + '</div>';
-                  /*
-                  var check = s == survey ? " checked=\"checked\"" : "";
-                  res = res + "<div style=\"display:block;height:20px\">"
-                            + "<input type=\"radio\" id=\""+s+"\" name=\"survey\""+check
-                            +   " onChange=\"setSurvey('"+s+"');\" title=\""+d+"\"/>"
-                            +  "<label for=\""+s+"\" title=\"Band: "+d+"\">"+s1+"</label>"
-                            + "</div>\n";
-                  */
              }
              res += '</div>';
              $('#surveys').html(res);
@@ -109,7 +127,7 @@
                 $(this).find('.survey-selected').show();
              });
 
-             // once the info about surveys retrieved, we can set the info about the current one :)
+             // once the info about surveys retrieved, we can set the info about the current one
              setInfo(curSurveyId);
              var currentSurveyDiv = $('.survey[data-surveyId="' + curSurveyId + '"]');
              currentSurveyDiv.find('.survey-selected').show();
@@ -121,4 +139,5 @@
          },
          error: function() { $('#surveys').html("Error: "+url); }
      });
+
 

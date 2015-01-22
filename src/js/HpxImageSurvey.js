@@ -242,8 +242,7 @@ HpxImageSurvey = (function() {
          "maxOrder": 9,
          "frame": "equatorial",
          "format": "jpeg"
-   }
-
+     }
   ];
 
 

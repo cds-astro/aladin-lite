@@ -1057,7 +1057,6 @@ View = (function() {
         this.fixLayoutDimensions();
     };
     
-    
     View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback) {
         if (! overlayImageSurvey) {
             this.overlayImageSurvey = null;
@@ -1097,7 +1096,15 @@ View = (function() {
             }
         });
     };
+
+    View.prototype.setUnknownSurveyIfNeeded = function() {
+        if (unknownSurveyId) {
+            this.setImageSurvey(unknownSurveyId);
+            unknownSurveyId = undefined;
+        }
+    }
     
+    var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
 	View.prototype.setImageSurvey = function(imageSurvey, callback) {
 	    if (! imageSurvey) {
@@ -1115,6 +1122,8 @@ View = (function() {
 		    newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
 		    if ( ! newImageSurvey) {
 		        newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
+                unknownSurveyId = imageSurvey;
+console.log(unknownSurveyId);
 		    }
 		}
 		else {

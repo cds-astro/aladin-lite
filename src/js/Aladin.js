@@ -16,28 +16,6 @@ Aladin = (function() {
 	    HealpixCache.init();
         
 	    var self = this;
-	    // retrieve available surveys
-	    $.ajax({
-	        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
-	        data: {"frame": "aladinLiteDic"},
-	        method: 'GET',
-	        dataType: 'jsonp',
-	        success: function(data) {
-                var map = {};
-                for (var k=0; k<data.length; k++) {
-                    map[data[k].id] = true;
-                }
-                // retrieve existing surveys
-                for (var k=0; k<HpxImageSurvey.SURVEYS.length; k++) {
-                    if (! map[HpxImageSurvey.SURVEYS[k].id]) {
-                        data.push(HpxImageSurvey.SURVEYS[k]);
-                    }
-                }
-	            HpxImageSurvey.SURVEYS = data;
-	        },
-	        error: function() {
-	        }
-	    });
 	    
 	    // if not options was set, try to retrieve them from the query string
 	    if (requestedOptions===undefined) {
@@ -124,6 +102,30 @@ Aladin = (function() {
         
 		// set different options
 		this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+
+	    // retrieve available surveys
+	    $.ajax({
+	        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
+	        data: {"frame": "aladinLiteDic"},
+	        method: 'GET',
+	        dataType: 'jsonp',
+	        success: function(data) {
+                var map = {};
+                for (var k=0; k<data.length; k++) {
+                    map[data[k].id] = true;
+                }
+                // retrieve existing surveys
+                for (var k=0; k<HpxImageSurvey.SURVEYS.length; k++) {
+                    if (! map[HpxImageSurvey.SURVEYS[k].id]) {
+                        data.push(HpxImageSurvey.SURVEYS[k]);
+                    }
+                }
+	            HpxImageSurvey.SURVEYS = data;
+                self.view.setUnknownSurveyIfNeeded();
+	        },
+	        error: function() {
+	        }
+	    });
 		
 	      // layers control panel
         // TODO : valeur des checkbox en fonction des options

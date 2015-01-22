@@ -18,17 +18,18 @@
 <body>
     <&CDS.headArea2 'Aladin Lite' 'aladin'>
 
-    <div class="container">
-       <div class="left"> 
+    <div id="container">
+      <div id="left"> 
            <div class="targetDiv"><div class="title">Target:</div> <input id="target"></div>
            <div class="surveyDiv"><div class="title">Surveys:</div><div id="surveys"></div> </div>
        </div>
-      <div class="central" id="aladin-lite-div"></div> 
-      <div class="right"></div> 
-    <div class="bottom" id="content" ></div>
+      <div id="central">
+          <div id="aladin-lite-div"></div>
+      </div>
     </div>
+    <div class="bottom" id="content" ></div>
     <br/>
-    <div class="developerInfo">Are you a developer interested in integrating Aladin Lite in your project ? Have a look at the <a href="doc/">dedicated documentation.</a> and <a href="doc/API/">API</a>.</div>
+    <div class="developerInfo">Are you a developer interested in integrating Aladin Lite in your project ? Have a look at the <a href="doc/">dedicated documentation.</a></div>
     <br/><br/>
     
     <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>

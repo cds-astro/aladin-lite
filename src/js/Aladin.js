@@ -455,6 +455,81 @@ Aladin = (function() {
     	this.view.pointTo(radec[0], radec[1]);
     };
     
+    
+    var doAnimation = function(aladin) {
+        var params = aladin.animationParams;
+        if (params==null) {
+            return;
+        }
+        var now = new Date().getTime();
+        // this is the animation end: set the view to the end position, and call complete callback 
+        if (now>params['end']) {
+            aladin.gotoRaDec(params['raEnd'], params['decEnd']);
+            
+            if (params['complete']) {
+                params['complete']();
+            }
+            
+            return;
+        }
+        
+        // compute current position
+        var curRa =  params['raStart'] + (params['raEnd'] - params['raStart']) * (now-params['start']) / (params['end'] - params['start']);
+        var curDec = params['decStart'] + (params['decEnd'] - params['decStart']) * (now-params['start']) / (params['end'] - params['start']);
+        
+        aladin.gotoRaDec(curRa, curDec);
+        
+        setTimeout(function() {doAnimation(aladin);}, 50);
+        
+    };
+    /*
+     * animate smoothly from the current position to the given ra, dec
+     * 
+     * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
+     * 
+     * complete: a function to call once the animation has completed
+     * 
+     * @API
+     * 
+     */
+    Aladin.prototype.animateToRaDec = function(ra, dec, duration, complete) {
+        duration = duration || 5;
+        
+        this.animationParams = null;
+        doAnimation(this);
+        
+        var animationParams = {};
+        animationParams['start'] = new Date().getTime();
+        animationParams['end'] = new Date().getTime() + 1000*duration;
+        var raDec = this.getRaDec();
+        animationParams['raStart'] = raDec[0];
+        animationParams['decStart'] = raDec[1];
+        animationParams['raEnd'] = ra;
+        animationParams['decEnd'] = dec;
+        animationParams['complete'] = complete;
+        
+        this.animationParams = animationParams;
+        
+        doAnimation(this);
+    };
+    
+    /**
+     * get current [ra, dec] position of the center of the view
+     * 
+     * @API
+     */
+    Aladin.prototype.getRaDec = function() {
+        if (this.view.cooFrame==CooFrameEnum.J2000) {
+            return [this.view.viewCenter.lon, this.view.viewCenter.lat];
+        }
+        else {
+            var radec = CooConversion.GalacticToJ2000([this.view.viewCenter.lon, this.view.viewCenter.lat]);
+            return radec;
+            
+        }
+    };
+    
+    
     /**
      * point to a given position, expressed as a ra,dec coordinate
      * 
@@ -495,11 +570,6 @@ Aladin = (function() {
         return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);        
     };
 
-    // @api
-    // ne fonctionne pas : effet de bord étrange --> TODO
-    A.imageLayer = function(id, name, rootUrl, cooFrame, maxOrder, options) {
-        return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);
-    };
 
  
     // @api

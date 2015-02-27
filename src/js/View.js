@@ -63,7 +63,7 @@ View = (function() {
             
     
     		this.curNorder = 1;
-    		this.realNorder = 1;
+            this.curOverlayNorder = 1;
     		
     		// some variables for mouse handling
     		this.dragging = false;
@@ -620,14 +620,15 @@ View = (function() {
 		}
 		
 
+        // redraw overlay image survey
 		// TODO : does not work if different frames 
 		if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
 		    imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 	        if (this.fov>50) {
-		        this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
+		        this.overlayImageSurvey.redrawAllsky(imagedtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
 	        }
-	        if (this.curNorder>=3) {
-                var norderOverlay = Math.min(this.curNorder, this.overlayImageSurvey.maxOrder);
+	        if (this.curOverlayNorder>=3) {
+                var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
                 if ( norderOverlay != this.curNorder ) {
 				    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
                 }
@@ -998,6 +999,7 @@ View = (function() {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
         }
         
+        
         this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
         
         this.fov = computeFov(this);
@@ -1026,7 +1028,6 @@ View = (function() {
         var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = taille d'une image "tuile"
         var norder = Math.log(nside)/Math.log(2);
         norder = Math.max(norder, 1);
-        this.realNorder = norder;
 
             
         // forcer le passage à norder 3 (sinon, on reste flou trop longtemps)
@@ -1039,16 +1040,26 @@ View = (function() {
         if (this.imageSurvey && norder<=2 && this.imageSurvey.minOrder>2) {
             norder = this.imageSurvey.minOrder;
         }
- 
+
+        var overlayNorder  = norder;
         if (this.imageSurvey && norder>this.imageSurvey.maxOrder) {
             norder = this.imageSurvey.maxOrder;
+        }
+        if (this.overlayImageSurvey && overlayNorder>this.overlayImageSurvey.maxOrder) {
+            overlayNorder = this.overlayImageSurvey.maxOrder;
         }
         // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
         if (norder>HealpixIndex.ORDER_MAX) {
             norder = HealpixIndex.ORDER_MAX;
         }
+        if (overlayNorder>HealpixIndex.ORDER_MAX) {
+            overlayNorder = HealpixIndex.ORDER_MAX;
+        }
             
         this.curNorder = norder;
+        this.curOverlayNorder = overlayNorder;
+
+        
     };
 	
     View.prototype.untaintCanvases = function() {

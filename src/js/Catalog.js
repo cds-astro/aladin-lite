@@ -213,7 +213,7 @@ cds.Catalog = (function() {
             url: Aladin.JSONP_PROXY,
             data: {"url": url},
             method: 'GET',
-            dataType: 'jsonp',
+            dataType: 'text',
             success: function(xml) {
                 doParseVOTable(xml, callback);
             }/*,

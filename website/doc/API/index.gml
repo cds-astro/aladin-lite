@@ -142,9 +142,15 @@
         </div>
 
         <h3>Loading a VOTable</h3>
-        <p>Calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?)</code> will return a Catalog object which can then be added</p>
+        <p>Calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>
 
         <p>Example: <a href="examples/load-votable/">loading a VOTable from VizieR</a></p>
+
+        <h3>Creating a marker</h3>
+        <p>A marker displays a position on the sky. Clicking on a marker will open a popup with a title and text set upon creation.</p>
+        <p>Use <code>A.marker(ra, dec, {popupTitle: &lt;title of the popup&gt;, popupDesc: &lt;text (possibly HTML) for the popup&gt;})</code> to create a new marker. You can then add it to an existing Catalog.</p>
+
+        <p>Example: <a href="examples/marker-creation/">Creating multiple markers</a></p>
 
         <!-------------------------------------------------------------------->
         <!-- Overlay layers -->

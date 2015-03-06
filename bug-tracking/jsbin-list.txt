@@ -34,3 +34,6 @@ http://jsbin.com/zimadehajelu/1/edit
 
 # Interrogation NED, affichage label des sources, construction dynamique tableau, interaction dans les 2 sens entre tableau et Aladin Lite
 http://jsbin.com/cohepe/3/edit?html,output
+
+# Set HiPS by URL
+http://jsbin.com/xohifoliqi/1/edit?html,output

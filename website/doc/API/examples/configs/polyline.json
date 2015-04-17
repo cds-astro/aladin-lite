@@ -1,0 +1,6 @@
+{
+    "title": "Draw a constellation outline with a polyline",
+    "html": "<link rel='stylesheet' href='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>\n<script type='text/javascript' src='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
+    "js": "var aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10});\n\nvar overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 2});\naladin.addOverlay(overlay);\noverlay.add(A.polyline([ [2.29452158, 59.14978110], [10.12683778, 56.53733116], [14.1772154, 60.7167403], [21.45396446, 60.23528403], [28.59885697, 63.67010079] ]));",
+    "explain": ""
+}

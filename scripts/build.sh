@@ -13,6 +13,8 @@
 scriptdir="$( cd "$( dirname "$0" )" && pwd )"
 srcdir=${scriptdir}/../src
 
+srctmpdir=/tmp/AL-src
+
 # create version number
 version=$(date --utc +%F)
 
@@ -29,10 +31,12 @@ distribfileminified=${distribdir}/aladin.min.js
 csssrcfile=${srcdir}/css/aladin.css
 cssfileminified=${distribdir}/aladin.min.css
 
+srctar=${distribdir}/AladinLiteSrc.tar
+
 uglifyjs="/usr/bin/uglifyjs"
 lessc="/usr/bin/lessc"
 
-jsfiles=('js/cds.js' 'js/libs/json2.js' 'js/Logger.js' 'js/libs/jquery.mousewheel.js' 'js/libs/RequestAnimationFrame.js' 'js/libs/Stats.js' 'js/libs/healpix.min.js' 'js/libs/astro/astroMath.js' 'js/libs/astro/projection.js' 'js/libs/astro/coo.js' 'js/CooConversion.js' 'js/Sesame.js' 'js/HealpixCache.js' 'js/Utils.js' 'js/Color.js' 'js/AladinUtils.js' 'js/ProjectionEnum.js' 'js/CooFrameEnum.js' 'js/Downloader.js' 'js/Footprint.js' 'js/Popup.js' 'js/Circle.js' 'js/Overlay.js' 'js/Source.js' 'js/ProgressiveCat.js' 'js/Catalog.js' 'js/Tile.js' 'js/TileBuffer.js' 'js/ColorMap.js' 'js/HpxImageSurvey.js' 'js/HealpixGrid.js' 'js/Location.js' 'js/View.js' 'js/Aladin.js')
+jsfiles=('js/cds.js' 'js/libs/json2.js' 'js/Logger.js' 'js/libs/jquery.mousewheel.js' 'js/libs/RequestAnimationFrame.js' 'js/libs/Stats.js' 'js/libs/healpix.min.js' 'js/libs/astro/astroMath.js' 'js/libs/astro/projection.js' 'js/libs/astro/coo.js' 'js/CooConversion.js' 'js/Sesame.js' 'js/HealpixCache.js' 'js/Utils.js' 'js/Color.js' 'js/AladinUtils.js' 'js/ProjectionEnum.js' 'js/CooFrameEnum.js' 'js/Downloader.js' 'js/Footprint.js' 'js/Popup.js' 'js/Circle.js' 'js/Polyline.js' 'js/Overlay.js' 'js/Source.js' 'js/ProgressiveCat.js' 'js/Catalog.js' 'js/Tile.js' 'js/TileBuffer.js' 'js/ColorMap.js' 'js/HpxImageSurvey.js' 'js/HealpixGrid.js' 'js/Location.js' 'js/View.js' 'js/Aladin.js')
 
 cmd="cat "
 for t in "${jsfiles[@]}"
@@ -51,12 +55,30 @@ for t in "${jsfiles[@]}"
 do
     fileList="${fileList} ${srcdir}/$t"
 done
-#cmd2="${uglifyjs} ${fileList} -o ${distribfileminified} --comments -c -m"
 cmd2="${uglifyjs} ${fileList} --comments -c -m |  sed -e 's/{ALADIN-LITE-VERSION-NUMBER}/${version}/g' > ${distribfileminified}"
 eval ${cmd2}
 
 # traitement des CSS
 ${lessc} --compress ${csssrcfile} > ${cssfileminified}
+
+# create AladinLiteSrc.tar.gz
+myVersion="AladinLite-${version}"
+echo $myVersion
+rm -r ${srctmpdir}
+mkdir ${srctmpdir}
+mkdir ${srctmpdir}/${myVersion}
+mkdir ${srctmpdir}/${myVersion}/src
+mkdir ${srctmpdir}/${myVersion}/src/js
+mkdir ${srctmpdir}/${myVersion}/src/css
+for t in "${jsfiles[@]}"
+do
+    cp ${srcdir}/$t ${srctmpdir}/${myVersion}/src/js
+done
+cp ${csssrcfile} ${srctmpdir}/${myVersion}/src/css
+cp minimal_build.sh ${srctmpdir}/${myVersion}/build.sh
+cp COPYING ${srctmpdir}/${myVersion}
+tar cvf ${srctar} -C ${srctmpdir} .
+gzip ${srctar}
 
 # update symbolic link pointing to latest release
 latest_symlink=${scriptdir}/../distrib/latest

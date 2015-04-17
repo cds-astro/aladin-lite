@@ -141,10 +141,34 @@
           <h1>Catalogue layers</h1>
         </div>
 
-        <h3>Loading a VOTable</h3>
-        <p>Calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>
+        <h3>Creating a new catalogue layer</h3>
+        <p>Catalogue layers are meant to hold list of astronomical sources. They are created using <code>A.catalog(&lt;options&gt;?)</code> and added to Aladin Lite with <code>aladin.addCatalog(catalogInstance)</code></p>
+        <p>Possible options are:</p>
+        <table class="table table-striped">
+            <thead>
+              <tr><th>Key name</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>shape</td><td>The shape used for each source in the catalog.<br/>Possible values are: <code>plus</code>, <code>rhomb</code>, <code>cross</code>, <code>triangle</code> and <code>square</code> (default value).<br/>An Image object can also be passed (JPEG, PNG formats are supported, even SVG in most modern browsers).</td></tr>
+                <tr><td>color</td><td>The color of the shape for each source.</td></tr>
+                <tr><td>sourceSize</td><td>The size of the source in pixels.</td></tr>
+                <tr><td>labelColumn</td><td>A label can be displayed next to the source shape. The value of labelColumn is the name of the column to be used for this purpose.<br/>If this option is used, color and font of the label can be given with labelColor and labelFont.</td></tr>
+                <tr><td>labelColor</td><td>Color of the label</td></tr>
+                <tr><td>labelFont</td><td>Font of the label, <em>eg</em> <code>12px sans-serif</code></td></tr>
+            </tbody>
+          </table>
 
-        <p>Example: <a href="examples/load-votable/">loading a VOTable from VizieR</a></p>
+        <h3>Adding some sources to the catalogue</h3>
+        <p>Sources can be created manually using <code>A.source(ra, dec, option)</code> and added to an existing catalog layer</p>
+        <p>Example: <a href="examples/cat-custom-shape/">Creating a catalog with a custom shape</a><br/></p>
+
+        <h3>Loading a VOTable</h3>
+        <p>Catalogue layers can also be created from a VOTable URL: calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>
+
+        <p>Examples: <br>
+           <a href="examples/load-votable/">Loading a VOTable from VizieR</a><br/>
+           <a href="examples/onames-labels/">Using labels to display object names</a>
+        </p>
 
         <h3>Creating a marker</h3>
         <p>A marker displays a position on the sky. Clicking on a marker will open a popup with a title and text set upon creation.</p>
@@ -157,6 +181,21 @@
         <a name="overlay-layers"></a>
         <div class="page-header">
           <h1>Overlay layers</h1>
+          <p>Overlay layers typically contain polygons, polylines,circles, etc. They are created and added to Aladin Lite with the following code snippet:</p>
+          <p><pre>
+var aladin = A.aladin('#aladin-lite-div');
+    
+var overlay = A.graphicOverlay({color: 'cyan'});
+aladin.addOverlay(overlay);</pre></p>
+          <p>A.graphicOverly takes as an optional parameter an object allowing one to set the <em>color</em> and the <em>lineWidth</em>: <code>A.graphicOverlay({color: '#df4', lineWidth: 3});</code></p>
+
+          <h3>Circle</h3>
+          <p>Circles are created with <code>A.circle(&lt;centerRa&gt;, &lt;centerDec&gt; &lt;radiusInDegrees&gt; &lt;options&gt;?);</code> and must be added to an overlay layer to be visible. </p>
+          <p>Example: <a href="examples/footprints/">circle and polygons</a></p>
+
+          <h3>Polyline</h3>
+          <p>Polylines are created with <code>A.polyline(&lt;array-of-ra-dec&gt;, &lt;options&gt;?);</code></p>
+          <p>Example: <a href="examples/polyline/">drawing a constellation outline</a></p>
         </div>
         <p></p>
 

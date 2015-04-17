@@ -145,7 +145,7 @@
         <div class="page-header">
           <h1>Source code</h1>
         </div>
-        <p>Aladin Lite source code will be available in the coming weeks under GPL3 licence.
+        <p>Aladin Lite source code is available under GPL3 licence (<a href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/AladinLiteSrc.tar.gz">Download Aladin Lite source code</a>).
         </p>
 
         <!-------------------------------------------------------------------->

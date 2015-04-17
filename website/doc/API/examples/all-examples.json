@@ -4,9 +4,12 @@
     {"title": "Set an image layer by name", "url": "image-layer-by-name/"},
     {"title": "Overlay an image layer on a base image layer", "url": "overlay-image-layer/"},
     {"title": "Set the color map of an image layer", "url": "color-map/"},
+    {"title": "Create a catalogue with a custom shape", "url": "cat-custom-shape/"},
+    {"title": "Display objectnames", "url": "onames-labels/"},
     {"title": "Load a table from a VOTable URL", "url": "load-votable/"},
     {"title": "Create markers", "url": "marker-creation/"},
     {"title": "Add some footprints overlays", "url": "footprints/"},
+    {"title": "Add a polyline overlay", "url": "polyline/"},
     {"title": "Animate to a given position", "url": "animation/"},
     {"title": "Demo page for AAS 225", "url": "AAS225/"}
 ]

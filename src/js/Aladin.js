@@ -1,3 +1,23 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -8,11 +28,17 @@
  * 
  *****************************************************************************/
 
-/** @license CDS - Centre de Données astronomiques de Strasbourg , 2013*/
 Aladin = (function() {
     
     // Constructor
     var Aladin = function(aladinDiv, requestedOptions) {
+        // check that aladinDiv exists, stop immediately otherwise
+        if ($(aladinDiv).length==0) {
+            console.log('Could not find div ' + aladinDiv + '. Aborting creation of Aladin Lite instance');
+            return;
+        }
+
+
 	    HealpixCache.init();
         
 	    var self = this;
@@ -1022,8 +1048,11 @@ Aladin = (function() {
 	return Aladin;
 })();
 
-////Nouvelle API ////
-//A.polyline = ;
+//// New API ////
+// For developers using Aladin lite: all objects should be created through the API, 
+// rather than creating directly the corresponding JS objects
+// This facade allows for more flexibility as objects can be updated/renamed harmlessly
+
 //@API
 A.aladin = function(divSelector, options) {
   return new Aladin($(divSelector)[0], options);
@@ -1058,6 +1087,12 @@ A.polygon = function(raDecArray) {
     }
     return new Footprint(raDecArray);
 };
+
+//@API
+A.polyline = function(raDecArray, options) {
+    return new Polyline(raDecArray, options);
+};
+
 
 // @API
 A.circle = function(ra, dec, radiusDeg, options) {

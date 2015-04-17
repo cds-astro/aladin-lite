@@ -1,5 +1,27 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+
+
 /******************************************************************************
- * Aladin HTML5 project
+ * Aladin Lite project
  * 
  * File Catalog
  * 
@@ -18,7 +40,7 @@ cds.Catalog = (function() {
     	this.markerSize = options.sourceSize || 12;
     	this.shape = options.shape || "square";
 
-        this.displayLabel = options.displayLabel || false;
+        this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
         this.labelFont = options.labelFont || '10px sans-serif';
         if (this.displayLabel) {
@@ -28,6 +50,9 @@ cds.Catalog = (function() {
             }
         }
     	
+        if (this.shape instanceof Image) {
+            this.sourceSize = this.shape.width;
+        }
         this.selectSize = this.sourceSize + 2;
         
         this.isShowing = true;
@@ -73,6 +98,9 @@ cds.Catalog = (function() {
     };
     
     cds.Catalog.createShape = function(shapeName, color, sourceSize) {
+        if (shapeName instanceof Image) { // 
+            return shapeName;
+        }
         var c = document.createElement('canvas');
         c.width = c.height = sourceSize;
         var ctx= c.getContext('2d');
@@ -347,7 +375,7 @@ cds.Catalog = (function() {
                     ctx.drawImage(this.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
                 }
                 else {
-                    ctx.drawImage(this.cacheCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+                    ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
                 }
 
 

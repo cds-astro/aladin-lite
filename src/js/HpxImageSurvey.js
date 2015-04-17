@@ -1,3 +1,24 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -627,6 +648,7 @@ HpxImageSurvey = (function() {
         ctx.closePath();
         ctx.clip();
 
+
         // this is needed to prevent to see some lines between triangles
         if (applyCorrection) {
             coeff = 0.03;
@@ -645,7 +667,8 @@ HpxImageSurvey = (function() {
              (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
              (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
         );
-        ctx.drawImage(img, 0, 0); 
+        ctx.drawImage(img, 0, 0);
+        //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
         
     //    ctx.globalAlpha = 1.0;
     

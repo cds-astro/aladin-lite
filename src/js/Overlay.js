@@ -1,3 +1,24 @@
+// Copyright 2015 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -19,7 +40,7 @@ Overlay = (function() {
     	
     	//this.indexationNorder = 5; // à quel niveau indexe-t-on les overlays
     	this.overlays = [];
-    	this.circles = [];
+    	this.overlay_items = []; // currently Circle or Polyline
     	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
     	//this.hpxIdx.init();
     	
@@ -72,9 +93,9 @@ Overlay = (function() {
         this.view.requestRedraw();
     };
 
-    // TODO : item doit pouvoir prendre n'importe quoi en param (footprint ou circle)
+    // TODO : item doit pouvoir prendre n'importe quoi en param (footprint, circle, polyline)
     Overlay.prototype.add = function(item) {
-        this.circles.push(item);
+        this.overlay_items.push(item);
         item.setOverlay(this);
         
         this.view.requestRedraw();
@@ -98,7 +119,7 @@ Overlay = (function() {
     Overlay.prototype.removeAll = function() {
         // TODO : RAZ de l'index
         this.overlays = [];
-        this.circles = [];
+        this.overlay_items = [];
     };
     
     Overlay.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
@@ -107,7 +128,7 @@ Overlay = (function() {
 
         // 1. Tracé polygons
         
-        // TODO: overlay devrait se tracer lui meme (méthode draw)
+        // TODO: les overlay polygons devrait se tracer lui meme (méthode draw)
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
     	xyviews = [];
@@ -129,9 +150,9 @@ Overlay = (function() {
         }
     	ctx.stroke();
     	
-        // 2. Tracé cercles
-    	for (var k=0; k<this.circles.length; k++) {
-    	    this.circles[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
+        // 2. Tracé cercles ou polylines
+    	for (var k=0; k<this.overlay_items.length; k++) {
+    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
     	}
     };
 

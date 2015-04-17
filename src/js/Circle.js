@@ -1,3 +1,24 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+
 /******************************************************************************
  * Aladin Lite project
  * 
@@ -86,7 +107,7 @@ Circle = (function() {
     // TODO
     Circle.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
-            return null;
+            return;
         }
 
         var centerXy;
@@ -123,7 +144,6 @@ Circle = (function() {
 
         // TODO : check each 4 point until show
         
-        var show = false;
         if (this.color) {
             ctx.strokeStyle= this.color;
         }
@@ -131,6 +151,8 @@ Circle = (function() {
         ctx.arc(centerXyview.vx, centerXyview.vy, radiusInPix, 0, 2*Math.PI, false);
         ctx.stroke();
 /*
+        var show = false;
+        
         // for
             for (var k=0, len=radecArray.length; k<len; k++) {
                 var xy;

@@ -1,5 +1,26 @@
+// Copyright 2013 - UDS/CNRS
+// The Aladin Lite program is distributed under the terms
+// of the GNU General Public License version 3.
+//
+// This file is part of Aladin Lite.
+//
+//    Aladin Lite is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, version 3 of the License.
+//
+//    Aladin Lite is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    The GNU General Public License is available in COPYING file
+//    along with Aladin Lite.
+//
+
+
+
 /******************************************************************************
- * Aladin HTML5 project
+ * Aladin Lite project
  * 
  * File AladinUtils
  * 
@@ -44,6 +65,27 @@ AladinUtils = (function() {
     	viewToXy: function(vx, vy, width, height, largestDim, zoomFactor) {
     		return {x: ((2*vx+(largestDim-width))/largestDim-1)/zoomFactor, y: ((2*vy+(largestDim-height))/largestDim-1)/zoomFactor};
     	},
+
+    	/**
+    	 * convert a 
+    	 * @returns position x,y in the view. Null if projection is impossible
+    	 */
+        radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
+            var xy;
+            if (currentFrame!=CooFrameEnum.J2000) {
+                var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
+                xy = currentProjection.project(lonlat[0], lonlat[1]);
+            }
+            else {
+                xy = currentProjection.project(ra, dec);
+            }
+            if (!xy) {
+                return null;
+            }
+            
+            return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+        },
+
     	
     	myRound: function(a) {
     		if (a<0) {
@@ -53,6 +95,8 @@ AladinUtils = (function() {
     			return a | 0;
     		}
     	},
+    	
+    	
     	
     	/**
     	 * tests whether a healpix pixel is visible or not

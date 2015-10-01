@@ -91,6 +91,8 @@
         <a name="embedding"></a>
         <div class="page-header">
           <h1>Embedding in a web page</h1>
+
+          <p><b>Terms of use:</b> you are welcome to integrate Aladin Lite in your web pages and to customize its GUI to your needs, but please <b>leave the Aladin logo and link intact</b> at the bottom right of the view.</p>
         </div>
         <iframe style="width: 100%; height: 100%;" marginheight="0" marginwidth="0" src="embedding.html" width="100%" height="600px" frameborder="0" scrolling="no"></iframe>
         
@@ -132,6 +134,8 @@
         </p>
         <p>Outside CDS, Aladin Lite is used in several projects:
             <ul>
+                <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>
+                <li><a href="http://darts.isas.jaxa.jp/astro/akari/cas/tools/explore/obj.php" title="Akari explore tool">Akari explore tool</a></li>
                 <li><a href="http://www.spitzer.caltech.edu/glimpse360/aladin" title="GLIMPSE 360 data visualized by Aladin Lite">GLIMPSE 360</a></li>
                 <li><a href="http://cade.irap.omp.eu/">CADE</a> (<em>Centre d'Analyse de Données Etendues</em>) uses Aladin Lite to provide previews of the HEALPix maps they publish (<a href="http://cade.irap.omp.eu/dokuwiki/doku.php?id=cgps">Example for CGPS data</a>) </li>
                 <li><a href="http://www.adsass.org/aladin/">ADS All-Sky Survey</a> makes use of Aladin Lite to display heatmaps of SIMBAD objects cited in the literature.</li>

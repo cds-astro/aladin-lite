@@ -1,5 +1,5 @@
 Décembre 2014:
-- ajout displayLabel pour afficher d'un label d'un overlay Catalog
+- ajout displayLabel pour afficher un label d'un overlay Catalog
 - ajout option lineWidth pour objet A.graphicOverlay
 - bug fix : la liste déroulante est mise à jour correctement quand on change de frame programmatiquement
 

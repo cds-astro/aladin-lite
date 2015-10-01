@@ -43,7 +43,7 @@
 
     function setSize() {
         var width = $(window).width();
-        var maxWidth  = 1200;
+        var maxWidth  = 2000;
         width = Math.min(width, maxWidth);
         var alWidth = width - 220 - 40;
         alWidth = Math.max(300, alWidth) + 'px';

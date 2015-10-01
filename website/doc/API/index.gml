@@ -22,8 +22,8 @@
     </header>
 
     <ul class="breadcrumb">
-      <li><a href="../">Aladin Lite</a> <span class="divider">/</span></li>
-      <li><a href="../doc/">Documentation</a> <span class="divider">/</span></li>
+      <li><a href="../../">Aladin Lite</a> <span class="divider">/</span></li>
+      <li><a href="../">Documentation</a> <span class="divider">/</span></li>
       <li class="active">API</li>
     </ul>
     

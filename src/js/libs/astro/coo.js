@@ -158,6 +158,8 @@ Coo.prototype = {
 
 	parseLon: function(str) {
 		var str = str.trim();
+        str = str.replace(/:/g, ' ');
+
 		if (str.indexOf(' ') < 0) {
 			// The longitude is a integer or decimal number
 			var p = str.indexOf('.');
@@ -188,6 +190,8 @@ Coo.prototype = {
 			
 	parseLat: function(str) {
 		var str = str.trim();
+        str = str.replace(/:/g, ' ');
+
 		var sign;
 		if (str.charAt(0) == '-') {
 			sign = -1;

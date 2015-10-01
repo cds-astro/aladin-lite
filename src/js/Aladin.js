@@ -92,7 +92,7 @@ Aladin = (function() {
 		                    + (! frameInJ2000 ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
 		                    + '<span class="aladin-location-text"></span></div>')
 		                    .appendTo(aladinDiv);
-		// div où on écrit la FoV
+		// div where FoV value is written
 		var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
 		
 		
@@ -128,6 +128,7 @@ Aladin = (function() {
         
 		// set different options
 		this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+		this.view.setShowGrid(options.showCooGrid);
 
 	    // retrieve available surveys
 	    $.ajax({
@@ -309,6 +310,7 @@ Aladin = (function() {
         showShareControl:       false,
         showCatalog:            true, // TODO: still used ??
         showFrame:              true,
+        showCooGrid:            false,
         fullScreen:             false,
         reticleColor:           "rgb(178, 50, 178)",
         reticleSize:            22,
@@ -519,7 +521,7 @@ Aladin = (function() {
      * 
      */
     Aladin.prototype.animateToRaDec = function(ra, dec, duration, complete) {
-        duration = duration || 5;
+        duration = duration || 5;
         
         this.animationParams = null;
         doAnimation(this);
@@ -898,10 +900,20 @@ Aladin = (function() {
      };
      
      // TODO : integrate somehow into API ?
-     Aladin.prototype.exportAsPNG = function() {
-         var dataURL = this.view.getCanvasDataURL();
-         window.open(dataURL, "Aladin Lite snapshot");
+     Aladin.prototype.exportAsPNG = function(imgFormat) {
+         window.open(this.getViewDataURL(), "Aladin Lite snapshot");
      };
+
+    /**
+     * Return the current view as a data URL (base64-formatted string)
+     * Parameters:
+     * - imgFormat (optional): 'image/png' or 'image/jpg'
+     *
+     * @API
+    */
+    Aladin.prototype.getViewDataURL = function(imgFormat) {
+        return this.view.getCanvasDataURL(imgFormat);
+    }
      
      /** limit FOV range
       * @API

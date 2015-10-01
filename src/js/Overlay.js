@@ -45,12 +45,25 @@ Overlay = (function() {
     	//this.hpxIdx.init();
     	
     	this.isShowing = true;
-    	
-
     };
     
 
-    // TODO : méthode show/hide
+    // TODO : show/hide methods should be integrated in a parent class 
+    Overlay.prototype.show = function() {
+        if (this.isShowing) {
+            return;
+        }
+        this.isShowing = true;
+        this.reportChange();
+    };
+    
+    Overlay.prototype.hide = function() {
+        if (! this.isShowing) {
+            return;
+        }
+        this.isShowing = false;
+        this.reportChange();
+    };
     
     // return an array of Footprint from a STC-S string
     Overlay.parseSTCS = function(stcs) {
@@ -123,6 +136,10 @@ Overlay = (function() {
     };
     
     Overlay.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        if (!this.isShowing) {
+            return;
+        }
+        
         // tracé simple
         ctx.strokeStyle= this.color;
 

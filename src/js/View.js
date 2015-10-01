@@ -85,6 +85,7 @@ View = (function() {
             
     
     		this.curNorder = 1;
+    		this.realNorder = 1;
             this.curOverlayNorder = 1;
     		
     		// some variables for mouse handling
@@ -99,6 +100,8 @@ View = (function() {
             this.fadingLatestUpdate = null;
     		
             this.dateRequestRedraw = null;
+            
+            this.showGrid = false; // coordinates grid
             
     		init(this);
     		
@@ -143,6 +146,9 @@ View = (function() {
         this.width = $(this.aladinDiv).width();
 		this.height = $(this.aladinDiv).height();
 		
+		this.width = Math.max(this.width, 1);
+		this.height = Math.max(this.height, 1); // this prevents many problems when div size is 0s
+        
 		
 		this.cx = this.width/2;
 		this.cy = this.height/2;
@@ -196,7 +202,8 @@ View = (function() {
 	/**
 	 * return dataURL string corresponding to the current view
 	 */
-	View.prototype.getCanvasDataURL = function() {
+	View.prototype.getCanvasDataURL = function(imgType) {
+        imgType = imgType || "image/png"; 
 	    var c = document.createElement('canvas');
         c.width = this.width;
         c.height = this.height;
@@ -205,7 +212,7 @@ View = (function() {
         ctx.drawImage(this.catalogCanvas, 0, 0);
         ctx.drawImage(this.reticleCanvas, 0, 0);
         
-	    return c.toDataURL("image/png");
+	    return c.toDataURL(imgType);
 	    //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
 	};
 
@@ -573,6 +580,7 @@ View = (function() {
 		requestAnimFrame(this.redraw.bind(this));
 
 		var now = new Date().getTime();
+		
 		if (this.dateRequestDraw && now>this.dateRequestDraw) {
 		    this.dateRequestDraw = null;
 		} 
@@ -662,7 +670,7 @@ View = (function() {
 		}
 		
 		
-		// redraw grid
+		// redraw HEALPix grid
         if( this.displayHpxGrid) {
         	if (cornersXYViewMapHighres && this.curNorder>3) {
         		this.healpixGrid.redraw(imageCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
@@ -670,6 +678,15 @@ View = (function() {
             else {
         	    this.healpixGrid.redraw(imageCtx, cornersXYViewMapAllsky, this.fov, 3);
             }
+        }
+        
+        // redraw coordinates grid
+        if (this.showGrid) {
+            if (this.cooGrid==null) {
+                this.cooGrid = new CooGrid();
+            }
+            
+            this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
         }
  		
 
@@ -1005,6 +1022,11 @@ View = (function() {
 	    var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
 	    this.setZoomLevel(zoomLevel);
 	};
+	
+	View.prototype.setShowGrid = function(showGrid) {
+	    this.showGrid = showGrid;
+	    this.requestRedraw();
+	};
 
 	
     View.prototype.setZoomLevel = function(level) {
@@ -1051,6 +1073,7 @@ View = (function() {
         var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = taille d'une image "tuile"
         var norder = Math.log(nside)/Math.log(2);
         norder = Math.max(norder, 1);
+        this.realNorder = norder;
 
             
         // forcer le passage à norder 3 (sinon, on reste flou trop longtemps)

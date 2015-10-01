@@ -1,4 +1,4 @@
-// Copyright 2013 - UDS/CNRS
+// Copyright 2015 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
 // of the GNU General Public License version 3.
 //

@@ -51,7 +51,7 @@ HpxImageSurvey = (function() {
     	this.imgFormat = options.imgFormat || 'jpg';
 
         // permet de forcer l'affichage d'un certain niveau
-        this.minOrder = options.minOrder || null;
+        this.minOrder = options.minOrder || null;
 
         // TODO : lire depuis fichier properties
         this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
@@ -154,7 +154,7 @@ HpxImageSurvey = (function() {
      },
      {
         "id": "P/DSS2/color",
-        "url": "http://alasky.u-strasbg.fr/DssColor",
+        "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
         "name": "DSS colored",
         "maxOrder": 9,
         "frame": "equatorial",
@@ -395,6 +395,12 @@ HpxImageSurvey = (function() {
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
     HpxImageSurvey.prototype.redrawHighres = function(ctx, cornersXYViewMap, norder) {
+        
+        // DOES THAT FIX THE PROBLEM ???
+        if (cornersXYViewMap.length==0) {
+            return;
+        }
+        
         drawEven = ! drawEven;
         var now = new Date().getTime();
         var updateNeededTiles = (now-this.lastUpdateDateNeededTiles) > HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY;
@@ -611,7 +617,7 @@ HpxImageSurvey = (function() {
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection) {
 
-        dx = dx || 0;
+        dx = dx || 0;
         dy = dy || 0;
 
         if (!applyCorrection) {

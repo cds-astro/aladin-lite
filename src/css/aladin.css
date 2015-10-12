@@ -57,6 +57,63 @@
 	font-size: 13px;
 }
 
+.aladin-measurement-div {
+	z-index: 200;
+	position:absolute;
+    bottom: 0px;
+	background-color: rgba(255, 255, 255, 0.8);
+    font-family: monospace;
+	font-size: 12px;
+    display: none;
+    width: 100%;
+    overflow: auto;
+}
+
+.aladin-measurement-div table {
+	padding: 2px 4px 2px 4px;
+    table-layout: fixed;
+    white-space: nowrap;
+}
+
+.aladin-measurement-div thead {
+    background-color: #e0e0e0;
+    color: #000;
+}
+
+.aladin-measurement-div td, th {
+    /*
+    border-left-color: #cbcbcb;
+    border-left-style: solid;
+    */
+    padding: 0.3em 0.3em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.aladin-marker-measurement {
+    max-height: 130px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: monospace;
+	font-size: 11px;
+    color: #000;
+}
+.aladin-marker-measurement table {
+    table-layout: fixed;
+    width: 100%;
+}
+.aladin-marker-measurement table tr td{
+word-wrap:break-word;
+}
+.aladin-marker-measurement tr:nth-child(even) {
+    background-color: #dddddd;
+}
+.aladin-marker-measurement td:first-child {
+    font-weight: bold;
+}
+
 .aladin-fov {
     z-index: 20;
     position: absolute;
@@ -340,7 +397,7 @@
 }
     
 .aladin-popup-container {
-	z-index: 18;
+	z-index: 25;
 	position: absolute;
     width: 200px;
     display: none;

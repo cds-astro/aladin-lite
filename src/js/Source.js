@@ -88,6 +88,37 @@ cds.Source = (function() {
             this.catalog.reportChange();
         }
     };
+
+    // function called when a source is clicked. Called by the View object
+    cds.Source.prototype.actionClicked = function() {
+        if (this.catalog && this.catalog.onClick) {
+            var view = this.catalog.view;
+            if (this.catalog.onClick=='showTable') {
+                view.aladin.measurementTable.showMeasurement(this);
+                this.select();
+            }
+            else if (this.catalog.onClick=='showPopup') {
+                view.popup.setTitle('<br><br>');
+                var m = '<div class="aladin-marker-measurement">';
+                m += '<table>';
+                for (var key in this.data) {
+                    m += '<tr><td>' + key + '</td><td>' + this.data[key] + '</td></tr>';
+                }
+                m += '</table>';
+                m += '</div>';
+                view.popup.setText(m);
+                view.popup.setSource(this);
+                view.popup.show();
+            }
+        }
+    };
+
+    
+    cds.Source.prototype.actionOtherObjectClicked = function() {
+        if (this.catalog && this.catalog.onClick && this.catalog.onClick=='showTable') {
+            this.deselect();
+        }
+    };
     
     return cds.Source;
 })();

@@ -122,6 +122,9 @@ Aladin = (function() {
 		// we store the boxes
 		this.boxes = [];
 
+        // measurement table
+        this.measurementTable = new MeasurementTable(aladinDiv);
+
 		
 		
 		var location = new Location(locationDiv.find('.aladin-location-text'));
@@ -420,6 +423,7 @@ Aladin = (function() {
 	};
     
     // point view to a given object (resolved by Sesame) or position
+    // TODO: should we use function 
     Aladin.prototype.gotoObject = function(targetName, errorCallback) {
     	var isObjectName = /[a-zA-Z]/.test(targetName);
     	
@@ -694,9 +698,57 @@ Aladin = (function() {
             if (successCallback) {
                 successCallback(sources);
             }
-        });
+        }, catalog.maxNbSources);
         return catalog;
-     };
+    };
+
+    // API
+    // @param target: can be either a string representing a position or an object name, or can be an object with keys 'ra' and 'dec' (values being in decimal degrees)
+    A.catalogFromSimbad = function(target, radius, options, successCallback) {
+        options = options || {};
+        if (! ('name' in options)) {
+            options['name'] = 'Simbad';
+        }
+        var url = URLBuilder.buildSimbadCSURL(target, radius);
+        return A.catalogFromURL(url, options, successCallback);
+    };
+     
+    // API
+    A.catalogFromNED = function(target, radius, options, successCallback) {
+        options = options || {};
+        if (! ('name' in options)) {
+            options['name'] = 'NED';
+        }
+        var url;
+        if (target && (typeof target  === "object")) {
+            if ('ra' in target && 'dec' in target) {
+                url = URLBuilder.buildNEDPositionCSURL(target.ra, target.dec, radius);
+            }
+        }
+        else {
+    	    var isObjectName = /[a-zA-Z]/.test(target);
+            if (isObjectName)  {
+                url = URLBuilder.buildNEDObjectCSURL(target, radius);
+            }
+            else {
+                var coo = new Coo();
+                coo.parse(target);
+                url = URLBuilder.buildNEDPositionCSURL(coo.lon, coo.lat, radius);
+            }
+        }
+
+        return A.catalogFromURL(url, options, successCallback);
+    };
+
+    A.catalogFromVizieR = function(vizCatId, target, radius, options, successCallback) {
+        options = options || {};
+        if (! ('name' in options)) {
+            options['name'] = 'VizieR:' + vizCatId;
+        }
+        var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius);
+        return A.catalogFromURL(url, options, successCallback);
+    };
+
      
      // API
      Aladin.prototype.on = function(what, myFunction) {
@@ -777,7 +829,10 @@ Aladin = (function() {
              }
              var nbSources = cats[k].getSources().length;
              var title = nbSources + ' source' + ( nbSources>1 ? 's' : '');
-             str += '<li><div class="aladin-layerIcon" style="background: ' + cats[k].color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + cats[k].color + ';" title="' + title + '">' + name + '</label></li>';
+             var color = cats[k].color;
+             var rgbColor = $('<div></div>').css('color', color).css('color'); // trick to retrieve the color as 'rgb(,,)'
+             var labelColor = Color.getLabelColorForBackground(rgbColor);
+             str += '<li><div class="aladin-layerIcon" style="background: ' + color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + color + '; color:' + labelColor + ';" title="' + title + '">' + name + '</label></li>';
          }
          str += '</ul>';
          layerBox.append(str);
@@ -907,7 +962,7 @@ Aladin = (function() {
     /**
      * Return the current view as a data URL (base64-formatted string)
      * Parameters:
-     * - imgFormat (optional): 'image/png' or 'image/jpg'
+     * - imgFormat (optional): 'image/png' or 'image/jpeg'
      *
      * @API
     */

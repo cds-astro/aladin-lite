@@ -51,11 +51,11 @@ Popup = (function() {
     };
 
     Popup.prototype.setTitle = function(title) {
-        this.domEl.find('.aladin-popupTitle').html(title);
+        this.domEl.find('.aladin-popupTitle').html(title || '');
     };
 
     Popup.prototype.setText = function(text) {
-        this.domEl.find('.aladin-popupText').html(text);
+        this.domEl.find('.aladin-popupText').html(text || '');
         this.w = this.domEl.outerWidth();
         this.h = this.domEl.outerHeight();
     };

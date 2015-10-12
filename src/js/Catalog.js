@@ -39,6 +39,8 @@ cds.Catalog = (function() {
     	this.sourceSize = options.sourceSize || 6;
     	this.markerSize = options.sourceSize || 12;
     	this.shape = options.shape || "square";
+        this.maxNbSources = options.limit || undefined;
+        this.onClick = options.onClick || undefined;
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -158,7 +160,7 @@ cds.Catalog = (function() {
     
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
-    cds.Catalog.parseVOTable = function(url, callback) {
+    cds.Catalog.parseVOTable = function(url, callback, maxNbSources) {
         
         function doParseVOTable(xml, callback) {
             xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
@@ -231,6 +233,10 @@ cds.Catalog = (function() {
                    dec = coo.lat;
                }
                sources.push(new cds.Source(ra, dec, mesures));
+               if (maxNbSources && sources.length==maxNbSources) {
+                   return false; // break the .each loop
+               }
+                
             });
             if (callback) {
                 callback(sources);

@@ -32,6 +32,43 @@ Sesame = (function() {
     Sesame = {};
     
     Sesame.cache = {};
+
+    /** find RA, DEC for any target (object name or position)
+     *  if successful, callback is called with an object {ra: <ra-value>, dec: <dec-value>}
+     *  if not successful, errorCallback is called
+     */
+    Sesame.getTargetRADec = function(target, callback, errorCallback) {
+        if (!callback) {
+            return;
+        }
+        var isObjectName = /[a-zA-Z]/.test(target);
+
+        // try to parse as a position
+        if ( ! isObjectName) {
+            var coo = new Coo();
+
+            coo.parse(target);
+            if (callback) {
+                callback({ra: coo.lon, dec: coo.lat});
+            }
+        }
+        // ask resolution by Sesame
+        else {
+            Sesame.resolve(target,
+
+                           function(data) { // success callback
+                               callback({ra:  data.Target.Resolver.jradeg,
+                                         dec: data.Target.Resolver.jdedeg});
+                           },
+
+                           function(data) { // error callback
+                               if (errorCallback) {
+                                   errorCallback();
+                               }
+                           }
+                           );
+        }
+    };
     
     Sesame.resolve = function(objectName, callbackFunctionSuccess, callbackFunctionError) {
         //var sesameUrl = "http://cdsportal.u-strasbg.fr/services/sesame?format=json";

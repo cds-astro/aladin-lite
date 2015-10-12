@@ -357,6 +357,7 @@ View = (function() {
                 var o = objs[0];
                 // display marker
                 if (o.marker) {
+                    // could be factorized in Source.actionClicked
                     view.popup.setTitle(o.popupTitle);
                     view.popup.setText(o.popupDesc);
                     view.popup.setSource(o);
@@ -368,13 +369,24 @@ View = (function() {
                     if (view.aladin.objClickedFunction) {
                         var ret = view.aladin.objClickedFunction(o);
                     }
+                    else {
+                        if (lastClickedObject) {
+                            lastClickedObject.actionOtherObjectClicked();
+                        }
+                        o.actionClicked();
+                    }
                     lastClickedObject = o;
                 }
             }
             else {
-                if (view.aladin.objClickedFunction && lastClickedObject) {
+                if (lastClickedObject) {
+                    view.aladin.measurementTable.hide();
+                    lastClickedObject.actionOtherObjectClicked();
+
                     lastClickedObject = null;
-                    var ret = view.aladin.objClickedFunction(null);
+                    if (view.aladin.objClickedFunction) {
+                        var ret = view.aladin.objClickedFunction(null);
+                    }
                 }
                 
             }
@@ -510,10 +522,11 @@ View = (function() {
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
 
-        $(view.reticleCanvas).bind('mousewheel', function(event, delta) {
+        $(view.reticleCanvas).on('mousewheel', function(event) {
             event.preventDefault();
             event.stopPropagation();
             var level = view.zoomLevel;
+            var delta = event.deltaY;
             if (delta>0) {
                 level += 1;
             }

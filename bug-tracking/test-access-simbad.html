@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  
+    // Start up Aladin Lite
+    var target = 'M1';
+    var aladin = A.aladin('#aladin-lite-div', {target: target, fov: 0.5});
+
+    aladin.addCatalog(A.catalogFromSimbad(target, 3, {'color': 'brown', onClick: 'showTable'}));
+    aladin.addCatalog(A.catalogFromSimbad({ra: 202.469575, dec: 47.195258}, 1, {'color': 'yellow', name: 'Simbad M51', onClick: 'showTable'}));
+    aladin.addCatalog(A.catalogFromSimbad('09 55 33.17306 +69 03 55.0610', 1, {'color': '#43f', name: 'M81', limit: 100, displayLabel: true, labelColumn: "MAIN_ID", onClick: 'showTable'}));
+/*
+    var aladin = $.aladin('#aladin-lite-div', {survey: "GLIMPSE", zoom: zoom, cooFrame: "gal", showReticle:false});
+    aladin.setImageSurvey(aladin.createImageSurvey("GLIMPSE", "GLIMPSE", "http://www.spitzer.caltech.edu/glimpse360/aladin/data", "gal", 9, {minOrder: 3}))
+    aladin.gotoPosition(0, 0);
+    aladin.setFOVRange(0.2, 360.0);
+*/
+    
+
+    
+    
+</script>
+</body>
+</html>

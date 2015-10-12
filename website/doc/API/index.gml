@@ -220,8 +220,15 @@ aladin.addOverlay(overlay);</pre></p>
         <a name="listeners"></a>
         <div class="page-header">
           <h1>Listeners</h1>
+
+          <p>You can setup some callback functions used to listen when a source is hovered or clicked:<br/>
+          <code>aladin.on('objectHovered', function(object) {...})</code>
+          <code>aladin.on('objectClicked', function(object) {...})</code>
+          </p>
+          <p>Example:<br/>
+          <a href="examples/events-listeners/">Listening to mouse events on sources</a>
+          </p>
         </div>
-        <p></p>
 
         <!-------------------------------------------------------------------->
         <!-- Misc -->

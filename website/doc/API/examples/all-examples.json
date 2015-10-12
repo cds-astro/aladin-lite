@@ -10,6 +10,7 @@
     {"title": "Easy access to SIMBAD and NED data", "url": "easy-access-simbad-ned/"},
     {"title": "Easy access to VizieR data", "url": "easy-access-vizier/"},
     {"title": "Create markers", "url": "marker-creation/"},
+    {"title": "Add listeners to click and hover events", "url": "events-listeners/"},
     {"title": "Add some footprints overlays", "url": "footprints/"},
     {"title": "Add a polyline overlay", "url": "polyline/"},
     {"title": "Animate to a given position", "url": "animation/"},

@@ -7,6 +7,8 @@
     {"title": "Create a catalogue with a custom shape", "url": "cat-custom-shape/"},
     {"title": "Display objectnames", "url": "onames-labels/"},
     {"title": "Load a table from a VOTable URL", "url": "load-votable/"},
+    {"title": "Easy access to SIMBAD and NED data", "url": "easy-access-simbad-ned/"},
+    {"title": "Easy access to VizieR data", "url": "easy-access-vizier/"},
     {"title": "Create markers", "url": "marker-creation/"},
     {"title": "Add some footprints overlays", "url": "footprints/"},
     {"title": "Add a polyline overlay", "url": "polyline/"},

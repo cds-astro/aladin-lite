@@ -155,6 +155,8 @@
                 <tr><td>labelColumn</td><td>A label can be displayed next to the source shape. The value of labelColumn is the name of the column to be used for this purpose.<br/>If this option is used, color and font of the label can be given with labelColor and labelFont.</td></tr>
                 <tr><td>labelColor</td><td>Color of the label</td></tr>
                 <tr><td>labelFont</td><td>Font of the label, <em>eg</em> <code>12px sans-serif</code></td></tr>
+                <tr><td>onClick</td><td>Describes the action to be executed when a source is clicked. By default, nothing happens. Available values are <code>showTable</code> (displays measurements associated to the clicked source in a table at the bottom of the GUI), <code>showPopup</code> (display measurements in a popup)<br/>See this property in action <a href="examples/easy-access-simbad-ned/">in this example.</a><td></tr>
+                <tr><td>limit</td><td>Limit the number of sources (default value: undefined)</td></tr>
             </tbody>
           </table>
 
@@ -168,6 +170,20 @@
         <p>Examples: <br>
            <a href="examples/load-votable/">Loading a VOTable from VizieR</a><br/>
            <a href="examples/onames-labels/">Using labels to display object names</a>
+        </p>
+
+        <h3>Easy access to SIMBAD, NED and VizieR data</h3>
+        <p>We provide with helper functions to easily load SIMBAD, NED or VizieR data for a given region of the sky:
+        <ul>
+            <li><code>A.catalogFromSimbad(&lt;target&gt;, &lt;radius-in-degrees&gt;?, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with Simbad data of the requested region around the target. Target can be an object name, a position or an object <code>{ra: &lt;ra-value&gt;, dec: &lt;dec-value&gt;}</code>.</li>
+            <li><code>A.catalogFromNED(&lt;target&gt;, &lt;radius-in-degrees&gt;?, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with NED data of the requested region.</li>
+            <li><code>A.catalogFromVizieR(&lt;vizier-cat-id&gt;, &lt;target&gt;, &lt;radius-in-deg&gt;?, &lt;cat-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with data of the requested VizieR catalogue.</li>
+        </ul>
+        </p>
+
+        <p>Examples: <br>
+        <a href="examples/easy-access-simbad-ned/">Visualizing SIMBAD and NED data around M 82</a><br/>
+        <a href="examples/easy-access-vizier/">Visualizing Hipparcos data in the Pleiades</a><br/>
         </p>
 
         <h3>Creating a marker</h3>

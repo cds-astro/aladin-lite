@@ -1,3 +1,10 @@
+Octobre 2015:
+- ajout méthodes accès facile à Simbad, NED et VizieR
+- ajout onClick comme option de Catalog: 'showTable' ou 'showPopup'
+
+Octobre 2015:
+- nouvelle version de jquery mousewheel (ça déconnait un peu sous Mac avec la précedente)
+
 Décembre 2014:
 - ajout displayLabel pour afficher un label d'un overlay Catalog
 - ajout option lineWidth pour objet A.graphicOverlay

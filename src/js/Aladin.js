@@ -317,7 +317,8 @@ Aladin = (function() {
         fullScreen:             false,
         reticleColor:           "rgb(178, 50, 178)",
         reticleSize:            22,
-        log:                    true
+        log:                    true,
+        allowFullZoomout:       false
     };
 
     

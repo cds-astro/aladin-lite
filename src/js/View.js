@@ -1051,7 +1051,21 @@ View = (function() {
         }
         
         if (this.projectionMethod==ProjectionEnum.SIN) {
-            this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+            if (this.aladin.options.allowFullZoomout === true) {
+                // special case for Andreas Wicenec until I fix the problem
+                if (this.width/this.height>2) {
+                    this.zoomLevel = Math.max(-8, level); // TODO : canvas freezes in firefox when max level is small
+                }
+                else if (this.width/this.height<0.5) {
+                    this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+                }
+                else {
+                    this.zoomLevel = Math.max(-6, level); // TODO : canvas freezes in firefox when max level is small
+                }
+            }
+            else {
+                this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+            }
         }
         else {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small

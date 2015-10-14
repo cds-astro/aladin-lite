@@ -80,7 +80,7 @@
     color: #000;
 }
 
-.aladin-measurement-div td, th {
+.aladin-measurement-div td, .aladin-measurement-div th {
     /*
     border-left-color: #cbcbcb;
     border-left-style: solid;

@@ -212,8 +212,13 @@ aladin.addOverlay(overlay);</pre></p>
           <h3>Polyline</h3>
           <p>Polylines are created with <code>A.polyline(&lt;array-of-ra-dec&gt;, &lt;options&gt;?);</code></p>
           <p>Example: <a href="examples/polyline/">drawing a constellation outline</a></p>
+
+          <h3>MOC</h3>
+          <p>Aladin Lite supports visualization of <a href="http://ivoa.net/documents/MOC/">MOC (Multi-Order Coverage maps)</a>. A MOC instance can be created from a URL with <code>var moc = A.MOCFromURL(&lt;MOC-URL&gt;, &lt;overlay-options&gt;?);</code>. The object can then be added to aladin using <code>aladin.addMOC(moc);</code></p>
+          <p>Example: <a href="examples/MOC/">SDSS DR9 MOC overlaid on an optical background</a></p>
+
+
         </div>
-        <p></p>
 
         <!-------------------------------------------------------------------->
         <!-- Listeners -->

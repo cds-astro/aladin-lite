@@ -30,23 +30,9 @@
     */
     
     
-    // Get GET variables
-    var parts = window.location.search.substr(1).split("&");
-    var $_GET = {};
-    for (var i = 0; i < parts.length; i++) {
-        var temp = parts[i].split("=");
-        $_GET[decodeURIComponent(temp[0])] = decodeURIComponent(temp[1]);
-    }
-  
-    // Check if they exist, otherwise use defaults
-    var zoom = $_GET['zoom'] || 18.0
-    var lon = $_GET['lon'] || 0.0
-    var lat = $_GET['lat'] || 0.0
-  
     // Start up Aladin Lite
-    var aladin = $.aladin('#aladin-lite-div');
+    var aladin = A.aladin('#aladin-lite-div');
 /*
-    var aladin = $.aladin('#aladin-lite-div', {survey: "GLIMPSE", zoom: zoom, cooFrame: "gal", showReticle:false});
     aladin.setImageSurvey(aladin.createImageSurvey("GLIMPSE", "GLIMPSE", "http://www.spitzer.caltech.edu/glimpse360/aladin/data", "gal", 9, {minOrder: 3}))
     aladin.gotoPosition(0, 0);
     aladin.setFOVRange(0.2, 360.0);

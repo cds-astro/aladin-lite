@@ -77,6 +77,8 @@ View = (function() {
     		this.catalogs = [];
             // overlays (footprints for instance)
     		this.overlays = [];
+            // MOCs
+    		this.mocs = [];
     		
     
     		
@@ -119,8 +121,10 @@ View = (function() {
     View.PAN = 0;
     View.SELECT = 1;
     	
-    	
+    
+    // TODO: should be put as an option at layer level	
 	View.DRAW_SOURCES_WHILE_DRAGGING = true;
+	View.DRAW_MOCS_WHILE_DRAGGING = true;
 	
 	
 	// (re)create needed canvases
@@ -722,7 +726,7 @@ View = (function() {
                 catalogCanvasCleared = true;
 		    }
 		    for (var i=0; i<this.catalogs.length; i++) {
-		        this.catalogs[i].draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.cooFrame);
+		        this.catalogs[i].draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
 		    }
         }
 
@@ -734,15 +738,29 @@ View = (function() {
                 catalogCanvasCleared = true;
 		    }
 		    for (var i=0; i<this.overlays.length; i++) {
-		        this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.cooFrame);
+		        this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
 		    }
         }
         
+
+        // draw MOCs
+        var mocCtx = this.catalogCtx;
+		if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
+		    if (! catalogCanvasCleared) {
+		        catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+		    }
+            for (var i=0; i<this.mocs.length; i++) {
+                this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+            }
+        }
+
+
 		if (this.mode==View.SELECT) {
 		    mustRedrawReticle = true;
 		}
 		////// 4. Draw reticle ///////
-		// TODO : canvas supplémentaire avec réticule uniquement ? --> mustRedrawReticle
+		// TODO: reticle should be placed in a static DIV, no need to waste a canvas
 		var reticleCtx = this.reticleCtx;
 		if (this.mustRedrawReticle || this.mode==View.SELECT) {
             reticleCtx.clearRect(0, 0, this.width, this.height);
@@ -816,7 +834,64 @@ View = (function() {
             }
         }
     };
+
+    View.prototype.getVisiblePixList = function(norder, frameSurvey) {
+        var nside = Math.pow(2, norder);
+
+        var pixList;
+		var npix = HealpixIndex.nside2Npix(nside);
+        if (this.fov>80) {
+            pixList = [];
+            for (var ipix=0; ipix<npix; ipix++) {
+                pixList.push(ipix);
+            }
+        }
+        else {
+            var hpxIdx = new HealpixIndex(nside);
+            hpxIdx.init();
+            var spatialVector = new SpatialVector();
+            // si frame != frame survey image, il faut faire la conversion dans le système du survey
+            var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
+            var radec = this.projection.unproject(xy.x, xy.y);
+            var lonlat = [];
+            if (frameSurvey && frameSurvey != this.cooFrame) {
+                if (frameSurvey==CooFrameEnum.J2000) {
+                    lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
+                }
+                else if (frameSurvey==CooFrameEnum.GAL) {
+                    lonlat = CooConversion.J2000ToGalactic([radec.ra, radec.dec]);
+                }
+            }
+            else {
+                lonlat = [radec.ra, radec.dec];
+            }
+            spatialVector.set(lonlat[0], lonlat[1]);
+            var radius = this.fov*0.5*this.ratio;
+            // we need to extend the radius
+            if (this.fov>60) {
+                radius *= 1.6;
+            }
+            else if (this.fov>12) {
+                radius *=1.45;
+            }
+            else {
+                radius *= 1.1;
+            }
+
+
+
+            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
+            // add central pixel at index 0
+            var polar = Utils.radecToPolar(lonlat[0], lonlat[1]);
+            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
+            pixList.unshift(ipixCenter);
+
+        }
+
+        return pixList;
+    };
 	
+    // TODO: optimize this method !!
 	View.prototype.getVisibleCells = function(norder, frameSurvey) {
 	    if (! frameSurvey && this.imageSurvey) {
 	        frameSurvey = this.imageSurvey.cooFrame;
@@ -829,6 +904,7 @@ View = (function() {
 		var ipixCenter = null;
 		
 		// build list of pixels
+        // TODO: pixList can be obtained from getVisiblePixList
 		var pixList;
 		if (this.fov>80) {
 			pixList = [];
@@ -1054,7 +1130,7 @@ View = (function() {
             if (this.aladin.options.allowFullZoomout === true) {
                 // special case for Andreas Wicenec until I fix the problem
                 if (this.width/this.height>2) {
-                    this.zoomLevel = Math.max(-8, level); // TODO : canvas freezes in firefox when max level is small
+                    this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
                 }
                 else if (this.width/this.height<0.5) {
                     this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
@@ -1349,6 +1425,11 @@ console.log(unknownSurveyId);
     View.prototype.addOverlay = function(overlay) {
         this.overlays.push(overlay);
         overlay.setView(this);
+    };
+    
+    View.prototype.addMOC = function(moc) {
+        this.mocs.push(moc);
+        moc.setView(this);
     };
     
     View.prototype.getObjectsInBBox = function(x, y, w, h) {

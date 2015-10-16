@@ -589,11 +589,16 @@ Aladin = (function() {
     Aladin.prototype.removeLayers = function() {
         this.view.removeLayers();
     };
+
+    // should be merged into a unique "add" method
     Aladin.prototype.addCatalog = function(catalog) {
         this.view.addCatalog(catalog);
     };
     Aladin.prototype.addOverlay = function(overlay) {
         this.view.addOverlay(overlay);
+    };
+    Aladin.prototype.addMOC = function(moc) {
+        this.view.addMOC(moc);
     };
     
 
@@ -684,6 +689,14 @@ Aladin = (function() {
             fps.push(new Footprint(polygons[k]));
         }
         return fps;
+    };
+
+    // API
+    A.MOCFromURL = function(url, options, successCallback) {
+        var moc = new MOC(options);
+        moc.dataFromURL(url, successCallback);
+
+        return moc;
     };
     
     // @oldAPI

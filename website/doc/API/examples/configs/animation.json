@@ -1,6 +1,6 @@
 {
     "title": "Animate to a given position",
     "html": "<link rel='stylesheet' href='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='http://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>\n<script type='text/javascript' src='http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
-    "js": "var aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', survey: 'P/GLIMPSE360', fov: 5});\naladin.gotoRaDec(266.41683, -29.00781);\naladin.animateToRaDec(305.5, 38.5, 70);",
+    "js": "var aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', survey: 'P/GLIMPSE360', fov: 5});\naladin.gotoRaDec(266.41683, -29.00781);\n// Parameters are:\n//    <right ascension of final position>,\n//    <declination of final position>,\n//    <animation duration in seconds>\naladin.animateToRaDec(305.5, 38.5, 70);",
     "explain": "Walking through GLIMPSE 360 Milky Way data"
 }

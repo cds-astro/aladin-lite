@@ -134,6 +134,7 @@
         </p>
         <p>Outside CDS, Aladin Lite is used in several projects:
             <ul>
+                <li><a href="http://archives.esac.esa.int/esasky-beta/" title="ESA Sky">ESA Sky beta</li>
                 <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>
                 <li><a href="http://darts.isas.jaxa.jp/astro/akari/cas/tools/explore/obj.php" title="Akari explore tool">Akari explore tool</a></li>
                 <li><a href="http://www.spitzer.caltech.edu/glimpse360/aladin" title="GLIMPSE 360 data visualized by Aladin Lite">GLIMPSE 360</a></li>

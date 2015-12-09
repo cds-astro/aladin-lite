@@ -13,6 +13,7 @@
     {"title": "Add listeners to click and hover events", "url": "events-listeners/"},
     {"title": "Add some footprints overlays", "url": "footprints/"},
     {"title": "Add a polyline overlay", "url": "polyline/"},
+    {"title": "Add a MOC overlay", "url": "MOC/"},
     {"title": "Animate to a given position", "url": "animation/"},
     {"title": "Demo page for AAS 225", "url": "AAS225/"}
 ]

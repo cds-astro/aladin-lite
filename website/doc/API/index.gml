@@ -102,11 +102,16 @@
 
         <h3>Updating view properties</h3>
         <b>Setting the size of the FoV</b>
-        <p>Use <code>aladin.setFov()</code>
+        <p>Use <code>aladin.setFov(&lt;FoV-in-degrees&gt;)</code>
         <p></p>
 
         <b>Setting the current position of the center of the view</b>
         <p>There are several methods to update the current position:</p>
+        <ul>
+            <li><code>aladin.gotoRaDec(&lt;ra-in-degrees&gt;, &lt;dec-in-degrees&gt;)</code></li>
+            <li><code>aladin.gotoObject(&lt;iobject-name-or-position&gt;)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.</li>
+        </ul>
+        Example: setting the current target.
         
 
 
@@ -125,14 +130,15 @@
         <p>Call <code>getColorMap()</code> on an ImageLayer object to retrieve its color map.<br/>
         Once retrieved, call <code>update(&lt;color-map-name&gt;)</code> to set a new color map. Recognized values are:
         <ul>
-            <li><i>grayscale</i></li>
+            <li><i>cubehelix</i></li>
             <li><i>eosb</i></li>
             <li><i>rainbow</i></li>
+            <li><i>grayscale</i></li>
             <li><i>native</i> to go back to the original image color map</li>
         </ul>
         </p>
         
-        <p>Example: <a href="examples/color-map/">setting a rainbow color map</a></p>
+        <p>Example: <a href="examples/color-map/">setting a cubehelix color map</a></p>
 
         <!-------------------------------------------------------------------->
         <!-- Catalogue layers -->

@@ -137,6 +137,7 @@
                 <li><a href="http://archives.esac.esa.int/esasky-beta/" title="ESA Sky">ESA Sky beta</li>
                 <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>
                 <li><a href="http://darts.isas.jaxa.jp/astro/akari/cas/tools/explore/obj.php" title="Akari explore tool">Akari explore tool</a></li>
+                <li><a href="http://cassis.sirtf.com/atlas/" title="CASSIS">CASSIS atlas of Spitzer Infrared Spectra</a></li>
                 <li><a href="http://www.spitzer.caltech.edu/glimpse360/aladin" title="GLIMPSE 360 data visualized by Aladin Lite">GLIMPSE 360</a></li>
                 <li><a href="http://cade.irap.omp.eu/">CADE</a> (<em>Centre d'Analyse de Données Etendues</em>) uses Aladin Lite to provide previews of the HEALPix maps they publish (<a href="http://cade.irap.omp.eu/dokuwiki/doku.php?id=cgps">Example for CGPS data</a>) </li>
                 <li><a href="http://www.adsass.org/aladin/">ADS All-Sky Survey</a> makes use of Aladin Lite to display heatmaps of SIMBAD objects cited in the literature.</li>

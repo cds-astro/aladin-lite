@@ -171,7 +171,14 @@
         <p>Example: <a href="examples/cat-custom-shape/">Creating a catalog with a custom shape</a><br/></p>
 
         <h3>Loading a VOTable</h3>
-        <p>Catalogue layers can also be created from a VOTable URL: calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>
+        <p>Catalogue layers can also be created from a VOTable URL: calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?, &lt;successCallback&gt;?, &lt;useProxy&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>
+        <p>The compulsory parameter is the URL of the VOTable we want to load. Other parameters are optional:
+        <ul>
+            <li>options: display options for the catalog. See above for an exhaustive list of understood keys.</li>
+            <li>succesCallback: function called when the parsing of the VOTable has been done. The callback function will be called with as a parameter the array of parsed Sources.</li>
+            <li>useProxy: true or false (default value: false). By default, Aladin Lite uses an HTTP proxy to retrieve remote resources, in order to allow for cross-domain calls. If the server providing the VOTable supports CORS or if you request a VOTable from the same domain than your Javascript code, you can set this parameter to false in order to make a direct query.</li>
+        </ul>
+        </p>
 
         <p>Examples: <br>
            <a href="examples/load-votable/">Loading a VOTable from VizieR</a><br/>
@@ -181,9 +188,9 @@
         <h3>Easy access to SIMBAD, NED and VizieR data</h3>
         <p>We provide with helper functions to easily load SIMBAD, NED or VizieR data for a given region of the sky:
         <ul>
-            <li><code>A.catalogFromSimbad(&lt;target&gt;, &lt;radius-in-degrees&gt;?, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with Simbad data of the requested region around the target. Target can be an object name, a position or an object <code>{ra: &lt;ra-value&gt;, dec: &lt;dec-value&gt;}</code>.</li>
-            <li><code>A.catalogFromNED(&lt;target&gt;, &lt;radius-in-degrees&gt;?, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with NED data of the requested region.</li>
-            <li><code>A.catalogFromVizieR(&lt;vizier-cat-id&gt;, &lt;target&gt;, &lt;radius-in-deg&gt;?, &lt;cat-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with data of the requested VizieR catalogue.</li>
+            <li><code>A.catalogFromSimbad(&lt;target&gt;, &lt;radius-in-degrees&gt;, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with Simbad data of the requested region around the target. Target can be an object name, a position or an object <code>{ra: &lt;ra-value&gt;, dec: &lt;dec-value&gt;}</code>.</li>
+            <li><code>A.catalogFromNED(&lt;target&gt;, &lt;radius-in-degrees&gt;, &lt;catalog-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with NED data of the requested region.</li>
+            <li><code>A.catalogFromVizieR(&lt;vizier-cat-id&gt;, &lt;target&gt;, &lt;radius-in-deg&gt;, &lt;cat-options&gt;?, &lt;successCallback&gt;?)</code> will return a Catalog instance with data of the requested VizieR catalogue.</li>
         </ul>
         </p>
 

@@ -160,7 +160,7 @@ cds.Catalog = (function() {
     
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
-    cds.Catalog.parseVOTable = function(url, callback, maxNbSources) {
+    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy) {
         
         function doParseVOTable(xml, callback) {
             xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
@@ -243,16 +243,9 @@ cds.Catalog = (function() {
             }
         }
         
-        $.ajax({
-            url: Aladin.JSONP_PROXY,
-            data: {"url": url},
-            method: 'GET',
-            dataType: 'text',
-            success: function(xml) {
-                doParseVOTable(xml, callback);
-            }/*,
-            }
-            error: callbackFunctionError*/
+        var ajax = Utils.getAjaxObject(url, 'GET', 'text', useProxy);
+        ajax.done(function(xml) {
+            doParseVOTable(xml, callback);
         });
     };
     

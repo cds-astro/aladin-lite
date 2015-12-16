@@ -212,3 +212,29 @@ Utils.LRUCache.prototype = {
             return this._keys;
         }
 };
+
+////////////////////////////////////////////////////////////////////////////:
+
+// return the jquery ajax object configured with the requested parameters
+// by default, we use the proxy (safer, as we don't know if the remote server supports CORS)
+Utils.getAjaxObject = function(url, method, dataType, useProxy) {
+        if (useProxy!==false) {
+            useProxy = true;
+        }
+
+        if (useProxy===true) {
+            var urlToRequest = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(url);
+        }
+        else {
+            urlToRequest = url;
+        }
+        method = method || 'GET';
+        dataType = dataType || null;
+
+        return $.ajax({
+            url: urlToRequest,
+            method: method,
+            dataType: dataType
+        }); 
+};
+

@@ -705,14 +705,14 @@ Aladin = (function() {
     };
 
     // API
-    A.catalogFromURL = function(url, options, successCallback) {
+    A.catalogFromURL = function(url, options, successCallback, useProxy) {
         var catalog = A.catalog(options);
         cds.Catalog.parseVOTable(url, function(sources) {
             catalog.addSources(sources);
             if (successCallback) {
                 successCallback(sources);
             }
-        }, catalog.maxNbSources);
+        }, catalog.maxNbSources, useProxy);
         return catalog;
     };
 
@@ -724,7 +724,7 @@ Aladin = (function() {
             options['name'] = 'Simbad';
         }
         var url = URLBuilder.buildSimbadCSURL(target, radius);
-        return A.catalogFromURL(url, options, successCallback);
+        return A.catalogFromURL(url, options, successCallback, false);
     };
      
     // API
@@ -760,7 +760,7 @@ Aladin = (function() {
             options['name'] = 'VizieR:' + vizCatId;
         }
         var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius);
-        return A.catalogFromURL(url, options, successCallback);
+        return A.catalogFromURL(url, options, successCallback, false);
     };
 
      

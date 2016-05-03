@@ -38,6 +38,7 @@
             <li><a href="#image-layers">Image layers</a></li>
             <li><a href="#catalogue-layers">Catalogue layers</a></li>
             <li><a href="#overlay-layers">Overlay layers</a></li>
+            <li><a href="#managing-layers">Managing layers</a></li>
             <li><a href="#listeners">Listeners</a></li>
             <li><a href="#misc">Misc</a></li>
             <li><a href="#examples-list">API examples</a></li>
@@ -155,9 +156,12 @@
               <tr><th>Key name</th><th>Description</th></tr>
             </thead>
             <tbody>
+                <tr><td>name</td><td>The label of the catalogue layer.</td></tr>
                 <tr><td>shape</td><td>The shape used for each source in the catalog.<br/>Possible values are: <code>plus</code>, <code>rhomb</code>, <code>cross</code>, <code>triangle</code> and <code>square</code> (default value).<br/>An Image object can also be passed (JPEG, PNG formats are supported, even SVG in most modern browsers).</td></tr>
                 <tr><td>color</td><td>The color of the shape for each source.</td></tr>
                 <tr><td>sourceSize</td><td>The size of the source in pixels.</td></tr>
+                <tr><td>raField</td><td>ID, name or index of the field to be used as Right Ascension. If not given, Aladin Lite will try to guess on the basis of UCDs.</td></tr>
+                <tr><td>decField</td><td>ID, name or index of the field to be used as declination. If not given, Aladin Lite will try to guess on the basis of UCDs.</td></tr>
                 <tr><td>labelColumn</td><td>A label can be displayed next to the source shape. The value of labelColumn is the name of the column to be used for this purpose.<br/>If this option is used, color and font of the label can be given with labelColor and labelFont.</td></tr>
                 <tr><td>labelColor</td><td>Color of the label</td></tr>
                 <tr><td>labelFont</td><td>Font of the label, <em>eg</em> <code>12px sans-serif</code></td></tr>
@@ -176,7 +180,7 @@
         <ul>
             <li>options: display options for the catalog. See above for an exhaustive list of understood keys.</li>
             <li>succesCallback: function called when the parsing of the VOTable has been done. The callback function will be called with as a parameter the array of parsed Sources.</li>
-            <li>useProxy: true or false (default value: false). By default, Aladin Lite uses an HTTP proxy to retrieve remote resources, in order to allow for cross-domain calls. If the server providing the VOTable supports CORS or if you request a VOTable from the same domain than your Javascript code, you can set this parameter to false in order to make a direct query.</li>
+            <li>useProxy: true or false (default value: true). By default, Aladin Lite uses an HTTP proxy to retrieve remote resources, in order to allow for cross-domain calls. If the server providing the VOTable supports CORS or if you request a VOTable from the same domain than your Javascript code, you can set this parameter to false in order to make a direct query.</li>
         </ul>
         </p>
 
@@ -234,6 +238,17 @@ aladin.addOverlay(overlay);</pre></p>
         </div>
 
         <!-------------------------------------------------------------------->
+        <!-- Managing layers -->
+        <a name="managing-layers"></a>
+        <div class="page-header">
+          <h1>Managing layers</h1>
+
+          <h3>Remove all layers (overlay and catalogues)</h3>
+          <p>Call <code>aladin.removeLayers()</code> to remove all graphical layers.
+          </p>
+        </div>
+
+        <!-------------------------------------------------------------------->
         <!-- Listeners -->
         <a name="listeners"></a>
         <div class="page-header">
@@ -254,7 +269,14 @@ aladin.addOverlay(overlay);</pre></p>
         <div class="page-header">
           <h1>Misc</h1>
         </div>
-        <p></p>
+          <h3>Retrieve current view as a PNG</h3>
+          <p>Calling <code>getViewDataURL()</code> on the aladin instance will return the current view as a base64-encoded string. This method takes an optional parameter to specify the image format, either 'image/png' or 'image/jpeg'.</p>
+
+          <h3>Get URL of the current view</h3>
+          <p>Calling <code>getShareURL()</code> on the aladin instance will return a permanent link showing the current field of view for the current selected image HiPS.</p>
+        
+          <h3>Get embed code</h3>
+          <p>Calling <code>getEmbedCode()</code> on the aladin instance will return the HTML code to be inserted in a web page, and corresponding to the current field of view (target and zoom level) and to the currently displayed HiPS.</p>
         
         <!-------------------------------------------------------------------->
         <!-- Full list of examples -->

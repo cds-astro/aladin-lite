@@ -35,7 +35,7 @@ ColorMap = (function() {
     ColorMap = function(view) {
         this.view = view;
         this.reversed = false;
-        this.map = 'native';
+        this.mapName = 'native';
         this.sig = this.signature();
     };
     
@@ -180,7 +180,7 @@ ColorMap.MAPS = {};
     
     
     ColorMap.prototype.signature = function() {
-        var s = this.map;
+        var s = this.mapName;
         
         if (this.reversed) {
             s += ' reversed';
@@ -189,8 +189,8 @@ ColorMap.MAPS = {};
         return s;
     };
     
-    ColorMap.prototype.update = function(map) {
-        this.map = map;
+    ColorMap.prototype.update = function(mapName) {
+        this.mapName = mapName;
         this.sig = this.signature();
         this.view.requestRedraw();
     };
@@ -215,10 +215,10 @@ ColorMap.MAPS = {};
         var length = pixelData.length;
         var a, b, c;
         var switchCase = 3;
-        if (this.map=='grayscale') {
+        if (this.mapName=='grayscale') {
             switchCase = 1;
         }
-        else if (ColorMap.MAPS_CUSTOM.indexOf(this.map)>=0) {
+        else if (ColorMap.MAPS_CUSTOM.indexOf(this.mapName)>=0) {
             switchCase = 2;
         }
         for (var i = 0; i < length; i+= 4) {
@@ -228,14 +228,14 @@ ColorMap.MAPS = {};
                     break;
                 case 2:
                     if (this.reversed) {
-                        a = ColorMap.MAPS[this.map].r[255-pixelData[i]];
-                        b = ColorMap.MAPS[this.map].g[255-pixelData[i+1]];
-                        c = ColorMap.MAPS[this.map].b[255-pixelData[i+2]];
+                        a = ColorMap.MAPS[this.mapName].r[255-pixelData[i]];
+                        b = ColorMap.MAPS[this.mapName].g[255-pixelData[i+1]];
+                        c = ColorMap.MAPS[this.mapName].b[255-pixelData[i+2]];
                     }
                     else {
-                        a = ColorMap.MAPS[this.map].r[pixelData[i]];
-                        b = ColorMap.MAPS[this.map].g[pixelData[i+1]];
-                        c = ColorMap.MAPS[this.map].b[pixelData[i+2]];
+                        a = ColorMap.MAPS[this.mapName].r[pixelData[i]];
+                        b = ColorMap.MAPS[this.mapName].g[pixelData[i+1]];
+                        c = ColorMap.MAPS[this.mapName].b[pixelData[i+2]];
                     }
                     break;
                 default:

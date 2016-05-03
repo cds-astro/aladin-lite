@@ -74,9 +74,13 @@ Aladin = (function() {
 	    
         this.options = options;
 
+        $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
+
 	    
 
 		this.aladinDiv = aladinDiv;
+
+        this.reduceDeformations = true;
 
 		// parent div
 		$(aladinDiv).addClass("aladin-container");
@@ -138,7 +142,7 @@ Aladin = (function() {
 	        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
 	        data: {"frame": "aladinLiteDic"},
 	        method: 'GET',
-	        dataType: 'jsonp',
+	        dataType: 'jsonp', // could this be repaced by json ??
 	        success: function(data) {
                 var map = {};
                 for (var k=0; k<data.length; k++) {
@@ -708,11 +712,15 @@ Aladin = (function() {
     A.catalogFromURL = function(url, options, successCallback, useProxy) {
         var catalog = A.catalog(options);
         cds.Catalog.parseVOTable(url, function(sources) {
-            catalog.addSources(sources);
-            if (successCallback) {
-                successCallback(sources);
-            }
-        }, catalog.maxNbSources, useProxy);
+                catalog.addSources(sources);
+                if (successCallback) {
+                    successCallback(sources);
+                }
+            },
+            catalog.maxNbSources, useProxy,
+            catalog.raField, catalog.decField
+        );
+
         return catalog;
     };
 
@@ -829,7 +837,7 @@ Aladin = (function() {
          for (var k=0; k<ColorMap.MAPS_NAMES.length; k++) {
              cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
          }
-         cmSelect.val(self.getBaseImageLayer().getColorMap().map);
+         cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
 
          
          // loop over catalogs
@@ -902,7 +910,7 @@ Aladin = (function() {
                  
                  if (baseImgLayer.useCors) {
                      // update color map list with current value color map
-                     cmSelect.val(baseImgLayer.getColorMap().map);
+                     cmSelect.val(baseImgLayer.getColorMap().mapName);
                      cmDiv.show();
                      
                      exportBtn.show();
@@ -1232,7 +1240,7 @@ Aladin.prototype.getEmbedCode = function() {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function(url, options) {
+Aladin.prototype.displayFITS = function(url, options, successCallback, errorCallback) {
     options = options || {};
     var data = {url: url};
     if (options.color) {
@@ -1247,6 +1255,7 @@ Aladin.prototype.displayFITS = function(url, options) {
     if (options.nocache) {
         data.nocache = options.nocache;
     }
+    var self = this;
     $.ajax({
         url: 'http://alasky.u-strasbg.fr/cgi/fits2HiPS',
         data: data,
@@ -1254,15 +1263,26 @@ Aladin.prototype.displayFITS = function(url, options) {
         dataType: 'json',
         success: function(response) {
             if (response.status!='success') {
-                alert('An error occured: ' + response.message);
+                console.error('An error occured: ' + response.message);
+                if (errorCallback) {
+                    errorCallback(response.message);
+                }
                 return;
             }
             var label = options.label || "FITS image"; 
-            aladin.setOverlayImageLayer(aladin.createImageSurvey(label, label, response.data.url, "equatorial", response.data.meta.max_norder, {imgFormat: 'png'}));
-            aladin.setFoV(response.data.meta.fov);
-            aladin.gotoRaDec(response.data.meta.ra, response.data.meta.dec);
+            var meta = response.data.meta;
+            self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, {imgFormat: 'png'}));
             var transparency = (options && options.transparency) || 1.0;
-            aladin.getOverlayImageLayer().setAlpha(transparency);
+            self.getOverlayImageLayer().setAlpha(transparency);
+
+            var executeDefaultSuccessAction = true;
+            if (successCallback) {
+                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+            }
+            if (executeDefaultSuccessAction===true) {
+                self.gotoRaDec(meta.ra, meta.dec);
+                self.setFoV(meta.fov);
+            }
 
         }
     });
@@ -1274,13 +1294,18 @@ Aladin.prototype.displayFITS = function(url, options) {
  * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
  * and display it
  */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function(url, options) {
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function(url, options, successCallback, errorCallback) {
     options = options || {};
     options.color = true;
     options.label = "JPG/PNG image";
     options.outputFormat = 'png';
-    this.displayFITS(url, options);
+    this.displayFITS(url, options, successCallback, errorCallback);
 };
+
+Aladin.prototype.setReduceDeformations = function(reduce) {
+    this.reduceDeformations = reduce;
+    this.view.requestRedraw();
+}
 
 
 

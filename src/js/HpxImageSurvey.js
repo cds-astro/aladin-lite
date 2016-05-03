@@ -53,6 +53,8 @@ HpxImageSurvey = (function() {
         // permet de forcer l'affichage d'un certain niveau
         this.minOrder = options.minOrder || null;
 
+        this.tileSize = undefined;
+
         // TODO : lire depuis fichier properties
         this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
         
@@ -110,7 +112,7 @@ HpxImageSurvey = (function() {
             $.ajax({
                 type: 'GET',
                 url: this.rootUrl + '/properties',
-                contentType: 'text/plain',
+                dataType: 'text',
                 xhrFields: {
                 },
                 headers: {
@@ -124,7 +126,7 @@ HpxImageSurvey = (function() {
                         callback();
                     }
                 },
-                error: function() {
+                error: function(jqXHR, textStatus, errorThrown) {
                     // CORS is not supported
                     self.retrieveAllskyTextures();
                     if (callback) {
@@ -238,7 +240,7 @@ HpxImageSurvey = (function() {
         "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
         "maxOrder": 7,
         "frame": "equatorial",
-        "format": "png jpeg fits"
+        "format": "png fits"
      },
      {
          "id": "P/XMM/PN/color",
@@ -288,7 +290,11 @@ HpxImageSurvey = (function() {
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
-            return new HpxImageSurvey(surveyInfo.id, surveyInfo.name, surveyInfo.url, surveyInfo.frame, surveyInfo.maxOrder);
+            var options = {};
+            if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
+                options.imgFormat = 'png';
+            }
+            return new HpxImageSurvey(surveyInfo.id, surveyInfo.name, surveyInfo.url, surveyInfo.frame, surveyInfo.maxOrder, options);
         }
 
         return null;
@@ -340,6 +346,98 @@ HpxImageSurvey = (function() {
     	img.src = this.rootUrl + '/Norder3/Allsky.' + this.imgFormat;
     
     };
+
+    // Nouvelle méthode pour traitement des DEFORMATIONS
+    /**
+     * Draw the image survey according 
+     *
+     * @param ctx: canvas context where to draw
+     * @param view
+     * @param subdivide: should
+     *
+     */
+    HpxImageSurvey.prototype.draw = function(ctx, view, subdivide) {
+        subdivide = (subdivide===undefined) ? false: subdivide;
+
+        var cornersXYViewMapAllsky = view.getVisibleCells(3);
+        var cornersXYViewMapHighres = null;
+
+
+
+        var norder4Display = Math.min(view.curNorder, this.maxOrder);
+        if (view.curNorder>=3) {
+            if (view.curNorder==3) {
+                cornersXYViewMapHighres = cornersXYViewMapAllsky;
+            }
+            else {
+                cornersXYViewMapHighres = view.getVisibleCells(norder4Display);
+            }
+        }
+
+        // new way of drawing
+        if (subdivide) {
+            if (view.curNorder>=3) {
+
+                this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
+            }
+            else {
+                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
+            }
+
+            return;
+        }
+
+        // regular way of drawing
+        // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
+        // TODO refactoring : devrait être une méthode de HpxImageSurvey
+        if (view.curNorder>=3) {
+            this.redrawHighres(ctx, cornersXYViewMapHighres, view.curNorder);
+        }
+        else {
+            this.redrawAllsky(ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
+        }
+
+    };
+
+    HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view) {
+        var hpxKeys = [];
+        var tSize = this.tileSize || 512;
+        for (var k=0; k<cornersXYViewMap.length; k++) {
+            hpxKeys.push(new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize));
+        }
+        
+        for (var k=0; k<hpxKeys.length; k++) {
+            hpxKeys[k].draw(ctx, view);
+        }
+    };
+
+    HpxImageSurvey.prototype.drawAllsky = function(ctx, cornersXYViewMap, norder, view) {
+        // for norder deeper than 6, we think it brings nothing to draw the all-sky
+        if (this.view.curNorder>6) {
+            return;
+        }
+
+        if ( ! this.allskyTexture || !Tile.isImageOk(this.allskyTexture) ) {
+            return;
+        }
+
+        var hpxKeys = [];
+    	var cornersXYView;
+        var ipix;
+        var dx, dy;
+        for (var k=0; k<cornersXYViewMap.length; k++) {
+    		cornersXYView = cornersXYViewMap[k];
+    		ipix = cornersXYView.ipix;
+            dy = this.allskyTextureSize * Math.floor(ipix/27);
+            dx = this.allskyTextureSize * (ipix - 27*Math.floor(ipix/27));
+            hpxKeys.push(new HpxKey(3, cornersXYViewMap[k].ipix, this, this.allskyTextureSize, this.allskyTextureSize, dx, dy, this.allskyTexture, this.allskyTextureSize));
+        }
+
+        for (var k=0; k<hpxKeys.length; k++) {
+            hpxKeys[k].draw(ctx, view);
+        }
+    };
+
     
     HpxImageSurvey.prototype.redrawAllsky = function(ctx, cornersXYViewMap, fov, norder) {
     	// for norder deeper than 6, we think it brings nothing to draw the all-sky
@@ -516,28 +614,6 @@ HpxImageSurvey = (function() {
         }
         
         // draw tiles
-        /*
-        // using loop unrolling
-        var iterations = Math.ceil(tilesToDraw.length / 8);
-        var startAt = tilesToDraw.length % 8;
-        var i = 0;
-        var theTileToDraw;
-        do {
-            switch(startAt){
-                case 0: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 7: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 6: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 5: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 4: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 3: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 2: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-                case 1: theTileToDraw = tilesToDraw[i++]; this.drawOneTile(ctx, theTileToDraw.img, theTileToDraw.corners, theTileToDraw.img.width, alpha);
-            }
-            startAt = 0;
-        } while (--iterations > 0);
-        */
-        
-        // draw tiles
         ///*
         for (var k=0, len = tilesToDraw.length; k<len; k++) {
         	var alpha = null;
@@ -606,7 +682,108 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection);
     };
     
-    
+       HpxImageSurvey.prototype.drawOneTile2 = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
+
+        // apply CM
+        var newImg = this.useCors ? this.cm.apply(img) : img;
+
+
+        // is the tile a diamond ?
+    //  var round = AladinUtils.myRound;
+    //  var b = cornersXYView;
+    //  var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
+    //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
+
+        drawTexturedTriangle2(ctx, newImg,
+                cornersXYView[0].vx, cornersXYView[0].vy,
+                cornersXYView[1].vx, cornersXYView[1].vy,
+                cornersXYView[3].vx, cornersXYView[3].vy,
+                textureSize, textureSize,
+                textureSize, 0,
+                0, textureSize,
+                alpha,
+                dx, dy, applyCorrection);
+        drawTexturedTriangle2(ctx, newImg,
+                cornersXYView[1].vx, cornersXYView[1].vy,
+                cornersXYView[3].vx, cornersXYView[3].vy,
+                cornersXYView[2].vx, cornersXYView[2].vy,
+                textureSize, 0,
+                0, textureSize,
+                0, 0,
+                alpha,
+                dx, dy, applyCorrection);
+    };
+ 
+    function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
+                                        u0, v0, u1, v1, u2, v2, alpha,
+                                        dx, dy, applyCorrection) {
+
+        dx = dx || 0;
+        dy = dy || 0;
+
+        if (!applyCorrection) {
+            applyCorrection = false;
+        }
+
+        u0 += dx;
+        u1 += dx;
+        u2 += dx;
+        v0 += dy;
+        v1 += dy;
+        v2 += dy;
+        var xc = (x0 + x1 + x2) / 3;
+        var yc = (y0 + y1 + y2) / 3;
+
+
+        // ---- centroid ----
+        var xc = (x0 + x1 + x2) / 3;
+        var yc = (y0 + y1 + y2) / 3;
+        ctx.save();
+        if (alpha) {
+            ctx.globalAlpha = alpha;
+        }
+
+        var coeff = 0.01; // default value
+        if (applyCorrection) {
+            coeff = 0.01;
+        }
+coeff = 0.02; // TODO ???? 
+
+        // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
+        ctx.beginPath();
+        ctx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
+        ctx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
+        ctx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
+        ctx.closePath();
+        ctx.clip();
+
+coeff = 0.01; // TODO ???? 
+        // this is needed to prevent to see some lines between triangles
+        if (applyCorrection) {
+            coeff = 0.01;
+            x0 = ((1+coeff) * x0 - xc * coeff), y0 = ((1+coeff) * y0 - yc * coeff);
+            x1 = ((1+coeff) * x1 - xc * coeff), y1 = ((1+coeff) * y1 - yc * coeff);
+            x2 = ((1+coeff) * x2 - xc * coeff), y2 = ((1+coeff) * y2 - yc * coeff);
+        }
+
+        // ---- transform texture ----
+        var d_inv = 1/ (u0 * (v2 - v1) - u1 * v2 + u2 * v1 + (u1 - u2) * v0);
+        ctx.transform(
+            -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
+             (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
+             (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
+            -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
+             (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
+             (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
+        );
+        ctx.drawImage(img, 0, 0);
+        //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
+
+    //    ctx.globalAlpha = 1.0;
+
+        ctx.restore();
+    }
+
     	        
     
     // uses affine texture mapping to draw a textured triangle
@@ -716,27 +893,6 @@ HpxImageSurvey = (function() {
     }
     */
     
-    function grow(b, val)  {
-    
-    	  var b1 = new Array(b.length);
-    	  for( var i=0; i<4; i++ ) {
-    		  b1[i] = {vx: b[i].vx, vy: b[i].vy};
-    	  }
-    
-    	  for( var i=0; i<2; i++ ) {
-    	     var a= i==1 ? 1 : 0;
-    	     var c= i==1 ? 2 : 3;
-    
-    	     var angle = Math.atan2(b1[c].vy-b1[a].vy, b1[c].vx-b1[a].vx);
-    	     var chouilla = val*Math.cos(angle);
-    	     b1[a].vx -= chouilla;
-    	     b1[c].vx += chouilla;
-    	     chouilla = val*Math.sin(angle);
-    	     b1[a].vy -= chouilla;
-    	     b1[c].vy += chouilla;
-    	  }
-      return b1;
-    }
     
     // @api
     HpxImageSurvey.prototype.setAlpha = function(alpha) {

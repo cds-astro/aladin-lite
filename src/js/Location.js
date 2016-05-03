@@ -31,17 +31,20 @@
 Location = (function() {
     // constructor
     Location = function(locationDiv) {
-    		this.div = $(locationDiv);
+    		this.$div = $(locationDiv);
     	};
 	
-	Location.prototype.update = function(lon, lat, cooFrame) {
+	Location.prototype.update = function(lon, lat, cooFrame, isViewCenterPosition) {
+        isViewCenterPosition = (isViewCenterPosition && isViewCenterPosition===true) || false;
 		var coo = new Coo(lon, lat, 7);
 		if (cooFrame==CooFrameEnum.J2000) {
-            this.div.html(coo.format('s/'));
+            this.$div.html(coo.format('s/'));
         }
         else {
-            this.div.html(coo.format('d/'));
+            this.$div.html(coo.format('d/'));
         }
+
+        this.$div.toggleClass('aladin-reticleColor', isViewCenterPosition);
 	};
 	
 	return Location;

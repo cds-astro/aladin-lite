@@ -169,11 +169,6 @@ ProgressiveCat = (function() {
         loadLevel2Sources: function() {
             var self = this;
             $.ajax({
-                /*
-                url: Aladin.JSONP_PROXY,
-                data: {"url": self.rootUrl + '/' + 'Norder2/Allsky.xml'},
-                datatype: 'jsonp',
-                */
                 url: self.rootUrl + '/' + 'Norder2/Allsky.xml',
                 method: 'GET',
                 success: function(xml) {
@@ -190,11 +185,6 @@ ProgressiveCat = (function() {
         loadLevel3Sources: function() {
             var self = this;
             $.ajax({
-                /*
-                url: Aladin.JSONP_PROXY,
-                data: {"url": self.rootUrl + '/' + 'Norder3/Allsky.xml'},
-                datatype: 'jsonp',
-                */
                 url: self.rootUrl + '/' + 'Norder3/Allsky.xml',
                 method: 'GET',
                 success: function(xml) {
@@ -212,7 +202,6 @@ ProgressiveCat = (function() {
             if (! this.isShowing || ! this.level3Sources) {
                 return;
             }
-            //var sources = this.getSources();
             this.drawSources(this.level2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
             this.drawSources(this.level3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
             

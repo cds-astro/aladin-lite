@@ -178,10 +178,36 @@ View = (function() {
 		this.imageCtx.canvas.height = this.height;
 		this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
+
+        pixelateCanvasContext(this.imageCtx);
+
+        // change logo
+        if (!this.logoDiv) {
+            this.logoDiv = $(this.aladinDiv).find('.aladin-logo')[0];
+        }
+        if (this.width>800) {
+            $(this.logoDiv).removeClass('aladin-logo-small');
+            $(this.logoDiv).addClass('aladin-logo-large');
+            $(this.logoDiv).css('width', '90px');
+        }
+        else {
+            $(this.logoDiv).addClass('aladin-logo-small');
+            $(this.logoDiv).removeClass('aladin-logo-large');
+            $(this.logoDiv).css('width', '32px');
+        }
+
         
         this.computeNorder();
         this.requestRedraw();
 	};
+
+    var pixelateCanvasContext = function(ctx) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+        ctx.oImageSmoothingEnabled = false;
+    }
     
 
 	View.prototype.setMode = function(mode) {
@@ -333,7 +359,9 @@ View = (function() {
             return false; // to disable text selection
         });
         var lastClickedObject; // save last object clicked by mouse
-        $(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
+
+        //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
+        $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
             if (view.mode==View.SELECT && view.dragging) {
                 view.aladin.fire('selectend', 
                                  view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
@@ -349,8 +377,11 @@ View = (function() {
             view.dragx = view.dragy = null;
 
 
+
             if (e.type==="mouseout") {
-                view.requestRedraw();
+                view.requestRedraw(true);
+                updateLocation(view, view.width/2, view.height/2, true);
+
                 return;
             }
 
@@ -369,16 +400,15 @@ View = (function() {
                 }
                 // show measurements
                 else {
-                    // TODO: show measurements
                     if (view.aladin.objClickedFunction) {
                         var ret = view.aladin.objClickedFunction(o);
                     }
-                    else {
-                        if (lastClickedObject) {
-                            lastClickedObject.actionOtherObjectClicked();
-                        }
-                        o.actionClicked();
+                    //else {
+                    if (lastClickedObject) {
+                        lastClickedObject.actionOtherObjectClicked();
                     }
+                    o.actionClicked();
+                    //}
                     lastClickedObject = o;
                 }
             }
@@ -400,14 +430,14 @@ View = (function() {
             // on avertit les catalogues progressifs
             view.refreshProgressiveCats();
 
-            view.requestRedraw();
+            view.requestRedraw(true);
         });
         var lastHoveredObject; // save last object hovered by mouse
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
             if (!view.dragging || hasTouchEvents) {
-                    updateLocation(view, xymouse.x, xymouse.y, true);
+                    updateLocation(view, xymouse.x, xymouse.y);
                     /*
                     var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
                     var lonlat;
@@ -544,7 +574,7 @@ View = (function() {
 
 	};
 	
-	init = function(view) {
+	var init = function(view) {
         var stats = new Stats();
         stats.domElement.style.top = '50px';
         if ($('#aladin-statsDiv').length>0) {
@@ -567,7 +597,7 @@ View = (function() {
 		view.redraw();
 	};
 
-	function updateLocation(view, x, y, italic) {
+	function updateLocation(view, x, y, isViewCenterPosition) {
 	    if (!view.projection) {
 	        return;
 	    }
@@ -579,13 +609,40 @@ View = (function() {
         catch(err) {
         }
         if (lonlat) {
-            view.location.update(lonlat.ra, lonlat.dec, view.cooFrame, italic);
+            view.location.update(lonlat.ra, lonlat.dec, view.cooFrame, isViewCenterPosition);
         }
 	}
 	
 	View.prototype.requestRedrawAtDate = function(date) {
 	    this.dateRequestDraw = date;
 	};
+
+    /**
+     * Return the color of the lowest intensity pixel 
+     * in teh current color map of the current background image HiPS
+     */
+    View.prototype.getBackgroundColor = function() {
+        var white = 'rgb(255, 255, 255)';
+        var black = 'rgb(0, 0, 0)';
+        if (! this.imageSurvey) {
+            return black;
+        }
+
+        var cm = this.imageSurvey.getColorMap();
+        if (!cm) {
+            return black;
+        }
+        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
+            return cm.reversed ? white : black;
+        }
+
+        var idx = cm.reversed ? 255 : 0;
+        var r = ColorMap.MAPS[cm.mapName].r[idx];
+        var g = ColorMap.MAPS[cm.mapName].g[idx];
+        var b = ColorMap.MAPS[cm.mapName].b[idx];
+
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    };
 	
 	
 
@@ -610,6 +667,7 @@ View = (function() {
             }
 		}
 		this.stats.update();
+        //console.log("redraw at " + now);
 
 		var imageCtx = this.imageCtx;
 		//////// 1. Draw images ////////
@@ -618,19 +676,26 @@ View = (function() {
 		// TODO : do not need to clear if fov small enough ?
 		imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
 		////////////////////////
-		
-		// black background
+	
+        var bkgdColor = this.getBackgroundColor();	
+		// fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
             if (this.fov>80) {
-                imageCtx.fillStyle = "rgb(0,0,0)";
+                imageCtx.fillStyle = bkgdColor;
                 imageCtx.beginPath();
                 imageCtx.arc(this.cx, this.cy, this.cx*this.zoomFactor, 0, 2*Math.PI, true);
                 imageCtx.fill();
             }
             // pour éviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
             else if (this.fov<60) {
-                imageCtx.fillStyle = "rgb(0,0,0)";
+                imageCtx.fillStyle = bkgdColor;
                 imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+            }
+            else { // 60 <= fov <= 80
+                imageCtx.fillStyle = bkgdColor;
+                imageCtx.beginPath();
+                imageCtx.arc(this.cx, this.cy, this.cx*this.zoomFactor, 0, 2*Math.PI, true);
+                imageCtx.fill();
             }
         }
 
@@ -646,42 +711,70 @@ View = (function() {
 	
 
 		// ************* Tracé au niveau allsky (faible résolution) *****************
-		var cornersXYViewMapAllsky = this.getVisibleCells(3);
-		var cornersXYViewMapHighres = null;
-		if (this.curNorder>=3) {
-			if (this.curNorder==3) {
-				cornersXYViewMapHighres = cornersXYViewMapAllsky;
-			}
-			else {
-				cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-			}
-		}
 
-		// redraw image survey
-		if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
-		    // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-		    // TODO refactoring : devrait être une méthode de HpxImageSurvey
-			this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
-            if (this.curNorder>=3) {
-                this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
-            }
-		}
+        var cornersXYViewMapHighres = null;
+        // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la méthode utilisée systématiquement
+	    if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+                if (this.aladin.reduceDeformations==null) {
+                    this.imageSurvey.draw(imageCtx, this, !this.dragging);
+                }
+
+                else {
+                    this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations);
+                }
+        }
+        /*
+        else {
+		    var cornersXYViewMapAllsky = this.getVisibleCells(3);
+		    var cornersXYViewMapHighres = null;
+		    if (this.curNorder>=3) {
+			    if (this.curNorder==3) {
+				    cornersXYViewMapHighres = cornersXYViewMapAllsky;
+			    }
+			    else {
+				    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+			    }
+		    }
+
+		    // redraw image survey
+		    if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+		        // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
+		        // TODO refactoring : devrait être une méthode de HpxImageSurvey
+			    this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
+                if (this.curNorder>=3) {
+                    this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
+                }
+		    }
+        }
+        */
 		
 
         // redraw overlay image survey
 		// TODO : does not work if different frames 
+        // TODO: use HpxImageSurvey.draw method !!
 		if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
 		    imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
+
+            if (this.aladin.reduceDeformations==null) {
+                this.overlayImageSurvey.draw(imageCtx, this, !this.dragging);
+            }
+
+            else {
+                this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations);
+            }
+            /*
 	        if (this.fov>50) {
 		        this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
 	        }
 	        if (this.curOverlayNorder>=3) {
                 var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
-                if ( norderOverlay != this.curNorder ) {
+                if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
 				    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
                 }
 	            this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, norderOverlay);
 	        }
+            */
+
            imageCtx.globalAlpha = 1.0;
 
 		}
@@ -689,6 +782,16 @@ View = (function() {
 		
 		// redraw HEALPix grid
         if( this.displayHpxGrid) {
+		    var cornersXYViewMapAllsky = this.getVisibleCells(3);
+		    var cornersXYViewMapHighres = null;
+		    if (this.curNorder>=3) {
+			    if (this.curNorder==3) {
+				    cornersXYViewMapHighres = cornersXYViewMapAllsky;
+			    }
+			    else {
+				    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+			    }
+		    }
         	if (cornersXYViewMapHighres && this.curNorder>3) {
         		this.healpixGrid.redraw(imageCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
         	}
@@ -1172,7 +1275,7 @@ View = (function() {
      */
     View.prototype.computeNorder = function() {
         var resolution = this.fov / this.largestDim; // in degree/pixel
-        var tileSize = 512;
+        var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
         var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = taille d'une image "tuile"
         var norder = Math.log(nside)/Math.log(2);
         norder = Math.max(norder, 1);
@@ -1312,7 +1415,6 @@ console.log(unknownSurveyId);
 	
 	View.prototype.requestRedraw = function() {
 		this.needRedraw = true;
-		//redraw(this);
 	};
 	
 	View.prototype.changeProjection = function(projectionMethod) {
@@ -1378,6 +1480,8 @@ console.log(unknownSurveyId);
 		    this.viewCenter.lon = lb[0];
 		    this.viewCenter.lat = lb[1];
         }
+
+        this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         this.forceRedraw();
         this.requestRedraw();

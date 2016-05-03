@@ -42,12 +42,13 @@ AladinUtils = (function() {
     	    if (noRound==undefined) {
     	        noRound = false;
     	    }
+noRound=true;
     	    if (noRound) {
 
                 return {vx: largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2, vy: largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2};
     	    }
     	    else {
-    	        // we round the result for performance gains
+    	        // we round the result for presumed performance gains
     	        return {vx: AladinUtils.myRound(largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2), vy: AladinUtils.myRound(largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2)};
     	    }
     	},
@@ -129,7 +130,69 @@ AladinUtils = (function() {
            
             var zoomFactor = 1/(p1Projected.X - p2Projected.Y);
             return zoomFactor;
+        },
+
+        // grow array b of vx,vy view positions by *val* pixels
+        grow2: function(b, val) {
+            var j=0;
+            for ( var i=0; i<4; i++ ) {
+                if ( b[i]==null ) {
+                    j++;
+                }
+            }
+
+            if( j>1 ) {
+                return b;
+            }
+
+            var b1 = [];
+            for ( var i=0; i<4; i++ ) {
+                b1.push( {vx: b[i].vx, vy: b[i].vy} );
+            }
+    
+            for ( var i=0; i<2; i++ ) {
+                var a = i==1 ? 1 : 0;
+                var c = i==1 ? 2 : 3;
+
+                if ( b1[a]==null ) {
+                    var d,g;
+                    if ( a==0 || a==3 ) {
+                        d=1;
+                        g=2;
+                    }
+                    else {
+                        d=0;
+                        g=3;
+                    }
+                    b1[a] = {vx: (b1[d].vx+b1[g].vx)/2, vy: (b1[d].vy+b1[g].vy)/2};
+                }
+                if ( b1[c]==null ) {
+                    var d,g;
+                    if ( c==0 || c==3 ) {
+                        d=1;
+                        g=2;
+                    }
+                    else {
+                        d=0;
+                        g=3;
+                    }
+                    b1[c] = {vx: (b1[d].vx+b1[g].vx)/2, vy: (b1[d].vy+b1[g].vy)/2};
+                }
+                if( b1[a]==null || b1[c]==null ) {
+                    continue;
+                }
+
+                var angle = Math.atan2(b1[c].vy-b1[a].vy, b1[c].vx-b1[a].vx);
+                var chouilla = val*Math.cos(angle);
+                b1[a].vx -= chouilla;
+                b1[c].vx += chouilla;
+                chouilla = val*Math.sin(angle);
+                b1[a].vy-=chouilla;
+                b1[c].vy+=chouilla;
+            }
+            return b1;
         }
+ 
     	
     };
 })();

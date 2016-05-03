@@ -148,6 +148,10 @@ Utils.isNumber = function(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 };
 
+Utils.isInt = function(n) {
+    return Utils.isNumber(n) && Math.floor(n)==n;
+};
+
 /* a debounce function, used to prevent multiple calls to the same function if less than delay seconds have passed */
 Utils.debounce = function(fn, delay) {
     var timer = null;

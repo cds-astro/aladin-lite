@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div');
+
+
+
+aladin.setImageSurvey(aladin.createImageSurvey('im3shape_y1_kappa', 'im3shape_y1_kappa', 'http://people.phys.ethz.ch/~ast/cosmo/true_map_filled_r50.fitsHiPS/', 'equatorial', 3, {imgFormat: 'png'}));
+    
+
+    
+    
+</script>
+</body>
+</html>

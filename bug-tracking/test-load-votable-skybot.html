@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+   
+var aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', fov:
+5});
+var sb2 =
+A.catalogFromURL('http://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?-ep=now&-ra=0&-dec=0&-rs=300&-mime=votable&-output=obs&-loc=500&-filter=120&-objFilter=110&-from=SkybotDoc',
+{sourceSize:12, color: '#f08080', onClick: 'showTable'});
+aladin.addCatalog(sb2);  
+
+    
+    
+</script>
+</body>
+</html>

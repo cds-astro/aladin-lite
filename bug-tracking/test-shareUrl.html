@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<button id="getShareURL">Get share URL</button>
+<button id="getEmbedCode">Get embed code</button>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div');
+
+    $(document).ready(function() {
+        $('#getShareURL').click(function() {
+            console.log(aladin.getShareURL());
+        });
+
+        $('#getEmbedCode').click(function() {
+            console.log(aladin.getEmbedCode());
+        });
+    });
+    
+</script>
+</body>
+</html>

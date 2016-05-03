@@ -1,3 +1,14 @@
+March 2016:
+- added raField and decField options when creating catalogue
+
+December 2015:
+- added cubehelix color map
+- added option in A.catalogFromURL to bypass proxy
+- access to Simbad and VizieR data (catalogFromVizieR and catalogFromSimbad) are now done directly, without the proxy
+
+Novembre 2015:
+- ajout méthodes getShareURL et getEmbedCode
+
 Octobre 2015:
 - ajout méthodes accès facile à Simbad, NED et VizieR
 - ajout onClick comme option de Catalog: 'showTable' ou 'showPopup'

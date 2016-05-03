@@ -1,0 +1,39 @@
+<!DOCTYPE>
+<html>
+  <head>
+    <link rel="stylesheet" href="css/highlight/default.min.css">
+    <script src="js/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <style>
+        code {
+            font-size: 14px;
+        }
+    </style>
+
+  </head>
+
+  <body>
+    <pre><code>
+    &lt;h1&gt;Trifid interactive map&lt;/h1&gt;
+
+    &lt;!-- Aladin Lite CSS style file --&gt;
+    &lt;link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" /&gt;
+
+    &lt;!-- Aladin Lite has a dependency on the jQuery library --&gt;
+    &lt;script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"&gt;&lt;/script&gt;
+
+    &lt;!-- Aladin Lite container at requested dimensions --&gt;
+    &lt;div id="aladin-lite-div" style="width:700px;height:400px;"&gt;&lt;/div&gt;
+
+    &lt;!-- Aladin Lite JS code --&gt;
+    &lt;script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"&gt;&lt;/script&gt;
+
+    &lt;!-- Creation of Aladin Lite instance with initial parameters --&gt;
+    &lt;script type="text/javascript"&gt;
+        var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:1.5, target: "trifid"});
+    &lt;/script&gt;
+
+    </code></pre>
+  </body>
+</html>

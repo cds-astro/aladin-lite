@@ -1,0 +1,64 @@
+<!DOCTYPE>
+<html>
+  <head>
+    <link rel="stylesheet" href="css/highlight/default.min.css">
+    <script src="js/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <style>
+        code {
+            font-size: 14px;
+        }
+    </style>
+
+  </head>
+
+  <body>
+    <pre><code>
+    &lt;h1&gt;Trifid interactive map&lt;/h1&gt;
+
+    &lt;!-- Aladin Lite CSS style file --&gt;
+    &lt;link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" /&gt;
+
+    &lt;!-- Aladin Lite has a dependency on the jQuery library --&gt;
+    &lt;script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"&gt;&lt;/script&gt;
+
+    &lt;!-- Aladin Lite container at requested dimensions --&gt;
+    &lt;div id="aladin-lite-div" style="width:700px;height:400px;"&gt;&lt;/div&gt;
+
+    &lt;input id="DSS" type="radio" name="survey" value="P/DSS2/color" checked&gt;&lt;label for="DSS"&gt;DSS color&lt;label&gt;
+    &lt;input id="DSS-blue" type="radio" name="survey" value="P/DSS2/blue"&gt;&lt;label for="DSS-blue"&gt;DSS blue&lt;label&gt;
+    &lt;input id="2MASS" type="radio" name="survey" value="P/2MASS/color"&gt;&lt;label for="2MASS"&gt;2MASS&lt;label&gt;
+    &lt;input id="allwise" type="radio" name="survey" value="P/allWISE/color"&gt;&lt;label for="allwise"&gt;AllWISE&lt;label&gt;
+    &lt;input id="glimpse" type="radio" name="survey" value="P/GLIMPSE360"&gt;&lt;label for="glimpse"&gt;GLIMPSE 360&lt;label&gt;
+
+
+    &lt;!-- Aladin Lite JS code --&gt;
+    &lt;script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"&gt;&lt;/script&gt;
+
+    &lt;!-- Creation of Aladin Lite instance with initial parameters --&gt;
+    &lt;script type="text/javascript"&gt;
+        var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:1.5, target: "trifid"});
+
+        $('input[name=survey]').change(function() {
+            aladin.setImageSurvey($(this).val());
+        });
+
+        var marker1 = A.marker(270.332621, -23.078944, {popupTitle: 'PSR B1758-23', popupDesc: 'Object type: Pulsar'});
+        var marker2 = A.marker(270.63206, -22.905550, {popupTitle: 'HD 164514', popupDesc: 'Object type: Star in cluster'});
+        var marker3 = A.marker(270.598121, -23.030819, {popupTitle: 'HD 164492', popupDesc: 'Object type: Double star'});
+        var markerLayer = A.catalog({color: '#800080'});
+        aladin.addCatalog(markerLayer);
+        markerLayer.addSources([marker1, marker2, marker3]);
+
+        aladin.addCatalog(A.catalogFromSimbad('trifid', 0.2, {shape: 'plus', color: '#5d5', onClick: 'showTable'}));
+        aladin.addCatalog(A.catalogFromVizieR('J/ApJ/562/446/table13', 'trifid', 0.2, {shape: 'square', sourceSize: 8, color: 'red', onClick: 'showPopup'}));
+
+        var footprintLayer = A.graphicOverlay({color: '#2345ee', lineWidth: 3});
+        aladin.addOverlay(footprintLayer);
+        footprintLayer.addFootprints([A.polygon([[270.62172, -23.04858], [270.59267, -23.08082], [270.62702, -23.10701], [270.64113, -23.09075], [270.63242, -23.08376], [270.63868, -23.07631], [270.63131, -23.07021], [270.63867, -23.06175]])]);
+    &lt;/script&gt;
+
+    </code></pre>
+  </body>
+</html>

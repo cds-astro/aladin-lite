@@ -22,11 +22,11 @@
 
 /******************************************************************************
  * Aladin Lite project
- *
+ * 
  * File Catalog
- *
+ * 
  * Author: Thomas Boch[CDS]
- *
+ * 
  *****************************************************************************/
 
 // TODO : harmoniser parsing avec classe ProgressiveCat
@@ -34,13 +34,16 @@ cds.Catalog = (function() {
    cds.Catalog = function(options) {
         options = options || {};
         this.type = 'catalog';
-        this.name = options.name || "catalog";
-        this.color = options.color || Color.getNextColor();
-        this.sourceSize = options.sourceSize || 6;
-        this.markerSize = options.sourceSize || 12;
-        this.shape = options.shape || "square";
+    	this.name = options.name || "catalog";
+    	this.color = options.color || Color.getNextColor();
+    	this.sourceSize = options.sourceSize || 6;
+    	this.markerSize = options.sourceSize || 12;
+    	this.shape = options.shape || "square";
         this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
+
+        this.raField = options.raField || undefined; // ID or name of the field holding RA
+        this.decField = options.decField || undefined; // ID or name of the field holding dec
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -51,24 +54,24 @@ cds.Catalog = (function() {
                 this.displayLabel = false;
             }
         }
-
+    	
         if (this.shape instanceof Image) {
             this.sourceSize = this.shape.width;
         }
         this.selectSize = this.sourceSize + 2;
-
+        
         this.isShowing = true;
 
-
-        this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
-        this.sources = [];
-        this.hpxIdx = new HealpixIndex(this.indexationNorder);
-        this.hpxIdx.init();
-        this.selectionColor = '#00ff00';
-
-
-        // cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
-        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize);
+    	
+    	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
+    	this.sources = [];
+    	this.hpxIdx = new HealpixIndex(this.indexationNorder);
+    	this.hpxIdx.init();
+    	this.selectionColor = '#00ff00';
+    	
+    	
+    	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
+        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
 
         this.cacheMarkerCanvas = document.createElement('canvas');
         this.cacheMarkerCanvas.width = this.markerSize;
@@ -82,7 +85,7 @@ cds.Catalog = (function() {
         cacheMarkerCtx.lineWidth = 2;
         cacheMarkerCtx.strokeStyle = '#ccc';
         cacheMarkerCtx.stroke();
-
+        
         this.cacheSelectCanvas = document.createElement('canvas');
         this.cacheSelectCanvas.width = this.selectSize;
         this.cacheSelectCanvas.height = this.selectSize;
@@ -98,9 +101,9 @@ cds.Catalog = (function() {
         cacheSelectCtx.stroke();
 
     };
-
+    
     cds.Catalog.createShape = function(shapeName, color, sourceSize) {
-        if (shapeName instanceof Image) { //
+        if (shapeName instanceof Image) { // 
             return shapeName;
         }
         var c = document.createElement('canvas');
@@ -113,7 +116,7 @@ cds.Catalog = (function() {
             ctx.moveTo(sourceSize/2., 0);
             ctx.lineTo(sourceSize/2., sourceSize);
             ctx.stroke();
-
+            
             ctx.moveTo(0, sourceSize/2.);
             ctx.lineTo(sourceSize, sourceSize/2.);
             ctx.stroke();
@@ -122,7 +125,7 @@ cds.Catalog = (function() {
             ctx.moveTo(0, 0);
             ctx.lineTo(sourceSize-1, sourceSize-1);
             ctx.stroke();
-
+            
             ctx.moveTo(sourceSize-1, 0);
             ctx.lineTo(0, sourceSize-1);
             ctx.stroke();
@@ -150,34 +153,63 @@ cds.Catalog = (function() {
             ctx.lineTo(0, 0);
             ctx.stroke();
         }
-
+        
         return c;
-
+        
     };
+    
 
-
-
-
+    
+    
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
-    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy) {
+    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
 
+        // adapted from votable.js
+        function getPrefix($xml) {
+console.log($xml);
+            var prefix;
+            // If Webkit chrome/safari/... (no need prefix)
+            if($xml.find('RESOURCE').length>0) {
+                prefix = '';
+            }
+            else {
+                // Select all data in the document
+                prefix = $xml.find("*").first();
+
+                if (prefix.length==0) {
+                    return '';
+                }
+
+                // get name of the firt tag
+                prefix = prefix.prop("tagName");
+
+                var idx = prefix.indexOf(':');
+
+                prefix = prefix.substring(0, idx) + "\\:";
+console.log(prefix);
+
+
+            }
+
+            return prefix;
+        }
+        
         function doParseVOTable(xml, callback) {
             xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
             var attributes = ["name", "ID", "ucd", "utype", "unit", "datatype", "arraysize", "width", "precision"];
-            var attrLength = attributes.length;
-
-            var $xml = $(xml);  // We parse the xml once.
-
+            
             var fields = [];
             var k = 0;
-            $xml.find("FIELD").each(function(idx, field) {
+            var $xml = $(xml);
+            var prefix = getPrefix($xml);
+            console.log(prefix);
+            $xml.find(prefix + "FIELD").each(function() {
                 var f = {};
-                for (var i=0; i<attrLength; i++) {
-                    var attributeName = attributes[i];
-                    var attr = $(field).attr(attributeName);
-                    if (attr) {
-                        f[attributeName] = attr;
+                for (var i=0; i<attributes.length; i++) {
+                    var attribute = attributes[i];
+                    if ($(this).attr(attribute)) {
+                        f[attribute] = $(this).attr(attribute);
                     }
                 }
                 if ( ! f.ID) {
@@ -186,130 +218,141 @@ cds.Catalog = (function() {
                 fields.push(f);
                 k++;
             });
-            var fieldsLength = fields.length;
-
-            // We compute the correct key once for all.
-            var fieldKeys = new Array(fieldsLength);
-            var l;
-            for (l=0; l<fieldsLength; l++) {
-                fieldKeys[l] = fields[l].name || fields[l].id;
-            }
-
-            // find RA/DEC fields
+                
+            //// find RA/DEC fields ////
             var raFieldIdx,  decFieldIdx;
             raFieldIdx = decFieldIdx = null;
-            for (l=0; l<fieldsLength; l++) {
+
+            // first, look if RA/DEC fields have been already given
+            if (raField) { // ID or name of RA field given at catalogue creation
+                for (var l=0, len=fields.length; l<len; l++) {
+                    var field = fields[l];
+                    if (Utils.isInt(raField) && raField<fields.length) { // raField can be given as an index
+                        raFieldIdx = raField;
+                        break;
+                    } 
+                    if ( (field.ID && field.ID===raField) || (field.name && field.name===raField)) {
+                        raFieldIdx = l;
+                        break;
+                    }
+                }
+            }
+            if (decField) { // ID or name of dec field given at catalogue creation
+                for (var l=0, len=fields.length; l<len; l++) {
+                    var field = fields[l];
+                    if (Utils.isInt(decField) && decField<fields.length) { // decField can be given as an index
+                        decFieldIdx = decField;
+                        break;
+                    } 
+                    if ( (field.ID && field.ID===decField) || (field.name && field.name===decField)) {
+                        decFieldIdx = l;
+                        break;
+                    }
+                }
+            }
+            // if not already given, let's guess position columns on the basis of UCDs
+            for (var l=0, len=fields.length; l<len; l++) {
+                if (raFieldIdx!=null && decFieldIdx!=null) {
+                    break;
+                }
+
                 var field = fields[l];
-                if (field.ucd) {
-                    var ucd = field.ucd.toLowerCase();
-                    if ( ! raFieldIdx) {
+                if ( ! raFieldIdx) {
+                    if (field.ucd) {
+                        var ucd = field.ucd.toLowerCase();
                         if (ucd.indexOf('pos.eq.ra')>=0 || ucd.indexOf('pos_eq_ra')>=0) {
                             raFieldIdx = l;
                             continue;
                         }
                     }
-
-                    if ( ! decFieldIdx) {
+                }
+                    
+                if ( ! decFieldIdx) {
+                    if (field.ucd) {
+                        var ucd = field.ucd.toLowerCase();
                         if (ucd.indexOf('pos.eq.dec')>=0 || ucd.indexOf('pos_eq_dec')>=0) {
                             decFieldIdx = l;
                             continue;
                         }
                     }
                 }
+
             }
-
-            var keyRa = fields[raFieldIdx].name || fields[raFieldIdx].id;
-            var keyDec = fields[decFieldIdx].name || fields[decFieldIdx].id;
+            var sources = [];
+            
             var coo = new Coo();
-            var cur = 0;
             var ra, dec;
-            var $allRows = $xml.find("TR");
-            var nbRows = $allRows.length;
-            // We set the correct length of the array, so it does not
-            // need to grow as we add sources.
-            var sources = new Array(nbRows);
-            var nbSources = 0;
+            $xml.find(prefix + "TR").each(function() {
+               var mesures = {};
+               var k = 0;
+               $(this).find(prefix + "TD").each(function() {
+                   var key = fields[k].name ? fields[k].name : fields[k].id;
+                   mesures[key] = $(this).text();
+                   k++;
+               });
+               var keyRa = fields[raFieldIdx].name ? fields[raFieldIdx].name : fields[raFieldIdx].id;
+               var keyDec = fields[decFieldIdx].name ? fields[decFieldIdx].name : fields[decFieldIdx].id;
 
-            $allRows.each(function(idx, row) {
-                var mesures = {};
-                var k = 0;
-                $(row).find("TD").each(function(idx, cell) {
-                    var key = fieldKeys[k];
-                    mesures[key] = $(cell).text();
-                    k++;
-                });
-
-                var mesureRa = mesures[keyRa];
-                var mesureDec = mesures[keyDec];
-                var raF = parseFloat(mesureRa);
-                var decF = parseFloat(mesureDec);
-                // Utils.isNumber parses twice the string.  Using
-                // isFinite returns false for NaN, so the following
-                // test is enough.
-                if (isFinite(raF) && isFinite(decF)) {
-                    ra = raF;
-                    dec = decF;
-                }
-                else {
-                    // The Coo objet does not seem to have a parse
-                    // method !?
-                    coo.parse(mesureRa + " " + mesureDec);
-                    ra = coo.lon;
-                    dec = coo.lat;
-                }
-                sources[nbSources] = new cds.Source(ra, dec, mesures);
-                nbSources = nbSources++;
-                if (maxNbSources && nbSources==maxNbSources) {
-                    return false; // break the .each loop
-                }
-                return true;
+               if (Utils.isNumber(mesures[keyRa]) && Utils.isNumber(mesures[keyDec])) {
+                   ra = parseFloat(mesures[keyRa]);
+                   dec = parseFloat(mesures[keyDec]);
+               }
+               else {
+                   coo.parse(mesures[keyRa] + " " + mesures[keyDec]);
+                   ra = coo.lon;
+                   dec = coo.lat;
+               }
+               sources.push(new cds.Source(ra, dec, mesures));
+               if (maxNbSources && sources.length==maxNbSources) {
+                   return false; // break the .each loop
+               }
+                
             });
-
             if (callback) {
                 callback(sources);
             }
         }
-
+        
         var ajax = Utils.getAjaxObject(url, 'GET', 'text', useProxy);
         ajax.done(function(xml) {
             doParseVOTable(xml, callback);
         });
     };
-
+    
     cds.Catalog.prototype.addSources = function(sourcesToAdd) {
-        this.sources = this.sources.concat(sourcesToAdd);
-        for (var k=0, len=sourcesToAdd.length; k<len; k++) {
-            sourcesToAdd[k].setCatalog(this);
-        }
-        this.view.requestRedraw();
+    	this.sources = this.sources.concat(sourcesToAdd);
+    	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
+    	    sourcesToAdd[k].setCatalog(this);
+    	}
+        this.reportChange();
     };
-
+    
     // return the currnet list of Source objects
     cds.Catalog.prototype.getSources = function() {
         return this.sources;
     };
-
+    
     // TODO : fonction générique traversant la liste des sources
     cds.Catalog.prototype.selectAll = function() {
         if (! this.sources) {
             return;
         }
-
+        
         for (var k=0; k<this.sources.length; k++) {
             this.sources[k].select();
         }
     };
-
+    
     cds.Catalog.prototype.deselectAll = function() {
         if (! this.sources) {
             return;
         }
-
+        
         for (var k=0; k<this.sources.length; k++) {
             this.sources[k].deselect();
         }
     };
-
+    
     // return a source by index
     cds.Catalog.prototype.getSource = function(idx) {
         if (idx<this.sources.length) {
@@ -319,16 +362,17 @@ cds.Catalog = (function() {
             return null;
         }
     };
-
+    
     cds.Catalog.prototype.setView = function(view) {
         this.view = view;
+        this.reportChange();
     };
-
+    
     cds.Catalog.prototype.removeAll = cds.Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
         this.sources = [];
     };
-
+    
     cds.Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
@@ -337,13 +381,13 @@ cds.Catalog = (function() {
         //ctx.strokeStyle= this.color;
 
         //ctx.lineWidth = 1;
-        //ctx.beginPath();
-        for (var k=0, len = this.sources.length; k<len; k++) {
-                this.drawSource(this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
-        }
+    	//ctx.beginPath();
+    	for (var k=0, len = this.sources.length; k<len; k++) {
+    		this.drawSource(this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+    	}
         //ctx.stroke();
 
-        // tracé sélection
+    	// tracé sélection
         ctx.strokeStyle= this.selectionColor;
         //ctx.beginPath();
         for (var k=0, len = this.sources.length; k<len; k++) {
@@ -351,10 +395,10 @@ cds.Catalog = (function() {
                 continue;
             }
             this.drawSourceSelection(this.sources[k], ctx);
-
+            
         }
         // NEEDED ?
-        //ctx.stroke();
+    	//ctx.stroke();
 
         // tracé label
         if (this.displayLabel) {
@@ -365,9 +409,9 @@ cds.Catalog = (function() {
             }
         }
     };
-
-
-
+    
+    
+    
     cds.Catalog.prototype.drawSource = function(s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! s.isShowing) {
             return;
@@ -393,7 +437,7 @@ cds.Catalog = (function() {
                     s.x = s.y = undefined;
                     return;
                 }
-
+                
                 s.x = xyview.vx;
                 s.y = xyview.vy;
 
@@ -409,18 +453,18 @@ cds.Catalog = (function() {
                 if (s.popup) {
                     s.popup.setPosition(s.x, s.y);
                 }
-
-
+                
+                
             }
         }
     };
-
+    
     cds.Catalog.prototype.drawSourceSelection = function(s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
         var sourceSize = this.selectSize;
-
+        
         ctx.drawImage(this.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
     };
 
@@ -437,12 +481,12 @@ cds.Catalog = (function() {
         ctx.fillText(label, s.x, s.y);
     };
 
-
+    
     // callback function to be called when the status of one of the sources has changed
     cds.Catalog.prototype.reportChange = function() {
-        this.view.requestRedraw();
+        this.view && this.view.requestRedraw();
     };
-
+    
     cds.Catalog.prototype.show = function() {
         if (this.isShowing) {
             return;
@@ -450,7 +494,7 @@ cds.Catalog = (function() {
         this.isShowing = true;
         this.reportChange();
     };
-
+    
     cds.Catalog.prototype.hide = function() {
         if (! this.isShowing) {
             return;

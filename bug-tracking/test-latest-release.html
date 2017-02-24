@@ -32,7 +32,7 @@
     
     
     // Start up Aladin Lite
-    var aladin = A.aladin('#aladin-lite-div');
+    var aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'P/DSS2/red'});
 /*
     aladin.setImageSurvey(aladin.createImageSurvey("GLIMPSE", "GLIMPSE", "http://www.spitzer.caltech.edu/glimpse360/aladin/data", "gal", 9, {minOrder: 3}))
     aladin.gotoPosition(0, 0);

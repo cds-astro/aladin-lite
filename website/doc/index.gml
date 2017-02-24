@@ -134,7 +134,11 @@
         </p>
         <p>Outside CDS, Aladin Lite is used in several projects:
             <ul>
-                <li><a href="http://archives.esac.esa.int/esasky-beta/" title="ESA Sky">ESA Sky beta</li>
+                <li><a href="http://sky.esa.int/" title="ESA Sky">ESA Sky</a> allows for discovery and access of data observed by ESA space missions</li>
+                <li><a href="https://losc.ligo.org/s/skymapViewer/aladin/index.html#GW150914:LALI" title="Skymap viewer">Skymap Viewer</a> shows probability contours for gravitational wave events from LIGO/Virgo</li>
+                <li><a href="http://gamma-sky.net/" title="Gamma Sky">Gamma Sky</a>, a portal to gamma-ray sky (developed by C. Deil and A. Voruganti)</li>
+                <li><a href="http://saada.unistra.fr/ArchesWalker/" title="ARCHES Walker">ARCHES Walker</a>, an Outreach tool showcasing astronomical objects in different wavelengths (<a href="http://www.arches-fp7.eu/">ARCHES project</a>)</li>
+                <li><a href="http://hologhost.altervista.org/pointing/mopra.html" title="MOPRA Telescope pointing">MOPRA Radio Telescope Pointing and Status</a>
                 <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>
                 <li><a href="http://darts.isas.jaxa.jp/astro/akari/cas/tools/explore/obj.php" title="Akari explore tool">Akari explore tool</a></li>
                 <li><a href="http://cassis.sirtf.com/atlas/" title="CASSIS">CASSIS atlas of Spitzer Infrared Spectra</a></li>
@@ -173,7 +177,39 @@
           <h1>Release notes</h1>
         </div>
 
+        <h4>January 2017</h4>
+        <p>new method allowing direct query to SkyBot</p>
+
+        <h4>September 2016</h4>
+        <p>support of HiPS catalog (new format)</p>
+
+
+        <h4>June 2016</h4>
+        <p>fix astrometry offset by subdividing HEALPix cells too distorted</p>
+        <p>new method A.MOCFromJSON to create a MOC from the JSON serialization</p>
+
+
+        <h4>March 2016</h4>
+        <p>added raField and decField options when creating catalogue</p>
+
+        <h4>December 2015</h4>
+        <p>added cubehelix color map</p>
+        <p>added option in A.catalogFromURL to bypass proxy</p>
+        <p>access to Simbad and VizieR data (catalogFromVizieR and catalogFromSimbad) are now done directly, without the proxy</p>
+
+        <h4>Novembre 2015</h4>
+        <p>new methods getShareURL and getEmbedCode</p>
+
+        <h4>October 2015</h4>
+        <p>new methods for easy retrieval of Simbad, NED and VizieR data</p>
+        <p>new options for Catalog.onClick: 'showTable' or 'showPopup'
+
+        <h4>December 2014</h4>
+        <p>added displayLabel option for a catalog overlay</p>
+        <p>added lineWidth option for A.graphicOverlay objects</p>
+
         <h4>October 2014</h4>
+        <p>New shapes available for catalogue sources</p>
         <p>Various bug fixes</p>
 
         <h4>April 2014</h4>

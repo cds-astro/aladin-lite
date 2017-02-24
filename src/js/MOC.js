@@ -11,7 +11,7 @@
 
 MOC = (function() {
     MOC = function(options) {
-        this.norder = undefined;
+        this.order = undefined;
         this._highResCells = {};
         this._lowResCells = {};
 
@@ -19,6 +19,8 @@ MOC = (function() {
         options = options || {};
         this.name = options.name || "MOC";
         this.color = options.color || Color.getNextColor();
+        this.opacity = options.opacity || 1;
+        this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
 
 
@@ -40,10 +42,81 @@ MOC = (function() {
     // TODO: options to modifiy this ?
     MOC.PIVOT_FOV = 20; // when do we switch from low res cells to high res cells (fov in degrees)
 
+    // add pixel (order, ipix)
+    MOC.prototype._addPix = function(order, ipix) {
+        // fill low and high level cells
+        // 1. if order <= LOWRES_MAXORDER, just store value in low and high res cells
+        if (order<=MOC.LOWRES_MAXORDER) {
+            if (! (order in this._lowResCells)) {
+                this._lowResCells[order] = [];
+                this._highResCells[order] = [];
+            }
+            this._lowResCells[order].push(ipix);
+            this._highResCells[order].push(ipix);
+        }
+        // 2. if LOWRES_MAXORDER < order <= HIGHRES_MAXORDER , degrade ipix for low res cells
+        else if (order<=MOC.HIGHRES_MAXORDER) {
+            if (! (order in this._highResCells)) {
+                this._highResCells[order] = [];
+            }
+            this._highResCells[order].push(ipix);
+            
+            var degradedOrder = MOC.LOWRES_MAXORDER; 
+            var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
+            if (! (degradedOrder in this._lowResCells)) {
+                this._lowResCells= [];
+            }
+            this._lowResCells[degradedOrder].push(degradedIpix);
+        }
+        // 3. if order > HIGHRES_MAXORDER , degrade ipix for low res and high res cells
+        else {
+            // low res cells
+            var degradedOrder = MOC.LOWRES_MAXORDER; 
+            var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
+            if (! (degradedOrder in this._lowResCells)) {
+                this._lowResCells = [];
+            }
+            this._lowResCells[degradedOrder].push(degradedIpix);
+            
+            // high res cells
+            degradedOrder = MOC.HIGHRES_MAXORDER; 
+            degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
+            if (! (degradedOrder in this._highResCells)) {
+                this._highResCells = [];
+            }
+            this._highResCells[degradedOrder].push(degradedIpix);
+        }
+    };
+
     /**
-     * set MOC data by parsing a URL pointing to a MOC file
+     * set MOC data by parsing a MOC serialized in JSON
+     * (as defined in IVOA MOC document, section 3.1.1)
      */
-    MOC.prototype.dataFromURL = function(mocURL, successCallback) {
+    MOC.prototype.dataFromJSON = function(jsonMOC) {
+        this._highResCells = {};
+        this._lowResCells = {};
+
+        var order, ipix;
+        for (var orderStr in jsonMOC) {
+            if (jsonMOC.hasOwnProperty(orderStr)) {
+                order = parseInt(orderStr);
+                if (this.order===undefined || order > this.order) {
+                    this.order = order;
+                }
+                for (var k=0; k<jsonMOC[orderStr].length; k++) {
+                    ipix = jsonMOC[orderStr][k];
+                    this._addPix(order, ipix);
+                }
+            }
+        }
+    };
+
+    /**
+     * set MOC data by parsing a URL pointing to a FITS MOC file
+     */
+    MOC.prototype.dataFromFITSURL = function(mocURL, successCallback) {
+        this._highResCells = {};
+        this._lowResCells = {};
 
         var self = this;
         var callback = function() {
@@ -83,48 +156,7 @@ MOC = (function() {
                     var order = Math.floor(Math.floor(log2(Math.floor(uniq/4))) / 2);
                     var ipix = uniq - 4 *(Math.pow(4, order));
 
-                    // fill low and high level cells
-                    // 1. if order <= LOWRES_MAXORDER, just store value in low and high res cells
-                    if (order<=MOC.LOWRES_MAXORDER) {
-                        if (! (order in self._lowResCells)) {
-                            self._lowResCells[order] = [];
-                            self._highResCells[order] = [];
-                        }
-                        self._lowResCells[order].push(ipix);
-                        self._highResCells[order].push(ipix);
-                    }
-                    // 2. if LOWRES_MAXORDER < order <= HIGHRES_MAXORDER , degrade ipix for low res cells
-                    else if (order<=MOC.HIGHRES_MAXORDER) {
-                        if (! (order in self._highResCells)) {
-                            self._highResCells[order] = [];
-                        }
-                        self._highResCells[order].push(ipix);
-                        
-                        var degradedOrder = MOC.LOWRES_MAXORDER; 
-                        var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
-                        if (! (degradedOrder in self._lowResCells)) {
-                            self._lowResCells= [];
-                        }
-                        self._lowResCells[degradedOrder].push(degradedIpix);
-                    }
-                    // 3. if order > HIGHRES_MAXORDER , degrade ipix for low res and high res cells
-                    else {
-                        // low res cells
-                        var degradedOrder = MOC.LOWRES_MAXORDER; 
-                        var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
-                        if (! (degradedOrder in self._lowResCells)) {
-                            self._lowResCells = [];
-                        }
-                        self._lowResCells[degradedOrder].push(degradedIpix);
-                        
-                        // high res cells
-                        degradedOrder = MOC.HIGHRES_MAXORDER; 
-                        degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
-                        if (! (degradedOrder in self._highResCells)) {
-                            self._highResCells = [];
-                        }
-                        self._highResCells[degradedOrder].push(degradedIpix);
-                    }
+                    self._addPix(order, ipix);
                 }
 
             });
@@ -139,7 +171,7 @@ MOC = (function() {
         // TODO: general method to retrieve data (through dedicated class ?)
         var proxiedURL = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(this.dataURL);
         new astro.FITS(proxiedURL, callback);
-    }
+    };
 
     MOC.prototype.setView = function(view) {
         this.view = view;
@@ -159,7 +191,15 @@ MOC = (function() {
 
     MOC.prototype._drawCells = function(ctx, mocCells, fov, projection, viewFrame, surveyFrame, width, height, largestDim, zoomFactor) {
         ctx.lineWidth = this.lineWidth;
-        ctx.strokeStyle = this.color;
+        // if opacity==1, we draw solid lines, else we fill each HEALPix cell
+        if (this.opacity==1) {
+            ctx.strokeStyle = this.color;
+        }
+        else {
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.opacity;
+        }
+
         ctx.beginPath();
 
         var orderedKeys = [];
@@ -205,6 +245,9 @@ MOC = (function() {
             for (var norder=1; norder<=norderMax; norder++) {
                 nside = 1 << norder;
 
+                if (typeof mocCells[norder]==='undefined') {
+                    continue;
+                }
                 if (norder<=3) {
                     for (var j=0; j<mocCells[norder].length; j++) {
                         ipix = mocCells[norder][j];
@@ -238,7 +281,13 @@ MOC = (function() {
         }
 /*
 */
-        ctx.stroke();
+        if (this.opacity==1) {
+            ctx.stroke();
+        }
+        else {
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
     };
 
     var drawCorners = function(ctx, xyCorners) {
@@ -306,6 +355,7 @@ MOC = (function() {
             return null;
         }
 
+        cornersXYView = AladinUtils.grow2(cornersXYView, 1);
         return cornersXYView;
     };
 

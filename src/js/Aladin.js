@@ -120,7 +120,7 @@ Aladin = (function() {
 
 
 		// Aladin logo
-		$("<div class='aladin-logo-container'><a href='http://aladin.u-strasbg.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
+		$("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
 		
 		
 		// we store the boxes
@@ -139,7 +139,7 @@ Aladin = (function() {
 
 	    // retrieve available surveys
 	    $.ajax({
-	        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
+	        url: "http://aladin.unistra.fr/java/nph-aladin.pl",
 	        data: {"frame": "aladinLiteDic"},
 	        method: 'GET',
 	        dataType: 'jsonp', // could this be repaced by json ??
@@ -302,7 +302,7 @@ Aladin = (function() {
     /**** CONSTANTS ****/
     Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
     
-    Aladin.JSONP_PROXY = "http://alasky.u-strasbg.fr/cgi/JSONProxy";
+    Aladin.JSONP_PROXY = "http://alasky.unistra.fr/cgi/JSONProxy";
     
     Aladin.DEFAULT_OPTIONS = {
         target:                 "0 +0",
@@ -698,10 +698,19 @@ Aladin = (function() {
     // API
     A.MOCFromURL = function(url, options, successCallback) {
         var moc = new MOC(options);
-        moc.dataFromURL(url, successCallback);
+        moc.dataFromFITSURL(url, successCallback);
 
         return moc;
     };
+
+    // API
+    A.MOCFromJSON = function(jsonMOC, options) {
+        var moc = new MOC(options);
+        moc.dataFromJSON(jsonMOC);
+
+        return moc;
+    };
+
     
     // @oldAPI
     Aladin.prototype.createCatalogFromVOTable = function(url, options) {
@@ -762,12 +771,24 @@ Aladin = (function() {
         return A.catalogFromURL(url, options, successCallback);
     };
 
+    // API
     A.catalogFromVizieR = function(vizCatId, target, radius, options, successCallback) {
         options = options || {};
         if (! ('name' in options)) {
             options['name'] = 'VizieR:' + vizCatId;
         }
         var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius);
+        return A.catalogFromURL(url, options, successCallback, false);
+    };
+
+    // API
+    A.catalogFromSkyBot = function(ra, dec, radius, epoch, queryOptions, options, successCallback) {
+        queryOptions = queryOptions || {};
+        options = options || {};
+        if (! ('name' in options)) {
+            options['name'] = 'SkyBot';
+        }
+        var url = URLBuilder.buildSkyBotCSURL(ra, dec, radius, epoch, queryOptions);
         return A.catalogFromURL(url, options, successCallback, false);
     };
 
@@ -1199,6 +1220,11 @@ A.catalog = function(options) {
 };
 
 // @API
+A.catalogHiPS = function(rootURL, options) {
+    return new ProgressiveCat(rootURL, null, null, options);
+};
+
+// @API
 /*
  * return a URL allowing to share the current view
  */
@@ -1208,7 +1234,7 @@ Aladin.prototype.getShareURL = function() {
     coo.prec = 7;
     coo.lon = radec[0];
     coo.lat = radec[1];
-    return 'http://aladin.u-strasbg.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
+    return 'http://aladin.unistra.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
            '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id);
 };
 
@@ -1226,10 +1252,10 @@ Aladin.prototype.getEmbedCode = function() {
     var survey = this.getBaseImageLayer().id;
     var fov = this.getFov()[0];
     var s = '';
-    s += '<link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />\n';
-    s += '<script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>\n';
+    s += '<link rel="stylesheet" href="http://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.css" />\n';
+    s += '<script type="text/javascript" src="//code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>\n';
     s += '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>\n';
-    s += '<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>\n';
+    s += '<script type="text/javascript" src="http://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>\n';
     s += '<script type="text/javascript">\n';
     s += 'var aladin = A.aladin("#aladin-lite-div", {survey: "' + survey + 'P/DSS2/color", fov: ' + fov.toFixed(2) + ', target: "' + coo.format('s') + '"});\n';
     s += '</script>';
@@ -1257,7 +1283,7 @@ Aladin.prototype.displayFITS = function(url, options, successCallback, errorCall
     }
     var self = this;
     $.ajax({
-        url: 'http://alasky.u-strasbg.fr/cgi/fits2HiPS',
+        url: 'http://alasky.unistra.fr/cgi/fits2HiPS',
         data: data,
         method: 'GET',
         dataType: 'json',

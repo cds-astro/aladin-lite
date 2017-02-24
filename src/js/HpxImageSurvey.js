@@ -91,6 +91,8 @@ HpxImageSurvey = (function() {
         }
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
     };
+
+    HpxImageSurvey.HTTPS_CONTEXT = ( window.location.protocol === 'https:' );
     
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
     
@@ -356,28 +358,27 @@ HpxImageSurvey = (function() {
      * @param subdivide: should
      *
      */
-    HpxImageSurvey.prototype.draw = function(ctx, view, subdivide) {
+    HpxImageSurvey.prototype.draw = function(ctx, view, subdivide, curOverlayNorder) {
         subdivide = (subdivide===undefined) ? false: subdivide;
 
-        var cornersXYViewMapAllsky = view.getVisibleCells(3);
+        var cornersXYViewMapAllsky = view.getVisibleCells(3, this.cooFrame);
         var cornersXYViewMapHighres = null;
 
 
 
-        var norder4Display = Math.min(view.curNorder, this.maxOrder);
-        if (view.curNorder>=3) {
-            if (view.curNorder==3) {
+        var norder4Display = Math.min(curOverlayNorder, this.maxOrder);
+        if (curOverlayNorder>=3) {
+            if (curOverlayNorder==3) {
                 cornersXYViewMapHighres = cornersXYViewMapAllsky;
             }
             else {
-                cornersXYViewMapHighres = view.getVisibleCells(norder4Display);
+                cornersXYViewMapHighres = view.getVisibleCells(norder4Display, this.cooFrame);
             }
         }
 
         // new way of drawing
         if (subdivide) {
-            if (view.curNorder>=3) {
-
+            if (curOverlayNorder>=3) {
                 this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
             }
             else {
@@ -401,7 +402,7 @@ HpxImageSurvey = (function() {
 
     HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view) {
         var hpxKeys = [];
-        var tSize = this.tileSize || 512;
+        var tSize = this.tileSize || 512;
         for (var k=0; k<cornersXYViewMap.length; k++) {
             hpxKeys.push(new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize));
         }
@@ -682,7 +683,7 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection);
     };
     
-       HpxImageSurvey.prototype.drawOneTile2 = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
+       HpxImageSurvey.prototype.drawOneTile2 = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
 
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
@@ -694,29 +695,30 @@ HpxImageSurvey = (function() {
     //  var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
     //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
 
+        var delta = norder<=3 ? 0.2 : 0;
         drawTexturedTriangle2(ctx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
-                textureSize, textureSize,
-                textureSize, 0,
-                0, textureSize,
+                textureSize-delta, textureSize-delta,
+                textureSize-delta, 0+delta,
+                0+delta, textureSize-delta,
                 alpha,
-                dx, dy, applyCorrection);
+                dx, dy, applyCorrection, norder);
         drawTexturedTriangle2(ctx, newImg,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
                 cornersXYView[2].vx, cornersXYView[2].vy,
-                textureSize, 0,
-                0, textureSize,
-                0, 0,
+                textureSize-delta, 0+delta,
+                0+delta, textureSize-delta,
+                0+delta, 0+delta,
                 alpha,
-                dx, dy, applyCorrection);
+                dx, dy, applyCorrection, norder);
     };
  
     function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
-                                        dx, dy, applyCorrection) {
+                                        dx, dy, applyCorrection, norder) {
 
         dx = dx || 0;
         dy = dy || 0;
@@ -743,11 +745,16 @@ HpxImageSurvey = (function() {
             ctx.globalAlpha = alpha;
         }
 
+/*
         var coeff = 0.01; // default value
         if (applyCorrection) {
             coeff = 0.01;
         }
-coeff = 0.02; // TODO ???? 
+        if (norder<3) {
+            coeff = 0.02; // TODO ???? 
+        }
+*/
+coeff = 0.02;
 
         // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
         ctx.beginPath();
@@ -757,7 +764,6 @@ coeff = 0.02; // TODO ????
         ctx.closePath();
         ctx.clip();
 
-coeff = 0.01; // TODO ???? 
         // this is needed to prevent to see some lines between triangles
         if (applyCorrection) {
             coeff = 0.01;
@@ -784,8 +790,7 @@ coeff = 0.01; // TODO ????
         ctx.restore();
     }
 
-    	        
-    
+ 
     // uses affine texture mapping to draw a textured triangle
     // at screen coordinates [x0, y0], [x1, y1], [x2, y2] from
     // img *pixel* coordinates [u0, v0], [u1, v1], [u2, v2]

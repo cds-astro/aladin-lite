@@ -144,6 +144,7 @@ $.urlParam = function(name, queryString){
 	return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(queryString)||[,""])[1].replace(/\+/g, '%20'))||null;
 };
 
+/* source: http://stackoverflow.com/a/1830844 */
 Utils.isNumber = function(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 };
@@ -232,8 +233,8 @@ Utils.getAjaxObject = function(url, method, dataType, useProxy) {
         else {
             urlToRequest = url;
         }
-        method = method || 'GET';
-        dataType = dataType || null;
+        method = method || 'GET';
+        dataType = dataType || null;
 
         return $.ajax({
             url: urlToRequest,

@@ -32,6 +32,7 @@
 // TODO : harmoniser parsing avec classe ProgressiveCat
 cds.Catalog = (function() {
    cds.Catalog = function(options) {
+
         options = options || {};
         this.type = 'catalog';
     	this.name = options.name || "catalog";
@@ -55,8 +56,12 @@ cds.Catalog = (function() {
             }
         }
     	
-        if (this.shape instanceof Image) {
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
             this.sourceSize = this.shape.width;
+        }
+        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
+        if ($.isFunction(this.shape)) {
+            this._shapeIsFunction = true;
         }
         this.selectSize = this.sourceSize + 2;
         
@@ -103,7 +108,7 @@ cds.Catalog = (function() {
     };
     
     cds.Catalog.createShape = function(shapeName, color, sourceSize) {
-        if (shapeName instanceof Image) { // 
+        if (shapeName instanceof Image || shapeName instanceof HTMLCanvasElement) { // in this case, the shape is already created
             return shapeName;
         }
         var c = document.createElement('canvas');
@@ -167,7 +172,6 @@ cds.Catalog = (function() {
 
         // adapted from votable.js
         function getPrefix($xml) {
-console.log($xml);
             var prefix;
             // If Webkit chrome/safari/... (no need prefix)
             if($xml.find('RESOURCE').length>0) {
@@ -181,13 +185,12 @@ console.log($xml);
                     return '';
                 }
 
-                // get name of the firt tag
+                // get name of the first tag
                 prefix = prefix.prop("tagName");
 
                 var idx = prefix.indexOf(':');
 
                 prefix = prefix.substring(0, idx) + "\\:";
-console.log(prefix);
 
 
             }
@@ -203,7 +206,6 @@ console.log(prefix);
             var k = 0;
             var $xml = $(xml);
             var prefix = getPrefix($xml);
-            console.log(prefix);
             $xml.find(prefix + "FIELD").each(function() {
                 var f = {};
                 for (var i=0; i<attributes.length; i++) {
@@ -259,8 +261,8 @@ console.log(prefix);
                 var field = fields[l];
                 if ( ! raFieldIdx) {
                     if (field.ucd) {
-                        var ucd = field.ucd.toLowerCase();
-                        if (ucd.indexOf('pos.eq.ra')>=0 || ucd.indexOf('pos_eq_ra')>=0) {
+                        var ucd = $.trim(field.ucd.toLowerCase());
+                        if (ucd.indexOf('pos.eq.ra')==0 || ucd.indexOf('pos_eq_ra')==0) {
                             raFieldIdx = l;
                             continue;
                         }
@@ -269,8 +271,8 @@ console.log(prefix);
                     
                 if ( ! decFieldIdx) {
                     if (field.ucd) {
-                        var ucd = field.ucd.toLowerCase();
-                        if (ucd.indexOf('pos.eq.dec')>=0 || ucd.indexOf('pos_eq_dec')>=0) {
+                        var ucd = $.trim(field.ucd.toLowerCase());
+                        if (ucd.indexOf('pos.eq.dec')==0 || ucd.indexOf('pos_eq_dec')==0) {
                             decFieldIdx = l;
                             continue;
                         }
@@ -382,9 +384,15 @@ console.log(prefix);
 
         //ctx.lineWidth = 1;
     	//ctx.beginPath();
-    	for (var k=0, len = this.sources.length; k<len; k++) {
-    		this.drawSource(this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
-    	}
+        if (this._shapeIsFunction) {
+            ctx.save();
+        }
+ 	    for (var k=0, len = this.sources.length; k<len; k++) {
+		    cds.Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+        }
+        if (this._shapeIsFunction) {
+            ctx.restore();
+        }
         //ctx.stroke();
 
     	// tracé sélection
@@ -394,7 +402,7 @@ console.log(prefix);
             if (! this.sources[k].isSelected) {
                 continue;
             }
-            this.drawSourceSelection(this.sources[k], ctx);
+            cds.Catalog.drawSourceSelection(this, this.sources[k], ctx);
             
         }
         // NEEDED ?
@@ -405,18 +413,18 @@ console.log(prefix);
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
             for (var k=0, len = this.sources.length; k<len; k++) {
-                this.drawSourceLabel(this.sources[k], ctx);
+                cds.Catalog.drawSourceLabel(this, this.sources[k], ctx);
             }
         }
     };
     
     
     
-    cds.Catalog.prototype.drawSource = function(s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    cds.Catalog.drawSource = function(catalogInstance, s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! s.isShowing) {
             return;
         }
-        var sourceSize = this.sourceSize;
+        var sourceSize = catalogInstance.sourceSize;
         // TODO : we could factorize this code with Aladin.world2pix
         var xy;
         if (frame!=CooFrameEnum.J2000) {
@@ -426,12 +434,14 @@ console.log(prefix);
         else {
             xy = projection.project(s.ra, s.dec);
         }
+
         if (xy) {
-            var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor);
+            var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
             var max = s.popup ? 100 : s.sourceSize;
             if (xyview) {
-                // TODO : index sources
-                // check if source is visible in view ?
+                // TODO : index sources by HEALPix cells at level 3, 4 ?
+
+                // check if source is visible in view
                 if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
                     xyview.vy>(height+max) || xyview.vy<(0-max)) {
                     s.x = s.y = undefined;
@@ -440,12 +450,14 @@ console.log(prefix);
                 
                 s.x = xyview.vx;
                 s.y = xyview.vy;
-
-                if (s.marker) {
-                    ctx.drawImage(this.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+                if (catalogInstance._shapeIsFunction) {
+                    catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
+                }
+                else if (s.marker) {
+                    ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
                 }
                 else {
-                    ctx.drawImage(this.cacheCanvas, s.x-this.cacheCanvas.width/2, s.y-this.cacheCanvas.height/2);
+                    ctx.drawImage(catalogInstance.cacheCanvas, s.x-catalogInstance.cacheCanvas.width/2, s.y-catalogInstance.cacheCanvas.height/2);
                 }
 
 
@@ -459,21 +471,21 @@ console.log(prefix);
         }
     };
     
-    cds.Catalog.prototype.drawSourceSelection = function(s, ctx) {
+    cds.Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
-        var sourceSize = this.selectSize;
+        var sourceSize = catalogInstance.selectSize;
         
-        ctx.drawImage(this.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
+        ctx.drawImage(catalogInstance.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
     };
 
-    cds.Catalog.prototype.drawSourceLabel = function(s, ctx) {
+    cds.Catalog.drawSourceLabel = function(catalogInstance, s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
 
-        var label = s.data[this.labelColumn];
+        var label = s.data[catalogInstance.labelColumn];
         if (!label) {
             return;
         }

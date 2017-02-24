@@ -24,7 +24,7 @@ Logger = {};
 
 Logger.log = function(action, params) {
     try {
-        var logUrl = "http://alasky.u-strasbg.fr/cgi/AladinLiteLogger/log.py";
+        var logUrl = "http://alasky.unistra.fr/cgi/AladinLiteLogger/log.py";
         var paramStr = "";
         if (params) {
             paramStr = JSON.stringify(params);

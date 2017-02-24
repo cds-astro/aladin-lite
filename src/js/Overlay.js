@@ -38,7 +38,7 @@ Overlay = (function() {
         
     	this.lineWidth = options["lineWidth"] || 2;
     	
-    	//this.indexationNorder = 5; // à quel niveau indexe-t-on les overlays
+    	//this.indexationNorder = 5; // at which level should we index overlays?
     	this.overlays = [];
     	this.overlay_items = []; // currently Circle or Polyline
     	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
@@ -140,12 +140,12 @@ Overlay = (function() {
             return;
         }
         
-        // tracé simple
+        // simple drawing
         ctx.strokeStyle= this.color;
 
-        // 1. Tracé polygons
+        // 1. Drawing polygons
         
-        // TODO: les overlay polygons devrait se tracer lui meme (méthode draw)
+        // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
     	xyviews = [];
@@ -154,7 +154,7 @@ Overlay = (function() {
     	}
         ctx.stroke();
 
-    	// tracé sélection
+    	// selection drawing
         ctx.strokeStyle= Overlay.increase_brightness(this.color, 80);
         //ctx.strokeStyle= 'green';
         ctx.beginPath();
@@ -167,7 +167,7 @@ Overlay = (function() {
         }
     	ctx.stroke();
     	
-        // 2. Tracé cercles ou polylines
+        // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
     	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
     	}

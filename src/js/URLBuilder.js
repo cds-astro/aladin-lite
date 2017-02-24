@@ -39,7 +39,7 @@ URLBuilder = (function() {
                     target = coo.format('s');
                 }
             }
-            return 'http://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-cs.py?target=' + encodeURIComponent(target) + '&SR=' + radiusDegrees + '&format=votable&SRUNIT=deg&SORTBY=nbref';
+            return 'http://alasky.unistra.fr/cgi/simbad-flat/simbad-cs.py?target=' + encodeURIComponent(target) + '&SR=' + radiusDegrees + '&format=votable&SRUNIT=deg&SORTBY=nbref';
         },
 
         buildNEDPositionCSURL: function(ra, dec, radiusDegrees) {
@@ -57,8 +57,26 @@ URLBuilder = (function() {
                     target = coo.format('s');
                 }
             }
-            return 'http://vizier.u-strasbg.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=999999&-c.rd=' + radiusDegrees;
+            return 'http://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=999999&-c.rd=' + radiusDegrees;
         },
+
+        buildSkyBotCSURL: function(ra, dec, radius, epoch, queryOptions) {
+            var url = 'http://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?-from=AladinLite';
+            url += '&RA=' + encodeURIComponent(ra);
+            url += '&DEC=' + encodeURIComponent(dec);
+            url += '&SR=' + encodeURIComponent(radius);
+            url += '&EPOCH=' + encodeURIComponent(epoch);
+
+            if (queryOptions) {
+                for (var key in queryOptions) {
+                    if (queryOptions.hasOwnProperty(key)) {
+                            url += '&' + key + '=' + encodeURIComponent(queryOptions[key]);
+                    }
+                }
+            }
+
+            return url;
+        }
     
 
     };

@@ -38,18 +38,19 @@ AladinUtils = (function() {
     	 * @param largestDim largest dimension of the view
     	 * @returns position in the view
     	 */
-    	xyToView: function(x, y, width, height, largestDim, zoomFactor, noRound) {
-    	    if (noRound==undefined) {
-    	        noRound = false;
+    	xyToView: function(x, y, width, height, largestDim, zoomFactor, round) {
+    	    if (round==undefined) {
+                // we round by default
+    	        round = true;
     	    }
-noRound=true;
-    	    if (noRound) {
 
-                return {vx: largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2, vy: largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2};
-    	    }
-    	    else {
+    	    if (round) {
     	        // we round the result for presumed performance gains
     	        return {vx: AladinUtils.myRound(largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2), vy: AladinUtils.myRound(largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2)};
+
+    	    }
+    	    else {
+                return {vx: largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2, vy: largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2};
     	    }
     	},
     	
@@ -84,7 +85,7 @@ noRound=true;
                 return null;
             }
             
-            return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+            return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
         },
 
     	
@@ -152,7 +153,7 @@ noRound=true;
     
             for ( var i=0; i<2; i++ ) {
                 var a = i==1 ? 1 : 0;
-                var c = i==1 ? 2 : 3;
+                var c = i==1 ? 3 : 2;
 
                 if ( b1[a]==null ) {
                     var d,g;

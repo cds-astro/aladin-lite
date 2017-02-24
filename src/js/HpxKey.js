@@ -84,10 +84,9 @@ HpxKey = (function() {
                 return 0;
             }
      
-            //corners = AladinUtils.grow2(corners, 1); // grow by 1 pixel in each direction
 
             var now = new Date().getTime();
-            var updateNeededTiles = this.ancestor==null && this.norder>=3 && (now-this.hips.lastUpdateDateNeededTiles) > 0.2;
+            var updateNeededTiles = this.ancestor==null && this.norder>=3 && (now-this.hips.lastUpdateDateNeededTiles) > 0.1;
 
             try {
                 if (isTooLarge(corners)) {
@@ -108,8 +107,8 @@ HpxKey = (function() {
             // actual drawing
             var norder = this.ancestor==null ? this.norder : this.ancestor.norder;
             var npix = this.ancestor==null ? this.npix : this.ancestor.npix;
-    //console.log(corners);
-    //console.log('actual drawing of ', norder, '/', npix, this.norder, '/', this.npix, ' ', this.dx, this.dy, this.width);
+
+            //corners = AladinUtils.grow2(corners, 1); // grow by 1 pixel in each direction
             var url = this.hips.getTileURL(norder, npix);
             var tile = this.hips.tileBuffer.getTile(url);
             if (tile && Tile.isImageOk(tile.img) || this.allskyTexture) {
@@ -121,7 +120,7 @@ HpxKey = (function() {
                 if (this.parente) {
                     w = w / Math.pow(2, this.parente);
                 } 
-                this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true);
+                this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true, norder);
                 n += 2;
 
                 //var ctx2 = view.reticleCtx;

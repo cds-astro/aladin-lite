@@ -121,7 +121,7 @@ Circle = (function() {
         if (!centerXy) {
             return;
         }
-        var centerXyview = AladinUtils.xyToView(centerXy.X, centerXy.Y, width, height, largestDim, zoomFactor, true);
+        var centerXyview = AladinUtils.xyToView(centerXy.X, centerXy.Y, width, height, largestDim, zoomFactor, false);
 
         // compute value of radius in pixels in current projection
         var circlePtXy;
@@ -137,7 +137,7 @@ Circle = (function() {
         if (!circlePtXy) {
             return;
         }
-        var circlePtXyView = AladinUtils.xyToView(circlePtXy.X, circlePtXy.Y, width, height, largestDim, zoomFactor, true);
+        var circlePtXyView = AladinUtils.xyToView(circlePtXy.X, circlePtXy.Y, width, height, largestDim, zoomFactor, false);
         var dx = circlePtXyView.vx - centerXyview.vx;
         var dy = circlePtXyView.vy - centerXyview.vy;
         var radiusInPix = Math.sqrt(dx*dx + dy*dy);

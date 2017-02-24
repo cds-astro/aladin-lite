@@ -28,8 +28,8 @@
  * 
  *****************************************************************************/
 
-// TODO: indexer sources par numéro HEALPix
-// TODO : harmoniser parsing avec classe Catalog
+// TODO: index sources according to their HEALPix ipix
+// TODO : merge parsing with class Catalog
 ProgressiveCat = (function() {
     
     // TODO : test if CORS support. If no, need to pass through a proxy
@@ -41,32 +41,84 @@ ProgressiveCat = (function() {
 
         this.type = 'progressivecat';
         
-        this.rootUrl = rootUrl;
+        this.rootUrl = rootUrl; // TODO: method to sanitize rootURL (absolute, no duplicate slashes, remove end slash if existing)
+        this.frameStr = frameStr;
         this.frame = CooFrameEnum.fromString(frameStr) || CooFrameEnum.J2000;
         this.maxOrder = maxOrder;
         this.isShowing = true; // TODO : inherit from catalogue
 
         this.name = options.name || "progressive-cat";
         this.color = options.color || Color.getNextColor();
-        this.sourceSize = options.sourceSize || 10;
+        this.shape = options.shape || "square";
+        this.sourceSize = options.sourceSize || 6;
+        this.selectSize = this.sourceSize + 2;
+        this.selectionColor = '#00ff00'; // TODO: to be merged with Catalog
+
+
+        this.onClick = options.onClick || undefined; // TODO: inherit from catalog
+
         
 
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
         this.sourcesCache = new Utils.LRUCache(100);
 
-        this.cacheCanvas = document.createElement('canvas');
-        this.cacheCanvas.width = this.sourceSize;
-        this.cacheCanvas.height = this.sourceSize;
-        var cacheCtx = this.cacheCanvas.getContext('2d');
-        cacheCtx.beginPath();
-        cacheCtx.strokeStyle = this.color;
-        cacheCtx.lineWidth = 2.0;
-        cacheCtx.moveTo(0, 0);
-        cacheCtx.lineTo(0,  this.sourceSize);
-        cacheCtx.lineTo( this.sourceSize,  this.sourceSize);
-        cacheCtx.lineTo( this.sourceSize, 0);
-        cacheCtx.lineTo(0, 0);
-        cacheCtx.stroke();
+        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize);
+
+        this.cacheSelectCanvas = document.createElement('canvas');
+        this.cacheSelectCanvas.width = this.selectSize;
+        this.cacheSelectCanvas.height = this.selectSize;
+        var cacheSelectCtx = this.cacheSelectCanvas.getContext('2d');
+        cacheSelectCtx.beginPath();
+        cacheSelectCtx.strokeStyle = this.selectionColor;
+        cacheSelectCtx.lineWidth = 2.0;
+        cacheSelectCtx.moveTo(0, 0);
+        cacheSelectCtx.lineTo(0,  this.selectSize);
+        cacheSelectCtx.lineTo( this.selectSize,  this.selectSize);
+        cacheSelectCtx.lineTo( this.selectSize, 0);
+        cacheSelectCtx.lineTo(0, 0);
+        cacheSelectCtx.stroke(); // TODO: to be merged with Catalog
+
+
+
+        this.maxOrderAllsky = 2;
+        this.isReady = false;
+    };
+
+    // TODO: to be put higher in the class diagram, in a HiPS generic class
+    ProgressiveCat.readProperties = function(rootUrl, successCallback, errorCallback) {
+        if (! successCallback) {
+            return;
+        }
+
+        var propertiesURL = rootUrl + '/properties';
+        $.ajax({
+            url: propertiesURL,
+            method: 'GET',
+            dataType: 'text',
+            success: function(propertiesTxt) {
+                var props = {};
+                var lines = propertiesTxt.split('\n');
+                for (var k=0; k<lines.length; k++) {
+                    var line = lines[k];
+                    var idx = line.indexOf('=');
+                    var propName  = $.trim(line.substring(0, idx));
+                    var propValue = $.trim(line.substring(idx + 1));
+                    
+                    props[propName] = propValue;
+                }
+    
+                successCallback(props);
+                
+            },
+            error: function(err) { // TODO : which parameters should we put in the error callback
+                errorCallback && errorCallback(err);
+            }
+        });
+
+
+
+
+        
     };
 
     function getFields(instance, xml) {
@@ -131,6 +183,7 @@ ProgressiveCat = (function() {
 
         var sources = [];
         var coo = new Coo();
+        var newSource;
         // start at i=1, as first line repeat the fields names
         for (var i=2; i<lines.length; i++) {
             var mesures = {};
@@ -151,30 +204,107 @@ ProgressiveCat = (function() {
                 ra = coo.lon;
                 dec = coo.lat;
             }
-            sources.push(new cds.Source(ra, dec, mesures));
+            newSource = new cds.Source(ra, dec, mesures);
+            sources.push(newSource);
+            newSource.setCatalog(instance);
         }
         return sources;
-    }
+    };
 
     ProgressiveCat.prototype = {
 
         init: function(view) {
+            var self = this;
             this.view = view;
-            if (this.level3Sources) {
-                return; // if already loaded, do nothing
+
+            if (this.maxOrder && this.frameStr) {
+                this._loadMetadata();
             }
-            this.loadLevel2Sources();
+
+            else {
+                ProgressiveCat.readProperties(self.rootUrl,
+                    function (properties) {
+                        self.properties = properties;
+                        self.maxOrder = self.properties['hips_order'];
+                        self.frame = CooFrameEnum.fromString(self.properties['hips_frame']);
+
+                        self._loadMetadata();
+                    }, function(err) {
+                        console.log('Could not find properties for HiPS ' + self.rootUrl);
+                    }
+                );
+            }
         },
 
-        loadLevel2Sources: function() {
+        _loadMetadata: function() {
+            var self = this;
+            $.ajax({
+                url: self.rootUrl + '/' + 'Metadata.xml',
+                method: 'GET',
+                success: function(xml) {
+                    self.fields = getFields(self, xml);
+                    self._loadAllskyNewMethod();
+                },
+                error: function(err) {
+                    self._loadAllskyOldMethod();
+                }
+            });
+        },
+
+        _loadAllskyNewMethod: function() {
+            var self = this;
+            $.ajax({
+                url: self.rootUrl + '/' + 'Norder1/Allsky.tsv',
+                method: 'GET',
+                success: function(tsv) {
+                    self.order1Sources = getSources(self, tsv, self.fields);
+
+                    if (self.order2Sources) {
+                        self.isReady = true;
+                        self.view.requestRedraw();
+                    }
+                },
+                error: function(err) {
+                    console.log('Something went wrong: ' + err);
+                }
+            });
+
+            $.ajax({
+                url: self.rootUrl + '/' + 'Norder2/Allsky.tsv',
+                method: 'GET',
+                success: function(tsv) {
+                    self.order2Sources = getSources(self, tsv, self.fields);
+
+                    if (self.order1Sources) {
+                        self.isReady = true;
+                        self.view.requestRedraw();
+                    }
+                },
+                error: function(err) {
+                    console.log('Something went wrong: ' + err);
+                }
+            });
+
+        },
+
+        _loadAllskyOldMethod: function() {
+            this.maxOrderAllsky = 3;
+            this._loadLevel2Sources();
+            this._loadLevel3Sources();
+        },
+
+        _loadLevel2Sources: function() {
             var self = this;
             $.ajax({
                 url: self.rootUrl + '/' + 'Norder2/Allsky.xml',
                 method: 'GET',
                 success: function(xml) {
                     self.fields = getFields(self, xml);
-                    self.level2Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
-                    self.loadLevel3Sources();
+                    self.order2Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
+                    if (self.order3Sources) {
+                        self.isReady = true;
+                        self.view.requestRedraw();
+                    }
                 },
                 error: function(err) {
                     console.log('Something went wrong: ' + err);
@@ -182,15 +312,17 @@ ProgressiveCat = (function() {
             });
         },
 
-        loadLevel3Sources: function() {
+        _loadLevel3Sources: function() {
             var self = this;
             $.ajax({
                 url: self.rootUrl + '/' + 'Norder3/Allsky.xml',
                 method: 'GET',
                 success: function(xml) {
-                    self.level3Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
-                    //console.log(self.level3Sources);
-                    self.view.requestRedraw();
+                    self.order3Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
+                    if (self.order2Sources) {
+                        self.isReady = true;
+                        self.view.requestRedraw();
+                    }
                 },
                 error: function(err) {
                     console.log('Something went wrong: ' + err);
@@ -199,11 +331,12 @@ ProgressiveCat = (function() {
         },
 
         draw: function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
-            if (! this.isShowing || ! this.level3Sources) {
+            if (! this.isShowing || ! this.isReady) {
                 return;
             }
-            this.drawSources(this.level2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
-            this.drawSources(this.level3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+            this.drawSources(this.order1Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+            this.drawSources(this.order2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+            this.drawSources(this.order3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
             
             if (!this.tilesInView) {
                 return;
@@ -222,17 +355,30 @@ ProgressiveCat = (function() {
             
         },
         drawSources: function(sources, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+            if (! sources) {
+                return;
+            }
             for (var k=0, len = sources.length; k<len; k++) {
-                this.drawSource(sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+                cds.Catalog.drawSource(this, sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+            }
+            for (var k=0, len = sources.length; k<len; k++) {
+                if (! sources[k].isSelected) {
+                    continue;
+                }
+                cds.Catalog.drawSourceSelection(this, sources[k], ctx);
             }
         },
+
         getSources: function() {
             var ret = [];
-            if (this.level2Sources) {
-                ret = ret.concat(this.level2Sources);
+            if (this.order1Sources) {
+                ret = ret.concat(this.order1Sources);
             }
-            if (this.level3Sources) {
-                ret = ret.concat(this.level3Sources);
+            if (this.order2Sources) {
+                ret = ret.concat(this.order2Sources);
+            }
+            if (this.order3Sources) {
+                ret = ret.concat(this.order3Sources);
             }
             if (this.tilesInView) {
                 var sources, key, t;
@@ -249,44 +395,25 @@ ProgressiveCat = (function() {
             return ret;
         },
 
-        // TODO : factoriser avec drawSource de Catalog
-        drawSource: function(s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
-            if (! s.isShowing) {
-                return;
-            }
-            var sourceSize = this.sourceSize;
-            var xy;
-            if (frame!=CooFrameEnum.J2000) {
-                var lonlat = CooConversion.J2000ToGalactic([s.ra, s.dec]);
-                xy = projection.project(lonlat[0], lonlat[1]);
-            }
-            else {
-                xy = projection.project(s.ra, s.dec);
-            }
-            if (xy) {
-                var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor);
-                if (xyview) {
-                    // TODO : index sources
-                    // check if source is visible in view ?
-                    if (xyview.vx>(width+sourceSize)  || xyview.vx<(0-sourceSize) ||
-                        xyview.vy>(height+sourceSize) || xyview.vy<(0-sourceSize)) {
-                        s.x = s.y = undefined;
-                        return;
-                    }
 
-                    s.x = xyview.vx;
-                    s.y = xyview.vy;
-                    ctx.drawImage(this.cacheCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
-                }
-            }
-        },
         
         deselectAll: function() {
-            for (var k=0; k<this.level2Sources.length; k++) {
-                this.level2Sources[k].deselect();
+            if (this.order1Sources) {
+                for (var k=0; k<this.order1Sources.length; k++) {
+                    this.order1Sources[k].deselect();
+                }
             }
-            for (var k=0; k<this.level3Sources.length; k++) {
-                this.level3Sources[k].deselect();
+
+            if (this.order2Sources) {
+                for (var k=0; k<this.order2Sources.length; k++) {
+                    this.order2Sources[k].deselect();
+                }
+            }
+
+            if (this.order3Sources) {
+                for (var k=0; k<this.order3Sources.length; k++) {
+                    this.order3Sources[k].deselect();
+                }
             }
             var keys = this.sourcesCache.keys();
             for (key in keys) {
@@ -331,7 +458,7 @@ ProgressiveCat = (function() {
             if (norder>this.maxOrder) {
                 norder = this.maxOrder;
             }
-            if (norder<=3) {
+            if (norder<=this.maxOrderAllsky) {
                 return; // nothing to do, hurrayh !
             }
             var cells = this.view.getVisibleCells(norder, this.frame);
@@ -364,7 +491,7 @@ ProgressiveCat = (function() {
                             url: Aladin.JSONP_PROXY,
                             data: {"url": self.getTileURL(norder, ipix)},
                             */
-                            // ATTENTIOn : je passe en JSON direct, car je n'arrive pas à choper les 404 en JSONP
+                            // ATTENTIOn : je passe en JSON direct, car je n'arrive pas a choper les 404 en JSONP
                             url: self.getTileURL(norder, ipix),
                             method: 'GET',
                             //dataType: 'jsonp',
@@ -381,9 +508,12 @@ ProgressiveCat = (function() {
                     })(this, t[0], t[1]);
                 }
             }
+        },
+
+        reportChange: function() { // TODO: to be shared with Catalog
+            this.view && this.view.requestRedraw();
         }
-
-
+    
 
     }; // END OF .prototype functions
     

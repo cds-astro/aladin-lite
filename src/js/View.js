@@ -117,7 +117,7 @@ View = (function() {
     		});
     	};
 	
-    // différents modes
+    // different available modes
     View.PAN = 0;
     View.SELECT = 1;
     	
@@ -288,7 +288,7 @@ View = (function() {
 	        view.fovDiv.html("FoV:");
 	        return;
 	    }
-        // màj valeur FoV
+        // update FoV value
         var fovStr;
         if (view.fov>1) {
             fovStr = Math.round(view.fov*100)/100 + "°";
@@ -426,7 +426,7 @@ View = (function() {
             }
 
 
-            // TODO : remplacer par mécanisme de listeners
+            // TODO : remplacer par mecanisme de listeners
             // on avertit les catalogues progressifs
             view.refreshProgressiveCats();
 
@@ -624,6 +624,7 @@ View = (function() {
     View.prototype.getBackgroundColor = function() {
         var white = 'rgb(255, 255, 255)';
         var black = 'rgb(0, 0, 0)';
+
         if (! this.imageSurvey) {
             return black;
         }
@@ -632,7 +633,7 @@ View = (function() {
         if (!cm) {
             return black;
         }
-        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
+        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
             return cm.reversed ? white : black;
         }
 
@@ -642,6 +643,15 @@ View = (function() {
         var b = ColorMap.MAPS[cm.mapName].b[idx];
 
         return 'rgb(' + r + ',' + g + ',' + b + ')';
+    };
+
+    View.prototype.getViewParams = function() {
+        var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
+        return {
+            fov: [this.width * resolution, this.height * resolution],   
+            width: this.width,   
+            height: this.height   
+        };
     };
 	
 	
@@ -686,7 +696,7 @@ View = (function() {
                 imageCtx.arc(this.cx, this.cy, this.cx*this.zoomFactor, 0, 2*Math.PI, true);
                 imageCtx.fill();
             }
-            // pour éviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
+            // pour eviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
             else if (this.fov<60) {
                 imageCtx.fillStyle = bkgdColor;
                 imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
@@ -700,7 +710,7 @@ View = (function() {
         }
 
         
-        // TODO : voir si on doit vraiment faire ces vérifs à chaque coup
+        // TODO : check if we really need to make that test every time
 		if (!this.projection) {
 			this.projection = new Projection(this.viewCenter.lon, this.viewCenter.lat);
 		}
@@ -710,17 +720,17 @@ View = (function() {
 		this.projection.setProjection(this.projectionMethod);
 	
 
-		// ************* Tracé au niveau allsky (faible résolution) *****************
+		// ************* Draw allsky tiles (low resolution) *****************
 
         var cornersXYViewMapHighres = null;
-        // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la méthode utilisée systématiquement
+        // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
 	    if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
                 if (this.aladin.reduceDeformations==null) {
-                    this.imageSurvey.draw(imageCtx, this, !this.dragging);
+                    this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
                 }
 
                 else {
-                    this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations);
+                    this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
         /*
@@ -739,7 +749,7 @@ View = (function() {
 		    // redraw image survey
 		    if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
 		        // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-		        // TODO refactoring : devrait être une méthode de HpxImageSurvey
+		        // TODO refactoring : should be a method of HpxImageSurvey
 			    this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
                 if (this.curNorder>=3) {
                     this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
@@ -756,11 +766,11 @@ View = (function() {
 		    imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, !this.dragging);
+                this.overlayImageSurvey.draw(imageCtx, this, !this.dragging, this.curOverlayNorder);
             }
 
             else {
-                this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations);
+                this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
             /*
 	        if (this.fov>50) {
@@ -822,14 +832,15 @@ View = (function() {
             this.mustClearCatalog = false;
         }
 		if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-		      // TODO : ne pas effacer systématiquement
+		      // TODO : do not clear every time
 	        //// clear canvas ////
 		    if (! catalogCanvasCleared) {
 		        catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
 		    }
 		    for (var i=0; i<this.catalogs.length; i++) {
-		        this.catalogs[i].draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                var cat = this.catalogs[i];
+		        cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
 		    }
         }
 
@@ -911,7 +922,7 @@ View = (function() {
 		}
         
         
- 		// TODO : est ce la bonne façon de faire ?
+ 		// TODO : is this the right way?
  		if (saveNeedRedraw==this.needRedraw) {
  			this.needRedraw = false;
  		}
@@ -953,7 +964,7 @@ View = (function() {
             var hpxIdx = new HealpixIndex(nside);
             hpxIdx.init();
             var spatialVector = new SpatialVector();
-            // si frame != frame survey image, il faut faire la conversion dans le système du survey
+            // if frame != frame image survey, we need to convert to survey frame system
             var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
             var radec = this.projection.unproject(xy.x, xy.y);
             var lonlat = [];
@@ -999,10 +1010,10 @@ View = (function() {
 	    if (! frameSurvey && this.imageSurvey) {
 	        frameSurvey = this.imageSurvey.cooFrame;
 	    }
-		var cells = []; // will be returned
+		var cells = []; // array to be returned
 		var cornersXY = [];
 		var spVec = new SpatialVector();
-		var nside = Math.pow(2, norder); // TODO : à changer
+		var nside = Math.pow(2, norder); // TODO : to be modified
 		var npix = HealpixIndex.nside2Npix(nside);
 		var ipixCenter = null;
 		
@@ -1019,7 +1030,7 @@ View = (function() {
 			var hpxIdx = new HealpixIndex(nside);
 			hpxIdx.init();
 			var spatialVector = new SpatialVector();
-			// si frame != frame survey image, il faut faire la conversion dans le système du survey
+            // if frame != frame image survey, we need to convert to survey frame system
 			var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
 			var radec = this.projection.unproject(xy.x, xy.y);
 			var lonlat = [];
@@ -1155,7 +1166,7 @@ View = (function() {
 		var cornersXY = [];
 		var lon, lat;
 		var spVec = new SpatialVector();
-		var nside = Math.pow(2, norder); // TODO : à changer
+		var nside = Math.pow(2, norder); // TODO : to be modified
 		
 		
 		var cornersXYView = [];  // will be returned
@@ -1276,19 +1287,19 @@ View = (function() {
     View.prototype.computeNorder = function() {
         var resolution = this.fov / this.largestDim; // in degree/pixel
         var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
-        var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = taille d'une image "tuile"
+        var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
         var norder = Math.log(nside)/Math.log(2);
         norder = Math.max(norder, 1);
         this.realNorder = norder;
 
             
-        // forcer le passage à norder 3 (sinon, on reste flou trop longtemps)
+        // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
         if (this.fov<=50 && norder<=2) {
             norder = 3;
         }
            
 
-        // si l'on ne souhaite pas afficher le allsky
+        // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
         if (this.imageSurvey && norder<=2 && this.imageSurvey.minOrder>2) {
             norder = this.imageSurvey.minOrder;
         }
@@ -1310,8 +1321,6 @@ View = (function() {
             
         this.curNorder = norder;
         this.curOverlayNorder = overlayNorder;
-
-        
     };
 	
     View.prototype.untaintCanvases = function() {
@@ -1386,14 +1395,13 @@ View = (function() {
 		    if ( ! newImageSurvey) {
 		        newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
                 unknownSurveyId = imageSurvey;
-console.log(unknownSurveyId);
 		    }
 		}
 		else {
 		    newImageSurvey = imageSurvey;
 		}
 		
-		// ràz buffer
+		// buffer reset
 		this.tileBuffer = new TileBuffer();
         
 		newImageSurvey.isReady = false;
@@ -1598,7 +1606,7 @@ console.log(unknownSurveyId);
                 }       
             }           
         }     
-    }
+    };
 
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
     View.prototype.closestObjects = function(x, y, maxRadius) {

@@ -71,8 +71,7 @@ Sesame = (function() {
     };
     
     Sesame.resolve = function(objectName, callbackFunctionSuccess, callbackFunctionError) {
-        //var sesameUrl = "http://cdsportal.u-strasbg.fr/services/sesame?format=json";
-        var sesameUrl = "http://cds.u-strasbg.fr/cgi-bin/nph-sesame.jsonp?";
+        var sesameUrl = "http://cds.unistra.fr/cgi-bin/nph-sesame.jsonp?";
         $.ajax({
             url: sesameUrl ,
             data: {"object": objectName},

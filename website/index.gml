@@ -37,5 +37,7 @@
 
     <&CDS.tailArea2 'Aladin Lite' '&rarr;  Thanks for <a href="/aladin.gml#Acknowledgement">acknowledging Aladin Sky Atlas</a>' 'aladin'>
 
+    <&CDS.piwikStats "aladin">
+
 </body>
 </html>

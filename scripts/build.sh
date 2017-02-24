@@ -61,6 +61,8 @@ eval ${cmd2}
 # traitement des CSS
 ${lessc} --compress ${csssrcfile} > ${cssfileminified}
 
+cp ${csssrcfile} ${distribdir}
+
 # create AladinLiteSrc.tar.gz
 myVersion="AladinLite-${version}"
 echo $myVersion

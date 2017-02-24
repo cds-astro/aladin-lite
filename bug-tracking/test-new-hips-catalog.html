@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<style>
+
+/*     body {
+      padding: 0;
+      margin: 0;
+    }
+ */
+    html, body, #aladin-lite-div {
+        height: 600px;
+        width: 800px;
+    }
+</style>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+</head>
+<body>
+
+<!-- <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script> -->
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<input type="button" id="selectBtn" value="Select" />
+<!-- <div id="aladin-statsDiv"></div> -->
+
+
+<div id="aladin-lite-div" ></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = A.aladin('#aladin-lite-div', {target: "Veil Nebula", survey: "P/DSS2/color", zoom: 3, reticleColor: '#099', reticleSize: 50});
+    
+    
+    var prog = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/Simbad', {'onClick': 'showTable'});
+    aladin.addCatalog(prog);
+
+    prog = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/II/328/allwise', {'onClick': 'showTable', shape: 'cross'});
+    aladin.addCatalog(prog);
+    
+    
+</script>
+</body>
+</html>

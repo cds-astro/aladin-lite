@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    
+    // Start up Aladin Lite
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 28;
+    var ctx = canvas.getContext('2d');
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+var radius = canvas.width/2 -2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    ctx.closePath();
+    ctx.fillStyle = '#cc0055';
+    ctx.globalAlpha = 0.2,
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.globalAlpha = 1.0;
+    ctx.stroke();
+
+    var target = 'M1';
+    var aladin = A.aladin('#aladin-lite-div', {target: target, fov: 0.3, survey: 'P/DSS2/red'});
+    aladin.addCatalog(A.catalogFromSimbad(target, 0.1, {onClick: 'showTable', shape: canvas}));
+    //aladin.addCatalog(A.catalogFromSimbad(target, 0.1, {onClick: 'showTable', shape: 'square'}));
+
+    
+
+    
+    
+</script>
+</body>
+</html>

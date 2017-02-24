@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<style>
+
+/*     body {
+      padding: 0;
+      margin: 0;
+    }
+ */
+    html, body, #aladin-lite-div {
+        height: 600px;
+        width: 800px;
+    }
+</style>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+</head>
+<body>
+
+<!-- <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script> -->
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<input type="button" id="selectBtn" value="Select" />
+<!-- <div id="aladin-statsDiv"></div> -->
+
+
+<div id="aladin-lite-div" ></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = A.aladin('#aladin-lite-div', {target: "Veil Nebula", survey: "P/DSS2/color", zoom: 3, reticleColor: '#099', reticleSize: 50});
+    
+    var baseImage = aladin.getBaseImageLayer();
+
+    
+    var prog2 = aladin.createProgressiveCatalog('http://alasky.u-strasbg.fr/cats/2MASS', 'galactic', 11, {name: 'Prog. 2MASS', sourceSize: 8});
+    
+    aladin.addCatalog(prog2);
+    
+    var prog = aladin.createProgressiveCatalog('http://alasky.u-strasbg.fr/cats/SIMBAD', 'galactic', 8, {name: 'Prog. SIMBAD', sourceSize: 8, onClick: 'showTable'});
+    aladin.addCatalog(prog);
+    
+
+
+    
+    $('#selectBtn').click(function() {
+         aladin.select();
+    });
+    
+    
+    
+    
+</script>
+</body>
+</html>

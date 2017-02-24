@@ -1,3 +1,22 @@
+February 2017:
+- shape parameter when creating a catalogue can now be a custom draw function
+- bug fix, when superimposing a HiPS over a HiPS with a different coordinate frame
+
+January 2017:
+- added method to query SkyBot: A.catalogFromSkyBot
+
+October 2016:
+- 
+
+September 2016:
+- support of HiPS catalog (new format)
+
+
+June 2016:
+- fix astrometry offset by subdividing HEALPix cells too distorted
+- new method A.MOCFromJSON to create a MOC from the JSON serialization
+
+
 March 2016:
 - added raField and decField options when creating catalogue
 

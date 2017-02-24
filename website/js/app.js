@@ -1,3 +1,45 @@
+     function propertiesDictFromHiPSId(hipsId, callback) {
+        if (! callback) {
+            return;
+        }
+
+        $.ajax({
+            url: 'http://alasky.unistra.fr/MocServer/query',
+            data: {ID: '*' + hipsId + '*', fmt: 'json', get: 'properties', dataproduct_type: 'image', casesensitive: 'false'},
+            method: 'GET',
+            dataType: 'json',
+            success: function(result) {
+                if (result.length==0) {
+                    callback(null);
+                }
+                else if (result.length==1) {
+                    callback(result[0]);
+                }
+                else {
+                    console.log('Warning, multiple HiPS match the requested ID, returning first one');
+                    callback(result[0]);
+                }
+            },
+            error: function() {
+                callback(null);
+            }
+        });
+    };
+
+    function getAlaskyServiceURL(hipsProperties) {
+        if (hipsProperties.hasOwnProperty('hips_service_url') && hipsProperties.hips_service_url.indexOf('alasky')>0) {
+            return hipsProperties.hips_service_url;
+        }
+        if (hipsProperties.hasOwnProperty('hips_service_url_1') && hipsProperties.hips_service_url_1.indexOf('alasky')>0) {
+            return hipsProperties.hips_service_url_1;
+        }
+        if (hipsProperties.hasOwnProperty('hips_service_url_2') && hipsProperties.hips_service_url_2.indexOf('alasky')>0) {
+            return hipsProperties.hips_service_url_2;
+        }
+
+        return hipsProperties.hips_service_url;
+    }
+
     function getURLParam(name, queryString){
         if (queryString===undefined) {
             queryString = location.search;
@@ -15,14 +57,21 @@
         setSize();
         var surveys = {};
 
-        var survey = getURLParam('survey') || "P/DSS2/color";
+        var survey = getURLParam('survey');
         var fov = getURLParam('fov') || 3;
         if (isNaN(fov)) {
             fov = 3;
         }
         var defaultTarget = 'NGC 2024';
         var target = getURLParam('target') || 'NGC 2024';
-        aladin = A.aladin('#aladin-lite-div', {survey: survey, fov: fov, target: target, showGotoControl:false, showFullscreenControl: false});
+        var aladinParams = {fov: fov, target: target, showGotoControl:false, showFullscreenControl: false};
+        if (!survey) {
+            aladinParams.survey = 'P/DSS2/color';
+        }
+        else if (survey!==null && HpxImageSurvey.getSurveyFromId(survey)!==null) {
+            aladinParams.survey = survey;
+        }
+        aladin = A.aladin('#aladin-lite-div', aladinParams);
         // change link on Aladin Lite logo to point to project page
         $('.aladin-logo-container a').attr('href', 'http://aladin.u-strasbg.fr/');
         curSurveyId = survey;
@@ -37,6 +86,26 @@
                 goto();
             }
         });
+
+        if (survey && HpxImageSurvey.getSurveyFromId(survey)==null) {
+            var hipsId = survey;
+            propertiesDictFromHiPSId(hipsId, function(hipsProperties) {
+                if (hipsProperties===null || curSurveyId!=hipsId) {
+                    console.error('Unknown HiPS ' + hipsId);
+                    return;
+                }
+                var p = hipsProperties;
+                var imgFormat = 'jpg';
+                if (p.hasOwnProperty('hips_tile_format') && p.hips_tile_format.indexOf('png')>=0) {
+                    imgFormat = 'png';
+                }
+                var hips_url = getAlaskyServiceURL(p);
+                aladin.setImageSurvey(new HpxImageSurvey(p.ID, p.obs_title, hips_url, p.hips_frame || 'equatorial', p.hips_order, {imgFormat: imgFormat}));
+
+                curSurveyId = p.ID;
+                updateHistory();
+            });
+        }
 
 
     });
@@ -100,7 +169,10 @@
              var tooltipDescriptions = {};
              var res = '<div class="surveys-list">';
              data.sort(function(a,b) { return a.order == b.order ? 0 : a.order < b.order ? -1 : 1; });
+             data.push();
              surveys = data;
+
+             
              for (var k=0; k<data.length; k++) {
                   var id = data[k].id;
                   var w = /^\w+\/(\w+)/.exec(data[k].treePath)[1];
@@ -130,6 +202,10 @@
              // once the info about surveys retrieved, we can set the info about the current one
              setInfo(curSurveyId);
              var currentSurveyDiv = $('.survey[data-surveyId="' + curSurveyId + '"]');
+             if (currentSurveyDiv.length === 0) {
+                 return;
+             }
+
              currentSurveyDiv.find('.survey-selected').show();
              // scroll to current survey if needed
              var shiftY = currentSurveyDiv.position().top - $('.surveyDiv').position().top;
@@ -139,5 +215,6 @@
          },
          error: function() { $('#surveys').html("Error: "+url); }
      });
+
 
 

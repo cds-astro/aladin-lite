@@ -40,7 +40,6 @@ try:
         userAgent = os.environ['HTTP_USER_AGENT']
     else:
         userAgent = 'Unknown'
-
     logline = isodate+'\t'+ip+'\t'+action+'\t'+params+'\t'+userAgent+'\t'+referer+'\t'+pageUrl
 
     h = open(logfile, 'a')
@@ -50,6 +49,8 @@ try:
     h.close()
 except:
     traceback.print_exc()
+    # Do nothing
+    #pass
 
 if callback:
     print 'Content-Type: application/javascript\r\n'

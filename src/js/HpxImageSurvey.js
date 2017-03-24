@@ -92,8 +92,6 @@ HpxImageSurvey = (function() {
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
     };
 
-    HpxImageSurvey.HTTPS_CONTEXT = ( window.location.protocol === 'https:' );
-    
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
     
     HpxImageSurvey.prototype.init = function(view, callback) {

@@ -469,7 +469,13 @@ View = (function() {
                         }
                     }
                 }
-                if (!hasTouchEvents) return;
+                if (!hasTouchEvents) {
+                    return;
+                }
+            }
+
+            if (! view.dragging) {
+                return;
             }
 
             var xoffset, yoffset;

@@ -303,6 +303,9 @@ Aladin = (function() {
     Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "http://alasky.unistra.fr/cgi/JSONProxy";
+
+    Aladin.HTTPS_CONTEXT = ( window.location.protocol === 'https:' );
+
     
     Aladin.DEFAULT_OPTIONS = {
         target:                 "0 +0",

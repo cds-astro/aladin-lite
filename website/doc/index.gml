@@ -5,7 +5,7 @@
     <&CDS.headStuff2>
     <link href="/assets/css/aladin.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+    <link rel="stylesheet" href="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
     
     <style>
     #imageSurveysList {font-size: 13px;}
@@ -76,7 +76,7 @@
           </div>
           <div class="span3">
               <div id="aladin-lite-div" style="width:300px;height:300px;"></div>
-              <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
+              <script type="text/javascript" src="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
               <script type="text/javascript">
                 var aladin = $.aladin('#aladin-lite-div', {showControl: false, fov: 0.5, target: "20 45 38.0 +30 42 30", cooFrame: "J2000", survey: "P/DSS2/color", showFullscreenControl: false, showFrame: false, showGotoControl: false});
               </script>
@@ -155,7 +155,7 @@
         <div class="page-header">
           <h1>Source code</h1>
         </div>
-        <p>Aladin Lite source code is available under GPL3 licence (<a href="http://aladin.u-strasbg.fr/AladinLite/api/v2/latest/AladinLiteSrc.tar.gz">Download Aladin Lite source code</a>).
+        <p>Aladin Lite source code is available under GPL3 licence (<a href="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/AladinLiteSrc.tar.gz">Download Aladin Lite source code</a>).
         </p>
 
         <!-------------------------------------------------------------------->
@@ -249,7 +249,7 @@
   <script type="text/javascript">
   $(document).ready(function() {
       $.ajax({
-        url: "http://aladin.u-strasbg.fr/java/nph-aladin.pl",
+        url: "//aladin.u-strasbg.fr/java/nph-aladin.pl",
         data: {"frame": "aladinLiteDic"},
         method: 'GET',
         dataType: 'jsonp',

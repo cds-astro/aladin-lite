@@ -696,22 +696,17 @@ View = (function() {
         var bkgdColor = this.getBackgroundColor();	
 		// fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
-            if (this.fov>80) {
+            if (this.fov>=60) {
                 imageCtx.fillStyle = bkgdColor;
                 imageCtx.beginPath();
-                imageCtx.arc(this.cx, this.cy, this.cx*this.zoomFactor, 0, 2*Math.PI, true);
+                var maxCxCy = this.cx>this.xy ? this.cx : this.cy;
+                imageCtx.arc(this.cx, this.cy, maxCxCy * this.zoomFactor, 0, 2*Math.PI, true);
                 imageCtx.fill();
             }
             // pour eviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
-            else if (this.fov<60) {
+            else {
                 imageCtx.fillStyle = bkgdColor;
                 imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-            }
-            else { // 60 <= fov <= 80
-                imageCtx.fillStyle = bkgdColor;
-                imageCtx.beginPath();
-                imageCtx.arc(this.cx, this.cy, this.cx*this.zoomFactor, 0, 2*Math.PI, true);
-                imageCtx.fill();
             }
         }
 

@@ -136,7 +136,9 @@
             <ul>
                 <li><a href="http://sky.esa.int/" title="ESA Sky">ESA Sky</a> allows for discovery and access of data observed by ESA space missions</li>
                 <li><a href="https://losc.ligo.org/s/skymapViewer/aladin/index.html#GW150914:LALI" title="Skymap viewer">Skymap Viewer</a> shows probability contours for gravitational wave events from LIGO/Virgo</li>
+                <li><a href="http://jvo.nao.ac.jp/portal/v2/" title="JVO Portal">JVO Portal v2</a></li>
                 <li><a href="http://gamma-sky.net/" title="Gamma Sky">Gamma Sky</a>, a portal to gamma-ray sky (developed by C. Deil and A. Voruganti)</li>
+                <li><a href="http://setiquest.info/" title="SETI quest">SETI</a> uses Aladin Lite to display targets currently observed (development by J. Richards)</li>
                 <li><a href="http://saada.unistra.fr/ArchesWalker/" title="ARCHES Walker">ARCHES Walker</a>, an Outreach tool showcasing astronomical objects in different wavelengths (<a href="http://www.arches-fp7.eu/">ARCHES project</a>)</li>
                 <li><a href="http://hologhost.altervista.org/pointing/mopra.html" title="MOPRA Telescope pointing">MOPRA Radio Telescope Pointing and Status</a>
                 <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>

@@ -103,7 +103,10 @@
 
         <h3>Updating view properties</h3>
         <b>Setting the size of the FoV</b>
-        <p>Use <code>aladin.setFov(&lt;FoV-in-degrees&gt;)</code>
+        <ul>
+            <li><p>Use <code>aladin.setFov(&lt;FoV-in-degrees&gt;)</code> to change the FoV size.</p></li>
+            <li><p><code>aladin.adjustFovForObject(&lt;object-name&gt;)</code> will try to adjust the field of view according to the properties of the object name given as parameter. This works only for object known by Simbad ; it is based on the object dimension and magnitude.</p></li>
+        </ul>
 
         <b>Setting the current position of the center of the view</b>
         <p>There are several methods to update the current position:</p>
@@ -111,7 +114,6 @@
             <li><code>aladin.gotoRaDec(&lt;ra-in-degrees&gt;, &lt;dec-in-degrees&gt;)</code></li>
             <li><code>aladin.gotoObject(&lt;iobject-name-or-position&gt;)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.</li>
         </ul>
-        Example: setting the current target.
         
 
 
@@ -187,7 +189,7 @@
           </table>
 
         <h3>Adding some sources to the catalogue</h3>
-        <p>Sources can be created manually using <code>A.source(ra, dec, option)</code> and added to an existing catalog layer</p>
+        <p>Sources can be created manually using <code>A.source(ra, dec, data)</code> and added to an existing catalog layer</p>
         <p>Example: <a href="examples/cat-custom-shape/">Creating a catalog with a custom shape</a><br/></p>
 
         <h3>Loading a VOTable</h3>

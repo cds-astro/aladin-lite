@@ -33,6 +33,8 @@ Sesame = (function() {
     
     Sesame.cache = {};
 
+    Sesame.SESAME_URL = "http://cds.unistra.fr/cgi-bin/nph-sesame.jsonp?";
+
     /** find RA, DEC for any target (object name or position)
      *  if successful, callback is called with an object {ra: <ra-value>, dec: <dec-value>}
      *  if not successful, errorCallback is called
@@ -71,7 +73,8 @@ Sesame = (function() {
     };
     
     Sesame.resolve = function(objectName, callbackFunctionSuccess, callbackFunctionError) {
-        var sesameUrl = "http://cds.unistra.fr/cgi-bin/nph-sesame.jsonp?";
+        var sesameUrl = Sesame.SESAME_URL;
+
         $.ajax({
             url: sesameUrl ,
             data: {"object": objectName},

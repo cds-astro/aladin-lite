@@ -40,11 +40,11 @@ cds.Catalog = (function() {
     	this.sourceSize = options.sourceSize || 6;
     	this.markerSize = options.sourceSize || 12;
     	this.shape = options.shape || "square";
-        this.maxNbSources = options.limit || undefined;
+        this.maxNbSources = options.limit || undefined;
         this.onClick = options.onClick || undefined;
 
-        this.raField = options.raField || undefined; // ID or name of the field holding RA
-        this.decField = options.decField || undefined; // ID or name of the field holding dec
+        this.raField = options.raField || undefined; // ID or name of the field holding RA
+        this.decField = options.decField || undefined; // ID or name of the field holding dec
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -108,7 +108,7 @@ cds.Catalog = (function() {
     };
     
     cds.Catalog.createShape = function(shapeName, color, sourceSize) {
-        if (shapeName instanceof Image || shapeName instanceof HTMLCanvasElement) { // in this case, the shape is already created
+        if (shapeName instanceof Image || shapeName instanceof HTMLCanvasElement) { // in this case, the shape is already created
             return shapeName;
         }
         var c = document.createElement('canvas');
@@ -164,64 +164,13 @@ cds.Catalog = (function() {
     };
     
 
-    
-    
-    // return an array of Source(s) from a VOTable url
-    // callback function is called each time a TABLE element has been parsed
-    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
-
-        // adapted from votable.js
-        function getPrefix($xml) {
-            var prefix;
-            // If Webkit chrome/safari/... (no need prefix)
-            if($xml.find('RESOURCE').length>0) {
-                prefix = '';
-            }
-            else {
-                // Select all data in the document
-                prefix = $xml.find("*").first();
-
-                if (prefix.length==0) {
-                    return '';
-                }
-
-                // get name of the first tag
-                prefix = prefix.prop("tagName");
-
-                var idx = prefix.indexOf(':');
-
-                prefix = prefix.substring(0, idx) + "\\:";
-
-
-            }
-
-            return prefix;
-        }
-        
-        function doParseVOTable(xml, callback) {
-            xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
-            var attributes = ["name", "ID", "ucd", "utype", "unit", "datatype", "arraysize", "width", "precision"];
-            
-            var fields = [];
-            var k = 0;
-            var $xml = $(xml);
-            var prefix = getPrefix($xml);
-            $xml.find(prefix + "FIELD").each(function() {
-                var f = {};
-                for (var i=0; i<attributes.length; i++) {
-                    var attribute = attributes[i];
-                    if ($(this).attr(attribute)) {
-                        f[attribute] = $(this).attr(attribute);
-                    }
-                }
-                if ( ! f.ID) {
-                    f.ID = "col_" + k;
-                }
-                fields.push(f);
-                k++;
-            });
-                
-            //// find RA/DEC fields ////
+        // find RA, Dec fields among the given fields
+        //
+        // @param fields: list of objects with ucd, unit, ID, name attributes
+        // @param raField:  index or name of right ascension column (might be undefined)
+        // @param decField: index or name of declination column (might be undefined)
+        //
+        function findRADecFields(fields, raField, decField) {
             var raFieldIdx,  decFieldIdx;
             raFieldIdx = decFieldIdx = null;
 
@@ -278,8 +227,103 @@ cds.Catalog = (function() {
                         }
                     }
                 }
+            }
+
+            // still not found ? try some common names for RA and Dec columns
+            if (raFieldIdx==null && decFieldIdx==null) {
+                for (var l=0, len=fields.length; l<len; l++) {
+                    var field = fields[l];
+                    var name = field.name || field.ID || '';
+                    name = name.toLowerCase();
+                    
+                    if ( ! raFieldIdx) {
+                        if (name.indexOf('ra')==0 || name.indexOf('_ra')==0 || name.indexOf('ra(icrs)')==0 || name.indexOf('_ra')==0 || name.indexOf('alpha')==0) {
+                            raFieldIdx = l;
+                            continue;
+                        }
+                    }
+
+                    if ( ! decFieldIdx) {
+                        if (name.indexOf('dej2000')==0 || name.indexOf('_dej2000')==0 || name.indexOf('de')==0 || name.indexOf('de(icrs)')==0 || name.indexOf('_de')==0 || name.indexOf('delta')==0) {
+                            decFieldIdx = l;
+                            continue;
+                        }
+                    }
+                    
+                }
+            }
+
+            // last resort: take two first fieds
+            if (raFieldIdx==null || decFieldIdx==null) {
+                raFieldIdx  = 0;
+                decFieldIdx = 1
+            }
+
+            return [raFieldIdx, decFieldIdx];
+        };
+        
+    
+    
+    // return an array of Source(s) from a VOTable url
+    // callback function is called each time a TABLE element has been parsed
+    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
+
+        // adapted from votable.js
+        function getPrefix($xml) {
+            var prefix;
+            // If Webkit chrome/safari/... (no need prefix)
+            if($xml.find('RESOURCE').length>0) {
+                prefix = '';
+            }
+            else {
+                // Select all data in the document
+                prefix = $xml.find("*").first();
+
+                if (prefix.length==0) {
+                    return '';
+                }
+
+                // get name of the first tag
+                prefix = prefix.prop("tagName");
+
+                var idx = prefix.indexOf(':');
+
+                prefix = prefix.substring(0, idx) + "\\:";
+
 
             }
+
+            return prefix;
+        }
+
+        function doParseVOTable(xml, callback) {
+            xml = xml.replace(/^\s+/g, ''); // we need to trim whitespaces at start of document
+            var attributes = ["name", "ID", "ucd", "utype", "unit", "datatype", "arraysize", "width", "precision"];
+            
+            var fields = [];
+            var k = 0;
+            var $xml = $(xml);
+            var prefix = getPrefix($xml);
+            $xml.find(prefix + "FIELD").each(function() {
+                var f = {};
+                for (var i=0; i<attributes.length; i++) {
+                    var attribute = attributes[i];
+                    if ($(this).attr(attribute)) {
+                        f[attribute] = $(this).attr(attribute);
+                    }
+                }
+                if ( ! f.ID) {
+                    f.ID = "col_" + k;
+                }
+                fields.push(f);
+                k++;
+            });
+                
+            var raDecFieldIdxes = findRADecFields(fields, raField, decField);
+            var raFieldIdx,  decFieldIdx;
+            raFieldIdx = raDecFieldIdxes[0];
+            decFieldIdx = raDecFieldIdxes[1];
+
             var sources = [];
             
             var coo = new Coo();
@@ -321,12 +365,57 @@ cds.Catalog = (function() {
         });
     };
     
+    // API
     cds.Catalog.prototype.addSources = function(sourcesToAdd) {
+        sourcesToAdd = [].concat(sourcesToAdd); // make sure we have an array and not an individual source
     	this.sources = this.sources.concat(sourcesToAdd);
     	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
     	    sourcesToAdd[k].setCatalog(this);
     	}
         this.reportChange();
+    };
+
+    // API
+    //
+    // create sources from a 2d array and add them to the catalog
+    //
+    // @param columnNames: array with names of the columns
+    // @array: 2D-array, each item being a 1d-array with the same number of items as columnNames
+    cds.Catalog.prototype.addSourcesAsArray = function(columnNames, array) {
+        var fields = [];
+        for (var colIdx=0 ; colIdx<columnNames.length; colIdx++) {
+            fields.push({name: columnNames[colIdx]});
+        }
+        var raDecFieldIdxes = findRADecFields(fields, this.raField, this.decField);
+        var raFieldIdx,  decFieldIdx;
+        raFieldIdx = raDecFieldIdxes[0];
+        decFieldIdx = raDecFieldIdxes[1];
+
+
+        var newSources = [];
+        var coo = new Coo();
+        var ra, dec, row, dataDict;
+        for (var rowIdx=0 ; rowIdx<array.length ; rowIdx++) {
+            row = array[rowIdx];
+            if (Utils.isNumber(row[raFieldIdx]) && Utils.isNumber(row[decFieldIdx])) {
+                   ra = parseFloat(row[raFieldIdx]);
+                   dec = parseFloat(row[decFieldIdx]);
+            }
+               else {
+                   coo.parse(row[raFieldIdx] + " " + row[decFieldIdx]);
+                   ra = coo.lon;
+                   dec = coo.lat;
+               }
+
+            dataDict = {};
+            for (var colIdx=0 ; colIdx<columnNames.length; colIdx++) {
+                dataDict[columnNames[colIdx]] = row[colIdx];
+            }
+
+            newSources.push(A.source(ra, dec, dataDict));
+        }
+
+        this.addSources(newSources);
     };
     
     // return the currnet list of Source objects

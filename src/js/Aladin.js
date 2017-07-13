@@ -39,8 +39,6 @@ Aladin = (function() {
         }
 
 
-	    HealpixCache.init();
-        
 	    var self = this;
 	    
 	    // if not options was set, try to retrieve them from the query string
@@ -297,6 +295,9 @@ Aladin = (function() {
         if (options.fullScreen) {
             window.setTimeout(function() {self.toggleFullscreen();}, 1000);
         }
+
+
+        this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 	};
 	
     /**** CONSTANTS ****/
@@ -304,7 +305,6 @@ Aladin = (function() {
     
     Aladin.JSONP_PROXY = "http://alasky.unistra.fr/cgi/JSONProxy";
 
-    Aladin.HTTPS_CONTEXT = ( window.location.protocol === 'https:' );
 
     
     Aladin.DEFAULT_OPTIONS = {
@@ -400,6 +400,43 @@ Aladin = (function() {
 	Aladin.prototype.setFoV = Aladin.prototype.setFov = function(fovDegrees) {
 		this.view.setZoom(fovDegrees);
 	};
+
+    // @API
+    // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
+	Aladin.prototype.adjustFovForObject = function(objectName) {
+        var self = this;
+		this.getFovForObject(objectName, function(fovDegrees) {
+            self.setFoV(fovDegrees);
+        });
+	};
+
+    
+	Aladin.prototype.getFovForObject = function(objectName, callback) {
+        var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
+        var url = 'http://simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
+
+        var ajax = Utils.getAjaxObject(url, 'GET', 'json', false)
+        ajax.done(function(result) {
+            var defaultFov = 4 / 60; // 4 arcmin
+            var fov = defaultFov;
+
+            if ( 'data' in result && result.data.length>0) {
+                var galdimMajAxis = Utils.isNumber(result.data[0][0]) ? result.data[0][0] / 60.0 : null; // result gives galdim in arcmin
+                var magV = Utils.isNumber(result.data[0][1]) ? result.data[0][1] : null;
+
+                if (galdimMajAxis !== null) {
+                    fov = 2 * galdimMajAxis;
+                }
+                else if (magV !== null) {
+                    if (magV<10) {
+                        fov = 2 * Math.pow(2.0, (6-magV/2.0)) / 60;
+                    }
+                }
+            }
+
+            (typeof callback === 'function') && callback(fov);
+        });
+    };
 	
     Aladin.prototype.setFrame = function(frameName) {
         if (! frameName) {
@@ -795,18 +832,16 @@ Aladin = (function() {
         return A.catalogFromURL(url, options, successCallback, false);
     };
 
-     
+     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'positionChanged', 'zoomChanged']; 
      // API
+     //
+     // setting callbacks
      Aladin.prototype.on = function(what, myFunction) {
-         if (what==='select') {
-             this.selectFunction = myFunction;
+         if (Aladin.AVAILABLE_CALLBACKS.indexOf(what)<0) {
+            return; 
          }
-         else if (what=='objectClicked') {
-            this.objClickedFunction = myFunction;
-         }
-         else if (what=='objectHovered') {
-            this.objHoveredFunction = myFunction;
-         }
+
+         this.callbacksByEventName[what] = myFunction;
      };
      
      Aladin.prototype.select = function() {
@@ -819,9 +854,8 @@ Aladin = (function() {
          }
          else if (what==='selectend') {
              this.view.setMode(View.PAN);
-             if (this.selectFunction) {
-                 this.selectFunction(params);
-             }
+             var callbackFn = this.callbacksByEventName['select'];
+             (typeof callbackFn === 'function') && callbackFn(params);
          }
      };
      
@@ -1047,6 +1081,11 @@ Aladin = (function() {
       * 
       */
      Aladin.prototype.pix2world = function(x, y) {
+         // this might happen at early stage of initialization
+         if (!this.view) {
+            return;
+         }
+
          var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
          
          var radec = this.view.projection.unproject(xy.x, xy.y);
@@ -1074,6 +1113,11 @@ Aladin = (function() {
       *   
       */
      Aladin.prototype.world2pix = function(ra, dec) {
+         // this might happen at early stage of initialization
+         if (!this.view) {
+            return;
+         }
+
          var xy;
          if (this.view.cooFrame==CooFrameEnum.GAL) {
              var lonlat = CooConversion.J2000ToGalactic([ra, dec]);

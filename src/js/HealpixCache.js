@@ -52,12 +52,16 @@ HealpixCache = (function() {
     	var hpxIdx = new HealpixIndex(8);
     	hpxIdx.init();
     	var npix = HealpixIndex.nside2Npix(8);
+        var corners;
     	for (var ipix=0; ipix<npix; ipix++) {
-    		HealpixCache.staticCache.corners.nside8[ipix] = hpxIdx.corners_nest(ipix, 1);
+            corners =  hpxIdx.corners_nest(ipix, 1);
+    		HealpixCache.staticCache.corners.nside8.push(corners);
     	}
     	
     	HealpixCache.hpxIdxCache = hpxIdx;
     };
+
+    HealpixCache.init();
     
     HealpixCache.corners_nest = function(ipix, nside) {
     	if (nside==8) {

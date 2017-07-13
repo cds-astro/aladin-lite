@@ -153,7 +153,7 @@ Utils.isInt = function(n) {
     return Utils.isNumber(n) && Math.floor(n)==n;
 };
 
-/* a debounce function, used to prevent multiple calls to the same function if less than delay seconds have passed */
+/* a debounce function, used to prevent multiple calls to the same function if less than delay milliseconds have passed */
 Utils.debounce = function(fn, delay) {
     var timer = null;
     return function () {
@@ -164,6 +164,30 @@ Utils.debounce = function(fn, delay) {
       }, delay);
     };
 };
+
+/* return a throttled function, to rate limit the number of calls (by default, one call every 250 milliseconds) */
+Utils.throttle = function(fn, threshhold, scope) {
+  threshhold || (threshhold = 250);
+  var last,
+      deferTimer;
+  return function () {
+    var context = scope || this;
+
+    var now = +new Date,
+        args = arguments;
+    if (last && now < last + threshhold) {
+      // hold on to it
+      clearTimeout(deferTimer);
+      deferTimer = setTimeout(function () {
+        last = now;
+        fn.apply(context, args);
+      }, threshhold);
+    } else {
+      last = now;
+      fn.apply(context, args);
+    }
+  };
+}
 
 
 /* A LRU cache, inspired by https://gist.github.com/devinus/409353#file-gistfile1-js */
@@ -220,6 +244,39 @@ Utils.LRUCache.prototype = {
 
 ////////////////////////////////////////////////////////////////////////////:
 
+/**
+  Make an AJAX call, given a list of potential mirrors
+  First successful call will result in options.onSuccess being called back
+  If all calls fail, onFailure is called back at the end
+
+  This method assumes the URL are CORS-compatible, no proxy will be used
+ */
+Utils.loadFromMirrors = function(urls, options) {
+    var data    = options && options.data || null;
+    var method = options && options.method || 'GET';
+    var dataType = options && options.method || null;
+    var timeout = options && options.timeout || 20;
+
+    var onSuccess = options && options.onSuccess || null;
+    var onFailure = options && options.onFailure || null;
+
+    if (urls.length === 0) {
+        (typeof onFailure === 'function') && onFailure();
+    }
+    else {
+        $.ajax({
+            url: urls[0],
+            data: data
+        })
+        .done(function(data) {
+            (typeof onSuccess === 'function') && onSuccess(data);
+        })
+        .fail(function() {
+             loadFromMirrors(urls.slice(1), options);
+        });
+    }
+} 
+
 // return the jquery ajax object configured with the requested parameters
 // by default, we use the proxy (safer, as we don't know if the remote server supports CORS)
 Utils.getAjaxObject = function(url, method, dataType, useProxy) {
@@ -241,5 +298,20 @@ Utils.getAjaxObject = function(url, method, dataType, useProxy) {
             method: method,
             dataType: dataType
         }); 
+};
+
+// return true if script is executed in a HTTPS context
+// return false otherwise
+Utils.isHttpsContext = function() {
+    return ( window.location.protocol === 'https:' );
+};
+
+// generate an absolute URL from a relative URL
+// example: getAbsoluteURL('foo/bar/toto') return http://cds.unistra.fr/AL/foo/bar/toto if executed from page http://cds.unistra.fr/AL/
+Utils.getAbsoluteURL = function(url) {
+    var a = document.createElement('a');
+    a.href = url;
+
+    return a.href;
 };
 

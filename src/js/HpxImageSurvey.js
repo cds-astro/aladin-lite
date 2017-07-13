@@ -24,7 +24,7 @@
  * 
  * File HpxImageSurvey
  * 
- * Author: Thomas Boch[CDS]
+ * Author: Thomas Boch [CDS]
  * 
  *****************************************************************************/
 
@@ -36,42 +36,50 @@ HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    var HpxImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
-        this.id = id;
-    	this.name = name;
-    	if (rootUrl.slice(-1 )=== '/') {
-    	    this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
-    	}
-    	else {
-    	    this.rootUrl = rootUrl;
-    	}
-    	
-    	options = options || {};
-    	// TODO : support PNG
-    	this.imgFormat = options.imgFormat || 'jpg';
+    var HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
+        // new way
+        if (idOrHiPSDefinition instanceof HiPSDefinition) {
+            this.hipsDefinition = idOrHiPSDefinition;
 
-        // permet de forcer l'affichage d'un certain niveau
-        this.minOrder = options.minOrder || null;
-
-        this.tileSize = undefined;
-
-        // TODO : lire depuis fichier properties
-        this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
-        
-        // force coo frame for Glimpse 360
-        if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
-            this.cooFrame = CooFrameEnum.J2000;
         }
+
+        else {
+// REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition
+            // old way, we retrofit parameters into a HiPSDefinition object
+            this.id = idOrHiPSDefinition;
+    	    this.name = name;
+    	    if (rootUrl.slice(-1) === '/') {
+    	        this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
+    	    }
+    	    else {
+    	        this.rootUrl = rootUrl;
+    	    }
+            // make URL absolute
+            this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
+    	
+    	    options = options || {};
+    	    // TODO : support PNG
+    	    this.imgFormat = options.imgFormat || 'jpg';
+
+            // permet de forcer l'affichage d'un certain niveau
+            this.minOrder = options.minOrder || null;
+
+
+            // TODO : lire depuis fichier properties
+            this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
         
-        // TODO : lire depuis fichier properties
-        this.maxOrder = maxOrder;
+            // force coo frame for Glimpse 360
+            if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
+                this.cooFrame = CooFrameEnum.J2000;
+            }
+            // TODO : lire depuis fichier properties
+            this.maxOrder = maxOrder;
+        }
     	
+        this.tileSize = undefined;
     	this.allskyTexture = null;
-    	
     	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
-    
     	this.allskyTextureSize = 0;
-    
         this.lastUpdateDateNeededTiles = 0;
 
         var found = false;
@@ -92,6 +100,8 @@ HpxImageSurvey = (function() {
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
     };
 
+
+
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
     
     HpxImageSurvey.prototype.init = function(view, callback) {
@@ -101,8 +111,8 @@ HpxImageSurvey = (function() {
             this.cm = new ColorMap(this.view);
         }
     	
-    	//this.tileBuffer = new TileBuffer();
     	// tileBuffer is now shared across different image surveys
+    	//this.tileBuffer = new TileBuffer();
     	this.tileBuffer = this.view.tileBuffer;
     	
     	this.useCors = false;
@@ -300,16 +310,6 @@ HpxImageSurvey = (function() {
         return null;
     }
    
-/* 
-    HpxImageSurvey.getSurveyFromId = function(id) {
-    	var info = HpxImageSurvey.getSurveyInfoFromId(id);
-    	if (info) {
-    		return new HpxImageSurvey(info.id, info.name, info.url, info.frame, info.maxOrder);
-    	}
-    	
-    	return null;
-    };
-*/
     
     HpxImageSurvey.prototype.getTileURL = function(norder, npix) {
     	var dirIdx = Math.floor(npix/10000)*10000;

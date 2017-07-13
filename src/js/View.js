@@ -115,6 +115,15 @@ View = (function() {
     		    clearTimeout(self.resizeTimer);
     		    self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self)}, 100);
     		});
+
+
+            // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
+            // this results in canvas dimension to be incorrect.
+            // The following line tries to fix this issue
+    		setTimeout(function() {
+                           self.fixLayoutDimensions(self);
+                           self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
+                      }, 1000);
     	};
 	
     // different available modes
@@ -147,11 +156,16 @@ View = (function() {
 	View.prototype.fixLayoutDimensions = function() {
         Utils.cssScale = undefined;
 		
-        this.width = $(this.aladinDiv).width();
-		this.height = $(this.aladinDiv).height();
+        var computedWidth = $(this.aladinDiv).width();
+		var computedHeight = $(this.aladinDiv).height();
+
+
+        if (this.width===computedWidth && this.height===computedHeight) {
+            return;
+        }
 		
-		this.width = Math.max(this.width, 1);
-		this.height = Math.max(this.height, 1); // this prevents many problems when div size is 0s
+		this.width = Math.max(computedWidth, 1);
+		this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
         
 		
 		this.cx = this.width/2;
@@ -400,9 +414,9 @@ View = (function() {
                 }
                 // show measurements
                 else {
-                    if (view.aladin.objClickedFunction) {
-                        var ret = view.aladin.objClickedFunction(o);
-                    }
+                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                    (typeof objClickedFunction === 'function') && objClickedFunction(o);
+
                     //else {
                     if (lastClickedObject) {
                         lastClickedObject.actionOtherObjectClicked();
@@ -418,9 +432,8 @@ View = (function() {
                     lastClickedObject.actionOtherObjectClicked();
 
                     lastClickedObject = null;
-                    if (view.aladin.objClickedFunction) {
-                        var ret = view.aladin.objClickedFunction(null);
-                    }
+                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                    (typeof objClickedFunction === 'function') && objClickedFunction(null);
                 }
                 
             }
@@ -455,17 +468,19 @@ View = (function() {
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
                     if (closest) {
                         view.setCursor('pointer');
-                        if (view.aladin.objHoveredFunction && closest[0]!=lastHoveredObject) {
-                            var ret = view.aladin.objHoveredFunction(closest[0]);
+                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                        if (typeof objHoveredFunction === 'function' && closest[0]!=lastHoveredObject) {
+                            var ret = objHoveredFunction(closest[0]);
                         }
                         lastHoveredObject = closest[0];
                     }
                     else {
                         view.setCursor('default');
-                        if (view.aladin.objHoveredFunction && lastHoveredObject) {
+                        var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
+                        if (typeof objHoveredFunction === 'function' && lastHoveredObject) {
                             lastHoveredObject = null;
                             // call callback function to notify we left the hovered object
-                            var ret = view.aladin.objHoveredFunction(null);
+                            var ret = objHoveredFunction(null);
                         }
                     }
                 }
@@ -566,7 +581,13 @@ View = (function() {
             event.preventDefault();
             event.stopPropagation();
             var level = view.zoomLevel;
-            var delta = event.deltaY;
+
+             var delta = event.deltaY;
+            // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
+            // hope this won't trigger some side effects ...
+            if (event.hasOwnProperty('originalEvent')) {
+                delta = -event.originalEvent.deltaY;
+            } 
             if (delta>0) {
                 level += 1;
             }
@@ -590,6 +611,39 @@ View = (function() {
         view.stats = stats;
 
         createListeners(view);
+
+        view.executeCallbacksThrottled = Utils.throttle(
+            function() {
+                var pos = view.aladin.pix2world(view.width/2, view.height/2);
+                var fov = view.fov;
+                if (pos===undefined || fov===undefined) {
+                    return;
+                }
+
+                var ra = pos[0];
+                var dec = pos[1];
+                // trigger callback only if position has changed !
+                if (ra!==this.ra || dec!==this.dec) {
+                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+                    (typeof posChangedFn === 'function') && posChangedFn({ra: ra, dec: dec});
+    
+                    // finally, save ra and dec value
+                    this.ra = ra;
+                    this.dec = dec;
+                }
+
+                // trigger callback only if FoV (zoom) has changed !
+                if (fov!==this.old_fov) {
+                    var fovChangedFn = view.aladin.callbacksByEventName['zoomChanged'];
+                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
+    
+                    // finally, save fov value
+                    this.old_fov = fov;
+                }
+
+            },
+            100);
+
 
         view.displayHpxGrid = false;
         view.displaySurvey = true;
@@ -685,6 +739,9 @@ View = (function() {
 		this.stats.update();
         //console.log("redraw at " + now);
 
+        // execute 'positionChanged' and 'zoomChanged' callbacks
+        this.executeCallbacksThrottled();
+
 		var imageCtx = this.imageCtx;
 		//////// 1. Draw images ////////
 		
@@ -699,7 +756,7 @@ View = (function() {
             if (this.fov>=60) {
                 imageCtx.fillStyle = bkgdColor;
                 imageCtx.beginPath();
-                var maxCxCy = this.cx>this.xy ? this.cx : this.cy;
+                var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
                 imageCtx.arc(this.cx, this.cy, maxCxCy * this.zoomFactor, 0, 2*Math.PI, true);
                 imageCtx.fill();
             }
@@ -932,7 +989,8 @@ View = (function() {
         // objects lookup
         if (!this.dragging) {
             this.updateObjectsLookup();
-        }
+        } 
+
 	};
 
     View.prototype.forceRedraw = function() {

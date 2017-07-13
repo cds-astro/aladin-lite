@@ -51,7 +51,7 @@ HpxKey = (function() {
         this.dx = dx || 0; // shift in x (for all-sky tiles)
         this.dy = dy || 0; // shift in y (for all-sky tiles)
 
-        this.allskyTexture = allskyTexture || undefined;
+        this.allskyTexture = allskyTexture || undefined;
         this.allskyTextureSize = allskyTextureSize;
 
         this.parente = 0; // if this key comes from an ancestor, length of the filiation
@@ -65,7 +65,7 @@ HpxKey = (function() {
         var hpxKey = new HpxKey(father.norder+1, father.npix*4 + childNb, father.hips, father.width/2, father.height/2,
                                 childNb==2 || childNb==3 ? father.dx+father.width/2 : father.dx, childNb==1 || childNb==3 ? father.dy+father.height/2 : father.dy, father.allskyTexture, father.allskyTextureSize);
         hpxKey.parente = father.parente + 1;
-        hpxKey.ancestor = father.ancestor || father;
+        hpxKey.ancestor = father.ancestor || father;
 
 
         return hpxKey;
@@ -115,8 +115,8 @@ HpxKey = (function() {
                 if (!this.allskyTexture && !this.hips.tileSize) {
                     this.hips.tileSize = tile.img.width;
                 }
-                var img = this.allskyTexture || tile.img;
-                var w = this.allskyTextureSize || img.width;
+                var img = this.allskyTexture || tile.img;
+                var w = this.allskyTextureSize || img.width;
                 if (this.parente) {
                     w = w / Math.pow(2, this.parente);
                 } 

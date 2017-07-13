@@ -64,7 +64,7 @@ MOC = (function() {
             var degradedOrder = MOC.LOWRES_MAXORDER; 
             var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
             if (! (degradedOrder in this._lowResCells)) {
-                this._lowResCells= [];
+                this._lowResCells[degradedOrder]= [];
             }
             this._lowResCells[degradedOrder].push(degradedIpix);
         }
@@ -74,7 +74,7 @@ MOC = (function() {
             var degradedOrder = MOC.LOWRES_MAXORDER; 
             var degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
             if (! (degradedOrder in this._lowResCells)) {
-                this._lowResCells = [];
+                this._lowResCells[degradedOrder] = [];
             }
             this._lowResCells[degradedOrder].push(degradedIpix);
             
@@ -82,7 +82,7 @@ MOC = (function() {
             degradedOrder = MOC.HIGHRES_MAXORDER; 
             degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
             if (! (degradedOrder in this._highResCells)) {
-                this._highResCells = [];
+                this._highResCells[degradedOrder] = [];
             }
             this._highResCells[degradedOrder].push(degradedIpix);
         }

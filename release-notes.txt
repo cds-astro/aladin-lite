@@ -1,3 +1,9 @@
+July 2017:
+- bug fix MOC
+- add method adjustFovForObject
+- add listeners on positionChanged zoomChanged
+- fix pour Andre Moitinho pour que Sesame fonctionne en HTTPS
+
 February 2017:
 - shape parameter when creating a catalogue can now be a custom draw function
 - bug fix, when superimposing a HiPS over a HiPS with a different coordinate frame

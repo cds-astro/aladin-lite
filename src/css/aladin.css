@@ -329,6 +329,7 @@ word-wrap:break-word;
 	width: 100% !important;
 	border: 0 !important;
     max-width: none !important;
+    background: #fff; /* allows to hide all HTML elements in the background */
 }
 
 .aladin-zoomControl {
@@ -464,6 +465,11 @@ word-wrap:break-word;
 }
 
 .aladin-layer-label {
-	padding: 0 2px 0 2px;
+	padding: 0 4px 0 4px;
 	color: #ddd;
+    border-bottom-left-radius:  8px;
+    border-top-left-radius:     8px;
+    border-bottom-right-radius: 8px;
+    border-top-right-radius:    8px;
+    cursor: pointer;
 }

@@ -257,7 +257,19 @@ aladin.addOverlay(overlay);</pre></p>
           </ul>
           The <code>moc</code> object can then be added to aladin using <code>aladin.addMOC(moc);</code></p>
 
-          <p>Overlay options are: <code>color</code>, <code>lineWidth</code> and <code>opacity</code> (default: 1). If opacity is 1, only the outlines of the MOC are drawn.</p>
+          <p>Available overlay options are liste below:
+            <table class="table table-striped">
+              <thead>
+                <tr><th>Key name</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                  <tr><td>color</td><td>Color of the MOC</td></tr>
+                  <tr><td>lineWidth</td><td>Line width of the outlines, in pixels</td></tr>
+                  <tr><td>opacity</td><td>A float between 0 and 1. If opacity is equal to 1 (default), only the outlines of the MOC will be drawn.</td></tr>
+                  <tr><td>adaptativeDisplay</td><td>By default, the resolution of the displayed MOC is degraded for large field of views. This can be turned off by passing <code>false</code> to this property.</td></tr>
+              </tbody>
+            </table>
+          </p>
 
           <p>Examples:<br/>
             <a href="examples/MOC/">SDSS DR9 MOC created by pointing to a URL</a><br/>

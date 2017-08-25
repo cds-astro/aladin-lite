@@ -33,6 +33,9 @@
 Overlay = (function() {
    Overlay = function(options) {
         options = options || {};
+
+        this.type = 'overlay';
+
     	this.name = options.name || "overlay";
     	this.color = options.color || Color.getNextColor();
         

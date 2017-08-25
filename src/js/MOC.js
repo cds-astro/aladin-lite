@@ -12,8 +12,8 @@
 MOC = (function() {
     MOC = function(options) {
         this.order = undefined;
-        this._highResCells = {};
-        this._lowResCells = {};
+
+        this.type = 'moc';
 
         // TODO homogenize options parsing for all kind of overlay (footprints, catalog, MOC)
         options = options || {};
@@ -22,8 +22,15 @@ MOC = (function() {
         this.opacity = options.opacity || 1;
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
+        this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
 
+        this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 
+        // two dict-like objects to handle MOC cells at high and low resolution
+        this._highResCells = {};
+        this._lowResCells = {};
+
+        this.nbCellsDeepestLevel = 0; // needed to compute the sky fraction of the MOC
 
         this.isShowing = true;
     }
@@ -86,6 +93,17 @@ MOC = (function() {
             }
             this._highResCells[degradedOrder].push(degradedIpix);
         }
+
+        this.nbCellsDeepestLevel += Math.pow(4, (this.order - order));
+    };
+
+
+    /**
+     *  Return a value between 0 and 1 denoting the fraction of the sky
+     *  covered by the MOC
+     */
+    MOC.prototype.skyFraction = function() {
+        return this.nbCellsDeepestLevel / (12 * Math.pow(4, this.order));
     };
 
     /**
@@ -120,13 +138,26 @@ MOC = (function() {
 
         var self = this;
         var callback = function() {
+            // note: in the callback, 'this' refers to the FITS instance
+
             // first, let's find MOC norder
             var hdr0;
             try {
+                // A zero-length hdus array might mean the served URL does not have CORS header
+                // --> let's try again through the proxy
+                if (this.hdus.length == 0) {
+                    if (self.proxyCalled !== true) {
+                        self.proxyCalled = true;
+                        var proxiedURL = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(self.dataURL);
+                        new astro.FITS(proxiedURL, callback);
+                    }
+
+                    return;
+                }
                 hdr0 = this.getHeader(0);
             }
             catch (e) {
-                console.err('Could not get header of extension #0');
+                console.error('Could not get header of extension #0');
                 return;
             }
             var hdr1 = this.getHeader(1);
@@ -144,7 +175,7 @@ MOC = (function() {
                 self.order = hdr1.get('MOCORDER')
             }
             else {
-                console.err('Can not find MOC order in FITS file');
+                console.error('Can not find MOC order in FITS file');
                 return;
             }
 
@@ -168,9 +199,9 @@ MOC = (function() {
         }; // end of callback function
 
         this.dataURL = mocURL;
-        // TODO: general method to retrieve data (through dedicated class ?)
-        var proxiedURL = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(this.dataURL);
-        new astro.FITS(proxiedURL, callback);
+
+        // instantiate the FITS object which will fetch the URL passed as parameter
+        new astro.FITS(this.dataURL, callback);
     };
 
     MOC.prototype.setView = function(view) {
@@ -182,7 +213,7 @@ MOC = (function() {
             return;
         }
 
-        var mocCells = fov > MOC.PIVOT_FOV ? this._lowResCells : this._highResCells;
+        var mocCells = fov > MOC.PIVOT_FOV && this.adaptativeDisplay ? this._lowResCells : this._highResCells;
 
         this._drawCells(ctx, mocCells, fov, projection, viewFrame, CooFrameEnum.J2000, width, height, largestDim, zoomFactor);
 

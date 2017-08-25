@@ -634,7 +634,7 @@ Aladin = (function() {
         this.view.removeLayers();
     };
 
-    // should be merged into a unique "add" method
+    // these 3 methods should be merged into a unique "add" method
     Aladin.prototype.addCatalog = function(catalog) {
         this.view.addCatalog(catalog);
     };
@@ -898,21 +898,30 @@ Aladin = (function() {
          cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
 
          
-         // loop over catalogs
-         var cats = this.view.catalogs;
+         // loop over all overlay layers
+         var layers = this.view.allOverlayLayers;
          var str = '<ul>';
-         for (var k=cats.length-1; k>=0; k--) {
-             var name = cats[k].name;
+         for (var k=layers.length-1; k>=0; k--) {
+             var layer = layers[k];
+             var name = layer.name;
              var checked = '';
-             if (cats[k].isShowing) {
+             if (layer.isShowing) {
                  checked = 'checked="checked"';
              }
-             var nbSources = cats[k].getSources().length;
-             var title = nbSources + ' source' + ( nbSources>1 ? 's' : '');
-             var color = cats[k].color;
-             var rgbColor = $('<div></div>').css('color', color).css('color'); // trick to retrieve the color as 'rgb(,,)'
+
+             var tooltipText = '';
+             if (layer.type=='catalog' || layer.type=='progressivecat') {
+                var nbSources = layer.getSources().length;
+                tooltipText = nbSources + ' source' + ( nbSources>1 ? 's' : '');
+            }
+            else if (layer.type=='moc') {
+                tooltipText = 'Coverage: ' + (100*layer.skyFraction()).toFixed(3) + ' % of sky';
+            }
+
+
+             var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)'
              var labelColor = Color.getLabelColorForBackground(rgbColor);
-             str += '<li><div class="aladin-layerIcon" style="background: ' + color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + color + '; color:' + labelColor + ';" title="' + title + '">' + name + '</label></li>';
+             str += '<li><div class="aladin-layerIcon" style="background: ' + layer.color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
          }
          str += '</ul>';
          layerBox.append(str);
@@ -1009,13 +1018,13 @@ Aladin = (function() {
          
          // handler to hide/show overlays
          $(this.aladinDiv).find('.aladin-layerBox ul input').change(function() {
-             var catName = ($(this).attr('id').substr(12));
-             var cat = self.layerByName(catName);
+             var layerName = ($(this).attr('id').substr(12));
+             var layer = self.layerByName(layerName);
              if ($(this).is(':checked')) {
-                 cat.show();
+                 layer.show();
              }
              else {
-                 cat.hide();
+                 layer.hide();
              }
          });
          
@@ -1025,8 +1034,8 @@ Aladin = (function() {
      };
      
      Aladin.prototype.layerByName = function(name) {
-         var c = this.view.catalogs;
-         for (var k=0; k<this.view.catalogs.length; k++) {
+         var c = this.view.allOverlayLayers;
+         for (var k=0; k<c.length; k++) {
              if (name==c[k].name) {
                  return c[k];
              }

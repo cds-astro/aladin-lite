@@ -71,14 +71,16 @@ View = (function() {
                 this.setZoom(zoom);
             }
     		
-    		// current image survey displayed
+    		// current reference image survey displayed
     		this.imageSurvey = null;
-    		// current catalog displayed
+    		// current catalogs displayed
     		this.catalogs = [];
             // overlays (footprints for instance)
     		this.overlays = [];
             // MOCs
     		this.mocs = [];
+            // reference to all overlay layers (= catalogs + overlays + mocs)
+            this.allOverlayLayers = []
     		
     
     		
@@ -120,10 +122,15 @@ View = (function() {
             // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
             // this results in canvas dimension to be incorrect.
             // The following line tries to fix this issue
-    		setTimeout(function() {
-                           self.fixLayoutDimensions(self);
-                           self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
-                      }, 1000);
+            setTimeout(function() {
+                var computedWidth = $(self.aladinDiv).width();
+                var computedHeight = $(self.aladinDiv).height();
+
+                if (self.width!==computedWidth || self.height===computedHeight) {
+                    self.fixLayoutDimensions();
+                    self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
+                }
+           }, 1000);
     	};
 	
     // different available modes
@@ -159,11 +166,6 @@ View = (function() {
         var computedWidth = $(this.aladinDiv).width();
 		var computedHeight = $(this.aladinDiv).height();
 
-
-        if (this.width===computedWidth && this.height===computedHeight) {
-            return;
-        }
-		
 		this.width = Math.max(computedWidth, 1);
 		this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
         
@@ -1568,7 +1570,7 @@ View = (function() {
         }
     };
     View.prototype.layerNameExists = function(name) {
-        var c = this.catalogs;
+        var c = this.allOverlayLayers;
         for (var k=0; k<c.length; k++) {
             if (name==c[k].name) {
                 return true;
@@ -1580,11 +1582,14 @@ View = (function() {
     View.prototype.removeLayers = function() {
         this.catalogs = [];
         this.overlays = [];
+        this.mocs = [];
+        this.allOverlayLayers = [];
         this.requestRedraw();
     };
 
     View.prototype.addCatalog = function(catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
+        this.allOverlayLayers.push(catalog);
         this.catalogs.push(catalog);
         if (catalog.type=='catalog') {
             catalog.setView(this);
@@ -1594,12 +1599,16 @@ View = (function() {
         }
     };
     View.prototype.addOverlay = function(overlay) {
+        overlay.name = this.makeUniqLayerName(overlay.name);
         this.overlays.push(overlay);
+        this.allOverlayLayers.push(overlay);
         overlay.setView(this);
     };
     
     View.prototype.addMOC = function(moc) {
+        moc.name = this.makeUniqLayerName(moc.name);
         this.mocs.push(moc);
+        this.allOverlayLayers.push(moc);
         moc.setView(this);
     };
     

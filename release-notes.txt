@@ -1,3 +1,15 @@
+2017-08-25:
+- all graphical overlays (footprints, MOCs) in addition to catalogs are now visible and can be shown/hidden from the control panel
+- add skyFraction method to MOC class
+- fix: when going full screen, background is now all white (no more HTML elements visible in the background)
+- style: layer labels in Overlay layers panel are rounded at both ends
+
+
+2017-08-24:
+- add adaptativeDisplay option for MOCs
+- try first to load MOC through given URL, and only if it fails, try through proxy (allows to load local/not publicly accessible MOCs)
+
+
 July 2017:
 - bug fix MOC
 - add method adjustFovForObject

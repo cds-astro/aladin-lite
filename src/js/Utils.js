@@ -272,7 +272,7 @@ Utils.loadFromMirrors = function(urls, options) {
             (typeof onSuccess === 'function') && onSuccess(data);
         })
         .fail(function() {
-             loadFromMirrors(urls.slice(1), options);
+             Utils.loadFromMirrors(urls.slice(1), options);
         });
     }
 } 

@@ -77,13 +77,6 @@
         xhr = new XMLHttpRequest();
         xhr.open('GET', this.arg);
         xhr.responseType = 'arraybuffer';
-
-        // the onerror handling has been added wrt the original fitsjs library as retrieved on the astrojs github repo
-        // if an error occurs, we return an empty object
-        xhr.onerror = function() {
-          _this.invoke(_this.callback, _this.opts);
-        }
-
         xhr.onload = function() {
           if (xhr.status !== 200) {
             _this.invoke(_this.callback, _this.opts);

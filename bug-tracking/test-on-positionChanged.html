@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Aladin Lite - positionChanged and zoomChanged listener</title>
+  
+  <b>Hover a source to highlight the corresponding row</b>
+  
+  <link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+      <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+  
+  
+    <div id="aladin-lite-div" style="width: 500px; height: 500px;float: left;"></div>
+    <div>Position of view center: <span id="infoPos"></span></div>
+    <div>Current fied of view:<span id="infoFoV"></span></div>
+  
+  
+  <script>
+    var aladin = A.aladin('#aladin-lite-div', {target: "02 42 05.00 +42 45 42.0", survey: "P/DSS2/color", fov: 0.4});
+    
+    // define function triggered when the view center position changes
+    aladin.on('positionChanged', function(position) {
+        $('#infoPos').html(position.ra.toFixed(6) + ' ' + position.dec.toFixed(6));
+    });
+    aladin.on('zoomChanged', function(fov) {
+        $('#infoFoV').html(fov.toFixed(5) + ' °');
+    });
+    
+  </script>
+  
+</head>
+<body>
+  
+</body>
+</html>

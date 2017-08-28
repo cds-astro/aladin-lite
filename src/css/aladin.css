@@ -472,4 +472,5 @@ word-wrap:break-word;
     border-bottom-right-radius: 8px;
     border-top-right-radius:    8px;
     cursor: pointer;
+    user-select: none;
 }

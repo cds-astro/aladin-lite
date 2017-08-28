@@ -341,13 +341,13 @@ MOC = (function() {
             spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 
             // need for frame transformation ?
-            if (surveyFrame && surveyFrame != viewFrame) {
-                if (surveyFrame==CooFrameEnum.J2000) {
+            if (surveyFrame && surveyFrame.system != viewFrame.system) {
+                if (surveyFrame.system == CooFrameEnum.SYSTEMS.J2000) {
                     var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]);
                     lon = radec[0];
                     lat = radec[1];
                 }
-                else if (surveyFrame==CooFrameEnum.GAL) {
+                else if (surveyFrame.system == CooFrameEnum.SYSTEMS.GAL) {
                     var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]);
                     lon = radec[0];
                     lat = radec[1];

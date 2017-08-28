@@ -30,14 +30,19 @@
  
 CooFrameEnum = (function() {
 
+    var systems = {J2000: 'J2000', GAL: 'Galactic'};
     return {
-        J2000: "J2000",
-        GAL:  "Galactic"
+        SYSTEMS: systems,
+
+        J2000: {label: "J2000", system: systems.J2000},
+        J2000d: {label: "J2000d", system: systems.J2000},
+        GAL:  {label: "Galactic", system: systems.GAL}
     };
  
 })();
 
-// TODO : utiliser cette fonction partout où on reçoit une string frame en entrée
+
+
 CooFrameEnum.fromString = function(str, defaultValue) {
     if (! str) {
         return defaultValue ? defaultValue : null;
@@ -45,7 +50,10 @@ CooFrameEnum.fromString = function(str, defaultValue) {
     
     str = str.toLowerCase().replace(/^\s+|\s+$/g, ''); // convert to lowercase and trim
     
-    if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
+    if (str.indexOf('j2000d')==0 || str.indexOf('icrsd')==0) {
+        return CooFrameEnum.J2000d;
+    }
+    else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
         return CooFrameEnum.J2000;
     }
     else if (str.indexOf('gal')==0) {
@@ -56,16 +64,3 @@ CooFrameEnum.fromString = function(str, defaultValue) {
     }
 };
 
-/**
-returns a short name for 
-*/
-CooFrameEnum.shortName = function(frameValue) {
-    if (frameValue==CooFrameEnum.J2000) {
-        return 'J2000';
-    }
-    if (frameValue==CooFrameEnum.GAL) {
-        return 'GAL';
-    }
-
-    return null;
-};

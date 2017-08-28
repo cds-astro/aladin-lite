@@ -85,13 +85,12 @@ Aladin = (function() {
 		
 	      
 		var cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-		// div where we write the position
-		var frameInJ2000 = cooFrame==CooFrameEnum.J2000;
-        
+		// locationDiv is the div where we write the position
 		var locationDiv = $('<div class="aladin-location">'
-		                    + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000 + '" '
-		                    + (frameInJ2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.GAL + '" '
-		                    + (! frameInJ2000 ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
+		                    + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
+		                    + (cooFrame==CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
+		                    + (cooFrame==CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
+		                    + (cooFrame==CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
 		                    + '<span class="aladin-location-text"></span></div>')
 		                    .appendTo(aladinDiv);
 		// div where FoV value is written
@@ -449,7 +448,7 @@ Aladin = (function() {
 
         this.view.changeFrame(newFrame);
         // màj select box
-        $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame);
+        $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
 
 	Aladin.prototype.setProjection = function(projectionName) {
@@ -872,7 +871,7 @@ Aladin = (function() {
          
      };
      
-     // TODO : LayerBox should be a separate object
+     // TODO : LayerBox (or Stack?) must be extracted as a separate object
      Aladin.prototype.showLayerBox = function() {
          var self = this;
          
@@ -918,9 +917,9 @@ Aladin = (function() {
                 tooltipText = 'Coverage: ' + (100*layer.skyFraction()).toFixed(3) + ' % of sky';
             }
 
-
-             var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)'
+             var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)' - does not work for named colors :(
              var labelColor = Color.getLabelColorForBackground(rgbColor);
+
              str += '<li><div class="aladin-layerIcon" style="background: ' + layer.color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
          }
          str += '</ul>';

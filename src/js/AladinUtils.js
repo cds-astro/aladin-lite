@@ -74,7 +74,7 @@ AladinUtils = (function() {
     	 */
         radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
             var xy;
-            if (currentFrame!=CooFrameEnum.J2000) {
+            if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
                 var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
                 xy = currentProjection.project(lonlat[0], lonlat[1]);
             }

@@ -198,13 +198,13 @@ HpxKey = (function() {
                 spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 
                 // need for frame transformation ?
-                if (this.frame != view.cooFrame) {
-                    if (this.frame==CooFrameEnum.J2000) {
+                if (this.frame.system != view.cooFrame.system) {
+                    if (this.frame.system == CooFrameEnum.SYSTEMS.J2000) {
                         var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]);
                         lon = radec[0];
                         lat = radec[1];
                     }
-                    else if (this.frame==CooFrameEnum.GAL) {
+                    else if (this.frame.system == CooFrameEnum.SYSTEMS.GAL) {
                         var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]);
                         lon = radec[0];
                         lat = radec[1];

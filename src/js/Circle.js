@@ -111,7 +111,7 @@ Circle = (function() {
         }
 
         var centerXy;
-        if (frame!=CooFrameEnum.J2000) {
+        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
             var lonlat = CooConversion.J2000ToGalactic([this.centerRaDec[0], this.centerRaDec[1]]);
             centerXy = projection.project(lonlat[0], lonlat[1]);
         }
@@ -127,7 +127,7 @@ Circle = (function() {
         var circlePtXy;
         var ra = this.centerRaDec[0];
         var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
-        if (frame!=CooFrameEnum.J2000) {
+        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
             var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
             circlePtXy = projection.project(lonlat[0], lonlat[1]);
         }

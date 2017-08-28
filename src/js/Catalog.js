@@ -34,8 +34,7 @@ cds.Catalog = (function() {
    cds.Catalog = function(options) {
 
         options = options || {};
-        this.type = 'catalog';
-    	this.name = options.name || "catalog";
+        this.type = 'catalog';    	this.name = options.name || "catalog";
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 6;
     	this.markerSize = options.sourceSize || 12;
@@ -516,7 +515,7 @@ cds.Catalog = (function() {
         var sourceSize = catalogInstance.sourceSize;
         // TODO : we could factorize this code with Aladin.world2pix
         var xy;
-        if (frame!=CooFrameEnum.J2000) {
+        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
             var lonlat = CooConversion.J2000ToGalactic([s.ra, s.dec]);
             xy = projection.project(lonlat[0], lonlat[1]);
         }

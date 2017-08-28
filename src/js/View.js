@@ -337,7 +337,7 @@ View = (function() {
             }
             radec = [];
             // convert to J2000 if needed
-            if (view.cooFrame==CooFrameEnum.GAL) {
+            if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
             }
             else {
@@ -1029,11 +1029,11 @@ View = (function() {
             var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
             var radec = this.projection.unproject(xy.x, xy.y);
             var lonlat = [];
-            if (frameSurvey && frameSurvey != this.cooFrame) {
-                if (frameSurvey==CooFrameEnum.J2000) {
+            if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
+                if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
                     lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
                 }
-                else if (frameSurvey==CooFrameEnum.GAL) {
+                else if (frameSurvey.system==CooFrameEnum.SYSTEMS.GAL) {
                     lonlat = CooConversion.J2000ToGalactic([radec.ra, radec.dec]);
                 }
             }
@@ -1095,11 +1095,11 @@ View = (function() {
 			var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
 			var radec = this.projection.unproject(xy.x, xy.y);
 			var lonlat = [];
-			if (frameSurvey && frameSurvey != this.cooFrame) {
-				if (frameSurvey==CooFrameEnum.J2000) {
+			if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
+				if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
                     lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]); 
                 }
-                else if (frameSurvey==CooFrameEnum.GAL) {
+                else if (frameSurvey.system==CooFrameEnum.SYSTEMS.GAL) {
                     lonlat = CooConversion.J2000ToGalactic([radec.ra, radec.dec]);
                 }
 			}
@@ -1143,13 +1143,13 @@ View = (function() {
 				spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 				
 	            // need for frame transformation ?
-	            if (frameSurvey && frameSurvey != this.cooFrame) {
-	                if (frameSurvey==CooFrameEnum.J2000) {
+	            if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
+	                if (frameSurvey.system == CooFrameEnum.SYSTEMS.J2000) {
 	                    var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]); 
 	                    lon = radec[0];
 	                    lat = radec[1];
 	                }
-	                else if (frameSurvey==CooFrameEnum.GAL) {
+	                else if (frameSurvey.system == CooFrameEnum.SYSTEMS.GAL) {
 	                    var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
 	                    lon = radec[0];
 	                    lat = radec[1];
@@ -1237,13 +1237,13 @@ View = (function() {
 			spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 				
 	        // need for frame transformation ?
-			if (this.imageSurvey && this.imageSurvey.cooFrame != this.cooFrame) {
-	            if (this.imageSurvey.cooFrame==CooFrameEnum.J2000) {
+			if (this.imageSurvey && this.imageSurvey.cooFrame.system != this.cooFrame.system) {
+	            if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
 	                var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]); 
 	                lon = radec[0];
 	                lat = radec[1];
 	            }
-	            else if (this.imageSurvey.cooFrame==CooFrameEnum.GAL) {
+	            else if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
 	                var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
 	                lon = radec[0];
 	                lat = radec[1];
@@ -1492,18 +1492,22 @@ View = (function() {
 	};
 
 	View.prototype.changeFrame = function(cooFrame) {
+        var oldCooFrame = this.cooFrame;
 		this.cooFrame = cooFrame;
         // recompute viewCenter
-        if (this.cooFrame==CooFrameEnum.GAL) {
+        if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL && this.cooFrame.system != oldCooFrame.system) {
             var lb = CooConversion.J2000ToGalactic([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1]; 
         }
-        else if (this.cooFrame==CooFrameEnum.J2000) {
+        else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000 && this.cooFrame.system != oldCooFrame.system) {
             var radec = CooConversion.GalacticToJ2000([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = radec[0];
             this.viewCenter.lat = radec[1]; 
         }
+
+        this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+
 		this.requestRedraw();
 	};
 
@@ -1540,11 +1544,11 @@ View = (function() {
         if (isNaN(ra) || isNaN(dec)) {
             return;
         }
-        if (this.cooFrame==CooFrameEnum.J2000) {
+        if (this.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
 		    this.viewCenter.lon = ra;
 		    this.viewCenter.lat = dec;
         }
-        else if (this.cooFrame==CooFrameEnum.GAL) {
+        else if (this.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
             var lb = CooConversion.J2000ToGalactic([ra, dec]);
 		    this.viewCenter.lon = lb[0];
 		    this.viewCenter.lat = lb[1];

@@ -207,7 +207,7 @@ Overlay = (function() {
         // for
             for (var k=0, len=radecArray.length; k<len; k++) {
                 var xy;
-                if (frame!=CooFrameEnum.J2000) {
+                if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
                     var lonlat = CooConversion.J2000ToGalactic([radecArray[k][0], radecArray[k][1]]);
                     xy = projection.project(lonlat[0], lonlat[1]);
                 }

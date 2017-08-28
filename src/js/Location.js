@@ -40,6 +40,9 @@ Location = (function() {
 		if (cooFrame==CooFrameEnum.J2000) {
             this.$div.html(coo.format('s/'));
         }
+		else if (cooFrame==CooFrameEnum.J2000d) {
+            this.$div.html(coo.format('d/'));
+        }
         else {
             this.$div.html(coo.format('d/'));
         }

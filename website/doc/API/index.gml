@@ -67,7 +67,7 @@
             </thead>
             <tbody>
                 <tr><td>target</td><td>Initial target, as a position or an object name resolved by Sesame</td><td>0 +0</td></tr>
-                <tr><td>cooFrame</td><td>Coordinate system: "ICRS" or "galactic"</td><td>"ICRS"</td></tr>
+                <tr><td>cooFrame</td><td>Coordinate system: "ICRS", <code>"ICRSd"</code> or <code>"galactic"</code>.<br/>"ICRS" will display coordinates in sexagesimal format whereas "ICRSd" will output decimal format.</td><td>"ICRS"</td></tr>
                 <tr><td>survey</td><td>Identifier of the initial image survey. See <a href="#image-layers">this section</a> for more details.</td><td>"P/DSS2/color"</td></tr>
                 <tr><td>fov</td><td>Initial value of the visible field of view, in decimal degrees</td><td>60</td></tr>
                 <tr><td>showReticle</td><td>If <code>true</code>, the reticle will be displayed</td><td>true</td></tr>
@@ -112,7 +112,7 @@
         <p>There are several methods to update the current position:</p>
         <ul>
             <li><code>aladin.gotoRaDec(&lt;ra-in-degrees&gt;, &lt;dec-in-degrees&gt;)</code></li>
-            <li><code>aladin.gotoObject(&lt;iobject-name-or-position&gt;)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.</li>
+            <li><code>aladin.gotoObject(&lt;object-name-or-position&gt;)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.</li>
         </ul>
         
 

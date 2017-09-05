@@ -44,6 +44,7 @@
             <li><a href="#features">Features</a></li>
             <li><a href="#usage">Usage</a></li>
             <li><a href="#source-code">Source code</a></li>
+            <li><a href="#mobile-apps">Integration in mobile apps</a></li>
             <li><a href="#plugins">Plugins</a></li>
             <li><a href="#release-notes">Release notes</a></li>
             <li><a href="#contact">Contact</a></li>
@@ -149,7 +150,7 @@
                 <li><a href="http://www.adsass.org/aladin/">ADS All-Sky Survey</a> makes use of Aladin Lite to display heatmaps of SIMBAD objects cited in the literature.</li>
             </ul>
         </p>
-        <p>If your project is using Aladin Lite, we would be happy to have it listed here. <a href="#contact">Drop us a line !</a></p>
+        <p>If your project is using Aladin Lite, we would be happy to have it listed here. <a href="#contact">Drop us a line!</a></p>
 
         <!-------------------------------------------------------------------->
         <!-- Source code -->
@@ -161,6 +162,23 @@
         </p>
 
         <!-------------------------------------------------------------------->
+        <!-- Integration in mobile apps -->
+        <a name="mobile-apps"></a>
+        <div class="page-header">
+          <h1>Integration in mobile applications</h1>
+        </div>
+        <p>
+            <h3>Android</h3>
+            Ladislav Heller (<code>ladislav.heller at gmail.com</code>) has integrated Aladin Lite in an Android application using the Xamarin framework.<br/>
+            His development is available in his github repository: <a href="https://github.com/laheller/CDS_Aladin">github.com/laheller/CDS_Aladin</a>
+        </p>
+
+        <p>
+            <h3>iPhone</h3>
+        If you have integrated Aladin Lite in an iPhone application, please <a href="#contact">contact CDS let us know</a>.
+        </p>
+
+        <!-------------------------------------------------------------------->
         <!-- Plugins -->
         <a name="plugins"></a>
         <div class="page-header">
@@ -168,7 +186,10 @@
         </div>
         <p>
             <ul>
-                <li><b>Region editor</b></li>
+                <li>
+                    <b>Region editor</b>
+                    <p>In the frame of the Saada project, a plugin allowing one to define a region on the sky has been developed by L. Michel and G.I. Campos. It can be tested on this <a href="http://saada.unistra.fr/jsresources/region.html">demonstration page</a>.</p>
+                </li>
             </ul>
         </p>
 

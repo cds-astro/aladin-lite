@@ -1,3 +1,6 @@
+2017-08-28:
+- add J2000d option for frame selection
+
 2017-08-25:
 - all graphical overlays (footprints, MOCs) in addition to catalogs are now visible and can be shown/hidden from the control panel
 - add skyFraction method to MOC class

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink" >
+
+    <polyline points="0,7,2,7,2,5,7,5,7,3,10,3,10,5,13,5,13,7,15,7,15,9,13,9,13,12,10,12,10,14,7,14,7,12,2,12,2,10,0,10,0,7" stroke-width="1" stroke="#000" fill="transparent" /> 
+
+    <line x1="1" y1="10" x2="6" y2="5" stroke="#000" stroke-width="0.5" />
+    <line x1="2" y1="12" x2="10" y2="4" stroke="#000" stroke-width="0.5" />
+    <line x1="5" y1="12" x2="12" y2="5" stroke="#000" stroke-width="0.5" />
+    <line x1="7" y1="13" x2="13" y2="7" stroke="#000" stroke-width="0.5" />
+    <line x1="10" y1="13" x2="13" y2="10" stroke="#000" stroke-width="0.5" />
+</svg>

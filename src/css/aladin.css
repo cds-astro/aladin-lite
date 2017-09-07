@@ -373,13 +373,6 @@ word-wrap:break-word;
     margin-right: 10px;
 }
 
-.aladin-layerIcon {
-	width: 4px;
-	height: 12px;
-	background: red;
-	display: inline-block;
-}
-
 .aladin-btn {
 	display: inline-block;
     padding: 6px 8px;
@@ -474,3 +467,14 @@ word-wrap:break-word;
     cursor: pointer;
     user-select: none;
 }
+
+/* Icons figuring layers in the Stack */
+.aladin-stack-icon {
+	width: 16px;
+    height: 16px;
+    background-repeat:  no-repeat;
+    background-position:center center;
+    display: inline-block;
+    vertical-align: text-top;
+}
+

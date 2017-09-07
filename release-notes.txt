@@ -1,3 +1,9 @@
+2017-09-07:
+- improvement: MOCs, catalogs and overlays have now different logos in the "stack"
+
+2017-09-06:
+- fix: export PNG was not working any longer in latest version of Chrome, as top frame navigation to data URL was no longer allowed
+
 2017-08-28:
 - add J2000d option for frame selection
 

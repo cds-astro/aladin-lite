@@ -909,18 +909,29 @@ Aladin = (function() {
              }
 
              var tooltipText = '';
+             var iconSvg = '';
              if (layer.type=='catalog' || layer.type=='progressivecat') {
                 var nbSources = layer.getSources().length;
                 tooltipText = nbSources + ' source' + ( nbSources>1 ? 's' : '');
+
+                iconSvg = AladinUtils.SVG_ICONS.CATALOG;
             }
             else if (layer.type=='moc') {
                 tooltipText = 'Coverage: ' + (100*layer.skyFraction()).toFixed(3) + ' % of sky';
+
+                iconSvg = AladinUtils.SVG_ICONS.MOC;
+            }
+            else if (layer.type=='overlay') {
+                iconSvg = AladinUtils.SVG_ICONS.OVERLAY;
             }
 
              var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)' - does not work for named colors :(
              var labelColor = Color.getLabelColorForBackground(rgbColor);
 
-             str += '<li><div class="aladin-layerIcon" style="background: ' + layer.color + ';"></div><input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
+             // retrieve SVG icon, and apply the layer color
+             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
+             str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
+            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
          }
          str += '</ul>';
          layerBox.append(str);
@@ -1044,7 +1055,9 @@ Aladin = (function() {
      
      // TODO : integrate somehow into API ?
      Aladin.prototype.exportAsPNG = function(imgFormat) {
-         window.open(this.getViewDataURL(), "Aladin Lite snapshot");
+         var w = window.open();
+         w.document.write('<img src="' + this.getViewDataURL() + '">');
+         w.document.title = 'Aladin Lite snapshot';
      };
 
     /**

@@ -158,7 +158,7 @@ Overlay = (function() {
         ctx.stroke();
 
     	// selection drawing
-        ctx.strokeStyle= Overlay.increase_brightness(this.color, 80);
+        ctx.strokeStyle= Overlay.increaseBrightness(this.color, 80);
         //ctx.strokeStyle= 'green';
         ctx.beginPath();
         for (var k=0, len = this.overlays.length; k<len; k++) {
@@ -176,7 +176,7 @@ Overlay = (function() {
     	}
     };
 
-    Overlay.increase_brightness = function(hex, percent){
+    Overlay.increaseBrightness = function(hex, percent){
         // strip the leading # if it's there
         hex = hex.replace(/^\s*#|\s*$/g, '');
 

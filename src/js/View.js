@@ -768,6 +768,14 @@ View = (function() {
                 imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
             }
         }
+        else if (this.projectionMethod==ProjectionEnum.AITOFF) {
+            if (imageCtx.ellipse) {
+                imageCtx.fillStyle = bkgdColor;
+                imageCtx.beginPath();
+                imageCtx.ellipse(this.cx, this.cy, 2.828*this.cx*this.zoomFactor, this.cx*this.zoomFactor*1.414, 0, 0, 2*Math.PI);
+                imageCtx.fill();
+            }
+        }
 
         
         // TODO : check if we really need to make that test every time

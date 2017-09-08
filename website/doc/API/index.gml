@@ -97,6 +97,7 @@
         </div>
 
         <h3>Getting information about the view</h3>
+        <p><code>aladin.getRaDec()</code> returns a <code>[ra, dec]</code> with the current equatorial coordinates of the Aladin Lite view center.</p>
         <p><code>aladin.getSize()</code> will return an array with the current dimension (width, height) of Aladin Lite view in pixels.</p>
         <p><code>aladin.getFov()</code> returns an array with the current dimension on the sky (size in X, size in Y) of the view in decimal degrees.</p>
         <p><code>aladin.getFovCorners(&lt;nbSteps?&gt;)</code> returns an array of [ra, dec] points along the current rectangular view. By default, the position of the 4 corners are returned. You can get more control points passing an optional <code>nbSteps</code> parameter. The returned format is: <code>[[ra1, dec1], [ra2, dec2], ..., [ra_n, dec_n]]</code> with <code>n</code> equals to <code>4*nbSteps</code>.</p>

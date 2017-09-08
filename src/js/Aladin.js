@@ -466,9 +466,29 @@ Aladin = (function() {
 		}
 	};
     
-    // point view to a given object (resolved by Sesame) or position
-    // TODO: should we use function 
-    Aladin.prototype.gotoObject = function(targetName, errorCallback) {
+    /** point view to a given object (resolved by Sesame) or position
+     * @api
+     *
+     * @param: target; object name or position
+     * @callbackOptions: (optional) the object with key 'success' and/or 'error' containing the success and error callback functions.
+     *
+     */
+    Aladin.prototype.gotoObject = function(targetName, callbackOptions) {
+        var successCallback = errorCallback = undefined;
+        if (typeof callbackOptions === 'object') {
+            if (callbackOptions.hasOwnProperty('success')) {
+                successCallback = callbackOptions.success;
+            }
+            if (callbackOptions.hasOwnProperty('error')) {
+                errorCallback = callbackOptions.error;
+            }
+        }
+        // this is for compatibility reason with the previous method signature which was function(targetName, errorCallback)
+        else if (typeof callbackOptions === 'function') {
+            errorCallback = callbackOptions;
+        }
+
+
     	var isObjectName = /[a-zA-Z]/.test(targetName);
     	
     	// try to parse as a position
@@ -481,33 +501,26 @@ Aladin = (function() {
 				lonlat = CooConversion.GalacticToJ2000(lonlat);
 			}
     		this.view.pointTo(lonlat[0], lonlat[1]);
+            
+            (typeof successCallback === 'function') && successCallback(this.getRaDec());
     	}
     	// ask resolution by Sesame
     	else {
 	        var self = this;
 	        Sesame.resolve(targetName,
-	                       function(data) {
+	                       function(data) { // success callback
 	        					   var ra = data.Target.Resolver.jradeg;
 	        					   var dec = data.Target.Resolver.jdedeg;
 	        					   self.view.pointTo(ra, dec);
-	        				   /*
-	                           if (data.sesame.error) {
-	                                if (console) console.log(data.sesame.error);
-	                           }
-	                           else {
-	                               var radec = data.sesame.decimalPosition.split(" ");
-	                               self.view.pointTo(parseFloat(radec[0]), parseFloat(radec[1]));
-	                           }
-	                           */
+
+                                   (typeof successCallback === 'function') && successCallback(self.getRaDec());
 	                       },
-	                       function(data) {
+	                       function(data) { // errror callback
 	                            if (console) {
 	                                console.log("Could not resolve object name " + targetName);
 	                                console.log(data);
 	                            }
-	                            if (errorCallback) {
-	                                errorCallback();
-	                            }
+                                (typeof errorCallback === 'function') && errorCallback();
 	                       });
     	}
     };
@@ -595,7 +608,7 @@ Aladin = (function() {
      * @API
      */
     Aladin.prototype.getRaDec = function() {
-        if (this.view.cooFrame==CooFrameEnum.J2000) {
+        if (this.view.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
             return [this.view.viewCenter.lon, this.view.viewCenter.lat];
         }
         else {

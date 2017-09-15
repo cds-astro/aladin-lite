@@ -44,6 +44,7 @@
             <li><a href="#features">Features</a></li>
             <li><a href="#usage">Usage</a></li>
             <li><a href="#source-code">Source code</a></li>
+            <li><a href="#ipyaladin">Integration in Python notebooks</a></li>
             <li><a href="#mobile-apps">Integration in mobile apps</a></li>
             <li><a href="#plugins">Plugins</a></li>
             <li><a href="#release-notes">Release notes</a></li>
@@ -111,6 +112,10 @@
         The Aladin Lite API is described on a <a href="API/">dedicated page</a>.
         </p>
 
+        <p>
+        Developers might also be interested in <a href="tutorials/interactive-finding-chart/">this tutorial</a>, which shows step by step how to create an interactive sky map with Aladin Lite.
+        </p>
+
         <!-------------------------------------------------------------------->
         <!-- Features -->
         <a name="features"></a>
@@ -160,6 +165,18 @@
         </div>
         <p>Aladin Lite source code is available under GPL3 licence (<a href="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/AladinLiteSrc.tar.gz">Download Aladin Lite source code</a>).
         </p>
+
+        <!-------------------------------------------------------------------->
+        <!-- Integration in Python notebooks -->
+        <a name="ipyaladin"></a>
+        <div class="page-header">
+          <h1>Integration in Python notebooks</h1>
+        </div>
+        <p>
+	        <b><a href="https://github.com/cds-astro/ipyaladin">ipyaladin</a></b> is a Jupyter notebook widget, developed at CDS, and allowing for easy embedding and control of 
+    	    Aladin Lite from an IPython notebook.
+        </p>
+
 
         <!-------------------------------------------------------------------->
         <!-- Integration in mobile apps -->

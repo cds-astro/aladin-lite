@@ -54,6 +54,8 @@ HiPSDefinition = (function() {
 
         getServiceURLs: function(httpsOnly) {
             httpsOnly = httpsOnly === true;
+
+            // TODO: TO BE COMPLETED
         },
 
         // return the ID according to the properties
@@ -78,7 +80,7 @@ HiPSDefinition = (function() {
                     id = id.slice(6);
                 }
 
-                // '?' are replaced by '/' (thanks Markus!!)
+                // '?' are replaced by '/'
                 id = id.replace(/\?/g, '/')
             }
 
@@ -567,8 +569,8 @@ HiPSDefinition = (function() {
         }
 
         var callbackWhenPropertiesLoaded = function(properties) {
-            // this can happen sometimes, for instance Hipsgen does not set the hips_service_url keyword
-            // in that case, we add the URL that was given as input param
+            // Sometimes, hips_service_url is missing. That can happen for instance Hipsgen does not set the hips_service_url keyword
+            // --> in that case, we add as an attribyte the URL that was given as input parameter
             var hipsPropertiesDict = HiPSDefinition.parseHiPSProperties(properties);
             if (! hipsPropertiesDict.hasOwnProperty('hips_service_url')) {
                 hipsPropertiesDict['hips_service_url'] = hipsUrl;

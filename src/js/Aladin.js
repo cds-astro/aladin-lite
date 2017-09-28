@@ -412,7 +412,7 @@ Aladin = (function() {
     
 	Aladin.prototype.getFovForObject = function(objectName, callback) {
         var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
-        var url = 'http://simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
+        var url = '//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
 
         var ajax = Utils.getAjaxObject(url, 'GET', 'json', false)
         ajax.done(function(result) {
@@ -844,7 +844,7 @@ Aladin = (function() {
         return A.catalogFromURL(url, options, successCallback, false);
     };
 
-     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'positionChanged', 'zoomChanged']; 
+     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove']; 
      // API
      //
      // setting callbacks
@@ -1076,20 +1076,30 @@ Aladin = (function() {
     /**
      * Return the current view as a data URL (base64-formatted string)
      * Parameters:
-     * - imgFormat (optional): 'image/png' or 'image/jpeg'
+     * - options (optional): object with attributs
+     *     * format (optional): 'image/png' or 'image/jpeg'
+     *     * width: width in pixels of the image to output
+     *     * height: height in pixels of the image to output
      *
      * @API
     */
-    Aladin.prototype.getViewDataURL = function(imgFormat) {
-        return this.view.getCanvasDataURL(imgFormat);
+    Aladin.prototype.getViewDataURL = function(options) {
+        var options = options || {};
+        // support for old API signature
+        if (typeof options !== 'object') {
+            var imgFormat = options;
+            options = {format: imgFormat};
+        }
+
+        return this.view.getCanvasDataURL(options.format, options.width, options.height);
     }
      
-     /** limit FOV range
+     /** restrict FOV range
       * @API
       * @param minFOV in degrees when zoom in at max
       * @param maxFOV in degreen when zoom out at max
      */
-     Aladin.prototype.setFOVRange = function(minFOV, maxFOV) {
+     Aladin.prototype.setFovRange = Aladin.prototype.setFOVRange = function(minFOV, maxFOV) {
          if (minFOV>maxFOV) {
              var tmp = minFOV;
              minFOV = maxFOV;
@@ -1111,18 +1121,24 @@ Aladin = (function() {
       * @param x
       * @param y
       * 
-      * @return a [ra, dec] array with world coordinates in degrees
+      * @return a [ra, dec] array with world coordinates in degrees. Returns undefined is something went wrong
       * 
       */
      Aladin.prototype.pix2world = function(x, y) {
          // this might happen at early stage of initialization
          if (!this.view) {
-            return;
+            return undefined;
          }
 
          var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
          
-         var radec = this.view.projection.unproject(xy.x, xy.y);
+         var radec;
+         try {
+            radec = this.view.projection.unproject(xy.x, xy.y);
+         }
+         catch(e) {
+            return undefined;
+         }
          
          var res;
          if (this.view.cooFrame==CooFrameEnum.GAL) {

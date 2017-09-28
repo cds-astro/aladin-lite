@@ -46,7 +46,7 @@ AladinUtils = (function() {
     	    }
 
     	    if (round) {
-    	        // we round the result for presumed performance gains
+    	        // we round the result for potential performance gains
     	        return {vx: AladinUtils.myRound(largestDim/2*(1+zoomFactor*x)-(largestDim-width)/2), vy: AladinUtils.myRound(largestDim/2*(1+zoomFactor*y)-(largestDim-height)/2)};
 
     	    }

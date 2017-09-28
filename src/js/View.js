@@ -248,15 +248,17 @@ View = (function() {
 	/**
 	 * return dataURL string corresponding to the current view
 	 */
-	View.prototype.getCanvasDataURL = function(imgType) {
+	View.prototype.getCanvasDataURL = function(imgType, width, height) {
         imgType = imgType || "image/png"; 
 	    var c = document.createElement('canvas');
-        c.width = this.width;
-        c.height = this.height;
+        width = width || this.width;
+        height = height || this.height;
+        c.width = width;
+        c.height = height;
         var ctx = c.getContext('2d');
-        ctx.drawImage(this.imageCanvas, 0, 0);
-        ctx.drawImage(this.catalogCanvas, 0, 0);
-        ctx.drawImage(this.reticleCanvas, 0, 0);
+        ctx.drawImage(this.imageCanvas, 0, 0, c.width, c.height);
+        ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
+        ctx.drawImage(this.reticleCanvas, 0, 0, c.width, c.height);
         
 	    return c.toDataURL(imgType);
 	    //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
@@ -440,6 +442,15 @@ View = (function() {
                 
             }
 
+            // call listener of 'click' event
+            var onClickFunction = view.aladin.callbacksByEventName['click'];
+            if (typeof onClickFunction === 'function') {
+                var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
+                if (pos !== undefined) {
+                    onClickFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y});
+                }
+            }
+
 
             // TODO : remplacer par mecanisme de listeners
             // on avertit les catalogues progressifs
@@ -453,18 +464,7 @@ View = (function() {
             var xymouse = view.imageCanvas.relMouseCoords(e);
             if (!view.dragging || hasTouchEvents) {
                     updateLocation(view, xymouse.x, xymouse.y);
-                    /*
-                    var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
-                    var lonlat;
-                    try {
-                        lonlat = view.projection.unproject(xy.x, xy.y);
-                    }
-                    catch(err) {
-                    }
-                    if (lonlat) {
-                        view.location.update(lonlat.ra, lonlat.dec, view.cooFrame, true);
-                    }
-                    */
+
                 if (!view.dragging && ! view.mode==View.SELECT) {
                     // objects under the mouse ?
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
@@ -1674,12 +1674,14 @@ View = (function() {
                     if (!s.isShowing || !s.x || !s.y) {
                         continue;
                     }
+
                     x = s.x;
                     y = s.y;
-                    if (!this.objLookup[x]) {
+
+                    if (typeof this.objLookup[x] === 'undefined') {
                         this.objLookup[x] = [];
                     }
-                    if (!this.objLookup[x][y]) {
+                    if (typeof this.objLookup[x][y] === 'undefined') {
                         this.objLookup[x][y] = [];
                     }
                     this.objLookup[x][y].push(s);

@@ -43,7 +43,7 @@ URLBuilder = (function() {
         },
 
         buildNEDPositionCSURL: function(ra, dec, radiusDegrees) {
-                return 'http://nedwww.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
+                return 'http://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
         },
 
         buildNEDObjectCSURL: function(object, radiusDegrees) {

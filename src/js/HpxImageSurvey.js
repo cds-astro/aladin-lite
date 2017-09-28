@@ -46,8 +46,14 @@ HpxImageSurvey = (function() {
         else {
 // REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition
             // old way, we retrofit parameters into a HiPSDefinition object
+            var hipsDefProps = {};
+
             this.id = idOrHiPSDefinition;
+            hipsDefProps['ID'] = this.id;
+
     	    this.name = name;
+            hipsDefProps['obs_title'] = this.name;
+
     	    if (rootUrl.slice(-1) === '/') {
     	        this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
     	    }
@@ -74,6 +80,8 @@ HpxImageSurvey = (function() {
             }
             // TODO : lire depuis fichier properties
             this.maxOrder = maxOrder;
+
+            this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
         }
     	
         this.tileSize = undefined;

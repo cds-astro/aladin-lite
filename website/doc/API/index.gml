@@ -109,6 +109,10 @@
             <li><p><code>aladin.adjustFovForObject(&lt;object-name&gt;)</code> will try to adjust the field of view according to the properties of the object name given as parameter. This works only for object known by Simbad ; it is based on the object dimension and magnitude.</p></li>
         </ul>
 
+        <b>Restricting the allowed field of view range</b>
+        <p>Method <code>aladin.setFovRange(&lt;min-fov-in-degrees&gt;, &lt;max-fov-in-degrees&gt;)</code> allows to restrict the field of view range.</p>
+        <p>Example: <code>aladin.setFovRange(0.3, 30)</code> will ensure the displayed field of view is always smaller than 0.3 degree and larger than 30 degrees.
+
         <b>Setting the current position of the center of the view</b>
         <p>There are several methods to update the current position:</p>
         <ul>

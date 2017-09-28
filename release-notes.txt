@@ -1,3 +1,18 @@
+2017-09-27
+- Sesame bug fix when used in a local file web page
+
+2017-09-27
+- bug fix : MOC display with norder>9 (thanks to Raffaele D'Abrusco)
+- improve MOC display speed
+
+2017-09-21:
+- add listener for 'click' event
+- dimensions can be specified for getViewDataURL 
+
+2017-09-08:
+- gotoObject: can now take a success callback function
+- improve AITOFF display
+
 2017-09-07:
 - improvement: MOCs, catalogs and overlays have now different logos in the "stack"
 

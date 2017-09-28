@@ -1,4 +1,5 @@
-2017-09-27
+2017-09-28
+- MOC display is way faster when panning
 - Sesame bug fix when used in a local file web page
 
 2017-09-27

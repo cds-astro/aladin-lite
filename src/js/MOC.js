@@ -48,11 +48,29 @@ MOC = (function() {
     // max norder we can currently handle (limitation of healpix.js)
     MOC.MAX_NORDER = 13; // NSIDE = 8192
 
-    MOC.LOWRES_MAXORDER = 5; // 5 or 6 ??
+    MOC.LOWRES_MAXORDER = 6; // 5 or 6 ??
     MOC.HIGHRES_MAXORDER = 11; // ??
 
     // TODO: options to modifiy this ?
-    MOC.PIVOT_FOV = 20; // when do we switch from low res cells to high res cells (fov in degrees)
+    MOC.PIVOT_FOV = 30; // when do we switch from low res cells to high res cells (fov in degrees)
+
+    // at end of parsing, we need to remove duplicates from the 2 indexes
+    MOC.prototype._removeDuplicatesFromIndexes = function() {
+        var a, aDedup;
+        for (var k=0; k<768; k++) {
+            for (var key in this._highResIndexOrder3[k]) {
+                a = this._highResIndexOrder3[k][key];
+                aDedup = uniq(a);
+                this._highResIndexOrder3[k][key] = aDedup;
+            }
+            for (var key in this._lowResIndexOrder3[k]) {
+                a = this._lowResIndexOrder3[k][key];
+                aDedup = uniq(a);
+                this._lowResIndexOrder3[k][key] = aDedup;
+            }
+        }
+        
+    }
 
     // add pixel (order, ipix)
     MOC.prototype._addPix = function(order, ipix) {
@@ -201,6 +219,8 @@ MOC = (function() {
             });
             data = null; // this helps releasing memory
 
+            self._removeDuplicatesFromIndexes();
+
             if (successCallback) {
                 successCallback();
             }
@@ -254,9 +274,18 @@ MOC = (function() {
         var norderMax = orderedKeys[orderedKeys.length-1];
 
         var nside, xyCorners, ipix;
-        // REPRENDRE ICI
-        ////////////////////////////////////////////////////////////////////////////////
-        var visibleHpxCellsOrder3 = this.view.getVisiblePixList(3, CooFrameEnum.J2000);
+        var potentialVisibleHpxCellsOrder3 = this.view.getVisiblePixList(3, CooFrameEnum.J2000);
+        var visibleHpxCellsOrder3 = [];
+        // let's test first all potential visible cells and keep only the one with a projection inside the view
+        for (var k=0; k<potentialVisibleHpxCellsOrder3.length; k++) {
+            var ipix = potentialVisibleHpxCellsOrder3[k];
+            xyCorners = getXYCorners(8, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection); 
+            if (xyCorners) {
+                visibleHpxCellsOrder3.push(ipix);
+            }
+        }
+
+        var counter = 0;
         var mocCells;
         for (var norder=1; norder<=norderMax; norder++) {
             nside = 1 << norder;
@@ -294,83 +323,8 @@ MOC = (function() {
                 }
             }
         }
-        ////////////////////////////////////////////////////////////////////////////////
 
 
-/*
-        // go through all MOC cells for large fov
-        if (fov>80) {
-            var norder;
-            for (var i=0; i<orderedKeys.length; i++) {
-                norder = orderedKeys[i];
-                nside = 1 << norder;
-
-                for (var j=0; j<mocCells[norder].length; j++) {
-                    ipix = mocCells[norder][j];
-                    if (norder>=3) {
-                        xyCorners = getXYCorners(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
-                        if (xyCorners) {
-                            drawCorners(ctx, xyCorners);
-                        }
-                    }
-                    else { // compute and draw norder-3 ipix pixels contained in lower order cells
-                        var factor = Math.pow(4, (3-norder));
-                        var startIpix = ipix * factor;
-
-                        for (var k=0; k<factor; k++) {
-                            xyCorners = getXYCorners(8, startIpix + k, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
-                            if (xyCorners) {
-                                drawCorners(ctx, xyCorners);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            //var visibleHpxCellsOrder3 = this.view.getVisiblePixList(3, CooFrameEnum.J2000);
-            var cellsOrder3ToIgnore = {}
-            var norderMax = orderedKeys[orderedKeys.length-1];
-            for (var norder=1; norder<=norderMax; norder++) {
-                nside = 1 << norder;
-
-                if (typeof mocCells[norder]==='undefined') {
-                    continue;
-                }
-                if (norder<=3) {
-                    for (var j=0; j<mocCells[norder].length; j++) {
-                        ipix = mocCells[norder][j];
-                        var factor = Math.pow(4, (3-norder));
-                        var startIpix = ipix * factor;
-                        for (var k=0; k<factor; k++) {
-                            norder3Ipix = startIpix + k;
-                            xyCorners = getXYCorners(8, norder3Ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
-                            if (xyCorners) {
-                                drawCorners(ctx, xyCorners);
-                            }
-                            cellsOrder3ToIgnore[norder3Ipix] = 1;
-                        }
-                    }
-                }
-                // TODO: this part could be improved by eliminating ipix already rendered
-                else {
-                    for (var j=0; j<mocCells[norder].length; j++) {
-                        ipix = mocCells[norder][j];
-                        var parentIpixOrder3 = Math.floor(ipix/Math.pow(4, norder-3));
-                        if (parentIpixOrder3 in cellsOrder3ToIgnore) {
-                            continue;
-                        }
-                        xyCorners = getXYCorners(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
-                        if (xyCorners) {
-                            drawCorners(ctx, xyCorners);
-                        }
-                    }
-                }
-            }
-        }
-*/
-/*
-*/
         if (this.opacity==1) {
             ctx.stroke();
         }
@@ -388,12 +342,33 @@ MOC = (function() {
         ctx.lineTo(xyCorners[0].vx, xyCorners[0].vy);
     }
 
+    // remove duplicate items from array a
+    var uniq = function(a) {
+        var seen = {};
+        var out = [];
+        var len = a.length;
+        var j = 0;
+        for (var i = 0; i < len; i++) {
+            var item = a[i];
+            if (seen[item] !== 1) {
+                seen[item] = 1;
+                out[j++] = item;
+            }
+        }
+
+        return out;
+    };
+
+
     // TODO: merge with what is done in View.getVisibleCells
+    var _spVec = new SpatialVector();
     var getXYCorners = function(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection) {
         var cornersXYView = [];
         var cornersXY = [];
 
-        var spVec = new SpatialVector();
+        //var spVec = new SpatialVector();
+        var spVec = _spVec;
+        
 
         var corners = HealpixCache.corners_nest(ipix, nside);
         for (var k=0; k<4; k++) {
@@ -468,6 +443,7 @@ MOC = (function() {
         this.isShowing = false;
         this.reportChange();
     };
+
 
 
     return MOC;

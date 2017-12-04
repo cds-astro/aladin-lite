@@ -281,7 +281,8 @@ View = (function() {
 	};
 	
 	doComputeFov = function(view, zoomFactor) {
-	 // if zoom factor < 1, we view 180°
+	    // if zoom factor < 1, we view 180°
+        var fov;
         if (view.zoomFactor<1) {
             fov = 180;
         }
@@ -385,15 +386,31 @@ View = (function() {
                                  view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
                                                        view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
             }
-            if (view.dragging) {
+
+            var wasDragging = false;
+            if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
                 view.dragging = false;
+
+                if (view.realDragging === true) {
+                    view.realDragging = false;
+                    wasDragging = true;
                 
-            }
+                    // call positionChanged one last time after dragging, with dragging: false
+                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+                    if (typeof posChangedFn === 'function') {
+                        var pos = view.aladin.pix2world(view.width/2, view.height/2);
+                        if (pos !== undefined) {
+                            posChangedFn({ra: pos[0], dec: pos[1], dragging: false});
+                        }
+                    }
+                }
+            } // end of "if (view.dragging) ... "
+
+
             view.mustClearCatalog = true;
             view.mustRedrawReticle = true; // pour effacer selection bounding box
             view.dragx = view.dragy = null;
-
 
 
             if (e.type==="mouseout") {
@@ -406,7 +423,7 @@ View = (function() {
             var xymouse = view.imageCanvas.relMouseCoords(e);
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
-            if (objs) {
+            if (! wasDragging && objs) {
                 var o = objs[0];
                 // display marker
                 if (o.marker) {
@@ -463,7 +480,17 @@ View = (function() {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
             if (!view.dragging || hasTouchEvents) {
-                    updateLocation(view, xymouse.x, xymouse.y);
+                // update location box
+                updateLocation(view, xymouse.x, xymouse.y);
+                // call listener of 'mouseMove' event
+                var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
+                if (typeof onMouseMoveFunction === 'function') {
+                    var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
+                    if (pos !== undefined) {
+                        onMouseMoveFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y});
+                    }
+                }
+
 
                 if (!view.dragging && ! view.mode==View.SELECT) {
                     // objects under the mouse ?
@@ -573,6 +600,7 @@ View = (function() {
             else if (view.viewCenter.lon > 360) {
                 view.viewCenter.lon = view.viewCenter.lon % 360;
             }
+            view.realDragging = true;
             view.requestRedraw();
         }); //// endof mousemove ////
         
@@ -627,7 +655,7 @@ View = (function() {
                 // trigger callback only if position has changed !
                 if (ra!==this.ra || dec!==this.dec) {
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-                    (typeof posChangedFn === 'function') && posChangedFn({ra: ra, dec: dec});
+                    (typeof posChangedFn === 'function') && posChangedFn({ra: ra, dec: dec, dragging: true});
     
                     // finally, save ra and dec value
                     this.ra = ra;
@@ -741,8 +769,6 @@ View = (function() {
 		this.stats.update();
         //console.log("redraw at " + now);
 
-        // execute 'positionChanged' and 'zoomChanged' callbacks
-        this.executeCallbacksThrottled();
 
 		var imageCtx = this.imageCtx;
 		//////// 1. Draw images ////////
@@ -1000,6 +1026,9 @@ View = (function() {
         if (!this.dragging) {
             this.updateObjectsLookup();
         } 
+
+        // execute 'positionChanged' and 'zoomChanged' callbacks
+        this.executeCallbacksThrottled();
 
 	};
 
@@ -1469,9 +1498,15 @@ View = (function() {
 		else {
 		    newImageSurvey = imageSurvey;
 		}
-		
-		// buffer reset
-		this.tileBuffer = new TileBuffer();
+	
+        // do not touch the tileBuffer if we load the exact same HiPS (in that case, should we stop here??)	
+        if (newImageSurvey && this.imageSurvey && newImageSurvey.hasOwnProperty('id') && this.imageSurvey.hasOwnProperty('id') && newImageSurvey.id==this.imageSurvey.id) {
+            // do nothing
+        }
+        else {
+		    // buffer reset
+		    this.tileBuffer = new TileBuffer();
+        }
         
 		newImageSurvey.isReady = false;
 		this.imageSurvey = newImageSurvey;
@@ -1704,15 +1739,14 @@ View = (function() {
                 }
                 for (var dy=-maxRadius; dy<=maxRadius; dy++) {
                     if (this.objLookup[x+dx][y+dy]) {
+                        var d = dx*dx + dy*dy;
                         if (!closest) {
                             closest = this.objLookup[x+dx][y+dy];
+                            dist = d;
                         }
-                        else {
-                            var d = dx*dx + dy*dy;
-                            if (d<dist) {
-                                dist = d;
-                                closest = this.objLookup[x+dx][y+dy];
-                            }
+                        else if (d<dist) {
+                            dist = d;
+                            closest = this.objLookup[x+dx][y+dy];
                         }
                     }
                 }

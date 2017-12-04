@@ -153,6 +153,7 @@ MOC = (function() {
             }
         }
 
+        this.reportChange();
         this.ready = true;
     };
 
@@ -225,6 +226,7 @@ MOC = (function() {
                 successCallback();
             }
 
+            self.reportChange();
             self.ready = true;
         }; // end of callback function
 
@@ -236,6 +238,7 @@ MOC = (function() {
 
     MOC.prototype.setView = function(view) {
         this.view = view;
+        this.reportChange();
     };
     
     MOC.prototype.draw = function(ctx, projection, viewFrame, width, height, largestDim, zoomFactor, fov) {
@@ -425,7 +428,7 @@ MOC = (function() {
     };
 
     MOC.prototype.reportChange = function() {
-        this.view.requestRedraw();
+        this.view && this.view.requestRedraw();
     };
 
     MOC.prototype.show = function() {

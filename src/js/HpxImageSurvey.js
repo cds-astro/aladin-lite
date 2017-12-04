@@ -83,6 +83,8 @@ HpxImageSurvey = (function() {
 
             this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
         }
+
+        this.ascendingLongitude = false;
     	
         this.tileSize = undefined;
     	this.allskyTexture = null;

@@ -1,3 +1,13 @@
+2017-11-30
+- improve positionChanged listener: no more called when clicking on an object
+- improve object shown when clicking ; it's really the closest one now
+
+2017-11-24
+- add dragging attribute to positionChanged listener callback param
+
+2017-10-09
+- add listener for 'mouseMove' event
+
 2017-09-28
 - MOC display is way faster when panning
 - Sesame bug fix when used in a local file web page
@@ -8,7 +18,7 @@
 
 2017-09-21:
 - add listener for 'click' event
-- dimensions can be specified for getViewDataURL 
+- dimensions can be specified for getViewDataURL method
 
 2017-09-08:
 - gotoObject: can now take a success callback function

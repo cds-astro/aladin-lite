@@ -38,7 +38,7 @@
 
     &lt;!-- Creation of Aladin Lite instance with initial parameters --&gt;
     &lt;script type="text/javascript"&gt;
-        var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:1.5, target: "trifid"});
+        var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:1.5, target: "M 20"});
 
         $('input[name=survey]').change(function() {
             aladin.setImageSurvey($(this).val());
@@ -51,8 +51,8 @@
         aladin.addCatalog(markerLayer);
         markerLayer.addSources([marker1, marker2, marker3]);
 
-        aladin.addCatalog(A.catalogFromSimbad('trifid', 0.2, {shape: 'plus', color: '#5d5', onClick: 'showTable'}));
-        aladin.addCatalog(A.catalogFromVizieR('J/ApJ/562/446/table13', 'trifid', 0.2, {shape: 'square', sourceSize: 8, color: 'red', onClick: 'showPopup'}));
+        aladin.addCatalog(A.catalogFromSimbad('M 20', 0.2, {shape: 'plus', color: '#5d5', onClick: 'showTable'}));
+        aladin.addCatalog(A.catalogFromVizieR('J/ApJ/562/446/table13', 'M 20', 0.2, {shape: 'square', sourceSize: 8, color: 'red', onClick: 'showPopup'}));
 
         var footprintLayer = A.graphicOverlay({color: '#2345ee', lineWidth: 3});
         aladin.addOverlay(footprintLayer);

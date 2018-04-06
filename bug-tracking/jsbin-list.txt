@@ -37,3 +37,4 @@ http://jsbin.com/cohepe/3/edit?html,output
 
 # Set HiPS by URL
 http://jsbin.com/xohifoliqi/1/edit?html,output
+

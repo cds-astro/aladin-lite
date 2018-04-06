@@ -18,5 +18,6 @@
     {"title": "Add a MOC overlay (pointed by URL)", "url": "MOC/"},
     {"title": "Add a MOC overlay (created by a JSON object)", "url": "MOC-JSON/"},
     {"title": "Animate to a given position", "url": "animation/"},
-    {"title": "Demo page for AAS 225", "url": "AAS225/"}
+    {"title": "Demo page for AAS 225", "url": "AAS225/"},
+    {"title": "Visualisation of planet Mars", "url": "mars-visualisation/"}
 ]

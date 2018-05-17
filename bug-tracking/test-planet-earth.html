@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+function lon2ra(lon) {
+  return lon;
+}
+
+// Start up Aladin Lite
+var aladin = A.aladin('#aladin-lite-div', {fov: 45});
+aladin.gotoRaDec(-100, 45);
+
+var earthHiPS = aladin.createImageSurvey("Earth", "Earth", 'http://alasky.u-strasbg.fr/Planets/Earth/', 'j2000', 5, {longitudeReversed: true, showGrid: true});
+aladin.setImageSurvey(earthHiPS);
+
+var panStarrsCoo = [-156.2535, 20.7097];
+var ligoHanfordCoo = [-119.407656, 46.455144];
+var ligoLivingston = [-90.774242, 30.562894];
+var observatories = A.catalog({name: 'Observatories', sourceSize: 16, color: '#d3f'});
+  
+observatories.addSources(A.marker(lon2ra(panStarrsCoo[0]), panStarrsCoo[1], {popupTitle: 'Pan-STARRS', popupDesc: 'Pan-STARRS observatory<br/>Haleakalā Maui'}));
+observatories.addSources(A.marker(lon2ra(ligoHanfordCoo[0]), ligoHanfordCoo[1], {popupTitle: 'LIGO Hanford', popupDesc: 'LIGO Hanford observatory, Washington'}));
+observatories.addSources(A.marker(lon2ra(ligoLivingston[0]), ligoLivingston[1], {popupTitle: 'LIGO Livingston', popupDesc: 'LIGO Livingston observatory, Louisiana'}));
+
+  
+aladin.addCatalog(observatories);
+    
+    
+</script>
+</body>
+</html>

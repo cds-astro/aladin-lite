@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.12.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+var p = new Projection();
+p.setProjection(Projection.PROJ_SIN);
+p.reverseLongitude(true);
+p.setCenter(100, 0);
+
+xy1 = p.project(140, 40);
+console.log(xy1);
+ 
+xy2 = p.project(60, 40);
+console.log(xy2);
+
+console.log(p.unproject(xy1.X, xy1.Y)); 
+console.log(p.unproject(xy2.X, xy2.Y)); 
+    
+</script>
+</body>
+</html>

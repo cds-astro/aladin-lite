@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div', {target: '100 -30', fov: 10});
+
+    var overlay = A.graphicOverlay({color: '#ee1122', lineWidth: 3});
+    aladin.addOverlay(overlay);
+    var idsToFootprintMap = {};
+    var footprints = aladin.createFootprintsFromSTCS('Circle ICRS 100 -30 3');
+    idsToFootprintMap[footprints[0].id] = footprints[0];
+    var fp2 = aladin.createFootprintsFromSTCS('Polygon ICRS 100 -30 101 -30 101 -29 105 -34');
+    idsToFootprintMap[fp2[0].id] = fp2[0];
+    overlay.addFootprints(footprints,);
+    overlay.addFootprints(fp2);
+    //overlay.addFootprints([A.circle(100, -30, 2, {color: '#4488dd'})]);
+
+/*
+    window.addEventListener('footprintSelected', function(e) {
+        console.log(e);
+    });
+*/
+    document.getElementById('aladin-lite-div').addEventListener('footprintClicked', function(e) {
+        console.log(e.detail.footprintId);
+        idsToFootprintMap[e.detail.footprintId].select();
+    });
+/*
+083.60189 +21.98621
+083.59715 +22.05642
+083.67815 +22.02927
+083.67990 +21.99482
+083.60189 +21.98621
+*/
+
+
+    
+    
+</script>
+</body>
+</html>

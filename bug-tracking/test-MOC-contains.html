@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+<style>
+.inMOCStatus {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+}
+.inMOC {
+    background: green;
+}
+.outMOC {
+    background: red;
+}
+</style>
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="info"></div>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +00 00 00', fov: 122});
+    var moc = A.MOCFromURL('http://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#9977dd', opacity: 0.3});
+    aladin.addMOC(moc);
+
+    aladin.on('mouseMove', function(data) {
+        // ignore clicks happening when dragging
+        if (data.isDragging) {
+            return;
+        }
+
+        var timeStart = window.performance.now();
+        var clickInMOC = moc.contains(data.ra, data.dec);
+        var timeEnd = window.performance.now();
+        
+        $('#info').html('Click at ' + data.ra + ' ' + data.dec + '<br>In MOC: <span class="inMOCStatus ' +  (clickInMOC ? 'inMOC': 'outMOC') + '"></span><br>Request took ' + (timeEnd - timeStart) + 'ms');
+    });
+
+ 
+
+
+
+</script>
+</body>
+</html>

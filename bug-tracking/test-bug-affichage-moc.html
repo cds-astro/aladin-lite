@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.12.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div', {target: '22 26 1.873 +20 06 22.96', fov: 120, survey: 'P/DSS2/red'});
+    var moc = A.MOCFromURL('http://alasky.u-strasbg.fr/footprints/tables/vizier/B_mk_mktypes/MOC?nside=256');
+    aladin.addMOC(moc);
+    
+    
+</script>
+</body>
+</html>

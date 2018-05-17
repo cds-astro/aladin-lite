@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 400px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div', {showAllskyRing: true, allskyRingWidth: 8});
+    aladin.gotoObject('sgr a*');
+    aladin.setFoV(100);
+
+
+    aladin.setImageSurvey(aladin.createImageSurvey("Gaia", "Gaia", 'http://alasky.unistra.fr/ancillary/GaiaDR2/color-Rp-G-Bp-flux-map', 'equatorial', 4));
+    
+
+    
+    
+</script>
+</body>
+</html>

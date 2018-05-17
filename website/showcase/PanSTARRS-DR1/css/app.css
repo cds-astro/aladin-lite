@@ -1,0 +1,39 @@
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+.aladin-zoomControl {
+    top: 80% !important;
+}
+
+#aladin{
+    flex: 1 1 0;
+}
+
+#explain {
+    padding: 4px;
+    top: 30%;
+    max-height: 60%;
+    overflow: scroll;
+}
+
+#layersControl {
+    padding: 4px;
+    left: unset;
+    right: 4px;
+    top: 100px;
+}
+
+#layersControl  input {
+    margin-right: 5px;
+}
+
+
+.aladin-box {
+    font-size: 12px !important;
+}

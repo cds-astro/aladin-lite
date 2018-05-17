@@ -75,6 +75,7 @@
                 <tr><td>showFullscreenControl</td><td>If <code>true</code>, the button to pass in full screen mode (at the top right of the interface) is displayed</td><td>true</td></tr>
                 <tr><td>showLayersControl</td><td>If <code>true</code>, the icon to open the layers controls is displayed</td><td>true</td></tr>
                 <tr><td>showGotoControl</td><td>If <code>true</code>, the icon to easily jump to a new position/object is displayed</td><td>true</td></tr>
+                <tr><td>showShareControl</td><td>If <code>true</code>, the icon to get a link to the current view is displayed</td><td>false</tr>
                 <tr><td>showFrame</td><td>If <code>true</code>, coordinate are displayed (at the top left of the interface)</td><td>true</tr>
                 <tr><td>fullScreen</td><td>If <code>true</code>, Aladin Lite starts in "full screen" mode</td><td>false</td></tr>
                 <tr><td>reticleColor</td><td>Color of the reticle</td><td>"rgb(178, 50, 178)"</td></tr>
@@ -117,7 +118,7 @@
         <p>There are several methods to update the current position:</p>
         <ul>
             <li><code>aladin.gotoRaDec(&lt;ra-in-degrees&gt;, &lt;dec-in-degrees&gt;)</code></li>
-            <li><code>aladin.gotoObject(&lt;object-name-or-position&gt;)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.</li>
+            <li><code>aladin.gotoObject(&lt;object-name-or-position&gt;, &lt;callback-options&gt;?)</code> . This method can understand both a position or an object name. Object names will be resolved by <a href="http://cds.u-strasbg.fr/cgi-bin/Sesame">Sesame</a>.<br>You can pass optional success or error callback functions that will be called resp. when the target name is successfulyl resolved or when an error happened. Example:<br><code>aladin.gotoObject('Messier 1', {success: function(raDec) { alert(raDec);}, error: function() {...}})</code></li>
         </ul>
         
 
@@ -180,7 +181,7 @@
             </thead>
             <tbody>
                 <tr><td>name</td><td>The label of the catalogue layer.</td></tr>
-                <tr><td>shape</td><td>The shape used for each source in the catalog.<br/>Possible values are: <code>plus</code>, <code>rhomb</code>, <code>cross</code>, <code>triangle</code> and <code>square</code> (default value).<br/>An HTMLCanvasElement or an Image object can also be passed (JPEG, PNG formats are supported, even SVG in most modern browsers).</td></tr>
+                <tr><td>shape</td><td>The shape used for each source in the catalog.<br/>Possible values are: <code>circle</code>, <code>plus</code>, <code>rhomb</code>, <code>cross</code>, <code>triangle</code> and <code>square</code> (default value).<br/>An HTMLCanvasElement or an Image object can also be passed (JPEG, PNG formats are supported, even SVG in most modern browsers).</td></tr>
                 <tr><td>color</td><td>The color of the shape for each source.</td></tr>
                 <tr><td>sourceSize</td><td>The size of the source in pixels.</td></tr>
                 <tr><td>raField</td><td>ID, name or index of the field to be used as Right Ascension. If not given, Aladin Lite will try to guess on the basis of UCDs.</td></tr>
@@ -193,9 +194,14 @@
             </tbody>
           </table>
 
-        <h3>Adding some sources to the catalogue</h3>
+        <h3>Updating a catalogue</h3>
+        <h4>Adding some sources to the catalogue</h4>
         <p>Sources can be created manually using <code>A.source(ra, dec, data)</code> and added to an existing catalog layer</p>
         <p>Example: <a href="examples/cat-custom-shape/">Creating a catalog with a custom shape</a><br/></p>
+
+        <h4>Changing the symbol associated to sources</h4>
+        <p>Calling <code>updateShape({color: &lt;new-color&gt;, shape: &lt;new-shape&gt;, sourceSize: &lt;new-size&gt;})</code> on a catalogue layer will modify the symbol associated to the sources in the catalogue.</p>
+        <p>Example: <code>cat.updateShape({color: '#86d', shape: 'cross'})</code> will update the color and shape attributes while keeping the sourceSize untouched.</p>
 
         <h3>Loading a VOTable</h3>
         <p>Catalogue layers can also be created from a VOTable URL: calling <code>A.catalogFromURL(&lt;votable-URL&gt;, &lt;options&gt;?, &lt;successCallback&gt;?, &lt;useProxy&gt;?)</code> will return a Catalog object which can then be added to the Aladin Lite instance.</p>

@@ -142,10 +142,13 @@
             <ul>
                 <li><a href="http://sky.esa.int/" title="ESA Sky">ESA Sky</a> allows for discovery and access of data observed by ESA space missions</li>
                 <li><a href="http://www.virgo-gw.eu/skymap.html" title="GW170814 skymap">GW170814 interactive skymap</a> displays the localisation on the sky of the gravitational wave event jointly detected by LIGO and Virgo observatories, and announced in September 2017.</li>
+                <li><a href="https://heasarc.gsfc.nasa.gov/xamin/" title="Xamin">HEASARC Xamin system</a> for discovery and data retrieval</li>
                 <li><a href="https://losc.ligo.org/s/skymapViewer/aladin/index.html#GW150914:LALI" title="Skymap viewer">Skymap Viewer</a> shows probability contours for gravitational wave events from LIGO/Virgo</li>
                 <li><a href="http://jvo.nao.ac.jp/portal/v2/" title="JVO Portal">JVO Portal v2</a></li>
                 <li><a href="http://gamma-sky.net/" title="Gamma Sky">Gamma Sky</a>, a portal to gamma-ray sky (developed by C. Deil and A. Voruganti)</li>
                 <li><a href="http://setiquest.info/" title="SETI quest">SETI</a> uses Aladin Lite to display targets currently observed (development by J. Richards)</li>
+                <li><a href="http://archive.cefca.es/catalogues/jplus-edr">J-PLUS Early Data Release</a></li>
+                <li>CEFCA<a href="http://www.cefca.es/outreach/images_navigator"> images navigator</a> and <a href="http://www.cefca.es/divulgacion/tours_imagenes">images tours</a></li>
                 <li><a href="http://saada.unistra.fr/ArchesWalker/" title="ARCHES Walker">ARCHES Walker</a>, an Outreach tool showcasing astronomical objects in different wavelengths (<a href="http://www.arches-fp7.eu/">ARCHES project</a>)</li>
                 <li><a href="http://hologhost.altervista.org/pointing/mopra.html" title="MOPRA Telescope pointing">MOPRA Radio Telescope Pointing and Status</a>
                 <li><a href="http://darts.isas.jaxa.jp/astro/judo2/" title="JUDO2">JUDO2</a> (JAXA Universe Data Oriented)</li>
@@ -193,7 +196,7 @@
 
         <p>
             <h3>iPhone</h3>
-        If you have integrated Aladin Lite in an iPhone application, please <a href="#contact">contact CDS let us know</a>.
+        If you have integrated Aladin Lite in an iPhone application, please <a href="#contact">let us know</a>.
         </p>
 
         <!-------------------------------------------------------------------->
@@ -205,11 +208,40 @@
         <p>
             <ul>
                 <li>
-                    <b>Region editor</b>
-                    <p>In the frame of the Saada project, a plugin allowing one to define a region on the sky has been developed by L. Michel and G.I. Campos. It can be tested on this <a href="http://saada.unistra.fr/jsresources/region.html">demonstration page</a>.</p>
+                    <h3>Region editor</h3>
+                    <div class="row">
+                        <div class="span5">
+                            <p>The region editor is an Aladin Lite extension allowing users to plot polygons over the current sky view, and retrieve the coordinations of the vertices.<br>
+                            It has been designed to be used as an interface for searches by region or for cutout services.<br>
+                            This development has been funded by the SSC XXM-Newton.</p>
+                            <p>Documentation, installation instructions can be found <a href="http://saada.unistra.fr/jsresources/region.html">on this page</a>.</p>
+                        </div>
+                        <div class="span3">
+                           <a href="http://saada.unistra.fr/jsresources/region.html"><img src="img/region-editor-plugin.png" style="max-width: 100% ; height: auto;"></a>
+                        </div>
+                    </div>
                 </li>
             </ul>
         </p>
+
+        <p>
+            <ul>
+                <li>
+                    <h3>Tour navigator library</h3>
+                    <div class="row">
+                        <div class="span5">
+                            <p>The tour navigator is an Aladin Lite extension that allows to implement easily virtual tours of objects of interest.
+                            It has been designed to be used as interface for navigating through the sky from object to object. Allowing users to learn about each object they visit in the tour.
+                            The tour navigator plugin has been developed and designed at <a href="http://www.cefca.es">CEFCA</a> (Centro de Estudios de Física del Cosmos de Aragón) by Tamara Civera.
+                            Documentation, source code and installation instructions can be found <a href="http://www.cefca.es/cefca_en/tour_navigator_library">on this page</a>.</p>
+                        </div>
+                        <div class="span3">
+                        </div>
+                </li>
+            </ul>
+
+        </p>
+
 
         <!-------------------------------------------------------------------->
         <!-- RELEASE NOTES -->

@@ -160,6 +160,13 @@ HiPSDefinition = (function() {
     "hips_service_url_2": "https://alaskybis.unistra.fr/DSS/DSS2Merged",
     "hips_service_url_3": "http://healpix.ias.u-psud.fr/DSS2Merged"
 }, {
+    "ID": "P/PanSTARRS/DR1/g",
+    "hips_service_url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+    "obs_title": "PanSTARRS DR1 g",
+    "hips_order": 11,
+    "hips_frame": "equatorial",
+    "hips_tile_format": "jpeg fits"
+}, {
     "ID": "CDS/P/Fermi/color",
     "obs_title": "Fermi Color HEALPix survey",
     "client_sort_key": "00-01-01",
@@ -349,7 +356,7 @@ HiPSDefinition = (function() {
     };
 
     var MOCSERVER_MIRRORS_HTTP = ['http://alasky.u-strasbg.fr/MocServer/query', 'http://alaskybis.u-strasbg.fr/MocServer/query']; // list of base URL for MocServer mirrors, available in HTTP
-    var MOCSERVER_MIRRORS_HTTPS = ['https://alaskybis.unistra.fr/MocServer/query']; // list of base URL for MocServer mirrors, available in HTTPS
+    var MOCSERVER_MIRRORS_HTTPS = ['https://alasky.u-strasbg.fr/MocServer/query', 'https://alaskybis.unistra.fr/MocServer/query']; // list of base URL for MocServer mirrors, available in HTTPS
 
     // get HiPS definitions, by querying the MocServer
     // return data as dict-like objects

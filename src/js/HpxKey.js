@@ -108,7 +108,9 @@ HpxKey = (function() {
             var norder = this.ancestor==null ? this.norder : this.ancestor.norder;
             var npix = this.ancestor==null ? this.npix : this.ancestor.npix;
 
+            //console.log(corners);
             //corners = AladinUtils.grow2(corners, 1); // grow by 1 pixel in each direction
+            //console.log(corners);
             var url = this.hips.getTileURL(norder, npix);
             var tile = this.hips.tileBuffer.getTile(url);
             if (tile && Tile.isImageOk(tile.img) || this.allskyTexture) {

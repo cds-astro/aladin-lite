@@ -33,6 +33,9 @@ Footprint = (function() {
     Footprint = function(polygons) {
         this.polygons = polygons;
     	this.overlay = null;
+
+        // TODO : all graphic overlays should have an id
+        this.id = 'footprint-' + Utils.uuidv4();
     	
     	this.isShowing = true;
     	this.isSelected = false;
@@ -61,6 +64,19 @@ Footprint = (function() {
             this.overlay.reportChange();
         }
     };
+
+    Footprint.prototype.dispatchClickEvent = function() {
+        if (this.overlay) {
+            // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+            //window.dispatchEvent(new CustomEvent("footprintClicked", {
+            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
+                detail: {
+                    footprintId: this.id,
+                    overlayName: this.overlay.name
+                }
+            }));
+        }
+    };
     
     Footprint.prototype.select = function() {
         if (this.isSelected) {
@@ -68,10 +84,21 @@ Footprint = (function() {
         }
         this.isSelected = true;
         if (this.overlay) {
+/*
+            // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+            //window.dispatchEvent(new CustomEvent("footprintClicked", {
+            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
+                detail: {
+                    footprintId: this.id,
+                    overlayName: this.overlay.name
+                }
+            }));
+*/
+
             this.overlay.reportChange();
         }
     };
-    
+
     Footprint.prototype.deselect = function() {
         if (! this.isSelected) {
             return;

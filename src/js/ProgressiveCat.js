@@ -62,21 +62,8 @@ ProgressiveCat = (function() {
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
         this.sourcesCache = new Utils.LRUCache(100);
 
-        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize);
+        this.updateShape(options);
 
-        this.cacheSelectCanvas = document.createElement('canvas');
-        this.cacheSelectCanvas.width = this.selectSize;
-        this.cacheSelectCanvas.height = this.selectSize;
-        var cacheSelectCtx = this.cacheSelectCanvas.getContext('2d');
-        cacheSelectCtx.beginPath();
-        cacheSelectCtx.strokeStyle = this.selectionColor;
-        cacheSelectCtx.lineWidth = 2.0;
-        cacheSelectCtx.moveTo(0, 0);
-        cacheSelectCtx.lineTo(0,  this.selectSize);
-        cacheSelectCtx.lineTo( this.selectSize,  this.selectSize);
-        cacheSelectCtx.lineTo( this.selectSize, 0);
-        cacheSelectCtx.lineTo(0, 0);
-        cacheSelectCtx.stroke(); // TODO: to be merged with Catalog
 
 
 
@@ -211,6 +198,8 @@ ProgressiveCat = (function() {
         return sources;
     };
 
+    //ProgressiveCat.prototype.updateShape = cds.Catalog.prototype.updateShape;
+
     ProgressiveCat.prototype = {
 
         init: function(view) {
@@ -235,6 +224,8 @@ ProgressiveCat = (function() {
                 );
             }
         },
+
+        updateShape: cds.Catalog.prototype.updateShape,
 
         _loadMetadata: function() {
             var self = this;
@@ -261,7 +252,7 @@ ProgressiveCat = (function() {
 
                     if (self.order2Sources) {
                         self.isReady = true;
-                        self.view.requestRedraw();
+                        self._finishInitWhenReady();
                     }
                 },
                 error: function(err) {
@@ -277,7 +268,7 @@ ProgressiveCat = (function() {
 
                     if (self.order1Sources) {
                         self.isReady = true;
-                        self.view.requestRedraw();
+                        self._finishInitWhenReady();
                     }
                 },
                 error: function(err) {
@@ -303,7 +294,7 @@ ProgressiveCat = (function() {
                     self.order2Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
                     if (self.order3Sources) {
                         self.isReady = true;
-                        self.view.requestRedraw();
+                        self._finishInitWhenReady();
                     }
                 },
                 error: function(err) {
@@ -321,13 +312,18 @@ ProgressiveCat = (function() {
                     self.order3Sources = getSources(self, $(xml).find('CSV').text(), self.fields);
                     if (self.order2Sources) {
                         self.isReady = true;
-                        self.view.requestRedraw();
+                        self._finishInitWhenReady();
                     }
                 },
                 error: function(err) {
                     console.log('Something went wrong: ' + err);
                 }
             });
+        },
+
+        _finishInitWhenReady: function() {
+            this.view.requestRedraw();
+            this.loadNeededTiles();
         },
 
         draw: function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
@@ -432,6 +428,7 @@ ProgressiveCat = (function() {
                 return;
             }
             this.isShowing = true;
+            this.loadNeededTiles();
             this.reportChange();
         },
         hide: function() {
@@ -451,9 +448,11 @@ ProgressiveCat = (function() {
         },
     
         loadNeededTiles: function() {
+            if ( ! this.isShowing) {
+                return;
+            }
             this.tilesInView = [];
             
-            this.otherSources = [];
             var norder = this.view.realNorder;
             if (norder>this.maxOrder) {
                 norder = this.maxOrder;
@@ -463,7 +462,7 @@ ProgressiveCat = (function() {
             }
             var cells = this.view.getVisibleCells(norder, this.frame);
             var ipixList, ipix;
-            for (var curOrder=4; curOrder<=norder; curOrder++) {
+            for (var curOrder=3; curOrder<=norder; curOrder++) {
                 ipixList = [];
                 for (var k=0; k<cells.length; k++) {
                     ipix = Math.floor(cells[k].ipix / Math.pow(4, norder - curOrder));
@@ -497,7 +496,6 @@ ProgressiveCat = (function() {
                             //dataType: 'jsonp',
                             success: function(tsv) {
                                 self.sourcesCache.set(key, getSources(self, tsv, self.fields));
-                                //self.otherSources = self.otherSources.concat(getSources(tsv, self.fields));
                                 self.view.requestRedraw();
                             },
                             error: function() {

@@ -130,7 +130,8 @@ AladinUtils = (function() {
             var p1Projected = projection.project(p1.ra, p1.dec);
             var p2Projected = projection.project(p2.ra, p2.dec);
            
-            var zoomFactor = 1/(p1Projected.X - p2Projected.Y);
+            var zoomFactor = 1/Math.abs(p1Projected.X - p2Projected.Y);
+
             return zoomFactor;
         },
 

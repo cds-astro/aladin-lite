@@ -70,17 +70,16 @@ Overlay = (function() {
     
     // return an array of Footprint from a STC-S string
     Overlay.parseSTCS = function(stcs) {
-        var polygons = [];
+        var footprints = [];
         var parts = stcs.match(/\S+/g);
         var k = 0, len = parts.length;
-        var curPolygon;
         while(k<len) {
             var s = parts[k].toLowerCase();
             if(s=='polygon') {
-                curPolygon = [];
+                var curPolygon = [];
                 k++;
                 frame = parts[k].toLowerCase();
-                if (frame=='icrs' || frame=='j2000') {
+                if (frame=='icrs' || frame=='j2000' || frame=='fk5') {
                     while(k+2<len) {
                         var ra = parseFloat(parts[k+1]);
                         if (isNaN(ra)) {
@@ -91,30 +90,57 @@ Overlay = (function() {
                         k += 2;
                     }
                     curPolygon.push(curPolygon[0]);
-                    polygons.push(curPolygon);
+                    footprints.push(new Footprint(curPolygon));
                 }
             }
+            else if (s=='circle') {
+                var frame;
+                k++;
+                frame = parts[k].toLowerCase();
+
+                if (frame=='icrs' || frame=='j2000' || frame=='fk5') {
+                    var ra, dec, radiusDegrees;
+
+                    ra = parseFloat(parts[k+1]);
+                    dec = parseFloat(parts[k+2]);
+                    radiusDegrees = parseFloat(parts[k+3]);
+
+                    footprints.push(A.circle(ra, dec, radiusDegrees)); 
+
+                    k += 3;
+                }
+            }
+
             k++;
         }
 
-        return polygons;
+        return footprints;
     };
     
-    // ajout d'un tableau d'overlays (= footprints)
+    // ajout d'un tableau d'overlays (= objets Footprint, Circle ou Polyline)
     Overlay.prototype.addFootprints = function(overlaysToAdd) {
-    	this.overlays = this.overlays.concat(overlaysToAdd);
     	for (var k=0, len=overlaysToAdd.length; k<len; k++) {
-    	    overlaysToAdd[k].setOverlay(this);
-    	}
+            this.add(overlaysToAdd[k], false);
+        }
+
         this.view.requestRedraw();
     };
 
     // TODO : item doit pouvoir prendre n'importe quoi en param (footprint, circle, polyline)
-    Overlay.prototype.add = function(item) {
-        this.overlay_items.push(item);
+    Overlay.prototype.add = function(item, requestRedraw) {
+        requestRedraw = requestRedraw !== undefined ? requestRedraw : true;
+
+        if (item instanceof Footprint) {
+            this.overlays.push(item);
+        }
+        else {
+            this.overlay_items.push(item);
+        }
         item.setOverlay(this);
         
-        this.view.requestRedraw();
+        if (requestRedraw) {
+            this.view.requestRedraw();
+        }
     };
 
     
@@ -158,8 +184,7 @@ Overlay = (function() {
         ctx.stroke();
 
     	// selection drawing
-        ctx.strokeStyle= Overlay.increaseBrightness(this.color, 80);
-        //ctx.strokeStyle= 'green';
+        ctx.strokeStyle= Overlay.increaseBrightness(this.color, 50);
         ctx.beginPath();
         for (var k=0, len = this.overlays.length; k<len; k++) {
             if (! this.overlays[k].isSelected) {
@@ -194,7 +219,6 @@ Overlay = (function() {
                 ((0|(1<<8) + g + (256 - g) * percent / 100).toString(16)).substr(1) +
                 ((0|(1<<8) + b + (256 - b) * percent / 100).toString(16)).substr(1);
     };
-    
     
     
     Overlay.prototype.drawFootprint = function(f, ctx, projection, frame, width, height, largestDim, zoomFactor) {

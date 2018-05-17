@@ -36,7 +36,7 @@ View = (function() {
             this.aladin = aladin;
             this.options = aladin.options;
     		this.aladinDiv = this.aladin.aladinDiv;
-            this.popup = new Popup(this.aladinDiv);
+            this.popup = new Popup(this.aladinDiv, this);
 
     		this.createCanvases();
     		this.location = location;
@@ -75,6 +75,24 @@ View = (function() {
     		this.imageSurvey = null;
     		// current catalogs displayed
     		this.catalogs = [];
+            // a dedicated catalog for the popup
+            var c = document.createElement('canvas');
+            c.width = c.height = 24;
+            var ctx= c.getContext('2d');
+            ctx.lineWidth = 6.0;
+            ctx.beginPath();
+            ctx.strokeStyle = '#eee';
+            ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+            ctx.stroke();
+            ctx.lineWidth = 3.0;
+            ctx.beginPath();
+            ctx.strokeStyle = '#c38';
+            ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+            ctx.stroke();
+            this.catalogForPopup = A.catalog({shape: c, sourceSize: 24});
+            //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
+            this.catalogForPopup.hide();
+            this.catalogForPopup.setView(this);
             // overlays (footprints for instance)
     		this.overlays = [];
             // MOCs
@@ -136,11 +154,14 @@ View = (function() {
     // different available modes
     View.PAN = 0;
     View.SELECT = 1;
+    View.TOOL_SIMBAD_POINTER = 2;
     	
     
     // TODO: should be put as an option at layer level	
 	View.DRAW_SOURCES_WHILE_DRAGGING = true;
 	View.DRAW_MOCS_WHILE_DRAGGING = true;
+
+    View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
 	
 	
 	// (re)create needed canvases
@@ -231,6 +252,11 @@ View = (function() {
 	    if (this.mode==View.SELECT) {
 	        this.setCursor('crosshair');
 	    }
+        else if (this.mode==View.TOOL_SIMBAD_POINTER) {
+            this.popup.hide();
+	        this.reticleCanvas.style.cursor = '';
+            $(this.reticleCanvas).addClass('aladin-sp-cursor');
+        }
 	    else {
 	        this.setCursor('default');
 	    }
@@ -238,6 +264,9 @@ View = (function() {
 	
 	View.prototype.setCursor = function(cursor) {
         if (this.reticleCanvas.style.cursor==cursor) {
+            return;
+        }
+        if (this.mode==View.TOOL_SIMBAD_POINTER) {
             return;
         }
 	    this.reticleCanvas.style.cursor = cursor;
@@ -377,7 +406,6 @@ View = (function() {
             }
             return false; // to disable text selection
         });
-        var lastClickedObject; // save last object clicked by mouse
 
         //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
         $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
@@ -387,14 +415,13 @@ View = (function() {
                                                        view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
             }
 
-            var wasDragging = false;
+            var wasDragging = view.realDragging === true;
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
                 view.dragging = false;
 
-                if (view.realDragging === true) {
+                if (wasDragging) {
                     view.realDragging = false;
-                    wasDragging = true;
                 
                     // call positionChanged one last time after dragging, with dragging: false
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
@@ -417,16 +444,38 @@ View = (function() {
                 view.requestRedraw(true);
                 updateLocation(view, view.width/2, view.height/2, true);
 
+                if (view.mode===View.TOOL_SIMBAD_POINTER) {
+                    view.setMode(View.PAN);
+                }
+
                 return;
             }
 
             var xymouse = view.imageCanvas.relMouseCoords(e);
+
+            if (view.mode==View.TOOL_SIMBAD_POINTER) {
+                var radec = view.aladin.pix2world(xymouse.x, xymouse.y);
+
+                view.setMode(View.PAN);
+                view.setCursor('wait');
+
+                SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+
+                return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
+            }
+
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
             if (! wasDragging && objs) {
                 var o = objs[0];
+
+                // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+                if (o instanceof Footprint || o instanceof Circle) {
+                    o.dispatchClickEvent();
+                }
+
                 // display marker
-                if (o.marker) {
+                else if (o.marker) {
                     // could be factorized in Source.actionClicked
                     view.popup.setTitle(o.popupTitle);
                     view.popup.setText(o.popupDesc);
@@ -435,28 +484,31 @@ View = (function() {
                 }
                 // show measurements
                 else {
-                    var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
-                    (typeof objClickedFunction === 'function') && objClickedFunction(o);
-
-                    //else {
-                    if (lastClickedObject) {
-                        lastClickedObject.actionOtherObjectClicked();
+                    if (view.lastClickedObject) {
+                        view.lastClickedObject.actionOtherObjectClicked();
                     }
                     o.actionClicked();
                     //}
-                    lastClickedObject = o;
                 }
+                view.lastClickedObject = o;
+                var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
+                (typeof objClickedFunction === 'function') && objClickedFunction(o);
             }
             else {
-                if (lastClickedObject) {
+                if (view.lastClickedObject && ! wasDragging) {
                     view.aladin.measurementTable.hide();
-                    lastClickedObject.actionOtherObjectClicked();
 
-                    lastClickedObject = null;
+                    if (view.lastClickedObject instanceof Footprint) {
+                        //view.lastClickedObject.deselect();
+                    }
+                    else {
+                        view.lastClickedObject.actionOtherObjectClicked();
+                    }
+
+                    view.lastClickedObject = null;
                     var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];
                     (typeof objClickedFunction === 'function') && objClickedFunction(null);
                 }
-                
             }
 
             // call listener of 'click' event
@@ -464,7 +516,7 @@ View = (function() {
             if (typeof onClickFunction === 'function') {
                 var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
                 if (pos !== undefined) {
-                    onClickFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y});
+                    onClickFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y, isDragging: wasDragging});
                 }
             }
 
@@ -502,6 +554,7 @@ View = (function() {
                             var ret = objHoveredFunction(closest[0]);
                         }
                         lastHoveredObject = closest[0];
+        
                     }
                     else {
                         view.setCursor('default');
@@ -672,7 +725,7 @@ View = (function() {
                 }
 
             },
-            100);
+            View.CALLBACKS_THROTTLE_TIME_MS);
 
 
         view.displayHpxGrid = false;
@@ -804,13 +857,8 @@ View = (function() {
         }
 
         
-        // TODO : check if we really need to make that test every time
-		if (!this.projection) {
-			this.projection = new Projection(this.viewCenter.lon, this.viewCenter.lat);
-		}
-		else {
-			this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
-		}
+		this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        // do we have to redo that every time? Probably not
 		this.projection.setProjection(this.projectionMethod);
 	
 
@@ -937,6 +985,14 @@ View = (function() {
 		        cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
 		    }
         }
+        // draw popup catalog
+        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
+            if (! catalogCanvasCleared) {
+	            catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+            this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+        }
 
 		////// 3. Draw overlays////////
         var overlayCtx = this.catalogCtx;
@@ -1005,6 +1061,18 @@ View = (function() {
     		
     		this.mustRedrawReticle = false;
 		}
+
+        ////// 5. Draw all-sky ring /////
+        if (this.projectionMethod==ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
+                    imageCtx.strokeStyle = this.aladin.options['allskyRingColor'];
+                    var ringWidth = this.aladin.options['allskyRingWidth'];
+                    imageCtx.lineWidth = ringWidth;
+                    imageCtx.beginPath();
+                    var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
+                    imageCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) * this.zoomFactor, 0, 2*Math.PI, true);
+                    imageCtx.stroke();
+        }
+
 		
 		// draw selection box
 		if (this.mode==View.SELECT && this.dragging) {
@@ -1077,7 +1145,12 @@ View = (function() {
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            spatialVector.set(lonlat[0], lonlat[1]);
+            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
+			    spatialVector.set(lonlat[0], lonlat[1]);
+            }
+            else {
+			    spatialVector.set(lonlat[0], lonlat[1]);
+            }
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
             if (this.fov>60) {
@@ -1143,7 +1216,12 @@ View = (function() {
 			else {
 				lonlat = [radec.ra, radec.dec];
 			}
-			spatialVector.set(lonlat[0], lonlat[1]);
+            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
+			    spatialVector.set(lonlat[0], lonlat[1]);
+            }
+            else {
+			    spatialVector.set(lonlat[0], lonlat[1]);
+            }
 			var radius = this.fov*0.5*this.ratio;
 			// we need to extend the radius
 			if (this.fov>60) {
@@ -1510,6 +1588,8 @@ View = (function() {
         
 		newImageSurvey.isReady = false;
 		this.imageSurvey = newImageSurvey;
+
+        this.projection.reverseLongitude(this.imageSurvey.longitudeReversed); 
 		
         var self = this;
         newImageSurvey.init(this, function() {
@@ -1727,6 +1807,64 @@ View = (function() {
 
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
     View.prototype.closestObjects = function(x, y, maxRadius) {
+
+        // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+        var overlay;
+        var canvas=this.catalogCanvas;
+        var ctx = canvas.getContext("2d");
+
+        if (this.overlays) {
+            for (var k=0; k<this.overlays.length; k++) {
+                overlay = this.overlays[k];
+                for (var i=0; i<overlay.overlays.length;i++){
+
+                    // test polygons first
+                    var footprint = overlay.overlays[i];
+                    var pointXY = [];
+                    for(var j=0;j<footprint.polygons.length;j++){
+
+                        var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
+                                this.projection,
+                                this.cooFrame,
+                                this.width, this.height,
+                                this.largestDim,
+                                this.zoomFactor);
+                        pointXY.push({
+                            x: xy.vx,
+                            y: xy.vy
+                        });
+                    }
+                    for(var l=0; l<pointXY.length-1;l++){
+
+                        ctx.beginPath();                        // new segment
+                        ctx.moveTo(pointXY[l].x, pointXY[l].y);     // start is current point
+                        ctx.lineTo(pointXY[l+1].x, pointXY[l+1].y); // end point is next
+                        if (ctx.isPointInStroke(x, y)) {        // x,y is on line?
+                            closest = footprint;
+                            return [closest];
+                        }
+                    }
+                }
+
+                // test Circles
+                for (var i=0; i<overlay.overlay_items.length; i++) {
+                    if (overlay.overlay_items[i] instanceof Circle) {
+                        overlay.overlay_items[i].draw(ctx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
+
+                        if (ctx.isPointInStroke(x, y)) {
+                            closest = overlay.overlay_items[i];
+                            return [closest];
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
         if (!this.objLookup) {
             return null;
         }

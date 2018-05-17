@@ -32,11 +32,11 @@
 // TODO : harmoniser parsing avec classe ProgressiveCat
 cds.Catalog = (function() {
    cds.Catalog = function(options) {
-
         options = options || {};
+
         this.type = 'catalog';    	this.name = options.name || "catalog";
     	this.color = options.color || Color.getNextColor();
-    	this.sourceSize = options.sourceSize || 6;
+    	this.sourceSize = options.sourceSize || 8;
     	this.markerSize = options.sourceSize || 12;
     	this.shape = options.shape || "square";
         this.maxNbSources = options.limit || undefined;
@@ -44,6 +44,11 @@ cds.Catalog = (function() {
 
         this.raField = options.raField || undefined; // ID or name of the field holding RA
         this.decField = options.decField || undefined; // ID or name of the field holding dec
+
+    	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
+    	this.sources = [];
+    	this.hpxIdx = new HealpixIndex(this.indexationNorder);
+    	this.hpxIdx.init();
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;
@@ -62,20 +67,13 @@ cds.Catalog = (function() {
         if ($.isFunction(this.shape)) {
             this._shapeIsFunction = true;
         }
-        this.selectSize = this.sourceSize + 2;
         
-        this.isShowing = true;
-
-    	
-    	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
-    	this.sources = [];
-    	this.hpxIdx = new HealpixIndex(this.indexationNorder);
-    	this.hpxIdx.init();
     	this.selectionColor = '#00ff00';
     	
-    	
+
+        // create this.cacheCanvas    	
     	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
-        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
+        this.updateShape(options);
 
         this.cacheMarkerCanvas = document.createElement('canvas');
         this.cacheMarkerCanvas.width = this.markerSize;
@@ -90,20 +88,8 @@ cds.Catalog = (function() {
         cacheMarkerCtx.strokeStyle = '#ccc';
         cacheMarkerCtx.stroke();
         
-        this.cacheSelectCanvas = document.createElement('canvas');
-        this.cacheSelectCanvas.width = this.selectSize;
-        this.cacheSelectCanvas.height = this.selectSize;
-        var cacheSelectCtx = this.cacheSelectCanvas.getContext('2d');
-        cacheSelectCtx.beginPath();
-        cacheSelectCtx.strokeStyle = this.selectionColor;
-        cacheSelectCtx.lineWidth = 2.0;
-        cacheSelectCtx.moveTo(0, 0);
-        cacheSelectCtx.lineTo(0,  this.selectSize);
-        cacheSelectCtx.lineTo( this.selectSize,  this.selectSize);
-        cacheSelectCtx.lineTo( this.selectSize, 0);
-        cacheSelectCtx.lineTo(0, 0);
-        cacheSelectCtx.stroke();
 
+        this.isShowing = true;
     };
     
     cds.Catalog.createShape = function(shapeName, color, sourceSize) {
@@ -149,12 +135,16 @@ cds.Catalog = (function() {
             ctx.lineTo(sourceSize/2, 0);
             ctx.stroke();
         }
+        else if (shapeName=="circle") {
+            ctx.arc(sourceSize/2, sourceSize/2, sourceSize/2 - 1, 0, 2*Math.PI, true);
+            ctx.stroke();
+        }
         else { // default shape: square
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0,  sourceSize);
-            ctx.lineTo( sourceSize,  sourceSize);
-            ctx.lineTo( sourceSize, 0);
-            ctx.lineTo(0, 0);
+            ctx.moveTo(1, 0);
+            ctx.lineTo(1,  sourceSize-1);
+            ctx.lineTo( sourceSize-1,  sourceSize-1);
+            ctx.lineTo( sourceSize-1, 1);
+            ctx.lineTo(1, 1);
             ctx.stroke();
         }
         
@@ -363,6 +353,21 @@ cds.Catalog = (function() {
             doParseVOTable(xml, callback);
         });
     };
+
+    // API
+    cds.Catalog.prototype.updateShape = function(options) {
+        options = options || {};
+    	this.color = options.color || this.color || Color.getNextColor();
+    	this.sourceSize = options.sourceSize || this.sourceSize || 6;
+    	this.shape = options.shape || this.shape || "square";
+
+        this.selectSize = this.sourceSize + 2;
+
+        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
+        this.cacheSelectCanvas = cds.Catalog.createShape('square', this.selectionColor, this.selectSize);
+
+        this.reportChange();
+    };
     
     // API
     cds.Catalog.prototype.addSources = function(sourcesToAdd) {
@@ -417,7 +422,7 @@ cds.Catalog = (function() {
         this.addSources(newSources);
     };
     
-    // return the currnet list of Source objects
+    // return the current list of Source objects
     cds.Catalog.prototype.getSources = function() {
         return this.sources;
     };
@@ -475,8 +480,12 @@ cds.Catalog = (function() {
         if (this._shapeIsFunction) {
             ctx.save();
         }
+        var sourcesInView = [];
  	    for (var k=0, len = this.sources.length; k<len; k++) {
-		    cds.Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+		    var inView = cds.Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+            if (inView) {
+                sourcesInView.push(this.sources[k]);
+            }
         }
         if (this._shapeIsFunction) {
             ctx.restore();
@@ -486,11 +495,13 @@ cds.Catalog = (function() {
     	// tracé sélection
         ctx.strokeStyle= this.selectionColor;
         //ctx.beginPath();
-        for (var k=0, len = this.sources.length; k<len; k++) {
-            if (! this.sources[k].isSelected) {
+        var source;
+        for (var k=0, len = sourcesInView.length; k<len; k++) {
+            source = sourcesInView[k];
+            if (! source.isSelected) {
                 continue;
             }
-            cds.Catalog.drawSourceSelection(this, this.sources[k], ctx);
+            cds.Catalog.drawSourceSelection(this, source, ctx);
             
         }
         // NEEDED ?
@@ -500,8 +511,8 @@ cds.Catalog = (function() {
         if (this.displayLabel) {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
-            for (var k=0, len = this.sources.length; k<len; k++) {
-                cds.Catalog.drawSourceLabel(this, this.sources[k], ctx);
+            for (var k=0, len = sourcesInView.length; k<len; k++) {
+                cds.Catalog.drawSourceLabel(this, sourcesInView[k], ctx);
             }
         }
     };
@@ -510,7 +521,7 @@ cds.Catalog = (function() {
     
     cds.Catalog.drawSource = function(catalogInstance, s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! s.isShowing) {
-            return;
+            return false;
         }
         var sourceSize = catalogInstance.sourceSize;
         // TODO : we could factorize this code with Aladin.world2pix
@@ -533,7 +544,7 @@ cds.Catalog = (function() {
                 if (xyview.vx>(width+max)  || xyview.vx<(0-max) ||
                     xyview.vy>(height+max) || xyview.vy<(0-max)) {
                     s.x = s.y = undefined;
-                    return;
+                    return false;
                 }
                 
                 s.x = xyview.vx;
@@ -541,7 +552,7 @@ cds.Catalog = (function() {
                 if (catalogInstance._shapeIsFunction) {
                     catalogInstance.shape(s, ctx, catalogInstance.view.getViewParams());
                 }
-                else if (s.marker) {
+                else if (s.marker && s.useMarkerDefaultIcon) {
                     ctx.drawImage(catalogInstance.cacheMarkerCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
                 }
                 else {
@@ -556,7 +567,13 @@ cds.Catalog = (function() {
                 
                 
             }
+            return true;
         }
+        else {
+            return false;
+        }
+
+        
     };
     
     cds.Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
@@ -603,6 +620,7 @@ cds.Catalog = (function() {
         if (this.view && this.view.popup && this.view.popup.source && this.view.popup.source.catalog==this) {
             this.view.popup.hide();
         }
+
         this.reportChange();
     };
 

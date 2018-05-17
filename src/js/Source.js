@@ -40,7 +40,9 @@ cds.Source = (function() {
         if (this.marker) {
             this.popupTitle = (options && options.popupTitle) ? options.popupTitle : '';
             this.popupDesc = (options && options.popupDesc) ? options.popupDesc : '';
+            this.useMarkerDefaultIcon = (options && options.useMarkerDefaultIcon!==undefined) ? options.useMarkerDefaultIcon : true;
         }
+
     	this.isShowing = true;
     	this.isSelected = false;
     };
@@ -110,12 +112,17 @@ cds.Source = (function() {
                 view.popup.setSource(this);
                 view.popup.show();
             }
+            else if (typeof this.catalog.onClick === 'function') {
+                this.catalog.onClick(this);
+                view.lastClickedObject = this;
+            }
+
         }
     };
 
     
     cds.Source.prototype.actionOtherObjectClicked = function() {
-        if (this.catalog && this.catalog.onClick && this.catalog.onClick=='showTable') {
+        if (this.catalog && this.catalog.onClick) {
             this.deselect();
         }
     };

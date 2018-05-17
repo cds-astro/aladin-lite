@@ -36,6 +36,9 @@ Circle = (function() {
         
         this.color = options['color'] || undefined;
 
+        // TODO : all graphic overlays should have an id
+        this.id = 'circle-' + Utils.uuidv4();
+
         this.setCenter(centerRaDec);
         this.setRadius(radiusDegrees);
     	this.overlay = null;
@@ -68,16 +71,38 @@ Circle = (function() {
         }
     };
     
+    Circle.prototype.dispatchClickEvent = function() {
+        if (this.overlay) {
+            // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+            //window.dispatchEvent(new CustomEvent("footprintClicked", {
+            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
+                detail: {
+                    footprintId: this.id,
+                    overlayName: this.overlay.name
+                }
+            }));
+        }
+    };
+    
     Circle.prototype.select = function() {
         if (this.isSelected) {
             return;
         }
         this.isSelected = true;
         if (this.overlay) {
+/*
+            this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
+                detail: {
+                    footprintId: this.id,
+                    overlayName: this.overlay.name
+                }
+            }));
+*/
+
             this.overlay.reportChange();
         }
     };
-    
+
     Circle.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
@@ -105,10 +130,13 @@ Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Circle.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor, noStroke) {
         if (! this.isShowing) {
             return;
         }
+
+
+        noStroke = noStroke===true || false;
 
         var centerXy;
         if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
@@ -143,51 +171,26 @@ Circle = (function() {
         var radiusInPix = Math.sqrt(dx*dx + dy*dy);
 
         // TODO : check each 4 point until show
-        
-        if (this.color) {
-            ctx.strokeStyle= this.color;
+        var baseColor = this.color;
+        if (! baseColor && this.overlay) {
+            baseColor = this.overlay.color;
         }
+        if (! baseColor) {
+            baseColor = '#ff0000';
+        }
+        
+        if (this.isSelected) {
+            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
+        }
+        else {
+            ctx.strokeStyle= baseColor;
+        }
+
         ctx.beginPath();
         ctx.arc(centerXyview.vx, centerXyview.vy, radiusInPix, 0, 2*Math.PI, false);
-        ctx.stroke();
-/*
-        var show = false;
-        
-        // for
-            for (var k=0, len=radecArray.length; k<len; k++) {
-                var xy;
-                if (frame!=CooFrameEnum.J2000) {
-                    var lonlat = CooConversion.J2000ToGalactic([radecArray[k][0], radecArray[k][1]]);
-                    xy = projection.project(lonlat[0], lonlat[1]);
-                }
-                else {
-                    xy = projection.project(radecArray[k][0], radecArray[k][1]);
-                }
-                if (!xy) {
-                    return null;
-                }
-                var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor);
-                xyviewArray.push(xyview);
-                if (!show && xyview.vx<width  && xyview.vx>=0 && xyview.vy<=height && xyview.vy>=0) {
-                    show = true;
-                }
-            }
-
-            if (show) {
-                ctx.moveTo(xyviewArray[0].vx, xyviewArray[0].vy);
-                for (var k=1, len=xyviewArray.length; k<len; k++) {
-                    ctx.lineTo(xyviewArray[k].vx, xyviewArray[k].vy);
-                }
-            }
-            else {
-                //return null;
-            }
-        // end for
-        */
-
-
-
-
+        if (!noStroke) {
+            ctx.stroke();
+        }
     }; 
     
     return Circle;

@@ -44,7 +44,7 @@ HpxImageSurvey = (function() {
         }
 
         else {
-// REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition
+// REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition ou FAIRE dans l'autre sens
             // old way, we retrofit parameters into a HiPSDefinition object
             var hipsDefProps = {};
 
@@ -73,6 +73,8 @@ HpxImageSurvey = (function() {
 
             // TODO : lire depuis fichier properties
             this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
+
+            this.longitudeReversed = options.longitudeReversed || false;
         
             // force coo frame for Glimpse 360
             if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
@@ -189,6 +191,30 @@ HpxImageSurvey = (function() {
         "maxOrder": 9,
         "frame": "equatorial",
         "format": "jpeg fits"
+     },
+     {
+        "id": "P/PanSTARRS/DR1/g",
+        "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+        "name": "PanSTARRS DR1 g",
+        "maxOrder": 11,
+        "frame": "equatorial",
+        "format": "jpeg fits"
+     },
+     {
+        "id": "P/PanSTARRS/DR1/color-z-zg-g",
+        "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
+        "name": "PanSTARRS DR1 color",
+        "maxOrder": 11,
+        "frame": "equatorial",
+        "format": "jpeg"
+     },
+     {
+        "id": "P/DECaPS/DR1/color",
+        "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
+        "name": "DECaPS DR1 color",
+        "maxOrder": 11,
+        "frame": "equatorial",
+        "format": "jpeg png"
      },
      {
         "id": "P/Fermi/color",
@@ -386,12 +412,19 @@ HpxImageSurvey = (function() {
 
         // new way of drawing
         if (subdivide) {
+
+            if (curOverlayNorder<=4) {
+                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
+            }
+
             if (curOverlayNorder>=3) {
                 this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
             }
+/*
             else {
                 this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
             }
+*/
 
             return;
         }
@@ -545,14 +578,6 @@ HpxImageSurvey = (function() {
     	for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
     		cornersXYView = cornersXYViewMap[k];
     		ipix = cornersXYView.ipix;
-    		/*
-    		if (ipix%2==0 && ! drawEven) {
-    		    continue;
-    		}
-    		else if (ipix%2==1 && drawEven) {
-    		    continue;
-    		}
-    		*/
             
             // on demande à charger le parent (cas d'un zoomOut)
             // TODO : mettre priorité plus basse
@@ -703,7 +728,7 @@ HpxImageSurvey = (function() {
     //  var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
     //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
 
-        var delta = norder<=3 ? 0.2 : 0;
+        var delta = norder<=3 ? (textureSize<100 ? 0.5 : 0.2) : 0;
         drawTexturedTriangle2(ctx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,

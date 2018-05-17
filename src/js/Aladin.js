@@ -109,7 +109,21 @@ Aladin = (function() {
         }
         this.fullScreenBtn = $(aladinDiv).find('.aladin-fullscreenControl')
         this.fullScreenBtn.click(function() {
-            self.toggleFullscreen();
+            self.toggleFullscreen(self.options.realFullscreen);
+        });
+        // react to fullscreenchange event to restore initial width/height (if user pressed ESC to go back from full screen)
+        $(document).on('fullscreenchange webkitfullscreenchange mozfullscreenchange MSFullscreenChange', function(e) {
+            var fullscreenElt = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            if (fullscreenElt===null || fullscreenElt===undefined) {
+                self.fullScreenBtn.removeClass('aladin-restore');
+                self.fullScreenBtn.addClass('aladin-maximize');
+                self.fullScreenBtn.attr('title', 'Full screen');
+                $(self.aladinDiv).removeClass('aladin-fullscreen');
+        
+                var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
+                var isInFullscreen = self.fullScreenBtn.hasClass('aladin-restore');
+                (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
+            }
         });
 
         
@@ -208,27 +222,39 @@ Aladin = (function() {
             gotoBox.find('.aladin-closeBtn').click(function() {self.hideBoxes();return false;});
         }
         
+        // simbad pointer tool
+        if (options.showSimbadPointerControl) {
+            var d = $('<div class="aladin-simbadPointerControl-container" title="SIMBAD pointer"><div class="aladin-simbadPointerControl"></div></div>');
+            d.appendTo(aladinDiv);
+
+            d.click(function() {
+                self.view.setMode(View.TOOL_SIMBAD_POINTER);
+            });
+        }
+
         // share control panel
         if (options.showShareControl) {
-            var d = $('<div class="aladin-shareControl-container" title="Share current view"><div class="aladin-shareControl"></div></div>');
+            var d = $('<div class="aladin-shareControl-container" title="Get link for current view"><div class="aladin-shareControl"></div></div>');
             d.appendTo(aladinDiv);
             
             var shareBox = 
                 $('<div class="aladin-box aladin-shareBox">' +
                   '<a class="aladin-closeBtn">&times;</a>' +
                   '<div style="clear: both;"></div>' +
-                  '<b>Share</b>' +
+                  'Link to previewer: <span class="info"></span>' +
                   '<input type="text" class="aladin-shareInput" />' +
                   '</div>');
             shareBox.appendTo(aladinDiv);
             this.boxes.push(shareBox);
             
             
-            // TODO : classe GotoBox
+            // TODO : classe GotoBox, GenericBox
             d.click(function() {
                 self.hideBoxes();
                 shareBox.show();
-                
+                var url = self.getShareURL();
+                shareBox.find('.aladin-shareInput').val(url).select();
+                document.execCommand('copy');
                 
                 return false;
             });
@@ -292,7 +318,7 @@ Aladin = (function() {
         
         // go to full screen ?
         if (options.fullScreen) {
-            window.setTimeout(function() {self.toggleFullscreen();}, 1000);
+            window.setTimeout(function() {self.toggleFullscreen(self.options.realFullscreen);}, 1000);
         }
 
 
@@ -307,34 +333,84 @@ Aladin = (function() {
 
     
     Aladin.DEFAULT_OPTIONS = {
-        target:                 "0 +0",
-        cooFrame:               "J2000",
-        survey:                 "P/DSS2/color",
-        fov:                    60,
-        showReticle:            true,
-        showZoomControl:        true,
-        showFullscreenControl:  true,
-        showLayersControl:      true,
-        showGotoControl:        true,
-        showShareControl:       false,
-        showCatalog:            true, // TODO: still used ??
-        showFrame:              true,
-        showCooGrid:            false,
-        fullScreen:             false,
-        reticleColor:           "rgb(178, 50, 178)",
-        reticleSize:            22,
-        log:                    true,
-        allowFullZoomout:       false
+        target:                   "0 +0",
+        cooFrame:                 "J2000",
+        survey:                   "P/DSS2/color",
+        fov:                      60,
+        showReticle:              true,
+        showZoomControl:          true,
+        showFullscreenControl:    true,
+        showLayersControl:        true,
+        showGotoControl:          true,
+        showSimbadPointerControl: false,
+        showShareControl:         false,
+        showCatalog:              true, // TODO: still used ??
+        showFrame:                true,
+        showCooGrid:              false,
+        fullScreen:               false,
+        reticleColor:             "rgb(178, 50, 178)",
+        reticleSize:              22,
+        log:                      true,
+        allowFullZoomout:         false,
+        realFullscreen:           false,
+        showAllskyRing:           false,
+        allskyRingColor:          '#c8c8ff',
+        allskyRingWidth:          8
     };
 
-    
-    Aladin.prototype.toggleFullscreen = function() {
+   
+    // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate 
+    Aladin.prototype.toggleFullscreen = function(realFullscreen) {
+        realFullscreen = Boolean(realFullscreen);
+
         this.fullScreenBtn.toggleClass('aladin-maximize aladin-restore');
         var isInFullscreen = this.fullScreenBtn.hasClass('aladin-restore');
         this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
         $(this.aladinDiv).toggleClass('aladin-fullscreen');
+
+        if (realFullscreen) {
+            // go to "real" full screen mode
+            if (isInFullscreen) {
+                var d = this.aladinDiv;
+
+                if (d.requestFullscreen) {
+                    d.requestFullscreen();
+                }
+                else if (d.webkitRequestFullscreen) {
+                    d.webkitRequestFullscreen();
+                }
+                else if (d.mozRequestFullScreen) { // notice the difference in capitalization for Mozilla functions ...
+                    d.mozRequestFullScreen();
+                }
+                else if (d.msRequestFullscreen) {
+                    d.msRequestFullscreen();
+                }
+            }
+            // exit from "real" full screen mode
+            else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+                else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
         
         this.view.fixLayoutDimensions();
+
+        // force call to zoomChanged callback
+        var fovChangedFn = this.callbacksByEventName['zoomChanged'];
+        (typeof fovChangedFn === 'function') && fovChangedFn(this.view.fov);
+
+        var fullScreenToggledFn = this.callbacksByEventName['fullScreenToggled'];
+        (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
     
     Aladin.prototype.updateSurveysDropdownList = function(surveys) {
@@ -563,8 +639,12 @@ Aladin = (function() {
         }
         
         // compute current position
-        var curRa =  params['raStart'] + (params['raEnd'] - params['raStart']) * (now-params['start']) / (params['end'] - params['start']);
-        var curDec = params['decStart'] + (params['decEnd'] - params['decStart']) * (now-params['start']) / (params['end'] - params['start']);
+        var fraction =  (now-params['start']) / (params['end'] - params['start']);
+        var curPos = intermediatePoint(params['raStart'], params['decStart'], params['raEnd'], params['decEnd'], fraction);
+        curRa =  curPos[0];
+        curDec = curPos[1];
+        //var curRa =  params['raStart'] + (params['raEnd'] - params['raStart']) * (now-params['start']) / (params['end'] - params['start']);
+        //var curDec = params['decStart'] + (params['decEnd'] - params['decStart']) * (now-params['start']) / (params['end'] - params['start']);
         
         aladin.gotoRaDec(curRa, curDec);
         
@@ -585,7 +665,6 @@ Aladin = (function() {
         duration = duration || 5;
         
         this.animationParams = null;
-        doAnimation(this);
         
         var animationParams = {};
         animationParams['start'] = new Date().getTime();
@@ -601,6 +680,103 @@ Aladin = (function() {
         
         doAnimation(this);
     };
+    
+    var doZoomAnimation = function(aladin) {
+        var params = aladin.zoomAnimationParams;
+        if (params==null) {
+            return;
+        }
+        var now = new Date().getTime();
+        // this is the zoom animation end: set the view to the end fov, and call complete callback 
+        if (now>params['end']) {
+            aladin.setFoV(params['fovEnd']);
+            
+            if (params['complete']) {
+                params['complete']();
+            }
+            
+            return;
+        }
+        
+        // compute current position
+        var fraction = (now-params['start']) / (params['end'] - params['start']);
+        var curFov =  params['fovStart'] + (params['fovEnd'] - params['fovStart']) * Math.sqrt(fraction);
+        
+        aladin.setFoV(curFov);
+        
+        setTimeout(function() {doZoomAnimation(aladin);}, 50);
+        
+    };
+    /*
+     * zoom smoothly from the current FoV to the given new fov to the given ra, dec
+     * 
+     * the total duration (in seconds) of the animation can be given (otherwise set to 5 seconds by default)
+     * 
+     * complete: a function to call once the animation has completed
+     * 
+     * @API
+     * 
+     */
+    Aladin.prototype.zoomToFoV = function(fov, duration, complete) {
+        duration = duration || 5;
+        
+        this.zoomAnimationParams = null;
+        
+        var zoomAnimationParams = {};
+        zoomAnimationParams['start'] = new Date().getTime();
+        zoomAnimationParams['end'] = new Date().getTime() + 1000*duration;
+        var fovArray = this.getFov();
+        zoomAnimationParams['fovStart'] = Math.max(fovArray[0], fovArray[1]);
+        zoomAnimationParams['fovEnd'] = fov;
+        zoomAnimationParams['complete'] = complete;
+
+        console.log(zoomAnimationParams);
+        
+        this.zoomAnimationParams = zoomAnimationParams;
+        doZoomAnimation(this);
+    };
+
+
+
+    /**
+     *  Compute intermediate point between points (lng1, lat1) and (lng2, lat2)
+     *  at distance fraction times the total distance (fraction between 0 and 1)
+     *
+     *  Return intermediate points in degrees
+     *
+     */
+    function intermediatePoint(lng1, lat1, lng2, lat2, fraction) {
+        function degToRad(d) {
+            return d * Math.PI / 180;
+        }
+        function radToDeg(r) {
+            return r * 180 / Math.PI;
+        }
+        var lat1=degToRad(lat1);
+        var lng1=degToRad(lng1);
+        var lat2=degToRad(lat2);
+        var lng2=degToRad(lng2);
+        var d = 2 * Math.asin(
+                    Math.sqrt(Math.pow((Math.sin((lat1 - lat2) / 2)),
+                    2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.pow(Math.sin((lng1-lng2) / 2), 2)));
+        var A = Math.sin((1 - fraction) * d) / Math.sin(d);
+        var B = Math.sin(fraction * d) / Math.sin(d);
+        var x = A * Math.cos(lat1) * Math.cos(lng1) + B *
+            Math.cos(lat2) * Math.cos(lng2);
+        var y = A * Math.cos(lat1) * Math.sin(lng1) + B *
+            Math.cos(lat2) * Math.sin(lng2);
+        var z = A * Math.sin(lat1) + B * Math.sin(lat2);
+        var lon = Math.atan2(y, x);
+        var lat = Math.atan2(z, Math.sqrt(Math.pow(x, 2) +
+             Math.pow(y, 2)));
+
+        return [radToDeg(lon), radToDeg(lat)];
+    };
+
+
+
     
     /**
      * get current [ra, dec] position of the center of the view
@@ -737,15 +913,17 @@ Aladin = (function() {
         return new Overlay(options);
     };
 
-    // API
+    // @oldAPI
     Aladin.prototype.createFootprintsFromSTCS = function(stcs) {
-        var polygons = Overlay.parseSTCS(stcs);
-        var fps = [];
-        for (var k=0, len=polygons.length; k<len; k++) {
-            fps.push(new Footprint(polygons[k]));
-        }
-        return fps;
+        return A.footprintsFromSTCS(stcs);
     };
+
+    // API
+    A.footprintsFromSTCS = function(stcs) {
+        var footprints = Overlay.parseSTCS(stcs);
+
+        return footprints;
+    }
 
     // API
     A.MOCFromURL = function(url, options, successCallback) {
@@ -844,7 +1022,7 @@ Aladin = (function() {
         return A.catalogFromURL(url, options, successCallback, false);
     };
 
-     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove']; 
+     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled']; 
      // API
      //
      // setting callbacks
@@ -1319,6 +1497,41 @@ A.catalog = function(options) {
 // @API
 A.catalogHiPS = function(rootURL, options) {
     return new ProgressiveCat(rootURL, null, null, options);
+};
+
+// @API
+/*
+ * return a Box GUI element to insert content
+ */
+Aladin.prototype.box = function(options) {
+    var box = new Box(options);
+    box.$parentDiv.appendTo(this.aladinDiv);
+
+    return box;
+};
+
+// @API
+/*
+ * show popup at ra, dec position with given title and content
+ */
+Aladin.prototype.showPopup = function(ra, dec, title, content) {
+    this.view.catalogForPopup.removeAll();
+    var marker = A.marker(ra, dec, {popupTitle: title, popupDesc: content, useMarkerDefaultIcon: false});
+    this.view.catalogForPopup.addSources(marker);
+    this.view.catalogForPopup.show();
+
+    this.view.popup.setTitle(title);
+    this.view.popup.setText(content);
+    this.view.popup.setSource(marker);
+    this.view.popup.show();
+};
+
+// @API
+/*
+ * hide popup
+ */
+Aladin.prototype.hidePopup = function() {
+    this.view.popup.hide();
 };
 
 // @API

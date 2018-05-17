@@ -1,6 +1,8 @@
 function Projection(lon0, lat0) {
 	this.PROJECTION = Projection.PROJ_TAN;
 	this.ROT = this.tr_oR(lon0, lat0);
+
+    this.longitudeIsReversed = false;
 }
 
 //var ROT;
@@ -52,6 +54,14 @@ Projection.prototype = {
 	setCenter: function(lon0, lat0) {
 		this.ROT = this.tr_oR(lon0, lat0);
 	},
+
+    /** Reverse the longitude
+      * If set to true, longitudes will increase from left to right
+      *
+      * */
+    reverseLongitude: function(b) {
+        this.longitudeIsReversed = b;
+    },
 	
 	/**
 	 * Set the projection to use
@@ -67,14 +77,20 @@ Projection.prototype = {
 	 * alpha, delta = longitude, lattitude
 	 */
 	project: function(alpha, delta) {
-		var u1 = this.tr_ou(alpha, delta);	// u1[3]
+        var u1 = this.tr_ou(alpha, delta);	// u1[3]
 		var u2 = this.tr_uu(u1, this.ROT);	// u2[3]
 		var P = this.tr_up(this.PROJECTION, u2);	// P[2] = [X,Y]
 		if (P == null) {
 			return null;
 		}
 
-		return { X: -P[0], Y: -P[1] };
+		if( this.longitudeIsReversed) {
+            return { X: P[0], Y: -P[1] };
+        }
+        else {
+		    return { X: -P[0], Y: -P[1] };
+        }
+        //return { X: -P[0], Y: -P[1] };
 	},
 
 	/**
@@ -82,12 +98,23 @@ Projection.prototype = {
 	 * return o = [ ra, dec ]
 	 */
 	unproject: function(X,Y) {
-		X = -X; Y = -Y;
+		if ( ! this.longitudeIsReversed) {
+            X = -X;
+        }
+		Y = -Y;
 		var u1 = this.tr_pu(this.PROJECTION, X, Y);	// u1[3]
 		var u2 = this.tr_uu1(u1, this.ROT);	// u2[3]
 		var o = this.tr_uo(u2);	// o[2]
 
-		return { ra: o[0], dec: o[1] };
+/*
+		if (this.longitudeIsReversed) {
+            return { ra: 360-o[0], dec: o[1] };
+        }
+        else {
+		    return { ra: o[0], dec: o[1] };
+        }
+*/
+        return { ra: o[0], dec: o[1] };
 	},
 
 	/**

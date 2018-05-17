@@ -133,3 +133,63 @@
 .aladin-container {
     border: 0 !important;
 }
+
+fieldset {
+    border: none;
+    padding: 1px;
+}
+
+.object-details-table {
+    font-size: 12px;
+}
+
+.object-details-table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+
+.object-details-table tbody tr:nth-child(odd) {
+    background-color: #ccdadb;
+}
+
+.indicator {
+    font-family: monospace;
+    cursor: pointer;
+}
+
+.right-triangle:before {
+    content: '\25b6';
+}
+
+.down-triangle:before {
+    content: '\25bc';
+}
+
+.cat-options {
+    padding-top: 2px;
+    padding-bottom: 4px;
+}
+
+.cat-options input[type='color'] {
+    width: 50px;
+}
+
+.cat-options input[type='range'] {
+    width: 50px;
+}
+
+.thumbnail-label {
+    position: absolute;
+    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.4);
+    border-radius: 0 8px 8px 0;
+    bottom: 0px;
+    padding: 6px 16px 6px 14px;
+    color: white;
+    z-index: 3;
+    /*font-weight: bold;*/
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.thumbnail-img {
+    cursor: pointer;
+}

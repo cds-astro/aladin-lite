@@ -54,6 +54,7 @@ HpxImageSurvey = (function() {
     	    this.name = name;
             hipsDefProps['obs_title'] = this.name;
 
+            // remove final slash
     	    if (rootUrl.slice(-1) === '/') {
     	        this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
     	    }
@@ -62,6 +63,11 @@ HpxImageSurvey = (function() {
     	    }
             // make URL absolute
             this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
+
+            // fast fix for HTTP support --> will work for all HiPS served by CDS
+            if (Utils.isHttpsContext()) {
+                this.rootUrl = this.rootUrl.replace('http://', 'https://');
+            }
     	
     	    options = options || {};
     	    // TODO : support PNG

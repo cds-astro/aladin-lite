@@ -409,13 +409,9 @@ View = (function() {
 
         //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
         $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-            if (view.mode==View.SELECT && view.dragging) {
-                view.aladin.fire('selectend', 
-                                 view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
-                                                       view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
-            }
-
             var wasDragging = view.realDragging === true;
+            var selectionHasEnded = view.mode===View.SELECT && view.dragging;
+
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
                 view.dragging = false;
@@ -434,10 +430,23 @@ View = (function() {
                 }
             } // end of "if (view.dragging) ... "
 
+            if (selectionHasEnded) {
+                view.aladin.fire('selectend', 
+                                 view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
+                                                       view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
+
+                view.mustRedrawReticle = true; // pour effacer selection bounding box
+                view.requestRedraw();
+
+                return;
+            }
+
+
 
             view.mustClearCatalog = true;
             view.mustRedrawReticle = true; // pour effacer selection bounding box
             view.dragx = view.dragy = null;
+
 
 
             if (e.type==="mouseout") {
@@ -488,7 +497,6 @@ View = (function() {
                         view.lastClickedObject.actionOtherObjectClicked();
                     }
                     o.actionClicked();
-                    //}
                 }
                 view.lastClickedObject = o;
                 var objClickedFunction = view.aladin.callbacksByEventName['objectClicked'];

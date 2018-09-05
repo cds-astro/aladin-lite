@@ -50,14 +50,19 @@ URLBuilder = (function() {
                 return 'http://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Name+Search&radius=' + (60 * radiusDegrees) + '&of=xml_main&objname=' + object;
         },
 
-        buildVizieRCSURL: function(vizCatId, target, radiusDegrees) {
+        buildVizieRCSURL: function(vizCatId, target, radiusDegrees, options) {
             if (target && (typeof target  === "object")) {
                 if ('ra' in target && 'dec' in target) {
                     var coo = new Coo(target.ra, target.dec, 7);
                     target = coo.format('s');
                 }
             }
-            return 'http://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=999999&-c.rd=' + radiusDegrees;
+            
+            var maxNbSources = 1e5;
+            if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
+                maxNbSources = parseInt(options.limit);
+            }
+            return 'http://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
         },
 
         buildSkyBotCSURL: function(ra, dec, radius, epoch, queryOptions) {

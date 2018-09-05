@@ -149,8 +149,9 @@ Aladin = (function() {
 		this.view.setShowGrid(options.showCooGrid);
 
 	    // retrieve available surveys
+        // TODO: replace call with MocServer
 	    $.ajax({
-	        url: "http://aladin.unistra.fr/java/nph-aladin.pl",
+	        url: "//aladin.unistra.fr/java/nph-aladin.pl",
 	        data: {"frame": "aladinLiteDic"},
 	        method: 'GET',
 	        dataType: 'jsonp', // could this be repaced by json ??
@@ -1007,7 +1008,8 @@ Aladin = (function() {
         if (! ('name' in options)) {
             options['name'] = 'VizieR:' + vizCatId;
         }
-        var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius);
+        var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
+
         return A.catalogFromURL(url, options, successCallback, false);
     };
 

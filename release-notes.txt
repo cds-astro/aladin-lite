@@ -1,4 +1,10 @@
-2018-06-16
+2018-08-30
+- URL generated for a VizieR cone search now take into account the option 'limit', as to limit the size of the retrieved VOTable
+
+2018-06-11
+- Bug fix for rectangular selection of sources (aladin.on('select', ...  )
+
+2018-05-16
 - Add variable View.CALLBACKS_THROTTLE_TIME_MS to control minimal time between two callbacks
 
 2018-05-14

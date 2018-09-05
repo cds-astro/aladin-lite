@@ -1,19 +1,37 @@
 <!doctype html>
 <html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+
+
+</head>
 <body>
 
-<script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v1/jquery-1.9.1.min.js" charset="utf-8"></script>
-<div id="aladin-lite-div" style= 'width: 800px; height: 400px;'></div>
+<script src="http://code.jquery.com/jquery-1.12.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <button id="select">Select</button>
-<script type="text/javascript" src="file:///home/boch/workspace/AladinLite/distrib/aladin-0.5.js" charset="utf-8"></script>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
 <script type="text/javascript">
-    var a = $.aladin('#aladin-lite-div', {survey: "P/DSS2/color", zoom:60});
-    a.on('selection', function(selection) {console.log(selection);});
+    
+    
+    // Start up Aladin Lite
+    var aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'P/DSS2/red'});
+    aladin.addCatalog(A.catalogFromSimbad('M51', 0.4, {'color': 'yellow', name: 'Simbad M51', onClick: 'showTable'}));
+
+    
+    aladin.on('select', function(selection) {console.log(selection);});
     
     $('#select').click(function() {
-        a.select();    
+        aladin.select();    
     });
+
+    
     
 </script>
 </body>
 </html>
+

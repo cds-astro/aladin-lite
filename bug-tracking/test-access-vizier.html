@@ -20,8 +20,9 @@
     var aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 0.5});
 
     aladin.addCatalog(A.catalogFromVizieR('II/246', 'M81', 0.4, {'color': 'blue', limit: 700, onClick: 'showTable'}));
-    aladin.addCatalog(A.catalogFromVizieR('APOP', 'M81', 0.4, {'color': 'red', limit: 700, onClick: 'showPopup'}));
+    aladin.addCatalog(A.catalogFromVizieR('APOP', 'M81', 0.4, {'color': 'red', onClick: 'showPopup'}));
     aladin.addCatalog(A.catalogFromVizieR('HIP2', 'M 81', 1, {'color': 'yellow', name: 'VizieR Hip2', limit: 42, onClick: 'showTable'}));
+    aladin.addCatalog(A.catalogFromVizieR('I/345/gaia2', 'M 81', 30, {'color': 'orange', name: 'Gaia', limit: 4*42, onClick: 'showTable'}));
 
     
 

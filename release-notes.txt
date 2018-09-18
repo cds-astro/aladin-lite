@@ -1,3 +1,9 @@
+2018-09-18
+- drawing algorith improved: no more flickering when zooming in
+
+2018-09-17
+- improvement on mobile device: pinch zoom works, panning works better
+
 2018-08-30
 - URL generated for a VizieR cone search now take into account the option 'limit', as to limit the size of the retrieved VOTable
 

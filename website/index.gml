@@ -7,7 +7,7 @@
 <&CDS.headStuff2>
 
     <link href="css/style.css" rel="stylesheet" />
-    <link rel="stylesheet" href="http://aladin.u-strasbg.fr/AladinLite/api/v2/beta/aladin.min.css" />
+    <link rel="stylesheet" href="//aladin.u-strasbg.fr/AladinLite/api/v2/beta/aladin.min.css" />
     <link rel="stylesheet" type="text/css" href="css/tooltipster.css" />
 
     <link rel="stylesheet" type="text/css" href="./slick/slick.css" />
@@ -67,7 +67,7 @@
     <div class="developerInfo">Are you a developer interested in integrating Aladin Lite in your project ? Have a look at the <a href="doc/">dedicated documentation.</a></div>
     <br/><br/>
     
-    <script type="text/javascript" src="http://aladin.u-strasbg.fr/AladinLite/api/v2/beta/aladin.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="//aladin.u-strasbg.fr/AladinLite/api/v2/beta/aladin.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="slick/slick.min.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
 

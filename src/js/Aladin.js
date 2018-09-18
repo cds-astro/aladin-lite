@@ -329,7 +329,7 @@ Aladin = (function() {
     /**** CONSTANTS ****/
     Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
     
-    Aladin.JSONP_PROXY = "http://alasky.unistra.fr/cgi/JSONProxy";
+    Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
 
 
     
@@ -1546,8 +1546,9 @@ Aladin.prototype.getShareURL = function() {
     coo.prec = 7;
     coo.lon = radec[0];
     coo.lat = radec[1];
+
     return 'http://aladin.unistra.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
-           '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id);
+           '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
 };
 
 // @API
@@ -1595,7 +1596,7 @@ Aladin.prototype.displayFITS = function(url, options, successCallback, errorCall
     }
     var self = this;
     $.ajax({
-        url: 'http://alasky.unistra.fr/cgi/fits2HiPS',
+        url: 'https://alasky.unistra.fr/cgi/fits2HiPS',
         data: data,
         method: 'GET',
         dataType: 'json',

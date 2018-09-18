@@ -64,8 +64,8 @@ HpxImageSurvey = (function() {
             // make URL absolute
             this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
 
-            // fast fix for HTTP support --> will work for all HiPS served by CDS
-            if (Utils.isHttpsContext()) {
+            // fast fix for HTTPS support --> will work for all HiPS served by CDS
+            if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
                 this.rootUrl = this.rootUrl.replace('http://', 'https://');
             }
     	
@@ -661,6 +661,7 @@ HpxImageSurvey = (function() {
         	if (img.fadingStart) {
         		if (img.fadingEnd && now<img.fadingEnd) {
         			alpha = 0.2 + (now - img.fadingStart)/(img.fadingEnd - img.fadingStart)*0.8;
+                    this.requestRedraw();
         		}
         	}
         	this.drawOneTile(ctx, img, tilesToDraw[k].corners, img.width, alpha);

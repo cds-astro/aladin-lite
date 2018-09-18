@@ -115,6 +115,13 @@ View = (function() {
     		this.dragx = null;
     		this.dragy = null;
     		this.needRedraw = true;
+
+            // zoom pinching
+            this.pinchZoomParameters = {
+                isPinching: false, // true if a pinch zoom is ongoing
+                initialFov: undefined,
+                initialDistance: undefined
+            };
     
             this.downloader = new Downloader(this); // the downloader object is shared across all HpxImageSurveys
             this.flagForceRedraw = false;
@@ -384,6 +391,18 @@ View = (function() {
         
         
         $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
+            // zoom pinching
+            if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
+                view.dragging = false;
+
+                view.pinchZoomParameters.isPinching = true;
+                var fov = view.aladin.getFov();
+                view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
+                view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
+
+                return;
+            }
+
             var xymouse = view.imageCanvas.relMouseCoords(e);
             if (e.originalEvent && e.originalEvent.targetTouches) {
                 view.dragx = e.originalEvent.targetTouches[0].clientX;
@@ -397,6 +416,8 @@ View = (function() {
                 view.dragx = xymouse.x;
                 view.dragy = xymouse.y;
             }
+
+
             view.dragging = true;
             if (view.mode==View.PAN) {
                 view.setCursor('move');
@@ -409,6 +430,14 @@ View = (function() {
 
         //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
         $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+            if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
+                view.pinchZoomParameters.isPinching = false;
+                view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
+    
+                return;
+            }
+
+
             var wasDragging = view.realDragging === true;
             var selectionHasEnded = view.mode===View.SELECT && view.dragging;
 
@@ -449,15 +478,18 @@ View = (function() {
 
 
 
-            if (e.type==="mouseout") {
+            if (e.type==="mouseout" || e.type==="touchend") {
                 view.requestRedraw(true);
                 updateLocation(view, view.width/2, view.height/2, true);
 
-                if (view.mode===View.TOOL_SIMBAD_POINTER) {
-                    view.setMode(View.PAN);
-                }
 
-                return;
+                if (e.type==="mouseout") {
+                    if (view.mode===View.TOOL_SIMBAD_POINTER) {
+                        view.setMode(View.PAN);
+                    }
+
+                    return;
+                }
             }
 
             var xymouse = view.imageCanvas.relMouseCoords(e);
@@ -505,6 +537,7 @@ View = (function() {
             else {
                 if (view.lastClickedObject && ! wasDragging) {
                     view.aladin.measurementTable.hide();
+                    view.popup.hide();
 
                     if (view.lastClickedObject instanceof Footprint) {
                         //view.lastClickedObject.deselect();
@@ -538,6 +571,14 @@ View = (function() {
         var lastHoveredObject; // save last object hovered by mouse
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
+
+            if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
+                var dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
+                view.setZoom(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist);
+
+                return;
+            }
+
             var xymouse = view.imageCanvas.relMouseCoords(e);
             if (!view.dragging || hasTouchEvents) {
                 // update location box
@@ -828,7 +869,6 @@ View = (function() {
             }
 		}
 		this.stats.update();
-        //console.log("redraw at " + now);
 
 
 		var imageCtx = this.imageCtx;

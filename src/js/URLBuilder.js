@@ -39,15 +39,15 @@ URLBuilder = (function() {
                     target = coo.format('s');
                 }
             }
-            return 'http://alasky.unistra.fr/cgi/simbad-flat/simbad-cs.py?target=' + encodeURIComponent(target) + '&SR=' + radiusDegrees + '&format=votable&SRUNIT=deg&SORTBY=nbref';
+            return 'https://alasky.unistra.fr/cgi/simbad-flat/simbad-cs.py?target=' + encodeURIComponent(target) + '&SR=' + radiusDegrees + '&format=votable&SRUNIT=deg&SORTBY=nbref';
         },
 
         buildNEDPositionCSURL: function(ra, dec, radiusDegrees) {
-                return 'http://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
+                return 'https://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Position+Search&of=xml_main&RA=' + ra + '&DEC=' + dec + '&SR=' + radiusDegrees;
         },
 
         buildNEDObjectCSURL: function(object, radiusDegrees) {
-                return 'http://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Name+Search&radius=' + (60 * radiusDegrees) + '&of=xml_main&objname=' + object;
+                return 'https://ned.ipac.caltech.edu/cgi-bin/nph-objsearch?search_type=Near+Name+Search&radius=' + (60 * radiusDegrees) + '&of=xml_main&objname=' + object;
         },
 
         buildVizieRCSURL: function(vizCatId, target, radiusDegrees, options) {
@@ -62,7 +62,7 @@ URLBuilder = (function() {
             if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
                 maxNbSources = parseInt(options.limit);
             }
-            return 'http://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
+            return 'https://vizier.unistra.fr/viz-bin/votable?-source=' + vizCatId + '&-c=' + encodeURIComponent(target) + '&-out.max=' + maxNbSources + '&-c.rd=' + radiusDegrees;
         },
 
         buildSkyBotCSURL: function(ra, dec, radius, epoch, queryOptions) {

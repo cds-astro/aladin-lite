@@ -33,14 +33,13 @@ Utils = Utils || {};
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
-function relMouseCoords(event){
+function relMouseCoords(event) {
     var totalOffsetX = 0;
     var totalOffsetY = 0;
     var canvasX = 0;
     var canvasY = 0;
     var currentElement = this;
    
-
     if (event.offsetX) {
         return {x: event.offsetX, y:event.offsetY};
     } 
@@ -64,40 +63,28 @@ function relMouseCoords(event){
         var e = event;
         var canvas = e.target;
         // http://www.jacklmoore.com/notes/mouse-position/
-        var target = e.target || e.srcElement,
-        style = target.currentStyle || window.getComputedStyle(target, null),
-        borderLeftWidth = parseInt(style['borderLeftWidth'], 10),
-        borderTopWidth = parseInt(style['borderTopWidth'], 10),
-        rect = target.getBoundingClientRect(),
-        offsetX = e.clientX - borderLeftWidth - rect.left,
-        offsetY = e.clientY - borderTopWidth - rect.top;
+        var target = e.target || e.srcElement;
+        var style = target.currentStyle || window.getComputedStyle(target, null);
+        var borderLeftWidth = parseInt(style['borderLeftWidth'], 10);
+        var borderTopWidth = parseInt(style['borderTopWidth'], 10);
+        var rect = target.getBoundingClientRect();
+
+        var clientX = e.clientX;
+        var clientY = e.clientY;
+        if (e.clientX) {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        else {
+            clientX = e.originalEvent.changedTouches[0].clientX;
+            clientY = e.originalEvent.changedTouches[0].clientY;
+        }
+
+        var offsetX = clientX - borderLeftWidth - rect.left;
+        var offsetY = clientY - borderTopWidth - rect.top
+
         return {x: parseInt(offsetX/Utils.cssScale), y: parseInt(offsetY/Utils.cssScale)};
     }
-
-    // TODO : should we cache the value of scrollLeft/scrollTop to prevent a reflow ? (cf. http://www.phpied.com/rendering-repaint-reflowrelayout-restyle/ )
-    do {
-        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-    }
-    while(currentElement = currentElement.offsetParent)
-        
-
-    // NB: Chrome seems to always use document.body.scrollTop whereas Firefox sometimes use document.documentElement.scrollTop
-    if (event.pageX) {
-        canvasX = event.pageX - totalOffsetX - (document.body.scrollLeft || document.documentElement.scrollLeft);
-        canvasY = event.pageY - totalOffsetY - (document.body.scrollTop || document.documentElement.scrollTop);
-    }
-    // if touch events
-    else {
-        canvasX = event.originalEvent.targetTouches[0].screenX - totalOffsetX - (document.body.scrollLeft || document.documentElement.scrollLeft);
-        canvasY = event.originalEvent.targetTouches[0].screenY - totalOffsetY - (document.body.scrollTop || document.documentElement.scrollTop);
-    }
-
-
-    
-
-    return {x: canvasX, y: canvasY};
-    //return {x: parseInt(canvasX/Utils.cssScale), y: parseInt(canvasY/Utils.cssScale)};
 }
 HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
@@ -254,7 +241,7 @@ Utils.LRUCache.prototype = {
 Utils.loadFromMirrors = function(urls, options) {
     var data    = options && options.data || null;
     var method = options && options.method || 'GET';
-    var dataType = options && options.method || null;
+    var dataType = options && options.dataType || null;
     var timeout = options && options.timeout || 20;
 
     var onSuccess = options && options.onSuccess || null;
@@ -264,10 +251,15 @@ Utils.loadFromMirrors = function(urls, options) {
         (typeof onFailure === 'function') && onFailure();
     }
     else {
-        $.ajax({
+        var ajaxOptions = {
             url: urls[0],
             data: data
-        })
+        }
+        if (dataType) {
+            ajaxOptions.dataType = dataType;
+        }
+
+        $.ajax(ajaxOptions)
         .done(function(data) {
             (typeof onSuccess === 'function') && onSuccess(data);
         })

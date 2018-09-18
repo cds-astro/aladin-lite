@@ -33,7 +33,7 @@ Sesame = (function() {
     
     Sesame.cache = {};
 
-    Sesame.SESAME_URL = "//cds.u-strasbg.fr/cgi-bin/nph-sesame.jsonp?";
+    Sesame.SESAME_URL = "http://cds.u-strasbg.fr/cgi-bin/nph-sesame.jsonp";
 
     /** find RA, DEC for any target (object name or position)
      *  if successful, callback is called with an object {ra: <ra-value>, dec: <dec-value>}
@@ -57,23 +57,26 @@ Sesame = (function() {
         // ask resolution by Sesame
         else {
             Sesame.resolve(target,
+                   function(data) { // success callback
+                       callback({ra:  data.Target.Resolver.jradeg,
+                                 dec: data.Target.Resolver.jdedeg});
+                   },
 
-                           function(data) { // success callback
-                               callback({ra:  data.Target.Resolver.jradeg,
-                                         dec: data.Target.Resolver.jdedeg});
-                           },
-
-                           function(data) { // error callback
-                               if (errorCallback) {
-                                   errorCallback();
-                               }
-                           }
-                           );
+                   function(data) { // error callback
+                       if (errorCallback) {
+                           errorCallback();
+                       }
+                   }
+           );
         }
     };
     
     Sesame.resolve = function(objectName, callbackFunctionSuccess, callbackFunctionError) {
-        var sesameUrl = (Utils.isHttpsContext() ? 'https:' : 'http:') + Sesame.SESAME_URL;
+        var sesameUrl = Sesame.SESAME_URL;
+        if (Utils.isHttpsContext()) {
+            sesameUrl = sesameUrl.replace('http://', 'https://')
+        }
+            
 
         $.ajax({
             url: sesameUrl ,

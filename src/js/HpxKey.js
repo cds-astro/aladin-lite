@@ -122,6 +122,7 @@ HpxKey = (function() {
                 if (this.parente) {
                     w = w / Math.pow(2, this.parente);
                 } 
+
                 this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true, norder);
                 n += 2;
 

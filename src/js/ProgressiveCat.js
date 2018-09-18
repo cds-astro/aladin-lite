@@ -42,6 +42,11 @@ ProgressiveCat = (function() {
         this.type = 'progressivecat';
         
         this.rootUrl = rootUrl; // TODO: method to sanitize rootURL (absolute, no duplicate slashes, remove end slash if existing)
+        // fast fix for HTTPS support --> will work for all HiPS served by CDS
+        if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
+            this.rootUrl = this.rootUrl.replace('http://', 'https://');
+        }
+
         this.frameStr = frameStr;
         this.frame = CooFrameEnum.fromString(frameStr) || CooFrameEnum.J2000;
         this.maxOrder = maxOrder;

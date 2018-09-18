@@ -4,8 +4,21 @@
             return;
         }
 
+        if (/http/i.test(hipsId)) { // if we have a URL
+            HiPSDefinition.fromURL(hipsId, function(definition) {
+                if (definition !== null && definition.properties) {
+                    callback(definition.properties);
+                }
+                else {
+                    console.log('HiPS properties is ' + definition + ', can not load HiPS');
+                }
+            });
+
+            return;
+        }
+
         $.ajax({
-            url: 'http://alasky.unistra.fr/MocServer/query',
+            url: 'https://alasky.unistra.fr/MocServer/query',
             data: {ID: '*' + hipsId + '*', fmt: 'json', get: 'properties', dataproduct_type: 'image', casesensitive: 'false'},
             method: 'GET',
             dataType: 'json',
@@ -90,9 +103,9 @@
 
         // build layers control box
         var hipsCatsDesc = [
-            {id: 'simbad', name: 'SIMBAD', url: 'http://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {shape: 'circle', sourceSize: 8, color: '#318d80'}},
-            {id: 'tgas', name: 'Gaia TGAS', url: 'http://axel.u-strasbg.fr/HiPSCatService/I/337/tgas', options: {shape: 'square', sourceSize: 8, color: '#6baed6'}},
-            {id: '2mass', name: '2MASS', url: 'http://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {shape: 'plus', sourceSize: 8, color: '#dd2233'}},
+            {id: 'simbad', name: 'SIMBAD', url: 'https://axel.u-strasbg.fr/HiPSCatService/SIMBAD', options: {shape: 'circle', sourceSize: 8, color: '#318d80'}},
+            {id: 'gaia-dr2', name: 'Gaia DR2', url: 'https://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', options: {shape: 'square', sourceSize: 8, color: '#6baed6'}},
+            {id: '2mass', name: '2MASS', url: 'https://axel.u-strasbg.fr/HiPSCatService/II/246/out', options: {shape: 'plus', sourceSize: 8, color: '#dd2233'}},
         ];
         var hipsCats = {};
         var layersControl = aladin.box({title: 'Catalogues', position: 'right', css: {top: '35%', 'overflow-y': 'scroll', 'max-height': '50%'}});
@@ -211,8 +224,8 @@
             var imgWidth = parseInt(alWidth / 6);
             var imgHeight = parseInt(alHeight / 6);
             $.ajax({
-                url: "http://alasky.u-strasbg.fr/MocServer/query",
-                    data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', RA: ra, DEC: dec, SR: fov, expr: '(ID=CDS* ||  ips_service_url=*) && hips_refpos!=* && ID!=CDS/Outreach* && ID!=JAXA/P/CONSTELLATIONS*', get: 'record'},
+                url: "https://alasky.u-strasbg.fr/MocServer/query",
+                    data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', RA: ra, DEC: dec, SR: fov, expr: '(ID=CDS* ||  hips_service_url=*) && hips_refpos!=* && ID!=CDS/Outreach* && ID!=JAXA/P/CONSTELLATIONS*', get: 'record'},
                     method: 'GET',
                     dataType: 'json',
                     success: function(result) {
@@ -233,7 +246,7 @@
                             var hips = result[k];
                             var label = hips.ID.split('/').slice(1).join('/').replace("/color","").replace("/Color","").replace("P/","");
                             var surveyId = hips.ID.split('/').slice(1).join('/');
-                            $('#thumbnails-div').slick('slickAdd', '<div><div class="thumbnail-label">' + label + '</div><img class="thumbnail-img" data-surveyId="' + surveyId + '" data-lazy="http://alasky.unistra.fr/hips-thumbnails/thumbnail?ra=' + ra + '&dec=' + dec + '&fov=' + fov + '&width=' + imgWidth + '&height=' + imgHeight + '&hips_kw=' + encodeURIComponent(hips.ID) + '" width=' + imgWidth + ' height= ' + imgHeight + ' /></div>');
+                            $('#thumbnails-div').slick('slickAdd', '<div><div class="thumbnail-label">' + label + '</div><img class="thumbnail-img" data-surveyId="' + surveyId + '" data-lazy="https://alasky.unistra.fr/hips-thumbnails/thumbnail?ra=' + ra + '&dec=' + dec + '&fov=' + fov + '&width=' + imgWidth + '&height=' + imgHeight + '&hips_kw=' + encodeURIComponent(hips.ID) + '" width=' + imgWidth + ' height= ' + imgHeight + ' /></div>');
                         }
                         // update HiPS when clicking on one thumbnail
                         $('.thumbnail-img').click(function() {
@@ -397,7 +410,7 @@
   
 
     $.ajax({
-         url: "http://alasky.u-strasbg.fr/MocServer/query",
+         url: "https://alasky.u-strasbg.fr/MocServer/query",
          data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', fields: 'ID,obs_title,client_category,client_sort_key,client_application,hips_service_url*,hips_order,hips_tile_format,hips_frame,obs_copyright,obs_copyright_url,em_min,em_max'},
          method: 'GET',
          dataType: 'json',
@@ -422,6 +435,9 @@
              
              for (var k=0; k<data.length; k++) {
                   var id = data[k].ID;
+                  if (id=='xcatdb/P/XMM/PN/color') {
+                      data[k].client_category = 'Image/X';
+                  }
                   var w = /^\w+\/(\w+)/.exec(data[k].client_category)[1];
                   id = id.split('/').slice(1).join('/');
                   var s1 = id.replace("/color","");

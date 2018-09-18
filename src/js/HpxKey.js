@@ -125,20 +125,6 @@ HpxKey = (function() {
 
                 this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true, norder);
                 n += 2;
-
-                //var ctx2 = view.reticleCtx;
-/*
-                var ctx2 = ctx;
-
-                ctx2.strokeStyle = 'red';
-                ctx2.beginPath();
-                ctx2.moveTo(corners[0].vx, corners[0].vy);
-                ctx2.lineTo(corners[1].vx, corners[1].vy);
-                ctx2.lineTo(corners[2].vx, corners[2].vy);
-                ctx2.lineTo(corners[3].vx, corners[3].vy);
-                ctx2.lineTo(corners[0].vx, corners[0].vy);
-                ctx2.stroke();
-*/
             }
             else if (updateNeededTiles && ! tile) {
                 tile = this.hips.tileBuffer.addTile(url);

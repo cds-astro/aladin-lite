@@ -448,14 +448,56 @@ HpxImageSurvey = (function() {
     };
 
     HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view) {
-        var hpxKeys = [];
-        var tSize = this.tileSize || 512;
+//////////////////////////////
+        var parentTilesToDraw = [];
+        var parentTilesToDrawIndex = {};
+        var parentTilesMissingIndex = {};
         for (var k=0; k<cornersXYViewMap.length; k++) {
-            hpxKeys.push(new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize));
+            var ipix = cornersXYViewMap[k].ipix
+            var tileURL = this.getTileURL(norder, ipix);
+            var tile = this.tileBuffer.getTile(tileURL);
+            var tileAvailable = tile && Tile.isImageOk(tile.img);
+            if (! tileAvailable) { // if tile is not available, search if upper level tiles can be drawn
+                var MAX_UPPER_LEVELS = 4; // we search parent tiles up to 4 levels
+                for (var parentOrder = norder -1 ; parentOrder>=3 && parentOrder >= norder-MAX_UPPER_LEVELS ; parentOrder--) {
+                    var parentIpix = ~~(ipix / Math.pow(4, norder - parentOrder));
+                    var key = parentOrder + '-' + parentIpix;
+                    if (parentTilesToDrawIndex[key]===true || parentTilesMissingIndex===true) {
+                        break;
+                    }
+                    var parentTileURL = this.getTileURL(parentOrder, parentIpix);
+                    var parentTile = this.tileBuffer.getTile(parentTileURL);
+                    var parentTileAvailable = parentTile && Tile.isImageOk(parentTile.img);
+                    if (parentTileAvailable) {
+                        parentTilesToDraw.push({ipix: parentIpix, order: parentOrder});
+                        parentTilesToDrawIndex[key] = true;
+
+                        break;
+                    }
+                    else {
+                        parentTilesMissingIndex[key] = true;
+                    }
+                }
+            }
         }
-        
-        for (var k=0; k<hpxKeys.length; k++) {
-            hpxKeys[k].draw(ctx, view);
+        // sort to draw lower norder first
+        parentTilesToDraw = parentTilesToDraw.sort(function(itemA, itemB) {
+            return itemA.order - itemB.order;
+        });
+
+//////////////////////////////
+
+        var tSize = this.tileSize || 512;
+        // draw parent tiles
+        for (var k=0; k<parentTilesToDraw.length; k++) {
+            var t = parentTilesToDraw[k];
+            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, view);
+        }
+
+        // TODO : we could have a pool of HpxKey to prevent object re-creation at each frame
+        // draw tiles
+        for (var k=0; k<cornersXYViewMap.length; k++) {
+            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, view);
         }
     };
 

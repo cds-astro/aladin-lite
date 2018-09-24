@@ -16,8 +16,8 @@
 
 <script type="text/javascript">
     
-var aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'M51', fov: 0.3});
-var cat = A.catalogFromURL('http://cds-dev-tb:42195/bug-tracking/data/allwise-m51.vot', {sourceSize:4, color: 'pink'}, null, false);
+var aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'M51', fov: 3});
+var cat = A.catalogFromURL('Saadaql.xml', {sourceSize:4, color: 'pink', onClick: 'showTable'}, null, false);
 aladin.addCatalog(cat);
 
     

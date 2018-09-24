@@ -525,7 +525,7 @@ View = (function() {
                 // show measurements
                 else {
                     if (view.lastClickedObject) {
-                        view.lastClickedObject.actionOtherObjectClicked();
+                        view.lastClickedObject.actionOtherObjectClicked && view.lastClickedObject.actionOtherObjectClicked();
                     }
                     o.actionClicked();
                 }

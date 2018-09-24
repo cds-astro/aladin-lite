@@ -948,6 +948,7 @@ Aladin = (function() {
         return A.catalogFromURL(url, options);
     };
 
+    // TODO: try first without proxy, and then with, if param useProxy not set
     // API
     A.catalogFromURL = function(url, options, successCallback, useProxy) {
         var catalog = A.catalog(options);

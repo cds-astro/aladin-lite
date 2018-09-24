@@ -1,3 +1,6 @@
+2018-09-24
+- bug fix in VOTable parsing: CDATA text was always blank in <TD></TD>
+
 2018-09-18
 - drawing algorith improved: no more flickering when zooming in
 

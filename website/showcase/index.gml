@@ -32,6 +32,7 @@
             <ul>
                 <li><a href="PanSTARRS-DR1">Visualisation of Pan-STARRS DR1</a></li>
                 <li><a href="slider-split-views">Split views</a> with a slider to compare two HiPS</li>
+                <li>Visualise <a href="kepler-transits">24 hours of Kepler transits</a></li>
             </ul>
         </div>
     </div>

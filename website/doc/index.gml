@@ -141,6 +141,7 @@
         <p>Outside CDS, Aladin Lite is used in several projects:
             <ul>
                 <li><a href="http://sky.esa.int/" title="ESA Sky">ESA Sky</a> allows for discovery and access of data observed by ESA space missions</li>
+                <li><a href="http://almascience.org/aq" title="ALMA archive link">ALMA Science Archive</a></li>
                 <li><a href="http://www.virgo-gw.eu/skymap.html" title="GW170814 skymap">GW170814 interactive skymap</a> displays the localisation on the sky of the gravitational wave event jointly detected by LIGO and Virgo observatories, and announced in September 2017.</li>
                 <li><a href="https://heasarc.gsfc.nasa.gov/xamin/" title="Xamin">HEASARC Xamin system</a> for discovery and data retrieval</li>
                 <li><a href="https://losc.ligo.org/s/skymapViewer/aladin/index.html#GW150914:LALI" title="Skymap viewer">Skymap Viewer</a> shows probability contours for gravitational wave events from LIGO/Virgo</li>

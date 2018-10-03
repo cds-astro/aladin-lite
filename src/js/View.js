@@ -1881,6 +1881,9 @@ View = (function() {
                                 this.width, this.height,
                                 this.largestDim,
                                 this.zoomFactor);
+                        if (! xy) {
+                            continue;
+                        }
                         pointXY.push({
                             x: xy.vx,
                             y: xy.vy

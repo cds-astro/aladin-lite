@@ -46,6 +46,7 @@
             <li><a href="#source-code">Source code</a></li>
             <li><a href="#ipyaladin">Integration in Python notebooks</a></li>
             <li><a href="#mobile-apps">Integration in mobile apps</a></li>
+            <li><a href="#showcase">Showcase</a></li>
             <li><a href="#plugins">Plugins</a></li>
             <li><a href="#release-notes">Release notes</a></li>
             <li><a href="#contact">Contact</a></li>
@@ -199,6 +200,15 @@
             <h3>iPhone</h3>
         If you have integrated Aladin Lite in an iPhone application, please <a href="#contact">let us know</a>.
         </p>
+
+        <!-------------------------------------------------------------------->
+        <!-- Showcase -->
+        <a name="showcase"></a>
+        <div class="page-header">
+          <h1>Showcase</h1>
+        </div>
+        <p><a href="../showcase/">This page</a> features some experimental, original usages of Aladin Lite.
+        
 
         <!-------------------------------------------------------------------->
         <!-- Plugins -->

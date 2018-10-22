@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="../distrib/latest/aladin.min.css" />
+<style>
+html, body {
+padding: 10px;
+}
+</style>
+</head>
+<body>
+
+<link href="http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="http://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+
+  
+<br/>
+<div id="aladin-lite-div" style="width: 800px;height: 600px"></div>
+<script type="text/javascript" src="../distrib/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin = A.aladin('#aladin-lite-div', {target: "13 44 38 -30 31 33",zoom: 5});
+
+    aladin.setBaseImageLayer(aladin.createImageSurvey("remote", "remote", "alasky.u-strasbg.fr/hips-image-services/convert", "equatorial", 9, {imgFormat: 'jpg', additionalParams: 'cmap=rainbow'}));
+    
+    
+
+    
+    
+</script>
+</body>
+</html>

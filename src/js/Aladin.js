@@ -952,6 +952,7 @@ Aladin = (function() {
     // API
     A.catalogFromURL = function(url, options, successCallback, useProxy) {
         var catalog = A.catalog(options);
+        // TODO: should be self-contained in Catalog class
         cds.Catalog.parseVOTable(url, function(sources) {
                 catalog.addSources(sources);
                 if (successCallback) {

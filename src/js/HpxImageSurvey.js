@@ -61,7 +61,7 @@ HpxImageSurvey = (function() {
     	    else {
     	        this.rootUrl = rootUrl;
     	    }
-            this.additionalParams = options.additionalParams || null; // parameters for cut, stretch, etc
+            this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
             this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);

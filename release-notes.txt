@@ -1,3 +1,6 @@
+2018-10-30
+- bug fix affichage MOC order>11
+
 2018-09-24
 - bug fix in VOTable parsing: CDATA text was always blank in <TD></TD>
 

@@ -115,7 +115,7 @@ MOC = (function() {
             // high res cells
             degradedOrder = MOC.HIGHRES_MAXORDER; 
             degradedIpix  = Math.floor(ipix / Math.pow(4, (order - degradedOrder)));
-            var degradedIpixOrder3 = Math.floor(degradedIpix * Math.pow(4, (3 - degradedIpix)) );
+            var degradedIpixOrder3 = Math.floor(degradedIpix * Math.pow(4, (3 - degradedOrder)) );
             if (! (degradedOrder in this._highResIndexOrder3[degradedIpixOrder3])) {
                 this._highResIndexOrder3[degradedIpixOrder3][degradedOrder]= [];
             }

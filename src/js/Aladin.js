@@ -356,7 +356,8 @@ Aladin = (function() {
         realFullscreen:           false,
         showAllskyRing:           false,
         allskyRingColor:          '#c8c8ff',
-        allskyRingWidth:          8
+        allskyRingWidth:          8,
+        pixelateCanvas:           true
     };
 
    

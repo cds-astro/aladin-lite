@@ -222,7 +222,7 @@ View = (function() {
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
 
-        pixelateCanvasContext(this.imageCtx);
+        pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
         // change logo
         if (!this.logoDiv) {
@@ -244,12 +244,13 @@ View = (function() {
         this.requestRedraw();
     };
 
-    var pixelateCanvasContext = function(ctx) {
-        ctx.imageSmoothingEnabled = false;
-        ctx.webkitImageSmoothingEnabled = false;
-        ctx.mozImageSmoothingEnabled = false;
-        ctx.msImageSmoothingEnabled = false;
-        ctx.oImageSmoothingEnabled = false;
+    var pixelateCanvasContext = function(ctx, pixelateFlag) {
+        var value = ! pixelateFlag;
+        ctx.imageSmoothingEnabled = value;
+        ctx.webkitImageSmoothingEnabled = value;
+        ctx.mozImageSmoothingEnabled = value;
+        ctx.msImageSmoothingEnabled = value;
+        ctx.oImageSmoothingEnabled = value;
     }
     
 

@@ -47,6 +47,7 @@
 
     <title>Aladin Lite</title>
 
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.12.1.min.js"></script> 
     <script type="text/javascript" src="js/jquery.tooltipster.min.js"></script>
 </head>
 
@@ -66,7 +67,7 @@
     <br/>
     <div class="developerInfo">Are you a developer interested in integrating Aladin Lite in your project ? Have a look at the <a href="doc/">dedicated documentation.</a></div>
     <br/><br/>
-    
+   
     <script type="text/javascript" src="//aladin.u-strasbg.fr/AladinLite/api/v2/beta/aladin.min.js" charset="utf-8"></script>
     <script type="text/javascript" src="slick/slick.min.js"></script>
     <script type="text/javascript" src="js/app.js"></script>

@@ -79,6 +79,8 @@
           </div>
           <div class="span3">
               <div id="aladin-lite-div" style="width:300px;height:300px;"></div>
+
+              <script type="text/javascript" src="//code.jquery.com/jquery-1.12.1.min.js"></script>
               <script type="text/javascript" src="//aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
               <script type="text/javascript">
                 var aladin = $.aladin('#aladin-lite-div', {showControl: false, fov: 0.5, target: "20 45 38.0 +30 42 30", cooFrame: "J2000", survey: "P/DSS2/color", showFullscreenControl: false, showFrame: false, showGotoControl: false});

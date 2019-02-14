@@ -222,6 +222,23 @@
         <p>
             <ul>
                 <li>
+                    <h3>ALiX</h3>
+                    <div class="row">
+                        <div class="span5">
+                            <p><a href="https://github.com/lmichel/alix/">ALiX</a> is a flexible catalog portal based on Aladin Lite. It it designed to use an interactive sky view as a primary selection tool. The ALiX view is constantly updated with data queried in the host database. It offers advanced functionalities allowing to mix local data with VO data. Users can plot by hand areas of interest and manage an historic of the views.</p>
+                            <p>ALiX has no dependency with any specific data source; it can be integrated in any existing portal.</p>
+                        </div>
+                        <div class="span3">
+                           <a href="https://github.com/lmichel/alix/"><img src="img/alix-plugin.png" style="max-width: 100% ; height: auto;"></a>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </p>
+
+        <p>
+            <ul>
+                <li>
                     <h3>Region editor</h3>
                     <div class="row">
                         <div class="span5">

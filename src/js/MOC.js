@@ -290,7 +290,7 @@ MOC = (function() {
 
         var counter = 0;
         var mocCells;
-        for (var norder=1; norder<=norderMax; norder++) {
+        for (var norder=0; norder<=norderMax; norder++) {
             nside = 1 << norder;
 
             for (var i=0; i<visibleHpxCellsOrder3.length; i++) {

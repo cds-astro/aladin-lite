@@ -70,6 +70,9 @@ HpxImageSurvey = (function() {
             if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
                 this.rootUrl = this.rootUrl.replace('http://', 'https://');
             }
+
+            // temporary fix when alasky is under maintenance
+            //this.rootUrl = this.rootUrl.replace('alasky.', 'alaskybis.');
     	
     	    options = options || {};
     	    // TODO : support PNG

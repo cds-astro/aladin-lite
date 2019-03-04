@@ -1276,6 +1276,34 @@ Aladin = (function() {
 
         return this.view.getCanvasDataURL(options.format, options.width, options.height);
     }
+
+    /**
+     * Return the current view WCS as a key-value dictionary
+     * Can be useful in coordination with getViewDataURL
+     *
+     * @API
+    */
+    Aladin.prototype.getViewWCS = function(options) {
+        var raDec = this.getRaDec();
+        var fov   = this.getFov();
+        // TODO: support for other projection methods than SIN
+        return {
+            NAXIS:     2,
+            NAXIS1:    this.view.width,
+            NAXIS2:    this.view.height,
+            RADECSYS: 'ICRS',
+            CRPIX1:    this.view.width  / 2,
+            CRPIX2:    this.view.height / 2,
+            CRVAL1:    raDec[0],
+            CRVAL2:    raDec[1],
+            CTYPE1:    'RA---SIN',
+            CTYPE2:    'DEC--SIN',
+            CD1_1:     fov[0] / this.view.width,
+            CD1_2:     0.0,
+            CD2_1:     0.0,
+            CD2_2:     fov[1] / this.view.height
+        }
+    }
      
      /** restrict FOV range
       * @API

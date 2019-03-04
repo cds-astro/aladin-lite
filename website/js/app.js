@@ -18,7 +18,7 @@
         }
 
         $.ajax({
-            url: 'https://alasky.unistra.fr/MocServer/query',
+            url: 'https://alaskybis.unistra.fr/MocServer/query',
             data: {ID: '*' + hipsId + '*', fmt: 'json', get: 'properties', dataproduct_type: 'image', casesensitive: 'false'},
             method: 'GET',
             dataType: 'json',
@@ -224,7 +224,7 @@
             var imgWidth = parseInt(alWidth / 6);
             var imgHeight = parseInt(alHeight / 6);
             $.ajax({
-                url: "https://alasky.u-strasbg.fr/MocServer/query",
+                url: "https://alaskybis.u-strasbg.fr/MocServer/query",
                     data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', RA: ra, DEC: dec, SR: fov, expr: '(ID=CDS* ||  hips_service_url=*) && hips_refpos!=* && ID!=CDS/Outreach* && ID!=JAXA/P/CONSTELLATIONS*', get: 'record'},
                     method: 'GET',
                     dataType: 'json',
@@ -410,7 +410,7 @@
   
 
     $.ajax({
-         url: "https://alasky.u-strasbg.fr/MocServer/query",
+         url: "https://alaskybis.u-strasbg.fr/MocServer/query",
          data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', fields: 'ID,obs_title,client_category,client_sort_key,client_application,hips_service_url*,hips_order,hips_tile_format,hips_frame,obs_copyright,obs_copyright_url,em_min,em_max'},
          method: 'GET',
          dataType: 'json',

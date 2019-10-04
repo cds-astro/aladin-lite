@@ -18,7 +18,7 @@
         }
 
         $.ajax({
-            url: 'https://alaskybis.unistra.fr/MocServer/query',
+            url: 'https://alasky.unistra.fr/MocServer/query',
             data: {ID: '*' + hipsId + '*', fmt: 'json', get: 'properties', dataproduct_type: 'image', casesensitive: 'false'},
             method: 'GET',
             dataType: 'json',
@@ -63,6 +63,8 @@
 
     var curSurveyId = null;
     var aladin = null;
+    var hipsIdToHipsDef = {};
+
     $(document).ready(function() {
 
         $(window).resize(function() {
@@ -224,7 +226,7 @@
             var imgWidth = parseInt(alWidth / 6);
             var imgHeight = parseInt(alHeight / 6);
             $.ajax({
-                url: "https://alaskybis.u-strasbg.fr/MocServer/query",
+                url: "https://alasky.u-strasbg.fr/MocServer/query",
                     data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', RA: ra, DEC: dec, SR: fov, expr: '(ID=CDS* ||  hips_service_url=*) && hips_refpos!=* && ID!=CDS/Outreach* && ID!=JAXA/P/CONSTELLATIONS*', get: 'record'},
                     method: 'GET',
                     dataType: 'json',
@@ -400,23 +402,48 @@
         if (!s1) {
             return;
         }
-        $('#content').html(s1.obs_title+" - <a href=\""+s1.obs_copyright_url+"\">"+s1.obs_copyright+"</a>");
+        var footerLine = s1.obs_copyright_url && s1.obs_copyright ?
+                            s1.obs_title+" - <a href=\""+s1.obs_copyright_url+"\">"+s1.obs_copyright+"</a>" :
+                            s1.obs_title;
+        $('#content').html(footerLine);
     }
 
     function setSurvey(s) {
+console.log(s);
         aladin.setImageSurvey(s);
         setInfo(s);
      }
   
 
     $.ajax({
-         url: "https://alaskybis.u-strasbg.fr/MocServer/query",
+         url: "https://alasky.u-strasbg.fr/MocServer/query",
          data: {dataproduct_type: 'image', client_application: 'AladinLite', fmt: 'json', fields: 'ID,obs_title,client_category,client_sort_key,client_application,hips_service_url*,hips_order,hips_tile_format,hips_frame,obs_copyright,obs_copyright_url,em_min,em_max'},
          method: 'GET',
          dataType: 'json',
          success: function(data) {
-             var tooltipDescriptions = {};
-             var res = '<div class="surveys-list">';
+             var hipsToExclude = ['CDS/P/PanSTARRS/DR1/z', 'CDS/P/PanSTARRS/DR1/g'];
+             data = data.filter(function(hips) {
+                 return hipsToExclude.indexOf(hips.ID)<0
+             });
+             var hipsToAdd = [
+                { "ID":"cxc.harvard.edu/P/cda/hips/allsky/rgb", "hips_service_url":"https://cdaftp.cfa.harvard.edu/cxc-hips", "obs_title":"CXC HiPS", "em_min":"2.0000000000000001e-10", "em_max":"6e-09", "hips_frame":"equatorial", "hips_order":"11", "hips_tile_format":"png", "hips_service_url_1":"http://alasky.u-strasbg.fr/CHANDRA/cxc.harvard.edu_P_cda_hips_allsky_rgb", "client_application":"AladinDesktop", "client_category":"Image/X/CXC"}
+             ];
+             for (var k=0; k<hipsToAdd.length; k++) {
+                 hips = hipsToAdd[k];
+                 var idx = hips.ID.indexOf('/P/');
+                 var id = hips.ID.substring(idx+1);
+                 HpxImageSurvey.SURVEYS.push(
+                     {
+                         id:       id,
+                         url:      hips.hips_service_url,
+                         name:     hips.obs_title,
+                         maxOrder: parseInt(hips.hips_order),
+                         frame:    hips.hips_frame,
+                         format:   hips.hips_tile_format
+                    }
+                 );
+             }
+             data = data.concat(hipsToAdd);
              data.sort(function(a, b) {
                 var a_em_avg = (parseFloat(a.em_min) + parseFloat(a.em_max)) / 2;
                 var b_em_avg = (parseFloat(b.em_min) + parseFloat(b.em_max)) / 2;
@@ -433,6 +460,8 @@
              surveys = data;
 
              
+             var res = '<div class="surveys-list">';
+             var tooltipDescriptions = {};
              for (var k=0; k<data.length; k++) {
                   var id = data[k].ID;
                   if (id=='xcatdb/P/XMM/PN/color') {
@@ -443,6 +472,8 @@
                   var s1 = id.replace("/color","");
                   s1 = s1.replace("/Color","");
                   s1 = s1.replace("P/","");
+                  s1 = s1.replace("DR1-z-zg-g","DR1 color");
+                  s1 = s1.replace("cda/hips/allsky/rgb","Chandra");
                   var imgPath = 'survey-previews/' + id.replace(/\//g, "_") + '.jpg';
                   res += '<div class="survey" data-surveyId="' + id + '"><div class="survey-label">' + s1 + '</div><img class="survey-preview" src="' + imgPath + '" /><div class="survey-selected" style="display: none;"><div class="survey-selected-img"></div></div></div>';
                   tooltipDescriptions[id] = '<div>Band: ' + w + '</div><div>' + data[k].obs_title + '</div>';

@@ -100,6 +100,8 @@
           <p><b>Terms of use:</b> you are welcome to integrate Aladin Lite in your web pages and to customize its GUI to your needs, but please <b>leave the Aladin logo and link intact</b> at the bottom right of the view.</p>
         </div>
         <iframe style="width: 100%; height: 100%;" marginheight="0" marginwidth="0" src="embedding.html" width="100%" height="600px" frameborder="0" scrolling="no"></iframe>
+
+        <p>For more details and options, have a look at the tutorial <b><a href="tutorials/interactive-finding-chart/">Build an interactive sky map with Aladin Lite</a></b>, initially developed for <a href="https://sites.google.com/a/dotastronomy.com/wiki/dotastro7">dotAstronomy7</a>.</p>
         
         
         <!-------------------------------------------------------------------->
@@ -146,6 +148,7 @@
                 <li><a href="http://archive.eso.org/scienceportal/home" title="ESO Archive Science Portal">ESO Archive Science Portal</a></li>
                 <li><a href="http://sky.esa.int/" title="ESA Sky">ESA Sky</a> allows for discovery and access of data observed by ESA space missions</li>
                 <li><a href="http://almascience.org/aq" title="ALMA archive link">ALMA Science Archive</a></li>
+                <li>The <a href="https://lasair.roe.ac.uk" title="Lasair website">Lasair</a> alerts broker uses Aladin Lite on its <a href="https://lasair.roe.ac.uk/coverage/">coverage</a>, <a href="https://lasair.roe.ac.uk/object/ZTF19aafmidf/">object details</a> and <a href="https://lasair.roe.ac.uk/skymap/GW170817/">skymap</a> pages.</li>
                 <li><a href="http://www.virgo-gw.eu/skymap.html" title="GW170814 skymap">GW170814 interactive skymap</a> displays the localisation on the sky of the gravitational wave event jointly detected by LIGO and Virgo observatories, and announced in September 2017.</li>
                 <li><a href="https://heasarc.gsfc.nasa.gov/xamin/" title="Xamin">HEASARC Xamin system</a> for discovery and data retrieval</li>
                 <li><a href="https://losc.ligo.org/s/skymapViewer/aladin/index.html#GW150914:LALI" title="Skymap viewer">Skymap Viewer</a> shows probability contours for gravitational wave events from LIGO/Virgo</li>
@@ -280,6 +283,71 @@
         <div class="page-header">
           <h1>Release notes</h1>
         </div>
+
+        <h4>February 2019</h4>
+        <p>add method getViewWCS</p>
+        <p>bug fix for MOC rendering: MOC cells at order 0 and MOC with order&gt;13 are now properly displayed</p>
+        <p></p>
+
+        <h4>September 2018</h4>
+        <p>drawing algorithm improvement: <b>no more flickering</b> when zooming in</p>
+        <p><b>mobile devices support</b>: pinch to zoom works, panning works better</p>
+        <p>bug fix in VOTable parsing: CDATA text was always blank in TD tags</p>
+
+        <h4>August 2018</h4>
+        <p>bug fix for rectangular selection of sources (<em>aladin.on('select', ...)</em>)</p>
+        <p>URL generated for a VizieR cone search now take into account the option 'limit', as to limit the size of the retrieved VOTable</p>
+
+        <h4>April 2018</h4>
+        <p>add Simbad pointer tool</p>
+        <p>add startup options realFullscreen and simbadPointer</p>
+        <p>add method zoomToFoV (zoom with animation)</p>
+        <p>improve rendering of all-sky view</p>
+        <p>add option showAllskyRing</p>
+
+        <h4>December 2017</h4>
+        <p>footprint selection is enabled (Fabrizio Giordano [ESA/<a href="http://archives.esac.esa.int ">ESDC</a>] contribution)
+        <p>add listener for 'mouseMove' event</p>
+        <p>add dragging attribute to positionChanged listener callback param</p>
+        <p>improve positionChanged listener: no more called when clicking on an object</p>
+        <p>support Circle when generating footprints from STC-S descriptions</p>
+        <p>Catalog.onClick can now also be a function</p>
+        <p>add function udpateShape for Catalog and ProgressiveCatalog object</p>
+        <p>add shape option 'circle' for catalogues</p>
+        <p>bug fix for progressive catalogues rendering</p>
+
+        <h4>September 2017</h4>
+        <p>fix: export PNG was not working any longer in latest version of Chrome, as top frame navigation to data URL was no longer allowed</p>
+        <p>improvement: MOCs, catalogs and overlays have now different logos in the "stack"</p>
+        <p>gotoObject: can now take a success callback function</p>
+        <p>dimensions can be specified for getViewDataURL method</p>
+        <p>add listener for 'click' event</p>
+        <p>improve MOC display speed</p>
+        <p>bug fix : MOC display with norder>9 (thanks to Raffaele D'Abrusco for the bug report)</p>
+        <p>Sesame bug fix when used in a local file web page</p>
+        <p>MOC display is way faster when panning</p>
+
+        <h4>August 2017</h4>
+        <p>add adaptativeDisplay option for MOCs</p>
+        <p>try first to load MOC through given URL, and only if it fails, try through proxy (allows to load local/not publicly accessible MOCs)</p>
+        <p>all graphical overlays (footprints, MOCs) in addition to catalogs are now visible and can be shown/hidden from the control panel</p>
+        <p>fix: when going full screen, background is now all white (no more HTML elements visible in the background)</p>
+        <p>style improvement: layer labels in Overlay layers panel are rounded at both ends</p>
+        <p>add J2000d option for frame selection</p>
+
+        <h4>July 2017</h4>
+        <p>MOC display bug fix</p>
+        <p>add method adjustFovForObject</p>
+        <p>add listeners on positionChanged and zoomChanged</p>
+        <p>Sesame call now done in HTTPS</p>
+
+        <h4>February 2017</h4>
+        <p>shape parameter when creating a catalogue can now be a custom draw function</p>
+        <p>bug fix for displaying a HiPS overlaid over a HiPs with a different coordinate frame</p>
+
+        <h4>January 2017</h4>
+        <p>new method allowing direct query to SkyBot</p>
+
 
         <h4>January 2017</h4>
         <p>new method allowing direct query to SkyBot</p>

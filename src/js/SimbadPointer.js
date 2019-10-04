@@ -36,7 +36,7 @@ SimbadPointer = (function() {
     
     SimbadPointer = {};
 
-    SimbadPointer.MIRRORS = ['//alasky.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py', '//alaskybis.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py']; // list of base URL for Simbad pointer service
+    SimbadPointer.MIRRORS = ['https://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py', 'https://alaskybis.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py']; // list of base URL for Simbad pointer service
 
     
     SimbadPointer.query = function(ra, dec, radiusDegrees, aladinInstance) {

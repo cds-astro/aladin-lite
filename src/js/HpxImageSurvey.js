@@ -245,7 +245,7 @@ HpxImageSurvey = (function() {
      },
      {
         "id": "P/GALEXGR6/AIS/color",
-        "url": "http://alasky.u-strasbg.fr/GALEX/GR6-02-Color",
+        "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
         "name": "GALEX Allsky Imaging Survey colored",
         "maxOrder": 8,
         "frame": "equatorial",
@@ -301,7 +301,7 @@ HpxImageSurvey = (function() {
      },
      {
          "id": "P/XMM/PN/color",
-          "url": "http://saada.unistra.fr/xmmpnsky",
+          "url": "http://saada.unistra.fr/PNColor",
           "name": "XMM PN colored",
           "maxOrder": 7,
           "frame": "equatorial",

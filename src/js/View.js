@@ -169,7 +169,7 @@ View = (function() {
     View.DRAW_MOCS_WHILE_DRAGGING = true;
 
     View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
-    
+
     
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
@@ -245,12 +245,12 @@ View = (function() {
     };
 
     var pixelateCanvasContext = function(ctx, pixelateFlag) {
-        var value = ! pixelateFlag;
-        ctx.imageSmoothingEnabled = value;
-        ctx.webkitImageSmoothingEnabled = value;
-        ctx.mozImageSmoothingEnabled = value;
-        ctx.msImageSmoothingEnabled = value;
-        ctx.oImageSmoothingEnabled = value;
+        var enableSmoothing = ! pixelateFlag;
+        ctx.imageSmoothingEnabled = enableSmoothing;
+        ctx.webkitImageSmoothingEnabled = enableSmoothing;
+        ctx.mozImageSmoothingEnabled = enableSmoothing;
+        ctx.msImageSmoothingEnabled = enableSmoothing;
+        ctx.oImageSmoothingEnabled = enableSmoothing;
     }
     
 
@@ -510,7 +510,7 @@ View = (function() {
             if (! wasDragging && objs) {
                 var o = objs[0];
 
-                // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+                // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
                 if (o instanceof Footprint || o instanceof Circle) {
                     o.dispatchClickEvent();
                 }
@@ -569,6 +569,7 @@ View = (function() {
             view.requestRedraw(true);
         });
         var lastHoveredObject; // save last object hovered by mouse
+        var lastMouseMovePos = null;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
 
@@ -590,6 +591,11 @@ View = (function() {
                     if (pos !== undefined) {
                         onMouseMoveFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y});
                     }
+                    // send null ra and dec when we go out of the "sky"
+                    else if (lastMouseMovePos != null) {
+                        onMouseMoveFunction({ra: null, dec: null, x: xymouse.x, y: xymouse.y});
+                    }
+                    lastMouseMovePos = pos;
                 }
 
 
@@ -1493,7 +1499,11 @@ View = (function() {
         
         this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
         
+        var oldFov = this.fov;
         this.fov = computeFov(this);
+
+
+        // TODO: event/listener should be better
         updateFovDiv(this);
         
         this.computeNorder();
@@ -1638,6 +1648,8 @@ View = (function() {
             // buffer reset
             this.tileBuffer = new TileBuffer();
         }
+
+        this.downloader.emptyQueue();
         
         newImageSurvey.isReady = false;
         this.imageSurvey = newImageSurvey;
@@ -1861,7 +1873,7 @@ View = (function() {
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
     View.prototype.closestObjects = function(x, y, maxRadius) {
 
-        // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+        // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
         var overlay;
         var canvas=this.catalogCanvas;
         var ctx = canvas.getContext("2d");

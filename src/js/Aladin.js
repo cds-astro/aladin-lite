@@ -330,6 +330,7 @@ Aladin = (function() {
     Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
+    //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
 
 
     

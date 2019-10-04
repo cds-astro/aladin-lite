@@ -73,7 +73,7 @@ Circle = (function() {
     
     Circle.prototype.dispatchClickEvent = function() {
         if (this.overlay) {
-            // footprint selection code adapted from Fabrizzio Giordano dev. from Serco for ESA/ESDC
+            // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
             //window.dispatchEvent(new CustomEvent("footprintClicked", {
             this.overlay.view.aladinDiv.dispatchEvent(new CustomEvent("footprintClicked", {
                 detail: {

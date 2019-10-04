@@ -42,6 +42,11 @@ Downloader = (function() {
 		this.dlQueue = []; // queue of items being downloaded
         this.urlsInQueue = {};
 	};
+
+	Downloader.prototype.emptyQueue = function() {
+		this.dlQueue = [];
+        this.urlsInQueue = {};
+    };
 	
 	Downloader.prototype.requestDownload = function(img, url, cors) {
         // first check if url already in queue

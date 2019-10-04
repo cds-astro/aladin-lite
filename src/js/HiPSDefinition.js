@@ -316,10 +316,10 @@ HiPSDefinition = (function() {
     "hips_order": "7",
     "hips_frame": "equatorial",
     "hips_tile_format": "png jpeg",
-    "hips_service_url": "http://saada.unistra.fr/xmmpnsky",
-    "hips_service_url_1": "http://alasky.unistra.fr/SSC/xmmpnsky",
-    "hips_service_url_2": "http://alaskybis.unistra.fr/SSC/xmmpnsky",
-    "hips_service_url_3": "https://alaskybis.unistra.fr/SSC/xmmpnsky"
+    "hips_service_url": "http://saada.unistra.fr/PNColor",
+    "hips_service_url_1": "http://alasky.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color",
+    "hips_service_url_2": "http://alaskybis.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color",
+    "hips_service_url_3": "https://alaskybis.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color"
 }];
 
     var listHipsProperties = []; // this variable stores our current knowledge

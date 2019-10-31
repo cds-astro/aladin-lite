@@ -5,7 +5,7 @@ Aladin Lite is a Web application which enables HiPS visualization from the brows
 
 See [A&A 578, A114 (2015)](https://arxiv.org/abs/1505.02291) and [IVOA HiPS Recommendation](http://ivoa.net/documents/HiPS/index.html) for more details about the HiPS standard.
 
-Aladin Lite is built to be easily embeddable in any web page. It powers astronomical portals like [https://sky.esa.int/](ESASky), [http://archive.eso.org/scienceportal/](ESO Science Archive portal) and [https://almascience.eso.org/asax/](ALMA Portal).
+Aladin Lite is built to be easily embeddable in any web page. It powers astronomical portals like [ESASky](https://almascience.eso.org/asax/), [ESO Science Archive portal](http://archive.eso.org/scienceportal/) and [ALMA Portal](https://almascience.eso.org/asax/).
 
 More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
 

@@ -1,6 +1,0 @@
-{
-    "title": "Aladin Lite in responsive container",
-    "html": "<link rel='stylesheet' href='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='https://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 100%; height:98%;'></div>\n<script type='text/javascript' src='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
-    "js": "var aladin = A.aladin('#aladin-lite-div', {fov:1, target: 'M81'});",
-    "explain": "Resize your window, and see how Aladin Lite adapts to the size of its parent div."
-}

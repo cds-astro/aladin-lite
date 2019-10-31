@@ -1,6 +1,0 @@
-{
-    "title": "Display footprints",
-    "html": "<link rel='stylesheet' href='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='https://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>\n<script type='text/javascript' src='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
-    "js": "var aladin = A.aladin('#aladin-lite-div', {target: 'M 1', fov: 0.2});\n\nvar overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 3});\naladin.addOverlay(overlay);\noverlay.addFootprints([A.polygon([[83.64287, 22.01713], [83.59872, 22.01692], [83.59852, 21.97629], [83.64295, 21.97629]]), A.polygon([[83.62807, 22.06330], [83.58397, 22.02280], [83.62792, 22.02258]])]);\noverlay.add(A.circle(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees",
-    "explain": ""
-}

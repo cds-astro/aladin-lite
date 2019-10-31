@@ -1,6 +1,0 @@
-{
-    "title": "Overlay an image layer on the base image layer",
-    "html": "<link rel='stylesheet' href='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css' />\n<script type='text/javascript' src='https://code.jquery.com/jquery-1.9.1.min.js' charset='utf-8'></script>\n\n<div id='aladin-lite-div' style='width: 700px;height: 500px;'></div>\n<script type='text/javascript' src='https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js' charset='utf-8'></script>\n",
-    "js": "var aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 110, target: 'galactic center'});\naladin.setBaseImageLayer('P/Mellinger/color');\naladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));\naladin.getOverlayImageLayer().setAlpha(1.0);",
-    "explain": ""
-}

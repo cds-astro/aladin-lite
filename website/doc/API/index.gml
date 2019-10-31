@@ -158,6 +158,11 @@
         
         <p>Example: <a href="examples/color-map/">setting a cubehelix color map</a></p>
 
+
+
+        <h3>Visualizing a FITS image</h3>
+        <p>While Aladin Lite currently does not support natively, small FITS images can be visualized by converting them server-side to HiPS under the hood using the <code>displayFITS(&lt;FITS-URL&gt;)</code> method.<br>Example: <code>displayFITS('http://data.astropy.org/tutorials/FITS-images/HorseHead.fits')</code><br><br>The input parameter can also be given as a base64 <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs">data URL</a>.</p>
+
         <!-------------------------------------------------------------------->
         <!-- Catalogue layers -->
         <a name="catalogue-layers"></a>

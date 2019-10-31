@@ -36,5 +36,5 @@ There are several ways to contribute to Aladin Lite:
 
 - **suggest a new feature**: if you feel something is missing, check first if a similar feature request has not already been submitted in the open issues. If not, open a new issue, and give a detailed explanation of the feature you wish.
 
-- **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time limit code contribution (_i.e._ Pull Requests) from our close partners.
+- **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time only take into consideration code contribution (_i.e._ Pull Requests) from our close partners.
 In any case, please get in touch before starting a major update or rewrite.

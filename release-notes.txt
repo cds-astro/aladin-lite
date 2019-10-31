@@ -1,3 +1,6 @@
+2019-10
+- displayFITS can now take a base64 data URL as input
+
 2019-05-03
 - https URLs for Simbad pointer
 

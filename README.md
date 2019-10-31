@@ -3,7 +3,7 @@
 
 Aladin Lite is a Web application which enables HiPS visualization from the browser. It is developed at [CDS, Strasbourg astronomical data center](http://cds.unistra.fr/).
 
-See [A&A 578, A114 (2015)](https://arxiv.org/abs/1505.02291) and [http://ivoa.net/documents/HiPS/index.html](IVOA HiPS Recommendation) for more details about the HiPS standard.
+See [A&A 578, A114 (2015)](https://arxiv.org/abs/1505.02291) and [IVOA HiPS Recommendation](http://ivoa.net/documents/HiPS/index.html) for more details about the HiPS standard.
 
 Aladin Lite is built to be easily embeddable in any web page.
 

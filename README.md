@@ -1,5 +1,5 @@
 # Aladin Lite
-**An astronomical HiPS visualizer in the browser**
+**An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
 Aladin Lite is a Web application which enables HiPS visualization from the browser. It is developed at [CDS, Strasbourg astronomical data center](http://cds.unistra.fr/).
 

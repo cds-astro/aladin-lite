@@ -1873,6 +1873,8 @@ View = (function() {
         var overlay;
         var canvas=this.catalogCanvas;
         var ctx = canvas.getContext("2d");
+        // this makes footprint selection easier as the catch-zone is larger
+        ctx.lineWidth = 6;
 
         if (this.overlays) {
             for (var k=0; k<this.overlays.length; k++) {

@@ -1639,15 +1639,11 @@ View = (function() {
         else {
             newImageSurvey = imageSurvey;
         }
-    
-        // do not touch the tileBuffer if we load the exact same HiPS (in that case, should we stop here??)    
-        if (newImageSurvey && this.imageSurvey && newImageSurvey.hasOwnProperty('id') && this.imageSurvey.hasOwnProperty('id') && newImageSurvey.id==this.imageSurvey.id) {
-            // do nothing
-        }
-        else {
-            // buffer reset
-            this.tileBuffer = new TileBuffer();
-        }
+ 
+        // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
+        // ideally, instead of creating a new TileBuffer object,
+        //  one should remove from TileBuffer all Tile objects still in the download queue qui sont encore dans la download queue
+        this.tileBuffer = new TileBuffer();
 
         this.downloader.emptyQueue();
         

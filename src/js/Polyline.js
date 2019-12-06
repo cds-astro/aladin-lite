@@ -37,7 +37,8 @@ Polyline= (function() {
     // constructor
     Polyline = function(radecArray, options) {
         options = options || {};
-        this.color = options['color'] || undefined;
+        this.color = options['color'] || "white";
+        this.lineWidth = options["lineWidth"] || 2;
         
         this.radecArray = radecArray;
         this.overlay = null;
@@ -89,6 +90,22 @@ Polyline= (function() {
             this.overlay.reportChange();
         }
     };
+
+    Polyline.prototype.setLineWidth = function(lineWidth) {
+        if (this.lineWidth == lineWidth) {
+            return;
+        }
+        this.lineWidth = lineWidth;
+        this.overlay.reportChange();
+    };
+
+    Polyline.prototype.setColor = function(color) {
+        if (this.color == color) {
+            return;
+        }
+        this.color = color;
+        this.overlay.reportChange();
+    };
     
     Polyline.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
@@ -103,21 +120,44 @@ Polyline= (function() {
             ctx.strokeStyle= this.color;
         }
         var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
-        if (! start) {
-            return;
-        }
-        
-        ctx.moveTo(start.vx, start.vy);
-        var pt;
-        for (var k=1; k<this.radecArray.length; k++) {
-            pt = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
-            if (!pt) {
+
+        for (var k = 0; k < this.radecArray.length; k++) {
+            start = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
+            if (start) {
                 break;
             }
-            ctx.lineTo(pt.vx, pt.vy);
         }
-        
-        
+        if (!start) {
+            return;
+        }
+
+        ctx.moveTo(start.vx, start.vy);
+        var pt;
+        var newSeg = false;
+        var drawingNewSeg = true;
+        for (var k = 1; k < this.radecArray.length; k++) {
+            pt = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
+            if (!pt) {
+                if (drawingNewSeg) {
+                    //console.log("closing segment");
+                    ctx.stroke();
+                }
+                drawingNewSeg = false;
+                newSeg = true;
+            } else {
+                if (newSeg) {
+                    //console.log ("starting newSeg at "+pt.vx+" "+pt.vy);
+                    drawingNewSeg = true;
+                    ctx.beginPath();
+                    ctx.lineWidth = this.lineWidth;
+                    ctx.moveTo(pt.vx, pt.vy);
+                    newSeg = false;
+                } else {
+                    ctx.lineTo(pt.vx, pt.vy);
+                }
+            }
+
+        }
         ctx.stroke();
     };
     

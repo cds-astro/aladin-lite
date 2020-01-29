@@ -102,7 +102,6 @@ Polyline= (function() {
         if (this.color) {
             ctx.strokeStyle= this.color;
         }
-        console.log(ctx.strokeStyle);
         var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
         if (! start) {
             return;

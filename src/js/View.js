@@ -1454,7 +1454,7 @@ View = (function() {
     };
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || fovDegrees>180) {
+        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
         var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);

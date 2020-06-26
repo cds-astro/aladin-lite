@@ -462,6 +462,19 @@ cds.Catalog = (function() {
         this.view = view;
         this.reportChange();
     };
+
+    // remove a source
+    cds.Catalog.prototype.remove = function(source) {
+        var idx = this.sources.indexOf(source);
+        if (idx<0) {
+            return;
+        }
+
+        this.sources[idx].deselect();
+        this.sources.splice(idx, 1);
+
+        this.reportChange();
+    };
     
     cds.Catalog.prototype.removeAll = cds.Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index

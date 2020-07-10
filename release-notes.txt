@@ -1,3 +1,6 @@
+2020-07
+- new method stopAnimation
+
 2020-06
 - new method in Catalog layer to *remove* individual *Source* objects
 

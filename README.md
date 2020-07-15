@@ -19,7 +19,7 @@ Work repo for Aladin Lite v3
 - support tuiles FITS et images FITS ?
 
 - easy sharing of current « view » 
-=======
+
 # Aladin Lite
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
@@ -60,4 +60,3 @@ There are several ways to contribute to Aladin Lite:
 
 - **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time only take into consideration code contribution (_i.e._ Pull Requests) from our close partners.
 In any case, please get in touch before starting a major update or rewrite.
->>>>>>> eb0a1f91391e4d2da37e3065b3a6798d7c5980ed

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+        
+        <script src="js/libs/jquery-1.9.1.min.js"></script>
+        <script src="js/libs/jquery.mousewheel.min.js"></script>
+        <script src="js/libs/RequestAnimationFrame.js"></script>
+        <script src="js/libs/Stats.js"></script>
+        
+        <script src="js/libs/healpix.min.js"></script>
+        <script src="js/libs/astro/astroMath.js"></script>
+        <script src="js/libs/astro/projection.js"></script>
+        <script src="js/libs/astro/coo.js"></script>
+        
+
+        
+        <script src="js/CooConversion.js"></script>
+        <script src="js/Sesame.js"></script>
+        <script src="js/HealpixCache.js"></script>
+        <script src="js/Utils.js"></script>
+        <script src="js/AladinUtils.js"></script>
+        <script src="js/ProjectionEnum.js"></script>
+        <script src="js/CooFrameEnum.js"></script>
+        <script src="js/Downloader.js"></script>
+        <script src="js/Source.js"></script>
+        <script src="js/Catalog.js"></script>
+        <script src="js/Tile.js"></script>
+        <script src="js/TileBuffer.js"></script>
+        <script src="js/HpxImageSurvey.js"></script>
+        <script src="js/HealpixGrid.js"></script>
+        <script src="js/Location.js"></script>
+        <script src="js/View.js"></script>
+        <script src="js/Aladin.js"></script>
+        
+        <script>
+        $(document).ready(function() {
+            
+            
+            var aladin = $.aladin('divAladin', {zoom: 60});
+            
+        });
+        </script>
+    </head>
+    <body>
+       <noscript><h2>Javascript is needed !</h2></noscript>
+       <div id="statsDiv"></div>
+            
+    
+        <div>
+            <div id="divAladin" style="width: 1000px; height: 700px; border: 1px solid;"></div>
+        </div>
+    </body>
+</html>
+    

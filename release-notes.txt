@@ -1,0 +1,217 @@
+2020-07
+- new method stopAnimation
+
+2020-06
+- new method in Catalog layer to *remove* individual *Source* objects
+
+2019-10
+- displayFITS can now take a base64 data URL as input
+
+2019-05-03
+- https URLs for Simbad pointer
+
+2019-04-30
+- empty Downloader queue when changing displayed HiPs
+
+2019-02-06
+- bug fix: MOC cells at order 0 were not displayed
+
+2019-01
+- add method getViewWCS
+
+2018-10-30
+- bug fix affichage MOC order>11
+
+2018-09-24
+- bug fix in VOTable parsing: CDATA text was always blank in <TD></TD>
+
+2018-09-18
+- drawing algorith improved: no more flickering when zooming in
+
+2018-09-17
+- improvement on mobile device: pinch zoom works, panning works better
+
+2018-08-30
+- URL generated for a VizieR cone search now take into account the option 'limit', as to limit the size of the retrieved VOTable
+
+2018-06-11
+- Bug fix for rectangular selection of sources (aladin.on('select', ...  )
+
+2018-05-16
+- Add variable View.CALLBACKS_THROTTLE_TIME_MS to control minimal time between two callbacks
+
+2018-05-14
+- HTTPS support for Logger
+
+2018-04-20
+- partially fix the all-sky view (the cells borders were visible) --> delta in method HpxImageSurvey.drawOneTile2
+- add option showAllskyRing
+- all-sky is shown at orders 3 and 4
+
+2018-04
+- Add method zoomToFoV (zoom with animation)
+- doc : ajout Tour navigator library dans Plugins
+
+2018-01-09
+- Add option simbadPointer
+
+2018-01-08
+- Add option realFullscreen
+
+2017-12-20
+- Catalog.onClick can now also be a function
+
+2017-12-14
+- add function udpateShape for Catalog and ProgressiveCatalog object
+- ajout shape 'circle' pour les catalogues
+- bug fix: les cats progressifs ne s'affichaient pas quand on était zoomé et qu'on ne bougeait pas
+
+2017-12-13
+- support Circle when generating footprints from STC-S descriptions
+
+2017-11-30
+- improve positionChanged listener: no more called when clicking on an object
+- improve object shown when clicking ; it's really the closest one now
+
+2017-11-24
+- add dragging attribute to positionChanged listener callback param
+
+2017-10-09
+- add listener for 'mouseMove' event
+
+2017-09-28
+- MOC display is way faster when panning
+- Sesame bug fix when used in a local file web page
+
+2017-09-27
+- bug fix : MOC display with norder>9 (thanks to Raffaele D'Abrusco)
+- improve MOC display speed
+
+2017-09-21:
+- add listener for 'click' event
+- dimensions can be specified for getViewDataURL method
+
+2017-09-08:
+- gotoObject: can now take a success callback function
+- improve AITOFF display
+
+2017-09-07:
+- improvement: MOCs, catalogs and overlays have now different logos in the "stack"
+
+2017-09-06:
+- fix: export PNG was not working any longer in latest version of Chrome, as top frame navigation to data URL was no longer allowed
+
+2017-08-28:
+- add J2000d option for frame selection
+
+2017-08-25:
+- all graphical overlays (footprints, MOCs) in addition to catalogs are now visible and can be shown/hidden from the control panel
+- add skyFraction method to MOC class
+- fix: when going full screen, background is now all white (no more HTML elements visible in the background)
+- style: layer labels in Overlay layers panel are rounded at both ends
+
+
+2017-08-24:
+- add adaptativeDisplay option for MOCs
+- try first to load MOC through given URL, and only if it fails, try through proxy (allows to load local/not publicly accessible MOCs)
+
+
+July 2017:
+- bug fix MOC
+- add method adjustFovForObject
+- add listeners on positionChanged zoomChanged
+- fix pour Andre Moitinho pour que Sesame fonctionne en HTTPS
+
+February 2017:
+- shape parameter when creating a catalogue can now be a custom draw function
+- bug fix, when superimposing a HiPS over a HiPS with a different coordinate frame
+
+January 2017:
+- added method to query SkyBot: A.catalogFromSkyBot
+
+October 2016:
+- 
+
+September 2016:
+- support of HiPS catalog (new format)
+
+
+June 2016:
+- fix astrometry offset by subdividing HEALPix cells too distorted
+- new method A.MOCFromJSON to create a MOC from the JSON serialization
+
+
+March 2016:
+- added raField and decField options when creating catalogue
+
+December 2015:
+- added cubehelix color map
+- added option in A.catalogFromURL to bypass proxy
+- access to Simbad and VizieR data (catalogFromVizieR and catalogFromSimbad) are now done directly, without the proxy
+
+Novembre 2015:
+- ajout méthodes getShareURL et getEmbedCode
+
+Octobre 2015:
+- ajout méthodes accès facile à Simbad, NED et VizieR
+- ajout onClick comme option de Catalog: 'showTable' ou 'showPopup'
+
+Octobre 2015:
+- nouvelle version de jquery mousewheel (ça déconnait un peu sous Mac avec la précedente)
+
+Décembre 2014:
+- ajout displayLabel pour afficher un label d'un overlay Catalog
+- ajout option lineWidth pour objet A.graphicOverlay
+- bug fix : la liste déroulante est mise à jour correctement quand on change de frame programmatiquement
+
+Novembre 2014:
+- ajout nouvelles formes pour les sources
+
+23 octobre 2014:
+- bug fix méthode on('objectClicked') était appelée de manière intempestive 
+quand la souris quittait le canvas
+
+21 octobre 2014:
+- ajout option shape (plus ou square) pour les catalogues
+
+20 octobre 2014:
+- amélioration on objectClicked et objectHivered. On envoie une valeur nulle pour signifier qu'on quitte l'objet
+- ajout méthode pour dessiner un cercle (A.circle)
+
+16 septembre 2014:
+- bug fix pour nouvelle version de Firefox. Aladin lite freezait. On ne crée plus les textures individuelles pour le allsky
+
+24 avril 2014 :
+Ajout dans API :
+- getSize
+- getFov
+- world2pix
+- pix2world
+- getFovCorners
+
+Novembre 2013:
+- ajout catalogues progressifs
+- ajout option pour fullScreen mode au démarrage
+- ajout méthode setFOVRange
+- polyfill pour Function.prototype.bind (pour Firefox < 4)
+
+Septembre 2013:
+- color maps
+
+Août 2013:
+- ajout page exemple full-screen.html
+- ajout bouton maximize in fullscreen
+- CSS dans fichier séparé
+- image réticule "cachée"
+- options pour personnaliser le réticule
+- revamped UI for layers
+- export PNG (nécessite support CORS)
+
+Juillet 2013 :
+- ajout boutons zoom
+- ajout sélection d'objets
+
+Fin 2013 :
+- ajout catalogue progressif
+- ajout on select, objectClicked, objectHovered
+

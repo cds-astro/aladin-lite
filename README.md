@@ -20,6 +20,11 @@ Work repo for Aladin Lite v3
 
 - easy sharing of current « view » 
 
+- création instance  HiPS depuis une URL
+
+- gestion miroirs  HiPS
+
+
 # Aladin Lite
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 

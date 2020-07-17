@@ -395,7 +395,7 @@ export let View = (function() {
             catch(err) {
                 return;
             }
-            radec = [];
+            var radec = [];
             // convert to J2000 if needed
             if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);

@@ -12,8 +12,10 @@
 import { SpatialVector }   from "./libs/healpix.js";
 import { astro }   from "./libs/fits.js";
 import { CooFrameEnum }   from "./CooFrameEnum.js";
-import { HealpixCache }   from "./HealpixCache.js";
+//import { HealpixCache }   from "./HealpixCache.js";
+import { Aladin }   from "./Aladin.js";
 import { AladinUtils }   from "./AladinUtils.js";
+import { CooConversion }   from "./CooConversion.js";
 
 
 export let MOC = (function() {
@@ -372,34 +374,39 @@ export let MOC = (function() {
 
 
     // TODO: merge with what is done in View.getVisibleCells
-    var _spVec = new SpatialVector();
+    //var _spVec = new SpatialVector();
     var getXYCorners = function(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection) {
         var cornersXYView = [];
         var cornersXY = [];
 
-        var spVec = _spVec;
+        //var spVec = _spVec;
 
-        var corners = HealpixCache.corners_nest(ipix, nside);
+        //var corners = HealpixCache.corners_nest(ipix, nside);
+        var corners = Aladin.wasmLibs.hpx.nestedVertices(Math.log2(nside), ipix);
+
+        var ra, dec;
         var lon, lat;
         for (var k=0; k<4; k++) {
-            spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
+            //spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 
+            ra = corners[2*k];
+            dec = corners[2*k + 1];
             // need for frame transformation ?
             if (surveyFrame && surveyFrame.system != viewFrame.system) {
                 if (surveyFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-                    var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]);
+                    var radec = CooConversion.J2000ToGalactic([ra, dec]);
                     lon = radec[0];
                     lat = radec[1];
                 }
                 else if (surveyFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-                    var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]);
+                    var radec = CooConversion.GalacticToJ2000([ra, dec]);
                     lon = radec[0];
                     lat = radec[1];
                 }
             }
             else {
-                lon = spVec.ra();
-                lat = spVec.dec();
+                lon = ra;
+                lat = dec;
             }
 
             cornersXY[k] = projection.project(lon, lat);

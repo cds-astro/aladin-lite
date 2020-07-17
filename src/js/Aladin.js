@@ -60,7 +60,6 @@ export let Aladin = (function () {
             return;
         }
 
-
         var self = this;
 
         // if not options was set, try to retrieve them from the query string
@@ -353,6 +352,9 @@ export let Aladin = (function () {
 
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
+
+    // access to WASM libraries
+    Aladin.wasmLibs = {};
 
 
 
@@ -1688,9 +1690,16 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     return A.catalogFromURL(url, options, successCallback, false);
 };
 
+A.init = new Promise((resolutionFunc, rejectionFunc) => {
+    const hpx = import('@fxpineau/healpix');
+    hpx
+        .then(hpxAPI => {
+            Aladin.wasmLibs.hpx = hpxAPI;
+            resolutionFunc();
+        })
+        .catch(console.error);
+});
+
 // this is ugly for sure and there must be a better way using Webpack magic
 window.A  = A;
 
-
-
-// TODO: callback function onAladinLiteReady

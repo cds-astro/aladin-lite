@@ -29,9 +29,9 @@
  *****************************************************************************/
 
 
-URLBuilder = (function() {    
+export let URLBuilder = (function() {    
 
-    URLBuilder = {
+    let URLBuilder = {
         buildSimbadCSURL: function(target, radiusDegrees) {
             if (target && (typeof target  === "object")) {
                 if ('ra' in target && 'dec' in target) {

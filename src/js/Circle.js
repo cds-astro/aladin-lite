@@ -28,10 +28,14 @@
  * 
  *****************************************************************************/
 
+import { Utils } from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+
 // TODO : Circle and Footprint should inherit from the same root object
-Circle = (function() {
+export let Circle = (function() {
     // constructor
-    Circle = function(centerRaDec, radiusDegrees, options) {
+    let Circle = function(centerRaDec, radiusDegrees, options) {
         options = options || {};
         
         this.color = options['color'] || undefined;

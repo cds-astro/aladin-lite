@@ -28,7 +28,14 @@
  * 
  *****************************************************************************/
 
-HpxImageSurvey = (function() {
+import { HiPSDefinition} from "./HiPSDefinition.js";
+import { Utils } from "./Utils.js";
+import { ColorMap } from "./ColorMap.js";
+import { HpxKey } from "./HpxKey.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+import { Tile } from "./Tile.js";
+
+export let HpxImageSurvey = (function() {
 
 
     /** Constructor
@@ -36,7 +43,7 @@ HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    var HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
+    let HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
         // new way
         if (idOrHiPSDefinition instanceof HiPSDefinition) {
             this.hipsDefinition = idOrHiPSDefinition;
@@ -84,6 +91,9 @@ HpxImageSurvey = (function() {
 
             // TODO : lire depuis fichier properties
             this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
+            if (options.cooFrame) {
+                this.cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+            }
 
             this.longitudeReversed = options.longitudeReversed || false;
         
@@ -93,6 +103,9 @@ HpxImageSurvey = (function() {
             }
             // TODO : lire depuis fichier properties
             this.maxOrder = maxOrder;
+            if (options.maxOrder) {
+                this.maxOrder = options.maxOrder;
+            }
 
             this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
         }
@@ -832,6 +845,7 @@ HpxImageSurvey = (function() {
             ctx.globalAlpha = alpha;
         }
 
+       let coeff = 0.02;
 /*
         var coeff = 0.01; // default value
         if (applyCorrection) {
@@ -841,7 +855,6 @@ HpxImageSurvey = (function() {
             coeff = 0.02; // TODO ???? 
         }
 */
-coeff = 0.02;
 
         // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
         ctx.beginPath();

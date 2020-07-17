@@ -29,14 +29,22 @@
  * 
  *****************************************************************************/
 
-HpxKey = (function() {
+import { SpatialVector }   from "./libs/healpix.js";
+import { HealpixCache }   from "./HealpixCache.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { Tile } from "./Tile.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+import { CooConversion } from "./CooConversion.js";
+
+export let HpxKey = (function() {
 
     "use strict";
 
     /** Constructor
      *  
      */
-    var HpxKey = function(norder, npix, hips, width, height, dx, dy, allskyTexture, allskyTextureSize) {
+    let HpxKey = function(norder, npix, hips, width, height, dx, dy, allskyTexture, allskyTextureSize) {
         this.norder = norder;
         this.npix = npix;
 
@@ -180,7 +188,7 @@ HpxKey = (function() {
             var cornersXYView = [];
             var spVec = new SpatialVector();
 
-            corners = HealpixCache.corners_nest(this.npix, this.nside);
+            var corners = HealpixCache.corners_nest(this.npix, this.nside);
 
             var lon, lat;
             for (var k=0; k<4; k++) {

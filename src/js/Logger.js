@@ -20,7 +20,7 @@
 
 
 // log 
-Logger = {};
+export let Logger = {};
 
 Logger.log = function(action, params) {
     try {

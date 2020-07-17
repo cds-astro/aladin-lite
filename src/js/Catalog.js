@@ -29,9 +29,18 @@
  * 
  *****************************************************************************/
 
+import { Source } from "./Source.js"
+import { Color } from "./Color.js"
+import { HealpixIndex }   from "./libs/healpix.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+import { Utils } from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { Coo } from "./libs/astro/coo.js";
+
 // TODO : harmoniser parsing avec classe ProgressiveCat
-cds.Catalog = (function() {
-   cds.Catalog = function(options) {
+export let Catalog = (function() {
+
+   function Catalog(options) {
         options = options || {};
 
         this.type = 'catalog';    	this.name = options.name || "catalog";
@@ -92,7 +101,7 @@ cds.Catalog = (function() {
         this.isShowing = true;
     };
     
-    cds.Catalog.createShape = function(shapeName, color, sourceSize) {
+    Catalog.createShape = function(shapeName, color, sourceSize) {
         if (shapeName instanceof Image || shapeName instanceof HTMLCanvasElement) { // in this case, the shape is already created
             return shapeName;
         }
@@ -255,7 +264,7 @@ cds.Catalog = (function() {
     
     // return an array of Source(s) from a VOTable url
     // callback function is called each time a TABLE element has been parsed
-    cds.Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
+    Catalog.parseVOTable = function(url, callback, maxNbSources, useProxy, raField, decField) {
 
         // adapted from votable.js
         function getPrefix($xml) {
@@ -337,7 +346,7 @@ cds.Catalog = (function() {
                    ra = coo.lon;
                    dec = coo.lat;
                }
-               sources.push(new cds.Source(ra, dec, mesures));
+               sources.push(new Source(ra, dec, mesures));
                if (maxNbSources && sources.length==maxNbSources) {
                    return false; // break the .each loop
                }
@@ -355,7 +364,7 @@ cds.Catalog = (function() {
     };
 
     // API
-    cds.Catalog.prototype.updateShape = function(options) {
+    Catalog.prototype.updateShape = function(options) {
         options = options || {};
     	this.color = options.color || this.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || this.sourceSize || 6;
@@ -363,14 +372,14 @@ cds.Catalog = (function() {
 
         this.selectSize = this.sourceSize + 2;
 
-        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
-        this.cacheSelectCanvas = cds.Catalog.createShape('square', this.selectionColor, this.selectSize);
+        this.cacheCanvas = Catalog.createShape(this.shape, this.color, this.sourceSize); 
+        this.cacheSelectCanvas = Catalog.createShape('square', this.selectionColor, this.selectSize);
 
         this.reportChange();
     };
     
     // API
-    cds.Catalog.prototype.addSources = function(sourcesToAdd) {
+    Catalog.prototype.addSources = function(sourcesToAdd) {
         sourcesToAdd = [].concat(sourcesToAdd); // make sure we have an array and not an individual source
     	this.sources = this.sources.concat(sourcesToAdd);
     	for (var k=0, len=sourcesToAdd.length; k<len; k++) {
@@ -385,7 +394,7 @@ cds.Catalog = (function() {
     //
     // @param columnNames: array with names of the columns
     // @array: 2D-array, each item being a 1d-array with the same number of items as columnNames
-    cds.Catalog.prototype.addSourcesAsArray = function(columnNames, array) {
+    Catalog.prototype.addSourcesAsArray = function(columnNames, array) {
         var fields = [];
         for (var colIdx=0 ; colIdx<columnNames.length; colIdx++) {
             fields.push({name: columnNames[colIdx]});
@@ -423,12 +432,12 @@ cds.Catalog = (function() {
     };
     
     // return the current list of Source objects
-    cds.Catalog.prototype.getSources = function() {
+    Catalog.prototype.getSources = function() {
         return this.sources;
     };
     
     // TODO : fonction générique traversant la liste des sources
-    cds.Catalog.prototype.selectAll = function() {
+    Catalog.prototype.selectAll = function() {
         if (! this.sources) {
             return;
         }
@@ -438,7 +447,7 @@ cds.Catalog = (function() {
         }
     };
     
-    cds.Catalog.prototype.deselectAll = function() {
+    Catalog.prototype.deselectAll = function() {
         if (! this.sources) {
             return;
         }
@@ -449,7 +458,7 @@ cds.Catalog = (function() {
     };
     
     // return a source by index
-    cds.Catalog.prototype.getSource = function(idx) {
+    Catalog.prototype.getSource = function(idx) {
         if (idx<this.sources.length) {
             return this.sources[idx];
         }
@@ -458,13 +467,13 @@ cds.Catalog = (function() {
         }
     };
     
-    cds.Catalog.prototype.setView = function(view) {
+    Catalog.prototype.setView = function(view) {
         this.view = view;
         this.reportChange();
     };
 
     // remove a source
-    cds.Catalog.prototype.remove = function(source) {
+    Catalog.prototype.remove = function(source) {
         var idx = this.sources.indexOf(source);
         if (idx<0) {
             return;
@@ -476,12 +485,12 @@ cds.Catalog = (function() {
         this.reportChange();
     };
     
-    cds.Catalog.prototype.removeAll = cds.Catalog.prototype.clear = function() {
+    Catalog.prototype.removeAll = Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
         this.sources = [];
     };
     
-    cds.Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }
@@ -495,7 +504,7 @@ cds.Catalog = (function() {
         }
         var sourcesInView = [];
  	    for (var k=0, len = this.sources.length; k<len; k++) {
-		    var inView = cds.Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+		    var inView = Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
             if (inView) {
                 sourcesInView.push(this.sources[k]);
             }
@@ -514,7 +523,7 @@ cds.Catalog = (function() {
             if (! source.isSelected) {
                 continue;
             }
-            cds.Catalog.drawSourceSelection(this, source, ctx);
+            Catalog.drawSourceSelection(this, source, ctx);
             
         }
         // NEEDED ?
@@ -525,14 +534,14 @@ cds.Catalog = (function() {
             ctx.fillStyle = this.labelColor;
             ctx.font = this.labelFont;
             for (var k=0, len = sourcesInView.length; k<len; k++) {
-                cds.Catalog.drawSourceLabel(this, sourcesInView[k], ctx);
+                Catalog.drawSourceLabel(this, sourcesInView[k], ctx);
             }
         }
     };
     
     
     
-    cds.Catalog.drawSource = function(catalogInstance, s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Catalog.drawSource = function(catalogInstance, s, ctx, projection, frame, width, height, largestDim, zoomFactor) {
         if (! s.isShowing) {
             return false;
         }
@@ -589,7 +598,7 @@ cds.Catalog = (function() {
         
     };
     
-    cds.Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
+    Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
@@ -598,7 +607,7 @@ cds.Catalog = (function() {
         ctx.drawImage(catalogInstance.cacheSelectCanvas, s.x-sourceSize/2, s.y-sourceSize/2);
     };
 
-    cds.Catalog.drawSourceLabel = function(catalogInstance, s, ctx) {
+    Catalog.drawSourceLabel = function(catalogInstance, s, ctx) {
         if (!s || !s.isShowing || !s.x || !s.y) {
             return;
         }
@@ -613,11 +622,11 @@ cds.Catalog = (function() {
 
     
     // callback function to be called when the status of one of the sources has changed
-    cds.Catalog.prototype.reportChange = function() {
+    Catalog.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();
     };
     
-    cds.Catalog.prototype.show = function() {
+    Catalog.prototype.show = function() {
         if (this.isShowing) {
             return;
         }
@@ -625,7 +634,7 @@ cds.Catalog = (function() {
         this.reportChange();
     };
     
-    cds.Catalog.prototype.hide = function() {
+    Catalog.prototype.hide = function() {
         if (! this.isShowing) {
             return;
         }
@@ -637,5 +646,5 @@ cds.Catalog = (function() {
         this.reportChange();
     };
 
-    return cds.Catalog;
+    return Catalog;
 })();

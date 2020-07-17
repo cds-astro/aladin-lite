@@ -29,7 +29,28 @@
  * 
  *****************************************************************************/
 
-View = (function() {
+import { Popup }          from "./Popup.js";
+import { HealpixGrid }    from "./HealpixGrid.js";
+import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { ProjectionEnum } from "./ProjectionEnum.js";
+import { Projection }     from "./libs/astro/projection.js";
+import { Coo }            from "./libs/astro/coo.js";
+import { AladinUtils }    from "./AladinUtils.js";
+import { HealpixIndex }   from "./libs/healpix.js";
+import { HealpixCache }   from "./HealpixCache.js";
+import { SpatialVector }   from "./libs/healpix.js";
+import { Utils }          from "./Utils.js";
+import { TileBuffer }     from "./TileBuffer.js";
+import { Downloader }     from "./Downloader.js";
+import { Stats }          from "./libs/Stats.js";
+import { ColorMap } from "./ColorMap.js";
+import { Footprint } from "./Footprint.js";
+import { Circle } from "./Circle.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+import { CooConversion } from "./CooConversion.js";
+import { requestAnimFrame }          from "./libs/RequestAnimationFrame.js";
+
+export let View = (function() {
 
     /** Constructor */
     function View (aladin, location, fovDiv, cooFrame, zoom) {
@@ -307,16 +328,16 @@ View = (function() {
      * @param view
      * @returns FoV (array of 2 elements : width and height) in degrees
      */
-    computeFov = function(view) {
+   function computeFov(view) {
         var fov = doComputeFov(view, view.zoomFactor);
         
         
         view.mouseMoveIncrement = fov/view.imageCanvas.width;
             
         return fov;
-    };
+    }
     
-    doComputeFov = function(view, zoomFactor) {
+    function doComputeFov(view, zoomFactor) {
         // if zoom factor < 1, we view 180°
         var fov;
         if (view.zoomFactor<1) {
@@ -336,9 +357,9 @@ View = (function() {
         }
         
         return fov;
-    };
+    }
     
-    updateFovDiv = function(view) {
+    function updateFovDiv(view) {
         if (isNaN(view.fov)) {
             view.fovDiv.html("FoV:");
             return;
@@ -355,17 +376,17 @@ View = (function() {
             fovStr = Math.round(view.fov*3600*100)/100 + '"';
         }
         view.fovDiv.html("FoV: " + fovStr);
-    };
+    }
     
     
-    createListeners = function(view) {
+    var createListeners = function(view) {
         var hasTouchEvents = false;
         if ('ontouchstart' in window) {
             hasTouchEvents = true;
         }
         
         // various listeners
-        onDblClick = function(e) {
+        let onDblClick = function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
             var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
             try {
@@ -1226,8 +1247,8 @@ View = (function() {
 
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
-            var polar = Utils.radecToPolar(lonlat[0], lonlat[1]);
-            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
+            var polar = HealpixIndex.utils.radecToPolar(lonlat[0], lonlat[1]);
+            var ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
 
         }
@@ -1297,7 +1318,7 @@ View = (function() {
                 
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
-            var polar = Utils.radecToPolar(lonlat[0], lonlat[1]);
+            var polar = HealpixIndex.utils.radecToPolar(lonlat[0], lonlat[1]);
             ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
         }
@@ -1305,6 +1326,7 @@ View = (function() {
         
         var ipix;
         var lon, lat;
+        var corners;
         for (var ipixIdx=0, len=pixList.length; ipixIdx<len; ipixIdx++) {
             ipix = pixList[ipixIdx];
             if (ipix==ipixCenter && ipixIdx>0) { 

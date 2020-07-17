@@ -29,7 +29,9 @@
  * 
  *****************************************************************************/
 
-Utils = Utils || {};
+import { Aladin } from "./Aladin.js";
+
+export let Utils = {};
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
@@ -121,7 +123,7 @@ if (!Function.prototype.bind) {
 
 
 
-$ = $ || jQuery;
+//$ = $ || jQuery;
 
 /* source : http://stackoverflow.com/a/8764051 */
 $.urlParam = function(name, queryString){

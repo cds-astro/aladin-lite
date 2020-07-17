@@ -28,9 +28,11 @@
  * 
  *****************************************************************************/
 
-Footprint = (function() {
+import { Utils } from "./Utils.js";
+
+export let Footprint = (function() {
     // constructor
-    Footprint = function(polygons) {
+    let Footprint = function(polygons) {
         this.polygons = polygons;
     	this.overlay = null;
 

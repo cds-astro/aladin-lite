@@ -9,8 +9,15 @@
  * 
  *****************************************************************************/
 
-MOC = (function() {
-    MOC = function(options) {
+import { SpatialVector }   from "./libs/healpix.js";
+import { astro }   from "./libs/fits.js";
+import { CooFrameEnum }   from "./CooFrameEnum.js";
+import { HealpixCache }   from "./HealpixCache.js";
+import { AladinUtils }   from "./AladinUtils.js";
+
+
+export let MOC = (function() {
+    let MOC = function(options) {
         this.order = undefined;
 
         this.type = 'moc';
@@ -269,7 +276,7 @@ MOC = (function() {
         var orderedKeys = [];
         for (var k=0; k<768; k++) {
             var mocCells = mocCellsIdxOrder3[k];
-            for (key in mocCells) {
+            for (var key in mocCells) {
                 orderedKeys.push(parseInt(key));
             }
         }
@@ -290,6 +297,7 @@ MOC = (function() {
 
         var counter = 0;
         var mocCells;
+        var norder3Ipix;
         for (var norder=0; norder<=norderMax; norder++) {
             nside = 1 << norder;
 
@@ -372,6 +380,7 @@ MOC = (function() {
         var spVec = _spVec;
 
         var corners = HealpixCache.corners_nest(ipix, nside);
+        var lon, lat;
         for (var k=0; k<4; k++) {
             spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
 
@@ -451,7 +460,7 @@ MOC = (function() {
     MOC.prototype.contains = function(ra, dec) {
         var hpxIdx = new HealpixIndex(Math.pow(2, this.order));
         hpxIdx.init();
-        var polar = Utils.radecToPolar(ra, dec);
+        var polar = HealpixIndex.utils.radecToPolar(ra, dec);
         var ipix = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
         var ipixMapByOrder = {};
         for (var curOrder=0; curOrder<=this.order; curOrder++) {

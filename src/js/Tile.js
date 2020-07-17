@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-Tile = (function() {
+export let Tile = (function() {
     // constructor
 	function Tile(img, url) {
 		this.img = img;

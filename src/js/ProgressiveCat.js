@@ -28,15 +28,22 @@
  * 
  *****************************************************************************/
 
+ import { Catalog } from "./Catalog.js";
+ import { Source } from "./Source.js";
+ import { Color } from "./Color.js";
+ import { Coo } from "./libs/astro/coo.js";
+ import { Utils } from "./Utils.js";
+ import { CooFrameEnum } from "./CooFrameEnum.js";
+
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog
-ProgressiveCat = (function() {
+export let ProgressiveCat = (function() {
     
     // TODO : test if CORS support. If no, need to pass through a proxy
     // currently, we suppose CORS is supported
     
     // constructor
-    ProgressiveCat = function(rootUrl, frameStr, maxOrder, options) {
+    let ProgressiveCat = function(rootUrl, frameStr, maxOrder, options) {
         options = options || {};
 
         this.type = 'progressivecat';
@@ -164,7 +171,7 @@ ProgressiveCat = (function() {
         if (!instance.keyRa || ! instance.keyDec) {
             return [];
         }
-        lines = csv.split('\n');
+        var lines = csv.split('\n');
         var mesureKeys = [];
         for (var k=0; k<fields.length; k++) {
             if (fields[k].name) {
@@ -199,14 +206,14 @@ ProgressiveCat = (function() {
                 ra = coo.lon;
                 dec = coo.lat;
             }
-            newSource = new cds.Source(ra, dec, mesures);
+            newSource = new Source(ra, dec, mesures);
             sources.push(newSource);
             newSource.setCatalog(instance);
         }
         return sources;
     };
 
-    //ProgressiveCat.prototype.updateShape = cds.Catalog.prototype.updateShape;
+    //ProgressiveCat.prototype.updateShape = Catalog.prototype.updateShape;
 
     ProgressiveCat.prototype = {
 
@@ -233,7 +240,7 @@ ProgressiveCat = (function() {
             }
         },
 
-        updateShape: cds.Catalog.prototype.updateShape,
+        updateShape: Catalog.prototype.updateShape,
 
         _loadMetadata: function() {
             var self = this;
@@ -366,7 +373,7 @@ ProgressiveCat = (function() {
             for (var k=0, len = sources.length; k<len; k++) {
                 s = sources[k];
                 if (!this.filterFn || this.filterFn(s)) {
-                    cds.Catalog.drawSource(this, s, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                    Catalog.drawSource(this, s, ctx, projection, frame, width, height, largestDim, zoomFactor);
                 }
             }
             for (var k=0, len = sources.length; k<len; k++) {
@@ -375,7 +382,7 @@ ProgressiveCat = (function() {
                     continue;
                 }
                 if (!this.filterFn || this.filterFn(s)) {
-                    cds.Catalog.drawSourceSelection(this, s, ctx);
+                    Catalog.drawSourceSelection(this, s, ctx);
                 }
             }
         },

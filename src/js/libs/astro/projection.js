@@ -1,4 +1,7 @@
-function Projection(lon0, lat0) {
+
+import { AstroMath } from "./astroMath.js";
+
+export let Projection = function(lon0, lat0) {
 	this.PROJECTION = Projection.PROJ_TAN;
 	this.ROT = this.tr_oR(lon0, lat0);
 

@@ -27,7 +27,11 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
-AladinUtils = (function() {
+
+import { Projection } from "./libs/astro/projection.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+
+export let AladinUtils = (function() {
 
     return {
     	/**

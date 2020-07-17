@@ -28,9 +28,9 @@
  * 
  *****************************************************************************/
 
-HealpixGrid = (function() {
-	var HealpixGrid = function() {
-	};
+export let HealpixGrid = (function() {
+	function HealpixGrid() {
+	}
 	
 	HealpixGrid.prototype.redraw = function(ctx, cornersXYViewMap, fov, norder) {
 		// on dessine les lignes
@@ -38,6 +38,7 @@ HealpixGrid = (function() {
 		ctx.strokeStyle = "rgb(150,150,220)";
 		ctx.beginPath();
 		var cornersXYView;
+		var ipix;
 		for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
 			cornersXYView = cornersXYViewMap[k];
 			ipix = cornersXYView.ipix;

@@ -27,10 +27,13 @@
  * Author: Thomas Boch [CDS]
  * 
  *****************************************************************************/
-HiPSDefinition = (function() {
+
+import { Utils } from "./Utils.js";
+
+export let HiPSDefinition = (function() {
 
     // constructor
-    var HiPSDefinition = function(properties) {
+    function HiPSDefinition(properties) {
         this.properties = properties; // key-value object corresponding to the properties file
 
         this.id = this.getID();

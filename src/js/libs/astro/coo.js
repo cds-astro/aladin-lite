@@ -2,6 +2,8 @@
 // Class Coo
 //=================================
 
+import { AstroMath } from "./astroMath.js";
+
 /**
  * Constructor
  * @param longitude longitude (decimal degrees)
@@ -9,14 +11,14 @@
  * @param prec precision
  * (8: 1/1000th sec, 7: 1/100th sec, 6: 1/10th sec, 5: sec, 4: 1/10th min, 3: min, 2: 1/10th deg, 1: deg
  */
-function Coo(longitude, latitude, prec) {
+export let Coo = function(longitude, latitude, prec) {
 	this.lon = longitude;
 	this.lat = latitude;
 	this.prec = prec;
 	this.frame = null;
 
 	this.computeDirCos();
-}
+};
 
 Coo.factor = [ 3600.0, 60.0, 1.0 ];
 Coo.prototype = {

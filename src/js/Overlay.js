@@ -30,8 +30,12 @@
  * 
  *****************************************************************************/
 
-Overlay = (function() {
-   Overlay = function(options) {
+import { AladinUtils } from "./AladinUtils.js";
+import { Footprint } from "./Footprint.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+
+export let Overlay = (function() {
+   let Overlay = function(options) {
         options = options || {};
 
         this.type = 'overlay';
@@ -177,7 +181,7 @@ Overlay = (function() {
         // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
-    	xyviews = [];
+    	var xyviews = [];
     	for (var k=0, len = this.overlays.length; k<len; k++) {
     		xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
     	}

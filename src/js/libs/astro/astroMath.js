@@ -3,7 +3,7 @@
 //=================================
 
 // Class AstroMath having 'static' methods
-function AstroMath() {}
+export let AstroMath = function() {};
 
 // Constant for conversion Degrees => Radians (rad = deg*AstroMath.D2R)
 AstroMath.D2R = Math.PI/180.0;

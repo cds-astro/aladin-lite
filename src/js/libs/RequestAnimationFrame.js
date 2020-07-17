@@ -1,6 +1,6 @@
 // requestAnimationFrame() shim by Paul Irish
 // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-window.requestAnimFrame = (function() {
+export let requestAnimFrame = (function() {
 	return  window.requestAnimationFrame       || 
 			window.webkitRequestAnimationFrame || 
 			window.mozRequestAnimationFrame    || 

@@ -33,9 +33,11 @@
  * 
  *****************************************************************************/
 
-Polyline= (function() {
+import { AladinUtils } from './AladinUtils.js';
+
+export let Polyline= (function() {
     // constructor
-    Polyline = function(radecArray, options) {
+    let Polyline = function(radecArray, options) {
         options = options || {};
         this.color = options['color'] || undefined;
         

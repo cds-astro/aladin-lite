@@ -33,9 +33,12 @@
 // it is made of :
 // - a static cache for HEALPix corners at nside=8 
 // - a dynamic cache for 
-HealpixCache = (function() {
 
-    var HealpixCache = {};
+import { HealpixIndex }   from "./libs/healpix.js";
+
+export let HealpixCache = (function() {
+
+    let HealpixCache = {};
     
     HealpixCache.staticCache = {corners: {nside8: []}};
     // TODO : utilisation du dynamicCache
@@ -52,7 +55,7 @@ HealpixCache = (function() {
     	var hpxIdx = new HealpixIndex(8);
     	hpxIdx.init();
     	var npix = HealpixIndex.nside2Npix(8);
-        var corners;
+        let corners;
     	for (var ipix=0; ipix<npix; ipix++) {
             corners =  hpxIdx.corners_nest(ipix, 1);
     		HealpixCache.staticCache.corners.nside8.push(corners);

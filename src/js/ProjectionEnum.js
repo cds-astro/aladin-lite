@@ -27,8 +27,10 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
- 
- ProjectionEnum = {
+
+ import { Projection } from "./libs/astro/projection.js";
+
+ export let ProjectionEnum = {
     SIN: Projection.PROJ_SIN,
     AITOFF:  Projection.PROJ_AITOFF
  };

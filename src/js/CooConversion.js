@@ -19,9 +19,9 @@
 
 
 
-CooConversion = (function() {
+export let CooConversion = (function() {
 
-    var CooConversion = {};
+    let CooConversion = {};
     
     CooConversion.GALACTIC_TO_J2000 = [
        -0.0548755604024359,  0.4941094279435681, -0.8676661489811610,

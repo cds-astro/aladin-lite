@@ -28,19 +28,23 @@
  * 
  *****************************************************************************/
 
-Location = (function() {
+
+import { Coo }            from "./libs/astro/coo.js";
+import { CooFrameEnum }   from "./CooFrameEnum.js";
+
+export let Location = (function () {
     // constructor
-    Location = function(locationDiv) {
-    		this.$div = $(locationDiv);
-    	};
-	
-	Location.prototype.update = function(lon, lat, cooFrame, isViewCenterPosition) {
-        isViewCenterPosition = (isViewCenterPosition && isViewCenterPosition===true) || false;
-		var coo = new Coo(lon, lat, 7);
-		if (cooFrame==CooFrameEnum.J2000) {
+    function Location(locationDiv) {
+        this.$div = $(locationDiv);
+    };
+
+    Location.prototype.update = function (lon, lat, cooFrame, isViewCenterPosition) {
+        isViewCenterPosition = (isViewCenterPosition && isViewCenterPosition === true) || false;
+        var coo = new Coo(lon, lat, 7);
+        if (cooFrame == CooFrameEnum.J2000) {
             this.$div.html(coo.format('s/'));
         }
-		else if (cooFrame==CooFrameEnum.J2000d) {
+        else if (cooFrame == CooFrameEnum.J2000d) {
             this.$div.html(coo.format('d/'));
         }
         else {
@@ -48,8 +52,8 @@ Location = (function() {
         }
 
         this.$div.toggleClass('aladin-reticleColor', isViewCenterPosition);
-	};
-	
-	return Location;
+    };
+
+    return Location;
 })();
-	
+

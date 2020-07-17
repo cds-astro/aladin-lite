@@ -24,6 +24,10 @@ Work repo for Aladin Lite v3
 
 - support of FITS  tables?
 
+- création instance  HiPS depuis une URL
+
+- gestion miroirs  HiPS
+
 ## Installation steps
 
 npm install
@@ -31,6 +35,7 @@ npm install
 npm run build
 
 npm run serve
+
 
 # Aladin Lite
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">

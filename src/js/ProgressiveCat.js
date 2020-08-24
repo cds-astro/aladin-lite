@@ -59,6 +59,9 @@ ProgressiveCat = (function() {
         this.selectSize = this.sourceSize + 2;
         this.selectionColor = '#00ff00'; // TODO: to be merged with Catalog
 
+        // allows for filtering of sources
+        this.filterFn = options.filter || undefined; // TODO: do the same for catalog
+
 
         this.onClick = options.onClick || undefined; // TODO: inherit from catalog
 
@@ -359,14 +362,21 @@ ProgressiveCat = (function() {
             if (! sources) {
                 return;
             }
+            var s;
             for (var k=0, len = sources.length; k<len; k++) {
-                cds.Catalog.drawSource(this, sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+                s = sources[k];
+                if (!this.filterFn || this.filterFn(s)) {
+                    cds.Catalog.drawSource(this, s, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                }
             }
             for (var k=0, len = sources.length; k<len; k++) {
-                if (! sources[k].isSelected) {
+                s = sources[k];
+                if (! s.isSelected) {
                     continue;
                 }
-                cds.Catalog.drawSourceSelection(this, sources[k], ctx);
+                if (!this.filterFn || this.filterFn(s)) {
+                    cds.Catalog.drawSourceSelection(this, s, ctx);
+                }
             }
         },
 

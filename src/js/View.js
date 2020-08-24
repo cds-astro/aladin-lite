@@ -1454,7 +1454,7 @@ View = (function() {
     };
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || fovDegrees>180) {
+        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
         var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
@@ -1873,6 +1873,8 @@ View = (function() {
         var overlay;
         var canvas=this.catalogCanvas;
         var ctx = canvas.getContext("2d");
+        // this makes footprint selection easier as the catch-zone is larger
+        ctx.lineWidth = 6;
 
         if (this.overlays) {
             for (var k=0; k<this.overlays.length; k++) {

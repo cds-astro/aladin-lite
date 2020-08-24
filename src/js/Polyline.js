@@ -130,7 +130,7 @@ Polyline= (function() {
         if (!start) {
             return;
         }
-
+      
         ctx.moveTo(start.vx, start.vy);
         var pt;
         var newSeg = false;

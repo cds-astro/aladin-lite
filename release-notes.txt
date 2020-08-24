@@ -1,3 +1,9 @@
+2020-07
+- new method stopAnimation
+
+2020-06
+- new method in Catalog layer to *remove* individual *Source* objects
+
 2019-10
 - displayFITS can now take a base64 data URL as input
 

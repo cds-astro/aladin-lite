@@ -71,11 +71,7 @@ function relMouseCoords(event) {
 
         var clientX = e.clientX;
         var clientY = e.clientY;
-        if (e.clientX) {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-        else {
+        if (e.clientX == undefined) {
             clientX = e.originalEvent.changedTouches[0].clientX;
             clientY = e.originalEvent.changedTouches[0].clientY;
         }

@@ -108,6 +108,16 @@ Footprint = (function() {
             this.overlay.reportChange();
         }
     };
+
+    Footprint.prototype.hover = function(isHovered) {
+        if (this.isHovered == isHovered) {
+            return;
+        }
+        this.isHovered = isHovered;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
     
     return Footprint;
 })();

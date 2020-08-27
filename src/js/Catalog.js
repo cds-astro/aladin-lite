@@ -478,6 +478,9 @@ cds.Catalog = (function() {
     
     cds.Catalog.prototype.removeAll = cds.Catalog.prototype.clear = function() {
         // TODO : RAZ de l'index
+        if(this.view && this.view.lastHoveredObject && this.view.lastHoveredObject.catalog === this){
+        	this.view.lastHoveredObject = null;
+        }
         this.sources = [];
     };
     
@@ -511,10 +514,11 @@ cds.Catalog = (function() {
         var source;
         for (var k=0, len = sourcesInView.length; k<len; k++) {
             source = sourcesInView[k];
-            if (! source.isSelected) {
-                continue;
+            if (source.isSelected) {
+                cds.Catalog.drawSourceSelection(this, source, ctx);
+            } else if (source.isHovered) {
+                cds.Catalog.drawSourceHover(this, source, ctx);
             }
-            cds.Catalog.drawSourceSelection(this, source, ctx);
             
         }
         // NEEDED ?
@@ -587,6 +591,15 @@ cds.Catalog = (function() {
         }
 
         
+    };
+
+    cds.Catalog.drawSourceHover = function(catalogInstance, s, ctx) {
+        if (!s || !s.isShowing || !s.x || !s.y) {
+            return;
+        }
+        var sourceSize = catalogInstance.selectSize;
+
+        ctx.drawImage(catalogInstance.cacheHoverCanvas, s.x - sourceSize / 2, s.y - sourceSize / 2);
     };
     
     cds.Catalog.drawSourceSelection = function(catalogInstance, s, ctx) {

@@ -160,6 +160,9 @@ Overlay = (function() {
     
     Overlay.prototype.removeAll = function() {
         // TODO : RAZ de l'index
+        if(this.view && this.view.lastHoveredObject && this.view.lastHoveredObject.overlay === this){
+        	this.view.lastHoveredObject = null;
+        }
         this.overlays = [];
         this.overlay_items = [];
     };
@@ -168,37 +171,49 @@ Overlay = (function() {
         if (!this.isShowing) {
             return;
         }
-        
+
         // simple drawing
-        ctx.strokeStyle= this.color;
+        ctx.strokeStyle = this.color;
 
         // 1. Drawing polygons
-        
+
         // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
         ctx.lineWidth = this.lineWidth;
-    	ctx.beginPath();
-    	xyviews = [];
-    	for (var k=0, len = this.overlays.length; k<len; k++) {
-    		xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
-    	}
+        ctx.beginPath();
+        xyviews = [];
+        for (var k = 0, len = this.overlays.length; k < len; k++) {
+            xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
+        }
         ctx.stroke();
 
-    	// selection drawing
-        ctx.strokeStyle= Overlay.increaseBrightness(this.color, 50);
+        // Hover drawing
+        ctx.strokeStyle = Overlay.increaseBrightness(this.color, 50);
         ctx.beginPath();
-        for (var k=0, len = this.overlays.length; k<len; k++) {
-            if (! this.overlays[k].isSelected) {
+        for (var k = 0, len = this.overlays.length; k < len; k++) {
+            if (!this.overlays[k].isHovered) {
                 continue;
             }
             this.drawFootprintSelected(ctx, xyviews[k]);
-            
         }
-    	ctx.stroke();
-    	
+        ctx.stroke();
+
+        // selection drawing
+        ctx.strokeStyle = Overlay.increaseBrightness(this.color, 80);
+        ctx.beginPath();
+        for (var k = 0, len = this.overlays.length; k < len; k++) {
+            if (!this.overlays[k].isSelected) {
+                continue;
+            }
+            this.drawFootprintSelected(ctx, xyviews[k]);
+
+        }
+        ctx.stroke();
+
+		ctx.strokeStyle = this.color;
         // 2. Circle and polylines drawing
-    	for (var k=0; k<this.overlay_items.length; k++) {
-    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
-    	}
+        for (var k = 0; k < this.overlay_items.length; k++) {
+            this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
+        }
     };
 
     Overlay.increaseBrightness = function(hex, percent){

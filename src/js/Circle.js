@@ -113,6 +113,15 @@ Circle = (function() {
         }
     };
 
+    Circle.prototype.hover = function(isHovered) {
+        if (this.isHovered == isHovered) {
+            return;
+        }
+        this.isHovered = isHovered;
+        if (this.overlay) {
+            this.overlay.reportChange();
+        }
+    };
 
     
     Circle.prototype.setCenter = function(centerRaDec) {
@@ -180,7 +189,9 @@ Circle = (function() {
         }
         
         if (this.isSelected) {
-            ctx.strokeStyle= Overlay.increaseBrightness(baseColor, 50);
+            ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 80);
+        } else if (this.isHovered) {
+            ctx.strokeStyle = Overlay.increaseBrightness(baseColor, 50);
         }
         else {
             ctx.strokeStyle= baseColor;

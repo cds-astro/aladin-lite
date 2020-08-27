@@ -539,7 +539,7 @@ View = (function() {
                     view.aladin.measurementTable.hide();
                     view.popup.hide();
 
-                    if (view.lastClickedObject instanceof Footprint) {
+                    if (view.lastClickedObject instanceof Footprint || view.lastClickedObject instanceof Circle) {
                         //view.lastClickedObject.deselect();
                     }
                     else {
@@ -568,7 +568,7 @@ View = (function() {
 
             view.requestRedraw(true);
         });
-        var lastHoveredObject; // save last object hovered by mouse
+
         var lastMouseMovePos = null;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
@@ -602,20 +602,27 @@ View = (function() {
                 if (!view.dragging && ! view.mode==View.SELECT) {
                     // objects under the mouse ?
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
+                    if(view.lastHoveredObject && typeof view.lastHoveredObject.hover === 'function'
+                    		&& (closest && view.lastHoveredObject !== closest[0] || !closest)
+                    		){
+                    		view.lastHoveredObject.hover(false);
+                    }
                     if (closest) {
                         view.setCursor('pointer');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && closest[0]!=lastHoveredObject) {
+                        if (typeof objHoveredFunction === 'function' && closest[0] != view.lastHoveredObject) {
                             var ret = objHoveredFunction(closest[0]);
                         }
-                        lastHoveredObject = closest[0];
-        
-                    }
-                    else {
+                        if(typeof view.closest[0].hover === 'function'){
+                            view.lastHoveredObject.hover(true);
+                        }
+                        view.lastHoveredObject = closest[0];
+
+                    } else {
                         view.setCursor('default');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && lastHoveredObject) {
-                            lastHoveredObject = null;
+                        if (typeof objHoveredFunction === 'function' && view.lastHoveredObject) {
+                            view.lastHoveredObject = null;
                             // call callback function to notify we left the hovered object
                             var ret = objHoveredFunction(null);
                         }

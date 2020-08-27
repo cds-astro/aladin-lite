@@ -118,14 +118,25 @@ cds.Source = (function() {
             }
 
         }
+        this.hover(false);
     };
 
-    
     cds.Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();
         }
     };
+
+    cds.Source.prototype.hover = function(isHovered) {
+        if (this.isHovered == isHovered || this.isSelected) {
+            return;
+        }
+        this.isHovered = isHovered;
+        if (this.catalog) {
+            this.catalog.reportChange();
+        }
+    };
+
     
     return cds.Source;
 })();

@@ -49,6 +49,7 @@ import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame }          from "./libs/RequestAnimationFrame.js";
+import { load_shaders } from './Shaders.js';
 
 export let View = (function() {
 
@@ -195,11 +196,14 @@ export let View = (function() {
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
+        a.find('.aladin-webglCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         
         // canvas to draw the images
+        this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        // canvas to draw the overlays
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
@@ -900,12 +904,12 @@ export let View = (function() {
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
-        if (imageCtx.start2D) {
+        /*if (imageCtx.start2D) {
             imageCtx.start2D();
-        }
+        }*/
         //// clear canvas ////
         // TODO : do not need to clear if fov small enough ?
-        imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+        /*imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
         ////////////////////////
     
         var bkgdColor = this.getBackgroundColor();    
@@ -931,10 +935,10 @@ export let View = (function() {
                 imageCtx.ellipse(this.cx, this.cy, 2.828*this.cx*this.zoomFactor, this.cx*this.zoomFactor*1.414, 0, 0, 2*Math.PI);
                 imageCtx.fill();
             }
-        }
-        if (imageCtx.finish2D) {
+        }*/
+        /*if (imageCtx.finish2D) {
             imageCtx.finish2D();
-        }
+        }*/
 
         
         this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);

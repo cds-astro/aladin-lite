@@ -1,0 +1,77 @@
+[package]
+name = "webgl"
+version = "0.1.0"
+authors = ["matthieu.baumann@astro.unistra.fr"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+console_error_panic_hook = "0.1.6"
+futures = "0.3.5"
+js-sys = "0.3.42"
+wasm-bindgen-futures = "0.4.15"
+cgmath = "*"
+itertools-num = "0.1.3"
+healpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-healpix-rust', branch = 'master' }
+serde = { version = "^1.0.59", features = ["derive"] }
+serde_json = "1.0"
+serde_derive = "^1.0.59"
+num = "*"
+task-async-executor = { path = "./task-async-executor" }
+fitsreader = { path = "./fitsreader" }
+
+
+[dependencies.wasm-bindgen]
+version = "0.2.65"
+features = ["serde-serialize"]
+
+[dependencies.web-sys]
+version = "0.3.40"
+features = [
+  'console',
+  'Document',
+  'Element',
+  'HtmlCollection',
+  'HtmlElement',
+  'HtmlImageElement',
+  'HtmlCanvasElement',
+  'MouseEvent',
+  'WheelEvent',
+  'EventTarget',
+  'WebGlBuffer',
+  'WebGlVertexArrayObject',
+  'WebGl2RenderingContext',
+  'WebGlContextAttributes',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlShader',
+  'WebGlUniformLocation',
+  'WebGlTexture',
+  'Window',
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'XmlHttpRequest',
+  'XmlHttpRequestEventTarget',
+  'XmlHttpRequestResponseType',
+  'PerformanceTiming',
+  'Performance',
+  'CanvasRenderingContext2d',
+  'TextMetrics',
+  'ImageData',
+  'Storage',
+  'WebGlActiveInfo',
+  'GpuRenderBundleEncoder'
+]
+
+[profile.dev]
+lto = true
+opt-level = 3
+
+[profile.release]
+lto = true
+opt-level = 3

@@ -49,7 +49,10 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
+import { loadShaders } from './Shaders.js';
 
+// Import kernel image
+import kernel from './../render/img/kernel.png';
 
 export let Aladin = (function () {
 
@@ -356,7 +359,7 @@ export let Aladin = (function () {
     // access to WASM libraries
     Aladin.wasmLibs = {};
 
-
+    Aladin.webClient = null;
 
     Aladin.DEFAULT_OPTIONS = {
         target: "0 +0",
@@ -1691,10 +1694,28 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
 };
 
 A.init = new Promise((resolutionFunc, rejectionFunc) => {
+    // HEALPix wasm library
     const hpx = import('@fxpineau/healpix');
     hpx
         .then(hpxAPI => {
             Aladin.wasmLibs.hpx = hpxAPI;
+            resolutionFunc();
+        })
+        .catch(console.error);
+    // WebGL rendering code
+    const webgl = import('../render/pkg/');
+    webgl
+        .then(async (webglAPI) => {
+            Aladin.wasmLibs.webgl = webglAPI;
+
+            let shaders = await loadShaders(webglAPI);
+            console.log(shaders);
+        
+            // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+            let resources = {
+                'kernel': kernel,
+            };
+            Aladin.webClient = new webglAPI.WebClient(shaders, resources);
             resolutionFunc();
         })
         .catch(console.error);

@@ -62,6 +62,9 @@ export let Tile = (function() {
 	        return false;
 	    }
 
+        // TODO: Add a method checking if the tile has been copied to the GPU texture
+        
+
 	    // No other way of checking: assume it’s ok.
 	    return true;
 	};

@@ -122,7 +122,7 @@ export let HpxKey = (function() {
             var url = this.hips.getTileURL(norder, npix);
             var tile = this.hips.tileBuffer.getTile(url);
             if (tile && Tile.isImageOk(tile.img) || this.allskyTexture) {
-                if (!this.allskyTexture && !this.hips.tileSize) {
+                /*if (!this.allskyTexture && !this.hips.tileSize) {
                     this.hips.tileSize = tile.img.width;
                 }
                 var img = this.allskyTexture || tile.img;
@@ -132,10 +132,11 @@ export let HpxKey = (function() {
                 } 
 
                 this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true, norder);
-                n += 2;
+                n += 2;*/
             }
             else if (updateNeededTiles && ! tile) {
                 tile = this.hips.tileBuffer.addTile(url);
+                console.log(tile)
                 view.downloader.requestDownload(tile.img, tile.url, this.hips.useCors);
                 this.hips.lastUpdateDateNeededTiles = now;
                 view.requestRedrawAtDate(now+HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY+10);

@@ -436,11 +436,11 @@ export let HpxImageSurvey = (function() {
 
         // new way of drawing
         if (subdivide) {
-
-            if (curOverlayNorder<=4) {
+            /*if (curOverlayNorder<=4) {
                 this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
-            }
+            }*/
 
+            console.log('drawHighRes' ,cornersXYViewMapAllsky)
             if (curOverlayNorder>=3) {
                 this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
             }
@@ -452,16 +452,16 @@ export let HpxImageSurvey = (function() {
 
             return;
         }
-
-        // regular way of drawing
+        /*// regular way of drawing
         // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
         // TODO refactoring : devrait être une méthode de HpxImageSurvey
         if (view.curNorder>=3) {
+            console.log('redrawHighRes')
             this.redrawHighres(ctx, cornersXYViewMapHighres, view.curNorder);
         }
         else {
             this.redrawAllsky(ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
-        }
+        }*/
 
     };
 
@@ -580,7 +580,6 @@ export let HpxImageSurvey = (function() {
     		// TODO : plutot agrandir le clip ?
     	    // grow cornersXYView
     	    if (fov>40) {
-    			coeff = 0.02;
                 coeff = 0.0;
     	        center = {x: (cornersXYView[0].vx+cornersXYView[2].vx)/2, y: (cornersXYView[0].vy+cornersXYView[2].vy)/2};
     	        for (var i=0; i<4; i++) {
@@ -601,7 +600,7 @@ export let HpxImageSurvey = (function() {
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
     HpxImageSurvey.prototype.redrawHighres = function(ctx, cornersXYViewMap, norder) {
-        
+        console.log("redraw high res")
         // DOES THAT FIX THE PROBLEM ???
         if (cornersXYViewMap.length==0) {
             return;

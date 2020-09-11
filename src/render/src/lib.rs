@@ -182,8 +182,12 @@ impl App {
         Ok(app)
     } 
 
-    // Return if at least one task finished during this frame
-    fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> bool {
+    // Run async tasks:
+    // - parsing catalogs
+    // - copying textures to GPU
+    // Return true when a task is complete. This always lead
+    // to a redraw of aladin lite
+    fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<bool, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
         let results = self.task_executor.run(dt.0 * 0.5_f32);
         let task_finished = !results.is_empty();
@@ -207,7 +211,7 @@ impl App {
 
         self.sphere.ack_tiles_sent_to_gpu(&tiles_sent_to_gpu, &mut self.task_executor);
 
-        task_finished
+        Ok(task_finished)
     }
 
     fn update<P: Projection>(&mut self,
@@ -215,8 +219,6 @@ impl App {
         events: &EventManager,
     ) -> Result<bool, JsValue> {
         let mut render = false;
-        // Run async tasks
-        render |= self.run_tasks::<P>(dt);
 
         // Run the FSMs
         self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
@@ -224,7 +226,7 @@ impl App {
         self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
 
         // Update the grid in consequence
-        self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.viewport, &self.shaders);
+        //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.viewport, &self.shaders);
         // And the HiPS sphere VAO
         render |= self.sphere.update::<P>(&self.viewport);
         //self.text.update_from_viewport::<P>(&self.viewport);
@@ -478,6 +480,16 @@ impl ProjectionType {
         }
     }
 
+    fn run_tasks(&mut self, app: &mut App, dt: DeltaTime) -> Result<bool, JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.run_tasks::<Aitoff>(dt),
+            ProjectionType::MollWeide => app.run_tasks::<Mollweide>(dt),
+            ProjectionType::Ortho => app.run_tasks::<Orthographic>(dt),
+            ProjectionType::Arc => app.run_tasks::<Mollweide>(dt),
+            ProjectionType::Mercator => app.run_tasks::<Mercator>(dt),
+        }
+    }
+
     fn render(&mut self, app: &mut App, enable_grid: bool) {
         match self {
             ProjectionType::Aitoff => app.render::<Aitoff>(enable_grid),
@@ -720,7 +732,18 @@ impl WebClient {
 
         Ok(render)
     }
+    
+    /// Main update method
+    pub fn run_tasks(&mut self, dt: f32) -> Result<bool, JsValue> {
+        // dt refers to the time taking (in ms) rendering the previous frame
+        self.dt = DeltaTime::from_millis(dt);
 
+        self.projection.run_tasks(
+            &mut self.app,
+            // Time of the previous frame rendering 
+            self.dt,
+        )
+    }
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
     pub fn render(&mut self, min_value: f32, max_value: f32) -> Result<(), JsValue> {

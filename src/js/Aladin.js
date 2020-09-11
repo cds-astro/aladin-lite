@@ -345,7 +345,7 @@ export let Aladin = (function () {
         if (options.fullScreen) {
             window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 1000);
         }
-
+        this.webglAPI = undefined;
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
     };
@@ -358,9 +358,7 @@ export let Aladin = (function () {
 
     // access to WASM libraries
     Aladin.wasmLibs = {};
-
-    Aladin.webClient = null;
-
+    Aladin.webglAPI = [];
     Aladin.DEFAULT_OPTIONS = {
         target: "0 +0",
         cooFrame: "J2000",
@@ -1694,32 +1692,28 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
 };
 
 A.init = new Promise((resolutionFunc, rejectionFunc) => {
-    // HEALPix wasm library
-    const hpx = import('@fxpineau/healpix');
-    hpx
-        .then(hpxAPI => {
-            Aladin.wasmLibs.hpx = hpxAPI;
-            resolutionFunc();
-        })
-        .catch(console.error);
-    // WebGL rendering code
-    const webgl = import('../render/pkg/');
-    webgl
-        .then(async (webglAPI) => {
-            Aladin.wasmLibs.webgl = webglAPI;
-
-            let shaders = await loadShaders(webglAPI);
-            console.log(shaders);
-        
-            // Start our Rust application. You can find `WebClient` in `src/lib.rs`
-            let resources = {
-                'kernel': kernel,
-            };
-            Aladin.webClient = new webglAPI.WebClient(shaders, resources);
-            resolutionFunc();
-        })
-        .catch(console.error);
-});
+        // HEALPix wasm library
+        import('@fxpineau/healpix')
+            .then(hpxAPI => {
+                Aladin.wasmLibs.hpx = hpxAPI;
+                resolutionFunc();
+            })
+            .catch(console.error);
+    }).then(() => {
+        // WebGL API
+        import('../render/pkg/')
+            .then(async (webglAPI) => {
+                let shaders = await loadShaders(webglAPI);
+                console.log(shaders);
+            
+                // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+                let resources = {
+                    'kernel': kernel,
+                };
+                Aladin.webglAPI = new webglAPI.WebClient(shaders, resources);
+            })
+            .catch(console.error);
+    });
 
 // this is ugly for sure and there must be a better way using Webpack magic
 window.A  = A;

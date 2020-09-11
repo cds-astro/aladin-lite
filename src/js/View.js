@@ -56,6 +56,8 @@ export let View = (function() {
     /** Constructor */
     function View (aladin, location, fovDiv, cooFrame, zoom) {
             this.aladin = aladin;
+            // Add a reference to the WebGL API
+            this.webglAPI = aladin.webglAPI;
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
@@ -85,6 +87,8 @@ export let View = (function() {
             this.projection = new Projection(lon, lat);
             this.projection.setProjection(this.projectionMethod);
             this.zoomLevel = 0;
+            // Prev time of the last frame
+            this.prev = 0;
             this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
     
             this.viewCenter = {lon: lon, lat: lat}; // position of center of view
@@ -887,7 +891,10 @@ export let View = (function() {
         requestAnimFrame(this.redraw.bind(this));
 
         var now = new Date().getTime();
-        
+        var dt = now - this.prev;
+        let tasksFinished = this.webglAPI.run_tasks(dt);
+        let updateView = this.webglAPI.update(dt);
+
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
         } 
@@ -950,6 +957,7 @@ export let View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
+
         if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
                 if (this.aladin.reduceDeformations==null) {
                     this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
@@ -1181,6 +1189,7 @@ export let View = (function() {
 
         // execute 'positionChanged' and 'zoomChanged' callbacks
         this.executeCallbacksThrottled();
+        this.prev = now;
 
     };
 

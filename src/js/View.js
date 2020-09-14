@@ -64,7 +64,6 @@ export let View = (function() {
             this.popup = new Popup(this.aladinDiv, this);
 
             this.createCanvases();
-            console.log("sdfsd5");
             this.location = location;
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
@@ -184,7 +183,6 @@ export let View = (function() {
                     self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
                 }
            }, 1000);
-           console.log("sdfsd6");
 
         };
     
@@ -243,7 +241,6 @@ export let View = (function() {
 
         // reinitialize 2D context
         this.imageCtx = this.imageCanvas.getContext("webgl2");
-        console.log("kjskdjfsdf ", this.width, this.height);
         let webglAPI = Aladin.wasmLibs.webglAPI;
         if (webglAPI) {
             webglAPI.resize(this.width, this.height);
@@ -280,7 +277,7 @@ export let View = (function() {
 
         
         this.computeNorder();
-        this.requestRedraw();
+        //this.requestRedraw();
     };
 
     var pixelateCanvasContext = function(ctx, pixelateFlag) {
@@ -406,9 +403,10 @@ export let View = (function() {
         // various listeners
         let onDblClick = function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
+
+            //var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
             try {
-                var lonlat = view.projection.unproject(xy.x, xy.y);
+                var lonlat = Aladin.wasmLibs.webglAPI.screenToWorld(xymouse.x, xymouse.y);
             }
             catch(err) {
                 return;
@@ -419,7 +417,7 @@ export let View = (function() {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
             }
             else {
-                radec = [lonlat.ra, lonlat.dec];
+                radec = lonlat;
             }
 
             view.pointTo(radec[0], radec[1]);
@@ -624,7 +622,6 @@ export let View = (function() {
                 // update location box
                 updateLocation(view, xymouse.x, xymouse.y);
                 // call listener of 'mouseMove' event
-                console.log(view.aladin)
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
                     var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
@@ -680,8 +677,10 @@ export let View = (function() {
                 var xy1 = AladinUtils.viewToXy(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY, view.width, view.height, view.largestDim, view.zoomFactor);
                 var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
 
-                pos1 = view.projection.unproject(xy1.x, xy1.y);
-                pos2 = view.projection.unproject(xy2.x, xy2.y);
+                //pos1 = view.projection.unproject(xy1.x, xy1.y);
+                //pos2 = view.projection.unproject(xy2.x, xy2.y);
+                pos1 = Aladin.wasmLibs.webglAPI.screenToWorld(view.dragx, view.dragy);
+                pos2 = Aladin.wasmLibs.webglAPI.screenToWorld(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY);
             }
             else {
                 /*
@@ -690,14 +689,13 @@ export let View = (function() {
                 */
                 xoffset = xymouse.x-view.dragx;
                 yoffset = xymouse.y-view.dragy;
-                
                 var xy1 = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
                 var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
 
-                
-                pos1 = view.projection.unproject(xy1.x, xy1.y);
-                pos2 = view.projection.unproject(xy2.x, xy2.y);
-                
+                //pos1 = view.projection.unproject(xy1.x, xy1.y);
+                //pos2 = view.projection.unproject(xy2.x, xy2.y);
+                pos1 = Aladin.wasmLibs.webglAPI.screenToWorld(view.dragx, view.dragy);
+                pos2 = Aladin.wasmLibs.webglAPI.screenToWorld(xymouse.x, xymouse.y);
             }
             
             // TODO : faut il faire ce test ??
@@ -728,9 +726,11 @@ export let View = (function() {
             view.viewCenter.lon += xoffset*view.mouseMoveIncrement;
             view.viewCenter.lat += yoffset*view.mouseMoveIncrement;
             */
-            view.viewCenter.lon += pos2.ra -  pos1.ra;
-            view.viewCenter.lat += pos2.dec - pos1.dec;
             
+            //view.viewCenter.lon = pos2.ra -  pos1.ra;
+            //view.viewCenter.lat = pos2.dec - pos1.dec;
+            //view.viewCenter.lon = pos2.ra;
+            //view.viewCenter.lon = pos2.ra;
 
             
             // can not go beyond poles
@@ -751,8 +751,11 @@ export let View = (function() {
             view.realDragging = true;
             let webglAPI = Aladin.wasmLibs.webglAPI;
             if (webglAPI) {
-                webglAPI.setCenter(view.viewCenter.lon, view.viewCenter.lat);
-            }  
+                webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
+                //webglAPI.setCenter(pos2[0], pos2[1]);
+                view.viewCenter.lon = pos2[0];
+                view.viewCenter.lat = pos2[1];
+            }
 
             view.requestRedraw();
         }); //// endof mousemove ////
@@ -911,7 +914,6 @@ export let View = (function() {
         if (!webglAPI) {
             return;
         }
-
         let tasksFinished = webglAPI.runTasks(dt);
         let updateView = webglAPI.update(dt);
 
@@ -919,17 +921,16 @@ export let View = (function() {
             this.dateRequestDraw = null;
         } 
         else if (! this.needRedraw) {
-            if ( ! this.flagForceRedraw && !tasksFinished && !updateView) {
+            if (!this.flagForceRedraw && !updateView && !tasksFinished) {
                 return;
             }
             else {
                 this.flagForceRedraw = false;
             }
         }
+
         this.stats.update();
-
         webglAPI.render();
-
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -970,9 +971,9 @@ export let View = (function() {
         }*/
 
         
-        this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        //this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         // do we have to redo that every time? Probably not
-        this.projection.setProjection(this.projectionMethod);
+        //this.projection.setProjection(this.projectionMethod);
     
 
         // ************* Draw allsky tiles (low resolution) *****************
@@ -1019,7 +1020,7 @@ export let View = (function() {
         // TODO : does not work if different frames 
         // TODO: use HpxImageSurvey.draw method !!
         if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
-            imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
+            /*imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
                 this.overlayImageSurvey.draw(imageCtx, this, !this.dragging, this.curOverlayNorder);
@@ -1027,7 +1028,7 @@ export let View = (function() {
 
             else {
                 this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curOverlayNorder);
-            }
+            }*/
             /*
             if (this.fov>50) {
                 this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
@@ -1041,11 +1042,11 @@ export let View = (function() {
             }
             */
 
-           imageCtx.globalAlpha = 1.0;
+           //imageCtx.globalAlpha = 1.0;
 
         }
         
-        
+        /*
         // redraw HEALPix grid
         if( this.displayHpxGrid) {
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
@@ -1074,10 +1075,10 @@ export let View = (function() {
             
             this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
         }
-         
+         */
 
 
-        
+        /*
         ////// 2. Draw catalogues////////
         var catalogCtx = this.catalogCtx;
 
@@ -1133,10 +1134,11 @@ export let View = (function() {
             }
         }
 
-
+        */
         if (this.mode==View.SELECT) {
             mustRedrawReticle = true;
         }
+        
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
         var reticleCtx = this.reticleCtx;
@@ -1175,7 +1177,7 @@ export let View = (function() {
             
             this.mustRedrawReticle = false;
         }
-
+        /*
         ////// 5. Draw all-sky ring /////
         if (this.projectionMethod==ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
                     imageCtx.strokeStyle = this.aladin.options['allskyRingColor'];
@@ -1196,7 +1198,7 @@ export let View = (function() {
             
             reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
         }
-        
+        */
         
          // TODO : is this the right way?
          if (saveNeedRedraw==this.needRedraw) {
@@ -1210,7 +1212,7 @@ export let View = (function() {
         } 
 
         // execute 'positionChanged' and 'zoomChanged' callbacks
-        this.executeCallbacksThrottled();
+        //this.executeCallbacksThrottled();
         this.prev = now;
 
     };
@@ -1798,8 +1800,12 @@ export let View = (function() {
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1];
         }
-
+        console.log("point to ", ra, dec)
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (webglAPI) {
+            webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
+        }
 
         this.forceRedraw();
         this.requestRedraw();

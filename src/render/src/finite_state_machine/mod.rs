@@ -77,7 +77,7 @@ pub trait FiniteStateMachine {
 }
 
 mod moving;
-pub use moving::UserMoveSphere;
+pub use moving::{UserMoveSphere, move_renderables};
 mod zooming;
 pub use zooming::UserZoom;
 mod location;

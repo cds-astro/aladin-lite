@@ -100,6 +100,7 @@ use cgmath::Vector2;
 use futures::stream::StreamExt; // for `next`
 
 use crate::shaders::Colormap;
+use crate::finite_state_machine::move_renderables;
 impl App {
     fn new(gl: &WebGl2Context, _events: &EventManager, shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         //gl.enable(WebGl2RenderingContext::BLEND);
@@ -363,11 +364,29 @@ impl App {
     }
 
     pub fn set_center<P: Projection>(&self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
-        let model_pos: Vector4<f32> = lonlat.vector();
+        let m2: Vector4<f32> = lonlat.vector();
         let model2world = self.viewport.get_inverted_model_mat();
-        let world_pos = model2world * model_pos;
+        let w2 = model2world * m2;
 
-        events.enable::<SetCenterLocation>(world_pos.lonlat());
+        events.enable::<SetCenterLocation>(w2.lonlat());
+    }
+
+    pub fn move_viewport<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+        let model2world = self.viewport.get_inverted_model_mat();
+
+        let m1: Vector4<f32> = pos1.vector();
+        let w1 = model2world * m1;
+        let m2: Vector4<f32> = pos2.vector();
+        let w2 = model2world * m2;
+
+        move_renderables::<P>(
+            &w1,
+            &w2,
+            &mut self.sphere,
+            &mut self.manager,
+            &mut self.grid,
+            &mut self.viewport
+        );
     }
     
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
@@ -467,6 +486,16 @@ impl ProjectionType {
             ProjectionType::Ortho => app.screen_to_world::<Orthographic>(pos),
             ProjectionType::Arc => app.screen_to_world::<Mollweide>(pos),
             ProjectionType::Mercator => app.screen_to_world::<Mercator>(pos),
+        }
+    }
+
+    fn move_viewport(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+        match self {
+            ProjectionType::Aitoff => app.move_viewport::<Aitoff>(pos1, pos2),
+            ProjectionType::MollWeide => app.move_viewport::<Mollweide>(pos1, pos2),
+            ProjectionType::Ortho => app.move_viewport::<Orthographic>(pos1, pos2),
+            ProjectionType::Arc => app.move_viewport::<Mollweide>(pos1, pos2),
+            ProjectionType::Mercator => app.move_viewport::<Mercator>(pos1, pos2),
         }
     }
 
@@ -955,6 +984,22 @@ impl WebClient {
                 ArcDeg(lat).into()
             )
         );
+
+        Ok(())
+    }
+
+    /// Initiate a finite state machine that will move to a specific location
+    #[wasm_bindgen(js_name = moveView)]
+    pub fn displace(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {
+        let pos1 = LonLatT::new(
+            ArcDeg(lon1).into(),
+            ArcDeg(lat1).into()
+        );
+        let pos2 = LonLatT::new(
+            ArcDeg(lon2).into(),
+            ArcDeg(lat2).into()
+        );
+        self.projection.move_viewport(&mut self.app, &pos1, &pos2);
 
         Ok(())
     }

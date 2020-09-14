@@ -255,11 +255,11 @@ impl FieldOfView {
             self.pos_model_space = Some(pos_model_space);
             // The model vertex positions have changed
             // We compute the new polygon
-            self.great_circles = GreatCirclesInFieldOfView::new_polygon(pos_model_space.to_vec(), self.aspect);
+            //self.great_circles = GreatCirclesInFieldOfView::new_polygon(pos_model_space.to_vec(), self.aspect);
         } else {
             // Allsky
             self.pos_model_space = None;
-            self.great_circles = GreatCirclesInFieldOfView::new_allsky();
+            //self.great_circles = GreatCirclesInFieldOfView::new_allsky();
         }
 
         self.compute_healpix_cells::<P>(config);

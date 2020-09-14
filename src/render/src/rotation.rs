@@ -7,7 +7,7 @@ use cgmath::SquareMatrix;
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
 pub struct SphericalRotation<S: BaseFloat>(
-    Quaternion<S>,
+    pub Quaternion<S>,
 );
 
 use cgmath::{Matrix4, Matrix3};

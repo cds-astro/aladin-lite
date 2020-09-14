@@ -199,7 +199,7 @@ use crate::buffer::HiPSConfig;
 pub fn fov_to_depth(fov: Angle<f32>, width: f32, config: &HiPSConfig) -> u8 {
     let pixel_ang = fov / width;
 
-    let depth_pixel = (((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32).floor() as i8;
+    let depth_pixel = ((((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32) + 0.5_f32).floor() as i8;
 
     // The texture size in pixels
     let texture_size = config.get_texture_size();

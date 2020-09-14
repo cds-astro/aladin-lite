@@ -3,6 +3,7 @@
 pub struct Stalling;
 
 pub struct Moving {
+    goal_pos: Vector3<f32>,
     // Quaternion describing the position of the center
     start: SphericalRotation<f32>,
     // Quaternion describing the goal position
@@ -12,21 +13,25 @@ pub struct Moving {
     // Start time
     t0: f32,
 }
+use crate::math;
+use cgmath::{Vector4, Vector3};
+
 impl Moving {
     #[inline]
     fn w0() -> f32 {
         5_f32
     }
 
-    fn new(start: SphericalRotation<f32>, goal: SphericalRotation<f32>) -> Moving {
+    fn new(goal_pos: Vector3<f32>, start: SphericalRotation<f32>, goal: SphericalRotation<f32>) -> Moving {
         let t0 = utils::get_current_time();
 
         let alpha = 0_f32;
         Moving {
+            goal_pos,
             start,
             goal,
             t0,
-            alpha
+            alpha,
         }
     }
 }
@@ -61,7 +66,9 @@ impl State for Stalling {
         _events: &EventManager
     ) {}
 }
-
+use cgmath::InnerSpace;
+use cgmath::Rotation;
+use cgmath::SquareMatrix;
 use crate::rotation::SphericalRotation;
 impl State for Moving {
     fn update<P: Projection>(&mut self,
@@ -117,8 +124,9 @@ impl Transition for T<Stalling, Moving> {
     ) -> Option<Self::E> {
         if let Some(lonlat) = events.get::<MoveToLocation>() {
             let start = *viewport.get_rotation();
-            let goal = SphericalRotation::from_sky_position(&lonlat.vector());
-            Some(Moving::new(start, goal))
+            let goal_pos = lonlat.vector();
+            let goal = SphericalRotation::from_sky_position(&goal_pos);
+            Some(Moving::new(goal_pos.truncate(), start, goal))
         } else {
             // No left button pressed, we keep stalling
             None
@@ -132,6 +140,7 @@ use crate::event_manager::{
  SetFieldOfView,
  ZoomToLocation
 };
+use crate::renderable::{Angle, ArcSec};
 // Moving -> Stalling
 impl Transition for T<Moving, Stalling> {
     type S = Moving;
@@ -143,7 +152,7 @@ impl Transition for T<Moving, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut ViewPort,
+        viewport: &mut ViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -153,13 +162,12 @@ impl Transition for T<Moving, Stalling> {
         if events.check::<SetCenterLocation>() {
             Some(Stalling {})
         // or zooming/unzooming events
-        } else if events.check::<SetFieldOfView>() {
-            Some(Stalling {})
-        } else if events.check::<ZoomToLocation>() {
-            Some(Stalling {})
         } else {
-            let eps = (s.alpha - 1_f32).abs();
-            if eps < 1e-3 {
+            // Criteria
+            let err = math::ang_between_vect(&s.goal_pos, &viewport.compute_center_model_pos::<P>().truncate());
+            //let eps = (s.alpha - 1_f32).abs();
+            let thresh: Angle<f32> = ArcSec(2_f32).into();
+            if err < thresh {
                 Some(Stalling{})
             } else {
                 None

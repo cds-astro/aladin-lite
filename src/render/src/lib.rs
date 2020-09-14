@@ -251,7 +251,7 @@ impl App {
         // Draw renderables here
         let viewport = &self.viewport;
         let shaders = &self.shaders;
-        //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+        self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
         // Draw the HiPS sphere
         self.sphere.draw::<P>(

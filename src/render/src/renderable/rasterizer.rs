@@ -86,7 +86,7 @@ use crate::time::Time;
 fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
     sphere_sub: &SphereSubdivided,
     vertices: &mut Vec<f32>,
-    idx_vertices: &mut Vec<u32>,
+    idx_vertices: &mut Vec<u16>,
     //num_vertices: &mut usize,
     //num_idx: &mut u16,
     cell: &HEALPixCell,
@@ -111,7 +111,7 @@ fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
 use crate::cdshealpix;
 fn add_vertices_grid(
     vertices: &mut Vec<f32>,
-    idx_vertices: &mut Vec<u32>,
+    idx_vertices: &mut Vec<u16>,
     //num_vertices: &mut usize,
     //num_idx: &mut u16,
     cell: &HEALPixCell,
@@ -125,7 +125,7 @@ fn add_vertices_grid(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (vertices.len()/12) as u32;
+    let off_idx_vertices = (vertices.len()/12) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -157,10 +157,10 @@ fn add_vertices_grid(
 
     for i in 0..n_segments_by_side {
         for j in 0..n_segments_by_side {
-            let idx_0 = (j + i * n_vertices_per_segment) as u32;
-            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u32;
-            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u32;
-            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u32;
+            let idx_0 = (j + i * n_vertices_per_segment) as u16;
+            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
 
             idx_vertices.push(off_idx_vertices + idx_0);
             idx_vertices.push(off_idx_vertices + idx_1);
@@ -245,7 +245,7 @@ impl RasterizerProjection for Orthographic {
 use crate::core::VertexArrayObject;
 pub struct Rasterizer {
     vertices: Vec<f32>,
-    idx_vertices: Vec<u32>,
+    idx_vertices: Vec<u16>,
     //num_vertices: usize,
     //num_idx: u16,
 
@@ -360,7 +360,6 @@ impl Rasterizer {
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData(&self.idx_vertices)
             );
-
     }
 
     // The rasterizer has several shaders, one for each projection
@@ -383,7 +382,7 @@ impl Rasterizer {
                 //WebGl2RenderingContext::LINES,
                 WebGl2RenderingContext::TRIANGLES,
                 Some(self.idx_vertices.len() as i32),
-                WebGl2RenderingContext::UNSIGNED_INT
+                WebGl2RenderingContext::UNSIGNED_SHORT
             );
     }
 }

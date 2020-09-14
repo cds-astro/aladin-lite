@@ -908,7 +908,7 @@ export let View = (function() {
     View.prototype.redraw = function() {
         var saveNeedRedraw = this.needRedraw;
         requestAnimFrame(this.redraw.bind(this));
-        var now = new Date().getTime();
+        var now = Date.now();
         var dt = now - this.prev;
         let webglAPI = Aladin.wasmLibs.webglAPI;
         if (!webglAPI) {
@@ -929,7 +929,7 @@ export let View = (function() {
             }
         }
 
-        this.stats.update();
+        //this.stats.update();
         webglAPI.render();
 
         var imageCtx = this.imageCtx;

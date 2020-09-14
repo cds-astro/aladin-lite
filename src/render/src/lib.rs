@@ -388,7 +388,7 @@ impl WebGl2Context {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
 
-        let canvas = document.get_elements_by_class_name("aladin-webglCanvas").get_with_index(0).unwrap();
+        let canvas = document.get_elements_by_class_name("aladin-imageCanvas").get_with_index(0).unwrap();
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
         let context_options = js_sys::JSON::parse(&"{\"antialias\":false}").unwrap();
@@ -734,6 +734,7 @@ impl WebClient {
     }
     
     /// Main update method
+    #[wasm_bindgen(js_name = runTasks)]
     pub fn run_tasks(&mut self, dt: f32) -> Result<bool, JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);

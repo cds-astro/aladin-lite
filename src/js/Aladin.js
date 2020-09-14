@@ -59,9 +59,11 @@ export let Aladin = (function () {
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
+        console.log("kjskdjsff1")
         if ($(aladinDiv).length == 0) {
             return;
         }
+        console.log("kjskdjsff2")
 
         var self = this;
 
@@ -167,9 +169,11 @@ export let Aladin = (function () {
 
 
         var location = new Location(locationDiv.find('.aladin-location-text'));
+        console.log("kjskdjsff3")
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+        console.log("AAAAAAAA", this.view)
         this.view.setShowGrid(options.showCooGrid);
 
         // retrieve available surveys
@@ -431,6 +435,7 @@ export let Aladin = (function () {
             }
         }
 
+        console.log("sdsss", this.view);
         this.view.fixLayoutDimensions();
 
         // force call to zoomChanged callback
@@ -1710,7 +1715,9 @@ A.init = new Promise((resolutionFunc, rejectionFunc) => {
                 let resources = {
                     'kernel': kernel,
                 };
-                Aladin.webglAPI = new webglAPI.WebClient(shaders, resources);
+                //Aladin.webglAPI = 
+                Aladin.wasmLibs.webglAPI = new webglAPI.WebClient(shaders, resources);
+                Aladin.wasmLibs.webglAPI.resize(500, 400);
             })
             .catch(console.error);
     });

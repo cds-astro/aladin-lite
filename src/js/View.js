@@ -29,6 +29,7 @@
  * 
  *****************************************************************************/
 
+import { Aladin }   from "./Aladin.js";
 import { Popup }          from "./Popup.js";
 import { HealpixGrid }    from "./HealpixGrid.js";
 import { HpxImageSurvey } from "./HpxImageSurvey.js";
@@ -57,12 +58,13 @@ export let View = (function() {
     function View (aladin, location, fovDiv, cooFrame, zoom) {
             this.aladin = aladin;
             // Add a reference to the WebGL API
-            this.webglAPI = aladin.webglAPI;
+            //this.webglAPI = aladin.webglAPI;
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
 
             this.createCanvases();
+            console.log("sdfsd5");
             this.location = location;
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
@@ -182,6 +184,8 @@ export let View = (function() {
                     self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
                 }
            }, 1000);
+           console.log("sdfsd6");
+
         };
     
     // different available modes
@@ -200,13 +204,13 @@ export let View = (function() {
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
-        a.find('.aladin-webglCanvas').remove();
+        //a.find('.aladin-webglCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         
         // canvas to draw the images
-        this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        //this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the overlays
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
@@ -238,7 +242,13 @@ export let View = (function() {
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext("2d");
+        this.imageCtx = this.imageCanvas.getContext("webgl2");
+        console.log("kjskdjfsdf ", this.width, this.height);
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (webglAPI) {
+            webglAPI.resize(this.width, this.height);
+        }
+        
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
         
@@ -614,6 +624,7 @@ export let View = (function() {
                 // update location box
                 updateLocation(view, xymouse.x, xymouse.y);
                 // call listener of 'mouseMove' event
+                console.log(view.aladin)
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
                     var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
@@ -738,6 +749,11 @@ export let View = (function() {
                 view.viewCenter.lon = view.viewCenter.lon % 360;
             }
             view.realDragging = true;
+            let webglAPI = Aladin.wasmLibs.webglAPI;
+            if (webglAPI) {
+                webglAPI.setCenter(view.viewCenter.lon, view.viewCenter.lat);
+            }  
+
             view.requestRedraw();
         }); //// endof mousemove ////
         
@@ -749,7 +765,7 @@ export let View = (function() {
             event.stopPropagation();
             var level = view.zoomLevel;
 
-             var delta = event.deltaY;
+            var delta = event.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
             // hope this won't trigger some side effects ...
             if (event.hasOwnProperty('originalEvent')) {
@@ -889,17 +905,21 @@ export let View = (function() {
     View.prototype.redraw = function() {
         var saveNeedRedraw = this.needRedraw;
         requestAnimFrame(this.redraw.bind(this));
-
         var now = new Date().getTime();
         var dt = now - this.prev;
-        let tasksFinished = this.webglAPI.run_tasks(dt);
-        let updateView = this.webglAPI.update(dt);
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (!webglAPI) {
+            return;
+        }
+
+        let tasksFinished = webglAPI.runTasks(dt);
+        let updateView = webglAPI.update(dt);
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
         } 
         else if (! this.needRedraw) {
-            if ( ! this.flagForceRedraw) {
+            if ( ! this.flagForceRedraw && !tasksFinished && !updateView) {
                 return;
             }
             else {
@@ -907,6 +927,8 @@ export let View = (function() {
             }
         }
         this.stats.update();
+
+        webglAPI.render();
 
 
         var imageCtx = this.imageCtx;
@@ -958,7 +980,7 @@ export let View = (function() {
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
 
-        if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+        /*if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
                 if (this.aladin.reduceDeformations==null) {
                     this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
                 }
@@ -966,7 +988,7 @@ export let View = (function() {
                 else {
                     this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
                 }
-        }
+        }*/
         /*
         else {
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
@@ -1536,7 +1558,11 @@ export let View = (function() {
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
-
+        console.log("FOV, ", this.fov);
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (webglAPI) {
+            webglAPI.setFieldOfView(this.fov);
+        }
 
         // TODO: event/listener should be better
         updateFovDiv(this);

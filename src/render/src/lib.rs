@@ -111,9 +111,24 @@ impl App {
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
+        let hips_definition = HiPSDefinition {
+            id: String::from("SDSS/DR9/color"),
+            url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
+            name: String::from("SDSS/DR9/color"),
+            maxOrder: 10,
+            frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
+            tileSize: 512,
+            minCutout: 0.0,
+            maxCutout: 1.0,
+            format: String::from("jpeg"),
+            bitpix: 0,
+        };
+
+        let config = HiPSConfig::new(gl, hips_definition)?;
+
         // Viewport definition
         // HiPS definition
-        let config = HiPSConfig::new(
+        /*let config = HiPSConfig::new(
             gl,
             String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"), // Name of the HiPS
             10, // max depth of the HiPS
@@ -123,7 +138,8 @@ impl App {
             TransferFunction::Asinh,
             FormatImageType::JPG, // Format of the tile texture images,
             None,
-        );
+        );*/
+
         log("shaders compiled");
         //panic!(format!("{:?}", aa));
         let viewport = ViewPort::new::<Orthographic>(&gl, &config);
@@ -295,8 +311,8 @@ impl App {
         self.sphere.set_projection::<P>(&self.viewport, &self.shaders);
     }
 
-    fn set_image_survey<P: Projection>(&mut self, config: HiPSConfig) {
-        self.sphere.set_image_survey::<P>(config, &mut self.viewport, &mut self.task_executor);
+    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) {
+        self.sphere.set_image_survey::<P>(hips_definition, &mut self.viewport, &mut self.task_executor);
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
@@ -539,13 +555,13 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_image_survey(&mut self, app: &mut App, config: HiPSConfig) {   
+    pub fn set_image_survey(&mut self, app: &mut App, hips_definition: HiPSDefinition) {   
         match self {
-            ProjectionType::Aitoff => app.set_image_survey::<Aitoff>(config),
-            ProjectionType::MollWeide => app.set_image_survey::<Mollweide>(config),
-            ProjectionType::Ortho => app.set_image_survey::<Orthographic>(config),
-            ProjectionType::Arc => app.set_image_survey::<Mollweide>(config),
-            ProjectionType::Mercator => app.set_image_survey::<Mercator>(config),
+            ProjectionType::Aitoff => app.set_image_survey::<Aitoff>(hips_definition),
+            ProjectionType::MollWeide => app.set_image_survey::<Mollweide>(hips_definition),
+            ProjectionType::Ortho => app.set_image_survey::<Orthographic>(hips_definition),
+            ProjectionType::Arc => app.set_image_survey::<Mollweide>(hips_definition),
+            ProjectionType::Mercator => app.set_image_survey::<Mercator>(hips_definition),
         };
     }
 
@@ -702,10 +718,32 @@ pub struct ShaderSrc {
     pub vert: String,
     pub frag: String,
 }
-use crate::image_fmt::FITS;
 use crate::transfert_function::TransferFunction;
 use std::collections::HashMap;
 use crate::healpix_cell::HEALPixCell;
+
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub struct Frame {
+    pub label: String,
+    pub system: String,
+}
+use js_sys::JsString;
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub struct HiPSDefinition {
+    pub id: String,
+    pub url: String,
+    pub name: String,
+    pub maxOrder: u8,
+    pub frame: Frame,
+    pub tileSize: i32,
+    pub format: String,
+    pub minCutout: f32,
+    pub maxCutout: f32,
+    pub bitpix: i32,
+}
 
 #[wasm_bindgen]
 impl WebClient {
@@ -855,52 +893,14 @@ impl WebClient {
     }
 
     /// Change HiPS
-    #[wasm_bindgen(js_name = setHiPS)]
+    #[wasm_bindgen(js_name = setImageSurvey)]
     pub fn set_image_survey(&mut self,
-        name: String,
-        tile_size: i32,
-        max_depth: i32,
-        bitpix: i32,
-        min_cutout: f32,
-        max_cutout: f32,
-        transfert_function: String,
-        fmt: String
+        hips_definition: &JsValue,
     ) -> Result<(), JsValue> {
-        let tile_img_fmt: Result<_, JsValue> = if fmt.contains("fits") {
-            // Check the bitpix to determine the internal format of the tiles
-            let fits = match bitpix {
-                8 => FITS::new(WebGl2RenderingContext::R8UI as i32),
-                16 => FITS::new(WebGl2RenderingContext::R16I as i32),
-                32 => FITS::new(WebGl2RenderingContext::R32I as i32),
-                -32 => FITS::new(WebGl2RenderingContext::R32F as i32),
-                _ => unimplemented!()
-            };
+        let hips_definition: HiPSDefinition = hips_definition.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", hips_definition));
 
-            Ok(FormatImageType::FITS(fits))
-        } else if fmt.contains("png") {
-            Ok(FormatImageType::PNG)
-        } else if fmt.contains("jpg") || fmt.contains("jpeg") {
-            Ok(FormatImageType::JPG)
-        } else {
-            Err(format!("{:?} tile format unknown!", fmt).into())
-        };
-
-        let transfer_f = TransferFunction::new(&transfert_function);
-        let format = tile_img_fmt?;
-
-        let config = HiPSConfig::new(
-            &self.gl, 
-            name,
-            max_depth as u8,
-            tile_size,
-            min_cutout,
-            max_cutout,
-            transfer_f,
-            format,
-            None,
-        );
-
-        self.projection.set_image_survey(&mut self.app, config);
+        self.projection.set_image_survey(&mut self.app, hips_definition);
 
         Ok(())
     }

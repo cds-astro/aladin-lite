@@ -59,11 +59,9 @@ export let Aladin = (function () {
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
-        console.log("kjskdjsff1")
         if ($(aladinDiv).length == 0) {
             return;
         }
-        console.log("kjskdjsff2")
 
         var self = this;
 
@@ -173,7 +171,6 @@ export let Aladin = (function () {
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
-        console.log("AAAAAAAA", this.view)
         this.view.setShowGrid(options.showCooGrid);
 
         // retrieve available surveys
@@ -306,7 +303,7 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-
+        console.log(options.survey)
         this.setImageSurvey(options.survey);
         this.view.showCatalog(options.showCatalog);
 
@@ -877,8 +874,8 @@ export let Aladin = (function () {
     };
 
     // @oldAPI
-    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
-        return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);        
+    Aladin.prototype.createImageSurvey = function(rootURLOrHiPSDefinition, options) {
+        return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
     };
 
 
@@ -890,6 +887,7 @@ export let Aladin = (function () {
     // @api
     // @old
     Aladin.prototype.setImageSurvey = function (imageSurvey, callback) {
+        console.log("sdfsdfsdf")
         this.view.setImageSurvey(imageSurvey, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
@@ -1395,8 +1393,8 @@ A.aladin = function (divSelector, options) {
 
 //@API
 // TODO : lecture de properties
-A.imageLayer = function (id, name, rootUrl, options) {
-    return new HpxImageSurvey(id, name, rootUrl, null, null, options);
+A.imageLayer = function (rootURLOrHiPSDefinition, options) {
+    return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
 };
 
 // @API
@@ -1716,8 +1714,11 @@ A.init = new Promise((resolutionFunc, rejectionFunc) => {
                     'kernel': kernel,
                 };
                 //Aladin.webglAPI = 
-                Aladin.wasmLibs.webglAPI = new webglAPI.WebClient(shaders, resources);
-                Aladin.wasmLibs.webglAPI.resize(500, 400);
+                let webgl = Aladin.wasmLibs.webglAPI;
+                webgl = new webglAPI.WebClient(shaders, resources);
+                webgl.resize(500, 400);
+                console.log("imazaz", HpxImageSurvey.SURVEYS[1]);
+                webgl.setImageSurvey(HpxImageSurvey.SURVEYS[1]);
             })
             .catch(console.error);
     });

@@ -34,6 +34,7 @@ import { ColorMap } from "./ColorMap.js";
 import { HpxKey } from "./HpxKey.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Tile } from "./Tile.js";
+import { Aladin } from "./Aladin.js";
 
 export let HpxImageSurvey = (function() {
 
@@ -43,33 +44,23 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
+    let HpxImageSurvey = function(rootURLOrHiPSDefinition, options) {
         // new way
-        if (idOrHiPSDefinition instanceof HiPSDefinition) {
-            this.hipsDefinition = idOrHiPSDefinition;
+        if (rootURLOrHiPSDefinition instanceof HiPSDefinition) {
+            this.hipsDefinition = rootURLOrHiPSDefinition;
+            // TODO
 
+            this.FromHiPSDefinition(rootURLOrHiPSDefinition, options);
         }
-
         else {
-// REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition ou FAIRE dans l'autre sens
-            // old way, we retrofit parameters into a HiPSDefinition object
-            var hipsDefProps = {};
-
-            this.id = idOrHiPSDefinition;
-            hipsDefProps['ID'] = this.id;
-
-    	    this.name = name;
-            hipsDefProps['obs_title'] = this.name;
-
+            // Use the url for retrieving the HiPS properties
             // remove final slash
-    	    if (rootUrl.slice(-1) === '/') {
-    	        this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
-    	    }
-    	    else {
-    	        this.rootUrl = rootUrl;
-    	    }
-            this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
-
+            if (rootURLOrHiPSDefinition.slice(-1) === '/') {
+                this.rootUrl = rootURLOrHiPSDefinition.substr(0, rootURLOrHiPSDefinition.length-1);
+            }
+            else {
+                this.rootUrl = rootURLOrHiPSDefinition;
+            }
             // make URL absolute
             this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
 
@@ -78,65 +69,140 @@ export let HpxImageSurvey = (function() {
                 this.rootUrl = this.rootUrl.replace('http://', 'https://');
             }
 
-            // temporary fix when alasky is under maintenance
-            //this.rootUrl = this.rootUrl.replace('alasky.', 'alaskybis.');
-    	
-    	    options = options || {};
-    	    // TODO : support PNG
-    	    this.imgFormat = options.imgFormat || 'jpg';
+            console.log("URL: ", rootURLOrHiPSDefinition)
+            this.hipsDefinition = HiPSDefinition.fromURL(this.rootUrl, (hipsDefinition) => {
+                console.log("hips def ,", hipsDefinition)
 
-            // permet de forcer l'affichage d'un certain niveau
-            this.minOrder = options.minOrder || null;
-
-
-            // TODO : lire depuis fichier properties
-            this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
-            if (options.cooFrame) {
-                this.cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-            }
-
-            this.longitudeReversed = options.longitudeReversed || false;
-        
-            // force coo frame for Glimpse 360
-            if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
-                this.cooFrame = CooFrameEnum.J2000;
-            }
-            // TODO : lire depuis fichier properties
-            this.maxOrder = maxOrder;
-            if (options.maxOrder) {
-                this.maxOrder = options.maxOrder;
-            }
-
-            this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
+                this.FromHiPSDefinition(hipsDefinition, options);
+            });
         }
+        // REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition ou FAIRE dans l'autre sens
+        // old way, we retrofit parameters into a HiPSDefinition object
+        /*var hipsDefProps = {};
+
+        this.id = idOrHiPSDefinition;
+        hipsDefProps['ID'] = this.id;
+
+        this.name = name;
+        hipsDefProps['obs_title'] = this.name;
+
+
+        this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
+
+
+
+        // temporary fix when alasky is under maintenance
+        //this.rootUrl = this.rootUrl.replace('alasky.', 'alaskybis.');
+    
+        options = options || {};
+        // TODO : support PNG
+        this.imgFormat = options.imgFormat || 'jpg';
+
+        // permet de forcer l'affichage d'un certain niveau
+        this.minOrder = options.minOrder || null;
+
+
+        // TODO : lire depuis fichier properties
+        this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
+        if (options.cooFrame) {
+            this.cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+        }
+
+        this.longitudeReversed = options.longitudeReversed || false;
+    
+        // force coo frame for Glimpse 360
+        if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
+            this.cooFrame = CooFrameEnum.J2000;
+        }
+        // TODO : lire depuis fichier properties
+        this.maxOrder = maxOrder;
+        if (options.maxOrder) {
+            this.maxOrder = options.maxOrder;
+        }
+        */
+        
+
+        //this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
+        //////
+
+        
+    };
+
+
+    HpxImageSurvey.prototype.FromHiPSDefinition = function(hipsDefinition, options) {
+        this.id = hipsDefinition.getID();
+        this.name = hipsDefinition.properties["obs_title"];
+        this.minOrder = hipsDefinition.properties["hips_order_min"];
+        this.tileSize = hipsDefinition.properties["hips_tile_width"];
+        this.maxOrder = hipsDefinition.properties["hips_order"];
+        this.cooFrame = CooFrameEnum.fromString(hipsDefinition.properties["hips_frame"], CooFrameEnum.J2000);
+
+        console.log(hipsDefinition.properties)
+        this.imgFormat = hipsDefinition.properties["hips_tile_format"];
+        this.minCutout = 0.0;
+        this.maxCutout = 1.0;
+        this.bitpix = 0;
+
+        if (this.imgFormat.includes("fits") && hipsDefinition.properties["hips_pixel_cut"]) {
+            let hipsPixelCuts = hipsDefinition.properties["hips_pixel_cut"];
+            if (hipsPixelCuts) {
+                hipsPixelCuts = hipsPixelCuts.split(" ");
+                this.minCutout = +hipsPixelCuts[0];
+                this.maxCutout = +hipsPixelCuts[1];
+            }
+
+            this.bitpix = hipsDefinition.properties["hips_pixel_bitpix"] ? hipsDefinition.properties["hips_pixel_bitpix"] : 0;
+        }
+
+        // force coo frame for Glimpse 360
+        if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
+            this.cooFrame = CooFrameEnum.J2000;
+        }
+        this.longitudeReversed = options.longitudeReversed || false;
+
+        this.hipsDefinition = hipsDefinition;
 
         this.ascendingLongitude = false;
     	
-        this.tileSize = undefined;
     	this.allskyTexture = null;
     	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
     	this.allskyTextureSize = 0;
         this.lastUpdateDateNeededTiles = 0;
 
         var found = false;
+        let imageSurvey = null;
         for (var k=0; k<HpxImageSurvey.SURVEYS.length; k++) {
             if (HpxImageSurvey.SURVEYS[k].id==this.id) {
+                imageSurvey = HpxImageSurvey.SURVEYS[k];
                 found = true;
             }
         }
         if (! found) {
-            HpxImageSurvey.SURVEYS.push({
-                 "id": this.id,
-                 "url": this.rootUrl,
-                 "name": this.name,
-                 "maxOrder": this.maxOrder,
-                 "frame": this.cooFrame
-            });
+            imageSurvey = {
+                "id": this.id,
+                "url": this.rootUrl,
+                "name": this.name,
+                "maxOrder": this.maxOrder,
+                "frame": this.cooFrame,
+                "format": this.imgFormat,
+                "tileSize": this.tileSize,
+                // FITS HiPS specific
+                "minCutout": this.minCutout,
+                "maxCutout": this.maxCutout,
+                "bitpix": this.bitpix,
+            };
+            console.log("not found!: ", imageSurvey);
+
+            HpxImageSurvey.SURVEYS.push(imageSurvey);
         }
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
-    };
 
-
+        // Send to wasm the data
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (webglAPI) {
+            webglAPI.setImageSurvey(imageSurvey);
+        }
+    }
 
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
     
@@ -192,150 +258,222 @@ export let HpxImageSurvey = (function() {
     
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
-     {
+    {
         "id": "P/2MASS/color",
         "url": "http://alasky.u-strasbg.fr/2MASS/Color",
         "name": "2MASS colored",
         "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/DSS2/color",
         "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
         "name": "DSS colored",
         "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "tileSize": 512,
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/DSS2/red",
         "url": "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
         "name": "DSS2 Red (F+R)",
         "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg fits"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg fits",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/PanSTARRS/DR1/g",
         "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
         "name": "PanSTARRS DR1 g",
         "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg fits"
-     },
-     {
+        "frame": CooFrameEnum.J2000,
+        "tileSize": 512,
+        "format": "jpeg fits",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/PanSTARRS/DR1/color-z-zg-g",
         "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
         "name": "PanSTARRS DR1 color",
         "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/DECaPS/DR1/color",
         "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
         "name": "DECaPS DR1 color",
         "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg png"
-     },
-     {
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg png",
+        "tileSize": 512,
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/Fermi/color",
         "url": "http://alasky.u-strasbg.fr/Fermi/Color",
         "name": "Fermi color",
         "maxOrder": 3,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "tileSize": 512,
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/Finkbeiner",
         "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
         "maxOrder": 3,
-        "frame": "galactic",
+        "frame": CooFrameEnum.GAL,
         "format": "jpeg fits",
-        "name": "Halpha"
-     },
-     {
+        "tileSize": 512,
+        "name": "Halpha",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/GALEXGR6/AIS/color",
         "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
         "name": "GALEX Allsky Imaging Survey colored",
         "maxOrder": 8,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/IRIS/color",
         "url": "http://alasky.u-strasbg.fr/IRISColor",
         "name": "IRIS colored",
+        "tileSize": 512,
         "maxOrder": 3,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
+        "frame": CooFrameEnum.GAL,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/Mellinger/color",
         "url": "http://alasky.u-strasbg.fr/MellingerRGB",
         "name": "Mellinger colored",
         "maxOrder": 4,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.GAL,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/SDSS9/color",
         "url": "http://alasky.u-strasbg.fr/SDSS/DR9/color",
         "name": "SDSS9 colored",
         "maxOrder": 10,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/SPITZER/color",
         "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
         "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
         "maxOrder": 9,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
+        "tileSize": 512,
+        "frame": CooFrameEnum.GAL,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/VTSS/Ha",
         "url": "http://alasky.u-strasbg.fr/VTSS/Ha",
         "maxOrder": 3,
-        "frame": "galactic",
+        "tileSize": 512,
+        "frame": CooFrameEnum.GAL,
         "format": "png jpeg fits",
-        "name": "VTSS-Ha"
-     },
-     {
+        "name": "VTSS-Ha",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
         "id": "P/XMM/EPIC",
         "url": "http://saada.u-strasbg.fr/xmmallsky",
         "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
         "maxOrder": 7,
-        "frame": "equatorial",
-        "format": "png fits"
-     },
-     {
-         "id": "P/XMM/PN/color",
-          "url": "http://saada.unistra.fr/PNColor",
-          "name": "XMM PN colored",
-          "maxOrder": 7,
-          "frame": "equatorial",
-          "format": "png jpeg"
-     },
-     {
-         "id": "P/allWISE/color",
-         "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
-         "name": "AllWISE color",
-         "maxOrder": 8,
-         "frame": "equatorial",
-         "format": "jpeg"
-     },
-     {
-         "id": "P/GLIMPSE360",
-         "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
-         "name": "GLIMPSE360",
-         "maxOrder": 9,
-         "frame": "equatorial",
-         "format": "jpeg"
-     }
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "png fits",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
+        "id": "P/XMM/PN/color",
+        "url": "http://saada.unistra.fr/PNColor",
+        "name": "XMM PN colored",
+        "maxOrder": 7,
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "png jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
+        "id": "P/allWISE/color",
+        "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+        "name": "AllWISE color",
+        "maxOrder": 8,
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    },
+    {
+        "id": "P/GLIMPSE360",
+        "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+        "name": "GLIMPSE360",
+        "maxOrder": 9,
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "minCutout": 0,
+        "maxCutout": 1,
+        "bitpix": 0,
+    }
   ];
 
 
@@ -364,7 +502,7 @@ export let HpxImageSurvey = (function() {
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }
-            return new HpxImageSurvey(surveyInfo.id, surveyInfo.name, surveyInfo.url, surveyInfo.frame, surveyInfo.maxOrder, options);
+            return new HpxImageSurvey(surveyInfo.url, options);
         }
 
         return null;

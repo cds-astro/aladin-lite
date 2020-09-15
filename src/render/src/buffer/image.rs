@@ -377,7 +377,7 @@ where T: RequestImage + ReceiveImage {
             let dir_idx = (idx / 10000) * 10000;
 
             let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
-                hips.name.to_string(),
+                hips.root_url.to_string(),
                 depth.to_string(),
                 dir_idx.to_string(),
                 idx.to_string(),

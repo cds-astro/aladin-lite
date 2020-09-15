@@ -1690,7 +1690,7 @@ export let View = (function() {
         if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
             this.untaintCanvases();
         }
-        
+
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
@@ -1703,6 +1703,23 @@ export let View = (function() {
             newImageSurvey = imageSurvey;
         }
  
+        let webglAPI = Aladin.wasmLibs.webglAPI;
+        if (webglAPI) {
+            let imageSurveys = HpxImageSurvey.getAvailableSurveys();
+            let hipsDefinition = null;
+            for (var k=0; k<imageSurveys.length; k++) {
+                if (imageSurveys[k].id==imageSurvey) {
+                    hipsDefinition = imageSurveys[k];
+                    break;
+                }
+            }
+
+            if (!hipsDefinition) {
+                hipsDefinition = HpxImageSurvey.SURVEYS[0];
+            }
+            webglAPI.setImageSurvey(hipsDefinition);
+        }
+
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
         // ideally, instead of creating a new TileBuffer object,
         //  one should remove from TileBuffer all Tile objects still in the download queue qui sont encore dans la download queue

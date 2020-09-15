@@ -75,7 +75,7 @@ use crate::transfert_function::TransferFunction;
 use crate::shaders::Colormap;
 #[derive(Debug)]
 pub struct HiPSConfig {
-    pub name: String,
+    pub root_url: String,
     // HiPS image format
     format: FormatImageType,
 
@@ -106,11 +106,39 @@ fn is_power_of_two(x: usize) -> bool {
     x & (x - 1) == 0
 }
 
+use crate::image_fmt::FITS;
+
 use crate::math;
 use web_sys::WebGl2RenderingContext;
+use wasm_bindgen::JsValue;
+use crate::HiPSDefinition;
 impl HiPSConfig {
-    pub fn new(gl: &WebGl2Context, name: String, max_depth_tile: u8, tile_size: i32, min_cutout: f32, max_cutout: f32, transfer_f: TransferFunction, format: FormatImageType, blank: Option<f32>) -> HiPSConfig {
-        let tile_config = TileConfig::new(tile_size, &format, blank.unwrap_or(0.0));
+    pub fn new(gl: &WebGl2Context, hips_definition: HiPSDefinition) -> Result<HiPSConfig, JsValue> {
+
+        let fmt = hips_definition.format;
+        let format: Result<_, JsValue> = if fmt.contains("fits") {
+            // Check the bitpix to determine the internal format of the tiles
+            let fits = match hips_definition.bitpix {
+                8 => FITS::new(WebGl2RenderingContext::R8UI as i32),
+                16 => FITS::new(WebGl2RenderingContext::R16I as i32),
+                32 => FITS::new(WebGl2RenderingContext::R32I as i32),
+                -32 => FITS::new(WebGl2RenderingContext::R32F as i32),
+                _ => unimplemented!()
+            };
+
+            Ok(FormatImageType::FITS(fits))
+        } else if fmt.contains("png") {
+            Ok(FormatImageType::PNG)
+        } else if fmt.contains("jpg") || fmt.contains("jpeg") {
+            Ok(FormatImageType::JPG)
+        } else {
+            Err(format!("{:?} tile format unknown!", fmt).into())
+        };
+        let format = format?;
+
+        let max_depth_tile = hips_definition.maxOrder;
+        let tile_size = hips_definition.tileSize;
+        let tile_config = TileConfig::new(tile_size, &format, 0.0);
 
         // Define the size of the 2d texture array depending on the
         // characterics of the client
@@ -122,6 +150,7 @@ impl HiPSConfig {
         // Assert size is a power of two
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
+
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         let num_tile_per_side_texture = texture_size / tile_size;
 
@@ -131,11 +160,12 @@ impl HiPSConfig {
         let num_tiles_per_texture = num_tiles_per_texture_side * num_tiles_per_texture_side;
 
         let max_depth_texture = max_depth_tile - delta_depth;
-        let blank_value = blank;
+        let blank_value = None;
         let colormap = Colormap::RedTemperature;
-        HiPSConfig {
+        let transfer_f = TransferFunction::Linear;
+        Ok(HiPSConfig {
             // HiPS name
-            name,
+            root_url: hips_definition.url,
             format,
             // Tile size & blank tile data
             tile_config,
@@ -152,12 +182,31 @@ impl HiPSConfig {
             num_textures_by_slice,
             num_slices,
             num_textures,
-            min_cutout,
-            max_cutout,
+            min_cutout: hips_definition.minCutout,
+            max_cutout: hips_definition.maxCutout,
             transfer_f,
             blank_value,
             colormap
-        }
+        })
+    }
+
+    pub fn set_HiPS_definition(&mut self, hips_def: HiPSDefinition) {
+        let max_depth_tile = hips_def.maxOrder;
+        let tile_size = hips_def.tileSize;
+
+        let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
+        let num_tile_per_side_texture = texture_size / tile_size;
+
+        self.delta_depth = math::log_2(num_tile_per_side_texture as i32) as u8;
+
+        let num_tiles_per_texture_side = 1 << self.delta_depth;
+        self.num_tiles_per_texture = num_tiles_per_texture_side * num_tiles_per_texture_side;
+
+        self.max_depth_texture = max_depth_tile - self.delta_depth;
+
+        self.root_url = hips_def.url;
+        self.min_cutout = hips_def.minCutout;
+        self.max_cutout = hips_def.maxCutout;
     }
 
     #[inline]

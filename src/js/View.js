@@ -1713,14 +1713,16 @@ export let View = (function() {
         else {
             // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
             newImageSurvey = imageSurvey;
+            console.log("exist already", newImageSurvey.getSurveyInfo());
+            this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
         }
 
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
         // ideally, instead of creating a new TileBuffer object,
         //  one should remove from TileBuffer all Tile objects still in the download queue qui sont encore dans la download queue
-        this.tileBuffer = new TileBuffer();
+        //this.tileBuffer = new TileBuffer();
 
-        this.downloader.emptyQueue();
+        //this.downloader.emptyQueue();
         
         newImageSurvey.isReady = false;
         this.imageSurvey = newImageSurvey;

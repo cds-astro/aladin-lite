@@ -114,30 +114,10 @@ use wasm_bindgen::JsValue;
 use crate::HiPSDefinition;
 impl HiPSConfig {
     pub fn new(gl: &WebGl2Context, hips_definition: HiPSDefinition) -> Result<HiPSConfig, JsValue> {
+        let format = FormatImageType::JPG;
 
-        let fmt = hips_definition.format;
-        let format: Result<_, JsValue> = if fmt.contains("fits") {
-            // Check the bitpix to determine the internal format of the tiles
-            let fits = match hips_definition.bitpix {
-                8 => FITS::new(WebGl2RenderingContext::R8UI as i32),
-                16 => FITS::new(WebGl2RenderingContext::R16I as i32),
-                32 => FITS::new(WebGl2RenderingContext::R32I as i32),
-                -32 => FITS::new(WebGl2RenderingContext::R32F as i32),
-                _ => unimplemented!()
-            };
-
-            Ok(FormatImageType::FITS(fits))
-        } else if fmt.contains("png") {
-            Ok(FormatImageType::PNG)
-        } else if fmt.contains("jpg") || fmt.contains("jpeg") {
-            Ok(FormatImageType::JPG)
-        } else {
-            Err(format!("{:?} tile format unknown!", fmt).into())
-        };
-        let format = format?;
-
-        let max_depth_tile = hips_definition.maxOrder;
-        let tile_size = hips_definition.tileSize;
+        let max_depth_tile = 0;
+        let tile_size = 512;
         let tile_config = TileConfig::new(tile_size, &format, 0.0);
 
         // Define the size of the 2d texture array depending on the
@@ -151,21 +131,24 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
-        let num_tile_per_side_texture = texture_size / tile_size;
+        let texture_size = 0;
+        let num_tile_per_side_texture = 0;
 
-        let delta_depth = math::log_2(num_tile_per_side_texture as i32) as u8;
+        let delta_depth = 0;
 
-        let num_tiles_per_texture_side = 1 << delta_depth;
-        let num_tiles_per_texture = num_tiles_per_texture_side * num_tiles_per_texture_side;
+        let num_tiles_per_texture_side = 0;
+        let num_tiles_per_texture = 0;
 
-        let max_depth_texture = max_depth_tile - delta_depth;
+        let max_depth_texture = 0;
         let blank_value = None;
         let colormap = Colormap::RedTemperature;
         let transfer_f = TransferFunction::Linear;
-        Ok(HiPSConfig {
+        let root_url = String::from("");
+        let min_cutout = 0.0;
+        let max_cutout = 0.0;
+        let mut hips_config = HiPSConfig {
             // HiPS name
-            root_url: hips_definition.url,
+            root_url,
             format,
             // Tile size & blank tile data
             tile_config,
@@ -182,17 +165,19 @@ impl HiPSConfig {
             num_textures_by_slice,
             num_slices,
             num_textures,
-            min_cutout: hips_definition.minCutout,
-            max_cutout: hips_definition.maxCutout,
+            min_cutout,
+            max_cutout,
             transfer_f,
             blank_value,
             colormap
-        })
+        };
+
+        hips_config.set_HiPS_definition(hips_definition)?;
+
+        Ok(hips_config)
     }
 
     pub fn set_HiPS_definition(&mut self, hips_def: HiPSDefinition) -> Result<(), JsValue> {
-        crate::log(&format!("new hips config {:?}", hips_def));
-
         let fmt = hips_def.format;
         let format : Result<_, JsValue> = if fmt.contains("fits") {
             // Check the bitpix to determine the internal format of the tiles
@@ -226,8 +211,8 @@ impl HiPSConfig {
 
         self.tile_config = TileConfig::new(tile_size, &self.format, 0.0);
 
-        let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
-        let num_tile_per_side_texture = texture_size / tile_size;
+        self.texture_size = std::cmp::min(512, tile_size << max_depth_tile);
+        let num_tile_per_side_texture = self.texture_size / tile_size;
 
         self.delta_depth = math::log_2(num_tile_per_side_texture as i32) as u8;
 

@@ -149,7 +149,7 @@ export let HpxImageSurvey = (function() {
                 this.maxCutout = +hipsPixelCuts[1];
             }
 
-            this.bitpix = hipsDefinition.properties["hips_pixel_bitpix"] ? hipsDefinition.properties["hips_pixel_bitpix"] : 0;
+            this.bitpix = hipsDefinition.properties["hips_pixel_bitpix"] ? +hipsDefinition.properties["hips_pixel_bitpix"] : 0;
         }
 
         // force coo frame for Glimpse 360
@@ -239,14 +239,14 @@ export let HpxImageSurvey = (function() {
                     // CORS is supported
                     self.useCors = true;
                     
-                    self.retrieveAllskyTextures();
+                    //self.retrieveAllskyTextures();
                     if (callback) {
                         callback();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     // CORS is not supported
-                    self.retrieveAllskyTextures();
+                    //self.retrieveAllskyTextures();
                     if (callback) {
                         callback();
                     }
@@ -372,18 +372,6 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "CDS/P/IRIS/color",
-        "url": "http://alasky.u-strasbg.fr/IRISColor",
-        "name": "IRIS colored",
-        "tileSize": 512,
-        "maxOrder": 3,
-        "frame": CooFrameEnum.GAL,
-        "format": "jpeg",
-        "minCutout": 0,
-        "maxCutout": 1,
-        "bitpix": 0,
-    },
-    {
         "id": "CDS/P/Mellinger/color",
         "url": "http://alasky.u-strasbg.fr/MellingerRGB",
         "name": "Mellinger colored",
@@ -431,7 +419,7 @@ export let HpxImageSurvey = (function() {
         "maxCutout": 1,
         "bitpix": 0,
     },
-    {
+    /*{
         "id": "CDS/P/XMM/EPIC",
         "url": "http://saada.u-strasbg.fr/xmmallsky",
         "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
@@ -442,7 +430,7 @@ export let HpxImageSurvey = (function() {
         "minCutout": 0,
         "maxCutout": 1,
         "bitpix": 0,
-    },
+    },*/
     {
         "id": "CDS/P/XMM/PN/color",
         "url": "http://saada.unistra.fr/PNColor",

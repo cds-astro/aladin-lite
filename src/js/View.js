@@ -50,7 +50,9 @@ import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame }          from "./libs/RequestAnimationFrame.js";
-import { load_shaders } from './Shaders.js';
+import { loadShaders } from './Shaders.js';
+// Import kernel image
+import kernel from './../render/img/kernel.png';
 
 export let View = (function() {
 
@@ -64,6 +66,18 @@ export let View = (function() {
             this.popup = new Popup(this.aladinDiv, this);
 
             this.createCanvases();
+            // Init the WebGL context
+            // At this point, the view has been created so the image canvas too
+            let shaders = loadShaders(Aladin.wasmLibs.webgl);
+            console.log(shaders);
+        
+            // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+            let resources = {
+                'kernel': kernel,
+            };
+            this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
+            this.aladin.webglAPI.resize(500, 400);
+
             this.location = location;
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
@@ -241,10 +255,7 @@ export let View = (function() {
 
         // reinitialize 2D context
         this.imageCtx = this.imageCanvas.getContext("webgl2");
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (webglAPI) {
-            webglAPI.resize(this.width, this.height);
-        }
+        this.aladin.webglAPI.resize(this.width, this.height);
         
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
@@ -406,7 +417,7 @@ export let View = (function() {
 
             //var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
             try {
-                var lonlat = Aladin.wasmLibs.webglAPI.screenToWorld(xymouse.x, xymouse.y);
+                var lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
             }
             catch(err) {
                 return;
@@ -607,6 +618,7 @@ export let View = (function() {
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
+        let webglAPI = view.aladin.webglAPI;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
 
@@ -679,8 +691,8 @@ export let View = (function() {
 
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                pos1 = Aladin.wasmLibs.webglAPI.screenToWorld(view.dragx, view.dragy);
-                pos2 = Aladin.wasmLibs.webglAPI.screenToWorld(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY);
+                pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
+                pos2 = webglAPI.screenToWorld(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY);
             }
             else {
                 /*
@@ -694,8 +706,10 @@ export let View = (function() {
 
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                pos1 = Aladin.wasmLibs.webglAPI.screenToWorld(view.dragx, view.dragy);
-                pos2 = Aladin.wasmLibs.webglAPI.screenToWorld(xymouse.x, xymouse.y);
+                console.log("ALADIN LITE, ",webglAPI)
+
+                pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
+                pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
             }
             
             // TODO : faut il faire ce test ??
@@ -749,13 +763,11 @@ export let View = (function() {
                 view.viewCenter.lon = view.viewCenter.lon % 360;
             }
             view.realDragging = true;
-            let webglAPI = Aladin.wasmLibs.webglAPI;
-            if (webglAPI) {
-                webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
-                //webglAPI.setCenter(pos2[0], pos2[1]);
-                view.viewCenter.lon = pos2[0];
-                view.viewCenter.lat = pos2[1];
-            }
+
+            webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
+            //webglAPI.setCenter(pos2[0], pos2[1]);
+            view.viewCenter.lon = pos2[0];
+            view.viewCenter.lat = pos2[1];
 
             view.requestRedraw();
         }); //// endof mousemove ////
@@ -839,8 +851,8 @@ export let View = (function() {
         // initial draw
         view.fov = computeFov(view);
         updateFovDiv(view);
-        
-        view.redraw();
+        console.log("first DRAW")
+        //view.redraw();
     };
 
     function updateLocation(view, x, y, isViewCenterPosition) {
@@ -910,12 +922,9 @@ export let View = (function() {
         requestAnimFrame(this.redraw.bind(this));
         var now = Date.now();
         var dt = now - this.prev;
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (!webglAPI) {
-            return;
-        }
-        let tasksFinished = webglAPI.runTasks(dt);
-        let updateView = webglAPI.update(dt);
+
+        let tasksFinished = this.aladin.webglAPI.runTasks(dt);
+        let updateView = this.aladin.webglAPI.update(dt);
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
@@ -930,7 +939,7 @@ export let View = (function() {
         }
 
         //this.stats.update();
-        webglAPI.render();
+        this.aladin.webglAPI.render();
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -1561,10 +1570,7 @@ export let View = (function() {
         var oldFov = this.fov;
         this.fov = computeFov(this);
         console.log("FOV, ", this.fov);
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (webglAPI) {
-            webglAPI.setFieldOfView(this.fov);
-        }
+        this.aladin.webglAPI.setFieldOfView(this.fov);
 
         // TODO: event/listener should be better
         updateFovDiv(this);
@@ -1680,7 +1686,7 @@ export let View = (function() {
     
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.setImageSurvey = function(imageSurvey, callback) {
+    View.prototype.setImageSurvey = function(imageSurvey) {
         if (! imageSurvey) {
             return;
         }
@@ -1690,34 +1696,23 @@ export let View = (function() {
         if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
             this.untaintCanvases();
         }
-
+        console.log('type imageSurvey', typeof imageSurvey);
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
-            if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
-                unknownSurveyId = imageSurvey;
+            // imageSurvey is an ID
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyProperties) => {
+                console.log('set HiPS info', imageSurveyProperties)
+                this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
+            });
+            if (newImageSurvey) {
+                this.imageSurvey = newImageSurvey;
+            } else {
+                throw imageSurvey + ' id not a valid image survey ID';
             }
         }
         else {
+            // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
             newImageSurvey = imageSurvey;
-        }
- 
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (webglAPI) {
-            let imageSurveys = HpxImageSurvey.getAvailableSurveys();
-            let hipsDefinition = null;
-            for (var k=0; k<imageSurveys.length; k++) {
-                if (imageSurveys[k].id==imageSurvey) {
-                    hipsDefinition = imageSurveys[k];
-                    break;
-                }
-            }
-
-            if (!hipsDefinition) {
-                hipsDefinition = HpxImageSurvey.SURVEYS[0];
-            }
-            webglAPI.setImageSurvey(hipsDefinition);
         }
 
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
@@ -1740,9 +1735,9 @@ export let View = (function() {
             self.requestRedraw();
             self.updateObjectsLookup();
             
-            if (callback) {
+            /*if (callback) {
                 callback();
-            }
+            }*/
         });
     };
     
@@ -1819,11 +1814,8 @@ export let View = (function() {
         }
         console.log("point to ", ra, dec)
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (webglAPI) {
-            webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
-        }
-
+        this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
+        
         this.forceRedraw();
         this.requestRedraw();
         var self = this;

@@ -49,10 +49,6 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
-import { loadShaders } from './Shaders.js';
-
-// Import kernel image
-import kernel from './../render/img/kernel.png';
 
 export let Aladin = (function () {
 
@@ -62,6 +58,7 @@ export let Aladin = (function () {
         if ($(aladinDiv).length == 0) {
             return;
         }
+        this.webglAPI = null;
 
         var self = this;
 
@@ -303,7 +300,25 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-        console.log(options.survey)
+        console.log("SURVEYYYY: ", options.survey)
+        
+        /*let webglAPI = await import('../render/pkg/');
+        console.log('webgl imported');
+        let shaders = await loadShaders(webglAPI);
+        console.log(shaders);
+    
+        // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+        let resources = {
+            'kernel': kernel,
+        };
+        Aladin.wasmLibs.webglAPI = new webglAPI.WebClient(shaders, resources);
+        let webgl = Aladin.wasmLibs.webglAPI;
+        webgl.resize(500, 400);*/
+
+        /*let imageSurveyInfo = HpxImageSurvey.getSurveyInfoFromId(options.survey);
+        console.log('image survey, ', imageSurveyInfo)
+        webgl.setImageSurvey(imageSurveyInfo);*/
+
         this.setImageSurvey(options.survey);
         this.view.showCatalog(options.showCatalog);
 
@@ -346,9 +361,10 @@ export let Aladin = (function () {
         if (options.fullScreen) {
             window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 1000);
         }
-        this.webglAPI = undefined;
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
+
+        this.view.redraw();
     };
 
     /**** CONSTANTS ****/
@@ -886,9 +902,8 @@ export let Aladin = (function () {
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function (imageSurvey, callback) {
-        console.log("sdfsdfsdf")
-        this.view.setImageSurvey(imageSurvey, callback);
+    Aladin.prototype.setImageSurvey = function (imageSurvey) {
+        this.view.setImageSurvey(imageSurvey);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;
@@ -1694,34 +1709,15 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     return A.catalogFromURL(url, options, successCallback, false);
 };
 
-A.init = new Promise((resolutionFunc, rejectionFunc) => {
-        // HEALPix wasm library
-        import('@fxpineau/healpix')
-            .then(hpxAPI => {
-                Aladin.wasmLibs.hpx = hpxAPI;
-                resolutionFunc();
-            })
-            .catch(console.error);
-    }).then(() => {
-        // WebGL API
-        import('../render/pkg/')
-            .then(async (webglAPI) => {
-                let shaders = await loadShaders(webglAPI);
-                console.log(shaders);
-            
-                // Start our Rust application. You can find `WebClient` in `src/lib.rs`
-                let resources = {
-                    'kernel': kernel,
-                };
-                //Aladin.webglAPI = 
-                let webgl = Aladin.wasmLibs.webglAPI;
-                webgl = new webglAPI.WebClient(shaders, resources);
-                webgl.resize(500, 400);
-                console.log("imazaz", HpxImageSurvey.SURVEYS[1]);
-                webgl.setImageSurvey(HpxImageSurvey.SURVEYS[1]);
-            })
-            .catch(console.error);
-    });
+A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
+    console.log(values);
+    let [hpxAPI, webglAPI] = values;
+
+    // HEALPix library
+    Aladin.wasmLibs.hpx = hpxAPI;
+    // WebGL library
+    Aladin.wasmLibs.webgl = webglAPI;
+});
 
 // this is ugly for sure and there must be a better way using Webpack magic
 window.A  = A;

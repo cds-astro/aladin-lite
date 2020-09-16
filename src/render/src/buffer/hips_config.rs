@@ -190,9 +190,41 @@ impl HiPSConfig {
         })
     }
 
-    pub fn set_HiPS_definition(&mut self, hips_def: HiPSDefinition) {
+    pub fn set_HiPS_definition(&mut self, hips_def: HiPSDefinition) -> Result<(), JsValue> {
+        crate::log(&format!("new hips config {:?}", hips_def));
+
+        let fmt = hips_def.format;
+        let format : Result<_, JsValue> = if fmt.contains("fits") {
+            // Check the bitpix to determine the internal format of the tiles
+            match hips_def.bitpix {
+                8 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32))),
+                16 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32))),
+                32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32))),
+                -32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32))),
+                _ => {
+                    // The bitpix is not good, so we check for jpeg or png tiles
+                    if fmt.contains("png") {
+                        Ok(FormatImageType::PNG)
+                    } else if fmt.contains("jpeg") || fmt.contains("jpg") {
+                        Ok(FormatImageType::JPG)
+                    } else {
+                        Err(format!("Fits tiles exists but the BITPIX is not correct in the property file").into())
+                    }
+                }
+            }
+        } else if fmt.contains("png") {
+            Ok(FormatImageType::PNG)
+        } else if fmt.contains("jpeg") || fmt.contains("jpg") {
+            Ok(FormatImageType::JPG)
+        } else {
+            Err(format!("No format recognized").into())
+        };
+        self.format = format?;
+        
         let max_depth_tile = hips_def.maxOrder;
         let tile_size = hips_def.tileSize;
+
+        self.tile_config = TileConfig::new(tile_size, &self.format, 0.0);
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         let num_tile_per_side_texture = texture_size / tile_size;
@@ -207,6 +239,9 @@ impl HiPSConfig {
         self.root_url = hips_def.url;
         self.min_cutout = hips_def.minCutout;
         self.max_cutout = hips_def.maxCutout;
+        crate::log(&format!("new hips config3 {:?}", self));
+
+        Ok(())
     }
 
     #[inline]

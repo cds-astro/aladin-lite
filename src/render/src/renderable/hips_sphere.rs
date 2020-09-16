@@ -237,6 +237,8 @@ use crate::{
 use crate::TransferFunction;
 use crate::shaders::Colormap;
 use crate::HiPSDefinition;
+use wasm_bindgen::JsValue;
+
 impl HiPSSphere {
     pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, config: HiPSConfig, shaders: &ShaderManager) -> Self {
         let buffer = BufferTextures::new(gl, &config, viewport);
@@ -259,14 +261,15 @@ impl HiPSSphere {
             gl,
         }
     }
-
-    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut ViewPort, task_executor: &mut AladinTaskExecutor) {        
-        self.config.set_HiPS_definition(hips_definition);
+    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut ViewPort, task_executor: &mut AladinTaskExecutor) -> Result<(), JsValue> {        
+        self.config.set_HiPS_definition(hips_definition)?;
         // Tell the viewport the config has changed
         viewport.set_image_survey::<P>(&self.config);
 
         // Clear the buffer
         self.buffer.reset(&self.gl, &self.config, viewport, task_executor);
+
+        Ok(())
     }
     
     pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {

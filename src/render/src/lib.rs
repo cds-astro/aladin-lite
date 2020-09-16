@@ -311,8 +311,8 @@ impl App {
         self.sphere.set_projection::<P>(&self.viewport, &self.shaders);
     }
 
-    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) {
-        self.sphere.set_image_survey::<P>(hips_definition, &mut self.viewport, &mut self.task_executor);
+    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
+        self.sphere.set_image_survey::<P>(hips_definition, &mut self.viewport, &mut self.task_executor)
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
@@ -555,14 +555,14 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_image_survey(&mut self, app: &mut App, hips_definition: HiPSDefinition) {   
+    pub fn set_image_survey(&mut self, app: &mut App, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_image_survey::<Aitoff>(hips_definition),
             ProjectionType::MollWeide => app.set_image_survey::<Mollweide>(hips_definition),
             ProjectionType::Ortho => app.set_image_survey::<Orthographic>(hips_definition),
             ProjectionType::Arc => app.set_image_survey::<Mollweide>(hips_definition),
             ProjectionType::Mercator => app.set_image_survey::<Mercator>(hips_definition),
-        };
+        }
     }
 
     pub fn resize(&mut self, app: &mut App, width: f32, height: f32, enable_grid: bool) {       
@@ -756,8 +756,8 @@ impl WebClient {
         let gl = WebGl2Context::new();
         let events = EventManager::new();
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-
         let app = App::new(&gl, &events, shaders, resources)?;
+
         //let appconfig = AppConfig::Ortho(app);
         let dt = DeltaTime::zero();
         let enable_inertia = false;
@@ -895,12 +895,12 @@ impl WebClient {
     /// Change HiPS
     #[wasm_bindgen(js_name = setImageSurvey)]
     pub fn set_image_survey(&mut self,
-        hips_definition: &JsValue,
+        hips_definition: JsValue,
     ) -> Result<(), JsValue> {
         let hips_definition: HiPSDefinition = hips_definition.into_serde().unwrap();
         crate::log(&format!("hips_def222: {:?}", hips_definition));
 
-        self.projection.set_image_survey(&mut self.app, hips_definition);
+        self.projection.set_image_survey(&mut self.app, hips_definition)?;
 
         Ok(())
     }

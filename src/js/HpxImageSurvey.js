@@ -35,6 +35,7 @@ import { HpxKey } from "./HpxKey.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Tile } from "./Tile.js";
 import { Aladin } from "./Aladin.js";
+import { call } from "file-loader";
 
 export let HpxImageSurvey = (function() {
 
@@ -44,38 +45,37 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(rootURLOrHiPSDefinition, options) {
-        // new way
-        if (rootURLOrHiPSDefinition instanceof HiPSDefinition) {
-            this.hipsDefinition = rootURLOrHiPSDefinition;
-            // TODO
 
-            this.FromHiPSDefinition(rootURLOrHiPSDefinition, options);
+
+    let HpxImageSurvey = function(rootURL, options, callback) {
+        // Use the url for retrieving the HiPS properties
+        // remove final slash
+        if (rootURL.slice(-1) === '/') {
+            this.rootUrl = rootURL.substr(0, rootURL.length-1);
         }
         else {
-            // Use the url for retrieving the HiPS properties
-            // remove final slash
-            if (rootURLOrHiPSDefinition.slice(-1) === '/') {
-                this.rootUrl = rootURLOrHiPSDefinition.substr(0, rootURLOrHiPSDefinition.length-1);
-            }
-            else {
-                this.rootUrl = rootURLOrHiPSDefinition;
-            }
-            // make URL absolute
-            this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
-
-            // fast fix for HTTPS support --> will work for all HiPS served by CDS
-            if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
-                this.rootUrl = this.rootUrl.replace('http://', 'https://');
-            }
-
-            console.log("URL: ", rootURLOrHiPSDefinition)
-            this.hipsDefinition = HiPSDefinition.fromURL(this.rootUrl, (hipsDefinition) => {
-                console.log("hips def ,", hipsDefinition)
-
-                this.FromHiPSDefinition(hipsDefinition, options);
-            });
+            this.rootUrl = rootURL;
         }
+
+        // make URL absolute
+        this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
+
+        // fast fix for HTTPS support --> will work for all HiPS served by CDS
+        if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
+            this.rootUrl = this.rootUrl.replace('http://', 'https://');
+        }
+
+        console.log("URL: ", rootURL)
+        HiPSDefinition.fromURL(this.rootUrl, (hipsDefinition) => {
+            console.log("hips def ,", hipsDefinition)
+
+            this.FromHiPSDefinition(hipsDefinition, options);
+
+            if (callback) {
+                callback(this.getSurveyInfo());
+            }
+        });
+
         // REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition ou FAIRE dans l'autre sens
         // old way, we retrofit parameters into a HiPSDefinition object
         /*var hipsDefProps = {};
@@ -128,16 +128,14 @@ export let HpxImageSurvey = (function() {
         
     };
 
-
     HpxImageSurvey.prototype.FromHiPSDefinition = function(hipsDefinition, options) {
         this.id = hipsDefinition.getID();
         this.name = hipsDefinition.properties["obs_title"];
         this.minOrder = hipsDefinition.properties["hips_order_min"];
-        this.tileSize = hipsDefinition.properties["hips_tile_width"];
-        this.maxOrder = hipsDefinition.properties["hips_order"];
+        this.tileSize = +hipsDefinition.properties["hips_tile_width"];
+        this.maxOrder = +hipsDefinition.properties["hips_order"];
         this.cooFrame = CooFrameEnum.fromString(hipsDefinition.properties["hips_frame"], CooFrameEnum.J2000);
 
-        console.log(hipsDefinition.properties)
         this.imgFormat = hipsDefinition.properties["hips_tile_format"];
         this.minCutout = 0.0;
         this.maxCutout = 1.0;
@@ -158,7 +156,9 @@ export let HpxImageSurvey = (function() {
         if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
             this.cooFrame = CooFrameEnum.J2000;
         }
-        this.longitudeReversed = options.longitudeReversed || false;
+        if (options) {
+            this.longitudeReversed = options.longitudeReversed || false;
+        }
 
         this.hipsDefinition = hipsDefinition;
 
@@ -170,15 +170,13 @@ export let HpxImageSurvey = (function() {
         this.lastUpdateDateNeededTiles = 0;
 
         var found = false;
-        let imageSurvey = null;
         for (var k=0; k<HpxImageSurvey.SURVEYS.length; k++) {
             if (HpxImageSurvey.SURVEYS[k].id==this.id) {
-                imageSurvey = HpxImageSurvey.SURVEYS[k];
                 found = true;
             }
         }
         if (! found) {
-            imageSurvey = {
+            let imageSurveyInfo = {
                 "id": this.id,
                 "url": this.rootUrl,
                 "name": this.name,
@@ -191,21 +189,29 @@ export let HpxImageSurvey = (function() {
                 "maxCutout": this.maxCutout,
                 "bitpix": this.bitpix,
             };
-            console.log("not found!: ", imageSurvey);
+            console.log("insert new image survey info: ", imageSurveyInfo);
 
-            HpxImageSurvey.SURVEYS.push(imageSurvey);
+            HpxImageSurvey.SURVEYS.push(imageSurveyInfo);
+        } else {
+            console.log("found ", this.id)
         }
+
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
-
-        // Send to wasm the data
-        let webglAPI = Aladin.wasmLibs.webglAPI;
-        if (webglAPI) {
-            webglAPI.setImageSurvey(imageSurvey);
-        }
     }
 
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
     
+    HpxImageSurvey.prototype.getSurveyInfo = function() {
+        var surveys = HpxImageSurvey.getAvailableSurveys();
+        console.log("SURVEYS", surveys, this.id)
+        for (var i=0; i < surveys.length; i++) {
+            if (surveys[i].id==this.id) {
+                return surveys[i];
+            }
+        }
+        return null;
+    };
+
     HpxImageSurvey.prototype.init = function(view, callback) {
     	this.view = view;
     	
@@ -254,12 +260,11 @@ export let HpxImageSurvey = (function() {
     	
     };
     
-    HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
-    
+    HpxImageSurvey.DEFAULT_SURVEY_ID = "CDS/P/DSS2/color";
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
     {
-        "id": "P/2MASS/color",
+        "id": "CDS/P/2MASS/color",
         "url": "http://alasky.u-strasbg.fr/2MASS/Color",
         "name": "2MASS colored",
         "maxOrder": 9,
@@ -271,7 +276,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/DSS2/color",
+        "id": "CDS/P/DSS2/color",
         "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
         "name": "DSS colored",
         "maxOrder": 9,
@@ -283,7 +288,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/DSS2/red",
+        "id": "CDS/P/DSS2/red",
         "url": "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
         "name": "DSS2 Red (F+R)",
         "maxOrder": 9,
@@ -295,7 +300,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/PanSTARRS/DR1/g",
+        "id": "CDS/P/PanSTARRS/DR1/g",
         "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
         "name": "PanSTARRS DR1 g",
         "maxOrder": 11,
@@ -307,7 +312,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/PanSTARRS/DR1/color-z-zg-g",
+        "id": "CDS/P/PanSTARRS/DR1/color-z-zg-g",
         "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
         "name": "PanSTARRS DR1 color",
         "maxOrder": 11,
@@ -319,7 +324,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/DECaPS/DR1/color",
+        "id": "CDS/P/DECaPS/DR1/color",
         "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
         "name": "DECaPS DR1 color",
         "maxOrder": 11,
@@ -331,7 +336,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/Fermi/color",
+        "id": "CDS/P/Fermi/color",
         "url": "http://alasky.u-strasbg.fr/Fermi/Color",
         "name": "Fermi color",
         "maxOrder": 3,
@@ -343,7 +348,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/Finkbeiner",
+        "id": "CDS/P/Finkbeiner",
         "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
         "maxOrder": 3,
         "frame": CooFrameEnum.GAL,
@@ -355,7 +360,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/GALEXGR6/AIS/color",
+        "id": "CDS/P/GALEXGR6/AIS/color",
         "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
         "name": "GALEX Allsky Imaging Survey colored",
         "maxOrder": 8,
@@ -367,7 +372,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/IRIS/color",
+        "id": "CDS/P/IRIS/color",
         "url": "http://alasky.u-strasbg.fr/IRISColor",
         "name": "IRIS colored",
         "tileSize": 512,
@@ -379,7 +384,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/Mellinger/color",
+        "id": "CDS/P/Mellinger/color",
         "url": "http://alasky.u-strasbg.fr/MellingerRGB",
         "name": "Mellinger colored",
         "maxOrder": 4,
@@ -391,7 +396,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/SDSS9/color",
+        "id": "CDS/P/SDSS9/color",
         "url": "http://alasky.u-strasbg.fr/SDSS/DR9/color",
         "name": "SDSS9 colored",
         "maxOrder": 10,
@@ -403,7 +408,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/SPITZER/color",
+        "id": "CDS/P/SPITZER/color",
         "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
         "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
         "maxOrder": 9,
@@ -415,7 +420,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/VTSS/Ha",
+        "id": "CDS/P/VTSS/Ha",
         "url": "http://alasky.u-strasbg.fr/VTSS/Ha",
         "maxOrder": 3,
         "tileSize": 512,
@@ -427,7 +432,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/XMM/EPIC",
+        "id": "CDS/P/XMM/EPIC",
         "url": "http://saada.u-strasbg.fr/xmmallsky",
         "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
         "maxOrder": 7,
@@ -439,7 +444,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/XMM/PN/color",
+        "id": "CDS/P/XMM/PN/color",
         "url": "http://saada.unistra.fr/PNColor",
         "name": "XMM PN colored",
         "maxOrder": 7,
@@ -451,7 +456,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/allWISE/color",
+        "id": "CDS/P/allWISE/color",
         "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
         "name": "AllWISE color",
         "maxOrder": 8,
@@ -463,7 +468,7 @@ export let HpxImageSurvey = (function() {
         "bitpix": 0,
     },
     {
-        "id": "P/GLIMPSE360",
+        "id": "CDS/P/GLIMPSE360",
         "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
         "name": "GLIMPSE360",
         "maxOrder": 9,
@@ -492,9 +497,15 @@ export let HpxImageSurvey = (function() {
         return null;
     };
 
-    HpxImageSurvey.getSurveyFromId = function(id) {
+    HpxImageSurvey.getSurveyFromId = function(id, callback) {
         if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
-            return HpxImageSurvey.SURVEYS_OBJECTS[id];
+            let hpxImageSurvey = HpxImageSurvey.SURVEYS_OBJECTS[id];
+            if (callback) {
+                let imageSurveyInfo = hpxImageSurvey.getSurveyInfo();
+                console.log("found survey: ", imageSurveyInfo)
+                callback(imageSurveyInfo);
+            }
+            return hpxImageSurvey;
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
@@ -502,7 +513,7 @@ export let HpxImageSurvey = (function() {
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }
-            return new HpxImageSurvey(surveyInfo.url, options);
+            return new HpxImageSurvey(surveyInfo.url, options, callback);
         }
 
         return null;

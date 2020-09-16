@@ -493,7 +493,7 @@ impl ReceiveImage for CompressedImageRequest {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
-        let size =Vector2::new(width, height);
+        let size = Vector2::new(width, height);
         TileHTMLImage {
             size,
             image: self.image.clone()

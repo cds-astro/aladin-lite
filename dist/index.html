@@ -22,8 +22,9 @@
 
     let aladin;
     A.init.then(() => {
+        console.log("then of init")
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'P/DSS2/red'});
+        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red'});
     });
 
 

@@ -100,6 +100,7 @@ use cgmath::Vector2;
 use futures::stream::StreamExt; // for `next`
 
 use crate::shaders::Colormap;
+use crate::rotation::SphericalRotation;
 use crate::finite_state_machine::move_renderables;
 impl App {
     fn new(gl: &WebGl2Context, _events: &EventManager, shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
@@ -235,7 +236,7 @@ impl App {
         dt: DeltaTime,
         events: &EventManager,
     ) -> Result<bool, JsValue> {
-        let mut render = false;
+        let mut render = self.run_tasks::<P>(dt)?;
 
         // Run the FSMs
         self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
@@ -252,11 +253,6 @@ impl App {
         self.viewport.update::<P>(&mut self.manager, self.sphere.config());
 
         Ok(render)
-    }
-
-    fn get_center<P: Projection>(&self) -> LonLatT<f32> {
-        let center_pos = self.viewport.compute_center_model_pos::<P>();
-        center_pos.lonlat()
     }
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
@@ -379,12 +375,15 @@ impl App {
         Ok(model_pos.lonlat())
     }
 
-    pub fn set_center<P: Projection>(&self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
-        let m2: Vector4<f32> = lonlat.vector();
-        let model2world = self.viewport.get_inverted_model_mat();
-        let w2 = model2world * m2;
-
-        events.enable::<SetCenterLocation>(w2.lonlat());
+    fn get_center<P: Projection>(&self) -> LonLatT<f32> {
+        let center_pos = self.viewport.compute_center_model_pos::<P>();
+        center_pos.lonlat()
+    }
+    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
+        let xyz: Vector4<f32> = lonlat.vector();
+        let rot = SphericalRotation::from_sky_position(&xyz);
+        self.viewport.set_rotation::<P>(&rot, &self.sphere.config);
+        self.sphere.ask_for_tiles::<P>(self.viewport.new_healpix_cells());
     }
 
     pub fn move_viewport<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
@@ -522,16 +521,6 @@ impl ProjectionType {
             ProjectionType::Ortho => app.update::<Orthographic>(dt, events),
             ProjectionType::Arc => app.update::<Mollweide>(dt, events),
             ProjectionType::Mercator => app.update::<Mercator>(dt, events),
-        }
-    }
-
-    fn run_tasks(&mut self, app: &mut App, dt: DeltaTime) -> Result<bool, JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.run_tasks::<Aitoff>(dt),
-            ProjectionType::MollWeide => app.run_tasks::<Mollweide>(dt),
-            ProjectionType::Ortho => app.run_tasks::<Orthographic>(dt),
-            ProjectionType::Arc => app.run_tasks::<Mollweide>(dt),
-            ProjectionType::Mercator => app.run_tasks::<Mercator>(dt),
         }
     }
 
@@ -800,18 +789,6 @@ impl WebClient {
         Ok(render)
     }
     
-    /// Main update method
-    #[wasm_bindgen(js_name = runTasks)]
-    pub fn run_tasks(&mut self, dt: f32) -> Result<bool, JsValue> {
-        // dt refers to the time taking (in ms) rendering the previous frame
-        self.dt = DeltaTime::from_millis(dt);
-
-        self.projection.run_tasks(
-            &mut self.app,
-            // Time of the previous frame rendering 
-            self.dt,
-        )
-    }
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
     pub fn render(&mut self, min_value: f32, max_value: f32) -> Result<(), JsValue> {
@@ -941,14 +918,7 @@ impl WebClient {
 
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
-    /// Set directly the center position
-    #[wasm_bindgen(js_name = setCenter)]
-    pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.projection.set_center(&mut self.app, lonlat, &mut self.events);
 
-        Ok(())
-    }
     #[wasm_bindgen(js_name = startInertia)]
     pub fn start_inertia(&mut self) -> Result<(), JsValue> {
         //self.projection.set_center(&mut self.app, ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -987,7 +957,14 @@ impl WebClient {
 
         Ok(())
     }
+    /// Set directly the center position
+    #[wasm_bindgen(js_name = setCenter)]
+    pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        self.projection.set_center(&mut self.app, lonlat, &mut self.events);
 
+        Ok(())
+    }
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveView)]
     pub fn displace(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {

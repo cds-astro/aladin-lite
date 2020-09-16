@@ -97,7 +97,6 @@ impl State for Moving {
         let p = self.start.slerp(&self.goal, alpha);
 
         viewport.set_rotation::<P>(&p, sphere.config());
-
         sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
 
         self.alpha = alpha;

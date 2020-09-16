@@ -431,7 +431,7 @@ export let View = (function() {
                 radec = lonlat;
             }
 
-            view.pointTo(radec[0], radec[1]);
+            view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
         if (! hasTouchEvents) {
             $(view.reticleCanvas).dblclick(onDblClick);
@@ -923,14 +923,13 @@ export let View = (function() {
         var now = Date.now();
         var dt = now - this.prev;
 
-        let tasksFinished = this.aladin.webglAPI.runTasks(dt);
         let updateView = this.aladin.webglAPI.update(dt);
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
         } 
         else if (! this.needRedraw) {
-            if (!this.flagForceRedraw && !updateView && !tasksFinished) {
+            if (!this.flagForceRedraw && !updateView) {
                 return;
             }
             else {
@@ -1799,7 +1798,8 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    View.prototype.pointTo = function(ra, dec) {
+    View.prototype.pointTo = function(ra, dec, options) {
+        options = options || {};
         ra = parseFloat(ra);
         dec = parseFloat(dec);
         if (isNaN(ra) || isNaN(dec)) {
@@ -1816,7 +1816,12 @@ export let View = (function() {
         }
         console.log("point to ", ra, dec)
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
-        this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
+        if (this.fov > 30.0 || options.forceAnimation) {
+            this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
+        } else {
+            console.log("set center", ra, dec)
+            this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        }
         
         this.forceRedraw();
         this.requestRedraw();

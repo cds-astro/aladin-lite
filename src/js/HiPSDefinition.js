@@ -262,7 +262,7 @@ export let HiPSDefinition = (function() {
     "hips_service_url": "http://alasky.unistra.fr/AllWISE/RGB-W4-W2-W1",
     "hips_service_url_1": "http://alaskybis.unistra.fr/AllWISE/RGB-W4-W2-W1",
     "hips_service_url_2": "https://alaskybis.unistra.fr/AllWISE/RGB-W4-W2-W1"
-}, {
+},/* {
     "ID": "IPAC/P/GLIMPSE360",
     "obs_title": "GLIMPSE360: Spitzer's Infrared Milky Way",
     "client_sort_key": "04-03-0",
@@ -271,7 +271,7 @@ export let HiPSDefinition = (function() {
     "hips_frame": "equatorial",
     "hips_tile_format": "jpeg",
     "hips_service_url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data"
-}, {
+},*/ {
     "ID": "JAXA/P/MAXI_SSC_SUM",
     "hips_tile_format": "png",
     "hips_frame": "equatorial",

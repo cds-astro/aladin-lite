@@ -353,10 +353,10 @@ export let HpxImageSurvey = (function() {
         "maxOrder": 3,
         "frame": CooFrameEnum.GAL,
         "format": "jpeg fits",
-        "tileSize": 512,
+        "tileSize": 128,
         "name": "Halpha",
         "minCutout": 0,
-        "maxCutout": 1,
+        "maxCutout": 10,
         "bitpix": 0,
     },
     {
@@ -455,7 +455,7 @@ export let HpxImageSurvey = (function() {
         "maxCutout": 1,
         "bitpix": 0,
     },
-    {
+    /*{
         "id": "CDS/P/GLIMPSE360",
         "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
         "name": "GLIMPSE360",
@@ -466,7 +466,7 @@ export let HpxImageSurvey = (function() {
         "minCutout": 0,
         "maxCutout": 1,
         "bitpix": 0,
-    }
+    }*/
   ];
 
 

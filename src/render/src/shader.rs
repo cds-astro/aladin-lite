@@ -267,50 +267,75 @@ pub trait HasUniforms {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;
 }
 
-pub struct ShaderManager(HashMap<String, Shader>);
+pub type VertId = Cow<'static, str>;
+pub type FragId = Cow<'static, str>;
+type FileId = Cow<'static, str>;
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct ShaderId(pub VertId, pub FragId);
+
+use std::borrow::Cow;
+pub struct ShaderManager {
+    // Compiled shaders stored in an HashMap
+    shaders: HashMap<ShaderId, Shader>,
+    // Shaders sources coming from the javascript
+    src: HashMap<FileId, String>,
+}
 
 #[derive(Debug)]
 pub enum Error {
     ShaderAlreadyInserted{ message: String },
-    ShaderNotFound { message: String }
+    ShaderNotFound { message: String },
+    FileNotFound { message: String }
 }
 
-use crate::ShaderSrc;
+use crate::FileSrc;
+use std::collections::hash_map::Entry;
 impl ShaderManager {
-    pub fn new(gl: &WebGl2Context, shaders_src: Vec<ShaderSrc>) -> Result<ShaderManager, Error> {
-        let mut manager = ShaderManager(HashMap::new());
+    pub fn new(gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
+        let src = files.into_iter()
+            .map(|file| {
+                let FileSrc { id, content } = file;
+                (Cow::Owned(id), content)
+            })
+            .collect::<HashMap<_, _>>();
+        
+        crate::log(&format!("src {:?}", src));
+        /*let mut manager = ShaderManager(HashMap::new());
         for shader_src in shaders_src {
             let name = shader_src.name;
             crate::log(&name);
             manager.insert(name, &shader_src.vert, &shader_src.frag, gl)?;
         }
 
-        Ok(manager)
+        Ok(manager)*/
+        Ok(ShaderManager {
+            shaders: HashMap::new(),
+            src
+        })
     }
 
-    // Insert a shader inside the manager
-    // Returns an error whether the shader compilation or linking failed
-    // or if the manager already contains a shader
-    fn insert(&mut self, name: String, vert_src: &str, frag_src: &str, gl: &WebGl2Context) -> Result<(), Error> {
-        // Create the shader
-        let shader = Shader::new(&gl, &vert_src, &frag_src).unwrap();
+    pub fn get(&mut self, gl: &WebGl2Context, id: &ShaderId) -> Result<&Shader, Error> {
+        let shader = match self.shaders.entry(id.clone()) {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => {
+                let ShaderId(vert_id, frag_id) = id;
+                let vert_src = self.src.get(vert_id).ok_or(
+                    Error::FileNotFound {
+                        message: format!("Vert id {} not found", vert_id)
+                    }
+                )?;
+                let frag_src = self.src.get(frag_id).ok_or(
+                    Error::FileNotFound {
+                        message: format!("Frag id {} not found", frag_id)
+                    }
+                )?;
 
-        // Insert it in the map
-        if self.0.contains_key(&name) {
-            // Already contained in the shader manager
-            Err(Error::ShaderAlreadyInserted {
-                message: format!("A shader named {} has already been inserted", name)
-            })
-        } else {
-            self.0.insert(name, shader);
-            Ok(())
-        }
-    }
+                let shader = Shader::new(&gl, &vert_src, &frag_src).unwrap();
 
-    pub fn get(&self, name: &str) -> Result<&Shader, Error> {
-        self.0.get(name)
-            .ok_or(Error::ShaderNotFound {
-                message: format!("Shader {} not found", name)
-            })
+                v.insert(shader)
+            }
+        };
+
+        Ok(shader)
     }
 }

@@ -68,7 +68,7 @@ export let View = (function() {
             this.createCanvases();
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too
-            let shaders = loadShaders(Aladin.wasmLibs.webgl);
+            let shaders = loadShaders();
             console.log(shaders);
         
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`

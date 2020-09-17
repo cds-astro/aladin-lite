@@ -173,72 +173,164 @@ fn add_vertices_grid(
     }
 }
 
+use std::borrow::Cow;
 use crate::renderable::projection::*;
+use crate::shader::ShaderId;
 pub trait RasterizerProjection {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader;
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader;
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader;
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
 impl RasterizerProjection for Aitoff {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_aitoff").unwrap()
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerAitoffVS"),
+                Cow::Borrowed("RasterizerFS")
+            )
+        ).unwrap()
     }
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_aitoff_fits").unwrap()
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerAitoffVS"),
+                Cow::Borrowed("RasterizerFITSFS")
+            )
+        ).unwrap()
     }
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_aitoff_fits_i").unwrap()
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerAitoffVS"),
+                Cow::Borrowed("RasterizerFITSIFS")
+            )
+        ).unwrap()    
     }
 }
 impl RasterizerProjection for Mollweide {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mollweide").unwrap()
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMollVS"),
+                Cow::Borrowed("RasterizerFS")
+            )
+        ).unwrap()
     }
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mollweide_fits").unwrap()
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMollVS"),
+                Cow::Borrowed("RasterizerFITSFS")
+            )
+        ).unwrap()
     }
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mollweide_fits_i").unwrap()
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMollVS"),
+                Cow::Borrowed("RasterizerFITSIFS")
+            )
+        ).unwrap()    
     }
 }
 impl RasterizerProjection for AzimutalEquidistant {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho").unwrap()
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFS")
+            )
+        ).unwrap()
     }
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho_fits").unwrap()
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFITSFS")
+            )
+        ).unwrap()
     }
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho_fits_i").unwrap()
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFITSIFS")
+            )
+        ).unwrap()    
     }
 }
 impl RasterizerProjection for Mercator {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mercator").unwrap()
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMercatorVS"),
+                Cow::Borrowed("RasterizerFS")
+            )
+        ).unwrap()
     }
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mercator_fits").unwrap()
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMercatorVS"),
+                Cow::Borrowed("RasterizerFITSFS")
+            )
+        ).unwrap()
     }
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_mercator_fits_i").unwrap()
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerMercatorVS"),
+                Cow::Borrowed("RasterizerFITSIFS")
+            )
+        ).unwrap()    
     }
 }
 impl RasterizerProjection for Orthographic {
-    fn get_rasterize_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho").unwrap()
+    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFS")
+            )
+        ).unwrap()
     }
     // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho_fits").unwrap()
+    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFITSFS")
+            )
+        ).unwrap()
     }
-    fn get_rasterize_shader_i_fits(shaders: &ShaderManager) -> &Shader {
-        shaders.get("rasterizer_ortho_fits_i").unwrap()
+    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFITSIFS")
+            )
+        ).unwrap()    
     }
 }
 
@@ -263,14 +355,20 @@ use crate::{
     buffer::HiPSConfig
 };
 impl Rasterizer {
-    pub fn new(gl: &WebGl2Context, shaders: &ShaderManager) -> Rasterizer {
+    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager) -> Rasterizer {
         // Define the Vertex Array Object where vertices data will be put
         // Memory reserved from the stack
         let vertices = vec![];
         let idx_vertices = vec![];
         let mut vertex_array_object = VertexArrayObject::new(gl);
 
-        let shader = shaders.get("rasterizer_ortho").unwrap();
+        let shader = shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerFS"),
+            )
+        ).unwrap();
         shader.bind(gl)
             .bind_vertex_array_object(&mut vertex_array_object)
             // Store the projeted and 3D vertex positions in a VBO
@@ -363,16 +461,16 @@ impl Rasterizer {
     }
 
     // The rasterizer has several shaders, one for each projection
-    pub fn get_shader<'a, P: Projection>(shaders: &'a ShaderManager, buffer: &BufferTextures) -> &'a Shader {
+    pub fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &BufferTextures) -> &'a Shader {
         // Fits tiles are handled by other shaders
         if buffer.fits_tiles_requested() {
             if buffer.fits_i_format() {
-                P::get_rasterize_shader_i_fits(shaders)
+                P::get_rasterize_shader_i_fits(gl, shaders)
             } else {
-                P::get_rasterize_shader_f_fits(shaders)
+                P::get_rasterize_shader_f_fits(gl, shaders)
             }
         } else {
-            P::get_rasterize_shader(shaders)
+            P::get_rasterize_shader(gl, shaders)
         }
     }
 

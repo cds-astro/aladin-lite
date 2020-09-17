@@ -38,13 +38,19 @@ use web_sys::WebGl2RenderingContext;
 fn create_vertex_array_object<P: Projection>(
     gl: &WebGl2Context,
     _viewport: &ViewPort,
-    shaders: &ShaderManager
+    shaders: &mut ShaderManager
 ) -> VertexArrayObject {
     let (vertices, idx) = create_vertices_array::<P>(gl);
     
     let mut vertex_array_object = VertexArrayObject::new(gl);
 
-    let shader = shaders.get("raytracer").unwrap();
+    let shader = shaders.get(
+        gl,
+        &ShaderId(
+            Cow::Borrowed("RayTracerVS"),
+            Cow::Borrowed("RayTracerFS")
+        )
+    ).unwrap();
     shader.bind(gl)
         // VAO for per-pixel computation mode (only in case of large fovs and 2D projections)
         .bind_vertex_array_object(&mut vertex_array_object)
@@ -75,8 +81,10 @@ use crate::{
     buffer::BufferTextures,
     Shader
 };
+use std::borrow::Cow;
+use crate::shader::ShaderId;
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &ShaderManager) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &mut ShaderManager) -> RayTracer {
         let vao = create_vertex_array_object::<P>(gl, viewport, shaders);
 
         RayTracer {
@@ -84,16 +92,33 @@ impl RayTracer {
         }
     }
 
-    pub fn get_shader<'a>(shaders: &'a ShaderManager, buffer: &BufferTextures) -> &'a Shader {
+    pub fn get_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &BufferTextures) -> &'a Shader {
         // Fits tiles are handled by other shaders
         if buffer.fits_tiles_requested() {
             if buffer.fits_i_format() {
-                shaders.get("raytracer_fits_i").unwrap()
+                shaders.get(
+                    gl,
+                    &ShaderId(
+                        Cow::Borrowed("RayTracerVS"),
+                        Cow::Borrowed("RayTracerFITSIFS")
+                    )
+                ).unwrap()
             } else {
-                shaders.get("raytracer_fits").unwrap()
-            }
+                shaders.get(
+                    gl,
+                    &ShaderId(
+                        Cow::Borrowed("RayTracerVS"),
+                        Cow::Borrowed("RayTracerFITSFS")
+                    )
+                ).unwrap()            }
         } else {
-            shaders.get("raytracer").unwrap()
+            shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RayTracerVS"),
+                    Cow::Borrowed("RayTracerFS")
+                )
+            ).unwrap()
         }
     }
 

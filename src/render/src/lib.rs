@@ -103,7 +103,7 @@ use crate::shaders::Colormap;
 use crate::rotation::SphericalRotation;
 use crate::finite_state_machine::move_renderables;
 impl App {
-    fn new(gl: &WebGl2Context, _events: &EventManager, shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
+    fn new(gl: &WebGl2Context, _events: &EventManager, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         //gl.enable(WebGl2RenderingContext::BLEND);
         //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
@@ -147,13 +147,13 @@ impl App {
 
         // HiPS Sphere definition
         log("sphere begin");
-        let sphere = HiPSSphere::new::<Orthographic>(&gl, &viewport, config, &shaders);
+        let sphere = HiPSSphere::new::<Orthographic>(&gl, &viewport, config, &mut shaders);
         // Catalog definition
-        let manager = Manager::new(&gl, &shaders, &viewport, &resources);
+        let manager = Manager::new(&gl, &mut shaders, &viewport, &resources);
 
         // Text 
         let font = myfont::FONT_CONFIG;
-        let text_manager = TextManager::new(&gl, font, &shaders);
+        let text_manager = TextManager::new(&gl, font, &mut shaders);
         /*let _text = TextUponSphere::new(
             String::from("Aladin-Lite"),
             //&Vector2::new(300_f32, 100_f32),
@@ -164,7 +164,7 @@ impl App {
         );*/
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &viewport, &shaders, &text_manager);
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &viewport, &mut shaders, &text_manager);
 
         // Finite State Machines definitions
         let user_move_fsm = UserMoveSphere::init();
@@ -219,7 +219,7 @@ impl App {
             match result {
                 TaskResult::TableParsed { name, sources} => {
                     log("CATALOG FINISHED PARSED");
-                    self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &self.shaders, &self.viewport, self.sphere.config());
+                    self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &mut self.shaders, &self.viewport, self.sphere.config());
                 },
                 TaskResult::TileSentToGPU { tile_cell } => {
                     tiles_sent_to_gpu.insert(tile_cell);
@@ -262,7 +262,7 @@ impl App {
 
         // Draw renderables here
         let viewport = &self.viewport;
-        let shaders = &self.shaders;
+        let shaders = &mut self.shaders;
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
         // Draw the HiPS sphere
@@ -304,7 +304,7 @@ impl App {
 
     fn set_projection<P: Projection>(&mut self) {
         self.viewport.reset::<P>(self.sphere.config());
-        self.sphere.set_projection::<P>(&self.viewport, &self.shaders);
+        self.sphere.set_projection::<P>(&self.viewport, &mut self.shaders);
     }
 
     fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
@@ -702,10 +702,9 @@ extern "C" {
 
 use serde::Deserialize; 
 #[derive(Debug, Deserialize)]
-pub struct ShaderSrc {
-    pub name: String,
-    pub vert: String,
-    pub frag: String,
+pub struct FileSrc {
+    pub id: String,
+    pub content: String,
 }
 use crate::transfert_function::TransferFunction;
 use std::collections::HashMap;
@@ -739,11 +738,15 @@ impl WebClient {
     /// Create a new web client
     #[wasm_bindgen(constructor)]
     pub fn new(shaders: &JsValue, resources: &JsValue) -> Result<WebClient, JsValue> {
-        let shaders = shaders.into_serde::<Vec<ShaderSrc>>().unwrap();
+        crate::log(&format!("shaders manager2"));
+
+        let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGl2Context::new();
         let events = EventManager::new();
+        crate::log(&format!("shaders manager"));
+
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = App::new(&gl, &events, shaders, resources)?;
 

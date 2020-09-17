@@ -7,7 +7,12 @@ pub enum Colormap {
     BluePastelRed = 4,
     IDLCBBrBG = 5,
 }
+use std::borrow::Cow;
 
+use crate::{
+    shader::ShaderId,
+    WebGl2Context
+};
 impl Colormap {
     pub fn new(id: &str) -> Self {
         if id.contains("RedTemperature") {
@@ -25,14 +30,50 @@ impl Colormap {
         }
     }
 
-    pub fn get_shader<'a>(&self, shaders: &'a ShaderManager) -> &'a Shader {
+    pub fn get_shader<'a>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         let shader = match self {
-            Colormap::BlackWhiteLinear => shaders.get("black_white_linear"),
-            Colormap::RedTemperature => shaders.get("red_temperature"),
-            Colormap::IDLCBGnBu => shaders.get("IDL_CB_GnBu"),
-            Colormap::IDLCBYIGnBu => shaders.get("IDL_CB_YIGnBu"),
-            Colormap::BluePastelRed => shaders.get("BluePastelRed"),
-            Colormap::IDLCBBrBG => shaders.get("IDL_CB_BrBG"),
+            Colormap::BlackWhiteLinear => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapBlackWhiteFS")
+                )
+            ),
+            Colormap::RedTemperature => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapRedTemperatureFS")
+                )
+            ),
+            Colormap::IDLCBGnBu => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_GnBuFS")
+                )
+            ),
+            Colormap::IDLCBYIGnBu => shaders.get(
+                gl, 
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_YIGnBuFS")
+                )
+            ),
+            Colormap::BluePastelRed => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapBluePastelRedFS")
+                )
+            ),
+            Colormap::IDLCBBrBG => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS")
+                )
+            ),
         };
 
         shader.unwrap()

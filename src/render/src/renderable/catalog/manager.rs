@@ -41,7 +41,7 @@ use crate::FormatImageType;
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
-    pub fn new(gl: &WebGl2Context, shaders: &ShaderManager, viewport: &ViewPort, resources: &Resources) -> Self {
+    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort, resources: &Resources) -> Self {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
         let kernel_texture = Texture2D::create(gl, "kernel", &kernel_filename, &[
@@ -96,7 +96,7 @@ impl Manager {
 
             let mut vao = VertexArrayObject::new(gl);
             let colormap = Colormap::BluePastelRed;
-            let shader = colormap.get_shader(shaders);
+            let shader = colormap.get_shader(gl, shaders);
             shader.bind(gl)
                 .bind_vertex_array_object(&mut vao)
                     // Store the screen and uv of the billboard in a VBO
@@ -142,7 +142,7 @@ impl Manager {
     }
 
     // Private method adding a catalog into the manager
-    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &ShaderManager, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, viewport: &ViewPort, config: &HiPSConfig) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
         let catalog = Catalog::new::<P>(
@@ -216,7 +216,7 @@ impl Manager {
         }
     }
 
-    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &ShaderManager, viewport: &ViewPort) {
+    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort) {
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, viewport);
         }
@@ -247,7 +247,14 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 use crate::HiPSConfig;
 
 impl Catalog {
-    fn new<P: Projection>(gl: &WebGl2Context, shaders: &ShaderManager, colormap: Colormap, mut sources: Vec<Source>, viewport: &ViewPort, config: &HiPSConfig) -> Catalog {
+    fn new<P: Projection>(
+        gl: &WebGl2Context,
+        shaders: &mut ShaderManager,
+        colormap: Colormap,
+        mut sources: Vec<Source>,
+        viewport: &ViewPort,
+        config: &HiPSConfig
+    ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
@@ -269,7 +276,7 @@ impl Catalog {
 
             let mut vao = VertexArrayObject::new(gl);
 
-            let shader = Orthographic::get_catalog_shader(shaders);
+            let shader = Orthographic::get_catalog_shader(gl, shaders);
             shader.bind(gl)
                 .bind_vertex_array_object(&mut vao)
                     // Store the UV and the offsets of the billboard in a VBO
@@ -411,7 +418,7 @@ impl Catalog {
     fn draw<P: Projection>(
         &self,
         gl: &WebGl2Context,
-        shaders: &ShaderManager,
+        shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
         viewport: &ViewPort
     ) {
@@ -432,7 +439,7 @@ impl Catalog {
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             //crate::log(&format!("offset: {}, num instances: {}", self.base_instance, self.num_instances));
-            let shader = P::get_catalog_shader(shaders);
+            let shader = P::get_catalog_shader(gl, shaders);
             let shader_bound = shader.bind(gl);
             // Uniforms associated to the viewport
             //crate::log(&format!("max density: {:?}", self.max_density));
@@ -460,7 +467,7 @@ impl Catalog {
             let window_size = viewport.get_window_size();
             gl.viewport(0, 0, window_size.x as i32, window_size.y as i32);
 
-            let shader = self.colormap.get_shader(shaders);
+            let shader = self.colormap.get_shader(gl, shaders);
             shader.bind(gl)
                 .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
                 .attach_uniform("alpha", &self.alpha) // Alpha channel
@@ -474,32 +481,63 @@ impl Catalog {
     }
 }
 pub trait CatalogShaderProjection {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader;
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
+use std::borrow::Cow;
+use crate::shader::ShaderId;
 impl CatalogShaderProjection for Aitoff {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("catalog_aitoff").unwrap()
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogAitoffVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
     }
 }
 impl CatalogShaderProjection for Mollweide {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("catalog_mollweide").unwrap()
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogMollVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
     }
 }
 impl CatalogShaderProjection for AzimutalEquidistant {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("catalog_ortho").unwrap()
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
     }
 }
 impl CatalogShaderProjection for Mercator {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("catalog_mercator").unwrap()
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogMercatorVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
     }
 }
 impl CatalogShaderProjection for Orthographic {
-    fn get_catalog_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("catalog_ortho").unwrap()
-
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
     }
 }

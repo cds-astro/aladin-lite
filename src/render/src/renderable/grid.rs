@@ -29,13 +29,19 @@ impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
         _viewport: &ViewPort,
-        shaders: &ShaderManager,
+        shaders: &mut ShaderManager,
         _text_manager: &TextManager
     ) -> ProjetedGrid {
         let vertex_array_object = {
             let mut vao = VertexArrayObject::new(gl);
 
-            let shader = shaders.get("grid_ortho").unwrap();
+            let shader = shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("GridVS"),
+                    Cow::Borrowed("GridOrthoFS"),
+                )
+            ).unwrap();
             shader.bind(gl)
                 .bind_vertex_array_object(&mut vao)
                     // Store the screen and uv of the billboard in a VBO
@@ -103,11 +109,11 @@ impl ProjetedGrid {
     pub fn draw<P: Projection>(
         &self,
         gl: &WebGl2Context,
-        shaders: &ShaderManager,
+        shaders: &mut ShaderManager,
         viewport: &ViewPort,
         text_manager: &TextManager,
     ) {
-        let shader = P::get_grid_shader(shaders);
+        let shader = P::get_grid_shader(gl, shaders);
         let great_circles = viewport.get_great_circles_inside();
 
         shader.bind(gl)
@@ -132,34 +138,66 @@ impl ProjetedGrid {
 
 use crate::{
     Shader,
-    renderable::projection::*
+    renderable::projection::*,
+    shader::ShaderId
 };
+use std::borrow::Cow;
 pub trait GridShaderProjection {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader;
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
 impl GridShaderProjection for Aitoff {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("grid_aitoff").unwrap()
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridAitoffFS"),
+            )
+        ).unwrap()
     }
 }
 impl GridShaderProjection for Mollweide {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("grid_mollweide").unwrap()
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridMollFS"),
+            )
+        ).unwrap()
     }
 }
 impl GridShaderProjection for AzimutalEquidistant {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("grid_ortho").unwrap()
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridOrthoFS"),
+            )
+        ).unwrap()
     }
 }
 impl GridShaderProjection for Mercator {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("grid_mercator").unwrap()
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridMercatorFS"),
+            )
+        ).unwrap()
     }
 }
 impl GridShaderProjection for Orthographic {
-    fn get_grid_shader(shaders: &ShaderManager) -> &Shader {
-        shaders.get("grid_ortho").unwrap()
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridOrthoFS"),
+            )
+        ).unwrap()
     }
 }

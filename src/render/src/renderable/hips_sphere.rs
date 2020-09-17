@@ -240,7 +240,7 @@ use crate::HiPSDefinition;
 use wasm_bindgen::JsValue;
 
 impl HiPSSphere {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, config: HiPSConfig, shaders: &ShaderManager) -> Self {
+    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, config: HiPSConfig, shaders: &mut ShaderManager) -> Self {
         let buffer = BufferTextures::new(gl, &config, viewport);
         crate::log(&format!("config: {:?}", config));
 
@@ -281,7 +281,7 @@ impl HiPSSphere {
         self.buffer.ack_tiles_sent_to_gpu(copied_tiles, task_executor, &mut self.config);
     }
 
-    pub fn set_projection<P: Projection>(&mut self, viewport: &ViewPort, shaders: &ShaderManager) {
+    pub fn set_projection<P: Projection>(&mut self, viewport: &ViewPort, shaders: &mut ShaderManager) {
         self.update::<P>(viewport);
         self.raytracer = RayTracer::new::<P>(&self.gl, viewport, shaders);
     }
@@ -328,7 +328,7 @@ impl HiPSSphere {
     pub fn draw<P: Projection>(
         &mut self,
         gl: &WebGl2Context,
-        shaders: &ShaderManager,
+        shaders: &mut ShaderManager,
         viewport: &ViewPort,
     ) {
         let aperture = viewport.get_aperture();
@@ -341,7 +341,7 @@ impl HiPSSphere {
         crate::log(&format!("cutout {:?} {:?}", min_cutout, max_cutout));
         if aperture <= limit_aperture {
             // Rasterization
-            let shader = Rasterizer::get_shader::<P>(shaders, &self.buffer);
+            let shader = Rasterizer::get_shader::<P>(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
             shader_bound.attach_uniforms_from(viewport)
                 .attach_uniforms_from(&self.config)
@@ -357,7 +357,7 @@ impl HiPSSphere {
             self.raster.draw::<P>(gl, &shader_bound);
         } else {
             // Ray-tracing
-            let shader = RayTracer::get_shader(shaders, &self.buffer);
+            let shader = RayTracer::get_shader(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
             shader_bound.attach_uniforms_from(viewport)
                 .attach_uniforms_from(&self.config)

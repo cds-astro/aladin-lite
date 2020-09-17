@@ -123,8 +123,10 @@ use crate::WebGl2Context;
 
 use crate::renderable::projection::Projection;
 use crate::FormatImageType;
+use std::borrow::Cow;
+use crate::shader::ShaderId;
 impl TextManager {
-    pub fn new(gl: &WebGl2Context, font: &str, shaders: &ShaderManager) -> TextManager {
+    pub fn new(gl: &WebGl2Context, font: &str, shaders: &mut ShaderManager) -> TextManager {
         let config = read_font_config_from_str(font).unwrap();
 
         let width_texture = config.get_width_texture();
@@ -167,7 +169,13 @@ impl TextManager {
             let max_num_of_letters = 20 * 10; // 10 labels vertically and 10 labels horizontally, each being
             // let is say, max 10 letters
 
-            let shader = shaders.get("text").unwrap();
+            let shader = shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("TextVS"),
+                    Cow::Borrowed("TextFS")
+                )
+            ).unwrap();
             shader.bind(gl)
                 .bind_vertex_array_object(&mut vao)
                     // Store the UV and the offsets of the billboard in a VBO
@@ -294,10 +302,16 @@ impl TextManager {
     pub fn draw(
         &self,
         gl: &WebGl2Context,
-        shaders: &ShaderManager,
+        shaders: &mut ShaderManager,
         viewport: &ViewPort,
     ) {
-        let shader = shaders.get("text").unwrap();
+        let shader = shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("TextVS"),
+                Cow::Borrowed("TextFS")
+            )
+        ).unwrap();
 
         crate::log(&format!("num letters {:?}", self.num_letters));
         shader.bind(gl)

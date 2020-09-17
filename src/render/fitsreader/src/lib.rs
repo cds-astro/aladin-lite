@@ -98,12 +98,15 @@ impl<'a> DataUnit<'a> for DataUnitF64 {
         DataUnitF64(dst)
     }
 }
-
+use nom::multi::{many0, count};
+use nom::bytes::complete::tag;
+use nom::sequence::preceded;
 use error::Error;
 use primary_header::BitpixValue;
 use card_value::white_space0;
 impl<'a> Fits<'a> {
     pub fn from_bytes_slice(buf: &'a [u8]) -> Result<Fits<'a>, Error<'a>> {
+        let num_total_bytes = buf.len();
         let (buf, header) = PrimaryHeader::new(&buf)?;
 
         // At this point the header is valid
@@ -114,7 +117,14 @@ impl<'a> Fits<'a> {
                 total
             });
 
-        white_space0(buf)?;
+        //white_space0(buf)?;
+        let num_bytes_consumed = num_total_bytes - buf.len();
+        let num_bytes_to_next_line = 80 - num_bytes_consumed % 80;
+
+        let (buf, _) = preceded(
+            count(tag(b" "), num_bytes_to_next_line),
+            many0(count(tag(b" "), 80))
+        )(buf)?;
 
         // Read the byte data stream in BigEndian order conformly to the spec
         let data = match header.get_bitpix() {
@@ -246,8 +256,8 @@ mod tests {
             _ => unreachable!()
         };
     }
-    /*#[test]
-    fn test_fits_tile4() {
+    #[test]
+    fn test_fits_tile6() {
         use std::fs::File;
         use crate::DataType;
         let  f  = File::open("misc/Npix8.fits").unwrap();
@@ -261,6 +271,31 @@ mod tests {
             },
             _ => unreachable!()
         };
-        
-    }*/
+    }
+
+    #[test]
+    fn test_fits_tile7() {
+        use std::{fs, io};
+
+        let entries = fs::read_dir("./misc/dss2_blue_xj_s")
+            .unwrap()
+            .map(|res| res.map(|e| e.path()))
+            .collect::<Result<Vec<_>, io::Error>>()
+            .unwrap();
+
+        use crate::DataType;
+        for filename in entries {
+            let  f  = fs::File::open(filename).unwrap();
+            let  bytes: Result<Vec<_>, _> =  f.bytes().collect();
+            let  buf  =  bytes.unwrap();
+            let  Fits { data, .. } =  Fits::from_bytes_slice(&buf).unwrap();
+            
+            match data {
+                DataType::I16(v) => {
+                    println!("{:?}", v);
+                },
+                _ => unreachable!()
+            };
+        }
+    }
 }

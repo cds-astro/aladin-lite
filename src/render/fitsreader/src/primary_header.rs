@@ -171,9 +171,14 @@ use nom::{
 
 const KEYWORD_BYTES_LENGTH: usize = 8;
 pub(self) fn parse_card(header: &[u8]) -> MyResult<&[u8], FITSHeaderKeyword> {
-    let (header, (keyword, value)) =
-        preceded(multispace0, pair(parse_card_keyword, parse_card_value))(header)?;
-    //println!("{:?} {:?}", std::str::from_utf8(keyword).unwrap(), value);
+    // First parse the keyword
+    let (header, keyword) = preceded(multispace0, parse_card_keyword)(header)?;
+    // We stop consuming tokens after the exit
+    if keyword == b"END" {
+        return Ok((header, FITSHeaderKeyword::End))
+    }
+
+    let (header, value) = parse_card_value(header)?;
 
     match (keyword, value) {
         // SIMPLE = true check
@@ -226,11 +231,6 @@ pub(self) fn parse_card(header: &[u8]) -> MyResult<&[u8], FITSHeaderKeyword> {
         (b"HISTORY", value) => match value {
             FITSKeywordValue::CharacterString(str) => Ok((header, FITSHeaderKeyword::History(str))),
             _ => Err(Error::MandatoryValueError("HISTORY")),
-        },
-        // END keyword check
-        (b"END", value) => match value {
-            FITSKeywordValue::Undefined => { Ok((header, FITSHeaderKeyword::End)) },
-            _ => Err(Error::MandatoryValueError("END")),
         },
         ([b'N', b'A', b'X', b'I', b'S', ..], value) => {
             let name = std::str::from_utf8(keyword).unwrap();

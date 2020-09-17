@@ -68,10 +68,6 @@ impl<T> RequestSystem<T> where T: ReceiveImage + RequestImage {
                         ResolvedStatus::Found => {
                             let image = req.get_image(config);
                             survey.push(&cell, time_request, image, task_executor, config);
-
-                            let (bscale, zero) = req.bscale_bzero()
-                                .unwrap_or((1.0, 0.0));
-                            config.set_bscale_bzero(bscale, zero);
                         },
                         _ => unreachable!()
                     }

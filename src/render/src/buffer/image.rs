@@ -454,11 +454,6 @@ where T: RequestImage + ReceiveImage {
         assert!(self.is_resolved());
         self.req.image(config)
     }
-
-    pub fn bscale_bzero(&self) -> Option<(f32, f32)> {
-        assert!(self.is_resolved());
-        self.req.bscale_bzero()
-    }
 }
 
 pub struct CompressedImageRequest {
@@ -468,7 +463,6 @@ pub struct CompressedImageRequest {
 pub trait ReceiveImage {
     type ReceiveImageType: Image + 'static;
     fn image(&mut self, config: &mut HiPSConfig) -> Self::ReceiveImageType;
-    fn bscale_bzero(&self) -> Option<(f32, f32)>;
 }
 
 impl RequestImage for CompressedImageRequest {
@@ -499,17 +493,11 @@ impl ReceiveImage for CompressedImageRequest {
             image: self.image.clone()
         }
     }
-
-    fn bscale_bzero(&self) -> Option<(f32, f32)> {
-        None
-    }
 }
 
 use web_sys::XmlHttpRequest;
 pub struct FITSImageRequest {
     image: XmlHttpRequest,
-    pub bscale: f32,
-    pub bzero: f32,
 }
 use web_sys::XmlHttpRequestResponseType;
 use fitsreader::{Fits, DataType};
@@ -517,10 +505,8 @@ impl RequestImage for FITSImageRequest {
     fn new() -> Self {
         let image = XmlHttpRequest::new().unwrap();
         image.set_response_type(XmlHttpRequestResponseType::Arraybuffer);
-        let bscale = 1.0_f32;
-        let bzero = 0_f32;
 
-        Self { image, bscale, bzero }
+        Self { image }
     }
 
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
@@ -566,16 +552,25 @@ impl ReceiveImage for FITSImageRequest {
             _ => unreachable!()
         };
 
-        if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
+        let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
             if let FITSKeywordValue::FloatingPoint(bscale) = value {
-                self.bscale = *bscale as f32;
+                *bscale as f32
+            } else {
+                1.0
             }
-        }
-        if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
+        } else {
+            1.0
+        };
+        let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
             if let FITSKeywordValue::FloatingPoint(bzero) = value {
-                self.bzero = *bzero as f32;
+                *bzero as f32
+            } else {
+                0.0
             }
-        }
+        } else {
+            0.0
+        };
+        config.set_bscale_bzero(bscale, bzero);
         if !config.is_blank_value() {
             let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
                 if let FITSKeywordValue::FloatingPoint(blank) = value {
@@ -590,10 +585,6 @@ impl ReceiveImage for FITSImageRequest {
         }
 
         img
-    }
-
-    fn bscale_bzero(&self) -> Option<(f32, f32)> {
-        Some((self.bscale, self.bzero))
     }
 }
 

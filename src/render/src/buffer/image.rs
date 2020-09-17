@@ -455,9 +455,9 @@ where T: RequestImage + ReceiveImage {
         self.req.image(config)
     }
 
-    pub fn bscale_zero(&self) -> Option<(f32, f32)> {
+    pub fn bscale_bzero(&self) -> Option<(f32, f32)> {
         assert!(self.is_resolved());
-        self.req.bscale_zero()
+        self.req.bscale_bzero()
     }
 }
 
@@ -468,7 +468,7 @@ pub struct CompressedImageRequest {
 pub trait ReceiveImage {
     type ReceiveImageType: Image + 'static;
     fn image(&mut self, config: &mut HiPSConfig) -> Self::ReceiveImageType;
-    fn bscale_zero(&self) -> Option<(f32, f32)>;
+    fn bscale_bzero(&self) -> Option<(f32, f32)>;
 }
 
 impl RequestImage for CompressedImageRequest {
@@ -500,7 +500,7 @@ impl ReceiveImage for CompressedImageRequest {
         }
     }
 
-    fn bscale_zero(&self) -> Option<(f32, f32)> {
+    fn bscale_bzero(&self) -> Option<(f32, f32)> {
         None
     }
 }
@@ -592,7 +592,7 @@ impl ReceiveImage for FITSImageRequest {
         img
     }
 
-    fn bscale_zero(&self) -> Option<(f32, f32)> {
+    fn bscale_bzero(&self) -> Option<(f32, f32)> {
         Some((self.bscale, self.bzero))
     }
 }

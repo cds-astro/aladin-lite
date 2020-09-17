@@ -96,6 +96,8 @@ pub struct HiPSConfig {
 
     min_cutout: f32,
     max_cutout: f32,
+    bscale: f32,
+    bzero: f32,
     transfer_f: TransferFunction,
     blank_value: Option<f32>,
     colormap: Colormap,
@@ -146,6 +148,8 @@ impl HiPSConfig {
         let root_url = String::from("");
         let min_cutout = 0.0;
         let max_cutout = 0.0;
+        let bscale = 1.0;
+        let bzero = 0.0;
         let mut hips_config = HiPSConfig {
             // HiPS name
             root_url,
@@ -167,6 +171,8 @@ impl HiPSConfig {
             num_textures,
             min_cutout,
             max_cutout,
+            bscale,
+            bzero,
             transfer_f,
             blank_value,
             colormap
@@ -224,6 +230,8 @@ impl HiPSConfig {
         self.root_url = hips_def.url;
         self.min_cutout = hips_def.minCutout;
         self.max_cutout = hips_def.maxCutout;
+        self.bscale = 1.0;
+        self.bzero = 0.0;
         crate::log(&format!("new hips config3 {:?}", self));
 
         Ok(())
@@ -314,6 +322,11 @@ impl HiPSConfig {
         self.max_cutout = max_cutout;
     }
 
+    pub fn set_bscale_bzero(&mut self, bscale: f32, bzero: f32) {
+        self.bscale = bscale;
+        self.bzero = bzero;
+    }
+
     pub fn set_transfer_function(&mut self, transfer_func: TransferFunction) {
         self.transfer_f = transfer_func;
     }
@@ -343,6 +356,10 @@ impl HasUniforms for HiPSConfig {
         shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("blank_value", &self.blank_value.unwrap_or(std::f32::MIN))
             .attach_uniform("colormap", &self.colormap)
+            .attach_uniform("min_value", &self.min_cutout)
+            .attach_uniform("max_value", &self.max_cutout)
+            .attach_uniform("bscale", &self.bscale)
+            .attach_uniform("bzero", &self.bzero)
             .attach_uniforms_from(&self.transfer_f);
 
         shader

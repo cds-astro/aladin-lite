@@ -124,7 +124,7 @@ impl HEALPixCellHeap {
 use std::cell::RefCell;
 use std::rc::Rc;
 // Fixed sized binary heap
-pub struct Textures {
+pub struct ImageSurvey {
     heap: HEALPixCellHeap,
 
     num_root_textures_available: usize,
@@ -132,7 +132,7 @@ pub struct Textures {
     size: usize,
 
     pub textures: HashMap<HEALPixCell, Texture>,
-    pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
+    //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
 
     // Array of 2D textures
     texture_2d_array: Rc<Texture2DArray>,
@@ -173,8 +173,8 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 }
 
 use std::cell::Cell;
-impl Textures {
-    pub fn new(gl: &WebGl2Context, config: &HiPSConfig) -> Textures {
+impl ImageSurvey {
+    pub fn new(gl: &WebGl2Context, config: &HiPSConfig) -> ImageSurvey {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -188,25 +188,25 @@ impl Textures {
         // The root textures have not been loaded
         let ready = false;
         let num_root_textures_available = 0;
-        let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
+        //let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
         // Push the 
-        Textures {
+        ImageSurvey {
             heap,
 
             size,
             num_root_textures_available,
 
             textures,
-            cutoff_values_tile,
+            //cutoff_values_tile,
             texture_2d_array,
 
             ready,
         }
     }
 
-    pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
+    /*pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
         self.cutoff_values_tile.borrow().get(tile_cell).cloned()
-    }
+    }*/
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
@@ -282,7 +282,7 @@ impl Textures {
             let spawner = task_executor.spawner();
             let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &config);
             let tile_cell = *tile_cell;
-            let cutoff_values_tile = self.cutoff_values_tile.clone();
+            //let cutoff_values_tile = self.cutoff_values_tile.clone();
             spawner.spawn(TaskType::SendTileToGPU(tile_cell), async move {
                 task.await;
 
@@ -420,7 +420,7 @@ impl Textures {
 use crate::shader::HasUniforms;
 use crate::shader::ShaderBound;
 use crate::buffer::TextureUniforms;
-impl HasUniforms for Textures {
+impl HasUniforms for ImageSurvey {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send the textures
         let textures = self.get_sorted_textures();

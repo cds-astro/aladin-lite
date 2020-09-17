@@ -335,10 +335,6 @@ impl HiPSSphere {
         let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
         let delta_depth = self.config.delta_depth();
 
-        let bscale_zero = self.buffer.get_fits_scaling_offset();
-        let min_cutout = self.config.get_min_cutout();
-        let max_cutout = self.config.get_max_cutout();
-        crate::log(&format!("cutout {:?} {:?}", min_cutout, max_cutout));
         if aperture <= limit_aperture {
             // Rasterization
             let shader = Rasterizer::get_shader::<P>(gl, shaders, &self.buffer);
@@ -348,11 +344,7 @@ impl HiPSSphere {
                 .attach_uniforms_from(&self.buffer)
                 .attach_uniform("inv_model", viewport.get_inverted_model_mat())
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)))
-                .attach_uniform("min_value", &min_cutout)
-                .attach_uniform("max_value", &max_cutout)
-                .attach_uniform("bscale", &bscale_zero.0)
-                .attach_uniform("bzero", &bscale_zero.1);
+                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)));
 
             self.raster.draw::<P>(gl, &shader_bound);
         } else {
@@ -365,11 +357,7 @@ impl HiPSSphere {
                 .attach_uniform("model", viewport.get_model_mat())
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("current_depth", &(viewport.depth() as i32))
-                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)))
-                .attach_uniform("min_value", &min_cutout)
-                .attach_uniform("max_value", &max_cutout)
-                .attach_uniform("bscale", &bscale_zero.0)
-                .attach_uniform("bzero", &bscale_zero.1);
+                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)));
 
             self.raytracer.draw(gl, &shader_bound);
         }   

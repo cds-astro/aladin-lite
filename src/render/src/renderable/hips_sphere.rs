@@ -206,19 +206,17 @@ use crate::WebGl2Context;
 
 use crate::renderable::projection::Projection;
 
-
+use crate::buffer::ImageSurvey;
 use crate::renderable::RayTracer;
 use crate::renderable::Rasterizer;
-pub struct HiPSSphere {
-    // Some information about the HiPS
-    pub config: HiPSConfig,
-    
+pub struct HiPSSphere {    
     // The buffer responsible for: 
     // * Performing the async request of tiles
     // * Storing the most recently asked texture tiles
     // * Sending them to the GPU
     // TODO: Move this field to the main App struct
     buffer: BufferTextures,
+    survey: ImageSurvey,
 
     raster: Rasterizer,
     raytracer: RayTracer,
@@ -240,8 +238,9 @@ use crate::HiPSDefinition;
 use wasm_bindgen::JsValue;
 
 impl HiPSSphere {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, config: HiPSConfig, shaders: &mut ShaderManager) -> Self {
-        let buffer = BufferTextures::new(gl, &config, viewport);
+    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &mut ShaderManager) -> Self {
+        let buffer = BufferTextures::new(gl, viewport);
+        let survey = ImageSurvey::new(gl, config);
         crate::log(&format!("config: {:?}", config));
 
         let gl = gl.clone();
@@ -252,8 +251,8 @@ impl HiPSSphere {
         let raytracer = RayTracer::new::<P>(&gl, viewport, shaders);
         crate::log(&format!("raytracer"));
         HiPSSphere {
-            config,
             buffer,
+            survey,
 
             raster,
             raytracer,
@@ -261,6 +260,7 @@ impl HiPSSphere {
             gl,
         }
     }
+
     pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut ViewPort, task_executor: &mut AladinTaskExecutor) -> Result<(), JsValue> {        
         self.config.set_HiPS_definition(hips_definition)?;
         // Tell the viewport the config has changed

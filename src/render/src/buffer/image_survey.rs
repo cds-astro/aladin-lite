@@ -125,6 +125,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 // Fixed sized binary heap
 pub struct ImageSurvey {
+    // Some information about the HiPS
+    pub config: HiPSConfig,
     heap: HEALPixCellHeap,
 
     num_root_textures_available: usize,
@@ -191,6 +193,7 @@ impl ImageSurvey {
         //let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
         // Push the 
         ImageSurvey {
+            config,
             heap,
 
             size,
@@ -202,6 +205,10 @@ impl ImageSurvey {
 
             ready,
         }
+    }
+
+    pub fn config(&self) -> &HiPSConfig {
+        &self.config
     }
 
     /*pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {

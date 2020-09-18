@@ -8,7 +8,7 @@ use crate::{
     WebGl2Context,
     healpix_cell::HEALPixCell,
 };
-use super::{RequestSystemType};
+use super::RequestSystem;
 
 use crate::buffer::{
  ImageSurvey,
@@ -21,12 +21,10 @@ pub struct BufferTextures {
     // * A fixed part that will never change. The 12 base tiles are always
     //   stored
     // * A binary heap storing the most recent requested cells.
-    survey: ImageSurvey,
     // A set of the cells that have been requested but
     // not yet received
     requested_tiles: HashSet<HEALPixCell>,
-
-    request_system: RequestSystemType,
+    request_system: RequestSystem,
 
     time_last_tile_written: Time,
 
@@ -47,15 +45,12 @@ impl BufferTextures {
         // Arbitrary number decided here
         let requested_tiles = HashSet::with_capacity(64);
 
-        let survey = ImageSurvey::new(gl, config);
-
         let time_last_tile_written = Time::now();
 
-        let request_system = RequestSystemType::new(config);
+        let request_system = RequestSystem::new();
         let fits = false;
         let i_internal_format = false;
         let mut buffer = BufferTextures {
-            survey,
             requested_tiles,
             i_internal_format,
 
@@ -73,6 +68,7 @@ impl BufferTextures {
     pub fn reset(&mut self, gl: &WebGl2Context, config: &HiPSConfig, viewport: &ViewPort, task_executor: &mut AladinTaskExecutor) {
         self.survey.clear(&gl, config, task_executor);
         self.requested_tiles.clear();
+
         self.request_system.reset(config);
 
         self.initialize(viewport, config);

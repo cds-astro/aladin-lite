@@ -326,12 +326,48 @@ use crate::{
 use std::cell::Cell;
 use std::rc::Rc;
 use js_sys::Function;
-pub trait RequestImage {
+
+enum ImageRequestType {
+    FITS(FITSImageRequest),
+    Compressed(CompressedImageRequest),
+}
+
+impl ImageRequestType {
+    fn new_fits_req() -> Self {
+        ImageRequestType::FITS(FITSImageRequest::new())
+    }
+
+    fn new_compressed_image_req() -> Self {
+        ImageRequestType::Compressed(FITSImageRequest::new())
+    }
+
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
+        match self {
+            ImageRequestType::FITS(req) => req.send(success, fail, url),
+            ImageRequestType::Compressed(req) => req.send(success, fail, url)
+        }
+    }
+
+    fn image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
+        match self {
+            ImageRequestType::FITS(req) => RetrievedImageType::FITS(req.image(config)),
+            ImageRequestType::Compressed(req) => RetrievedImageType::Compressed(req.image(config))
+        }
+    }
+}
+
+pub trait ImageRequest {
+    type RetrievedImageType: Image + 'static;
+
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
+    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType;
 }
-pub struct RequestTile<T: RequestImage + ReceiveImage> {
-    req: T,
+
+pub struct TileRequest {
+    // Is none when it is available for downloading a new fits
+    // or image tile
+    req: Option<ImageRequestType>,
     time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
@@ -349,64 +385,67 @@ pub enum ResolvedStatus {
 }
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-impl<T> RequestTile<T>
-where T: RequestImage + ReceiveImage {
-    pub fn new() -> Self {
-        let req = T::new();
 
-        // By default, we say the tile is available to be reused
-        let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
-        let cell = HEALPixCell(0, 13);
-        let closures = [
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
-        ];
-        let ready = true;
-        let time_request = Time::now();
-        Self { req, resolved, ready, cell, closures, time_request }
-    }
+use super::ImageSurvey;
+impl TileRequest {
+        pub fn new() -> Self {
+            let req = None;
 
-    pub fn send(&mut self, cell: &HEALPixCell, hips: &HiPSConfig) {
-        assert!(self.is_ready());
-        self.cell = *cell;
-        self.ready = false;
+            // By default, we say the tile is available to be reused
+            let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
+            let cell = HEALPixCell(0, 13);
+            let closures = [
+                Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
+                Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
+            ];
+            let ready = true;
+            let time_request = Time::now();
+            Self { req, resolved, ready, cell, closures, time_request }
+        }
 
-        let url = {
-            let HEALPixCell(depth, idx) = cell;
+        pub fn send(&mut self, cell: &HEALPixCell, survey: &ImageSurvey) {
+            assert!(self.is_ready());
+            self.cell = *cell;
+            self.ready = false;
 
-            let dir_idx = (idx / 10000) * 10000;
+            let url = {
+                let HEALPixCell(depth, idx) = cell;
 
-            let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
-                hips.root_url.to_string(),
-                depth.to_string(),
-                dir_idx.to_string(),
-                idx.to_string(),
-                hips.get_ext_file()
-            );
-    
-            url
-        };
+                let dir_idx = (idx / 10000) * 10000;
+
+                let survey_conf = survey.config();
+                let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
+                    survey_conf.root_url.to_string(),
+                    depth.to_string(),
+                    dir_idx.to_string(),
+                    idx.to_string(),
+                    survey_conf.get_ext_file()
+                );
         
-        let success = {
-            let resolved = self.resolved.clone();
-            Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Found);
-            }) as Box<dyn FnMut(&web_sys::Event,)>)
-        };
+                url
+            };
+            
+            let success = {
+                let resolved = self.resolved.clone();
+                Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                    resolved.set(ResolvedStatus::Found);
+                }) as Box<dyn FnMut(&web_sys::Event,)>)
+            };
 
-        let fail = {
-            let resolved = self.resolved.clone();
-            Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Missing);
-            }) as Box<dyn FnMut(&web_sys::Event,)>)
-        };
+            let fail = {
+                let resolved = self.resolved.clone();
+                Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                    resolved.set(ResolvedStatus::Missing);
+                }) as Box<dyn FnMut(&web_sys::Event,)>)
+            };
 
-        self.resolved.set(ResolvedStatus::NotResolved);
+            self.resolved.set(ResolvedStatus::NotResolved);
 
-        self.req.send(
-            Some(success.as_ref().unchecked_ref()),
-            Some(fail.as_ref().unchecked_ref()),
-            &url
+            self.req = Some();
+            self.req.send(
+                Some(success.as_ref().unchecked_ref()),
+                Some(fail.as_ref().unchecked_ref()),
+                &url
         );
 
         self.closures = [success, fail];
@@ -450,22 +489,24 @@ where T: RequestImage + ReceiveImage {
         self.resolved.get()
     }
 
-    pub fn get_image(&mut self, config: &mut HiPSConfig) -> T::ReceiveImageType {
+    pub fn get_image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
         assert!(self.is_resolved());
         self.req.image(config)
     }
+}
+
+enum RetrievedImageType {
+    FITSImage(TileArrayBufferImage),
+    CompressedImage(TileHTMLImage)
 }
 
 pub struct CompressedImageRequest {
     image: web_sys::HtmlImageElement,
 }
 
-pub trait ReceiveImage {
-    type ReceiveImageType: Image + 'static;
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::ReceiveImageType;
-}
+impl ImageRequest for CompressedImageRequest {
+    type RetrievedImageType = TileHTMLImage;
 
-impl RequestImage for CompressedImageRequest {
     fn new() -> Self {
         let image = web_sys::HtmlImageElement::new().unwrap();
         image.set_cross_origin(Some("")); 
@@ -478,12 +519,8 @@ impl RequestImage for CompressedImageRequest {
         self.image.set_onload(success);
         self.image.set_onerror(fail);
     }
-}
 
-impl ReceiveImage for CompressedImageRequest {
-    type ReceiveImageType = TileHTMLImage;
-
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::ReceiveImageType {
+    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
@@ -501,7 +538,10 @@ pub struct FITSImageRequest {
 }
 use web_sys::XmlHttpRequestResponseType;
 use fitsreader::{Fits, DataType};
-impl RequestImage for FITSImageRequest {
+use fitsreader::{FITSHeaderKeyword, FITSKeywordValue};
+impl ImageRequest for FITSImageRequest {
+    type RetrievedImageType = TileArrayBufferImage;
+
     fn new() -> Self {
         let image = XmlHttpRequest::new().unwrap();
         image.set_response_type(XmlHttpRequestResponseType::Arraybuffer);
@@ -517,13 +557,8 @@ impl RequestImage for FITSImageRequest {
         crate::log(&format!("url {:?}", url));
         self.image.send().unwrap();
     }
-}
 
-use fitsreader::{FITSHeaderKeyword, FITSKeywordValue};
-impl ReceiveImage for FITSImageRequest {
-    type ReceiveImageType = TileArrayBufferImage;
-
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::ReceiveImageType {
+    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()
@@ -588,7 +623,7 @@ impl ReceiveImage for FITSImageRequest {
     }
 }
 
-impl<T> Default for RequestTile<T> where T: RequestImage + ReceiveImage {
+impl Default for TileRequest {
     fn default() -> Self {
         RequestTile::new()
     }
@@ -629,7 +664,7 @@ impl Image for TileHTMLImage {
     }
 }
 
-impl<T> Drop for RequestTile<T> where T: RequestImage + ReceiveImage {
+impl Drop for TileRequest {
     fn drop(&mut self) {
         crate::log("Drop image!");
     }

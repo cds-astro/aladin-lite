@@ -268,6 +268,39 @@ impl ViewPort {
     pub fn get_great_circles_inside(&self) -> &GreatCirclesInFieldOfView {
         self.fov.get_great_circles_intersecting()
     }
+
+    // Used for selecting the current depth for a given FOV
+    // We need to select a depth so that we do not see any pixels
+    // This takes into account the screen resolution and can impact
+    // the number of healpix cells to load. Bigger resolution will need
+    // more cells which can overfit the buffer!
+    pub fn get_depth_from_survey(&self, survey: &ImageSurvey) -> u8 {
+        let pixel_ang = self.get_aperture() / self.width;
+        let depth_pix = ((((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32) + 0.5_f32).round() as i8;
+        
+        let depth_tex = {
+            let config = survey.config();
+            
+            let texture_size = config.get_texture_size();
+            // The depth of the texture
+            // A texture of 512x512 pixels will have a depth of 9
+            let depth_offset_texture = log_2(texture_size);
+            // The depth of the texture corresponds to the depth of a pixel
+            // minus the offset depth of the texture
+            let mut depth_texture = depth_pixel - depth_offset_texture;
+            if depth_texture < 0 {
+                depth_texture = 0;
+            }
+    
+            let max_depth = config.get_max_depth();
+            let std::cmp::min(
+                depth_texture as u8
+                max_depth,
+            )
+        };
+        
+        depth_tex
+    }
 }
 
 use crate::shader::HasUniforms;

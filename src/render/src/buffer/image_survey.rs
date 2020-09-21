@@ -175,8 +175,9 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 }
 
 use std::cell::Cell;
+use crate::image_fmt::FormatImageType;
 impl ImageSurvey {
-    pub fn new(gl: &WebGl2Context, config: &HiPSConfig) -> ImageSurvey {
+    pub fn new(gl: &WebGl2Context, config: HiPSConfig) -> ImageSurvey {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -185,7 +186,7 @@ impl ImageSurvey {
 
         let textures = HashMap::with_capacity(size);
         
-        let texture_2d_array = Rc::new(create_texture_array(gl, config));
+        let texture_2d_array = Rc::new(create_texture_array(gl, &config));
 
         // The root textures have not been loaded
         let ready = false;
@@ -207,8 +208,21 @@ impl ImageSurvey {
         }
     }
 
+    pub fn get_downloaded_tiles_format(&self) -> &FormatImageType {
+        &self.config.format()
+    }
+
     pub fn config(&self) -> &HiPSConfig {
         &self.config
+    }
+
+    pub fn config_mut(&mut self) -> &mut HiPSConfig {
+        &mut self.config
+    }
+
+    #[inline]
+    pub fn get_blank_tile(&self) -> Rc<TileArrayBufferImage> {
+        self.config.get_blank_tile()
     }
 
     /*pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
@@ -217,18 +231,18 @@ impl ImageSurvey {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile_cell: &HEALPixCell, time_request: Time, image: I, task_executor: &mut AladinTaskExecutor, config: &HiPSConfig) {
+    pub fn push<I: Image + 'static>(&mut self, tile_cell: &HEALPixCell, time_request: Time, image: I, task_executor: &mut AladinTaskExecutor) {
         // Assert here to prevent pushing doublons
-        assert!(!self.contains_tile(tile_cell, config));
+        assert!(!self.contains_tile(tile_cell));
 
         // Get the texture cell in which the tile has to be
-        let texture_cell = tile_cell.get_texture_cell(config);
+        let texture_cell = tile_cell.get_texture_cell(&self.config);
         let mut old_texture_cell = None;
         // Check whether the texture is a new texture
         if !self.textures.contains_key(&texture_cell) {
             let HEALPixCell(_, idx) = texture_cell;
             let texture = if texture_cell.is_root() {
-                let texture = Texture::new(config, &texture_cell, idx as i32, time_request);
+                let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
 
                 texture
             } else {
@@ -244,7 +258,7 @@ impl ImageSurvey {
                     // Remove it from the textures HashMap
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
-                        texture.replace(&texture_cell, time_request, config, task_executor);
+                        texture.replace(&texture_cell, time_request, &self.config, task_executor);
                         old_texture_cell = Some(oldest_texture.cell);
 
                         texture
@@ -259,7 +273,7 @@ impl ImageSurvey {
                     let root_texture_off_idx = 12;
                     let idx = root_texture_off_idx + self.heap.len();
 
-                    let texture = Texture::new(config, &texture_cell, idx as i32, time_request);
+                    let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
                     texture
                 };
                 // Push it to the buffer
@@ -279,7 +293,7 @@ impl ImageSurvey {
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.append(
                 tile_cell, // The tile cell
-                config
+                &self.config
             );
             // Compute the cutoff of the received tile
             //let cutoff = image.get_cutoff_values();
@@ -287,7 +301,7 @@ impl ImageSurvey {
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
             let spawner = task_executor.spawner();
-            let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &config);
+            let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &self.config);
             let tile_cell = *tile_cell;
             //let cutoff_values_tile = self.cutoff_values_tile.clone();
             spawner.spawn(TaskType::SendTileToGPU(tile_cell), async move {
@@ -310,12 +324,12 @@ impl ImageSurvey {
     }
 
     // Return true if at least one task has been processed
-    pub fn register_tiles_sent_to_gpu(&mut self, copied_tiles: &HashSet<HEALPixCell>, config: &HiPSConfig) {
+    pub fn register_tiles_sent_to_gpu(&mut self, copied_tiles: &HashSet<HEALPixCell>) {
         for cell in copied_tiles {
-            let texture_cell = cell.get_texture_cell(config);
+            let texture_cell = cell.get_texture_cell(&self.config);
 
             if let Some(texture) = self.textures.get_mut(&texture_cell) {
-                texture.register_tile_sent_to_gpu(cell, config);
+                texture.register_tile_sent_to_gpu(cell, &self.config);
 
                 if texture_cell.is_root() && texture.is_available() {
                     self.num_root_textures_available += 1;
@@ -343,11 +357,29 @@ impl ImageSurvey {
         full_heap
     }
 
+    // Tell if a texture is available meaning all its sub tiles
+    // must have been written for the GPU
+    pub fn contains(&self, texture_cell: &HEALPixCell) -> bool {
+        if let Some(texture) = self.textures.get(texture_cell) {
+            // The texture is in the buffer i.e. there is at least one
+            // sub tile received
+
+            // It is possible that it is not available. Available means
+            // all its sub tiles have been received and written to the
+            // textures array!
+            texture.is_available()
+        } else {
+            // The texture is not contained in the buffer i.e.
+            // even not one sub tile that has been received
+            false
+        }
+    }
+
     // Check whether the buffer has a tile
     // For that purpose, we first need to verify that its
     // texture ancestor exists and then, it it contains the tile
-    pub fn contains_tile(&self, cell: &HEALPixCell, config: &HiPSConfig) -> bool {
-        let texture_cell = cell.get_texture_cell(config);
+    pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
+        let texture_cell = cell.get_texture_cell(&self.config);
         if let Some(texture) = self.textures.get(&texture_cell) {
             // The texture is present in the buffer
             // We must check whether it contains the tile
@@ -357,18 +389,34 @@ impl ImageSurvey {
             false
         }
     }
-
+    
     pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
         self.textures.get(texture_cell)
     }
 
+    // Get the nearest parent tile found in the CPU buffer
+    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> HEALPixCell {
+        if cell.is_root() {
+            // Root cells are in the buffer by definition
+            *cell
+        } else {
+            let mut parent_cell = cell.parent();
+
+            while !self.contains(&parent_cell) && !parent_cell.is_root() {
+                parent_cell = parent_cell.parent();
+            }
+
+            parent_cell
+        }
+    }
+
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
-    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool, start_time: Time, config: &HiPSConfig) {
-        assert!(self.contains_tile(cell, config));
+    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool, start_time: Time) {
+        assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
-        let texture_cell = cell.get_texture_cell(config);
+        let texture_cell = cell.get_texture_cell(&self.config);
         if texture_cell.is_root() {
             return;
         }
@@ -395,20 +443,20 @@ impl ImageSurvey {
     }
 
     // This is called when the HiPS changes
-    pub fn clear(&mut self, gl: &WebGl2Context, config: &HiPSConfig, task_executor: &mut AladinTaskExecutor) {
+    pub fn clear(&mut self, gl: &WebGl2Context, task_executor: &mut AladinTaskExecutor) {
         // Size i.e. the num of textures is the same
         // no matter the HiPS config
         self.heap.clear();
 
         for texture in self.textures.values() {
-            texture.clear_tasks_in_progress(config, task_executor);
+            texture.clear_tasks_in_progress(&self.config, task_executor);
         }
         self.textures.clear();
 
         self.ready = false;
         self.num_root_textures_available = 0;
 
-        self.texture_2d_array = Rc::new(create_texture_array(gl, config));
+        self.texture_2d_array = Rc::new(create_texture_array(gl, &self.config));
     }
 
     pub fn is_ready(&self) -> bool {

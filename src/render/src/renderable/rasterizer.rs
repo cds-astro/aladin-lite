@@ -461,7 +461,7 @@ impl Rasterizer {
     }
 
     // The rasterizer has several shaders, one for each projection
-    pub fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &BufferTextures) -> &'a Shader {
+    pub fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, survey: &ImageSurvey) -> &'a Shader {
         // Fits tiles are handled by other shaders
         if buffer.fits_tiles_requested() {
             if buffer.fits_i_format() {

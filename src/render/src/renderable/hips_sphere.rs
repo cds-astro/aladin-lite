@@ -299,7 +299,7 @@ impl HiPSSphere {
             }
         }*/
 
-        if self.buffer.is_ready() {
+        if self.survey.is_ready() {
             // Update the scene if:
             // - The viewport changed
             // - There are remaining tiles to write to the GPU
@@ -333,18 +333,17 @@ impl HiPSSphere {
     ) {
         let aperture = viewport.get_aperture();
         let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
-        let delta_depth = self.config.delta_depth();
 
         if aperture <= limit_aperture {
             // Rasterization
             let shader = Rasterizer::get_shader::<P>(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
             shader_bound.attach_uniforms_from(viewport)
-                .attach_uniforms_from(&self.config)
-                .attach_uniforms_from(&self.buffer)
+                .attach_uniforms_from(&self.survey)
+                //.attach_uniforms_from(&self.config)
+                //.attach_uniforms_from(&self.buffer)
                 .attach_uniform("inv_model", viewport.get_inverted_model_mat())
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)));
 
             self.raster.draw::<P>(gl, &shader_bound);
         } else {
@@ -352,33 +351,36 @@ impl HiPSSphere {
             let shader = RayTracer::get_shader(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
             shader_bound.attach_uniforms_from(viewport)
-                .attach_uniforms_from(&self.config)
-                .attach_uniforms_from(&self.buffer)
+                .attach_uniforms_from(&self.survey)
+                //.attach_uniforms_from(&self.config)
+                //.attach_uniforms_from(&self.buffer)
                 .attach_uniform("model", viewport.get_model_mat())
-                .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("current_depth", &(viewport.depth() as i32))
-                .attach_uniform("size_tile_uv", &(1_f32 / ((8 << delta_depth) as f32)));
+                .attach_uniform("current_time", &utils::get_current_time())
 
             self.raytracer.draw(gl, &shader_bound);
         }   
     }
 
-    #[inline]
+    /*#[inline]
     pub fn config(&self) -> &HiPSConfig {
         &self.config
-    }
+    }*/
 
     pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) {
         crate::log(&format!("{:?} {:?}", min_cutout, max_cutout));
-        self.config.set_cutouts(min_cutout, max_cutout);
+        self.survey.config_mut()
+            .set_cutouts(min_cutout, max_cutout);
     }
 
     pub fn set_transfer_func(&mut self, h: TransferFunction) {
-        self.config.set_transfer_function(h);
+        self.survey.config_mut()
+            .set_transfer_function(h);
     }
 
     pub fn set_fits_colormap(&mut self, colormap: Colormap) {
-        self.config.set_fits_colormap(colormap);
+        self.survey.config_mut()
+            .set_fits_colormap(colormap);
     }
 }
 

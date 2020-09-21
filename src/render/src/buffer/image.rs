@@ -10,7 +10,7 @@ pub trait Image {
     // The size of the image
     fn get_size(&self) -> &Vector2<i32>;
 
-    fn get_cutoff_values(&self) -> Option<(f32, f32)>;
+    //fn get_cutoff_values(&self) -> Option<(f32, f32)>;
 }
 
 #[derive(Debug)]
@@ -333,14 +333,6 @@ enum ImageRequestType {
 }
 
 impl ImageRequestType {
-    fn new_fits_req() -> Self {
-        ImageRequestType::FITS(FITSImageRequest::new())
-    }
-
-    fn new_compressed_image_req() -> Self {
-        ImageRequestType::Compressed(FITSImageRequest::new())
-    }
-
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
         match self {
             ImageRequestType::FITS(req) => req.send(success, fail, url),
@@ -350,9 +342,46 @@ impl ImageRequestType {
 
     fn image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
         match self {
-            ImageRequestType::FITS(req) => RetrievedImageType::FITS(req.image(config)),
-            ImageRequestType::Compressed(req) => RetrievedImageType::Compressed(req.image(config))
+            ImageRequestType::FITS(req) => RetrievedImageType::FITSImage(req.image(config)),
+            ImageRequestType::Compressed(req) => RetrievedImageType::CompressedImage(req.image(config))
         }
+    }
+}
+
+impl Image for RetrievedImageType {
+    fn tex_sub_image_3d(&self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>
+    ) {
+        match self {
+            RetrievedImageType::CompressedImage(img) => img.tex_sub_image_3d(textures, offset),
+            RetrievedImageType::FITSImage(img) => img.tex_sub_image_3d(textures, offset)
+        }
+    }
+
+    // The size of the image
+    fn get_size(&self) -> &Vector2<i32> {
+        match self {
+            RetrievedImageType::CompressedImage(img) => img.get_size(),
+            RetrievedImageType::FITSImage(img) => img.get_size()
+        }
+    }
+
+    /*fn get_cutoff_values(&self) -> std::option::Option<(f32, f32)> {
+        None
+    }*/
+}
+
+impl From<FITSImageRequest> for ImageRequestType {
+    fn from(req: FITSImageRequest) -> Self {
+        ImageRequestType::FITS(req)
+    }
+}
+impl From<CompressedImageRequest> for ImageRequestType {
+    fn from(req: CompressedImageRequest) -> Self {
+        ImageRequestType::Compressed(req)
     }
 }
 
@@ -367,7 +396,7 @@ pub trait ImageRequest {
 pub struct TileRequest {
     // Is none when it is available for downloading a new fits
     // or image tile
-    req: Option<ImageRequestType>,
+    req: ImageRequestType,
     time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
@@ -388,64 +417,80 @@ use wasm_bindgen::JsCast;
 
 use super::ImageSurvey;
 impl TileRequest {
-        pub fn new() -> Self {
-            let req = None;
+    pub fn new() -> Self {
+        // By default, all the requests are parametrized to load
+        // compressed image requests
+        let req = ImageRequestType::Compressed(CompressedImageRequest::new());
 
-            // By default, we say the tile is available to be reused
-            let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
-            let cell = HEALPixCell(0, 13);
-            let closures = [
-                Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
-                Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
-            ];
-            let ready = true;
-            let time_request = Time::now();
-            Self { req, resolved, ready, cell, closures, time_request }
-        }
+        // By default, we say the tile is available to be reused
+        let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
+        let cell = HEALPixCell(0, 13);
+        let closures = [
+            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
+            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
+        ];
+        let ready = true;
+        let time_request = Time::now();
+        Self { req, resolved, ready, cell, closures, time_request }
+    }
 
-        pub fn send(&mut self, cell: &HEALPixCell, survey: &ImageSurvey) {
-            assert!(self.is_ready());
-            self.cell = *cell;
-            self.ready = false;
+    pub fn send(&mut self, cell: &HEALPixCell, survey: &ImageSurvey) {
+        assert!(self.is_ready());
+        // Change the type of request if necessary in function 
+        // of the image survey
+        self.req = match (self.req, survey.get_downloaded_tiles_format()) {
+            (ImageRequestType::FITS(_), FormatImageType::JPG) => {
+                ImageRequestType::Compressed(CompressedImageRequest::new())
+            },
+            (ImageRequestType::FITS(_), FormatImageType::PNG) => {
+                ImageRequestType::Compressed(CompressedImageRequest::new())
+            },
+            (ImageRequestType::Compressed(_), FormatImageType::FITS(_)) => {
+                ImageRequestType::FITS(FITSImageRequest::new())
+            },
+            _ => self.req
+        };
 
-            let url = {
-                let HEALPixCell(depth, idx) = cell;
+        self.cell = *cell;
+        self.ready = false;
 
-                let dir_idx = (idx / 10000) * 10000;
+        let url = {
+            let HEALPixCell(depth, idx) = cell;
 
-                let survey_conf = survey.config();
-                let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
-                    survey_conf.root_url.to_string(),
-                    depth.to_string(),
-                    dir_idx.to_string(),
-                    idx.to_string(),
-                    survey_conf.get_ext_file()
-                );
+            let dir_idx = (idx / 10000) * 10000;
+
+            let survey_conf = survey.config();
+            let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
+                survey_conf.root_url.to_string(),
+                depth.to_string(),
+                dir_idx.to_string(),
+                idx.to_string(),
+                survey_conf.get_ext_file()
+            );
+    
+            url
+        };
         
-                url
-            };
-            
-            let success = {
-                let resolved = self.resolved.clone();
-                Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                    resolved.set(ResolvedStatus::Found);
-                }) as Box<dyn FnMut(&web_sys::Event,)>)
-            };
+        let success = {
+            let resolved = self.resolved.clone();
+            Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                resolved.set(ResolvedStatus::Found);
+            }) as Box<dyn FnMut(&web_sys::Event,)>)
+        };
 
-            let fail = {
-                let resolved = self.resolved.clone();
-                Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                    resolved.set(ResolvedStatus::Missing);
-                }) as Box<dyn FnMut(&web_sys::Event,)>)
-            };
+        let fail = {
+            let resolved = self.resolved.clone();
+            Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                resolved.set(ResolvedStatus::Missing);
+            }) as Box<dyn FnMut(&web_sys::Event,)>)
+        };
 
-            self.resolved.set(ResolvedStatus::NotResolved);
+        self.resolved.set(ResolvedStatus::NotResolved);
 
-            self.req = Some();
-            self.req.send(
-                Some(success.as_ref().unchecked_ref()),
-                Some(fail.as_ref().unchecked_ref()),
-                &url
+        self.req.send(
+            Some(success.as_ref().unchecked_ref()),
+            Some(fail.as_ref().unchecked_ref()),
+            &url
         );
 
         self.closures = [success, fail];
@@ -659,9 +704,9 @@ impl Image for TileHTMLImage {
         &self.size
     }
 
-    fn get_cutoff_values(&self) -> std::option::Option<(f32, f32)> {
+    /*fn get_cutoff_values(&self) -> std::option::Option<(f32, f32)> {
         None
-    }
+    }*/
 }
 
 impl Drop for TileRequest {

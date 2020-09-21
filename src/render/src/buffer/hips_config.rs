@@ -360,6 +360,7 @@ impl HasUniforms for HiPSConfig {
             .attach_uniform("max_value", &self.max_cutout)
             .attach_uniform("bscale", &self.bscale)
             .attach_uniform("bzero", &self.bzero)
+            .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
             .attach_uniforms_from(&self.transfer_f);
 
         shader

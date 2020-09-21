@@ -17,12 +17,13 @@ pub struct RequestSystem {
     requests: [TileRequest; NUM_EVENT_LISTENERS],
 }
 
-const NUM_EVENT_LISTENERS: usize = 10;
+// A power of two maximum simultaneous tile requests
+const NUM_EVENT_LISTENERS: usize = 16;
 const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 use crate::FormatImageType;
 use crate::healpix_cell::HEALPixCell;
 impl RequestSystem {
-    fn new() -> RequestSystem { 
+    pub fn new() -> RequestSystem {
         let requests: [TileRequest; NUM_EVENT_LISTENERS] = Default::default();
 
         let cells_to_be_requested = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
@@ -40,11 +41,11 @@ impl RequestSystem {
         }
     }
 
-    fn register_tile_request(&mut self, cell: &HEALPixCell) {
+    pub fn register_tile_request(&mut self, cell: &HEALPixCell) {
         self.cells_to_be_requested.push_back(*cell);
     }
 
-    fn run(&mut self,
+    pub fn run(&mut self,
         cells_copied: &HashSet<HEALPixCell>,
         task_executor: &mut AladinTaskExecutor,
         survey: &mut ImageSurvey,
@@ -68,7 +69,7 @@ impl RequestSystem {
     
                     match req.resolve_status() {
                         ResolvedStatus::Missing => {
-                            let image = config.get_blank_tile();
+                            let image = survey.get_blank_tile();
                             survey.push(&cell, time_request, image, task_executor);
                         },
                         ResolvedStatus::Found => {

@@ -10,7 +10,90 @@ const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
 use std::collections::HashSet;
 use crate::buffer::HiPSConfig;
 use crate::sphere_geometry::GreatCirclesInFieldOfView;
-pub struct FieldOfView {
+
+fn get_cells_in_fov(survey: &ImageSurvey, viewport: &ViewPort) -> HashSet<HEALPixCell> {
+    // Compute the depth corresponding to the angular resolution of a pixel
+    // along the width of the screen
+    let depth = viewport.get_depth_from_survey(survey);
+
+    if let Some(vertices) = viewport.get_vertices() {
+        polygon_coverage(depth, vertices)
+    } else {
+        crate::healpix_cell::allsky(depth)
+    }
+}
+
+fn polygon_coverage(
+    vertices: &[Vector4<f32>],
+    depth: u8,
+    inside: &Vector4<f32>
+) -> HashSet<HEALPixCell> {
+    let coverage = cdshealpix::HEALPixCoverage::new(depth, vertices, &inside);
+
+    coverage
+        .flat_iter()
+        .map(|idx| {
+            HEALPixCell(depth, idx)
+        })
+        .collect()
+}
+
+// Contains the cells being in the FOV for a specific
+// image survey
+// This keep traces of the new cells to download for an image survey
+struct ViewOnImageSurvey {
+    idx_survey: usize,
+    // The set of cells being in the current view for a
+    // specific image survey
+    cells: HashSet<HEALPixCell>,
+    new_cells: HashMap<HEALPixCell, bool>,
+    is_there_new_cells: bool,
+    // The current depth of the cells for a 
+    depth: u8,
+}
+
+
+
+impl ViewOnImageSurvey {
+    fn create_view(survey: &ImageSurvey, viewport: &ViewPort) -> ViewOnImageSurvey {
+        let idx_survey = survey.get_idx();
+
+        let cells = get_cells_in_fov(survey, viewport);
+        let new_cells = cells.iter().cloned()
+            .map(|cell| {
+                (cell, true)
+            })
+            .collect::<HashMap<_, _>>();
+
+        ViewOnImageSurvey {
+            idx_survey,
+            is_there_new_cells: true,
+            cells,
+            new_cells,
+            depth
+        }
+    }
+
+    fn update(&mut self, viewport: &ViewPort) {
+    
+    
+        // Look for the newly added cells in the field of view
+        // by doing the difference of the new cells set with the previous one
+        let new_cells = cells.difference(&self.cells).collect::<HashSet<_>>();
+        self.is_there_new_cells = !new_cells.is_empty();
+        self.new_cells = cells.iter().cloned()
+            .map(|cell| {
+                (cell, new_cells.contains(&cell))
+            })
+            .collect::<HashMap<_, _>>();
+        self.cells = cells;
+        self.current_depth = depth;
+    }
+
+
+}
+
+pub struct GlobalView {
     pos_ndc_space: [Vector2<f32>; NUM_VERTICES],
     pos_world_space: Option<[Vector4<f32>; NUM_VERTICES]>,
     pos_model_space: Option<[Vector4<f32>; NUM_VERTICES]>,
@@ -21,23 +104,12 @@ pub struct FieldOfView {
     aperture_angle: Angle<f32>, // fov can be None if the camera is out of the projection
     r: Matrix4<f32>, // Rotation matrix of the FOV (i.e. same as the HiPS sphere model matrix)
 
+
+
     ndc_to_clip: Vector2<f32>,
     clip_zoom_factor: f32,
-
-    // The set of cells being in the current field of view
-    cells: HashSet<HEALPixCell>,
-    // A map describing the cells in the current field of view
-    // A boolean is associated with the cells telling if the
-    // cell is new (meaning it was not in the previous field of view).
-    // ``cells`` is always equal to its keys!
-    new_cells: HashMap<HEALPixCell, bool>,
-    is_there_new_cells: bool,
-    // The current depth of the cells in the field of view
-    current_depth: u8,
-
     // The width over height ratio
     aspect: f32,
-
     // The width of the screen in pixels
     width: f32,
     // The height of the screen in pixels
@@ -265,53 +337,7 @@ impl FieldOfView {
         self.compute_healpix_cells::<P>(config);
     }
     
-    fn compute_healpix_cells<P: Projection>(&mut self, config: &HiPSConfig) {
-        // Compute the depth corresponding to the angular resolution of a pixel
-        // along the width of the screen
-        let max_depth = config
-            // Max depth of the current HiPS tiles
-            .max_depth();
-        
-        let depth = std::cmp::min(
-            math::fov_to_depth(self.aperture_angle, self.width, &config),
-            max_depth,
-        );
-        //console::log_1(&format!("max depth {:?}", max_depth).into());
-
-        let cells = self.get_cells_in_fov::<P>(depth);
-
-        // Look for the newly added cells in the field of view
-        // by doing the difference of the new cells set with the previous one
-        let new_cells = cells.difference(&self.cells).collect::<HashSet<_>>();
-        self.is_there_new_cells = !new_cells.is_empty();
-        self.new_cells = cells.iter().cloned()
-            .map(|cell| {
-                (cell, new_cells.contains(&cell))
-            })
-            .collect::<HashMap<_, _>>();
-        self.cells = cells;
-        self.current_depth = depth;
-    }
-
-    pub fn get_cells_in_fov<P: Projection>(&self, depth: u8) -> HashSet<HEALPixCell> {
-        if let Some(pos_model_space) = self.pos_model_space {
-            self.polygon_coverage::<P>(depth, &pos_model_space)
-        } else {
-            crate::healpix_cell::allsky(depth)
-        }
-    }
-
-    fn polygon_coverage<P: Projection>(&self, depth: u8, vertices: &[Vector4<f32>; NUM_VERTICES]) -> HashSet<HEALPixCell> {
-        let inside = self.compute_center_model_pos::<P>();
-        let moc = cdshealpix::HEALPixCoverage::new(depth, vertices as &[Vector4<f32>], &inside);
-
-        let cells: HashSet<HEALPixCell> = moc.flat_iter()
-            .map(|idx| {
-                HEALPixCell(depth, idx)
-            })
-            .collect();
-        cells
-    }
+    
 
     /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
         self.field_of_view.intersect_meridian(lon)

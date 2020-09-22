@@ -1,5 +1,5 @@
 #[derive(PartialEq, Clone, Copy)]
-pub enum LastAction {
+pub enum UserAction {
     Zooming = 1,
     Unzooming = 2,
     Moving = 3,
@@ -7,113 +7,122 @@ pub enum LastAction {
 }
 
 use crate::field_of_view::FieldOfView;
-use cgmath::Vector2;
-pub struct ViewPort {
-    fov: FieldOfView,
-    
+use cgmath::{Vector2, Matrix4};
+pub struct CameraViewPort {
+    // The field of view angle
+    aperture: Angle<f32>,
+    // The rotation of the camera
+    w2m_rot: SphericalRotation<f32>,
+    w2m: Matrix4<f32>,
+    m2w: Matrix4<f32>,
+    // The width over height ratio
+    aspect: f32,
+    // The width of the screen in pixels
+    width: f32,
+    // The height of the screen in pixels
+    height: f32,
+
+    // Internal variable used for projection purposes
+    ndc_to_clip: Vector2<f32>,
+    clip_zoom_factor: f32,
+
+    // A flag telling whether the camera has been moved during the frame
+    moved: bool,
+
     // Tag the last action done by the user
-    pub user_action: LastAction,
+    last_user_action: UserAction,
 
-    sr: SphericalRotation<f32>,
-    model_mat: cgmath::Matrix4::<f32>,
-    inverted_model_mat: cgmath::Matrix4<f32>,
-
-    viewport_updated: bool,
+    // A reference to the WebGL2 context
+    gl: WebGl2Context,
 }
 
 use crate::WebGl2Context;
 
 use crate::{
-    renderable::{HiPSSphere,
-        catalog,
+    renderable::{
         projection::Projection,
         Angle,
     },
-    buffer::HiPSConfig,
     rotation::SphericalRotation,
     sphere_geometry::GreatCirclesInFieldOfView,
-    healpix_cell::HEALPixCell
 };
 use std::collections::{HashSet, HashMap};
 use cgmath::{Matrix3, Matrix4, Vector4, SquareMatrix};
 
-impl ViewPort {
-    pub fn new<P: Projection>(gl: &WebGl2Context, config: &HiPSConfig) -> ViewPort {
-        let user_action = LastAction::Starting;
+fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
+    let canvas = gl.canvas().unwrap()
+        .dyn_into::<web_sys::HtmlCanvasElement>()
+        .unwrap();
 
-        let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);
+    canvas.set_width(width);
+    canvas.set_height(height);
+    gl.viewport(0, 0, width as i32, height as i32);
+    gl.scissor(0, 0, width as i32, height as i32);
+}
 
-        let model_mat = Matrix4::identity();
-        let inverted_model_mat = model_mat;
+impl CameraViewPort {
+    pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
+        let last_user_action = UserAction::Starting;
 
-        let viewport_updated = false;
+        //let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);
+        let aperture = P::aperture_start();
 
-        let sr = SphericalRotation::zero();
+        let w2m = Matrix4::identity();
+        let m2w = w2m;
 
-        let viewport = ViewPort {
-            fov,
+        let changed = false;
 
-            user_action,
+        let w2m_rot = SphericalRotation::zero();
 
-            sr,
-            model_mat,
-            inverted_model_mat,
-            viewport_updated,
-        };
+        // Get the initial size of the window
+        let width = web_sys::window()
+            .unwrap()
+            .inner_width()
+            .unwrap()
+            .as_f64()
+            .unwrap() as f32;
+        let height = web_sys::window()
+            .unwrap()
+            .inner_height()
+            .unwrap()
+            .as_f64()
+            .unwrap() as f32;
+        set_canvas_size(width as u32, height as u32);
 
-        viewport
-    }
+        let aspect = width / height;
+        let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
+        let clip_zoom_factor = 0_f32;
 
-    // Tell the viewport the HiPS have changed
-    pub fn set_image_survey<P: Projection>(&mut self, config: &HiPSConfig) {
-        self.fov.set_image_survey::<P>(config);
+        let gl = gl.clone();
+        CameraViewPort {
+            // The field of view angle
+            aperture,
+            // The rotation of the camera
+            w2m_rot,
+            w2m,
+            m2w,
+            // The width over height ratio
+            aspect,
+            // The width of the screen in pixels
+            width,
+            // The height of the screen in pixels
+            height,
 
-        self.user_action = LastAction::Starting;
-    }
+            // Internal variable used for projection purposes
+            ndc_to_clip,
+            clip_zoom_factor,
 
-    pub fn reset_zoom_level<P: Projection>(&mut self, config: &HiPSConfig) {
-        // Update the aperture of the Field Of View
-        let aperture: Angle<f32> = P::aperture_start();
-        self.fov.set_aperture::<P>(aperture, config);
-    }
+            // A flag telling whether the camera has been moved during the frame
+            changed,
 
-    pub fn get_aperture(&self) -> Angle<f32> {
-        self.fov.get_aperture()
-    }
+            // Tag the last action done by the user
+            last_user_action,
 
-    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>, config: &HiPSConfig) {
-        // Checking if we are zooming or unzooming
-        // This is used internaly for the raytracer to compute
-        // blending between tiles and their parents (or children)
-        if self.get_aperture() > aperture {
-            self.user_action = LastAction::Zooming;
-        } else {
-            self.user_action = LastAction::Unzooming;
+            // A reference to the WebGL2 context
+            gl,
         }
-
-        let aperture = if aperture <= P::aperture_start() {
-            aperture
-        } else {
-            // The start aperture of the new projection is < to the current aperture
-            // We reset the wheel idx too
-            P::aperture_start()
-        };
-        // Recompute the depth and field of view
-        self.fov.set_aperture::<P>(aperture, config);
-
-        self.viewport_updated = true;
     }
-
-    // Called when the projection changes
-    pub fn reset<P: Projection>(&mut self, config: &HiPSConfig) {
-        let current_aperture = self.fov.get_aperture();
-        self.set_aperture::<P>(current_aperture, config);
-
-        let size = self.get_window_size();
-        self.fov.resize_window::<P>(size.x, size.y, config);
-    }
-
-    pub fn resize_window<P: Projection>(&mut self,
+    /*pub fn resize_window<P: Projection>(&mut self,
         width: f32,
         height: f32,
         sphere: &mut HiPSSphere,
@@ -126,9 +135,9 @@ impl ViewPort {
         manager.set_kernel_size(&self);
 
         self.viewport_updated = true;
-    }
+    }*/
 
-    pub fn depth(&self) -> u8 {
+    /*pub fn depth(&self) -> u8 {
         self.fov.current_depth()
     }
     pub fn depth_precise(&self, config: &HiPSConfig) -> f32 {
@@ -144,112 +153,134 @@ impl ViewPort {
 
         depth
     }
-    pub fn cells(&self) -> &HashSet<HEALPixCell> {
-        &self.fov.healpix_cells()
-    }
-    pub fn new_healpix_cells(&self) -> &HashMap<HEALPixCell, bool> {
-        &self.fov.new_healpix_cells()
-    }
-    pub fn get_cells_in_fov<P: Projection>(&self, depth: u8) -> HashSet<HEALPixCell> {
-        self.fov.get_cells_in_fov::<P>(depth)
-    }
-
-    pub fn last_user_action(&self) -> LastAction {
-        self.user_action
-    }
-
-    pub fn is_viewport_updated(&self) -> bool {
-        self.viewport_updated
-    }
-
-    pub fn update<P: Projection>(&mut self, manager: &mut catalog::Manager, config: &HiPSConfig) {
+*/
+    /*pub fn update<P: Projection>(&mut self, manager: &mut catalog::Manager, config: &HiPSConfig) {
         // Each time the viewport is updated
         // we update the manager
-        if self.viewport_updated {
+        if self.moved {
             manager.update::<P>(&self, config);
 
         }
-        self.viewport_updated = false;
+        self.moved = false;
+    }*/
+/*
+    // Tell the viewport the HiPS have changed
+    pub fn set_image_survey<P: Projection>(&mut self, config: &HiPSConfig) {
+        self.fov.set_image_survey::<P>(config);
+
+        self.user_action = LastAction::Starting;
+    }
+*/
+/*    pub fn reset_zoom_level<P: Projection>(&mut self, config: &HiPSConfig) {
+        // Update the aperture of the Field Of View
+        let aperture: Angle<f32> = P::aperture_start();
+        self.fov.set_aperture::<P>(aperture, config);
+    }
+*/
+
+    pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
+        self.width = width;
+        self.height = height;
+
+        self.aspect = width / height;
+
+        set_canvas_size(width as u32, height as u32);
+
+        // Compute the new clip zoom factor
+        self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
+
+        self.changed = true;
+    }
+
+    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
+        // Checking if we are zooming or unzooming
+        // This is used internaly for the raytracer to compute
+        // blending between tiles and their parents (or children)
+        self.last_user_action = if self.get_aperture() > aperture {
+            LastAction::Zooming
+        } else {
+            LastAction::Unzooming
+        };
+
+        self.aperture = if aperture <= P::aperture_start() {
+            aperture
+        } else {
+            // The start aperture of the new projection is < to the current aperture
+            // We reset the wheel idx too
+            P::aperture_start()
+        };
+
+        // Compute the new clip zoom factor
+        let lon = aperture.abs() / 2_f32;
+
+        // Vertex in the WCS of the FOV
+        let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
+
+        // Project this vertex into the screen
+        let p0 = P::world_to_clip_space(&v0);
+        self.clip_zoom_factor = p0.x.abs();
+
+        self.changed = true;
+    }
+
+    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
+        let drot = SphericalRotation::from_axis_angle(axis, angle);
+        self.w2m_rot = drot * self.w2m_rot;
+
+        self.update_rot_matrices::<P>();
+    }
+
+    pub fn set_rotation<P: Projection>(&mut self, rot: &SphericalRotation<f32>) {
+        self.w2m_rot = *rot;
+
+        self.update_rot_matrices::<P>();
+    }
+
+    // Accessors
+    pub fn get_rotation(&self) -> &SphericalRotation<f32> {
+        &self.sr
+    }
+
+    pub fn get_w2m(&self) -> &cgmath::Matrix4<f32> {
+        &self.model_mat
+    }
+
+    pub fn get_m2w(&self) -> &cgmath::Matrix4<f32> {
+        &self.inverted_model_mat
     }
 
     pub fn get_ndc_to_clip(&self) -> &Vector2<f32> {
-        self.fov.get_ndc_to_clip()
+        self.ndc_to_clip
     }
 
     pub fn get_clip_zoom_factor(&self) -> f32 {
-        self.fov.get_clip_zoom_factor()
+        self.clip_zoom_factor
     }
 
-    // Viewport model matrices
-    pub fn get_window_size(&self) -> Vector2<f32> {
-        let (width, height) = self.fov.get_size_screen();
-        Vector2::new(width, height)
+    pub fn get_screen_size(&self) -> Vector2<f32> {
+        Vector2::new(self.width, self.height)
     }
 
-    pub fn compute_center_model_pos<P: Projection>(&self) -> Vector4<f32> {
+    pub fn last_user_action(&self) -> UserAction {
+        self.user_action
+    }
+
+    pub fn has_camera_moved(&mut self) -> bool {
+        let res = self.moved;
+        self.moved = false;
+
+        res
+    }
+
+    pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {
         P::clip_to_model_space(
             &Vector2::new(0_f32, 0_f32),
             self
         ).unwrap()
     }
 
-    // Check whether border of the screen are inside
-    // the projection
-    pub fn screen_inside_of_projection<P: Projection>(&self) -> bool {
-        // Projection are symmetric, we can check for only one vertex
-        // of the screen
-        let corner_tl_ndc = Vector2::new(-1_f32, 1_f32);
-        let corner_tl_clip = crate::renderable::projection::ndc_to_clip_space(&corner_tl_ndc, self);
-
-        P::clip_to_world_space(&corner_tl_clip).is_some()
-    }
-
-    pub fn apply_rotation<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>, config: &HiPSConfig) {
-        let dq = SphericalRotation::from_axis_angle(axis, angle);
-        self.sr = dq * self.sr;
-
-        self.compute_model_mat::<P>(config);
-    }
-
-    pub fn set_rotation<P: Projection>(&mut self, rot: &SphericalRotation<f32>, config: &HiPSConfig) {
-        self.sr = *rot;
-
-        self.compute_model_mat::<P>(config);
-    }
-
-    fn compute_model_mat<P: Projection>(&mut self, config: &HiPSConfig) {
-        self.model_mat = (&self.sr).into();
-        self.inverted_model_mat = self.model_mat.invert().unwrap();
-
-        // Translate the field of view in consequence
-        self.fov.set_rotation_mat::<P>(&self.model_mat, config);
-        self.user_action = LastAction::Moving;
-
-        self.viewport_updated = true;
-    }
-
-    pub fn get_rotation(&self) -> &SphericalRotation<f32> {
-        &self.sr
-    }
-
-    pub fn get_model_mat(&self) -> &cgmath::Matrix4<f32> {
-        &self.model_mat 
-    }
-    pub fn get_quat(&self) -> cgmath::Quaternion<f32> {
-        // Extract a 3x3 matrix from the model 4x4 matrix
-        let v: [[f32; 4]; 4] = self.model_mat.into();
-
-        let mat3 = Matrix3::new(
-            v[0][0], v[0][1], v[0][2],
-            v[1][0], v[1][1], v[1][2],
-            v[2][0], v[2][1], v[2][2]
-        );
-
-        mat3.into()
-    }
-
-    pub fn get_inverted_model_mat(&self) -> &cgmath::Matrix4<f32> {
-        &self.inverted_model_mat
+    pub fn get_aperture(&self) -> Angle<f32> {
+        self.aperture
     }
 
     // Useful methods for the grid purpose
@@ -265,54 +296,33 @@ impl ViewPort {
     // that are inside the grid
     // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
     // The only thing to do is to recompute the grid whenever the field of view changes
-    pub fn get_great_circles_inside(&self) -> &GreatCirclesInFieldOfView {
+    /*pub fn get_great_circles_inside(&self) -> &GreatCirclesInFieldOfView {
         self.fov.get_great_circles_intersecting()
-    }
+    }*/
+}
 
-    // Used for selecting the current depth for a given FOV
-    // We need to select a depth so that we do not see any pixels
-    // This takes into account the screen resolution and can impact
-    // the number of healpix cells to load. Bigger resolution will need
-    // more cells which can overfit the buffer!
-    pub fn get_depth_from_survey(&self, survey: &ImageSurvey) -> u8 {
-        let pixel_ang = self.get_aperture() / self.width;
-        let depth_pix = ((((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32) + 0.5_f32).round() as i8;
-        
-        let depth_tex = {
-            let config = survey.config();
-            
-            let texture_size = config.get_texture_size();
-            // The depth of the texture
-            // A texture of 512x512 pixels will have a depth of 9
-            let depth_offset_texture = log_2(texture_size);
-            // The depth of the texture corresponds to the depth of a pixel
-            // minus the offset depth of the texture
-            let mut depth_texture = depth_pixel - depth_offset_texture;
-            if depth_texture < 0 {
-                depth_texture = 0;
-            }
-    
-            let max_depth = config.get_max_depth();
-            let std::cmp::min(
-                depth_texture as u8
-                max_depth,
-            )
-        };
-        
-        depth_tex
+impl CameraViewPort {
+    // private methods
+    fn update_rot_matrices<P: Projection>(&mut self) {
+        self.w2m = (&self.w2m_rot).into();
+        self.m2w = self.w2m.invert().unwrap();
+
+        self.last_user_action = UserAction::Moving;
+
+        self.changed = true;
     }
 }
 
 use crate::shader::HasUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for ViewPort {
+impl HasUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("ndc_to_clip", self.fov.get_ndc_to_clip()) // Send ndc to clip
-            .attach_uniform("clip_zoom_factor", &self.fov.get_clip_zoom_factor()) // Send clip zoom factor
+        shader.attach_uniform("ndc_to_clip", self.ndc_to_clip) // Send ndc to clip
+            .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
             .attach_uniform("user_action", &(self.user_action as i32)) // Send last zoom action
-            .attach_uniform("window_size", &self.get_window_size()) // Window size
-            .attach_uniform("fov", &self.get_aperture());
+            .attach_uniform("window_size", &self.get_screen_size()) // Window size
+            .attach_uniform("fov", &self.aperture);
 
         shader
     }

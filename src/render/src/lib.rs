@@ -17,7 +17,7 @@ mod shader;
 mod shaders;
 pub mod renderable;
 mod finite_state_machine;
-mod viewport;
+mod camera;
 mod core;
 mod math;
 #[path = "../img/myfont.rs"]
@@ -46,7 +46,7 @@ use crate::{
         catalog::{Source, Manager},
         projection::{Aitoff, Orthographic, Mollweide, AzimutalEquidistant, Mercator, Projection},
     },
-    viewport::ViewPort,
+    camera::Cameracamera,
     finite_state_machine:: {UserMoveSphere, UserZoom, FiniteStateMachine, MoveSphere},
     math::{LonLatT, LonLat},
     async_task::{TaskResult, TaskType},
@@ -66,7 +66,7 @@ struct App {
     gl: WebGl2Context,
 
     shaders: ShaderManager,
-    viewport: ViewPort,
+    camera: Cameracamera,
 
     // The sphere renderable
     sphere: HiPSSphere,
@@ -127,7 +127,7 @@ impl App {
 
         let config = HiPSConfig::new(gl, hips_definition)?;
 
-        // Viewport definition
+        // camera definition
         // HiPS definition
         /*let config = HiPSConfig::new(
             gl,
@@ -143,13 +143,13 @@ impl App {
 
         log("shaders compiled");
         //panic!(format!("{:?}", aa));
-        let viewport = ViewPort::new::<Orthographic>(&gl, &config);
+        let camera = Cameracamera::new::<Orthographic>(&gl);
 
         // HiPS Sphere definition
         log("sphere begin");
-        let sphere = HiPSSphere::new::<Orthographic>(&gl, &viewport, config, &mut shaders);
+        let sphere = HiPSSphere::new::<Orthographic>(&gl, &camera, config, &mut shaders);
         // Catalog definition
-        let manager = Manager::new(&gl, &mut shaders, &viewport, &resources);
+        let manager = Manager::new(&gl, &mut shaders, &camera, &resources);
 
         // Text 
         let font = myfont::FONT_CONFIG;
@@ -164,7 +164,7 @@ impl App {
         );*/
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &viewport, &mut shaders, &text_manager);
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
 
         // Finite State Machines definitions
         let user_move_fsm = UserMoveSphere::init();
@@ -179,7 +179,7 @@ impl App {
 
             shaders,
 
-            viewport,
+            camera,
 
             // The sphere renderable
             sphere,
@@ -219,7 +219,7 @@ impl App {
             match result {
                 TaskResult::TableParsed { name, sources} => {
                     log("CATALOG FINISHED PARSED");
-                    self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &mut self.shaders, &self.viewport, self.sphere.config());
+                    self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &mut self.shaders, &self.camera, self.sphere.config());
                 },
                 TaskResult::TileSentToGPU { tile_cell } => {
                     tiles_sent_to_gpu.insert(tile_cell);
@@ -239,18 +239,20 @@ impl App {
         let mut render = self.run_tasks::<P>(dt)?;
 
         // Run the FSMs
-        self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
-        self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
-        self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.viewport, &events);
+        self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+        self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+        self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
 
         // Update the grid in consequence
-        //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.viewport, &self.shaders);
+        //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.camera, &self.shaders);
         // And the HiPS sphere VAO
-        render |= self.sphere.update::<P>(&self.viewport);
-        //self.text.update_from_viewport::<P>(&self.viewport);
+        render |= self.sphere.update::<P>(&self.camera);
+        //self.text.update_from_camera::<P>(&self.camera);
 
-        // Finally update the viewport that reset the flag viewport changed
-        self.viewport.update::<P>(&mut self.manager, self.sphere.config());
+        // Finally update the camera that reset the flag camera changed
+        if self.camera.has_camera_moved() {
+            self.manager.update(&self.camera);
+        }
 
         Ok(render)
     }
@@ -261,7 +263,7 @@ impl App {
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // Draw renderables here
-        let viewport = &self.viewport;
+        let camera = &self.camera;
         let shaders = &mut self.shaders;
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
@@ -269,7 +271,7 @@ impl App {
         self.sphere.draw::<P>(
             &self.gl,
             shaders,
-            viewport,
+            camera,
         );
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
@@ -278,37 +280,46 @@ impl App {
         self.manager.draw::<P>(
             &self.gl,
             shaders,
-            viewport
+            camera
         );
         
         // Draw the grid
         /*self.grid.draw::<P>(
             &self.gl,
             shaders,
-            viewport,
+            camera,
             &self.text_manager
         );*/
 
         /*self.text_manager.draw(
             &self.gl,
             shaders,
-            viewport
+            camera
         );*/
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
     
     fn get_fov(&self) -> f32 {
-        let deg: ArcDeg<f32> = self.viewport.get_aperture().into();
+        let deg: ArcDeg<f32> = self.camera.get_aperture().into();
         deg.0
     }
 
     fn set_projection<P: Projection>(&mut self) {
-        self.viewport.reset::<P>(self.sphere.config());
-        self.sphere.set_projection::<P>(&self.viewport, &mut self.shaders);
+        self.camera.reset::<P>(self.sphere.config());
+        // Update the camera
+        {
+            let cam = self.camera;
+            let screen_size = cam.get_screen_size();
+            let aperture = cam.get_aperture();
+            
+            cam.set_aperture::<P>(aperture);
+            cam.resize::<P>(screen_size.x, screen_size.y);
+        }
+        self.sphere.set_projection::<P>(&self.camera, &mut self.shaders);
     }
 
     fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
-        self.sphere.set_image_survey::<P>(hips_definition, &mut self.viewport, &mut self.task_executor)
+        self.sphere.set_image_survey::<P>(hips_definition, &mut self.camera, &mut self.task_executor)
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
@@ -348,8 +359,13 @@ impl App {
     }
 
     fn resize_window<P: Projection>(&mut self, width: f32, height: f32, _enable_grid: bool) {
-        self.viewport.resize_window::<P>(width, height, &mut self.sphere, &mut self.manager);
+        self.camera.resize::<P>(width, height);
+
+        // Launch the new tile requests
+        sphere.ask_for_tiles::<P>(&self.camera.new_healpix_cells());
+        manager.set_kernel_size(&self.camera);
     }
+
     pub fn set_color_rgb(&mut self, _red: f32, _green: f32, _blue: f32) {
         //self.grid.set_color_rgb(red, green, blue);
     }
@@ -371,23 +387,23 @@ impl App {
     }
 
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f32>) -> Result<LonLatT<f32>, String> {
-        let model_pos = P::screen_to_model_space(pos, &self.viewport).ok_or(format!("{:?} is out of projection", pos))?;
+        let model_pos = P::screen_to_model_space(pos, &self.camera).ok_or(format!("{:?} is out of projection", pos))?;
         Ok(model_pos.lonlat())
     }
 
     fn get_center<P: Projection>(&self) -> LonLatT<f32> {
-        let center_pos = self.viewport.compute_center_model_pos::<P>();
+        let center_pos = self.camera.compute_center_model_pos::<P>();
         center_pos.lonlat()
     }
     pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
         let xyz: Vector4<f32> = lonlat.vector();
         let rot = SphericalRotation::from_sky_position(&xyz);
-        self.viewport.set_rotation::<P>(&rot, &self.sphere.config);
-        self.sphere.ask_for_tiles::<P>(self.viewport.new_healpix_cells());
+        self.camera.set_rotation::<P>(&rot, &self.sphere.config);
+        self.sphere.ask_for_tiles::<P>(self.camera.new_healpix_cells());
     }
 
-    pub fn move_viewport<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
-        let model2world = self.viewport.get_inverted_model_mat();
+    pub fn move_camera<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+        let model2world = self.camera.get_inverted_model_mat();
 
         let m1: Vector4<f32> = pos1.vector();
         let w1 = model2world * m1;
@@ -400,15 +416,15 @@ impl App {
             &mut self.sphere,
             &mut self.manager,
             &mut self.grid,
-            &mut self.viewport
+            &mut self.camera
         );
     }
     
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
         // Change the camera rotation
-        self.viewport.set_aperture::<P>(*fov, self.sphere.config());
+        self.camera.set_aperture::<P>(*fov, self.sphere.config());
         // Ask for tiles being in the new fov
-        self.sphere.ask_for_tiles::<P>(self.viewport.new_healpix_cells());
+        self.sphere.ask_for_tiles::<P>(self.camera.new_healpix_cells());
     }
 }
 
@@ -504,13 +520,13 @@ impl ProjectionType {
         }
     }
 
-    fn move_viewport(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+    fn move_camera(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
         match self {
-            ProjectionType::Aitoff => app.move_viewport::<Aitoff>(pos1, pos2),
-            ProjectionType::MollWeide => app.move_viewport::<Mollweide>(pos1, pos2),
-            ProjectionType::Ortho => app.move_viewport::<Orthographic>(pos1, pos2),
-            ProjectionType::Arc => app.move_viewport::<Mollweide>(pos1, pos2),
-            ProjectionType::Mercator => app.move_viewport::<Mercator>(pos1, pos2),
+            ProjectionType::Aitoff => app.move_camera::<Aitoff>(pos1, pos2),
+            ProjectionType::MollWeide => app.move_camera::<Mollweide>(pos1, pos2),
+            ProjectionType::Ortho => app.move_camera::<Orthographic>(pos1, pos2),
+            ProjectionType::Arc => app.move_camera::<Mollweide>(pos1, pos2),
+            ProjectionType::Mercator => app.move_camera::<Mercator>(pos1, pos2),
         }
     }
 
@@ -979,7 +995,7 @@ impl WebClient {
             ArcDeg(lon2).into(),
             ArcDeg(lat2).into()
         );
-        self.projection.move_viewport(&mut self.app, &pos1, &pos2);
+        self.projection.move_camera(&mut self.app, &pos1, &pos2);
 
         Ok(())
     }

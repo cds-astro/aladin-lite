@@ -2,24 +2,134 @@ use cgmath::{Vector2, Vector3, Vector4};
 use cgmath::Matrix4;
 use cgmath::SquareMatrix;
 
-const NUM_VERTICES_WIDTH: usize = 5;
-const NUM_VERTICES_HEIGHT: usize = 5;
-const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
-
 
 use std::collections::HashSet;
-use crate::buffer::HiPSConfig;
 use crate::sphere_geometry::GreatCirclesInFieldOfView;
 
-fn get_cells_in_fov(survey: &ImageSurvey, viewport: &ViewPort) -> HashSet<HEALPixCell> {
+struct HEALPixCells {
+    pub depth: u8,
+    pub cells: HashSet<HEALPixCell>,
+}
+use std::collections::hash_set::Iter;
+struct HEALPixCellsIter(Iter<HEALPixCell>);
+
+impl Iterator for HEALPixCellsIter {
+    type Item = &HEALPixCell;
+    
+    fn next(&mut self) -> Option<&HEALPixCell> {
+        self.0.next()
+    }
+}
+
+impl HEALPixCells {
+    fn contains(&self, cell: &HEALPixCell) -> bool {
+        self.contains(cell)
+    }
+
+    fn allsky(depth: u8) -> HEALPixCells {
+        let npix = 12 << ((depth as usize) << 1);
+
+        let mut cells = (0_u64..(npix as u64))
+            .map(|pix| HEALPixCell(depth, ipix))
+            .collect::<HashSet<_>>();
+
+        HEALPixCells {
+            depth,
+            cells
+        }
+    }
+
+    fn iter(&self) ->  HEALPixCellsIter {
+        HEALPixCellsIter(self.cells.iter())
+    }
+}
+
+struct NewHEALPixCells {
+    depth: u8,
+    // flags associating true to cells that
+    // are new in the fov
+    flags: HashMap<HEALPixCell, bool>,
+    // A flag telling whether there has been
+    // new cells added from the last frame
+    new_cells_added: bool,
+};
+
+impl NewHEALPixCells {
+    fn new(cells: &HEALPixCells) -> NewHEALPixCells {
+        let depth = cells.depth;
+        let flags = cells.iter()
+            .cloned()
+            .map(|cell| {
+                (cell, true)
+            })
+            .collect::<HashMap<_, _>>();
+
+        let new_cells_added = true;
+        NewHEALPixCells {
+            depth,
+            flags
+            new_cells_added
+        }
+    }
+
+    fn insert_new_cells(self, cells: &HEALPixCells) -> NewHEALPixCells {
+        let mut new_cells_added = false;
+        let new_depth = cells.depth;
+        let flags = if new_cells != self.depth {
+            new_cells_added = true;
+            // Change of depth => all cells are new
+            cells.iter()
+                .cloned()
+                .map(|cell| {
+                    (cell, true)
+                })
+                .collect::<HashMap<_, _>>()
+        } else {
+            cells.iter()
+                .cloned()
+                .map(|cell| {
+                    let new = if let Some(found) = self.flags.get(cell) {
+                        // It is found
+                        found
+                    } else {
+                        // It is not found in the previous hash map, so it is a new cell
+                        true
+                    };
+                    
+                    new_cells_added |= new;
+                    
+                    (cell, new)
+                })
+                .collect::<HashMap<_, _>>()
+        };
+
+        NewHEALPixCells {
+            depth: new_depth,
+            flags,
+            new_cells_added
+        }
+    }
+
+    #[inline]
+    fn is_there_new_cells_added(&self) -> bool {
+        self.new_cells_added
+    }
+}
+
+fn get_current_cells_from_fov(survey: &ImageSurvey, viewport: &FieldOfViewVertices) -> HEALPixCells {
     // Compute the depth corresponding to the angular resolution of a pixel
     // along the width of the screen
     let depth = viewport.get_depth_from_survey(survey);
 
-    if let Some(vertices) = viewport.get_vertices() {
+    let cells = if let Some(vertices) = viewport.get() {
         polygon_coverage(depth, vertices)
     } else {
         crate::healpix_cell::allsky(depth)
+    };
+
+    HEALPixCells {
+        depth,
+        cells
     }
 }
 
@@ -27,11 +137,10 @@ fn polygon_coverage(
     vertices: &[Vector4<f32>],
     depth: u8,
     inside: &Vector4<f32>
-) -> HashSet<HEALPixCell> {
+) -> HEALPixCells {
     let coverage = cdshealpix::HEALPixCoverage::new(depth, vertices, &inside);
 
-    coverage
-        .flat_iter()
+    coverage.flat_iter()
         .map(|idx| {
             HEALPixCell(depth, idx)
         })
@@ -45,81 +154,157 @@ struct ViewOnImageSurvey {
     idx_survey: usize,
     // The set of cells being in the current view for a
     // specific image survey
-    cells: HashSet<HEALPixCell>,
-    new_cells: HashMap<HEALPixCell, bool>,
-    is_there_new_cells: bool,
-    // The current depth of the cells for a 
-    depth: u8,
+    cells: HEALPixCells,
+    new_cells: NewHEALPixCells,
 }
 
-
-
 impl ViewOnImageSurvey {
-    fn create_view(survey: &ImageSurvey, viewport: &ViewPort) -> ViewOnImageSurvey {
+    fn create(survey: &ImageSurvey, viewport: &Viewport) -> ViewOnImageSurvey {
         let idx_survey = survey.get_idx();
 
-        let cells = get_cells_in_fov(survey, viewport);
-        let new_cells = cells.iter().cloned()
-            .map(|cell| {
-                (cell, true)
-            })
-            .collect::<HashMap<_, _>>();
+        let cells = get_current_cells_from_fov(survey, viewport);
+        let new_cells = NewHEALPixCells::new(&cells);
 
         ViewOnImageSurvey {
             idx_survey,
-            is_there_new_cells: true,
             cells,
             new_cells,
-            depth
         }
     }
 
-    fn update(&mut self, viewport: &ViewPort) {
-    
-    
-        // Look for the newly added cells in the field of view
-        // by doing the difference of the new cells set with the previous one
-        let new_cells = cells.difference(&self.cells).collect::<HashSet<_>>();
-        self.is_there_new_cells = !new_cells.is_empty();
-        self.new_cells = cells.iter().cloned()
-            .map(|cell| {
-                (cell, new_cells.contains(&cell))
-            })
-            .collect::<HashMap<_, _>>();
-        self.cells = cells;
-        self.current_depth = depth;
-    }
+    // This method is called whenever the user does an action
+    // that moves the viewport
+    fn update(&mut self, surveys: &[ImageSurvey], viewport: &Viewport) {
+        let cells = {
+            let survey = surveys[self.idx_survey];
+            get_current_cells_from_fov(survey, viewport)
+        };
 
+        self.new_cells.insert_new_cells(&cells);
+        self.cells = cells;
+    }
 
 }
 
-pub struct GlobalView {
-    pos_ndc_space: [Vector2<f32>; NUM_VERTICES],
-    pos_world_space: Option<[Vector4<f32>; NUM_VERTICES]>,
-    pos_model_space: Option<[Vector4<f32>; NUM_VERTICES]>,
+type NormalizedDeviceCoord = Vector2<f32>;
+type WorldCoord = Vector4<f32>;
+type ModelCoord = Vector4<f32>;
+
+fn ndc_to_world<P: Projection>(
+    ndc_coo: &[NormalizedDeviceCoord],
+    viewport: &Viewport
+) -> Option<Vec<WorldCoord>> {
+    // Deproject the FOV from ndc to the world space
+    let mut world_coo = Vec::with_capacity(ndc_coo.len());
+    let mut out_of_fov = false;
+
+    for n in ndc_coo {
+        let c = crate::projection::ndc_to_clip_space(n, viewport);
+
+        let w = P::ndc_to_world(&c);
+        if let Some(w) = w {
+            world_coo.push(w);
+        } else {
+            // out of fov
+            return None;
+        }
+    }
+
+    Some(world_coo)
+}
+fn world_to_model(&mut self, world_coo: &[WorldCoord], viewport: &Viewport) -> Vec<ModelCoord> {
+    let mut model_coo = Vec::with_capacity(world_coo.len());
+    
+    let r = viewport.get_rotation();
+
+    for w in &world_coo {
+        let m = r.rotate(w);
+        model_coo.push(m);
+    }
+
+    model_coo
+}
+
+const NUM_VERTICES_WIDTH: usize = 5;
+const NUM_VERTICES_HEIGHT: usize = 5;
+const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
+// Viewport vertices in model space
+// i.e. after the unprojection + rotation of the sphere
+struct FieldOfViewVertices {
+    ndc_coo: Vec<NormalizedDeviceCoord>,
+    world_coo: Option<Vec<WorldCoord>>,
+    model_coo: Option<Vec<ModelCoord>>,
+}
+
+impl FieldOfViewVertices {
+    fn new<P: Projection>(viewport: &Viewport) -> Self {
+        let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
+            .collect::<Vec<_>>();
+
+        x_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_WIDTH + 2));
+        x_ndc.extend(iter::repeat(-1_f32).take(NUM_VERTICES_HEIGHT));
+
+        let mut y_ndc = iter::repeat(-1_f32).take(NUM_VERTICES_WIDTH + 1)
+            .collect::<Vec<_>>();
+
+        y_ndc.extend(itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_HEIGHT + 2));
+        y_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_WIDTH));
+        y_ndc.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_HEIGHT + 2));
+        y_ndc.pop();
+
+        let mut ndc_coo = Vec::with_capacity(NUM_VERTICES);
+        for idx_vertex in 0..NUM_VERTICES {
+            ndc_coo.push(Vector2::new(
+                x_ndc[idx_vertex],
+                y_ndc[idx_vertex],
+            ));
+        }
+
+        let world_coo = ndc_to_world(&self.ndc_coo, viewport);
+        let model_coo = if Some(world_coo) = world_coo {
+            Some(world_to_model(world_coo, viewport))
+        } else {
+            None
+        };
+
+        FieldOfViewVertices {
+            ndc_coo,
+            world_coo,
+            model_coo
+        }
+    }
+
+    pub fn zoom(&mut self, viewport: &ViewPort) {
+        self.world_coo = ndc_to_world(&self.ndc_coo, viewport);
+        if Some(world_coo) = self.world_coo {
+            self.model_coo = world_to_model(world_coo, viewport);
+        }
+    }
+
+    pub fn move(&mut self, viewport: &ViewPort) {
+        if Some(world_coo) = self.world_coo {
+            self.model_coo = world_to_model(world_coo, viewport);
+        }
+    }
+    
+    pub fn get_vertices(&self) ->  Option<&[ModelCoord]> {
+        self.model_coo.as_ref()
+    }
+}
+
+pub struct FieldOfView {
+    vertices: FieldOfViewVertices,
+
     // A polygon reprensenting the current field of view
     // (containing the vertices lon, lat in model space)
-    great_circles: GreatCirclesInFieldOfView,
+    //great_circles: GreatCirclesInFieldOfView,
 
-    aperture_angle: Angle<f32>, // fov can be None if the camera is out of the projection
-    r: Matrix4<f32>, // Rotation matrix of the FOV (i.e. same as the HiPS sphere model matrix)
+    //aperture_angle: Angle<f32>, // fov can be None if the camera is out of the projection
+    //r: Matrix4<f32>, // Rotation matrix of the FOV (i.e. same as the HiPS sphere model matrix)
 
+    views: Vec<ViewOnImageSurvey>,
 
-
-    ndc_to_clip: Vector2<f32>,
-    clip_zoom_factor: f32,
-    // The width over height ratio
-    aspect: f32,
-    // The width of the screen in pixels
-    width: f32,
-    // The height of the screen in pixels
-    height: f32,
-
-    // Canvas HtmlElement
-    canvas: web_sys::HtmlCanvasElement,
-
-    // WebGL2 context
-    gl: WebGl2Context,
 }
 
 
@@ -137,68 +322,13 @@ use crate::healpix_cell;
 use crate::cdshealpix;
 
 use crate::renderable::Angle;
-impl FieldOfView {
+impl Views {
     pub fn new<P: Projection>(gl: &WebGl2Context, aperture_angle: Angle<f32>, config: &HiPSConfig) -> FieldOfView {
-        let mut x_ndc_space = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
-            .collect::<Vec<_>>();
+        //let great_circles = GreatCirclesInFieldOfView::new_allsky();
 
-        x_ndc_space.extend(iter::repeat(1_f32).take(NUM_VERTICES_HEIGHT));
-        x_ndc_space.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_WIDTH + 2));
-        x_ndc_space.extend(iter::repeat(-1_f32).take(NUM_VERTICES_HEIGHT));
+        let cells = HEALPixCells::allsky(0);
 
-        let mut y_ndc_space = iter::repeat(-1_f32).take(NUM_VERTICES_WIDTH + 1)
-            .collect::<Vec<_>>();
-
-        y_ndc_space.extend(itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_HEIGHT + 2));
-        y_ndc_space.extend(iter::repeat(1_f32).take(NUM_VERTICES_WIDTH));
-        y_ndc_space.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_HEIGHT + 2));
-        y_ndc_space.pop();
-
-        let mut pos_ndc_space = [Vector2::new(0_f32, 0_f32); NUM_VERTICES];
-        for idx_vertex in 0..NUM_VERTICES {
-            pos_ndc_space[idx_vertex] = Vector2::new(
-                x_ndc_space[idx_vertex],
-                y_ndc_space[idx_vertex],
-            );
-        }
         
-        let pos_world_space = None;
-        let pos_model_space = None;
-        let great_circles = GreatCirclesInFieldOfView::new_allsky();
-
-        let cells = healpix_cell::allsky(0);
-        let new_cells = cells.iter()
-            .cloned()
-            .map(|cell| (cell, true))
-            .collect();
-        let is_there_new_cells = true;
-
-        let width = web_sys::window()
-            .unwrap()
-            .inner_width()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
-        let height = web_sys::window()
-            .unwrap()
-            .inner_height()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
-
-        let aspect = width / height;
-        let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
-        let clip_zoom_factor = 0_f32;
-        let current_depth = 0;
-
-        // Canvas definition
-        let canvas = gl.canvas().unwrap()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
-        canvas.set_width(width as u32);
-        canvas.set_height(height as u32);
-        gl.viewport(0, 0, width as i32, height as i32);
-        gl.scissor(0, 0, width as i32, height as i32);
 
         let r = Matrix4::identity();
 
@@ -207,7 +337,7 @@ impl FieldOfView {
             pos_ndc_space,
             pos_world_space,
             pos_model_space,
-            great_circles,
+            //great_circles,
 
             aperture_angle,
             r,
@@ -215,9 +345,6 @@ impl FieldOfView {
             ndc_to_clip,
             clip_zoom_factor,
 
-            cells,
-            new_cells,
-            is_there_new_cells,
             current_depth,
 
             aspect,
@@ -237,42 +364,6 @@ impl FieldOfView {
         // Recompute the cells in the fov because the max depth of the new HiPS
         // can have changed
         self.compute_healpix_cells::<P>(config);
-    }
-
-    pub fn resize_window<P: Projection>(&mut self, width: f32, height: f32, config: &HiPSConfig) {
-        self.width = width;
-        self.height = height;
-
-        self.aspect = width / height;
-
-        self.canvas.set_width(width as u32);
-        self.canvas.set_height(height as u32);
-        self.gl.viewport(0, 0, width as i32, height as i32);
-        self.gl.scissor(0, 0, width as i32, height as i32);
-
-        // Compute the new clip zoom factor
-        self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
-
-        self.deproj_field_of_view::<P>(config);
-    }
-
-    fn compute_clip_zoom_factor<P: Projection>(fov: Angle<f32>) -> f32 {
-        let lon = fov.abs() / 2_f32;
-
-        // Vertex in the WCS of the FOV
-        let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
-
-        // Project this vertex into the screen
-        let p0 = P::world_to_clip_space(&v0);
-        p0.x.abs()
-    }
-
-    pub fn set_aperture<P: Projection>(&mut self, angle: Angle<f32>, config: &HiPSConfig) {
-        self.aperture_angle = angle;
-        // Compute the new clip zoom factor
-        self.clip_zoom_factor = Self::compute_clip_zoom_factor::<P>(self.aperture_angle);
-        
-        self.deproj_field_of_view::<P>(config);
     }
 
     pub fn get_aperture(&self) -> Angle<f32> {
@@ -351,9 +442,9 @@ impl FieldOfView {
     // that are inside the grid
     // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
     // The only thing to do is to recompute the grid whenever the field of view changes
-    pub fn get_great_circles_intersecting(&self) -> &GreatCirclesInFieldOfView {
+    /*pub fn get_great_circles_intersecting(&self) -> &GreatCirclesInFieldOfView {
         &self.great_circles
-    }
+    }*/
 
     // Returns the current set of HEALPix cells contained in the field of view
     pub fn healpix_cells(&self) -> &HashSet<HEALPixCell> {

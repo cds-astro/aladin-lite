@@ -353,8 +353,14 @@ impl Image for RetrievedImageType {
     }*/
 }
 
+struct FITSMetaData {
+    blank: f32,
+    bzero: f32,
+    bscale: f32,
+}
+
 enum RetrievedImageType {
-    FITSImage(TileArrayBufferImage),
+    FITSImage(TileArrayBufferImage, FITSMetaData),
     CompressedImage(TileHTMLImage)
 }
 

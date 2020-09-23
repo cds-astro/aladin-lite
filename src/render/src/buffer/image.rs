@@ -336,7 +336,7 @@ impl Image for RetrievedImageType {
     ) {
         match self {
             RetrievedImageType::CompressedImage(img) => img.tex_sub_image_3d(textures, offset),
-            RetrievedImageType::FITSImage(img) => img.tex_sub_image_3d(textures, offset)
+            RetrievedImageType::FITSImage { image, .. } => img.tex_sub_image_3d(textures, offset)
         }
     }
 
@@ -344,7 +344,7 @@ impl Image for RetrievedImageType {
     fn get_size(&self) -> &Vector2<i32> {
         match self {
             RetrievedImageType::CompressedImage(img) => img.get_size(),
-            RetrievedImageType::FITSImage(img) => img.get_size()
+            RetrievedImageType::FITSImage { image, .. } => img.get_size()
         }
     }
 
@@ -360,7 +360,7 @@ struct FITSMetaData {
 }
 
 enum RetrievedImageType {
-    FITSImage(TileArrayBufferImage, FITSMetaData),
+    FITSImage { image: TileArrayBufferImage, metadata: FITSMetaData },
     CompressedImage(TileHTMLImage)
 }
 
@@ -444,7 +444,7 @@ impl TileRequest {
         Self { req, resolved, ready, cell, closures, time_request }
     }
 
-    pub fn send(&self, root_url: &str, cell: &HEALPixCell) {
+    pub fn send(&mut self, root_url: &str, cell: &HEALPixCell, format: &FormatImageType) {
         assert!(self.is_ready());
 
         self.cell = *cell;
@@ -460,7 +460,7 @@ impl TileRequest {
                 depth.to_string(),
                 dir_idx.to_string(),
                 idx.to_string(),
-                survey_conf.get_ext_file()
+                format.get_ext_file()
             );
     
             url
@@ -571,10 +571,6 @@ impl ImageRequest for CompressedImageRequest {
 use web_sys::XmlHttpRequest;
 pub struct FITSImageRequest {
     image: XmlHttpRequest,
-
-    bscale: f32,
-    bzero: f32,
-    blank: f32,
 }
 use web_sys::XmlHttpRequestResponseType;
 use fitsreader::{Fits, DataType};
@@ -611,7 +607,7 @@ impl ImageRequest for FITSImageRequest {
         let width = config.get_tile_size();
         let num_channels = format.get_num_channels() as i32;
 
-        let img = match data {
+        let image = match data {
             DataType::U8(data) => {
                 TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, width, num_channels))
             },
@@ -627,7 +623,7 @@ impl ImageRequest for FITSImageRequest {
             _ => unreachable!()
         };
 
-        self.bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
+        let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
             if let FITSKeywordValue::FloatingPoint(bscale) = value {
                 *bscale as f32
             } else {
@@ -636,7 +632,7 @@ impl ImageRequest for FITSImageRequest {
         } else {
             1.0
         };
-        self.bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
+        let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
             if let FITSKeywordValue::FloatingPoint(bzero) = value {
                 *bzero as f32
             } else {
@@ -645,7 +641,7 @@ impl ImageRequest for FITSImageRequest {
         } else {
             0.0
         };
-        self.blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
+        let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
             if let FITSKeywordValue::FloatingPoint(blank) = value {
                 *blank as f32
             } else {
@@ -655,7 +651,12 @@ impl ImageRequest for FITSImageRequest {
             std::f32::MIN
         };
 
-        RetrievedImageType::FITSImage(img)
+        let metadata = FITSMetaData {
+            blank,
+            bscale,
+            bzero,
+        };
+        RetrievedImageType::FITSImage { image, metadata }
     }
 }
 

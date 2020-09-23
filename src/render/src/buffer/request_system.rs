@@ -88,7 +88,9 @@ impl TileDownloader {
         self.tiles_to_request.push_back(*cell);
     }
 
-    pub fn run(&mut self, tiles_finished: &Tiles, requested_tiles: &Tiles) -> Vec<TileResolved> {
+    pub fn checks_for_finished_requests(&mut self, tiles_finished: &Tiles, requested_tiles: &mut Tiles, surveys: &[&ImageSurvey]) -> Vec<TileResolved> {
+        let mut tiles_resolved = Vec::new();
+
         for req in self.requests.iter_mut() {
             // First, tag the tile requests as ready if they just have been
             // given to the GPU
@@ -106,17 +108,20 @@ impl TileDownloader {
                     if req_just_resolved {
                         // Tile received
                         let time_of_request = req.get_time_request();
-                        //requested_tiles.remove(&cell);
+                        requested_tiles.remove(&cell);
         
-                        match req.resolve_status() {
+                        let tile = match req.resolve_status() {
                             ResolvedStatus::Missing => {
-                                let image = survey.get_blank_tile();
+                                TileResolved::Missing
                             },
                             ResolvedStatus::Found => {
-                                let image = req.get_image(config);
+                                let image = req.get_image();
+                                TileResolved::Found { image }
                             },
                             _ => unreachable!()
                         }
+
+                        tiles_resolved.push(tile);
                     }
                 }
             }
@@ -130,5 +135,7 @@ impl TileDownloader {
                 }
             }
         }
+
+        tiles_resolved
     }
 }

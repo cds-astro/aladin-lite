@@ -41,7 +41,7 @@ use crate::FormatImageType;
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
-    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort, resources: &Resources) -> Self {
+    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &CameraViewPort, resources: &Resources) -> Self {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
         let kernel_texture = Texture2D::create(gl, "kernel", &kernel_filename, &[
@@ -142,7 +142,7 @@ impl Manager {
     }
 
     // Private method adding a catalog into the manager
-    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, viewport: &CameraViewPort, config: &HiPSConfig) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
         let catalog = Catalog::new::<P>(
@@ -172,7 +172,7 @@ impl Manager {
         // at depth 7
     }
 
-    pub fn set_kernel_size(&mut self, viewport: &ViewPort) {
+    pub fn set_kernel_size(&mut self, viewport: &CameraViewPort) {
         let size = viewport.get_window_size();
         self.kernel_size = Vector2::new(32.0 / size.x, 32.0 / size.y);
     }
@@ -190,7 +190,7 @@ impl Manager {
             })
     }
 
-    pub fn update<P: Projection>(&mut self, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn update<P: Projection>(&mut self, viewport: &CameraViewPort, config: &HiPSConfig) {
         // Render only the sources in the current field of view
         let cells = viewport.cells();
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
@@ -216,7 +216,7 @@ impl Manager {
         }
     }
 
-    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort) {
+    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &CameraViewPort) {
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, viewport);
         }
@@ -237,7 +237,7 @@ pub struct Catalog {
 
 use crate::{
     Projection,
-    viewport::ViewPort,
+    viewport::CameraViewPort,
     utils,
 };
 use cgmath::Vector2;
@@ -252,7 +252,7 @@ impl Catalog {
         shaders: &mut ShaderManager,
         colormap: Colormap,
         mut sources: Vec<Source>,
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
         config: &HiPSConfig
     ) -> Catalog {
         let alpha = 1_f32;
@@ -319,7 +319,7 @@ impl Catalog {
         catalog
     }
 
-    fn set_max_density<P: Projection>(&mut self, viewport: &ViewPort, config: &HiPSConfig) {
+    fn set_max_density<P: Projection>(&mut self, viewport: &CameraViewPort, config: &HiPSConfig) {
         let cells = viewport.cells().into_iter()
             .map(|&cell| {
                 let d = cell.depth();
@@ -379,7 +379,7 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, viewport: &ViewPort, config: &HiPSConfig) {
+    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, viewport: &CameraViewPort, config: &HiPSConfig) {
         let mut current_sources = vec![];
 
         let depth_kernel = (depth + 6).min(7);
@@ -420,7 +420,7 @@ impl Catalog {
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
-        viewport: &ViewPort
+        viewport: &CameraViewPort
     ) {
         // If the catalog is transparent, simply discard the draw
         if self.alpha == 0_f32 {

@@ -6,7 +6,7 @@ use crate::renderable::{
 
 use crate::event_manager::EventManager;
 
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 use crate::renderable::projection::Projection;
 use crate::time::DeltaTime;
 // A generic structure that will implement Transition
@@ -32,7 +32,7 @@ trait Transition {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -48,7 +48,7 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     );
@@ -62,7 +62,7 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime,

@@ -17,14 +17,13 @@ mod shader;
 mod shaders;
 pub mod renderable;
 mod finite_state_machine;
-mod camera;
+pub mod camera;
 mod core;
 mod math;
 #[path = "../img/myfont.rs"]
 mod myfont;
 mod transfert_function;
 mod projeted_grid;
-mod field_of_view;
 //mod mouse_inertia;
 mod event_manager;
 mod color;
@@ -46,7 +45,7 @@ use crate::{
         catalog::{Source, Manager},
         projection::{Aitoff, Orthographic, Mollweide, AzimutalEquidistant, Mercator, Projection},
     },
-    camera::Cameracamera,
+    camera::CameraViewport,
     finite_state_machine:: {UserMoveSphere, UserZoom, FiniteStateMachine, MoveSphere},
     math::{LonLatT, LonLat},
     async_task::{TaskResult, TaskType},

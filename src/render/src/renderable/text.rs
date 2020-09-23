@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 use crate::core::{VertexArrayObject, SliceData};
 use crate::color::Color;
 use web_sys::WebGl2RenderingContext;
@@ -271,7 +271,7 @@ impl TextManager {
         (w, h)
     }
 
-    pub fn add_text_on_sphere<P: Projection>(&mut self, pos: &Vector4<f32>, text: &str, viewport: &ViewPort) {
+    pub fn add_text_on_sphere<P: Projection>(&mut self, pos: &Vector4<f32>, text: &str, viewport: &CameraViewPort) {
         let r = viewport.get_inverted_model_mat();
         let pos_model_space = r * pos;
 
@@ -303,7 +303,7 @@ impl TextManager {
         &self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) {
         let shader = shaders.get(
             gl,

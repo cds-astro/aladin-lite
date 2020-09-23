@@ -327,27 +327,6 @@ use std::cell::Cell;
 use std::rc::Rc;
 use js_sys::Function;
 
-enum ImageRequestType {
-    FITS(FITSImageRequest),
-    Compressed(CompressedImageRequest),
-}
-
-impl ImageRequestType {
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
-        match self {
-            ImageRequestType::FITS(req) => req.send(success, fail, url),
-            ImageRequestType::Compressed(req) => req.send(success, fail, url)
-        }
-    }
-
-    fn image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
-        match self {
-            ImageRequestType::FITS(req) => RetrievedImageType::FITSImage(req.image(config)),
-            ImageRequestType::Compressed(req) => RetrievedImageType::CompressedImage(req.image(config))
-        }
-    }
-}
-
 impl Image for RetrievedImageType {
     fn tex_sub_image_3d(&self,
         // The texture array
@@ -374,23 +353,41 @@ impl Image for RetrievedImageType {
     }*/
 }
 
-impl From<FITSImageRequest> for ImageRequestType {
-    fn from(req: FITSImageRequest) -> Self {
-        ImageRequestType::FITS(req)
-    }
+enum RetrievedImageType {
+    FITSImage(TileArrayBufferImage),
+    CompressedImage(TileHTMLImage)
 }
-impl From<CompressedImageRequest> for ImageRequestType {
-    fn from(req: CompressedImageRequest) -> Self {
-        ImageRequestType::Compressed(req)
-    }
+
+enum RequestType {
+    File,
+    HtmlImage
 }
 
 pub trait ImageRequest {
-    type RetrievedImageType: Image + 'static;
-
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType;
+    fn image(&mut self) -> RetrievedImageType;
+
+    const REQUEST_TYPE: RequestType;
+}
+
+enum ImageRequestType {
+    FITSImageRequest(FITSImageRequest),
+    CompressedImageRequest(CompressedImageRequest),
+}
+impl ImageRequestType {
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
+        match self {
+            ImageRequestType::FITSImageRequest(r) => r.send(success, fail, url),
+            CompressedImageRequest::CompressedImageRequest(r) => r.send(success, fail, url),
+        }
+    }
+    fn image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
+        match self {
+            ImageRequestType::FITSImageRequest(r) => r.image(config),
+            CompressedImageRequest::CompressedImageRequest(r) => r.image(config),
+        }
+    }
 }
 
 pub struct TileRequest {
@@ -415,12 +412,19 @@ pub enum ResolvedStatus {
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
-use super::ImageSurvey;
+use super::buffer_tiles::Tile;
 impl TileRequest {
-    pub fn new() -> Self {
+    pub fn new<R: ImageRequest>() -> Self {
         // By default, all the requests are parametrized to load
         // compressed image requests
-        let req = ImageRequestType::Compressed(CompressedImageRequest::new());
+        let req = match R::REQUEST_TYPE {
+            RequestType::File => {
+                ImageRequestType::FITSImageRequest(FITSImageRequest::new())
+            },
+            RequestType::HtmlImage => {
+                ImageRequestType::CompressedImageRequest(CompressedImageRequest::new())
+            }
+        };
 
         // By default, we say the tile is available to be reused
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
@@ -434,22 +438,8 @@ impl TileRequest {
         Self { req, resolved, ready, cell, closures, time_request }
     }
 
-    pub fn send(&mut self, cell: &HEALPixCell, survey: &ImageSurvey) {
+    pub fn send(&self, root_url: &str, cell: &HEALPixCell) {
         assert!(self.is_ready());
-        // Change the type of request if necessary in function 
-        // of the image survey
-        self.req = match (self.req, survey.get_downloaded_tiles_format()) {
-            (ImageRequestType::FITS(_), FormatImageType::JPG) => {
-                ImageRequestType::Compressed(CompressedImageRequest::new())
-            },
-            (ImageRequestType::FITS(_), FormatImageType::PNG) => {
-                ImageRequestType::Compressed(CompressedImageRequest::new())
-            },
-            (ImageRequestType::Compressed(_), FormatImageType::FITS(_)) => {
-                ImageRequestType::FITS(FITSImageRequest::new())
-            },
-            _ => self.req
-        };
 
         self.cell = *cell;
         self.ready = false;
@@ -459,9 +449,8 @@ impl TileRequest {
 
             let dir_idx = (idx / 10000) * 10000;
 
-            let survey_conf = survey.config();
             let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
-                survey_conf.root_url.to_string(),
+                root_url,
                 depth.to_string(),
                 dir_idx.to_string(),
                 idx.to_string(),
@@ -473,8 +462,9 @@ impl TileRequest {
         
         let success = {
             let resolved = self.resolved.clone();
+
             Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Found);
+                resolved.set(ResolvedStatus::Found;
             }) as Box<dyn FnMut(&web_sys::Event,)>)
         };
 
@@ -534,15 +524,10 @@ impl TileRequest {
         self.resolved.get()
     }
 
-    pub fn get_image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
+    pub fn get_image(&mut self) -> RetrievedImageType {
         assert!(self.is_resolved());
         self.req.image(config)
     }
-}
-
-enum RetrievedImageType {
-    FITSImage(TileArrayBufferImage),
-    CompressedImage(TileHTMLImage)
 }
 
 pub struct CompressedImageRequest {
@@ -550,7 +535,7 @@ pub struct CompressedImageRequest {
 }
 
 impl ImageRequest for CompressedImageRequest {
-    type RetrievedImageType = TileHTMLImage;
+    const REQUEST_TYPE: RequestType = RequestType::HtmlImage;
 
     fn new() -> Self {
         let image = web_sys::HtmlImageElement::new().unwrap();
@@ -565,27 +550,31 @@ impl ImageRequest for CompressedImageRequest {
         self.image.set_onerror(fail);
     }
 
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType {
+    fn image(&mut self) -> RetrievedImageType {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
         let size = Vector2::new(width, height);
-        TileHTMLImage {
+        RetrievedImageType::CompressedImage(TileHTMLImage {
             size,
             image: self.image.clone()
-        }
+        })
     }
 }
 
 use web_sys::XmlHttpRequest;
 pub struct FITSImageRequest {
     image: XmlHttpRequest,
+
+    bscale: f32,
+    bzero: f32,
+    blank: f32,
 }
 use web_sys::XmlHttpRequestResponseType;
 use fitsreader::{Fits, DataType};
 use fitsreader::{FITSHeaderKeyword, FITSKeywordValue};
 impl ImageRequest for FITSImageRequest {
-    type RetrievedImageType = TileArrayBufferImage;
+    const REQUEST_TYPE: RequestType = RequestType::File;
 
     fn new() -> Self {
         let image = XmlHttpRequest::new().unwrap();
@@ -603,7 +592,7 @@ impl ImageRequest for FITSImageRequest {
         self.image.send().unwrap();
     }
 
-    fn image(&mut self, config: &mut HiPSConfig) -> Self::RetrievedImageType {
+    fn image(&mut self) -> RetrievedImageType {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()
@@ -632,7 +621,7 @@ impl ImageRequest for FITSImageRequest {
             _ => unreachable!()
         };
 
-        let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
+        self.bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
             if let FITSKeywordValue::FloatingPoint(bscale) = value {
                 *bscale as f32
             } else {
@@ -641,7 +630,7 @@ impl ImageRequest for FITSImageRequest {
         } else {
             1.0
         };
-        let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
+        self.bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
             if let FITSKeywordValue::FloatingPoint(bzero) = value {
                 *bzero as f32
             } else {
@@ -650,27 +639,23 @@ impl ImageRequest for FITSImageRequest {
         } else {
             0.0
         };
-        config.set_bscale_bzero(bscale, bzero);
-        if !config.is_blank_value() {
-            let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
-                if let FITSKeywordValue::FloatingPoint(blank) = value {
-                    *blank as f32
-                } else {
-                    std::f32::MIN
-                }
+        self.blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
+            if let FITSKeywordValue::FloatingPoint(blank) = value {
+                *blank as f32
             } else {
                 std::f32::MIN
-            };
-            config.set_blank_value(blank);
-        }
+            }
+        } else {
+            std::f32::MIN
+        };
 
-        img
+        RetrievedImageType::FITSImage(img)
     }
 }
 
 impl Default for TileRequest {
     fn default() -> Self {
-        RequestTile::new()
+        RequestTile::<CompressedImageRequest>::new()
     }
 }
 

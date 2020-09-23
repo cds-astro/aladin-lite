@@ -8,13 +8,48 @@ use crate::buffer::{
 
 use crate::async_task::AladinTaskExecutor;
 
-use std::collections::{VecDeque, HashSet};
-pub struct RequestSystem {
-    // Waiting cells to be loaded
-    cells_to_be_requested: VecDeque<HEALPixCell>,
+struct Requests {
+    reqs: [TileRequest; NUM_EVENT_LISTENERS],
+    start_fits_req_idx: usize,
+}
 
-    // Collection
-    requests: [TileRequest; NUM_EVENT_LISTENERS],
+impl Requests {
+    fn new() -> Self {
+        let mut reqs: [TileRequest; NUM_EVENT_LISTENERS] = Default::default();
+        let start_fits_req_idx = NUM_EVENT_LISTENERS >> 1;
+
+        for idx in start_fits_req_idx..NUM_EVENT_LISTENERS {
+            reqs[idx] = TileRequest::<FITSImageRequest>::new();
+        }
+
+        Requests {
+            reqs,
+            start_fits_req_idx
+        }
+    }
+
+    fn iter_mut<'a>(&'a mut self) -> RequestsIterMut<'a> {
+        RequestsIterMut(self.reqs.iter_mut())
+    }
+}
+
+struct RequestsIterMut<'a>(std::slice::IterMut<'a, TileRequest>);
+
+impl<'a> Iterator for RequestsIterMut<'a> {
+    type Item = &'a mut TileRequest;
+
+    // next() is the only required method
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+use super::buffer_tiles::Tile;
+use std::collections::{VecDeque, HashSet};
+pub struct TileDownloader {
+    // Waiting cells to be loaded
+    tiles_to_request: VecDeque<Tile>,
+    requests: Requests,
 }
 
 // A power of two maximum simultaneous tile requests
@@ -22,19 +57,27 @@ const NUM_EVENT_LISTENERS: usize = 16;
 const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 use crate::FormatImageType;
 use crate::healpix_cell::HEALPixCell;
-impl RequestSystem {
-    pub fn new() -> RequestSystem {
-        let requests: [TileRequest; NUM_EVENT_LISTENERS] = Default::default();
 
-        let cells_to_be_requested = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
+enum TileResolved {
+    Missing,
+    Found { image: RetrievedTileImage }
+}
+struct RetrievedTiles {
+    tiles: HashMap<Tile, TileResolved>
+}
+
+impl TileDownloader {
+    pub fn new() -> TileDownloader {
+        let requests: Requests::new();
+        let tiles_to_request = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
         Self {
-            cells_to_be_requested,
+            tiles_to_request,
             requests,
         }
     }
 
     pub fn reset(&mut self) {
-        self.cells_to_be_requested.clear();
+        self.tiles_to_request.clear();
 
         for req in self.requests.iter_mut() {
             req.clear();
@@ -42,15 +85,10 @@ impl RequestSystem {
     }
 
     pub fn register_tile_request(&mut self, cell: &HEALPixCell) {
-        self.cells_to_be_requested.push_back(*cell);
+        self.tiles_to_request.push_back(*cell);
     }
 
-    pub fn run(&mut self,
-        cells_copied: &HashSet<HEALPixCell>,
-        task_executor: &mut AladinTaskExecutor,
-        survey: &mut ImageSurvey,
-        requested_tiles: &mut HashSet<HEALPixCell>
-    ) {
+    pub fn run(&mut self, tiles_finished: &Tiles, requested_tiles: &Tiles) -> Vec<TileResolved> {
         for req in self.requests.iter_mut() {
             // First, tag the tile requests as ready if they just have been
             // given to the GPU
@@ -59,33 +97,35 @@ impl RequestSystem {
 
                 // A tile request can be reused if its cell texture is available/readable
                 // by the GPU
-                let available_req = cells_copied.contains(&cell);
+                let available_req = tiles_finished.contains(&cell);
                 if available_req {
                     req.set_ready();
-                } else if requested_tiles.contains(&cell) {
-                    //Tile received
-                    let time_request = req.get_time_request();
-                    requested_tiles.remove(&cell);
-    
-                    match req.resolve_status() {
-                        ResolvedStatus::Missing => {
-                            let image = survey.get_blank_tile();
-                            survey.push(&cell, time_request, image, task_executor);
-                        },
-                        ResolvedStatus::Found => {
-                            let image = req.get_image(config);
-                            survey.push(&cell, time_request, image, task_executor);
-                        },
-                        _ => unreachable!()
+                } else {
+                    let req_just_resolved = requested_tiles.contains(&cell);
+                    // The tile has not been copied
+                    if req_just_resolved {
+                        // Tile received
+                        let time_of_request = req.get_time_request();
+                        //requested_tiles.remove(&cell);
+        
+                        match req.resolve_status() {
+                            ResolvedStatus::Missing => {
+                                let image = survey.get_blank_tile();
+                            },
+                            ResolvedStatus::Found => {
+                                let image = req.get_image(config);
+                            },
+                            _ => unreachable!()
+                        }
                     }
                 }
             }
 
             // Then, send new requests for available ones
-            if !self.cells_to_be_requested.is_empty() {
+            if !self.tiles_to_request.is_empty() {
                 if req.is_ready() {
                     // Launch requests if the tile has yet not been used (start)
-                    let cell = self.cells_to_be_requested.pop_front().unwrap();
+                    let cell = self.tiles_to_request.pop_front().unwrap();
                     req.send(&cell, survey);
                 }
             }

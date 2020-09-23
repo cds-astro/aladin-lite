@@ -80,7 +80,7 @@ use std::mem;
 
 use crate::renderable::uv::{TileUVW, TileCorner};
 use crate::healpix_cell::HEALPixCell;
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 use crate::renderable::RecomputeRasterizer;
 use crate::time::Time;
 fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
@@ -349,7 +349,7 @@ pub struct Rasterizer {
 use crate::{
     renderable::TextureStates,
     utils,
-    buffer::BufferTextures,
+    buffer::TileBuffer,
     viewport::LastAction,
     renderable::hips_sphere::{Zoom, UnZoom, Move},
     buffer::HiPSConfig
@@ -404,7 +404,7 @@ impl Rasterizer {
         }
     }
 
-    pub fn update<P: Projection>(&mut self, buffer: &mut BufferTextures, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn update<P: Projection>(&mut self, buffer: &mut TileBuffer, viewport: &CameraViewPort, config: &HiPSConfig) {
         let last_user_action = viewport.last_user_action();
 
         match last_user_action {

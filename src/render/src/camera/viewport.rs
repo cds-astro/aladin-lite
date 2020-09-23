@@ -6,7 +6,10 @@ pub enum UserAction {
     Starting = 4,
 }
 
-use crate::field_of_view::FieldOfView;
+use super::fov_vertices::{
+    FieldOfViewVertices,
+    ModelCoord
+};
 use cgmath::{Vector2, Matrix4};
 pub struct CameraViewPort {
     // The field of view angle
@@ -25,6 +28,10 @@ pub struct CameraViewPort {
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f32>,
     clip_zoom_factor: f32,
+    // The vertices in model space of the viewport
+    // This is useful for computing views according 
+    // to different image surveys
+    vertices: FieldOfViewVertices,
 
     // A flag telling whether the camera has been moved during the frame
     moved: bool,
@@ -93,6 +100,8 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
         let clip_zoom_factor = 0_f32;
 
+        let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
+
         let gl = gl.clone();
         CameraViewPort {
             // The field of view angle
@@ -111,7 +120,10 @@ impl CameraViewPort {
             // Internal variable used for projection purposes
             ndc_to_clip,
             clip_zoom_factor,
-
+            // The vertices in model space of the viewport
+            // This is useful for computing views according 
+            // to different image surveys
+            vertices,
             // A flag telling whether the camera has been moved during the frame
             changed,
 
@@ -256,6 +268,11 @@ impl CameraViewPort {
     pub fn get_clip_zoom_factor(&self) -> f32 {
         self.clip_zoom_factor
     }
+
+    pub fn get_vertices(&self) -> Option<&[ModelCoord]> {
+        self.vertices.get_vertices()
+    }
+
 
     pub fn get_screen_size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)

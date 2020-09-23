@@ -1,7 +1,7 @@
 use crate::{
     core::{VertexArrayObject, VecData},
     shader::{ShaderBound, ShaderManager},
-    viewport::ViewPort,
+    viewport::CameraViewPort,
     WebGl2Context,
     renderable::projection::Projection
 };
@@ -37,7 +37,7 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u
 use web_sys::WebGl2RenderingContext;
 fn create_vertex_array_object<P: Projection>(
     gl: &WebGl2Context,
-    _viewport: &ViewPort,
+    _viewport: &CameraViewPort,
     shaders: &mut ShaderManager
 ) -> VertexArrayObject {
     let (vertices, idx) = create_vertices_array::<P>(gl);
@@ -78,13 +78,13 @@ pub struct RayTracer {
 }
 
 use crate::{
-    buffer::BufferTextures,
+    buffer::TileBuffer,
     Shader
 };
 use std::borrow::Cow;
 use crate::shader::ShaderId;
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &mut ShaderManager) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
         let vao = create_vertex_array_object::<P>(gl, viewport, shaders);
 
         RayTracer {
@@ -92,7 +92,7 @@ impl RayTracer {
         }
     }
 
-    pub fn get_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &BufferTextures) -> &'a Shader {
+    pub fn get_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &TileBuffer) -> &'a Shader {
         // Fits tiles are handled by other shaders
         if buffer.fits_tiles_requested() {
             if buffer.fits_i_format() {

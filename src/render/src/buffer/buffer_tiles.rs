@@ -8,23 +8,27 @@ use crate::{
     WebGl2Context,
     healpix_cell::HEALPixCell,
 };
-use super::RequestSystem;
+use super::TileDownloader;
 
 use crate::buffer::{
  ImageSurvey,
  HiPSConfig,
 };
 
-pub struct BufferTextures {
-    // The cells that are currently in the buffer.
-    // The buffer is composed of two parts:
-    // * A fixed part that will never change. The 12 base tiles are always
-    //   stored
-    // * A binary heap storing the most recent requested cells.
-    // A set of the cells that have been requested but
-    // not yet received
-    requested_tiles: HashSet<HEALPixCell>,
-    request_system: RequestSystem,
+// A tile is described by an image survey
+// and an HEALPix cell
+#[derive(PartialEq, Eq, Hash)]
+pub struct Tile {
+    cell: HEALPixCell,
+    // Index of the image survey it is referred to
+    idx_survey: usize,
+}
+
+pub type Tiles = HashSet<Tile>;
+
+pub struct TileBuffer {
+    requested_tiles: Tiles,
+    request_system: TileDownloader,
 
     time_last_tile_written: Time,
 }
@@ -36,33 +40,31 @@ use crate::{
     async_task::AladinTaskExecutor,
     image_fmt::FormatImageType
 };
-impl BufferTextures {
-    pub fn new(gl: &WebGl2Context, survey: &mut ImageSurvey, viewport: &ViewPort) -> BufferTextures {
+impl TileBuffer {
+    pub fn new() -> TileBuffer {
         // Arbitrary number decided here
         let requested_tiles = HashSet::with_capacity(64);
 
         let time_last_tile_written = Time::now();
 
-        let request_system = RequestSystem::new();
-        let mut buffer = BufferTextures {
+        let request_system = TileDownloader::new();
+        TileBuffer {
             requested_tiles,
             request_system,
 
             time_last_tile_written,
-        };
+        }
 
-        buffer.initialize(survey, viewport);
-
-        buffer
+        //buffer.initialize(survey, viewport);
     }
 
-    pub fn reset(&mut self, gl: &WebGl2Context, survey: &mut ImageSurvey, viewport: &ViewPort, task_executor: &mut AladinTaskExecutor) {
-        survey.clear(&gl, task_executor);
-        self.requested_tiles.clear();
+    pub fn reset(&mut self) {
+        //survey.clear(&gl, task_executor);
 
+        self.requested_tiles.clear();
         self.request_system.reset();
 
-        self.initialize(survey, viewport);
+        //self.initialize(survey, viewport);
     }
 
     /*pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
@@ -72,15 +74,29 @@ impl BufferTextures {
     // Ask for the tiles until they are found in the buffer
     // TODO: API change, pass the viewport and the image survey. The viewport is storing views
     // on the different image surveys
-    pub fn ask_for_tiles(&mut self, survey: &mut ImageSurvey, cells: &HashMap<HEALPixCell, bool>) {
-        for (texture_cell, new) in cells.iter() {
+    pub fn request_tiles(&mut self, survey: &ImageSurvey, cells: HEALPixCells) {
+        // Update the views on the surveys and get the new tiles to request
+        for texture_cell in cells.iter() {
             for tile_cell in texture_cell.get_tile_cells(survey.config()) {
-                self.load_tile(survey, &tile_cell, *new);
+                let tile = Tile::new(tile_cell, survey);
+
+                self.request_tile(tile);
             }
         }
     }
 
-    pub fn ack_tiles_sent_to_gpu(&mut self, survey: &mut ImageSurvey, copied_tiles: &HashSet<HEALPixCell>, task_executor: &mut AladinTaskExecutor) {
+    fn request_tile(&mut self, tile: &Tile) {
+        let already_requested = self.requested_tiles.contains(tile);
+        // The cell is not already requested
+        if !already_requested {
+            // Add to the tiles requested
+            self.requested_tiles.insert(*tile);
+
+            self.request_system.register_tile_request(tile);
+        }
+    }
+
+    pub fn ack_tiles_sent_to_gpu(&mut self, survey: &mut ImageSurvey, copied_tiles: &HashSet<Tile>, task_executor: &mut AladinTaskExecutor) {
         survey.register_tiles_sent_to_gpu(copied_tiles);
         let is_tile_cells_copied = !copied_tiles.is_empty();
 
@@ -96,11 +112,7 @@ impl BufferTextures {
         }
     }
 
-    pub fn time_last_tile_written(&self) -> Time {
-        self.time_last_tile_written
-    }
-
-    fn initialize(&mut self, survey: &mut ImageSurvey, viewport: &ViewPort) {
+    /*fn initialize(&mut self, survey: &mut ImageSurvey, viewport: &ViewPort) {
         // Request for the root texture cells
         let root_textures = HEALPixCell::root()
             .iter()
@@ -112,16 +124,9 @@ impl BufferTextures {
         // Request for the textures in the current fov
         let cell_textures = viewport.new_healpix_cells();
         self.ask_for_tiles(survey, &cell_textures);
-    }
+    }*/
 
-    fn load_tile(&mut self,
-        survey: &mut ImageSurvey,
-        // The HEALPix cell to load. First check whether it is already in the buffer
-        cell: &HEALPixCell,
-        // A flag telling whether the HEALPix cell to load is new (i.e. not contained in the previous
-        // field of view).
-        new: bool,
-    ) {
+    /*fn load_tile(&mut self, tile: &Tile) {
         let already_loaded = survey.contains_tile(cell);
         if already_loaded {
             let start_time = Time::now();
@@ -137,11 +142,20 @@ impl BufferTextures {
             // The cell is not already requested
             if !already_requested {
                 // Add to the tiles requested
-                self.requested_tiles.insert(*cell);
+                self.requested_tiles.insert(*tile);
 
                 self.request_system.register_tile_request(cell);
             }
         }
+    }*/
+
+
+    // Accessors
+    pub fn time_last_tile_written(&self) -> Time {
+        self.time_last_tile_written
+    }
+    pub fn set_time_last_tile_written(&mut self, time: Time) {
+        self.time_last_tile_written = time;
     }
 
     /*pub fn is_ready(&self) -> bool {
@@ -151,7 +165,7 @@ impl BufferTextures {
 /*
 use crate::shader::HasUniforms;
 use crate::shader::ShaderBound;
-impl HasUniforms for BufferTextures {
+impl HasUniforms for TileBuffer {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniforms_from(&self.survey);
 

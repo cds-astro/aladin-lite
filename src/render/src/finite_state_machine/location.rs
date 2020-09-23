@@ -51,7 +51,7 @@ use crate::renderable::{
  ProjetedGrid
 };
 use crate::event_manager::EventManager;
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 impl State for Stalling {
     fn update<P: Projection>(&mut self,
         // Time of the previous frame
@@ -61,7 +61,7 @@ impl State for Stalling {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut ViewPort,
+        _viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {}
@@ -79,7 +79,7 @@ impl State for Moving {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -116,7 +116,7 @@ impl Transition for T<Stalling, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -151,7 +151,7 @@ impl Transition for T<Moving, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -195,7 +195,7 @@ impl MoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
@@ -214,7 +214,7 @@ impl MoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {

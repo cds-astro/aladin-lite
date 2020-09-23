@@ -11,7 +11,7 @@ use cgmath::Vector4;
 use crate::renderable::angle;
 use crate::renderable::TextManager;
 
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 pub struct ProjetedGrid {
     // The color of the grid
     color: Color,
@@ -28,7 +28,7 @@ use crate::WebGl2Context;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
-        _viewport: &ViewPort,
+        _viewport: &CameraViewPort,
         shaders: &mut ShaderManager,
         _text_manager: &TextManager
     ) -> ProjetedGrid {
@@ -83,7 +83,7 @@ impl ProjetedGrid {
         }
     }
 
-    pub fn update_label_positions<P: Projection>(&mut self, gl: &WebGl2Context, text_manager: &mut TextManager, viewport: &ViewPort, shaders: &ShaderManager) {
+    pub fn update_label_positions<P: Projection>(&mut self, gl: &WebGl2Context, text_manager: &mut TextManager, viewport: &CameraViewPort, shaders: &ShaderManager) {
         if !viewport.is_viewport_updated() {
             return;
         }
@@ -110,7 +110,7 @@ impl ProjetedGrid {
         &self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
         text_manager: &TextManager,
     ) {
         let shader = P::get_grid_shader(gl, shaders);

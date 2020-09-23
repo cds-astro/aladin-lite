@@ -1,4 +1,4 @@
-use crate::buffer::BufferTextures;
+use crate::buffer::TileBuffer;
 
 use crate::buffer::Texture;
 use crate::healpix_cell::HEALPixCell;
@@ -48,9 +48,9 @@ pub trait RecomputeRasterizer {
     // * the blending factor between the two tiles in the texture
     fn compute_texture_buffer<'a, P: Projection>(
         // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a BufferTextures,
+        buffer: &'a TileBuffer,
         // The HEALPix cells located in the FOV
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) -> TextureStates<'a>;
 
     fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8;
@@ -67,9 +67,9 @@ impl RecomputeRasterizer for Move  {
     // * the blending factor between the two tiles in the texture
     fn compute_texture_buffer<'a, P: Projection>(
         // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a BufferTextures,
+        buffer: &'a TileBuffer,
         // The HEALPix cells located in the FOV
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) -> TextureStates<'a> {
         let cells_fov = viewport.cells();
 
@@ -108,9 +108,9 @@ impl RecomputeRasterizer for Zoom {
     // * the blending factor between the two tiles in the texture
     fn compute_texture_buffer<'a, P: Projection>(
         // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a BufferTextures,
+        buffer: &'a TileBuffer,
         // The HEALPix cells located in the FOV
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) -> TextureStates<'a> {
         let cells_fov = viewport.cells();
 
@@ -150,9 +150,9 @@ impl RecomputeRasterizer for UnZoom {
     // * the blending factor between the two tiles in the texture
     fn compute_texture_buffer<'a, P: Projection>(
         // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a BufferTextures,
+        buffer: &'a TileBuffer,
         // The HEALPix cells located in the FOV
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) -> TextureStates<'a> {
         let depth_plus_one = viewport.depth() + 1;
         let cells_fov = viewport.get_cells_in_fov::<P>(depth_plus_one);
@@ -201,7 +201,7 @@ impl RecomputeRasterizer for UnZoom {
     }
 }
 
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 use crate::WebGl2Context;
 
 use crate::renderable::projection::Projection;
@@ -215,7 +215,7 @@ pub struct HiPSSphere {
     // * Storing the most recently asked texture tiles
     // * Sending them to the GPU
     // TODO: Move this field to the main App struct
-    buffer: BufferTextures,
+    buffer: TileBuffer,
     survey: ImageSurvey,
 
     raster: Rasterizer,
@@ -238,8 +238,8 @@ use crate::HiPSDefinition;
 use wasm_bindgen::JsValue;
 
 impl HiPSSphere {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &mut ShaderManager) -> Self {
-        let buffer = BufferTextures::new(gl, viewport);
+    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
+        let buffer = TileBuffer::new(gl, viewport);
         let survey = ImageSurvey::new(gl, config);
         crate::log(&format!("config: {:?}", config));
 
@@ -261,7 +261,7 @@ impl HiPSSphere {
         }
     }
 
-    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut ViewPort, task_executor: &mut AladinTaskExecutor) -> Result<(), JsValue> {        
+    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut CameraViewPort, task_executor: &mut AladinTaskExecutor) -> Result<(), JsValue> {        
         self.config.set_HiPS_definition(hips_definition)?;
         // Tell the viewport the config has changed
         viewport.set_image_survey::<P>(&self.config);
@@ -281,12 +281,12 @@ impl HiPSSphere {
         self.buffer.ack_tiles_sent_to_gpu(copied_tiles, task_executor, &mut self.config);
     }
 
-    pub fn set_projection<P: Projection>(&mut self, viewport: &ViewPort, shaders: &mut ShaderManager) {
+    pub fn set_projection<P: Projection>(&mut self, viewport: &CameraViewPort, shaders: &mut ShaderManager) {
         self.update::<P>(viewport);
         self.raytracer = RayTracer::new::<P>(&self.gl, viewport, shaders);
     }
 
-    pub fn update<P: Projection>(&mut self, viewport: &ViewPort) -> bool {
+    pub fn update<P: Projection>(&mut self, viewport: &CameraViewPort) -> bool {
         // This call handles:
         // - The request of new asked tiles
         // - The copy of the tiles to the GPU
@@ -329,7 +329,7 @@ impl HiPSSphere {
         &mut self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &ViewPort,
+        viewport: &CameraViewPort,
     ) {
         let aperture = viewport.get_aperture();
         let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
@@ -388,6 +388,6 @@ use crate::utils;
 
 use crate::renderable::DisableDrawing;
 impl DisableDrawing for HiPSSphere {
-    fn disable(&mut self, _: &ViewPort) {
+    fn disable(&mut self, _: &CameraViewPort) {
     }
 }

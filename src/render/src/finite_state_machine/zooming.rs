@@ -20,7 +20,7 @@ pub struct Zooming {
 }
 
 impl Zooming {
-    fn new<P: Projection>(z: Angle<f32>, z0: Angle<f32>, zf: Angle<f32>, goal_rot: SphericalRotation<f32>, viewport: &ViewPort) -> Zooming {
+    fn new<P: Projection>(z: Angle<f32>, z0: Angle<f32>, zf: Angle<f32>, goal_rot: SphericalRotation<f32>, viewport: &CameraViewPort) -> Zooming {
         let t0 = utils::get_current_time();
         let start_rot = *viewport.get_rotation();
 
@@ -62,7 +62,7 @@ use crate::renderable::{
  ProjetedGrid
 };
 use crate::event_manager::EventManager;
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 impl State for Stalling {
     fn update<P: Projection>(&mut self,
         // Time of the previous frame
@@ -72,7 +72,7 @@ impl State for Stalling {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut ViewPort,
+        _viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {}
@@ -85,7 +85,7 @@ impl Zooming {
     }
 
     #[inline]
-    pub fn a0(viewport: &ViewPort) -> f32 {
+    pub fn a0(viewport: &CameraViewPort) -> f32 {
         let a0_max = 8_f32;
         let a0 = a0_max / viewport.get_aperture().0;
         a0.min(a0_max)
@@ -102,7 +102,7 @@ impl State for Zooming {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -146,7 +146,7 @@ impl State for Unzooming {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -179,7 +179,7 @@ impl Transition for T<Stalling, Zooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -215,7 +215,7 @@ impl Transition for T<Zooming, Zooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -252,7 +252,7 @@ impl Transition for T<Zooming, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -283,7 +283,7 @@ impl Transition for T<Stalling, Unzooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -326,7 +326,7 @@ impl Transition for T<Unzooming, Unzooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -369,7 +369,7 @@ impl Transition for T<Unzooming, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -400,7 +400,7 @@ impl Transition for T<Zooming, Unzooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -444,7 +444,7 @@ impl Transition for T<Unzooming, Zooming> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -491,7 +491,7 @@ impl UserZoom {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
@@ -511,7 +511,7 @@ impl UserZoom {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {

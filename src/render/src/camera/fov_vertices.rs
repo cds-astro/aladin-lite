@@ -75,7 +75,7 @@ impl NewHEALPixCells {
     fn insert_new_cells(self, cells: &HEALPixCells) -> NewHEALPixCells {
         let mut new_cells_added = false;
         let new_depth = cells.depth;
-        let flags = if new_cells != self.depth {
+        let flags = if new_depth != self.depth {
             new_cells_added = true;
             // Change of depth => all cells are new
             cells.iter()
@@ -88,14 +88,7 @@ impl NewHEALPixCells {
             cells.iter()
                 .cloned()
                 .map(|cell| {
-                    let new = if let Some(found) = self.flags.get(cell) {
-                        // It is found
-                        found
-                    } else {
-                        // It is not found in the previous hash map, so it is a new cell
-                        true
-                    };
-                    
+                    let new = !self.flags.contains(cell);
                     new_cells_added |= new;
                     
                     (cell, new)
@@ -116,12 +109,38 @@ impl NewHEALPixCells {
     }
 }
 
-fn get_current_cells_from_fov(survey: &ImageSurvey, viewport: &FieldOfViewVertices) -> HEALPixCells {
+fn fov_to_depth(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
+    let width = camera.get_screen_size().x;
+    let aperture = camera.get_aperture().0;
+
+    let angle_per_pixel = aperture / width;
+
+    let depth_pixel = (
+        (
+            (4.0 * std::f32::consts::PI) / (12.0 * angle_per_pixel * angle_per_pixel)
+        ).log2() / 2.0
+    ).round() as i8;
+
+    // The texture size in pixels
+    let texture_size = survey.get_texture_size();
+    // The depth of the texture
+    // A texture of 512x512 pixels will have a depth of 9
+    let depth_offset_texture = log_2(texture_size);
+    // The depth of the texture corresponds to the depth of a pixel
+    // minus the offset depth of the texture
+    let mut depth_texture = depth_pixel - depth_offset_texture;
+    if depth_texture < 0 {
+        depth_texture = 0;
+    }
+    depth_texture as u8
+}
+
+fn get_current_cells_from_fov(survey: &ImageSurvey, camera: &CameraViewPort) -> HEALPixCells {
     // Compute the depth corresponding to the angular resolution of a pixel
     // along the width of the screen
-    let depth = viewport.get_depth_from_survey(survey);
+    let depth = get_depth_from_survey(survey);
 
-    let cells = if let Some(vertices) = viewport.get() {
+    let cells = if let Some(vertices) = camera.vertices() {
         polygon_coverage(depth, vertices)
     } else {
         crate::healpix_cell::allsky(depth)
@@ -159,10 +178,10 @@ struct ViewOnImageSurvey {
 }
 
 impl ViewOnImageSurvey {
-    fn create(survey: &ImageSurvey, viewport: &Viewport) -> ViewOnImageSurvey {
+    fn create(survey: &ImageSurvey, camera: &CameraViewPort) -> ViewOnImageSurvey {
         let idx_survey = survey.get_idx();
 
-        let cells = get_current_cells_from_fov(survey, viewport);
+        let cells = get_current_cells_from_fov(survey, camera);
         let new_cells = NewHEALPixCells::new(&cells);
 
         ViewOnImageSurvey {
@@ -174,7 +193,7 @@ impl ViewOnImageSurvey {
 
     // This method is called whenever the user does an action
     // that moves the viewport
-    fn update(&mut self, surveys: &[ImageSurvey], viewport: &Viewport) {
+    fn update(&mut self, surveys: &[ImageSurvey], camera: &CameraViewPort) {
         let cells = {
             let survey = surveys[self.idx_survey];
             get_current_cells_from_fov(survey, viewport)
@@ -186,22 +205,25 @@ impl ViewOnImageSurvey {
 
 }
 
-type NormalizedDeviceCoord = Vector2<f32>;
-type WorldCoord = Vector4<f32>;
-type ModelCoord = Vector4<f32>;
+pub type NormalizedDeviceCoord = Vector2<f32>;
+pub type WorldCoord = Vector4<f32>;
+pub type ModelCoord = Vector4<f32>;
 
 fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
-    viewport: &Viewport
+    ndc_to_clip: &Vector2<f32>,
+    clip_zoom_factor: f32
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
     let mut out_of_fov = false;
 
     for n in ndc_coo {
-        let c = crate::projection::ndc_to_clip_space(n, viewport);
-
-        let w = P::ndc_to_world(&c);
+        let c = Vector2::new(
+            n.x * ndc_to_clip.x * clip_zoom_factor,
+            n.y * ndc_to_clip.y * clip_zoom_factor
+        );
+        let w = P::clip_to_world_space(&c);
         if let Some(w) = w {
             world_coo.push(w);
         } else {
@@ -212,10 +234,8 @@ fn ndc_to_world<P: Projection>(
 
     Some(world_coo)
 }
-fn world_to_model(&mut self, world_coo: &[WorldCoord], viewport: &Viewport) -> Vec<ModelCoord> {
+fn world_to_model(&mut self, world_coo: &[WorldCoord], r: &SphericalRotation<f32>) -> Vec<ModelCoord> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
-    
-    let r = viewport.get_rotation();
 
     for w in &world_coo {
         let m = r.rotate(w);
@@ -228,16 +248,15 @@ fn world_to_model(&mut self, world_coo: &[WorldCoord], viewport: &Viewport) -> V
 const NUM_VERTICES_WIDTH: usize = 5;
 const NUM_VERTICES_HEIGHT: usize = 5;
 const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
-// Viewport vertices in model space
-// i.e. after the unprojection + rotation of the sphere
-struct FieldOfViewVertices {
+// This struct belongs to the CameraViewPort
+pub struct FieldOfViewVertices {
     ndc_coo: Vec<NormalizedDeviceCoord>,
     world_coo: Option<Vec<WorldCoord>>,
     model_coo: Option<Vec<ModelCoord>>,
 }
 
 impl FieldOfViewVertices {
-    fn new<P: Projection>(viewport: &Viewport) -> Self {
+    pub fn new<P: Projection>(ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -261,9 +280,9 @@ impl FieldOfViewVertices {
             ));
         }
 
-        let world_coo = ndc_to_world(&self.ndc_coo, viewport);
+        let world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
         let model_coo = if Some(world_coo) = world_coo {
-            Some(world_to_model(world_coo, viewport))
+            Some(world_to_model(world_coo, r))
         } else {
             None
         };
@@ -275,16 +294,16 @@ impl FieldOfViewVertices {
         }
     }
 
-    pub fn zoom(&mut self, viewport: &ViewPort) {
-        self.world_coo = ndc_to_world(&self.ndc_coo, viewport);
+    pub fn set_fov(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
+        self.world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
         if Some(world_coo) = self.world_coo {
-            self.model_coo = world_to_model(world_coo, viewport);
+            self.model_coo = world_to_model(world_coo, r);
         }
     }
 
-    pub fn move(&mut self, viewport: &ViewPort) {
+    pub fn set_rotation(&mut self, r: &SphericalRotation<f32>) {
         if Some(world_coo) = self.world_coo {
-            self.model_coo = world_to_model(world_coo, viewport);
+            self.model_coo = world_to_model(world_coo, r);
         }
     }
     
@@ -292,21 +311,6 @@ impl FieldOfViewVertices {
         self.model_coo.as_ref()
     }
 }
-
-pub struct FieldOfView {
-    vertices: FieldOfViewVertices,
-
-    // A polygon reprensenting the current field of view
-    // (containing the vertices lon, lat in model space)
-    //great_circles: GreatCirclesInFieldOfView,
-
-    //aperture_angle: Angle<f32>, // fov can be None if the camera is out of the projection
-    //r: Matrix4<f32>, // Rotation matrix of the FOV (i.e. same as the HiPS sphere model matrix)
-
-    views: Vec<ViewOnImageSurvey>,
-
-}
-
 
 use std::iter;
 use crate::math;
@@ -320,7 +324,7 @@ use crate::WebGl2Context;
 use std::collections::HashMap;
 use crate::healpix_cell;
 use crate::cdshealpix;
-
+/*
 use crate::renderable::Angle;
 impl Views {
     pub fn new<P: Projection>(gl: &WebGl2Context, aperture_angle: Angle<f32>, config: &HiPSConfig) -> FieldOfView {
@@ -483,3 +487,4 @@ impl Views {
         center_model_pos.truncate()
     }
 }
+*/

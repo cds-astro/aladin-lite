@@ -1,5 +1,5 @@
 mod buffer_tiles;
-pub use buffer_tiles::BufferTextures;
+pub use buffer_tiles::TileBuffer;
 
 mod texture;
 use texture::TextureUniforms;
@@ -15,6 +15,6 @@ mod hips_config;
 pub use hips_config::{HiPSConfig, TileArrayBufferImage};
 
 mod request_system;
-pub use request_system::RequestSystem;
+pub use request_system::TileDownloader;
 
 pub use image::{ArrayBuffer, ArrayU8, ArrayI16, ArrayI32, ArrayF32};

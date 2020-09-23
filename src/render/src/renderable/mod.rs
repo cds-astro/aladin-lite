@@ -1,6 +1,6 @@
 
 
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 
 mod hips_sphere;
 pub mod projection;
@@ -46,7 +46,7 @@ pub use catalog::Manager;
 pub use grid::ProjetedGrid;
 
 pub trait DisableDrawing {
-    fn disable(&mut self, viewport: &ViewPort);
+    fn disable(&mut self, viewport: &CameraViewPort);
 }
 /*
 pub struct Renderable<T>

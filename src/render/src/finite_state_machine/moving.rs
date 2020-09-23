@@ -36,7 +36,7 @@ use crate::renderable::{
  ProjetedGrid
 };
 use crate::event_manager::EventManager;
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 use crate::time::DeltaTime;
 impl State for Stalling {
     fn update<P: Projection>(&mut self,
@@ -47,7 +47,7 @@ impl State for Stalling {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut ViewPort,
+        _viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {}
@@ -66,7 +66,7 @@ pub fn move_renderables<P: Projection>(
  catalogs: &mut Manager,
  grid: &mut ProjetedGrid,
  // Viewport
- viewport: &mut ViewPort,
+ viewport: &mut CameraViewPort,
 ) -> (Vector3<f32>, Angle<f32>) {
     let r = viewport.get_rotation();
 
@@ -97,7 +97,7 @@ impl State for Moving {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
@@ -135,7 +135,7 @@ impl State for Inertia {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -171,7 +171,7 @@ impl Transition for T<Stalling, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -206,7 +206,7 @@ impl Transition for T<Moving, Stalling> {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -243,7 +243,7 @@ impl Transition for T<Moving, Inertia> {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -283,7 +283,7 @@ impl Transition for T<Inertia, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         _events: &EventManager,
         dt: DeltaTime
@@ -319,7 +319,7 @@ impl Transition for T<Inertia, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -363,7 +363,7 @@ impl UserMoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
@@ -383,7 +383,7 @@ impl UserMoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        viewport: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {

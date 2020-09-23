@@ -7,11 +7,11 @@
 // * y_h in [-1, 1]
 
 // World space
-use crate::viewport::ViewPort;
+use crate::viewport::CameraViewPort;
 
 
 
-pub fn screen_to_ndc_space(pos_screen_space: &Vector2<f32>, viewport: &ViewPort) -> Vector2<f32> {
+pub fn screen_to_ndc_space(pos_screen_space: &Vector2<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
     // Screen space in pixels to homogeneous screen space (values between [-1, 1])
     let window_size = viewport.get_window_size();
     // Change of origin
@@ -21,7 +21,7 @@ pub fn screen_to_ndc_space(pos_screen_space: &Vector2<f32>, viewport: &ViewPort)
     let pos_normalized_device = Vector2::new(2_f32 * (origin.x/window_size.x), -2_f32 * (origin.y/window_size.y));
     pos_normalized_device
 }
-pub fn ndc_to_screen_space(pos_normalized_device: &Vector2<f32>, viewport: &ViewPort) -> Vector2<f32> {
+pub fn ndc_to_screen_space(pos_normalized_device: &Vector2<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
     let window_size = viewport.get_window_size();
 
     let pos_screen_space = Vector2::new(
@@ -31,7 +31,7 @@ pub fn ndc_to_screen_space(pos_normalized_device: &Vector2<f32>, viewport: &View
 
     pos_screen_space
 }
-pub fn clip_to_screen_space(pos_clip_space: &Vector2<f32>, viewport: &ViewPort) -> Vector2<f32> {
+pub fn clip_to_screen_space(pos_clip_space: &Vector2<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
     let ndc_to_clip = viewport.get_ndc_to_clip();
     let clip_zoom_factor = viewport.get_clip_zoom_factor();
     
@@ -49,13 +49,13 @@ pub fn clip_to_screen_space(pos_clip_space: &Vector2<f32>, viewport: &ViewPort) 
     pos_screen_space
 }
 
-pub fn screen_to_clip_space(pos_screen_space: &Vector2<f32>, viewport: &ViewPort) -> Vector2<f32> {
+pub fn screen_to_clip_space(pos_screen_space: &Vector2<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
     let pos_normalized_device = screen_to_ndc_space(pos_screen_space, viewport);
 
     ndc_to_clip_space(&pos_normalized_device, viewport)
 }
 
-pub fn ndc_to_clip_space(pos_normalized_device: &Vector2<f32>, viewport: &ViewPort) -> Vector2<f32> {
+pub fn ndc_to_clip_space(pos_normalized_device: &Vector2<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
     let ndc_to_clip = viewport.get_ndc_to_clip();
     let clip_zoom_factor = viewport.get_clip_zoom_factor();
 
@@ -85,7 +85,7 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
     /// 
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``viewport`` - The viewport object
-    fn screen_to_world_space(pos_screen_space: &Vector2<f32>, viewport: &ViewPort) -> Option<Vector4<f32>> {
+    fn screen_to_world_space(pos_screen_space: &Vector2<f32>, viewport: &CameraViewPort) -> Option<Vector4<f32>> {
         let pos_normalized_device = screen_to_ndc_space(pos_screen_space, viewport);
 
         let ndc_to_clip = viewport.get_ndc_to_clip();
@@ -113,7 +113,7 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
     /// 
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``viewport`` - The viewport object
-    fn screen_to_model_space(pos_screen_space: &Vector2<f32>, viewport: &ViewPort) -> Option<Vector4<f32>> {
+    fn screen_to_model_space(pos_screen_space: &Vector2<f32>, viewport: &CameraViewPort) -> Option<Vector4<f32>> {
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, viewport);
 
         if let Some(pos_world_space) = pos_world_space {
@@ -133,7 +133,7 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
     fn clip_to_world_space(pos_clip_space: &Vector2<f32>) -> Option<Vector4<f32>>;
 
-    fn clip_to_model_space(pos_clip_space: &Vector2<f32>, viewport: &ViewPort) -> Option<Vector4<f32>> {
+    fn clip_to_model_space(pos_clip_space: &Vector2<f32>, viewport: &CameraViewPort) -> Option<Vector4<f32>> {
         let pos_world_space = Self::clip_to_world_space(pos_clip_space);
 
         if let Some(pos_world_space) = pos_world_space {
@@ -154,7 +154,7 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
     /// 
     /// * `x` - X mouse position in homogenous screen space (between [-1, 1])
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
-    fn world_to_normalized_device_space(pos_model_space: &Vector4<f32>, viewport: &ViewPort) -> Vector2<f32> {
+    fn world_to_normalized_device_space(pos_model_space: &Vector4<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
         let pos_clip_space = Self::world_to_clip_space(pos_model_space);
 
         let ndc_to_clip = viewport.get_ndc_to_clip();
@@ -167,7 +167,7 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
         pos_normalized_device
     }
 
-    fn world_to_screen_space(pos_world_space: &Vector4<f32>, viewport: &ViewPort) -> Vector2<f32> {
+    fn world_to_screen_space(pos_world_space: &Vector4<f32>, viewport: &CameraViewPort) -> Vector2<f32> {
         let pos_normalized_device = Self::world_to_normalized_device_space(pos_world_space, viewport);
         self::ndc_to_screen_space(&pos_normalized_device, viewport)
     }

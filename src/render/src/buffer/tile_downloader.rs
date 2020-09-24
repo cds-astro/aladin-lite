@@ -92,6 +92,14 @@ impl Requests {
 struct RequestsIter<'a>(std::slice::Iter<'a, TileRequest>);
 struct RequestsIterMut<'a>(std::slice::IterMut<'a, TileRequest>);
 
+impl<'a> Iterator for RequestsIter<'a> {
+    type Item = &'a TileRequest;
+
+    // next() is the only required method
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
 impl<'a> Iterator for RequestsIterMut<'a> {
     type Item = &'a mut TileRequest;
 
@@ -101,7 +109,7 @@ impl<'a> Iterator for RequestsIterMut<'a> {
     }
 }
 
-use super::buffer_tiles::Tile;
+use super::tile_buffer::Tile;
 use std::collections::{VecDeque, HashSet};
 pub struct TileDownloader {
     // Waiting cells to be loaded
@@ -121,7 +129,7 @@ enum TileResolved {
     Missing,
     Found { image: RetrievedImageType }
 }
-type RetrievedTiles = HashMap<Tile, TileResolved>;
+pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
 impl TileDownloader {
     pub fn new() -> TileDownloader {
@@ -162,7 +170,7 @@ impl TileDownloader {
     // Two possibilities:
     // * The image have been found and retrieved
     // * The image is missing
-    pub fn retrieve_tile_resolved(&self, available_tiles: &Tiles, requested_tiles: &mut Tiles) -> RetrievedTiles {
+    pub fn retrieve_resolved_tiles(&self, available_tiles: &Tiles, requested_tiles: &Tiles) -> ResolvedTiles {
         let mut resolved_tiles = HashMap::new();
 
         for req in self.requests.iter() {
@@ -182,7 +190,6 @@ impl TileDownloader {
                     if req_just_resolved {
                         // Tile received
                         let time_of_request = req.get_time_request();
-                        requested_tiles.remove(tile);
         
                         let tile_resolved = match req.resolve_status() {
                             ResolvedStatus::Missing => {

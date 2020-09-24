@@ -29,9 +29,9 @@ pub type Tiles = HashSet<Tile>;
 
 pub struct TileBuffer {
     requested_tiles: Tiles,
-    request_system: TileDownloader,
+    downloader: TileDownloader,
 
-    time_last_tile_written: Time,
+    //time_last_tile_written: Time,
 }
 
 use crate::{
@@ -41,19 +41,20 @@ use crate::{
     async_task::AladinTaskExecutor,
     image_fmt::FormatImageType
 };
+use super::tile_downloader::ResolvedTiles;
 impl TileBuffer {
     pub fn new() -> TileBuffer {
         // Arbitrary number decided here
         let requested_tiles = HashSet::with_capacity(64);
 
-        let time_last_tile_written = Time::now();
+        //let time_last_tile_written = Time::now();
 
-        let request_system = TileDownloader::new();
+        let downloader = TileDownloader::new();
         TileBuffer {
             requested_tiles,
-            request_system,
+            downloader,
 
-            time_last_tile_written,
+            //time_last_tile_written,
         }
 
         //buffer.initialize(survey, viewport);
@@ -63,7 +64,7 @@ impl TileBuffer {
         //survey.clear(&gl, task_executor);
 
         self.requested_tiles.clear();
-        self.request_system.reset();
+        self.downloader.reset();
 
         //self.initialize(survey, viewport);
     }
@@ -72,45 +73,37 @@ impl TileBuffer {
         self.survey.get_cutoff(tile_cell)
     }*/
 
-    // Ask for the tiles until they are found in the buffer
-    // TODO: API change, pass the viewport and the image survey. The viewport is storing views
-    // on the different image surveys
-    pub fn request_tiles(&mut self, survey: &ImageSurvey, cells: HEALPixCells) {
-        // Update the views on the surveys and get the new tiles to request
-        for texture_cell in cells.iter() {
-            for tile_cell in texture_cell.get_tile_cells(survey.config()) {
-                let tile = Tile::new(tile_cell, survey);
-
-                self.request_tile(tile);
-            }
+    /*pub fn request_tiles(&mut self, tiles: &Tiles) {
+        // Loop over the tiles 
+        for tile in tiles.iter() {
+            self.request_tile(tile);
         }
-    }
+    }*/
 
-    fn request_tile(&mut self, tile: &Tile) {
+    pub fn request_tile(&mut self, tile: &Tile) {
         let already_requested = self.requested_tiles.contains(tile);
         // The cell is not already requested
         if !already_requested {
             // Add to the tiles requested
             self.requested_tiles.insert(*tile);
-
-            self.request_system.register_tile_request(tile);
+            self.downloader.add_tile_request(tile);
         }
     }
 
-    pub fn ack_tiles_sent_to_gpu(&mut self, survey: &mut ImageSurvey, copied_tiles: &HashSet<Tile>, task_executor: &mut AladinTaskExecutor) {
-        survey.register_tiles_sent_to_gpu(copied_tiles);
-        let is_tile_cells_copied = !copied_tiles.is_empty();
+    pub fn try_sending_tile_requests(&mut self) {
+        self.downloader.try_sending_tile_requests();
+    }
 
-        // Process new requests
-        self.request_system.run(
-            copied_tiles,
-            task_executor,
-            survey,
-            &mut self.requested_tiles
-        );
-        if is_tile_cells_copied {
-            self.time_last_tile_written = Time::now();
+    pub fn get_resolved_tiles(&mut self, available_tiles: &Tiles) -> ResolvedTiles {
+        let tiles_resolved = self.downloader.retrieve_resolved_tiles(available_tiles);
+
+        // Resolved tiles must be removed from the
+        // "currently requested" tile set
+        for tile in tiles_resolved {
+            self.requested_tiles.remove(tile);
         }
+
+        tiles_resolved
     }
 
     /*fn initialize(&mut self, survey: &mut ImageSurvey, viewport: &ViewPort) {
@@ -150,14 +143,14 @@ impl TileBuffer {
         }
     }*/
 
-
     // Accessors
-    pub fn time_last_tile_written(&self) -> Time {
+    /*pub fn time_last_tile_written(&self) -> Time {
         self.time_last_tile_written
     }
+
     pub fn set_time_last_tile_written(&mut self, time: Time) {
         self.time_last_tile_written = time;
-    }
+    }*/
 
     /*pub fn is_ready(&self) -> bool {
         self.survey.is_ready()

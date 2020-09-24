@@ -326,7 +326,7 @@ use crate::{
 use std::cell::Cell;
 use std::rc::Rc;
 use js_sys::Function;
-
+/*
 impl Image for RetrievedImageType {
     fn tex_sub_image_3d(&self,
         // The texture array
@@ -352,7 +352,7 @@ impl Image for RetrievedImageType {
         None
     }*/
 }
-
+*/
 struct FITSMetaData {
     blank: f32,
     bzero: f32,
@@ -418,7 +418,7 @@ pub enum ResolvedStatus {
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
-use super::buffer_tiles::Tile;
+use super::tile_buffer::Tile;
 impl TileRequest {
     pub fn new<R: ImageRequest>() -> Self {
         // By default, all the requests are parametrized to load

@@ -85,7 +85,7 @@ impl Texture {
         }
     }
 
-    pub fn register_tile_sent_to_gpu(&mut self, cell: &HEALPixCell, config: &HiPSConfig) {
+    pub fn register_available_tile(&mut self, cell: &HEALPixCell, config: &HiPSConfig) {
         let texture_cell = cell.get_texture_cell(config);
         assert!(texture_cell == self.texture_cell);
 

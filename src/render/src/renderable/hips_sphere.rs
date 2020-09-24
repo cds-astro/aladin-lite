@@ -212,10 +212,146 @@ use crate::renderable::Rasterizer;
 
 type ImageSurveys = HashMap<String, ImageSurvey>;
 enum HiPSOverlayingScheme {
-    FITSImageSurvey,
+    FITSImageSurveys,
     HTMLImageSurvey,
     HTMLImageSurvey2FITSImageSurvey,
     HTMLImageSurvey2HTMLImageSurvey
+}
+
+const NUM_MAX_FITS_SURVEYS: usize = 3;
+type ImageSurveyColor = cgmath::Vector4<f32>;
+struct FITSImageSurveys {
+    // The images surveys
+    surveys: [Option<ImageSurvey>; NUM_MAX_FITS_SURVEYS],
+    // One color per image survey
+    colors: [ImageSurveyColor; NUM_MAX_FITS_SURVEYS],
+    // Each survey has a view
+    views: [Option<ViewOnImageSurvey>; NUM_MAX_FITS_SURVEYS],
+
+    num_surveys: usize,
+
+    idx_surveys: HashMap<String, usize>,
+
+    time_last_tile_written: Time,
+}
+
+impl FITSImageSurveys {
+    fn new() -> Self {
+        let num_surveys = 0;
+        let surveys = [None, None, None];
+        let views = [None, None, None];
+
+        let colors = [
+            Vector4::new(1.0, 0.0, 0.0, 1.0),
+            Vector4::new(0.0, 1.0, 0.0, 1.0),
+            Vector4::new(0.0, 0.0, 1.0, 1.0),
+        ];
+
+        let idx_surveys = HashMap::new();
+        let time_last_tile_written = Time::now();
+
+        FITSImageSurveys {
+            num_surveys,
+
+            surveys,
+            views,
+            colors,
+
+            idx_surveys,
+            time_last_tile_written
+        }
+    }
+
+    fn set_image_survey(&mut self, idx: usize, survey: ImageSurvey, color: ImageSurveyColor) {
+        assert!(idx < NUM_MAX_FITS_SURVEYS);
+
+        if self.surveys[idx].is_none() {
+            self.num_surveys += 1;
+        }
+
+        self.surveys[idx] = Some(survey);
+        self.colors[idx] = Some(color);
+        self.views[idx] = Some(ViewOnImageSurvey::new());
+
+
+        let root_url = survey.get_root_url();
+        self.idx_surveys.insert(root_url, idx);
+    }
+
+    fn set_color_image_survey(&mut self, idx: usize, color: ImageSurveyColor) {
+        assert!(idx < NUM_MAX_FITS_SURVEYS);
+
+        self.colors[idx] = color;
+    }
+
+    fn set_available_tiles(&mut self, available_tiles: &Tiles) {
+        for tile in available_tiles {
+            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
+            let mut survey = &mut self.surveys[idx_survey];
+            survey.register_available_tile(tile);
+        }
+    }
+
+    fn move(&mut self, camera: &CameraViewPort) {
+        for (idx, view) in self.views.iter_mut().enumerate() {
+            if let Some(view) = view {
+                let survey = &self.surveys[idx];
+
+                // Move the view
+                view.update(survey, camera);
+
+                // Request for the tiles not found in the buffer
+                let cells_in_fov = view.get_cells();
+                for cell in cells_in_fov.iter() {
+                    let already_available = survey.contains_tile(cell);
+                    if already_available {
+                        let start_time = Time::now();
+            
+                        // Remove and append the texture with an updated
+                        // time_request
+                        let is_cell_new = view.is_new(cell);
+                        survey.update_priority(cell, is_cell_new, start_time);
+                        if is_cell_new {
+                            self.time_last_tile_written = start_time;
+                        }
+                    } else {
+                        // Submit the request to the buffer
+                        let root_url = survey.get_root_url();
+                        let format = survey.get_image_format();
+                        let tile = Tile {
+                            root_url,
+                            format,
+                            cell
+                        };
+                        self.buffer.request_tile(&tile);
+                    }
+                }
+            }
+        }
+    }
+
+    fn push_to_surveys(&mut self, resolved_tiles: ResolvedTiles) {
+        for (tile, result) in resolved_tiles.iter() {
+            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
+            let mut survey = &mut self.surveys[idx_survey];
+
+            match result {
+                TileResolved::Missing => {
+
+                },
+                TileResolved::Found { image } => {
+                    match image {
+                        RetrievedImageType::FITSImage { image, metadata } => {
+                            survey.push::<TileArrayBufferImage>(image, )
+                        },
+                        RetrievedImageType::CompressedImage(image) => {
+                            survey.push::<TileHTMLImage>(image, )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub struct HiPSSphere {    
@@ -225,11 +361,11 @@ pub struct HiPSSphere {
     // * Sending them to the GPU
     // TODO: Move this field to the main App struct
     buffer: TileBuffer,
-    scheme: HiPSOverlayingScheme,
-    surveys: ImageSurveys,
+    scheme: FITSImageSurveys,
 
     raster: Rasterizer,
     raytracer: RayTracer,
+
 
     gl: WebGl2Context,
 }
@@ -247,10 +383,13 @@ use crate::shaders::Colormap;
 use crate::HiPSDefinition;
 use wasm_bindgen::JsValue;
 
+type IsNextFrameRendered = bool;
+use crate::buffer::Tiles;
+
 impl HiPSSphere {
     pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
         let buffer = TileBuffer::new(gl, viewport);
-        let survey = ImageSurvey::new(gl, config);
+        let scheme = FITSImageSurveys::new();
         crate::log(&format!("config: {:?}", config));
 
         let gl = gl.clone();
@@ -287,8 +426,9 @@ impl HiPSSphere {
         self.buffer.ask_for_tiles(cells, &self.config);
     }
 
-    pub fn ack_tiles_sent_to_gpu(&mut self, copied_tiles: &HashSet<HEALPixCell>, task_executor: &mut AladinTaskExecutor) {
-        self.buffer.ack_tiles_sent_to_gpu(copied_tiles, task_executor, &mut self.config);
+    pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut AladinTaskExecutor) {
+        //survey.register_tiles_sent_to_gpu(copied_tiles);
+        self.buffer.get_resolved_tiles(available_tiles);
     }
 
     pub fn set_projection<P: Projection>(&mut self, viewport: &CameraViewPort, shaders: &mut ShaderManager) {
@@ -296,35 +436,37 @@ impl HiPSSphere {
         self.raytracer = RayTracer::new::<P>(&self.gl, viewport, shaders);
     }
 
-    pub fn update<P: Projection>(&mut self, viewport: &CameraViewPort) -> bool {
-        // This call handles:
-        // - The request of new asked tiles
-        // - The copy of the tiles to the GPU
-        //self.buffer.update(viewport, task_executor);
+    pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut AladinTaskExecutor) -> IsNextFrameRendered {
+        // Newly available tiles must lead to
+        let is_there_new_available_tiles = !available_tiles.is_empty();
+        if is_there_new_available_tiles {
+            self.time_last_tile_written = Time::now();
+        }
 
-        /*// Debug code
-        for cell in cells {
-            if !self.buffer.contains(cell) {
-                crate::log(&format!("{:?} not contained", cell));
-            }
-        }*/
+        // 1. Surveys must be aware of the new available tiles
+        self.scheme.set_available_tiles(available_tiles);
+        // 2. Get the resolved tiles and push them to the image surveys
+        let resolved_tiles = self.buffer.get_resolved_tiles(available_tiles);
+        self.sheme.push_to_surveys(resolved_tiles, exec);
+        // 3. Try sending new tile requests after 
+        self.buffer.try_sending_tile_requests();
 
         if self.survey.is_ready() {
             // Update the scene if:
             // - The viewport changed
             // - There are remaining tiles to write to the GPU
             // - The tiles blending in GPU must be done (500ms + the write time)
-            let update = viewport.is_viewport_updated() |
-                (Time::now() < self.buffer.time_last_tile_written() + DeltaTime::from_millis(500_f32));
+            let update = camera.has_camera_moved() |
+                (Time::now() < self.time_last_tile_written + DeltaTime::from_millis(500_f32));
 
             if !update {
                 false
             } else {
-                let aperture = viewport.get_aperture();
+                let aperture = camera.get_aperture();
                 let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
                 if aperture <= limit_aperture {
                     // Rasterizer mode
-                    self.raster.update::<P>(&mut self.buffer, viewport, &self.config);
+                    self.raster.update::<P>(&mut self.buffer, camera, &self.config);
                 }
 
                 true

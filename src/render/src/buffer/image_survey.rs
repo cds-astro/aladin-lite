@@ -208,7 +208,7 @@ impl ImageSurvey {
         }
     }
 
-    pub fn get_downloaded_tiles_format(&self) -> &FormatImageType {
+    pub fn get_image_format(&self) -> &FormatImageType {
         &self.config.format()
     }
 
@@ -218,6 +218,10 @@ impl ImageSurvey {
 
     pub fn config_mut(&mut self) -> &mut HiPSConfig {
         &mut self.config
+    }
+
+    pub fn get_root_url(&self) -> &str {
+        &self.config.root_url
     }
 
     #[inline]
@@ -231,7 +235,8 @@ impl ImageSurvey {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile_cell: &HEALPixCell, time_request: Time, image: I, task_executor: &mut AladinTaskExecutor) {
+    pub fn push<I: Image + 'static>(&mut self, tile: &Tile, image: I, time_request: Time, exec: &mut AladinTaskExecutor) {
+        let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
         assert!(!self.contains_tile(tile_cell));
 
@@ -258,7 +263,7 @@ impl ImageSurvey {
                     // Remove it from the textures HashMap
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
-                        texture.replace(&texture_cell, time_request, &self.config, task_executor);
+                        texture.replace(&texture_cell, time_request, &self.config, exec);
                         old_texture_cell = Some(oldest_texture.cell);
 
                         texture
@@ -300,10 +305,10 @@ impl ImageSurvey {
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
-            let spawner = task_executor.spawner();
+            let spawner = exec.spawner();
             let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &self.config);
-            let tile_cell = *tile_cell;
             //let cutoff_values_tile = self.cutoff_values_tile.clone();
+            let tile = *tile;
             spawner.spawn(TaskType::SendTileToGPU(tile_cell), async move {
                 task.await;
 
@@ -316,7 +321,7 @@ impl ImageSurvey {
                     cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
                 }*/
 
-                TaskResult::TileSentToGPU { tile_cell }
+                TaskResult::TileSentToGPU { tile }
             });
         } else {
             unreachable!()
@@ -324,27 +329,26 @@ impl ImageSurvey {
     }
 
     // Return true if at least one task has been processed
-    pub fn register_tiles_sent_to_gpu(&mut self, copied_tiles: &HashSet<HEALPixCell>) {
-        for cell in copied_tiles {
-            let texture_cell = cell.get_texture_cell(&self.config);
+    pub fn register_available_tiles(&mut self, available_tile: &Tile) {
+        let Tile {cell, ..} = available_tile;
+        let texture_cell = cell.get_texture_cell(&self.config);
 
-            if let Some(texture) = self.textures.get_mut(&texture_cell) {
-                texture.register_tile_sent_to_gpu(cell, &self.config);
+        if let Some(texture) = self.textures.get_mut(&texture_cell) {
+            texture.register_available_tile(cell, &self.config);
 
-                if texture_cell.is_root() && texture.is_available() {
-                    self.num_root_textures_available += 1;
-                    assert!(self.num_root_textures_available <= 12);
-                    //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
+            if texture_cell.is_root() && texture.is_available() {
+                self.num_root_textures_available += 1;
+                assert!(self.num_root_textures_available <= 12);
+                //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
 
-                    if self.num_root_textures_available == 12 {
-                        self.ready = true;
-                        crate::log("READYYYY");
-                    }
+                if self.num_root_textures_available == 12 {
+                    self.ready = true;
+                    crate::log("READYYYY");
                 }
-            } else {
-                // Textures written have to be in the textures collection
-                unreachable!();
             }
+        } else {
+            // Textures written have to be in the textures collection
+            unreachable!();
         }
     }
 

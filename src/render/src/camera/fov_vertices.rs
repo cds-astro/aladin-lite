@@ -11,17 +11,24 @@ struct HEALPixCells {
     pub cells: HashSet<HEALPixCell>,
 }
 use std::collections::hash_set::Iter;
-struct HEALPixCellsIter(Iter<HEALPixCell>);
+struct HEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
 
-impl Iterator for HEALPixCellsIter {
-    type Item = &HEALPixCell;
+impl<'a> Iterator for HEALPixCellsIter<'a> {
+    type Item = &'a HEALPixCell;
     
-    fn next(&mut self) -> Option<&HEALPixCell> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
 }
 
 impl HEALPixCells {
+    fn new() -> Self {
+        HEALPixCells {
+            depth: 0,
+            cells: HashSet::new()
+        }
+    }
+
     fn contains(&self, cell: &HEALPixCell) -> bool {
         self.contains(cell)
     }
@@ -39,7 +46,7 @@ impl HEALPixCells {
         }
     }
 
-    fn iter(&self) ->  HEALPixCellsIter {
+    fn iter(&self) -> HEALPixCellsIter {
         HEALPixCellsIter(self.cells.iter())
     }
 }
@@ -51,65 +58,83 @@ struct NewHEALPixCells {
     flags: HashMap<HEALPixCell, bool>,
     // A flag telling whether there has been
     // new cells added from the last frame
-    new_cells_added: bool,
+    is_new_cells_added: bool,
 };
 
 impl NewHEALPixCells {
     fn new(cells: &HEALPixCells) -> NewHEALPixCells {
         let depth = cells.depth;
+        let mut is_new_cells_added = false;
+
         let flags = cells.iter()
             .cloned()
             .map(|cell| {
+                is_new_cells_added = true;
                 (cell, true)
             })
             .collect::<HashMap<_, _>>();
 
-        let new_cells_added = true;
         NewHEALPixCells {
             depth,
             flags
-            new_cells_added
+            is_new_cells_added
         }
     }
 
     fn insert_new_cells(self, cells: &HEALPixCells) -> NewHEALPixCells {
-        let mut new_cells_added = false;
+        let mut is_new_cells_added = false;
         let new_depth = cells.depth;
-        let flags = if new_depth != self.depth {
-            new_cells_added = true;
-            // Change of depth => all cells are new
-            cells.iter()
-                .cloned()
-                .map(|cell| {
-                    (cell, true)
-                })
-                .collect::<HashMap<_, _>>()
-        } else {
-            cells.iter()
-                .cloned()
-                .map(|cell| {
-                    let new = !self.flags.contains(cell);
-                    new_cells_added |= new;
-                    
-                    (cell, new)
-                })
-                .collect::<HashMap<_, _>>()
-        };
+        let flags = cells.iter()
+            .cloned()
+            .map(|cell| {
+                let new = !self.flags.contains(cell);
+                is_new_cells_added |= new;
+
+                (cell, new)
+            })
+            .collect::<HashMap<_, _>>();
 
         NewHEALPixCells {
             depth: new_depth,
             flags,
-            new_cells_added
+            is_new_cells_added
         }
     }
 
     #[inline]
     fn is_there_new_cells_added(&self) -> bool {
-        self.new_cells_added
+        self.is_new_cells_added
+    }
+
+    #[inline]
+    fn iter<'a>(&'a self) -> NewHEALPixCellsIter<'a> {
+        self.flags.iter()
+            .filter(|(cell, new)| {
+                new
+            })
+    }
+
+    #[inline]
+    pub fn is_new(&self, cell: &HEALPixCell) -> bool {
+        if let Some(is_cell_new) = self.flags.get(cell) {
+            is_cell_new
+        } else {
+            false
+        }
     }
 }
 
-fn fov_to_depth(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
+struct NewHEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
+
+impl<'a> Iterator for NewHEALPixCellsIter<'a> {
+    type Item = &'a HEALPixCell;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
     let width = camera.get_screen_size().x;
     let aperture = camera.get_aperture().0;
 
@@ -117,28 +142,35 @@ fn fov_to_depth(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
 
     let depth_pixel = (
         (
-            (4.0 * std::f32::consts::PI) / (12.0 * angle_per_pixel * angle_per_pixel)
+            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel)
         ).log2() / 2.0
     ).round() as i8;
 
-    // The texture size in pixels
-    let texture_size = survey.get_texture_size();
-    // The depth of the texture
-    // A texture of 512x512 pixels will have a depth of 9
-    let depth_offset_texture = log_2(texture_size);
-    // The depth of the texture corresponds to the depth of a pixel
-    // minus the offset depth of the texture
-    let mut depth_texture = depth_pixel - depth_offset_texture;
-    if depth_texture < 0 {
-        depth_texture = 0;
-    }
+    let depth_texture = {
+        let conf = survey.config();
+        // The texture size in pixels
+        let texture_size = conf.get_texture_size();
+        let survey_max_depth = conf.get_max_depth();
+        // The depth of the texture
+        // A texture of 512x512 pixels will have a depth of 9
+        let depth_offset_texture = log_2(texture_size);
+        // The depth of the texture corresponds to the depth of a pixel
+        // minus the offset depth of the texture
+        let mut depth_texture = depth_pixel - depth_offset_texture;
+        if depth_texture < 0 {
+            depth_texture = 0;
+        }
+
+        std::cmp::min(survey_max_depth, depth_texture)
+    };
+   
     depth_texture as u8
 }
 
-fn get_current_cells_from_fov(survey: &ImageSurvey, camera: &CameraViewPort) -> HEALPixCells {
+fn get_cells_in_fov(survey: &ImageSurvey, camera: &CameraViewPort) -> HEALPixCells {
     // Compute the depth corresponding to the angular resolution of a pixel
     // along the width of the screen
-    let depth = get_depth_from_survey(survey);
+    let depth = compute_depth_for_survey(camera, survey);
 
     let cells = if let Some(vertices) = camera.vertices() {
         polygon_coverage(depth, vertices)
@@ -169,8 +201,9 @@ fn polygon_coverage(
 // Contains the cells being in the FOV for a specific
 // image survey
 // This keep traces of the new cells to download for an image survey
-struct ViewOnImageSurvey {
-    idx_survey: usize,
+pub struct ViewOnImageSurvey {
+    // A uniq survey identifier
+    survey_root_url: String,
     // The set of cells being in the current view for a
     // specific image survey
     cells: HEALPixCells,
@@ -178,10 +211,10 @@ struct ViewOnImageSurvey {
 }
 
 impl ViewOnImageSurvey {
-    fn create(survey: &ImageSurvey, camera: &CameraViewPort) -> ViewOnImageSurvey {
-        let idx_survey = survey.get_idx();
+    pub fn new() -> ViewOnImageSurvey {
+        let survey_root_url = String::from("");
 
-        let cells = get_current_cells_from_fov(survey, camera);
+        let cells = HEALPixCells::new();
         let new_cells = NewHEALPixCells::new(&cells);
 
         ViewOnImageSurvey {
@@ -192,17 +225,31 @@ impl ViewOnImageSurvey {
     }
 
     // This method is called whenever the user does an action
-    // that moves the viewport
-    fn update(&mut self, surveys: &[ImageSurvey], camera: &CameraViewPort) {
-        let cells = {
-            let survey = surveys[self.idx_survey];
-            get_current_cells_from_fov(survey, viewport)
-        };
+    // that moves the viewport.
+    // Everytime the user moves or zoom, the views must be updated
+    // The new cells obtained are used for sending new requests
+    pub fn update(&mut self, survey: &ImageSurvey, camera: &CameraViewPort) {
+        let cells = get_cells_in_fov(survey, viewport);
 
         self.new_cells.insert_new_cells(&cells);
         self.cells = cells;
     }
 
+    // Accessors
+    #[inline]
+    pub fn get_new_cells<'a>(&'a self) -> NewHEALPixCellsIter<'a> {
+        self.new_cells.iter()
+    }
+
+    #[inline]
+    pub fn get_cells<'a>(&'a self) -> HEALPixCellsIter<'a> {
+        self.cells.iter()
+    }
+
+    #[inline]
+    pub fn is_new(&self, cell: &HEALPixCell) -> bool {
+        self.new_cells.is_new(cell)
+    }
 }
 
 pub type NormalizedDeviceCoord = Vector2<f32>;

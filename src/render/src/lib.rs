@@ -142,7 +142,7 @@ impl App {
 
         log("shaders compiled");
         //panic!(format!("{:?}", aa));
-        let camera = Cameracamera::new::<Orthographic>(&gl);
+        let camera = CameraViewport::new::<Orthographic>(&gl);
 
         // HiPS Sphere definition
         log("sphere begin");

@@ -1,5 +1,5 @@
-mod buffer_tiles;
-pub use buffer_tiles::TileBuffer;
+mod tile_buffer;
+pub use tile_buffer::{TileBuffer, Tile, Tiles};
 
 mod texture;
 use texture::TextureUniforms;

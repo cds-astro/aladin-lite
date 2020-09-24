@@ -7,15 +7,15 @@ use task_async_executor::TaskExecutor;
 pub type AladinTaskExecutor = TaskExecutor<TaskType, TaskResult>;
 
 pub use crate::renderable::catalog::Source;
+pub use crate::buffer::Tile;
 pub enum TaskResult {
     TableParsed { name: String, sources: Vec<Source> },
-    TileSentToGPU { tile_cell: HEALPixCell }
+    TileSentToGPU { tile_cell: Tile }
 }
 
-use crate::healpix_cell::HEALPixCell;
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub enum TaskType {
-    SendTileToGPU(HEALPixCell),
+    SendTileToGPU(Tile),
     ParseTable
 }
 
@@ -86,7 +86,7 @@ use cgmath::Vector3;
 
 /// Task that send a tile to the GPU
 pub struct SendTileToGPU {
-    tile: HEALPixCell, // The tile cell that has been written
+    tile: Tile, // The tile cell that has been written
     //texture: HEALPixCell, // the texture cell that contains tile
     offset: Vector3<i32>,
     image: Box<dyn Image>,
@@ -99,12 +99,13 @@ use crate::buffer::{Image, Texture, HiPSConfig};
 use std::rc::Rc;
 impl SendTileToGPU {
     pub fn new<I: Image + 'static>(
-        cell: &HEALPixCell, // The tile cell. It must lie in the texture
+        tile: &Tile, // The tile cell. It must lie in the texture
         texture: &Texture,
         image: I,
         texture_array: Rc<Texture2DArray>,
         conf: &HiPSConfig
     ) -> SendTileToGPU {
+        let cell = tile.cell;
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
         // Index of the slice of textures
@@ -132,7 +133,7 @@ impl SendTileToGPU {
             idx_slice
         );
 
-        let tile = *cell;
+        let tile = *tile;
         let image = Box::new(image) as Box<dyn Image>;
         SendTileToGPU {
             tile,

@@ -359,7 +359,7 @@ struct FITSMetaData {
     bscale: f32,
 }
 
-enum RetrievedImageType {
+pub enum RetrievedImageType {
     FITSImage { image: TileArrayBufferImage, metadata: FITSMetaData },
     CompressedImage(TileHTMLImage)
 }
@@ -372,7 +372,7 @@ enum RequestType {
 pub trait ImageRequest {
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
-    fn image(&mut self) -> RetrievedImageType;
+    fn image(&self) -> RetrievedImageType;
 
     const REQUEST_TYPE: RequestType;
 }
@@ -388,7 +388,7 @@ impl ImageRequestType {
             CompressedImageRequest::CompressedImageRequest(r) => r.send(success, fail, url),
         }
     }
-    fn image(&mut self, config: &mut HiPSConfig) -> RetrievedImageType {
+    fn image(&self, config: &mut HiPSConfig) -> RetrievedImageType {
         match self {
             ImageRequestType::FITSImageRequest(r) => r.image(config),
             CompressedImageRequest::CompressedImageRequest(r) => r.image(config),
@@ -405,7 +405,7 @@ pub struct TileRequest {
     // the HtmlImageElement can be reused to download another tile
     ready: bool,
     resolved: Rc<Cell<ResolvedStatus>>,
-    cell: HEALPixCell,
+    tile: Tile,
     closures: [Closure<dyn FnMut(&web_sys::Event,)>; 2],
 }
 #[derive(Clone, Copy)]
@@ -444,10 +444,20 @@ impl TileRequest {
         Self { req, resolved, ready, cell, closures, time_request }
     }
 
-    pub fn send(&mut self, root_url: &str, cell: &HEALPixCell, format: &FormatImageType) {
+    /*pub fn is<R: ImageRequest>(&self) -> bool {
+        match (R::REQUEST_TYPE, self.req) {
+            (RequestType::File, ImageRequestType::FITSImageRequest(_)) => true,
+            (RequestType::HtmlImage, ImageRequestType::CompressedImageRequest(_)) => true,
+            _ => false
+        }
+    }*/
+
+    pub fn send(&mut self, tile: Tile) {
         assert!(self.is_ready());
 
-        self.cell = *cell;
+        self.tile = tile.clone();
+        let Tile { cell, root_url, format } = tile;
+
         self.ready = false;
 
         let url = {
@@ -493,8 +503,8 @@ impl TileRequest {
         self.time_request = Time::now();
     }
 
-    pub fn get_cell(&self) -> &HEALPixCell {
-        &self.cell
+    pub fn get_tile(&self) -> &HEALPixCell {
+        &self.tile
     }
 
     pub fn get_time_request(&self) -> Time {
@@ -522,7 +532,7 @@ impl TileRequest {
             Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
             Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
         ];
-        self.cell = HEALPixCell(0, 13);
+        //self.tile = HEALPixCell(0, 13);
         self.time_request = Time::now();
     }
 
@@ -556,7 +566,7 @@ impl ImageRequest for CompressedImageRequest {
         self.image.set_onerror(fail);
     }
 
-    fn image(&mut self) -> RetrievedImageType {
+    fn image(&self) -> RetrievedImageType {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
@@ -594,7 +604,7 @@ impl ImageRequest for FITSImageRequest {
         self.image.send().unwrap();
     }
 
-    fn image(&mut self) -> RetrievedImageType {
+    fn image(&self) -> RetrievedImageType {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()

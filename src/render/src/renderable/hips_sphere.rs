@@ -209,6 +209,15 @@ use crate::renderable::projection::Projection;
 use crate::buffer::ImageSurvey;
 use crate::renderable::RayTracer;
 use crate::renderable::Rasterizer;
+
+type ImageSurveys = HashMap<String, ImageSurvey>;
+enum HiPSOverlayingScheme {
+    FITSImageSurvey,
+    HTMLImageSurvey,
+    HTMLImageSurvey2FITSImageSurvey,
+    HTMLImageSurvey2HTMLImageSurvey
+}
+
 pub struct HiPSSphere {    
     // The buffer responsible for: 
     // * Performing the async request of tiles
@@ -216,7 +225,8 @@ pub struct HiPSSphere {
     // * Sending them to the GPU
     // TODO: Move this field to the main App struct
     buffer: TileBuffer,
-    survey: ImageSurvey,
+    scheme: HiPSOverlayingScheme,
+    surveys: ImageSurveys,
 
     raster: Rasterizer,
     raytracer: RayTracer,

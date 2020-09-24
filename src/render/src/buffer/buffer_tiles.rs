@@ -18,10 +18,11 @@ use crate::buffer::{
 // A tile is described by an image survey
 // and an HEALPix cell
 #[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub struct Tile {
     cell: HEALPixCell,
-    // Index of the image survey it is referred to
-    idx_survey: usize,
+    root_url: String,
+    format: FormatImageType,
 }
 
 pub type Tiles = HashSet<Tile>;

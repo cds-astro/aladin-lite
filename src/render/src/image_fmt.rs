@@ -30,7 +30,7 @@ impl FormatImage for PNG {
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct FITS { format: u32, internal_format: i32, _type: u32 }
 
 impl FITS {
@@ -93,7 +93,7 @@ impl FITS {
     }
 }
 */
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum FormatImageType {
     FITS(FITS),
     PNG,

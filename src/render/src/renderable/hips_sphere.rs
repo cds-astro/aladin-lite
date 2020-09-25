@@ -210,29 +210,77 @@ use crate::buffer::ImageSurvey;
 use crate::renderable::RayTracer;
 use crate::renderable::Rasterizer;
 
-type ImageSurveys = HashMap<String, ImageSurvey>;
-enum HiPSOverlayingScheme {
-    FITSImageSurveys,
-    HTMLImageSurvey,
-    HTMLImageSurvey2FITSImageSurvey,
-    HTMLImageSurvey2HTMLImageSurvey
+enum ImageSurveyType {
+    FITSImageSurvey {
+        survey: ImageSurvey,
+        color: cgmath::Vector4<f32>,
+    },
+    ColoredImageSurvey {
+        survey: ImageSurvey,
+    }
+}
+
+use crate::camera::ViewOnSurveys;
+struct ImageSurveys {
+    surveys: HashMap<String, ImageSurveyType>,
+    view: ViewOnSurveys,
+}
+
+std::collections::hash_map::Iter
+impl ImageSurveys {
+    fn new() -> Self {
+        
+    }
+
+    fn get(&self, root_url: &str) -> Option<&ImageSurvey> {
+        self.surveys.get(root_url)
+    }
+
+    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurveyType> {
+        self.surveys.iter()
+    }
 }
 
 const NUM_MAX_FITS_SURVEYS: usize = 3;
 type ImageSurveyColor = cgmath::Vector4<f32>;
 struct FITSImageSurveys {
     // The images surveys
-    surveys: [Option<ImageSurvey>; NUM_MAX_FITS_SURVEYS],
-    // One color per image survey
-    colors: [ImageSurveyColor; NUM_MAX_FITS_SURVEYS],
+    surveys: ImageSurveys,
     // Each survey has a view
     views: [Option<ViewOnImageSurvey>; NUM_MAX_FITS_SURVEYS],
-
     num_surveys: usize,
 
-    idx_surveys: HashMap<String, usize>,
-
     time_last_tile_written: Time,
+}
+
+trait ImageSurveysOverlaying {
+    fn update(surveys: &[Option<ImageSurvey>]) {
+
+    }
+
+    fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut AladinTaskExecutor) {
+        for (tile, result) in resolved_tiles.iter() {
+            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
+            let mut survey = &mut self.surveys[idx_survey];
+
+            match result {
+                TileResolved::Missing { time_req } => {
+                    let missing_image = survey.get_blank_tile();
+                    survey.push::<TileArrayBufferImage>(tile, missing_image, time_req, exec);
+                },
+                TileResolved::Found { image, time_req } => {
+                    match image {
+                        RetrievedImageType::FITSImage { image, metadata } => {
+                            survey.push::<TileArrayBufferImage>(image, tile, time_req, exec);
+                        },
+                        RetrievedImageType::CompressedImage(image) => {
+                            survey.push::<TileHTMLImage>(image, tile, time_req, exec);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl FITSImageSurveys {
@@ -324,29 +372,6 @@ impl FITSImageSurveys {
                             cell
                         };
                         self.buffer.request_tile(&tile);
-                    }
-                }
-            }
-        }
-    }
-
-    fn push_to_surveys(&mut self, resolved_tiles: ResolvedTiles) {
-        for (tile, result) in resolved_tiles.iter() {
-            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
-            let mut survey = &mut self.surveys[idx_survey];
-
-            match result {
-                TileResolved::Missing => {
-
-                },
-                TileResolved::Found { image } => {
-                    match image {
-                        RetrievedImageType::FITSImage { image, metadata } => {
-                            survey.push::<TileArrayBufferImage>(image, )
-                        },
-                        RetrievedImageType::CompressedImage(image) => {
-                            survey.push::<TileHTMLImage>(image, )
-                        }
                     }
                 }
             }
@@ -447,7 +472,7 @@ impl HiPSSphere {
         self.scheme.set_available_tiles(available_tiles);
         // 2. Get the resolved tiles and push them to the image surveys
         let resolved_tiles = self.buffer.get_resolved_tiles(available_tiles);
-        self.sheme.push_to_surveys(resolved_tiles, exec);
+        self.sheme.add_resolved_tiles(resolved_tiles, exec);
         // 3. Try sending new tile requests after 
         self.buffer.try_sending_tile_requests();
 
@@ -470,7 +495,7 @@ impl HiPSSphere {
                 }
 
                 true
-            }
+            }   
         } else {
             // Do not render the scene while the buffer is not ready
             true

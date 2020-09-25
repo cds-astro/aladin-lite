@@ -34,6 +34,9 @@ use rasterizer::RasterizerProjection;
 mod triangulation;
 use triangulation::Triangulation;
 
+mod view_on_surveys;
+use view_on_surveys::ViewOnImageSurvey;
+
 use hips_sphere::{
  RecomputeRasterizer,
  Zoom,

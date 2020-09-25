@@ -126,8 +126,8 @@ use crate::FormatImageType;
 
 use super::image::RetrievedImageType;
 enum TileResolved {
-    Missing,
-    Found { image: RetrievedImageType }
+    Missing { time_req: Time },
+    Found { image: RetrievedImageType, time_req: Time }
 }
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
@@ -189,15 +189,15 @@ impl TileDownloader {
                     // The tile has not been copied
                     if req_just_resolved {
                         // Tile received
-                        let time_of_request = req.get_time_request();
+                        let time_req = req.get_time_request();
         
                         let tile_resolved = match req.resolve_status() {
                             ResolvedStatus::Missing => {
-                                TileResolved::Missing
+                                TileResolved::Missing { time_req }
                             },
                             ResolvedStatus::Found => {
                                 let image = req.get_image();
-                                TileResolved::Found { image }
+                                TileResolved::Found { image, time_req }
                             },
                             _ => unreachable!()
                         }

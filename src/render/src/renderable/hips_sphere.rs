@@ -220,16 +220,21 @@ enum ImageSurveyType {
     }
 }
 
-use crate::camera::ViewOnSurveys;
+use crate::camera::ViewOnImageSurvey;
 struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
-    view: ViewOnSurveys,
+    view: ViewOnImageSurvey,
 }
 
 std::collections::hash_map::Iter
 impl ImageSurveys {
     fn new() -> Self {
         
+    }
+
+    fn add(&mut self, root_url: String, survey: ImageSurveyType) {
+        // check if the new survey needs a more refined view
+        // if so, update it
     }
 
     fn get(&self, root_url: &str) -> Option<&ImageSurvey> {

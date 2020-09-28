@@ -2,14 +2,14 @@ use crate::buffer::TileBuffer;
 
 use crate::buffer::Texture;
 use crate::healpix_cell::HEALPixCell;
-pub struct TextureState<'a> {
+pub struct ImageSurveyTexture<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
 }
 
-impl<'a> TextureState<'a> {
-    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureState<'a> {
-        TextureState {
+impl<'a> ImageSurveyTexture<'a> {
+    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture) -> ImageSurveyTexture<'a> {
+        ImageSurveyTexture {
             starting_texture,
             ending_texture
         }
@@ -17,24 +17,24 @@ impl<'a> TextureState<'a> {
 }
 
 use std::collections::{HashMap, HashSet};
-pub struct TextureStates<'a>(HashMap<HEALPixCell, TextureState<'a>>);
+pub struct ImageSurveyTextures<'a>(HashMap<HEALPixCell, ImageSurveyTexture<'a>>);
 
-impl<'a> TextureStates<'a> {
-    fn new(cap: usize) -> TextureStates<'a> {
+impl<'a> ImageSurveyTextures<'a> {
+    fn new(cap: usize) -> ImageSurveyTextures<'a> {
         let states = HashMap::with_capacity(cap);
 
-        TextureStates(states)
+        ImageSurveyTextures(states)
     }
 }
 
-impl<'a> core::ops::Deref for TextureStates<'a> {
+impl<'a> core::ops::Deref for ImageSurveyTextures<'a> {
     type Target = HashMap<HEALPixCell, TextureState<'a>>;
 
     fn deref (self: &'_ Self) -> &'_ Self::Target {
         &self.0
     }
 }
-impl<'a> core::ops::DerefMut for TextureStates<'a> {
+impl<'a> core::ops::DerefMut for SurveyTextures<'a> {
     fn deref_mut (self: &'_  mut Self) -> &'_ mut Self::Target {
         &mut self.0
     }
@@ -46,12 +46,13 @@ pub trait RecomputeRasterizer {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn compute_texture_buffer<'a, P: Projection>(
-        // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a TileBuffer,
-        // The HEALPix cells located in the FOV
-        viewport: &CameraViewPort,
-    ) -> TextureStates<'a>;
+    fn get_textures_from_survey<'a, P: Projection>(
+        // The survey from which we get the textures to plot
+        // Usually it is the most refined survey
+        survey: &'a ImageSurvey,
+        // Its associated view
+        view: &ViewHEALPixCells,
+    ) -> ImageSurveyTextures<'a>;
 
     fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8;
 }
@@ -150,9 +151,9 @@ impl RecomputeRasterizer for UnZoom {
     // * the blending factor between the two tiles in the texture
     fn compute_texture_buffer<'a, P: Projection>(
         // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a TileBuffer,
+        survey: &'a ImageSurvey,
         // The HEALPix cells located in the FOV
-        viewport: &CameraViewPort,
+        camera: &CameraViewPort,
     ) -> TextureStates<'a> {
         let depth_plus_one = viewport.depth() + 1;
         let cells_fov = viewport.get_cells_in_fov::<P>(depth_plus_one);
@@ -338,14 +339,6 @@ impl ImageSurveys {
 type ImageSurveyColor = cgmath::Vector4<f32>;
 
 pub struct HiPSSphere {    
-    // The buffer responsible for: 
-    // * Performing the async request of tiles
-    // * Storing the most recently asked texture tiles
-    // * Sending them to the GPU
-    // TODO: Move this field to the main App struct
-    buffer: TileBuffer,
-    scheme: FITSImageSurveys,
-
     raster: Rasterizer,
     raytracer: RayTracer,
 

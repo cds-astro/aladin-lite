@@ -369,15 +369,17 @@ impl App {
             self.buffer.try_sending_tile_requests();
         }
 
+        // The rendering is done following these different situations:
+        // - the camera has moved
+        let has_camera_moved = camera.has_camera_moved();
+        // - there is at least one tile in its blending phase
+        let blending_anim_occuring = (Time::now() - self.time_latest_available_tile) < BLEND_TILE_ANIM_DURATION;
+        let render = blending_anim_occuring | has_camera_moved;
 
         // Finally update the camera that reset the flag camera changed
-        if self.camera.has_camera_moved() {
+        if has_camera_moved {
             self.manager.update(&self.camera);
         }
-
-        let blending_anim_occuring = (Time::now() - self.time_latest_available_tile) < BLEND_TILE_ANIM_DURATION;
-        // We render on screen if a tile is blending or if the camera moved
-        let render = blending_anim_occuring | camera.has_camera_moved();
 
         // Then we compute different boolean for the update of the VBO
         // for the rasterizer
@@ -396,7 +398,24 @@ impl App {
         // - The starting blending animation times are changed if:
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
-        //     * during the 500ms whole animation
+        let view_most_refined = self.surveys.get_most_refined_view();
+        let new_cells_added = view_most_refined.is_there_new_cells_added();
+
+        let update_positions = new_cells_added;
+        let update_uv = update_vertices | is_there_new_available_tiles;
+        let update_starting_blending_times = update_uv;
+
+        if update_positions {
+            let positions = vec![];
+            for cell in view_most_refined.get_cells() {
+
+            }
+
+            self.rasterizer.set_positions();
+        } else {
+
+        }
+
         Ok(render)
     }
 

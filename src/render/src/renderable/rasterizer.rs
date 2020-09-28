@@ -10,6 +10,37 @@ use cgmath::Vector3;
 use web_sys::WebGl2RenderingContext;
 
 #[repr(C)]
+struct Position {
+    lon: Angle<f32>,
+    lat: Angle<f32>,
+
+    pos: Vector3<f32>,
+}
+
+impl Position {
+    fn new(lonlat: &LonLatT<f32>) -> Vertex {
+        let pos = lonlat.vector();
+        let lon = lonlat.lon();
+        let lat = lonlat.lat();
+        Vertex {
+            lon,
+            lat,
+
+            pos,
+        }
+    }
+
+    fn add_to_positions(&self, positions: &mut Vec<f32>) {
+        positions.push(self.lon.0);
+        positions.push(self.lat.0);
+
+        positions.push(self.pos.x);
+        positions.push(self.pos.y);
+        positions.push(self.pos.z);
+    }
+}
+
+#[repr(C)]
 struct Vertex {
     lon: Angle<f32>,
     lat: Angle<f32>,
@@ -87,8 +118,6 @@ fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
     sphere_sub: &SphereSubdivided,
     vertices: &mut Vec<f32>,
     idx_vertices: &mut Vec<u16>,
-    //num_vertices: &mut usize,
-    //num_idx: &mut u16,
     cell: &HEALPixCell,
     uv_0: &TileUVW,
     uv_1: &TileUVW,
@@ -98,8 +127,7 @@ fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
     add_vertices_grid(
         vertices,
         idx_vertices,
-        //num_vertices,
-        //num_idx,
+
         cell,
         num_subdivision,
         uv_0,
@@ -108,12 +136,74 @@ fn add_cell_vertices<P: Projection, E: RecomputeRasterizer>(
     );
 }
 
+type LonLatVec = Vec<f32>;
+type PositionVec = Vec<f32>;
+type UVStartVec = Vec<f32>;
+type UVEndVec = Vec<f32>;
+type StartAnimTimeVec = Vec<f32>;
+
+type IdxVerticesVec = Vec<u16>;
+
+// This method only computes the vertex positions
+// of a HEALPix cell and append them
+// to lonlats and positions vectors
+fn add_uvs_grid(
+    lonlats: &mut LonLatVec,
+    positions: &mut PositionVec,
+    idx_positions: &mut IdxVerticesVec,
+    cell: &HEALPixCell,
+    num_subdivision: u8,
+) {
+    let n_segments_by_side: u16 = 1_u16 << num_subdivision;
+    let lonlat = cdshealpix::grid_lonlat::<f32>(cell, n_segments_by_side);
+
+    let n_vertices_per_segment = n_segments_by_side + 1;
+
+    let off_idx_vertices = (positions.len()/3) as u16;
+    for i in 0..n_vertices_per_segment {
+        for j in 0..n_vertices_per_segment {
+            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+
+            let (lon, lat) = lonlat[id_vertex_0];
+            let position = lonlat[id_vertex_0].vector();
+
+            lonlats.push(lon);
+            lonlats.push(lat);
+
+            positions.push(position.x);
+            positions.push(position.y);
+            positions.push(position.z);
+        }
+    }
+
+    for i in 0..n_segments_by_side {
+        for j in 0..n_segments_by_side {
+            let idx_0 = (j + i * n_vertices_per_segment) as u16;
+            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+
+            idx_positions.push(off_idx_vertices + idx_0);
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_2);
+
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_3);
+            idx_positions.push(off_idx_vertices + idx_2);
+        }
+    }
+}
+
+// This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
 fn add_vertices_grid(
-    vertices: &mut Vec<f32>,
-    idx_vertices: &mut Vec<u16>,
-    //num_vertices: &mut usize,
-    //num_idx: &mut u16,
+    lonlats: &mut LonLatVec,
+    positions: &mut PositionVec,
+    idx_positions: &mut IdxVerticesVec,
+    uv_start: &mut UVStartVec,
+    uv_end: &mut UVEndVec,
+    start_time: &mut StartAnimTimeVec,
+
     cell: &HEALPixCell,
     num_subdivision: u8,
     uv_0: &TileUVW,
@@ -125,7 +215,7 @@ fn add_vertices_grid(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (vertices.len()/12) as u16;
+    let off_idx_vertices = (positions.len()/3) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -150,8 +240,25 @@ fn add_vertices_grid(
                 uv_1[TileCorner::BottomLeft].z
             );
 
-            Vertex::new(&lonlat[id_vertex_0], uv_s_vertex_0, uv_e_vertex_0, alpha)
-                .add_to_vertices(vertices);
+            let (lon, lat) = lonlat[id_vertex_0];
+            let position = lonlat[id_vertex_0].vector();
+
+            lonlats.push(lon);
+            lonlats.push(lat);
+
+            positions.push(position.x);
+            positions.push(position.y);
+            positions.push(position.z);
+
+            uv_start.push(uv_s_vertex_0.x);
+            uv_start.push(uv_s_vertex_0.y);
+            uv_start.push(uv_s_vertex_0.z);
+    
+            uv_end.push(uv_e_vertex_0.x);
+            uv_end.push(uv_e_vertex_0.y);
+            uv_end.push(uv_e_vertex_0.z);
+
+            start_time.push(alpha);
         }
     }
 
@@ -162,13 +269,13 @@ fn add_vertices_grid(
             let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
             let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
 
-            idx_vertices.push(off_idx_vertices + idx_0);
-            idx_vertices.push(off_idx_vertices + idx_1);
-            idx_vertices.push(off_idx_vertices + idx_2);
+            idx_positions.push(off_idx_vertices + idx_0);
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_2);
 
-            idx_vertices.push(off_idx_vertices + idx_1);
-            idx_vertices.push(off_idx_vertices + idx_3);
-            idx_vertices.push(off_idx_vertices + idx_2);
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_3);
+            idx_positions.push(off_idx_vertices + idx_2);
         }
     }
 }
@@ -343,7 +450,12 @@ pub struct Rasterizer {
 
     sphere_sub: SphereSubdivided,
 
-    vertex_array_object: VertexArrayObject,
+    vao: WebGlVertexArrayObject,
+    vbo: WebGlBuffer,
+}
+
+fn vertex_positions() -> Vec<f32> {
+
 }
 
 use crate::{
@@ -356,11 +468,19 @@ use crate::{
 };
 impl Rasterizer {
     pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager) -> Rasterizer {
+        // Compute the size of the VBO in bytes
+        // We do want to draw maximum 768 tiles
+        let max_hpx_cells = 768;
+        // Each cell has 4 vertices
+        let max_num_vertices = max_hpx_cells * 4;
+        // There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
+        let max_num_floats = max_num_vertices * 12;
+
         // Define the Vertex Array Object where vertices data will be put
         // Memory reserved from the stack
-        let vertices = vec![];
-        let idx_vertices = vec![];
-        let mut vertex_array_object = VertexArrayObject::new(gl);
+        let vertices = vec![0.0; max_num_floats];
+        let idx_vertices = vec![0; max_hpx_cells * 6];
+        //let mut vertex_array_object = VertexArrayObject::new(gl);
 
         let shader = shaders.get(
             gl,
@@ -369,7 +489,58 @@ impl Rasterizer {
                 Cow::Borrowed("RasterizerFS"),
             )
         ).unwrap();
-        shader.bind(gl)
+
+        let vao = gl.create_vertex_array().unwrap();
+        gl.bind_vertex_array(Some(&vao));
+
+        let vbo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+
+        gl.buffer_data_with_i32(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            max_num_floats * std::mem::size_of::<f32>(),
+            WebGl2RenderingContext::DYNAMIC_DRAW
+        );
+
+        {
+            let shader_bound = shader.bind(gl);
+            
+            // layout (location = 0) in vec2 lonlat;
+            gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * mem::size_of::<f32>(), 0 * mem::size_of::<f32>());
+            gl.enable_vertex_attrib_array(0);
+
+            // layout (location = 1) in vec3 position;
+            gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 2 * mem::size_of::<f32>());
+            gl.enable_vertex_attrib_array(1);
+
+            // layout (location = 2) in vec3 uv_start;
+            gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 5 * mem::size_of::<f32>());
+            gl.enable_vertex_attrib_array(2);
+
+            // layout (location = 3) in vec3 uv_end;
+            gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 8 * mem::size_of::<f32>());
+            gl.enable_vertex_attrib_array(3);
+
+            // layout (location = 4) in float time_tile_received;
+            gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, 1 * mem::size_of::<f32>(), max_num_vertices * 11 * mem::size_of::<f32>());
+            gl.enable_vertex_attrib_array(4);
+        }
+
+        // Element buffer
+        let ebo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        // Bind the buffer
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        gl.buffer_data_with_i32(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            max_num_floats * std::mem::size_of::<u16>(),
+            WebGl2RenderingContext::DYNAMIC_DRAW
+        );
+
+        /*
             .bind_vertex_array_object(&mut vertex_array_object)
             // Store the projeted and 3D vertex positions in a VBO
             .add_array_buffer(
@@ -392,6 +563,7 @@ impl Rasterizer {
             )
             // Unbind the buffer
             .unbind();
+        */
 
         let sphere_sub = SphereSubdivided::new();
         Rasterizer {
@@ -400,27 +572,52 @@ impl Rasterizer {
 
             sphere_sub,
 
-            vertex_array_object,
+            vao,
+            vbo
         }
     }
 
-    pub fn update<P: Projection>(&mut self, buffer: &mut TileBuffer, viewport: &CameraViewPort, config: &HiPSConfig) {
-        let last_user_action = viewport.last_user_action();
+
+    pub fn update_vertex_UVs(&mut self, cells_in_fov: &HEALPixCells) {
+        let last_user_action = camera.last_user_action();
 
         match last_user_action {
-            LastAction::Unzooming => {
+            UserAction::Unzooming => {
                 let tile_textures = UnZoom::compute_texture_buffer::<P>(buffer, viewport);
                 self.update_vertex_array_object::<P, UnZoom>(&tile_textures, config);
             },
-            LastAction::Zooming => {
+            UserAction::Zooming => {
                 let tile_textures = Zoom::compute_texture_buffer::<P>(buffer, viewport);
                 self.update_vertex_array_object::<P, Zoom>(&tile_textures, config);
             },
-            LastAction::Moving => {
+            UserAction::Moving => {
                 let tile_textures = Move::compute_texture_buffer::<P>(buffer, viewport);
                 self.update_vertex_array_object::<P, Move>(&tile_textures, config);
             },
-            LastAction::Starting => {
+            UserAction::Starting => {
+                let tile_textures = Move::compute_texture_buffer::<P>(buffer, viewport);
+                self.update_vertex_array_object::<P, Move>(&tile_textures, config);
+            }
+        }
+    }
+
+    pub fn update_vertices<P: Projection>(&mut self, surveys: &ImageSurveys, camera: &CameraViewPort) {
+        let last_user_action = camera.last_user_action();
+
+        match last_user_action {
+            UserAction::Unzooming => {
+                let tile_textures = UnZoom::compute_texture_buffer::<P>(buffer, viewport);
+                self.update_vertex_array_object::<P, UnZoom>(&tile_textures, config);
+            },
+            UserAction::Zooming => {
+                let tile_textures = Zoom::compute_texture_buffer::<P>(buffer, viewport);
+                self.update_vertex_array_object::<P, Zoom>(&tile_textures, config);
+            },
+            UserAction::Moving => {
+                let tile_textures = Move::compute_texture_buffer::<P>(buffer, viewport);
+                self.update_vertex_array_object::<P, Move>(&tile_textures, config);
+            },
+            UserAction::Starting => {
                 let tile_textures = Move::compute_texture_buffer::<P>(buffer, viewport);
                 self.update_vertex_array_object::<P, Move>(&tile_textures, config);
             }
@@ -430,7 +627,7 @@ impl Rasterizer {
     fn update_vertex_array_object<P: Projection, T: RecomputeRasterizer>(&mut self, tile_textures: &TextureStates, config: &HiPSConfig) {
         self.vertices.clear();
         self.idx_vertices.clear();
-        
+
         for (cell, state) in tile_textures.iter() {
             let uv_0 = TileUVW::new(cell, &state.starting_texture, config);
             let uv_1 = TileUVW::new(cell, &state.ending_texture, config);

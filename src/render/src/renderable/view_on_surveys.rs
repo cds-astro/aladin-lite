@@ -258,4 +258,9 @@ impl HEALPixCellsInView {
     pub fn is_new(&self, cell: &HEALPixCell) -> bool {
         self.new_cells.is_new(cell)
     }
+
+    #[inline]
+    pub fn is_there_new_cells_added(&self) -> bool {
+        new_cells.is_there_new_cells_added()
+    }
 }

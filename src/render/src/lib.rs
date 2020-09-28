@@ -65,10 +65,16 @@ struct App {
     gl: WebGl2Context,
 
     shaders: ShaderManager,
-    camera: Cameracamera,
+    camera: CameraViewport,
 
-    // The sphere renderable
-    sphere: HiPSSphere,
+    buffer: TileBuffer,
+    surveys: ImageSurveys,
+    view: HEALPixCellsInView,
+    
+    rasterizer: Rasterizer,
+    raytracer: RayTracer,
+    time_start_blending: Time,
+
     // The grid renderable
     grid: ProjetedGrid,
     // Catalog manager
@@ -82,8 +88,11 @@ struct App {
     move_fsm: MoveSphere,
 
     // Task executor
-    task_executor: AladinTaskExecutor,
+    exec: AladinTaskExecutor,
     resources: Resources,
+
+    move_animation: Option<MoveAnimation>,
+    tasks_finished: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,6 +110,14 @@ use futures::stream::StreamExt; // for `next`
 use crate::shaders::Colormap;
 use crate::rotation::SphericalRotation;
 use crate::finite_state_machine::move_renderables;
+struct MoveAnimation {
+    start_anim_rot: SphericalRotation<f32>,
+    goal_anim_rot: SphericalRotation<f32>,
+    time_start_anim: Time,
+}
+
+const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
+
 impl App {
     fn new(gl: &WebGl2Context, _events: &EventManager, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         //gl.enable(WebGl2RenderingContext::BLEND);
@@ -144,9 +161,27 @@ impl App {
         //panic!(format!("{:?}", aa));
         let camera = CameraViewport::new::<Orthographic>(&gl);
 
-        // HiPS Sphere definition
-        log("sphere begin");
-        let sphere = HiPSSphere::new::<Orthographic>(&gl, &camera, config, &mut shaders);
+        // The tile buffer responsible for the tile requests
+        let buffer = TileBuffer::new(gl, &camera);
+        // The surveys storing the textures of the resolved tiles
+        let surveys = ImageSurveys::new();
+        // A view on the survey
+        // This will be updated whenever the user does an action
+        // to get the current cells being in the FoV
+        let view = HEALPixCellsInView::new();
+        // Two mode of render, each storing a specific VBO
+        // - The rasterizer draws the HEALPix cells being in the current view
+        // This mode of rendering is used for small FoVs
+        let rasterizer = Rasterizer::new(&gl, &shaders);
+        // - The raytracer is a mesh covering the view. Each pixel of this mesh
+        //   is unprojected to get its (ra, dec). Then we query ang2pix to get
+        //   the HEALPix cell in which it is located.
+        //   We get the texture from this cell and draw the pixel
+        //   This mode of rendering is used for big FoVs
+        let raytracer = RayTracer::new::<Orthographic>(&gl, &camera, &shaders);
+
+        let time_start_blending = Time::now();
+
         // Catalog definition
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources);
 
@@ -171,8 +206,12 @@ impl App {
         let move_fsm = MoveSphere::init();
 
         let gl = gl.clone();
-        let task_executor = AladinTaskExecutor::new();
+        let exec = AladinTaskExecutor::new();
 
+        // Variable storing the location to move to
+        let move_animation = None;
+        let tasks_finished = false;
+        let start_render_time = Time::now();
         let app = App {
             gl,
 
@@ -180,8 +219,12 @@ impl App {
 
             camera,
 
-            // The sphere renderable
-            sphere,
+            buffer,
+            surveys,
+            view,
+            rasterizer,
+            raytracer,
+            time_start_blending,
             // The grid renderable
             grid,
             // The catalog renderable
@@ -193,66 +236,167 @@ impl App {
             user_zoom_fsm,
             move_fsm,
 
-            task_executor,
+            exec,
             resources,
+
+            move_animation,
+
+            tasks_finished,
         };
         Ok(app)
     } 
+
+    fn look_for_new_tiles(&mut self, camera: &CameraViewPort) {
+        // Move the views of the different active surveys
+        self.surveys.update_views(camera);
+
+        // Loop over the surveys
+        for (root_url, survey) in self.surveys.iter() {
+            let view = self.surveys.get_view_survey(root_url);
+            let cells_in_fov = view.get_cells();
+
+            for cell in cells_in_fov.iter() {
+                let already_available = survey.contains_tile(cell);
+                let is_cell_new = view.is_new(cell);
+
+                if already_available {
+                    // Remove and append the texture with an updated
+                    // time_request
+                    if is_cell_new {
+                        // New cells are 
+                        self.time_start_blending = Time::now();
+                    }
+                    survey.update_priority(cell, is_cell_new);
+                } else {
+                    // Submit the request to the buffer
+                    let root_url = survey.get_root_url();
+                    let format = survey.get_image_format();
+                    let tile = Tile {
+                        root_url,
+                        format,
+                        cell
+                    };
+                    self.buffer.request_tile(&tile);
+                }
+            }
+        }
+    }
 
     // Run async tasks:
     // - parsing catalogs
     // - copying textures to GPU
     // Return true when a task is complete. This always lead
     // to a redraw of aladin lite
-    fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<bool, JsValue> {
+    fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.task_executor.run(dt.0 * 0.5_f32);
-        let task_finished = !results.is_empty();
+        let results = self.exec.run(dt.0 * 0.5_f32);
+        self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been
         // copied to the GPU
         // This is important for the tile buffer to know which
         // requests can be reused to query more tiles
-        let mut tiles_sent_to_gpu = HashSet::new();
+        let mut tiles_available = HashSet::new();
         for result in results {
             match result {
                 TaskResult::TableParsed { name, sources} => {
                     log("CATALOG FINISHED PARSED");
                     self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &mut self.shaders, &self.camera, self.sphere.config());
                 },
-                TaskResult::TileSentToGPU { tile_cell } => {
-                    tiles_sent_to_gpu.insert(tile_cell);
+                TaskResult::TileSentToGPU { tile } => {
+                    tiles_available.insert(tile);
                 }
             }
         }
 
-        self.sphere.ack_tiles_sent_to_gpu(&tiles_sent_to_gpu, &mut self.task_executor);
-
-        Ok(task_finished)
+        Ok(tiles)
     }
 
     fn update<P: Projection>(&mut self,
         dt: DeltaTime,
         events: &EventManager,
     ) -> Result<bool, JsValue> {
-        let mut render = self.run_tasks::<P>(dt)?;
+        let available_tiles = self.run_tasks::<P>(dt)?;
+        let is_there_new_available_tiles = !available_tiles.is_empty();
 
         // Run the FSMs
-        self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+        //self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+        //self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+        //self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
+
+        // Check if there is an move animation to do
+        if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim} ) = self.move_animation {
+            let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
+        
+            // Undamped angular frequency of the oscillator
+            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
+            //
+            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
+            // where: 
+            // * k is the stiffness of the ressort
+            // * m is its mass
+            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * ((-5_f32 * t).exp());
+            let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
+    
+            camera.set_rotation::<P>(&p);
+            self.look_for_new_tiles();
+
+            // Animation stop criteria
+            let cursor_pos = self.get_center::<P>();
+            let goal_pos = location;
+            let err = math::ang_between_vect(&goal_pos, &cursor_pos);
+            let thresh: Angle<f32> = ArcSec(2_f32).into();
+            if err < thresh {
+                self.move_animation = None;
+            }
+        }
 
         // Update the grid in consequence
         //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.camera, &self.shaders);
-        // And the HiPS sphere VAO
-        render |= self.sphere.update::<P>(&self.camera);
         //self.text.update_from_camera::<P>(&self.camera);
+        {
+            // Newly available tiles must lead to
+            if is_there_new_available_tiles {
+                self.time_latest_available_tile = Time::now();
+            }
+
+            // 1. Surveys must be aware of the new available tiles
+            self.surveys.set_available_tiles(available_tiles);
+            // 2. Get the resolved tiles and push them to the image surveys
+            let resolved_tiles = self.buffer.get_resolved_tiles(available_tiles);
+            self.surveys.add_resolved_tiles(resolved_tiles, &mut self.exec);
+            // 3. Try sending new tile requests after 
+            self.buffer.try_sending_tile_requests();
+        }
+
 
         // Finally update the camera that reset the flag camera changed
         if self.camera.has_camera_moved() {
             self.manager.update(&self.camera);
         }
 
+        let blending_anim_occuring = (Time::now() - self.time_latest_available_tile) < BLEND_TILE_ANIM_DURATION;
+        // We render on screen if a tile is blending or if the camera moved
+        let render = blending_anim_occuring | camera.has_camera_moved();
+
+        // Then we compute different boolean for the update of the VBO
+        // for the rasterizer
+        // The rasterizer has a buffer containing:
+        // - The vertices of the HEALPix cells for the most refined survey
+        // - The starting and ending uv for the blending animation
+        // - The time for each HEALPix cell at which the animation begins
+        //
+        // Each of these data can be changed at different circumstances:
+        // - The vertices are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //   to the previous frame.
+        // - The UVs are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //     * there are new available tiles for the GPU 
+        // - The starting blending animation times are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //     * there are new available tiles for the GPU
+        //     * during the 500ms whole animation
         Ok(render)
     }
 
@@ -297,10 +441,9 @@ impl App {
         );*/
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
-    
-    fn get_fov(&self) -> f32 {
-        let deg: ArcDeg<f32> = self.camera.get_aperture().into();
-        deg.0
+
+    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
+        self.sphere.set_image_survey::<P>(hips_definition, &mut self.camera, &mut self.exec)
     }
 
     fn set_projection<P: Projection>(&mut self) {
@@ -316,13 +459,8 @@ impl App {
         }
         self.sphere.set_projection::<P>(&self.camera, &mut self.shaders);
     }
-
-    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
-        self.sphere.set_image_survey::<P>(hips_definition, &mut self.camera, &mut self.task_executor)
-    }
-
     fn add_catalog(&mut self, name: String, table: JsValue) {
-        let spawner = self.task_executor.spawner();
+        let spawner = self.exec.spawner();
         let table = table;
         spawner.spawn(TaskType::ParseTable, async {
             let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);
@@ -337,6 +475,14 @@ impl App {
             crate::log("END PARSING");
             TaskResult::TableParsed { name, sources: results }
         });
+    }
+
+    fn resize_window<P: Projection>(&mut self, width: f32, height: f32, _enable_grid: bool) {
+        self.camera.resize::<P>(width, height);
+
+        // Launch the new tile requests
+        self.look_for_new_tiles();
+        manager.set_kernel_size(&self.camera);
     }
 
     fn set_colormap(&mut self, name: String, colormap: Colormap) {
@@ -357,31 +503,23 @@ impl App {
             .set_strength(strength);
     }
 
-    fn resize_window<P: Projection>(&mut self, width: f32, height: f32, _enable_grid: bool) {
-        self.camera.resize::<P>(width, height);
-
-        // Launch the new tile requests
-        sphere.ask_for_tiles::<P>(&self.camera.new_healpix_cells());
-        manager.set_kernel_size(&self.camera);
-    }
-
-    pub fn set_color_rgb(&mut self, _red: f32, _green: f32, _blue: f32) {
-        //self.grid.set_color_rgb(red, green, blue);
+    pub fn set_grid_color(&mut self, _red: f32, _green: f32, _blue: f32) {
+        //self.grid.set_color(red, green, blue);
     }
 
     pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) {
-        self.sphere.set_cutouts(min_cutout, max_cutout);
+        //self.sphere.set_cutouts(min_cutout, max_cutout);
     }
 
     pub fn set_transfer_func(&mut self, id: String) {
-        self.sphere.set_transfer_func(TransferFunction::new(&id));
+        //self.sphere.set_transfer_func(TransferFunction::new(&id));
     }
 
     pub fn set_fits_colormap(&mut self, colormap: Colormap) {
-        self.sphere.set_fits_colormap(colormap);
+        //self.sphere.set_fits_colormap(colormap);
     }
 
-    pub fn change_grid_opacity(&mut self, _alpha: f32) {
+    pub fn set_grid_opacity(&mut self, _alpha: f32) {
         //self.grid.set_alpha(alpha);
     }
 
@@ -390,18 +528,31 @@ impl App {
         Ok(model_pos.lonlat())
     }
 
-    fn get_center<P: Projection>(&self) -> LonLatT<f32> {
-        let center_pos = self.camera.compute_center_model_pos::<P>();
-        center_pos.lonlat()
-    }
     pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
         let xyz: Vector4<f32> = lonlat.vector();
         let rot = SphericalRotation::from_sky_position(&xyz);
-        self.camera.set_rotation::<P>(&rot, &self.sphere.config);
-        self.sphere.ask_for_tiles::<P>(self.camera.new_healpix_cells());
+        self.camera.set_rotation::<P>(&rot);
+        self.look_for_new_tiles();
     }
 
-    pub fn move_camera<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+    pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
+        // Get the XYZ cartesian position from the lonlat
+        let cursor_pos: Vector4<f32> = self.get_center().vector();
+        let goal_pos: Vector4<f32> = lonlat.vector();
+
+        // Convert these positions to rotations
+        let start_anim_rot = SphericalRotation::from_sky_position(&cursor_pos);
+        let goal_anim_rot = SphericalRotation::from_sky_position(&goal_pos);
+
+        // Set the moving animation object
+        self.move_animation = Some(MoveAnimation {
+            time_start_moving: Time::now(),
+            start_anim_rot,
+            goal_anim_rot,
+        });
+    }
+
+    /*pub fn move_camera<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
         let model2world = self.camera.get_inverted_model_mat();
 
         let m1: Vector4<f32> = pos1.vector();
@@ -412,18 +563,28 @@ impl App {
         move_renderables::<P>(
             &w1,
             &w2,
-            &mut self.sphere,
+            //&mut self.sphere,
             &mut self.manager,
             &mut self.grid,
             &mut self.camera
         );
-    }
+    }*/
     
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
         // Change the camera rotation
-        self.camera.set_aperture::<P>(*fov, self.sphere.config());
-        // Ask for tiles being in the new fov
-        self.sphere.ask_for_tiles::<P>(self.camera.new_healpix_cells());
+        self.camera.set_aperture::<P>(*fov);
+        self.look_for_new_tiles();
+    }
+
+    // Accessors
+    fn get_center<P: Projection>(&self) -> LonLatT<f32> {
+        let center_pos = self.camera.compute_center_model_pos::<P>();
+        center_pos.lonlat()
+    }
+
+    fn get_fov(&self) -> f32 {
+        let deg: ArcDeg<f32> = self.camera.get_aperture().into();
+        deg.0
     }
 }
 
@@ -519,7 +680,7 @@ impl ProjectionType {
         }
     }
 
-    fn move_camera(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+    /*fn move_camera(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
         match self {
             ProjectionType::Aitoff => app.move_camera::<Aitoff>(pos1, pos2),
             ProjectionType::MollWeide => app.move_camera::<Mollweide>(pos1, pos2),
@@ -527,7 +688,7 @@ impl ProjectionType {
             ProjectionType::Arc => app.move_camera::<Mollweide>(pos1, pos2),
             ProjectionType::Mercator => app.move_camera::<Mercator>(pos1, pos2),
         }
-    }
+    }*/
 
     fn update(&mut self, app: &mut App, dt: DeltaTime, events: &EventManager) -> Result<bool, JsValue> {
         match self {
@@ -609,6 +770,16 @@ impl ProjectionType {
         };
     }
 
+    pub fn start_moving_to(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
+        match self {
+            ProjectionType::Aitoff => app.start_moving_to::<Aitoff>(&lonlat),
+            ProjectionType::MollWeide => app.start_moving_to::<Mollweide>(&lonlat),
+            ProjectionType::Ortho => app.start_moving_to::<Orthographic>(&lonlat),
+            ProjectionType::Arc => app.start_moving_to::<Mollweide>(&lonlat),
+            ProjectionType::Mercator => app.start_moving_to::<Mercator>(&lonlat),
+        };
+    }
+
     pub fn set_fov(&mut self, app: &mut App, fov: Angle<f32>) {
         match self {
             ProjectionType::Aitoff => app.set_fov::<Aitoff>(&fov),
@@ -629,13 +800,13 @@ impl ProjectionType {
         }
     }
 
-    pub fn set_color_rgb(&mut self, app: &mut App, red: f32, green: f32, blue: f32) {
+    pub fn set_grid_color(&mut self, app: &mut App, red: f32, green: f32, blue: f32) {
         match self {
-            ProjectionType::Aitoff => app.set_color_rgb(red, green, blue),
-            ProjectionType::MollWeide => app.set_color_rgb(red, green, blue),
-            ProjectionType::Ortho => app.set_color_rgb(red, green, blue),
-            ProjectionType::Arc => app.set_color_rgb(red, green, blue),
-            ProjectionType::Mercator => app.set_color_rgb(red, green, blue),
+            ProjectionType::Aitoff => app.set_grid_color(red, green, blue),
+            ProjectionType::MollWeide => app.set_grid_color(red, green, blue),
+            ProjectionType::Ortho => app.set_grid_color(red, green, blue),
+            ProjectionType::Arc => app.set_grid_color(red, green, blue),
+            ProjectionType::Mercator => app.set_grid_color(red, green, blue),
         };
     }
 
@@ -669,13 +840,13 @@ impl ProjectionType {
         };
     }
 
-    pub fn change_grid_opacity(&mut self, app: &mut App, alpha: f32) {
+    pub fn set_grid_opacity(&mut self, app: &mut App, alpha: f32) {
         match self {
-            ProjectionType::Aitoff => app.change_grid_opacity(alpha),
-            ProjectionType::MollWeide => app.change_grid_opacity(alpha),
-            ProjectionType::Ortho => app.change_grid_opacity(alpha),
-            ProjectionType::Arc => app.change_grid_opacity(alpha),
-            ProjectionType::Mercator => app.change_grid_opacity(alpha),
+            ProjectionType::Aitoff => app.set_grid_opacity(alpha),
+            ProjectionType::MollWeide => app.set_grid_opacity(alpha),
+            ProjectionType::Ortho => app.set_grid_opacity(alpha),
+            ProjectionType::Arc => app.set_grid_opacity(alpha),
+            ProjectionType::Mercator => app.set_grid_opacity(alpha),
         };
     }
 }
@@ -852,15 +1023,15 @@ impl WebClient {
     }
     
     /// Change grid color
-    pub fn change_grid_color(&mut self, red: f32, green: f32, blue: f32) -> Result<(), JsValue> {
-        self.projection.set_color_rgb(&mut self.app, red, green, blue);
+    pub fn set_grid_color(&mut self, red: f32, green: f32, blue: f32) -> Result<(), JsValue> {
+        self.projection.set_grid_color(&mut self.app, red, green, blue);
 
         Ok(())
     }
 
     /// Change grid opacity
-    pub fn change_grid_opacity(&mut self, alpha: f32) -> Result<(), JsValue> {
-        self.projection.change_grid_opacity(&mut self.app, alpha);
+    pub fn set_grid_opacity(&mut self, alpha: f32) -> Result<(), JsValue> {
+        self.projection.set_grid_opacity(&mut self.app, alpha);
 
         Ok(())
     }
@@ -921,7 +1092,7 @@ impl WebClient {
     pub fn set_fov(&mut self, fov: f32) -> Result<(), JsValue> {
         self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
         // Tell the finite state machines the fov has manually been changed
-        self.events.enable::<SetFieldOfView>(());
+        //self.events.enable::<SetFieldOfView>(());
 
         Ok(())
     }
@@ -937,22 +1108,22 @@ impl WebClient {
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
-    #[wasm_bindgen(js_name = startInertia)]
+    /*#[wasm_bindgen(js_name = startInertia)]
     pub fn start_inertia(&mut self) -> Result<(), JsValue> {
         //self.projection.set_center(&mut self.app, ArcDeg(lon).into(), ArcDeg(lat).into());
         // Tell the finite state machines the center has manually been changed
         self.events.enable::<StartInertia>(());
 
         Ok(())
-    }
-
+    }*/
+/*
     /// Initiate a finite state machine that will zoom until a fov is reached
     /// while moving to a specific location
     #[wasm_bindgen(js_name = zoomToLocation)]
     pub fn set_zoom(&mut self, lon: f32, lat: f32, fov: f32) -> Result<(), JsValue> {
         self.events.enable::<ZoomToLocation>(
             (
-                    LonLatT::new(
+                LonLatT::new(
                     ArcDeg(lon).into(),
                     ArcDeg(lat).into()
                 ),
@@ -961,17 +1132,23 @@ impl WebClient {
         );
 
         Ok(())
-    }
+    }*/
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveToLocation)]
-    pub fn move_to(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
+    pub fn start_moving_to(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
         // Enable the MouseLeftButtonReleased event
-        self.events.enable::<MoveToLocation>(
+        let location = LonLatT::new(
+            ArcDeg(lon).into(),
+            ArcDeg(lat).into()
+        );
+        self.projection.start_moving_to(&mut self.app, lonlat);
+
+        /*self.events.enable::<MoveToLocation>(
             LonLatT::new(
                 ArcDeg(lon).into(),
                 ArcDeg(lat).into()
             )
-        );
+        );*/
 
         Ok(())
     }
@@ -983,8 +1160,7 @@ impl WebClient {
 
         Ok(())
     }
-    /// Initiate a finite state machine that will move to a specific location
-    #[wasm_bindgen(js_name = moveView)]
+    /*#[wasm_bindgen(js_name = moveView)]
     pub fn displace(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {
         let pos1 = LonLatT::new(
             ArcDeg(lon1).into(),
@@ -997,7 +1173,7 @@ impl WebClient {
         self.projection.move_camera(&mut self.app, &pos1, &pos2);
 
         Ok(())
-    }
+    }*/
 
     /// CATALOG INTERFACE METHODS
     /// Add new catalog
@@ -1041,19 +1217,6 @@ impl WebClient {
         self.projection.resize(&mut self.app, width, height, self.enable_grid);
 
         Ok(())
-    }
-
-    // Download a tile and add it to the buffer
-    pub fn start_download(&mut self, tile: HEALPixCellJS, url: String, cors: bool) -> Result<(), JsValue> {
-        //self.projection.start_download(&mut self.app, &url, cors);
-
-        Ok(())
-    }
-
-    #[wasm_bindgen]
-    pub fn is_tile_available(&self, tile: HEALPixCellJS) -> Result<bool, JsValue> {
-        
-        Ok(true)
     }
 }
 

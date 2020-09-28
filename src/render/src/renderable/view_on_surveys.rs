@@ -43,6 +43,27 @@ impl HEALPixCells {
         }
     }
 
+    pub fn degrade(self, depth: u8) -> Self {
+        // Degrade to a more precise depth is
+        // not possible
+        if depth >= self.depth {
+            self
+        } else {
+            let delta_depth = self.depth - depth;
+            let two_times_delta_depth = 2*delta_depth;
+            let cells = self.cells.into_iter()
+                .map(|HEALPixCell(_, idx)| {
+                    HEALPixCell(depth, idx >> two_times_delta_depth)
+                })
+                .collect::<HashSet<_>>();
+
+            HEALPixCells {
+                depth,
+                cells
+            }
+        }
+    }
+
     fn iter(&self) -> HEALPixCellsIter {
         HEALPixCellsIter(self.cells.iter())
     }
@@ -192,47 +213,19 @@ fn polygon_coverage(
 }
 
 // Contains the cells being in the FOV for a specific
-// image survey
-// This keep traces of the new cells to download for an image survey
-pub struct ViewOnImageSurvey {
+pub struct HEALPixCellsInView {
     // The set of cells being in the current view for a
     // specific image survey
     cells: HEALPixCells,
     new_cells: NewHEALPixCells,
 }
 
-fn get_most_refined_survey_url(surveys: &[ImageSurvey]) -> &str {
-    let mut root_url = &"";
-    let mut min_tex_size = std::i32::MAX;
-
-    for survey in surveys {
-        let tex_size = survey.config().texture_size;
-        
-        if tex_size < min_tex_size {
-            min_tex_size = tex_size;
-            root_url = survey.get_root_url();
-        }
-    }
-
-    root_url
-}
-
-impl ViewOnImageSurvey {
+impl HEALPixCellsInView {
     pub fn new() -> Self {
-        /*
-        // The view defining the vertices to render
-        // of a group of surveys is chosen to be the most
-        // refined one, i.e. the one whose texture_size is
-        // the smallest
-        let mut survey_root_url = get_most_refined_survey_url(surveys).clone();
-
         let cells = HEALPixCells::new();
         let new_cells = NewHEALPixCells::new(&cells);
-        */
 
-        let cells = HEALPixCells::new();
-        let new_cells = NewHEALPixCells::new(&cells);
-        ViewOnSurveys {
+        HEALPixCellsInView {
             cells,
             new_cells,
         }

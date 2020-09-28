@@ -10,7 +10,7 @@ pub use crate::renderable::catalog::Source;
 pub use crate::buffer::Tile;
 pub enum TaskResult {
     TableParsed { name: String, sources: Vec<Source> },
-    TileSentToGPU { tile_cell: Tile }
+    TileSentToGPU { tile: Tile }
 }
 
 #[derive(Hash, Eq, PartialEq, Clone)]

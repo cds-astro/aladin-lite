@@ -220,53 +220,86 @@ enum ImageSurveyType {
     }
 }
 
-use crate::camera::ViewOnImageSurvey;
+impl ImageSurveyType {
+    fn get_survey(&self) -> &ImageSurvey {
+        match self {
+            ImageSurveyType::FITSImageSurvey { survey, ..} => survey,
+            ImageSurveyType::ColoredImageSurvey { survey } => survey,
+        }
+    }
+}
+
+use crate::camera::ViewHEALPixCells;
 struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
-    view: ViewOnImageSurvey,
+    views: HashMap<String, ViewHEALPixCells>,
+    most_refined_survey: Option<String>,
 }
 
-std::collections::hash_map::Iter
 impl ImageSurveys {
-    fn new() -> Self {
-        
+    pub fn new() -> Self {
+        let surveys = HashMap::new();
+        let views = HashMap::new();
+        let most_refined_survey = None;
+
+        ImageSurveys {
+            surveys,
+            views,
+            most_refined_survey,
+        }
     }
 
-    fn add(&mut self, root_url: String, survey: ImageSurveyType) {
-        // check if the new survey needs a more refined view
-        // if so, update it
+    pub fn add(&mut self, root_url: String, survey: ImageSurveyType, camera: &CameraViewPort) {
+        if self.most_refined_survey.is_none() {
+            // First survey added
+            self.most_refined_survey = Some(root_url);
+        } else {
+            // Compare the new with the current
+            let tex_size_cur = self.survey.get_survey()
+                .config()
+                .get_texture_size();
+            let tex_size_new = survey.get_survey()
+                .config()
+                .get_texture_size();
+
+            if tex_size_new < tex_size_cur {
+                self.most_refined_survey = Some(root_url);
+            }
+        }
+
+        self.surveys.insert(root_url, survey);
+        // Instanciate a new view on this survey
+        self.views.insert(root_url, ViewHEALPixCells::new());
     }
 
-    fn get(&self, root_url: &str) -> Option<&ImageSurvey> {
-        self.surveys.get(root_url)
+    pub fn get_view_survey(&self, root_url: &str) -> &ViewHEALPixCells {
+        self.views.get(root_url).unwrap()
     }
 
-    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurveyType> {
-        self.surveys.iter()
-    }
-}
-
-const NUM_MAX_FITS_SURVEYS: usize = 3;
-type ImageSurveyColor = cgmath::Vector4<f32>;
-struct FITSImageSurveys {
-    // The images surveys
-    surveys: ImageSurveys,
-    // Each survey has a view
-    views: [Option<ViewOnImageSurvey>; NUM_MAX_FITS_SURVEYS],
-    num_surveys: usize,
-
-    time_last_tile_written: Time,
-}
-
-trait ImageSurveysOverlaying {
-    fn update(surveys: &[Option<ImageSurvey>]) {
-
+    pub fn get_view_most_refined_survey(&self) -> &ViewHEALPixCells {
+        self.views.get(&self.most_refined_survey).unwrap()
     }
 
-    fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut AladinTaskExecutor) {
+    pub fn update_views(&mut self, camera: &CameraViewPort) {
+        for (root_url, view) in self.views.iter_mut() {
+            let survey = self.surveys.get(root_url).unwrap();
+            view.update(survey, camera);
+        }
+    }
+
+    // Update the surveys by telling which tiles are available
+    pub fn set_available_tiles(&mut self, available_tiles: &Tiles) {
+        for tile in available_tiles {
+            let mut survey = &mut self.surveys.get_mut(&tile.root_url).unwrap();
+            survey.register_available_tile(tile);
+        }
+    }
+
+    // Update the surveys by adding to the surveys the tiles
+    // that have been resolved
+    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut AladinTaskExecutor) {
         for (tile, result) in resolved_tiles.iter() {
-            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
-            let mut survey = &mut self.surveys[idx_survey];
+            let mut survey = &mut self.surveys.get_mut(&tile.root_url).unwrap();
 
             match result {
                 TileResolved::Missing { time_req } => {
@@ -286,103 +319,23 @@ trait ImageSurveysOverlaying {
             }
         }
     }
-}
 
-impl FITSImageSurveys {
-    fn new() -> Self {
-        let num_surveys = 0;
-        let surveys = [None, None, None];
-        let views = [None, None, None];
-
-        let colors = [
-            Vector4::new(1.0, 0.0, 0.0, 1.0),
-            Vector4::new(0.0, 1.0, 0.0, 1.0),
-            Vector4::new(0.0, 0.0, 1.0, 1.0),
-        ];
-
-        let idx_surveys = HashMap::new();
-        let time_last_tile_written = Time::now();
-
-        FITSImageSurveys {
-            num_surveys,
-
-            surveys,
-            views,
-            colors,
-
-            idx_surveys,
-            time_last_tile_written
-        }
+    
+    // Accessors
+    fn get(&self, root_url: &str) -> Option<&ImageSurvey> {
+        self.surveys.get(root_url)
     }
 
-    fn set_image_survey(&mut self, idx: usize, survey: ImageSurvey, color: ImageSurveyColor) {
-        assert!(idx < NUM_MAX_FITS_SURVEYS);
-
-        if self.surveys[idx].is_none() {
-            self.num_surveys += 1;
-        }
-
-        self.surveys[idx] = Some(survey);
-        self.colors[idx] = Some(color);
-        self.views[idx] = Some(ViewOnImageSurvey::new());
-
-
-        let root_url = survey.get_root_url();
-        self.idx_surveys.insert(root_url, idx);
+    fn len(&self) -> usize {
+        self.surveys.len()
     }
 
-    fn set_color_image_survey(&mut self, idx: usize, color: ImageSurveyColor) {
-        assert!(idx < NUM_MAX_FITS_SURVEYS);
-
-        self.colors[idx] = color;
-    }
-
-    fn set_available_tiles(&mut self, available_tiles: &Tiles) {
-        for tile in available_tiles {
-            let idx_survey = self.idx_surveys.get(tile.root_url).unwrap();
-            let mut survey = &mut self.surveys[idx_survey];
-            survey.register_available_tile(tile);
-        }
-    }
-
-    fn move(&mut self, camera: &CameraViewPort) {
-        for (idx, view) in self.views.iter_mut().enumerate() {
-            if let Some(view) = view {
-                let survey = &self.surveys[idx];
-
-                // Move the view
-                view.update(survey, camera);
-
-                // Request for the tiles not found in the buffer
-                let cells_in_fov = view.get_cells();
-                for cell in cells_in_fov.iter() {
-                    let already_available = survey.contains_tile(cell);
-                    if already_available {
-                        let start_time = Time::now();
-            
-                        // Remove and append the texture with an updated
-                        // time_request
-                        let is_cell_new = view.is_new(cell);
-                        survey.update_priority(cell, is_cell_new, start_time);
-                        if is_cell_new {
-                            self.time_last_tile_written = start_time;
-                        }
-                    } else {
-                        // Submit the request to the buffer
-                        let root_url = survey.get_root_url();
-                        let format = survey.get_image_format();
-                        let tile = Tile {
-                            root_url,
-                            format,
-                            cell
-                        };
-                        self.buffer.request_tile(&tile);
-                    }
-                }
-            }
-        }
+    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurveyType> {
+        self.surveys.iter()
     }
 }
+
+type ImageSurveyColor = cgmath::Vector4<f32>;
 
 pub struct HiPSSphere {    
     // The buffer responsible for: 
@@ -416,25 +369,14 @@ use wasm_bindgen::JsValue;
 type IsNextFrameRendered = bool;
 use crate::buffer::Tiles;
 
-impl HiPSSphere {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
-        let buffer = TileBuffer::new(gl, viewport);
-        let scheme = FITSImageSurveys::new();
-        crate::log(&format!("config: {:?}", config));
+// This is specific to the rasterizer method of rendering
+impl HEALPixSphere {
+    pub fn new(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
 
-        let gl = gl.clone();
-
-        let raster = Rasterizer::new(&gl, shaders);
-        crate::log(&format!("raster"));
-
-        let raytracer = RayTracer::new::<P>(&gl, viewport, shaders);
         crate::log(&format!("raytracer"));
-        HiPSSphere {
+        HEALPixSphere {
             buffer,
-            survey,
-
-            raster,
-            raytracer,
+            surveys,
 
             gl,
         }
@@ -451,10 +393,10 @@ impl HiPSSphere {
         Ok(())
     }
     
-    pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {
+    /*pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {
         // Ask for the real tiles being in the viewport
         self.buffer.ask_for_tiles(cells, &self.config);
-    }
+    }*/
 
     pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut AladinTaskExecutor) {
         //survey.register_tiles_sent_to_gpu(copied_tiles);
@@ -467,26 +409,14 @@ impl HiPSSphere {
     }
 
     pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut AladinTaskExecutor) -> IsNextFrameRendered {
-        // Newly available tiles must lead to
-        let is_there_new_available_tiles = !available_tiles.is_empty();
-        if is_there_new_available_tiles {
-            self.time_last_tile_written = Time::now();
-        }
 
-        // 1. Surveys must be aware of the new available tiles
-        self.scheme.set_available_tiles(available_tiles);
-        // 2. Get the resolved tiles and push them to the image surveys
-        let resolved_tiles = self.buffer.get_resolved_tiles(available_tiles);
-        self.sheme.add_resolved_tiles(resolved_tiles, exec);
-        // 3. Try sending new tile requests after 
-        self.buffer.try_sending_tile_requests();
 
         if self.survey.is_ready() {
             // Update the scene if:
             // - The viewport changed
             // - There are remaining tiles to write to the GPU
             // - The tiles blending in GPU must be done (500ms + the write time)
-            let update = camera.has_camera_moved() |
+            let update =  |
                 (Time::now() < self.time_last_tile_written + DeltaTime::from_millis(500_f32));
 
             if !update {
@@ -525,7 +455,7 @@ impl HiPSSphere {
                 //.attach_uniforms_from(&self.config)
                 //.attach_uniforms_from(&self.buffer)
                 .attach_uniform("inv_model", viewport.get_inverted_model_mat())
-                .attach_uniform("current_time", &utils::get_current_time())
+                .attach_uniform("current_time", &utils::get_current_time());
 
             self.raster.draw::<P>(gl, &shader_bound);
         } else {
@@ -538,7 +468,7 @@ impl HiPSSphere {
                 //.attach_uniforms_from(&self.buffer)
                 .attach_uniform("model", viewport.get_model_mat())
                 .attach_uniform("current_depth", &(viewport.depth() as i32))
-                .attach_uniform("current_time", &utils::get_current_time())
+                .attach_uniform("current_time", &utils::get_current_time());
 
             self.raytracer.draw(gl, &shader_bound);
         }   

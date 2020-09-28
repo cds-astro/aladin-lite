@@ -62,13 +62,11 @@ pub fn move_renderables<P: Projection>(
  // Current model position
  y: &Vector4<f32>,
  // Renderables
- sphere: &mut HiPSSphere,
- catalogs: &mut Manager,
- grid: &mut ProjetedGrid,
+ app: &mut App,
  // Viewport
- viewport: &mut CameraViewPort,
+ camera: &mut CameraViewPort,
 ) -> (Vector3<f32>, Angle<f32>) {
-    let r = viewport.get_rotation();
+    let r = camera.get_rotation();
 
     let x = r.rotate(x).truncate();
     let y = r.rotate(y).truncate();
@@ -79,8 +77,8 @@ pub fn move_renderables<P: Projection>(
             .normalize();
         let d = math::ang_between_vect(&x, &y);
 
-        viewport.apply_rotation::<P>(&(-axis), d, sphere.config());
-        sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
+        camera.rotate::<P>(&(-axis), d);
+        app.look_for_new_tiles();
 
         (axis, d)
     }

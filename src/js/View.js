@@ -764,8 +764,8 @@ export let View = (function() {
             }
             view.realDragging = true;
 
-            webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
-            //webglAPI.setCenter(pos2[0], pos2[1]);
+            //webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
+            webglAPI.setCenter(pos2[0], pos2[1]);
             view.viewCenter.lon = pos2[0];
             view.viewCenter.lat = pos2[1];
 

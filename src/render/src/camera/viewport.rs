@@ -77,7 +77,7 @@ impl CameraViewPort {
         let w2m = Matrix4::identity();
         let m2w = w2m;
 
-        let changed = false;
+        let moved = false;
 
         let w2m_rot = SphericalRotation::zero();
 
@@ -125,7 +125,7 @@ impl CameraViewPort {
             // to different image surveys
             vertices,
             // A flag telling whether the camera has been moved during the frame
-            changed,
+            moved,
 
             // Tag the last action done by the user
             last_user_action,
@@ -201,7 +201,7 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
 
-        self.changed = true;
+        self.moved = true;
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -232,7 +232,7 @@ impl CameraViewPort {
         let p0 = P::world_to_clip_space(&v0);
         self.clip_zoom_factor = p0.x.abs();
 
-        self.changed = true;
+        self.moved = true;
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
@@ -326,7 +326,7 @@ impl CameraViewPort {
 
         self.last_user_action = UserAction::Moving;
 
-        self.changed = true;
+        self.moved = true;
     }
 }
 

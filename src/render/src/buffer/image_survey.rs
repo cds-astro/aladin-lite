@@ -416,7 +416,7 @@ impl ImageSurvey {
 
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
-    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool, start_time: Time) {
+    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool) {
         assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
@@ -428,7 +428,7 @@ impl ImageSurvey {
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             // Reset the time the tile has been received if it is a new cell present in the fov
             if new_fov_cell {
-                texture.update_start_time(start_time);
+                texture.update_start_time(Time::now());
             }
 
             // MAYBE WE DO NOT NEED TO UPDATE THE TIME REQUEST IN THE BHEAP

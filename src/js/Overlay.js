@@ -277,7 +277,15 @@ Overlay = (function() {
         }
     };
 
+    Overlay.prototype.setColor = function(color) {
+        this.color = color;
+        this.reportChange();
+    };
 
+    Overlay.prototype.setLineWidth = function(lineWidth) {
+        this.lineWidth = lineWidth;
+        this.reportChange();
+    };
     
     // callback function to be called when the status of one of the footprints has changed
     Overlay.prototype.reportChange = function() {

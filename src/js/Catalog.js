@@ -363,9 +363,18 @@ cds.Catalog = (function() {
 
         this.selectSize = this.sourceSize + 2;
 
-        this.cacheCanvas = cds.Catalog.createShape(this.shape, this.color, this.sourceSize); 
-        this.cacheSelectCanvas = cds.Catalog.createShape('square', this.selectionColor, this.selectSize);
+        this.cacheHoverCanvas = cds.Catalog.createShape(this.shape, Overlay.increaseBrightness(this.color, 55), this.selectSize);
+        this.cacheSelectCanvas = cds.Catalog.createShape(this.shape, Overlay.increaseBrightness(this.color, 80), this.selectSize);
 
+        this.reportChange();
+    };
+
+    cds.Catalog.prototype.reCreateShape = function() {
+        var shape = (this._shapeIsFunction) ? (this.customShape || "square") : this.shape;
+        this.cacheCanvas = cds.Catalog.createShape(shape, this.color, this.sourceSize);
+        this.selectSize = this.sourceSize + 2;
+        this.cacheHoverCanvas = cds.Catalog.createShape(shape, Overlay.increaseBrightness(this.color, 55), this.selectSize);
+        this.cacheSelectCanvas = cds.Catalog.createShape(shape, Overlay.increaseBrightness(this.color, 80), this.selectSize);
         this.reportChange();
     };
     
@@ -461,6 +470,43 @@ cds.Catalog = (function() {
     cds.Catalog.prototype.setView = function(view) {
         this.view = view;
         this.reportChange();
+    };
+
+    cds.Catalog.prototype.setColor = function(color) {
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) { // in this case, we cannot set the color
+            return;
+        }
+
+        this.color = color;
+        this.reCreateShape();
+    };
+
+    cds.Catalog.prototype.setSourceSize = function(sourceSize) {
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) { // in this case, we cannot set the size
+            return;
+        }
+
+        this.sourceSize = sourceSize;
+        this.reCreateShape();
+    };
+
+    cds.Catalog.prototype.getSourceSize = function() {
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) { // in this case, we cannot set the size
+            return;
+        }
+        return this.sourceSize;
+    };
+
+    cds.Catalog.prototype.setShape = function(shape) {
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) { // in this case, we cannot set the shape
+            return;
+        } else if (this._shapeIsFunction) {
+            this.customShape = shape;
+        } else {
+            this.shape = shape;
+        }
+
+        this.reCreateShape();
     };
 
     // remove a source

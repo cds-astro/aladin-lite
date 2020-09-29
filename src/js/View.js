@@ -425,12 +425,12 @@ View = (function() {
             else if (view.mode==View.SELECT) {
                 view.selectStartCoo = {x: view.dragx, y: view.dragy};
             }
-            return false; // to disable text selection
+            return true; // false disables default browser behaviour like possibility to touch hold for context menu. To disable text selection use css user-select: none instead of putting this value to false
         });
 
         //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
-        $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-            if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
+        $(view.reticleCanvas).bind("click mouseout touchend touchcancel", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+            if ((e.type === 'touchcancel' || e.type === 'touchend') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
     
@@ -478,7 +478,7 @@ View = (function() {
 
 
 
-            if (e.type==="mouseout" || e.type==="touchend") {
+            if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 view.requestRedraw(true);
                 updateLocation(view, view.width/2, view.height/2, true);
 
@@ -581,7 +581,7 @@ View = (function() {
             }
 
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            if (!view.dragging || hasTouchEvents) {
+            if (!view.dragging) {
                 // update location box
                 updateLocation(view, xymouse.x, xymouse.y);
                 // call listener of 'mouseMove' event
@@ -621,7 +621,7 @@ View = (function() {
                         }
                     }
                 }
-                if (!hasTouchEvents) {
+                if (e.type === "mousemove") {
                     return;
                 }
             }

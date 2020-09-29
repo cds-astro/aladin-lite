@@ -124,7 +124,12 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
             None
         }
     }
+    fn model_to_screen_space(pos_model_space: &Vector4<f32>, viewport: &ViewPort) -> Vector2<f32> {
+        let world2model = viewport.get_inverted_model_mat();
+        let pos_world_space = world2model * pos_model_space;
 
+        Self::world_to_screen_space(&pos_world_space, viewport)
+    }
     fn clip_to_model_space(pos_clip_space: &Vector2<f32>, camera: &CameraViewPort) -> Option<Vector4<f32>> {
         let pos_world_space = Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 

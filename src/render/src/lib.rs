@@ -641,6 +641,12 @@ impl App {
         //self.grid.set_alpha(alpha);
     }
 
+    pub fn world_to_screen<P: Projection>(&self, lonlat: &LonLatT<f32>) -> Result<Vector2<f32>, String> {
+        let model_pos_xyz = lonlat.vector();
+        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.viewport);
+        Ok(screen_pos)
+    }
+
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f32>) -> Result<LonLatT<f32>, String> {
         let model_pos = P::screen_to_model_space(pos, &self.camera).ok_or(format!("{:?} is out of projection", pos))?;
         Ok(model_pos.lonlat())
@@ -820,6 +826,16 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.set_colormap(name, colormap),
             ProjectionType::Mercator => app.set_colormap(name, colormap),
         };
+    }
+
+    fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Vector2<f32>, String> {
+        match self {
+            ProjectionType::Aitoff => app.world_to_screen::<Aitoff>(lonlat),
+            ProjectionType::MollWeide => app.world_to_screen::<Mollweide>(lonlat),
+            ProjectionType::Ortho => app.world_to_screen::<Orthographic>(lonlat),
+            ProjectionType::Arc => app.world_to_screen::<Mollweide>(lonlat),
+            ProjectionType::Mercator => app.world_to_screen::<Mercator>(lonlat),
+        }
     }
 
     fn screen_to_world(&self, app: &App, pos: &Vector2<f32>) -> Result<LonLatT<f32>, String> {
@@ -1359,6 +1375,17 @@ impl WebClient {
         self.projection.set_overlay_opacity(&mut self.app, opacity)?;
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = worldToScreen)]
+    pub fn world_to_screen(&self, lon: f32, lat: f32) -> Result<Box<[f32]>, JsValue> {
+        let lonlat = LonLatT::new(
+            ArcDeg(lon).into(),
+            ArcDeg(lat).into()
+        );
+        let screen_pos = self.projection.world_to_screen(&self.app, &lonlat)?;
+
+        Ok(Box::new([screen_pos.x, screen_pos.y]))
     }
 
     #[wasm_bindgen(js_name = screenToWorld)]

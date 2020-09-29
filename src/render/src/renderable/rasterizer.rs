@@ -235,158 +235,152 @@ use std::borrow::Cow;
 use crate::renderable::projection::*;
 use crate::shader::ShaderId;
 pub trait RasterizerProjection {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
 impl RasterizerProjection for Aitoff {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerFS")
+                Cow::Borrowed("RasterizerJPGColorFS")
             )
         ).unwrap()
     }
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerFITSFS")
+                Cow::Borrowed("RasterizerFITSColormapFS")
             )
         ).unwrap()
     }
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerFITSIFS")
+                Cow::Borrowed("RasterizerFITSColorFS")
             )
         ).unwrap()    
     }
 }
 impl RasterizerProjection for Mollweide {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerFS")
+                Cow::Borrowed("RasterizerJPGColorFS")
             )
         ).unwrap()
     }
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerFITSFS")
+                Cow::Borrowed("RasterizerFITSColormapFS")
             )
         ).unwrap()
     }
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerFITSIFS")
+                Cow::Borrowed("RasterizerFITSColorFS")
             )
         ).unwrap()    
     }
 }
 impl RasterizerProjection for AzimutalEquidistant {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFS")
+                Cow::Borrowed("RasterizerJPGColorFS")
             )
         ).unwrap()
     }
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSFS")
+                Cow::Borrowed("RasterizerFITSColormapFS")
             )
         ).unwrap()
     }
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSIFS")
+                Cow::Borrowed("RasterizerFITSColorFS")
             )
         ).unwrap()    
     }
 }
 impl RasterizerProjection for Mercator {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerFS")
+                Cow::Borrowed("RasterizerJPGColorFS")
             )
         ).unwrap()
     }
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerFITSFS")
+                Cow::Borrowed("RasterizerFITSColormapFS")
             )
         ).unwrap()
     }
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerFITSIFS")
+                Cow::Borrowed("RasterizerFITSColorFS")
             )
         ).unwrap()    
     }
 }
 impl RasterizerProjection for Orthographic {
-    fn get_rasterize_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFS")
+                Cow::Borrowed("RasterizerJPGColorFS")
             )
         ).unwrap()
     }
-    // FITS HiPS are handled by different shaders
-    fn get_rasterize_shader_f_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSFS")
+                Cow::Borrowed("RasterizerFITSColormapFS")
             )
         ).unwrap()
     }
-    fn get_rasterize_shader_i_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSIFS")
+                Cow::Borrowed("RasterizerFITSColorFS")
             )
         ).unwrap()    
     }
@@ -549,27 +543,6 @@ impl Rasterizer {
         }
     }
 
-    pub fn set_UVs<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, survey: &ImageSurvey, last_user_action: UserAction) {
-        match last_user_action {
-            UserAction::Unzooming => {
-                let textures = UnZoom::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, UnZoom>(textures);
-            },
-            UserAction::Zooming => {
-                let textures = Zoom::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Zoom>(textures);
-            },
-            UserAction::Moving => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Move>(textures);
-            },
-            UserAction::Starting => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Move>(textures);
-            }
-        }
-    }
-
     fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self, cells_in_fov: &HEALPixCells) {
         let mut lonlats = vec![];
         let mut positions = vec![];
@@ -609,6 +582,28 @@ impl Rasterizer {
             &buf_idx
         );
     }
+
+    pub fn set_UVs<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, survey: &ImageSurvey, last_user_action: UserAction) {
+        match last_user_action {
+            UserAction::Unzooming => {
+                let textures = UnZoom::get_textures_from_survey(cells_to_draw, survey);
+                self.update_uvs::<P, UnZoom>(textures);
+            },
+            UserAction::Zooming => {
+                let textures = Zoom::get_textures_from_survey(cells_to_draw, survey);
+                self.update_uvs::<P, Zoom>(textures);
+            },
+            UserAction::Moving => {
+                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
+                self.update_uvs::<P, Move>(textures);
+            },
+            UserAction::Starting => {
+                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
+                self.update_uvs::<P, Move>(textures);
+            }
+        }
+    }
+
 
     fn update_uvs<P: Projection, T: RecomputeRasterizer>(&mut self, textures: &ImageSurveyTextures) {
         let mut uv_start = vec![];
@@ -688,7 +683,7 @@ impl Rasterizer {
     }*/
 
     // The rasterizer has several shaders, one for each projection
-    pub fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, survey: &ImageSurvey) -> &'a Shader {
+    /*pub fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, survey: &ImageSurvey) -> &'a Shader {
         // Fits tiles are handled by other shaders
         if buffer.fits_tiles_requested() {
             if buffer.fits_i_format() {
@@ -699,15 +694,16 @@ impl Rasterizer {
         } else {
             P::get_rasterize_shader(gl, shaders)
         }
-    }
+    }*/
 
-    pub fn draw<P: Projection>(&self, _gl: &WebGl2Context, shader: &ShaderBound) {
-        shader.bind_vertex_array_object_ref(&self.vertex_array_object)
-            .draw_elements_with_i32(
-                //WebGl2RenderingContext::LINES,
-                WebGl2RenderingContext::TRIANGLES,
-                Some(self.idx_vertices.len() as i32),
-                WebGl2RenderingContext::UNSIGNED_SHORT
-            );
+    pub fn draw_vertices(&self) {
+        self.gl.bind_vertex_array(Some(&self.vao));
+        self.gl.draw_elements_with_i32(
+            //WebGl2RenderingContext::LINES,
+            WebGl2RenderingContext::TRIANGLES,
+            Some(self.max_num_idx as i32),
+            WebGl2RenderingContext::UNSIGNED_SHORT,
+            0
+        );            
     }
 }

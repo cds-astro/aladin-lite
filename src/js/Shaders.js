@@ -33,9 +33,9 @@ import RasterizerOrthoVS from '../render/src/shaders/hips/rasterizer/ortho.vert'
 import RasterizerMercatorVS from '../render/src/shaders/hips/rasterizer/mercator.vert'
 import RasterizerAitoffVS from '../render/src/shaders/hips/rasterizer/aitoff.vert'
 import RasterizerMollVS from '../render/src/shaders/hips/rasterizer/mollweide.vert'
-import RasterizerFS from '../render/src/shaders/hips/rasterizer/frag.glsl'
-import RasterizerFITSFS from '../render/src/shaders/hips/rasterizer/frag_fits.glsl'
-import RasterizerFITSIFS from '../render/src/shaders/hips/rasterizer/frag_fits_i.glsl'
+import RasterizerJPGColorFS from '../render/src/shaders/hips/rasterizer/frag_jpg_hips.glsl'
+import RasterizerFITSColorFS from '../render/src/shaders/hips/rasterizer/frag_fits_hips_color.glsl'
+import RasterizerFITSColormapFS from '../render/src/shaders/hips/rasterizer/frag_fits_hips_colormap.glsl'
 // Misc
 import TextVS from '../render/src/shaders/misc/text.vert'
 import TextFS from '../render/src/shaders/misc/text.frag'
@@ -148,16 +148,16 @@ let shaders = [
         content: RasterizerMollVS,
     },
     {
-        id: "RasterizerFS",
-        content: RasterizerFS,
+        id: "RasterizerJPGColorFS",
+        content: RasterizerJPGColorFS,
     },
     {
-        id: "RasterizerFITSFS",
-        content: RasterizerFITSFS,
+        id: "RasterizerFITSColorFS",
+        content: RasterizerFITSColorFS,
     },
     {
-        id: "RasterizerFITSIFS",
-        content: RasterizerFITSIFS,
+        id: "RasterizerFITSColormapFS",
+        content: RasterizerFITSColormapFS,
     },
     // Misc
     {

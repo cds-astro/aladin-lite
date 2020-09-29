@@ -352,6 +352,8 @@ use crate::shader::ShaderBound;
 
 impl HasUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        let fits_storing_integers = self.format.is_i_internal_format() as i32;
+
         // Send max depth
         shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("blank_value", &self.blank_value.unwrap_or(std::f32::MIN))
@@ -361,6 +363,7 @@ impl HasUniforms for HiPSConfig {
             .attach_uniform("bscale", &self.bscale)
             .attach_uniform("bzero", &self.bzero)
             .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
+            .attach_uniform("fits_storing_integers", &fits_storing_integers)
             .attach_uniforms_from(&self.transfer_f);
 
         shader

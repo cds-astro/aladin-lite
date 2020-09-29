@@ -187,22 +187,75 @@ use crate::renderable::projection::Projection;
 use crate::buffer::ImageSurvey;
 use crate::renderable::RayTracer;
 use crate::renderable::Rasterizer;
+use crate::shaders::Colormap;
+
+trait Draw {
+    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader;
+    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;
+}
+
+pub struct ColoredImageSurvey {
+    pub survey: ImageSurvey,
+}
+
+impl Draw for ColoredImageSurvey {
+    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
+        P::get_rasterizer_shader_jpg(gl, shaders)
+    }
+    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader
+    }
+}
+
+pub struct FITSImageSurveyColormap {
+    pub survey: ImageSurvey,
+    colormap: Colormap,
+}
+
+impl Draw for FITSImageSurveyColormap {
+    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
+        P::get_rasterizer_shader_fits_colormap(gl, shaders)
+    }
+    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        // store the colormap, transfer function, cutouts here
+        // not in the HiPSConfig
+        shader
+    }
+}
+
+pub struct FITSImageSurveyColor {
+    pub survey: ImageSurvey,
+    color: cgmath::Vector3<f32>,
+}
+
+impl Draw for FITSImageSurveyColor {
+    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
+        P::get_rasterizer_shader_fits_color(gl, shaders)
+    }
+
+    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        // store the colormap, transfer function, cutouts here
+        // not in the HiPSConfig
+        shader.attach_uniform("color_fits", &self.color);
+
+        shader
+    }
+    
+
+}
 
 enum ImageSurveyType {
-    FITSImageSurvey {
-        survey: ImageSurvey,
-        color: cgmath::Vector4<f32>,
-    },
-    ColoredImageSurvey {
-        survey: ImageSurvey,
-    }
+    FITSImageSurveyColor(FITSImageSurveyColor),
+    FITSImageSurveyColormap(FITSImageSurveyColormap),
+    ColoredImageSurvey(ColoredImageSurvey)
 }
 
 impl ImageSurveyType {
     fn get_survey(&self) -> &ImageSurvey {
         match self {
-            ImageSurveyType::FITSImageSurvey { survey, ..} => survey,
-            ImageSurveyType::ColoredImageSurvey { survey } => survey,
+            ImageSurveyType::FITSImageSurveyColor(FITSImageSurveyColor {survey, ..}) => survey,
+            ImageSurveyType::FITSImageSurveyColormap(FITSImageSurveyColormap { survey, ..}) => survey,
+            ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey { survey }) => survey,
         }
     }
 }
@@ -211,8 +264,12 @@ use crate::camera::ViewHEALPixCells;
 struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
     views: HashMap<String, ViewHEALPixCells>,
-    most_refined_survey: Option<String>,
 
+    colored_image_survey: Option<String>,
+    fits_image_survey_colormap: Option<String>,
+    fits_image_survey_colors: Option<Vec<String>>,
+
+    most_refined_survey: Option<String>,
 }
 
 impl ImageSurveys {
@@ -221,34 +278,93 @@ impl ImageSurveys {
         let views = HashMap::new();
         let most_refined_survey = None;
 
+        colored_image_survey = None,
+        fits_image_survey_colormap = None,
+        fits_image_survey_colors = None,
+
         ImageSurveys {
             surveys,
             views,
             most_refined_survey,
+
+            colored_image_survey,
+            fits_image_survey_colormap,
+            fits_image_survey_colors
         }
     }
 
-    pub fn add(&mut self, root_url: String, survey: ImageSurveyType, camera: &CameraViewPort) {
-        if self.most_refined_survey.is_none() {
-            // First survey added
-            self.most_refined_survey = Some(root_url);
-        } else {
-            // Compare the new with the current
-            let tex_size_cur = self.survey.get_survey()
-                .config()
-                .get_texture_size();
-            let tex_size_new = survey.get_survey()
+    fn get_most_refined_survey_id(&self) -> String {
+        let mut tex_size_min = std::i32::MAX;
+
+        let mut most_refined_survey = String::new();
+        for (id, survey) in self.surveys.iter() {
+            let tex_size_cur = survey.get_survey()
                 .config()
                 .get_texture_size();
 
-            if tex_size_new < tex_size_cur {
-                self.most_refined_survey = Some(root_url);
+            if tex_size_cur < tex_size_min {
+                most_refined_survey = id;
+                tex_size_min = tex_size_cur;
             }
+        }
+
+        most_refined_survey
+    }
+
+    pub fn add(&mut self, survey: ImageSurveyType, camera: &CameraViewPort) {
+        let root_url = survey.get_root_url();
+        match survey {
+            ImageSurveyType::FITSImageSurveyColor(_) {
+                if self.surveys.contains_key(root_url) {
+                    self.surveys.remove(root_url);
+                    self.views.remove(root_url);
+
+                    let index = self.fits_image_survey_colors
+                        .iter()
+                        .position(|x| *x == root_url)
+                        .unwrap();
+                    self.fits_image_survey_colors.remove(index);
+                }
+
+                if let Some(surveys_id) = &mut self.fits_image_survey_colors {
+                    surveys_id.push(root_url);
+                } else {
+                    self.fits_image_survey_colors = Some(vec![root_url.clone()]);
+                }
+            },
+            ImageSurveyType::FITSImageSurveyColormap(_) {
+                if let Some(survey_id) = &mut self.fits_image_survey_colormap {
+                    self.surveys.remove(survey_id);
+                    self.views.remove(survey_id);
+
+                    survey_id = root_url.clone();
+                } else {
+                    self.fits_image_survey_colormap = Some(root_url.clone());
+                }
+            },
+            ImageSurveyType::ColoredImageSurvey(_) {
+                if self.surveys.contains_key(root_url) {
+                    // If its contains the same JPG/PNG survey, we quit
+                    return;
+                }
+
+                if let Some(survey_id) = &mut self.colored_image_survey {
+                    self.surveys.remove(survey_id);
+                    self.views.remove(survey_id);
+
+                    survey_id = root_url.clone();
+                } else {
+                    self.colored_image_survey = Some(root_url.clone());
+                }
+            },
         }
 
         self.surveys.insert(root_url, survey);
         // Instanciate a new view on this survey
         self.views.insert(root_url, ViewHEALPixCells::new());
+
+        // Check for what is the most refined survey
+        self.most_refined_survey = Some(self.get_most_refined_survey_id());
     }
 
     pub fn get_view_survey(&self, root_url: &str) -> &ViewHEALPixCells {
@@ -278,7 +394,9 @@ impl ImageSurveys {
     // that have been resolved
     pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut AladinTaskExecutor) {
         for (tile, result) in resolved_tiles.iter() {
-            let mut survey = &mut self.surveys.get_mut(&tile.root_url).unwrap();
+            let mut survey = &mut self.surveys.get_mut(&tile.root_url)
+                .unwrap()
+                .get_survey();
 
             match result {
                 TileResolved::Missing { time_req } => {
@@ -312,18 +430,63 @@ impl ImageSurveys {
     fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurveyType> {
         self.surveys.iter()
     }
+
+    pub fn get_colored_survey(&self) -> Option<&ColoredImageSurvey> {
+        if let Some(colored_image_survey) = self.colored_image_survey {
+            let survey = self.surveys.get(colored_image_survey).unwrap();
+
+            match survey {
+                ImageSurveyType::ColoredImageSurvey(survey) => {
+                    Some(survey)
+                },
+                _ => unreachable!()
+            }
+        } else {
+            None
+        }
+    }
+    pub fn get_fits_colormap_survey(&self) -> Option<&FITSImageSurveyColormap> {
+        if let Some(fits_survey_colormap) = self.fits_image_survey_colormap {
+            let survey = self.surveys.get(fits_survey_colormap).unwrap();
+
+            match survey {
+                ImageSurveyType::FITSImageSurveyColormap(survey) => {
+                    Some(survey)
+                },
+                _ => unreachable!()
+            }
+        } else {
+            None
+        }
+    }
+    pub fn get_fits_color_surveys(&self) -> Option<Vec<&FITSImageSurveyColor>> {
+        if let Some(fits_survey_colors) = self.fits_image_survey_colors {
+            let surveys = fits_survey_colors.iter()
+                .map(|survey_color_id| {
+                    let survey = self.surveys.get(fits_survey_colormap).unwrap();
+                    match survey {
+                        ImageSurveyType::FITSImageSurveyColor(survey) => {
+                            survey
+                        },
+                        _ => unreachable!()
+                    }
+                })
+                .collect();
+
+            Some(surveys)
+        } else {
+            None
+        }
+    }
 }
-
-type ImageSurveyColor = cgmath::Vector4<f32>;
-
+/*
 pub struct HiPSSphere {    
     raster: Rasterizer,
     raytracer: RayTracer,
 
-
     gl: WebGl2Context,
 }
-
+*/
 use crate::{
     renderable::{Angle, ArcDeg},
     buffer::HiPSConfig,
@@ -341,7 +504,7 @@ type IsNextFrameRendered = bool;
 use crate::buffer::Tiles;
 
 // This is specific to the rasterizer method of rendering
-impl HEALPixSphere {
+/*impl HEALPixSphere {
     pub fn new(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
 
         crate::log(&format!("raytracer"));
@@ -362,14 +525,14 @@ impl HEALPixSphere {
         self.buffer.reset(&self.gl, &self.config, viewport, task_executor);
 
         Ok(())
-    }
+    }*/
     
     /*pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {
         // Ask for the real tiles being in the viewport
         self.buffer.ask_for_tiles(cells, &self.config);
     }*/
 
-    pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut AladinTaskExecutor) {
+    /*pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut AladinTaskExecutor) {
         //survey.register_tiles_sent_to_gpu(copied_tiles);
         self.buffer.get_resolved_tiles(available_tiles);
     }
@@ -445,27 +608,11 @@ impl HEALPixSphere {
         }   
     }
 
-    /*#[inline]
+    #[inline]
     pub fn config(&self) -> &HiPSConfig {
         &self.config
-    }*/
-
-    pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) {
-        crate::log(&format!("{:?} {:?}", min_cutout, max_cutout));
-        self.survey.config_mut()
-            .set_cutouts(min_cutout, max_cutout);
     }
-
-    pub fn set_transfer_func(&mut self, h: TransferFunction) {
-        self.survey.config_mut()
-            .set_transfer_function(h);
-    }
-
-    pub fn set_fits_colormap(&mut self, colormap: Colormap) {
-        self.survey.config_mut()
-            .set_fits_colormap(colormap);
-    }
-}
+}*/
 
 use crate::utils;
 

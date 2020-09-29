@@ -110,7 +110,8 @@ impl RayTracer {
                         Cow::Borrowed("RayTracerVS"),
                         Cow::Borrowed("RayTracerFITSFS")
                     )
-                ).unwrap()            }
+                ).unwrap()
+            }
         } else {
             shaders.get(
                 gl,

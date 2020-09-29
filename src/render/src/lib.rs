@@ -69,7 +69,7 @@ struct App {
 
     buffer: TileBuffer,
     surveys: ImageSurveys,
-    view: HEALPixCellsInView,
+    //view: HEALPixCellsInView,
     
     rasterizer: Rasterizer,
     raytracer: RayTracer,
@@ -84,9 +84,9 @@ struct App {
     text_manager: TextManager,
 
     // Finite State Machine declarations
-    user_move_fsm: UserMoveSphere,
+    /*user_move_fsm: UserMoveSphere,
     user_zoom_fsm: UserZoom,
-    move_fsm: MoveSphere,
+    move_fsm: MoveSphere,*/
 
     // Task executor
     exec: AladinTaskExecutor,
@@ -143,6 +143,9 @@ impl App {
         };
 
         let config = HiPSConfig::new(gl, hips_definition)?;
+        let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
+            survey: ImageSurvey::new(gl, config)
+        });
 
         // camera definition
         // HiPS definition
@@ -165,11 +168,9 @@ impl App {
         // The tile buffer responsible for the tile requests
         let buffer = TileBuffer::new(gl, &camera);
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new();
-        // A view on the survey
-        // This will be updated whenever the user does an action
-        // to get the current cells being in the FoV
-        let view = HEALPixCellsInView::new();
+        let mut surveys = ImageSurveys::new();
+        surveys.add(survey, &camera);
+
         // Two mode of render, each storing a specific VBO
         // - The rasterizer draws the HEALPix cells being in the current view
         // This mode of rendering is used for small FoVs
@@ -202,9 +203,9 @@ impl App {
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
 
         // Finite State Machines definitions
-        let user_move_fsm = UserMoveSphere::init();
+        /*let user_move_fsm = UserMoveSphere::init();
         let user_zoom_fsm = UserZoom::init();
-        let move_fsm = MoveSphere::init();
+        let move_fsm = MoveSphere::init();*/
 
         let gl = gl.clone();
         let exec = AladinTaskExecutor::new();
@@ -222,7 +223,7 @@ impl App {
 
             buffer,
             surveys,
-            view,
+            //view,
             rasterizer,
             raytracer,
             time_start_blending,
@@ -235,9 +236,9 @@ impl App {
             text_manager,
             
             // Finite state machines,
-            user_move_fsm,
+            /*user_move_fsm,
             user_zoom_fsm,
-            move_fsm,
+            move_fsm,*/
 
             exec,
             resources,
@@ -254,7 +255,8 @@ impl App {
         self.surveys.update_views(camera);
 
         // Loop over the surveys
-        for (root_url, survey) in self.surveys.iter() {
+        for (root_url, s) in self.surveys.iter() {
+            let survey = s.get_survey();
             let view = self.surveys.get_view_survey(root_url);
             let cells_in_fov = view.get_cells();
 
@@ -412,53 +414,54 @@ impl App {
         let new_cells_added = view_most_refined.is_there_new_cells_added();
         let update_positions = new_cells_added;
 
-        if update_positions {
-            // Get the cells to draw
-            let cells = if camera.last_user_action() == UserAction::UnZooming {
-                if view_most_refined.has_depth_decreased() {
-                    let new_depth = view_most_refined.get_depth();
+        let last_user_action = camera.last_user_action();
+        // Get the cells to draw
+        let cells_to_draw = if last_user_action == UserAction::UnZooming {
+            if view_most_refined.has_depth_decreased() || self.cells_depth_increased {
+                self.cells_depth_increased = true;
+                let new_depth = view_most_refined.get_depth();
 
-                    super::get_cells_in_fov(new_depth + 1, &camera)
-                } else {
-                    view_most_refined.get_cells()
-                }
+                super::get_cells_in_fov(new_depth + 1, &camera)
             } else {
                 view_most_refined.get_cells()
-            };
-
-            self.rasterizer.set_positions(cells);
-        }
-
-        for survey in self.surveys.iter() {
-            let update_uv = new_cells_added | survey.is_there_available_tiles();
-            let update_starting_blending_times = update_uv;
-        }
-
-        
+            }
+        } else {
+            // no more unzooming
+            self.cells_depth_increased = false;
+            view_most_refined.get_cells()
+        };
 
         if update_positions {
-
-
-            self.rasterizer.set_positions();
-        } else {
-
+            // Set the cells vertices in the VAO
+            self.rasterizer.set_positions(cells_to_draw, last_user_action);
         }
 
         // Render the scene
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        // Draw renderables here
-        let camera = &self.camera;
-        let shaders = &mut self.shaders;
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+        // Then we draw each survey one by one depending on its type
+        // i.e. FITS + color, FITS + colormap or PNG/JPEG HiPses
+        //
+        // 1. Draw the colored image survey
+        if let Some(colored) = self.surveys.get_colored_survey() {
+            // Write the UVs of the colored image survey to the VBO
+            self.rasterizer.set_UVs(cells_to_draw, colored.survey, last_user_action);
+            {
+                let shader = colored.get_shader(&self.gl, shaders).bind();
+                let shader = colored.set_uniforms(shader);
+                shader
+                    .attach_uniforms_from(&self.camera)
+                    .attach_uniforms_from(&colored.survey)
+                    .attach_uniform("model", camera.get_model_mat())
+                    .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+                    .attach_uniform("current_time", &utils::get_current_time());
 
-        // Draw the HiPS sphere
-        self.sphere.draw::<P>(
-            &self.gl,
-            shaders,
-            camera,
-        );
+                self.rasterizer.draw_vertices();
+            }
+        }
+
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
@@ -484,9 +487,13 @@ impl App {
         );*/
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
-
-    fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
-        self.sphere.set_image_survey::<P>(hips_definition, &mut self.camera, &mut self.exec)
+    
+    fn add_image_survey<P: Projection>(&mut self, properties: HiPSDefinition) -> Result<(), JsValue> {
+        let config = HiPSConfig::new(gl, properties)?;
+        let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
+            survey: ImageSurvey::new(gl, config)
+        });
+        self.surveys.add::<P>(hips_definition, &mut self.camera)
     }
 
     fn set_projection<P: Projection>(&mut self) {
@@ -550,16 +557,30 @@ impl App {
         //self.grid.set_color(red, green, blue);
     }
 
-    pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) {
-        //self.sphere.set_cutouts(min_cutout, max_cutout);
+    pub fn set_cutouts(&mut self, survey_url: &str, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
+        let survey = self.surveys.get(survey_url)
+            .ok_or(format!("{} survey not found!", survey_url))?;
+        survey.config_mut()
+            .set_cutouts(min_cutout, max_cutout);
+
+        Ok(())
     }
 
-    pub fn set_transfer_func(&mut self, id: String) {
-        //self.sphere.set_transfer_func(TransferFunction::new(&id));
+    pub fn set_transfer_func(&mut self, survey_url: &str, h: TransferFunction) -> Result<(), String> {
+        let survey = self.surveys.get(survey_url)
+            .ok_or(format!("{} survey not found!", survey_url))?;
+        survey.config_mut()
+            .set_transfer_function(h);
+
+        Ok(())
     }
 
-    pub fn set_fits_colormap(&mut self, colormap: Colormap) {
-        //self.sphere.set_fits_colormap(colormap);
+    pub fn set_fits_colormap(&mut self, survey_url: &str, colormap: Colormap) -> Result<(), String> {
+        let survey = self.surveys.get(survey_url)
+            .ok_or(format!("{} survey not found!", survey_url))?;
+        survey.config_mut().set_fits_colormap(colormap);
+
+        Ok(())
     }
 
     pub fn set_grid_opacity(&mut self, _alpha: f32) {
@@ -853,7 +874,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_cutouts(&mut self, app: &mut App, min_cutout: f32, max_cutout: f32) {
+    pub fn set_cutouts(&mut self, app: &mut App, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
         match self {
             ProjectionType::Aitoff => app.set_cutouts(min_cutout, max_cutout),
             ProjectionType::MollWeide => app.set_cutouts(min_cutout, max_cutout),
@@ -863,17 +884,17 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_transfer_func(&mut self, app: &mut App, id: String) {
+    pub fn set_transfer_func(&mut self, app: &mut App, h: TransferFunction) -> Result<(), String> {
         match self {
-            ProjectionType::Aitoff => app.set_transfer_func(id),
-            ProjectionType::MollWeide => app.set_transfer_func(id),
-            ProjectionType::Ortho => app.set_transfer_func(id),
-            ProjectionType::Arc => app.set_transfer_func(id),
-            ProjectionType::Mercator => app.set_transfer_func(id),
+            ProjectionType::Aitoff => app.set_transfer_func(h),
+            ProjectionType::MollWeide => app.set_transfer_func(h),
+            ProjectionType::Ortho => app.set_transfer_func(h),
+            ProjectionType::Arc => app.set_transfer_func(h),
+            ProjectionType::Mercator => app.set_transfer_func(h),
         };
     }
 
-    pub fn set_fits_colormap(&mut self, app: &mut App, colormap: Colormap) {
+    pub fn set_fits_colormap(&mut self, app: &mut App, colormap: Colormap) -> Result<(), String> {
         match self {
             ProjectionType::Aitoff => app.set_fits_colormap(colormap),
             ProjectionType::MollWeide => app.set_fits_colormap(colormap),
@@ -1081,7 +1102,7 @@ impl WebClient {
     
     #[wasm_bindgen(js_name = setCutouts)]
     pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) -> Result<(), JsValue> {
-        self.projection.set_cutouts(&mut self.app, min_cutout, max_cutout);
+        self.projection.set_cutouts(&mut self.app, min_cutout, max_cutout).map_err(|e| e.into())?;
 
         Ok(())
     }
@@ -1089,14 +1110,15 @@ impl WebClient {
     #[wasm_bindgen(js_name = setFitsColormap)]
     pub fn set_fits_colormap(&mut self, colormap: String) -> Result<(), JsValue> {
         let colormap = Colormap::new(&colormap);
-        self.projection.set_fits_colormap(&mut self.app, colormap);
+        self.projection.set_fits_colormap(&mut self.app, colormap).map_err(|e| e.into())?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setTransferFunction)]
     pub fn set_transfer_func(&mut self, id: String) -> Result<(), JsValue> {
-        self.projection.set_transfer_func(&mut self.app, id);
+        let h = TransferFunction::new(&id);
+        self.projection.set_transfer_func(&mut self.app, h).map_err(|e| e.into())?;
 
         Ok(())
     }

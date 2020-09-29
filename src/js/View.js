@@ -317,24 +317,24 @@ View = (function() {
     };
     
     doComputeFov = function(view, zoomFactor) {
-        // if zoom factor < 1, we view 180°
-        var fov;
-        if (view.zoomFactor<1) {
-            fov = 180;
-        }
-        else {
-            // TODO : fov sur les 2 dimensions !!
-            // to compute FoV, we first retrieve 2 points at coordinates (0, view.cy) and (width-1, view.cy)
+        // TODO : fov sur les 2 dimensions !!
+        // to compute FoV, we first retrieve 2 points at coordinates (0, view.cy) and (width-1, view.cy)
+        try {
             var xy1 = AladinUtils.viewToXy(0, view.cy, view.width, view.height, view.largestDim, zoomFactor);
             var lonlat1 = view.projection.unproject(xy1.x, xy1.y);
-            
-            var xy2 = AladinUtils.viewToXy(view.imageCanvas.width-1, view.cy, view.width, view.height, view.largestDim, zoomFactor);
+
+            var xy2 = AladinUtils.viewToXy(view.imageCanvas.width - 1, view.cy, view.width, view.height, view.largestDim, zoomFactor);
             var lonlat2 = view.projection.unproject(xy2.x, xy2.y);
-            
-            
+
+
             fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
+            if (fov > 180) {
+                fov = 180;
+            }
+        } catch (err) {
+            fov = 180;
         }
-        
+
         return fov;
     };
     

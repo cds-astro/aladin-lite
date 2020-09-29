@@ -126,6 +126,13 @@ pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShade
         }
     }
 
+    fn model_to_screen_space(pos_model_space: &Vector4<f32>, viewport: &ViewPort) -> Vector2<f32> {
+        let world2model = viewport.get_inverted_model_mat();
+        let pos_world_space = world2model * pos_model_space;
+
+        Self::world_to_screen_space(&pos_world_space, viewport)
+    }
+
     /// Perform a clip to the world space deprojection
     /// 
     /// # Arguments

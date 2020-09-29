@@ -700,6 +700,11 @@ export let Aladin = (function () {
 
         this.view.changeFrame(newFrame);
 
+        var frameChangedFunction = this.view.aladin.callbacksByEventName['cooFrameChanged'];
+        if (typeof frameChangedFunction === 'function') {
+            frameChangedFunction(newFrame.label);
+        }
+
         // màj select box
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
@@ -1293,7 +1298,7 @@ export let Aladin = (function () {
     };
 
     // Select corresponds to rectangular selection
-    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady'];
+    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady', 'cooFrameChanged'];
     // API
     //
     // setting callbacks

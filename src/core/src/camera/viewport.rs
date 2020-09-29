@@ -49,6 +49,8 @@ pub struct CameraViewPort {
 
     // A flag telling whether the camera has been moved during the frame
     moved: bool,
+    // A flag telling whether the camera has zoomed during the frame
+    zoomed: bool,
 
     // Tag the last action done by the user
     last_user_action: UserAction,
@@ -92,6 +94,7 @@ impl CameraViewPort {
         let center = Vector4::new(0.0, 0.0, 1.0, 1.0);
 
         let moved = false;
+        let zoomed = false;
 
         let w2m_rot = Rotation::zero();
         let final_rot = Rotation::zero();
@@ -156,6 +159,8 @@ impl CameraViewPort {
             vertices,
             // A flag telling whether the camera has been moved during the frame
             moved,
+            // A flag telling if the camera has zoomed during the frame
+            zoomed,
 
             // Tag the last action done by the user
             last_user_action,
@@ -251,9 +256,6 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.compute_ndc_to_clip_factor(projection);
 
-        //self.moved = true;
-        //self.last_user_action = UserAction::Starting;
-
         self.vertices.set_fov(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
@@ -343,6 +345,7 @@ impl CameraViewPort {
 
         // Project this vertex into the screen
         self.moved = true;
+        self.zoomed = true;
 
         self.vertices.set_fov(
             &self.ndc_to_clip,
@@ -516,9 +519,14 @@ impl CameraViewPort {
         self.moved
     }
 
+    pub fn has_zoomed(&self) -> bool {
+        self.zoomed
+    }
+
     // Reset moving flag
     pub fn reset(&mut self) {
         self.moved = false;
+        self.zoomed = false;
     }
 
     pub fn get_aperture(&self) -> Angle<f64> {

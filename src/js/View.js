@@ -232,9 +232,41 @@ export let View = (function () {
             self.requestRedraw();
         });
 
+        this.throttledPositionChanged = Utils.throttle(
+            () => {
+                var posChangedFn = this.aladin.callbacksByEventName['positionChanged'];
+                if (typeof posChangedFn === 'function') {
+                    var pos = this.aladin.pix2world(this.width / 2, this.height / 2);
+                    if (pos !== undefined) {
+                        posChangedFn({
+                            ra: pos[0],
+                            dec: pos[1],
+                            dragging: true
+                        });
+                    }
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
+        this.throttledZoomChanged = Utils.throttle(
+            () => {
+                const fov = this.fov;
+                // trigger callback only if FoV (zoom) has changed !
+                if (fov !== this.oldFov) {
+                    const fovChangedFn = this.aladin.callbacksByEventName['zoomChanged'];
+                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
+    
+                    // finally, save fov value
+                    this.oldFov = fov;
+                }
+            },
+            View.CALLBACKS_THROTTLE_TIME_MS,
+        );
+
         resizeObserver.observe(this.aladinDiv);
         //$(window).resize(() => {
-            self.fixLayoutDimensions();
+        self.fixLayoutDimensions();
             //self.requestRedraw();
         //});
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
@@ -555,15 +587,6 @@ export let View = (function () {
 
                 if (wasDragging) {
                     view.realDragging = false;
-
-                    // call positionChanged one last time after dragging, with dragging: false
-                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-                    if (typeof posChangedFn === 'function') {
-                        var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
-                        if (pos !== undefined) {
-                            posChangedFn({ ra: pos[0], dec: pos[1], dragging: false });
-                        }
-                    }
                 }
             } // end of "if (view.dragging) ... "
 
@@ -884,6 +907,9 @@ export let View = (function () {
             if (view.viewCenter.lon < 0.0) {
                 view.viewCenter.lon += 360.0;
             }
+
+            // Apply position changed callback after the move
+            view.throttledPositionChanged();
         }); //// endof mousemove ////
 
         // disable text selection on IE
@@ -961,7 +987,9 @@ export let View = (function () {
                     self.drawAllOverlays();
                 }, 300);
             }
+
             view.debounceProgCatOnZoom();
+            view.throttledZoomChanged();
 
             return false;
         });
@@ -978,53 +1006,9 @@ export let View = (function () {
 
         createListeners(view);
 
-        view.executeCallbacksThrottled = Utils.throttle(
-            function () {
-                if (view.aladin.callbacksByEventName === undefined) {
-                    return;
-                }
-                var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
-
-                var fov = view.fov;
-
-                if (pos === undefined || fov === undefined) {
-                    return;
-                }
-
-                var ra = pos[0];
-                var dec = pos[1];
-
-                // trigger callback only if position has changed !
-                if (ra !== this.ra || dec !== this.dec) {
-                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-
-                    (typeof posChangedFn === 'function') && posChangedFn({ ra: ra, dec: dec, dragging: true });
-
-                    // finally, save ra and dec value
-                    this.ra = ra;
-                    this.dec = dec;
-                }
-
-                // trigger callback only if FoV (zoom) has changed !
-                if (fov !== this.old_fov) {
-                    var fovChangedFn = view.aladin.callbacksByEventName['zoomChanged'];
-                    (typeof fovChangedFn === 'function') && fovChangedFn(fov);
-
-                    // finally, save fov value
-                    this.old_fov = fov;
-                }
-            },
-            View.CALLBACKS_THROTTLE_TIME_MS);
-
-
         view.displayHpxGrid = false;
         view.displayCatalog = false;
         view.displayReticle = true;
-
-        // initial draw
-        //view.fov = computeFov(view);
-        //updateFovDiv(view);
-        //view.redraw();
     };
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
@@ -1087,9 +1071,6 @@ export let View = (function () {
                 this.drawAllOverlays();
             }
             this.needRedraw = false;
-
-            // execute 'positionChanged' and 'zoomChanged' callbacks
-            this.executeCallbacksThrottled();
         }
     };
 

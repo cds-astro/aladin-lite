@@ -123,7 +123,7 @@ struct ZoomAnimation {
 }
 */
 use crate::math::projection::*;
-pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
+pub const BLENDING_ANIM_DURATION: f32 = 100.0; // in ms
                                                //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
@@ -509,6 +509,7 @@ impl App {
         // The rendering is done following these different situations:
         // - the camera has moved
         let has_camera_moved = self.camera.has_moved();
+        let has_camera_zoomed = self.camera.has_zoomed();
         {
             // Newly available tiles must lead to
             // 1. Surveys must be aware of the new available tiles
@@ -561,8 +562,8 @@ impl App {
                                                 fov_coverage.contains(&neighbor_tile_cell)
                                             });
 
-                                        // do not perform tex_sub costly GPU calls while the camera is moving
-                                        if included_or_near_coverage && !has_camera_moved {
+                                        // do not perform tex_sub costly GPU calls while the camera is zooming
+                                        if included_or_near_coverage && !has_camera_zoomed {
                                             let is_missing = tile.missing();
                                             let Tile {
                                                 cell,

@@ -543,7 +543,9 @@ export let View = (function () {
 
             view.wasm.pressLeftMouseButton(view.dragx, view.dragy);
 
-            return false; // to disable text selection
+            // false disables default browser behaviour like possibility to touch hold for context menu.
+            // To disable text selection use css user-select: none instead of putting this value to false
+            return true;
         });
 
         $(view.catalogCanvas).bind("mouseup", function (e) {
@@ -563,14 +565,14 @@ export let View = (function () {
             }
         });
 
-        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-            if (e.type === 'touchend' && view.pinchZoomParameters.isPinching) {
+        $(view.catalogCanvas).bind("click mouseout touchend touchcancel", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+            if ((e.type === 'touchend' || e.type === 'touchcancel') && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
 
                 return;
             }
-            if (e.type === 'touchend' && view.fingersRotationParameters.rotationInitiated) {
+            if ((e.type === 'touchend' || e.type === 'touchcancel') && view.fingersRotationParameters.rotationInitiated) {
                 view.fingersRotationParameters.initialViewAngleFromCenter = undefined;
                 view.fingersRotationParameters.initialFingerAngle = undefined;
                 view.fingersRotationParameters.rotationInitiated = false;
@@ -654,8 +656,7 @@ export let View = (function () {
             view.dragx = view.dragy = null;
             const xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (e.type === "mouseout" || e.type === "touchend") {
-                //view.requestRedraw();
+            if (e.type === "mouseout" || e.type === "touchend" || e.type === "touchcancel") {
                 view.updateLocation(xymouse.x, xymouse.y, true);
 
                 if (e.type === "mouseout") {
@@ -831,6 +832,9 @@ export let View = (function () {
             if (!view.dragging || hasTouchEvents) {
                 // update location box
                 view.updateLocation(xymouse.x, xymouse.y, false);
+            }
+
+            if (!view.dragging) {
                 // call listener of 'mouseMove' event
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
@@ -885,7 +889,7 @@ export let View = (function () {
                         lastHoveredObject = null;
                     }
                 }
-                if (!hasTouchEvents) {
+                if (e.type === "mousemove") {
                     return;
                 }
             }
@@ -893,6 +897,7 @@ export let View = (function () {
             if (!view.dragging) {
                 return;
             }
+
             //var xoffset, yoffset;
             var s1, s2;
             s1 = { x: view.dragx, y: view.dragy };
@@ -913,9 +918,9 @@ export let View = (function () {
             const [ra, dec] = view.wasm.getCenter();
             view.viewCenter.lon = ra;
             view.viewCenter.lat = dec;
-            if (view.viewCenter.lon < 0.0) {
-                view.viewCenter.lon += 360.0;
-            }
+            //if (view.viewCenter.lon < 0.0) {
+            //    view.viewCenter.lon += 360.0;
+            //}
 
             // Apply position changed callback after the move
             view.throttledPositionChanged();
@@ -1831,9 +1836,9 @@ export let View = (function () {
         let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-        if (this.viewCenter.lon < 0.0) {
-            this.viewCenter.lon += 360.0;
-        }
+        //if (this.viewCenter.lon < 0.0) {
+        //    this.viewCenter.lon += 360.0;
+        //}
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         this.requestRedraw();
@@ -1893,9 +1898,9 @@ export let View = (function () {
         }
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-        if (this.viewCenter.lon < 0.0) {
-            this.viewCenter.lon += 360.0;
-        }
+        //if (this.viewCenter.lon < 0.0) {
+        //    this.viewCenter.lon += 360.0;
+        //}
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation

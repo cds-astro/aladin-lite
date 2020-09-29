@@ -1885,7 +1885,9 @@ View = (function() {
                     var footprint = overlay.overlays[i];
                     var pointXY = [];
                     for(var j=0;j<footprint.polygons.length;j++){
-
+                        if (!footprint.isShowing) {
+                            continue;
+                        }
                         var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
                                 this.projection,
                                 this.cooFrame,

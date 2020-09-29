@@ -240,6 +240,16 @@ export let Overlay = (function() {
                 ((0|(1<<8) + b + (256 - b) * percent / 100).toString(16)).substr(1);
     };
 
+    Overlay.prototype.setColor = function(color) {
+        this.color = color;
+        this.reportChange();
+    };
+
+    Overlay.prototype.setLineWidth = function(lineWidth) {
+        this.lineWidth = lineWidth;
+        this.reportChange();
+    };
+
     // callback function to be called when the status of one of the footprints has changed
     Overlay.prototype.reportChange = function() {
         this.view && this.view.requestRedraw();

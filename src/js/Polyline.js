@@ -60,7 +60,7 @@ export let Polyline= (function() {
     	this.isShowing = true;
     	this.isSelected = false;
 
-        this.selectionColor = undefined;
+        this.selectionColor = '#00ff00';
     };
 
     Polyline.prototype.setOverlay = function(overlay) {

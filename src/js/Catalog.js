@@ -78,18 +78,9 @@ export let Catalog = (function() {
                 this.displayLabel = false;
             }
         }
-    	
-        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
-            this.sourceSize = this.shape.width;
-        }
-        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
-        if (typeof this.shape === 'function') {
-            this._shapeIsFunction = true;
-        }
         
     	this.selectionColor = '#00ff00';
     	
-
         // create this.cacheCanvas    	
     	// cacheCanvas permet de ne créer le path de la source qu'une fois, et de le réutiliser (cf. http://simonsarris.com/blog/427-increasing-performance-by-caching-paths-on-canvas)
         this.updateShape(options);
@@ -373,14 +364,24 @@ export let Catalog = (function() {
     	this.sourceSize = options.sourceSize || this.sourceSize || 6;
     	this.shape = options.shape || this.shape || "square";
 
+        this._shapeIsFunction = false; // if true, the shape is a function drawing on the canvas
+        if (typeof this.shape === 'function') {
+            this._shapeIsFunction = true;
+        }
+
+        if (this.shape instanceof Image || this.shape instanceof HTMLCanvasElement) {
+            this.sourceSize = this.shape.width;
+        }
+
         this.selectSize = this.sourceSize + 2;
 
         this.cacheCanvas = Catalog.createShape(this.shape, this.color, this.sourceSize); 
-        this.cacheSelectCanvas = Catalog.createShape('square', this.selectionColor, this.selectSize);
+        this.cacheSelectCanvas = Catalog.createShape(this.shape, this.selectionColor, this.selectSize);
+        this.cacheHoverCanvas = Catalog.createShape(this.shape, this.hoverColor, this.sourceSize);
 
         this.reportChange();
     };
-
+    
     // API
     Catalog.prototype.addSources = function(sources) {
         // make sure we have an array and not an individual source
@@ -531,6 +532,36 @@ export let Catalog = (function() {
     Catalog.prototype.setView = function(view) {
         this.view = view;
         this.reportChange();
+    };
+
+    Catalog.prototype.setColor = function(color) {
+        this.color = color;
+        this.updateShape();
+    };
+
+    Catalog.prototype.setSelectionColor = function(color) {
+        this.selectionColor = color;
+        this.updateShape();
+    };
+
+    Catalog.prototype.setHoverColor = function(color) {
+        this.hoverColor = color;
+        this.updateShape();
+    };
+
+    Catalog.prototype.setSourceSize = function(sourceSize) {
+        // will be discarded in updateShape if the shape is an Image
+        this.sourceSize = sourceSize;
+        this.updateShape();
+    };
+
+    Catalog.prototype.setShape = function(shape) {
+        this.shape = shape;
+        this.updateShape();
+    };
+
+    Catalog.prototype.getSourceSize = function() {
+        return this.sourceSize;
     };
 
     // remove a source

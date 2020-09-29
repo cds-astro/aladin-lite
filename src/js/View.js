@@ -681,7 +681,6 @@ export let View = (function() {
 
             var xoffset, yoffset;
             var pos1, pos2;
-            
             if (e.originalEvent && e.originalEvent.targetTouches) {
                 // ???
                 xoffset = e.originalEvent.targetTouches[0].clientX-view.dragx;
@@ -767,6 +766,9 @@ export let View = (function() {
             //webglAPI.setCenter(pos2[0], pos2[1]);
             view.viewCenter.lon = pos2[0];
             view.viewCenter.lat = pos2[1];
+
+
+            console.log(view.viewCenter);
 
             view.requestRedraw();
         }); //// endof mousemove ////
@@ -981,7 +983,8 @@ export let View = (function() {
         }*/
 
         
-        //this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        console.log("center", this.viewCenter);
         // do we have to redo that every time? Probably not
         //this.projection.setProjection(this.projectionMethod);
     
@@ -1088,7 +1091,7 @@ export let View = (function() {
          */
 
 
-        /*
+        ///*
         ////// 2. Draw catalogues////////
         var catalogCtx = this.catalogCtx;
 
@@ -1107,6 +1110,7 @@ export let View = (function() {
             }
             for (var i=0; i<this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
+                console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
                 cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
@@ -1144,7 +1148,7 @@ export let View = (function() {
             }
         }
 
-        */
+        //*/
         if (this.mode==View.SELECT) {
             mustRedrawReticle = true;
         }

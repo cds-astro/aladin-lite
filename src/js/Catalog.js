@@ -491,6 +491,7 @@ export let Catalog = (function() {
     };
     
     Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        console.log(projection.ROT);
         if (! this.isShowing) {
             return;
         }
@@ -558,6 +559,8 @@ export let Catalog = (function() {
 
         if (xy) {
             var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+            console.log('xy', xy);
+            console.log('xyview', xyview);
             var max = s.popup ? 100 : s.sourceSize;
             if (xyview) {
                 // TODO : index sources by HEALPix cells at level 3, 4 ?

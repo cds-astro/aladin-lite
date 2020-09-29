@@ -47,6 +47,7 @@ import { Source } from "./Source.js";
 import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
+import { Color } from "./Color.js";
 import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 
@@ -1709,12 +1710,14 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     return A.catalogFromURL(url, options, successCallback, false);
 };
 
-A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
+//A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
+A.init = Promise.all([import('../render/pkg/')]).then(async (values) => {
     console.log(values);
-    let [hpxAPI, webglAPI] = values;
+    //let [hpxAPI, webglAPI] = values;
+    let [webglAPI] = values;
 
     // HEALPix library
-    Aladin.wasmLibs.hpx = hpxAPI;
+    //Aladin.wasmLibs.hpx = hpxAPI;
     // WebGL library
     Aladin.wasmLibs.webgl = webglAPI;
 });

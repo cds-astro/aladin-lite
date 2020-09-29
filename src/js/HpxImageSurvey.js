@@ -101,7 +101,7 @@ HpxImageSurvey = (function() {
     	
         this.tileSize = undefined;
     	this.allskyTexture = null;
-    	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
+    	this.alpha = 1.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
     	this.allskyTextureSize = 0;
         this.lastUpdateDateNeededTiles = 0;
 
@@ -842,7 +842,14 @@ HpxImageSurvey = (function() {
         }
 */
 coeff = 0.02;
-
+        //Improving lines between tiles for semi-transparant HiPS
+        if(ctx.globalAlpha<1.0){
+            if(ctx.globalAlpha<0.5){
+                coeff = 0.0
+            }else {
+               coeff = (ctx.globalAlpha-0.5)/50
+           }
+       }
         // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
         ctx.beginPath();
         ctx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));

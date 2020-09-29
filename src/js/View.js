@@ -926,6 +926,7 @@ View = (function() {
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
         if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+                imageCtx.globalAlpha = this.imageSurvey.getAlpha();
                 if (this.aladin.reduceDeformations==null) {
                     this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
                 }
@@ -1016,7 +1017,7 @@ View = (function() {
             if (this.cooGrid==null) {
                 this.cooGrid = new CooGrid();
             }
-            
+
             this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
         }
          

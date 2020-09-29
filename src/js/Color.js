@@ -52,14 +52,14 @@ export let Color = (function() {
     Color.getLabelColorForBackground = function(rgbBkgdColor) {
         var lightLabel = '#eee' 
         var darkLabel = '#111' 
-        rgb = rgbBkgdColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        var rgb = rgbBkgdColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
         if (rgb==null) {
             // we return the dark label color if we can't parse the color
             return darkLabel
         }
-        r = parseInt(rgb[1]);
-        g = parseInt(rgb[2]);
-        b = parseInt(rgb[3]);
+        var r = parseInt(rgb[1]);
+        var g = parseInt(rgb[2]);
+        var b = parseInt(rgb[3]);
         
         var d = 0;
         // Counting the perceptive luminance - human eye favors green color... 

@@ -852,6 +852,10 @@ Aladin = (function() {
     };
     
 
+    Aladin.prototype.showGrid = function(showGrid) {
+        this.view.setShowGrid(showGrid);
+    };
+
   
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {

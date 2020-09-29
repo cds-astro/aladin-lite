@@ -1017,7 +1017,7 @@ View = (function() {
                 this.cooGrid = new CooGrid();
             }
             
-            this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+            this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.viewCenter, this.fov);
         }
          
 

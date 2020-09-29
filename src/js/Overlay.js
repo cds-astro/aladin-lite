@@ -63,6 +63,9 @@ export let Overlay = (function() {
             return;
         }
         this.isShowing = true;
+        // Dispatch to the child shapes
+        this.overlayItems.forEach((item) => item.show())
+
         this.reportChange();
     };
 
@@ -71,6 +74,9 @@ export let Overlay = (function() {
             return;
         }
         this.isShowing = false;
+        // Dispatch to the child shapes
+        this.overlayItems.forEach((item) => item.hide())
+
         this.reportChange();
     };
 

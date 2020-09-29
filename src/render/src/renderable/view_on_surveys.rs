@@ -67,6 +67,14 @@ impl HEALPixCells {
     fn iter(&self) -> HEALPixCellsIter {
         HEALPixCellsIter(self.cells.iter())
     }
+
+    fn get_depth(&self) -> u8 {
+        self.depth
+    }
+
+    fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
 }
 
 struct NewHEALPixCells {
@@ -77,7 +85,7 @@ struct NewHEALPixCells {
     // A flag telling whether there has been
     // new cells added from the last frame
     is_new_cells_added: bool,
-};
+}
 
 impl NewHEALPixCells {
     fn new(cells: &HEALPixCells) -> NewHEALPixCells {
@@ -94,7 +102,7 @@ impl NewHEALPixCells {
 
         NewHEALPixCells {
             depth,
-            flags
+            flags,
             is_new_cells_added
         }
     }
@@ -185,7 +193,7 @@ fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8
     depth_texture as u8
 }
 
-fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
+pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
     let cells = if let Some(vertices) = camera.vertices() {
         polygon_coverage(depth, vertices)
     } else {
@@ -218,16 +226,19 @@ pub struct HEALPixCellsInView {
     // specific image survey
     cells: HEALPixCells,
     new_cells: NewHEALPixCells,
+    prev_depth: u8,
 }
 
 impl HEALPixCellsInView {
     pub fn new() -> Self {
         let cells = HEALPixCells::new();
         let new_cells = NewHEALPixCells::new(&cells);
+        let prev_depth = 0;
 
         HEALPixCellsInView {
             cells,
             new_cells,
+            prev_depth,
         }
     }
 
@@ -236,6 +247,8 @@ impl HEALPixCellsInView {
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
     pub fn update(&mut self, survey: &ImageSurvey, camera: &CameraViewPort) {
+        self.prev_depth = self.cells.get_depth();
+
         // Compute that depth
         let depth = compute_depth_for_survey(camera, survey);
         // Get the cells of that depth in the current field of view
@@ -250,8 +263,13 @@ impl HEALPixCellsInView {
     }
 
     #[inline]
-    pub fn get_cells<'a>(&'a self) -> HEALPixCellsIter<'a> {
+    pub fn get_cells_iter<'a>(&'a self) -> HEALPixCellsIter<'a> {
         self.cells.iter()
+    }
+
+    #[inline]
+    pub fn get_cells(&self) -> &HEALPixCells {
+        &self.cells
     }
 
     #[inline]
@@ -262,5 +280,11 @@ impl HEALPixCellsInView {
     #[inline]
     pub fn is_there_new_cells_added(&self) -> bool {
         new_cells.is_there_new_cells_added()
+    }
+
+    #[inline]
+    pub fn has_depth_decreased(&self) -> bool {
+        let depth = self.cells.get_depth();
+        depth < self.prev_depth
     }
 }

@@ -74,6 +74,7 @@ struct App {
     rasterizer: Rasterizer,
     raytracer: RayTracer,
     time_start_blending: Time,
+    rendering: bool,
 
     // The grid renderable
     grid: ProjetedGrid,
@@ -225,6 +226,8 @@ impl App {
             rasterizer,
             raytracer,
             time_start_blending,
+            rendering,
+
             // The grid renderable
             grid,
             // The catalog renderable
@@ -357,7 +360,7 @@ impl App {
         {
             // Newly available tiles must lead to
             if is_there_new_available_tiles {
-                self.time_latest_available_tile = Time::now();
+                self.time_start_blending = Time::now();
             }
 
             // 1. Surveys must be aware of the new available tiles
@@ -373,14 +376,21 @@ impl App {
         // - the camera has moved
         let has_camera_moved = camera.has_camera_moved();
         // - there is at least one tile in its blending phase
-        let blending_anim_occuring = (Time::now() - self.time_latest_available_tile) < BLEND_TILE_ANIM_DURATION;
-        let render = blending_anim_occuring | has_camera_moved;
+        let blending_anim_occuring = (Time::now() - self.time_start_blending) < BLEND_TILE_ANIM_DURATION;
+        self.rendering = blending_anim_occuring | has_camera_moved;
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
             self.manager.update(&self.camera);
         }
 
+        Ok(render)
+    }
+
+    fn render<P: Projection>(&mut self, _enable_grid: bool) {
+        if !self.rendering {
+            return;
+        }
         // Then we compute different boolean for the update of the VBO
         // for the rasterizer
         // The rasterizer has a buffer containing:
@@ -400,26 +410,40 @@ impl App {
         //     * there are new available tiles for the GPU
         let view_most_refined = self.surveys.get_most_refined_view();
         let new_cells_added = view_most_refined.is_there_new_cells_added();
-
         let update_positions = new_cells_added;
-        let update_uv = update_vertices | is_there_new_available_tiles;
-        let update_starting_blending_times = update_uv;
 
         if update_positions {
-            let positions = vec![];
-            for cell in view_most_refined.get_cells() {
+            // Get the cells to draw
+            let cells = if camera.last_user_action() == UserAction::UnZooming {
+                if view_most_refined.has_depth_decreased() {
+                    let new_depth = view_most_refined.get_depth();
 
-            }
+                    super::get_cells_in_fov(new_depth + 1, &camera)
+                } else {
+                    view_most_refined.get_cells()
+                }
+            } else {
+                view_most_refined.get_cells()
+            };
+
+            self.rasterizer.set_positions(cells);
+        }
+
+        for survey in self.surveys.iter() {
+            let update_uv = new_cells_added | survey.is_there_available_tiles();
+            let update_starting_blending_times = update_uv;
+        }
+
+        
+
+        if update_positions {
+
 
             self.rasterizer.set_positions();
         } else {
 
         }
 
-        Ok(render)
-    }
-
-    fn render<P: Projection>(&mut self, _enable_grid: bool) {
         // Render the scene
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);

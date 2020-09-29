@@ -47,11 +47,10 @@ pub trait RecomputeRasterizer {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a, P: Projection>(
+        cells_to_draw: &HEALPixCells,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
         survey: &'a ImageSurvey,
-        // Its associated view
-        view: &ViewHEALPixCells,
     ) -> ImageSurveyTextures<'a>;
 
     fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8;
@@ -66,32 +65,25 @@ impl RecomputeRasterizer for Move  {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn compute_texture_buffer<'a, P: Projection>(
-        // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a TileBuffer,
-        // The HEALPix cells located in the FOV
-        viewport: &CameraViewPort,
-    ) -> TextureStates<'a> {
-        let cells_fov = viewport.cells();
+    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurvey) -> ImageSurveyTextures<'a> {
+        let mut textures = ImageSurveyTextures::new(cells_to_draw.len());
 
-        let mut textures = TextureStates::new(cells_fov.len());
+        for cell in cells_to_draw {
+            if survey.contains(cell) {
+                let parent_cell = survey.get_nearest_parent(cell);
 
-        for &cell in cells_fov {
-            if buffer.contains(&cell) {
-                let parent_cell = buffer.get_nearest_parent(&cell);
+                let ending_cell_in_tex = survey.get(cell).unwrap();
+                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                let ending_cell_in_tex = buffer.get_texture(&cell);
-                let starting_cell_in_tex = buffer.get_texture(&parent_cell);
-
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             } else {
-                let parent_cell = buffer.get_nearest_parent(&cell);
-                let grand_parent_cell = buffer.get_nearest_parent(&parent_cell);
+                let parent_cell = survey.get_nearest_parent(cell);
+                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
 
-                let ending_cell_in_tex = buffer.get_texture(&parent_cell);
-                let starting_cell_in_tex = buffer.get_texture(&grand_parent_cell);
+                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
+                let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             }
         }
 
@@ -107,32 +99,25 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn compute_texture_buffer<'a, P: Projection>(
-        // The buffer that will be modified due to the need of specific tile textures by the GPU
-        buffer: &'a TileBuffer,
-        // The HEALPix cells located in the FOV
-        viewport: &CameraViewPort,
-    ) -> TextureStates<'a> {
-        let cells_fov = viewport.cells();
+    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurvey) -> ImageSurveyTextures<'a> {
+        let mut textures = ImageSurveyTextures::new(cells_to_draw.len());
 
-        let mut textures = TextureStates::new(cells_fov.len());
+        for cell in cells_to_draw {
+            if survey.contains(cell) {
+                let parent_cell = survey.get_nearest_parent(cell);
 
-        for &cell in cells_fov {
-            if buffer.contains(&cell) {
-                let parent_cell = buffer.get_nearest_parent(&cell);
+                let ending_cell_in_tex = survey.get(cell).unwrap();
+                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                let ending_cell_in_tex = buffer.get_texture(&cell);
-                let starting_cell_in_tex = buffer.get_texture(&parent_cell);
-
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             } else {
-                let parent_cell = buffer.get_nearest_parent(&cell);
-                let grand_parent_cell = buffer.get_nearest_parent(&parent_cell);
+                let parent_cell = survey.get_nearest_parent(cell);
+                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
 
-                let ending_cell_in_tex = buffer.get_texture(&parent_cell);
-                let starting_cell_in_tex = buffer.get_texture(&grand_parent_cell);
+                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
+                let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             }
         }
 
@@ -149,43 +134,35 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn compute_texture_buffer<'a, P: Projection>(
-        // The buffer that will be modified due to the need of specific tile textures by the GPU
-        survey: &'a ImageSurvey,
-        // The HEALPix cells located in the FOV
-        camera: &CameraViewPort,
-    ) -> TextureStates<'a> {
-        let depth_plus_one = viewport.depth() + 1;
-        let cells_fov = viewport.get_cells_in_fov::<P>(depth_plus_one);
+    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurvey) -> ImageSurveyTextures<'a> {
+        let mut textures = ImageSurveyTextures::new(cells_to_draw.len());
 
-        let mut textures = TextureStates::new(cells_fov.len());
-
-        for cell in cells_fov {
+        for cell in cells_to_draw {
             let parent_cell = cell.parent();
 
-            if buffer.contains(&parent_cell) {
-                let starting_cell = if buffer.contains(&cell) {
+            if survey.contains(&parent_cell) {
+                let starting_cell = if survey.contains(&cell) {
                     cell
                 } else {
-                    buffer.get_nearest_parent(&parent_cell)
+                    survey.get_nearest_parent(&parent_cell)
                 };
-                let starting_cell_in_tex = buffer.get_texture(&starting_cell);
-                let ending_cell_in_tex = buffer.get_texture(&parent_cell);
+                let starting_cell_in_tex = survey.get(&starting_cell);
+                let ending_cell_in_tex = survey.get(&parent_cell);
 
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             } else {
-                let starting_cell = if buffer.contains(&cell) {
+                let starting_cell = if survey.contains(&cell) {
                     cell
                 } else {
-                    buffer.get_nearest_parent(&parent_cell)
+                    survey.get_nearest_parent(&parent_cell)
                 };
 
                 let ending_cell = starting_cell;
 
-                let starting_cell_in_tex = buffer.get_texture(&starting_cell);
-                let ending_cell_in_tex = buffer.get_texture(&ending_cell);
+                let starting_cell_in_tex = survey.get(&starting_cell);
+                let ending_cell_in_tex = survey.get(&ending_cell);
 
-                textures.insert(cell, TextureState::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(cell, ImageSurveyTexture::new(starting_cell_in_tex, ending_cell_in_tex));
             }
         }
 
@@ -235,6 +212,7 @@ struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
     views: HashMap<String, ViewHEALPixCells>,
     most_refined_survey: Option<String>,
+
 }
 
 impl ImageSurveys {

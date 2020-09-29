@@ -35,7 +35,7 @@ mod triangulation;
 use triangulation::Triangulation;
 
 mod view_on_surveys;
-use view_on_surveys::ViewOnImageSurvey;
+use view_on_surveys::{ViewOnImageSurvey, get_cells_in_camera};
 
 use hips_sphere::{
  RecomputeRasterizer,

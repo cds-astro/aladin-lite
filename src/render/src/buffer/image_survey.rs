@@ -141,7 +141,9 @@ pub struct ImageSurvey {
 
     // A boolean ensuring the root textures
     // have already been loaded
-    ready: bool
+    ready: bool,
+
+    available_tiles_during_frame: bool,
 }
 use crate::{
     WebGl2Context,
@@ -191,6 +193,7 @@ impl ImageSurvey {
         // The root textures have not been loaded
         let ready = false;
         let num_root_textures_available = 0;
+        let available_tiles_during_frame = false;
         //let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
         // Push the 
         ImageSurvey {
@@ -203,6 +206,7 @@ impl ImageSurvey {
             textures,
             //cutoff_values_tile,
             texture_2d_array,
+            available_tiles_during_frame,
 
             ready,
         }
@@ -332,6 +336,7 @@ impl ImageSurvey {
     pub fn register_available_tiles(&mut self, available_tile: &Tile) {
         let Tile {cell, ..} = available_tile;
         let texture_cell = cell.get_texture_cell(&self.config);
+        self.available_tiles_during_frame = true;
 
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.register_available_tile(cell, &self.config);
@@ -350,6 +355,13 @@ impl ImageSurvey {
             // Textures written have to be in the textures collection
             unreachable!();
         }
+    }
+
+    pub fn is_there_available_tiles(&mut self) -> bool {
+        let available_tiles_during_frame = self.available_tiles_during_frame;
+        self.available_tiles_during_frame = false;
+
+        return available_tiles_during_frame;
     }
 
     fn is_heap_full(&self) -> bool {

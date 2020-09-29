@@ -6,7 +6,7 @@ use crate::buffer::{
     HiPSConfig,
 };
 
-use crate::async_task::AladinTaskExecutor;
+use crate::async_task::TaskExecutor;
 
 struct Requests {
     reqs: [TileRequest; NUM_EVENT_LISTENERS],
@@ -200,7 +200,7 @@ impl TileDownloader {
                                 TileResolved::Found { image, time_req }
                             },
                             _ => unreachable!()
-                        }
+                        };
 
                         resolved_tiles.insert(*tile, tile_resolved);
                     }

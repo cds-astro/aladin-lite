@@ -260,6 +260,16 @@ impl ImageSurveyType {
     }
 }
 
+enum ImageSurveyPrimaryType {
+    FITSImageSurveyColor(Vec<FITSImageSurveyColor>),
+    FITSImageSurveyColormap(FITSImageSurveyColormap),
+    ColoredImageSurvey(ColoredImageSurvey)
+}
+enum ImageSurveyOverlayType {
+    FITSImageSurveyColormap(FITSImageSurveyColormap),
+    ColoredImageSurvey(ColoredImageSurvey)
+}
+
 use crate::camera::ViewHEALPixCells;
 struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
@@ -392,7 +402,7 @@ impl ImageSurveys {
 
     // Update the surveys by adding to the surveys the tiles
     // that have been resolved
-    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut AladinTaskExecutor) {
+    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut TaskExecutor) {
         for (tile, result) in resolved_tiles.iter() {
             let mut survey = &mut self.surveys.get_mut(&tile.root_url)
                 .unwrap()
@@ -492,7 +502,7 @@ use crate::{
     buffer::HiPSConfig,
     shader::ShaderManager,
     time::{Time, DeltaTime},
-    async_task::AladinTaskExecutor,
+    async_task::TaskExecutor,
 };
 
 use crate::TransferFunction;
@@ -516,7 +526,7 @@ use crate::buffer::Tiles;
         }
     }
 
-    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut CameraViewPort, task_executor: &mut AladinTaskExecutor) -> Result<(), JsValue> {        
+    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut CameraViewPort, task_executor: &mut TaskExecutor) -> Result<(), JsValue> {        
         self.config.set_HiPS_definition(hips_definition)?;
         // Tell the viewport the config has changed
         viewport.set_image_survey::<P>(&self.config);
@@ -532,7 +542,7 @@ use crate::buffer::Tiles;
         self.buffer.ask_for_tiles(cells, &self.config);
     }*/
 
-    /*pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut AladinTaskExecutor) {
+    /*pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut TaskExecutor) {
         //survey.register_tiles_sent_to_gpu(copied_tiles);
         self.buffer.get_resolved_tiles(available_tiles);
     }
@@ -542,7 +552,7 @@ use crate::buffer::Tiles;
         self.raytracer = RayTracer::new::<P>(&self.gl, viewport, shaders);
     }
 
-    pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut AladinTaskExecutor) -> IsNextFrameRendered {
+    pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut TaskExecutor) -> IsNextFrameRendered {
 
 
         if self.survey.is_ready() {

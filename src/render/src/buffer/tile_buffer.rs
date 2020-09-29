@@ -25,6 +25,16 @@ pub struct Tile {
     format: FormatImageType,
 }
 
+impl Tile {
+    fn new(cell: &HEALPixCell, config: &HiPSConfig) -> Self {
+        Tile {
+            cell: *cell,
+            root_url: String::from(config.get_root_url()),
+            format: config.get_format()
+        }
+    }
+}
+
 pub type Tiles = HashSet<Tile>;
 
 pub struct TileBuffer {
@@ -38,7 +48,7 @@ use crate::{
     buffer::Texture,
     viewport::ViewPort,
     time::Time,
-    async_task::AladinTaskExecutor,
+    async_task::TaskExecutor,
     image_fmt::FormatImageType
 };
 use super::tile_downloader::ResolvedTiles;

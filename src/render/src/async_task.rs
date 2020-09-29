@@ -3,8 +3,8 @@
 // can be run concurrently on one thread under a time limit period
 // When the time limit is reached, the executor stops polling the remaining
 // futures and return the results of the finished ones
-use task_async_executor::TaskExecutor;
-pub type AladinTaskExecutor = TaskExecutor<TaskType, TaskResult>;
+use task_async_executor::Executor;
+pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
 pub use crate::renderable::catalog::Source;
 pub use crate::buffer::Tile;

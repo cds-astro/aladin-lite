@@ -54,12 +54,13 @@ use crate::{
 
 use std::{
     rc::Rc,
+    cell::RefCell,
     collections::HashSet
 };
 
 use cgmath::Vector4;
 
-use async_task::AladinTaskExecutor;
+use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
 struct App {
     gl: WebGl2Context,
@@ -89,7 +90,7 @@ struct App {
     move_fsm: MoveSphere,*/
 
     // Task executor
-    exec: AladinTaskExecutor,
+    exec: Rc<RefCell<TaskExecutor>>,
     resources: Resources,
 
     move_animation: Option<MoveAnimation>,
@@ -121,6 +122,8 @@ const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 
 impl App {
     fn new(gl: &WebGl2Context, _events: &EventManager, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
+        let gl = gl.clone();
+        let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
         //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
@@ -144,7 +147,7 @@ impl App {
 
         let config = HiPSConfig::new(gl, hips_definition)?;
         let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
-            survey: ImageSurvey::new(gl, config)
+            survey: ImageSurvey::new(gl, config, exec.clone())
         });
 
         // camera definition
@@ -206,9 +209,6 @@ impl App {
         /*let user_move_fsm = UserMoveSphere::init();
         let user_zoom_fsm = UserZoom::init();
         let move_fsm = MoveSphere::init();*/
-
-        let gl = gl.clone();
-        let exec = AladinTaskExecutor::new();
 
         // Variable storing the location to move to
         let move_animation = None;
@@ -491,7 +491,7 @@ impl App {
     fn add_image_survey<P: Projection>(&mut self, properties: HiPSDefinition) -> Result<(), JsValue> {
         let config = HiPSConfig::new(gl, properties)?;
         let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
-            survey: ImageSurvey::new(gl, config)
+            survey: ImageSurvey::new(gl, config, self.exec.clone())
         });
         self.surveys.add::<P>(hips_definition, &mut self.camera)
     }

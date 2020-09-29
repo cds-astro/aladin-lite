@@ -144,11 +144,14 @@ pub struct ImageSurvey {
     ready: bool,
 
     available_tiles_during_frame: bool,
+
+    exec: Rc<RefCell<TaskExecutor>>,
+    gl: WebGl2Context,
 }
 use crate::{
     WebGl2Context,
     buffer::Image,
-    async_task::{AladinTaskExecutor, TaskType, TaskResult, SendTileToGPU}
+    async_task::{TaskExecutor, TaskType, TaskResult, SendTileToGPU}
 };
 use std::collections::HashSet;
 use web_sys::WebGl2RenderingContext;
@@ -179,7 +182,7 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 use std::cell::Cell;
 use crate::image_fmt::FormatImageType;
 impl ImageSurvey {
-    pub fn new(gl: &WebGl2Context, config: HiPSConfig) -> ImageSurvey {
+    pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurvey {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -195,7 +198,7 @@ impl ImageSurvey {
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
         //let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
-        // Push the 
+        let gl = gl.clone();
         ImageSurvey {
             config,
             heap,
@@ -209,6 +212,8 @@ impl ImageSurvey {
             available_tiles_during_frame,
 
             ready,
+            exec,
+            gl
         }
     }
 
@@ -239,7 +244,7 @@ impl ImageSurvey {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile: &Tile, image: I, time_request: Time, exec: &mut AladinTaskExecutor) {
+    pub fn push<I: Image + 'static>(&mut self, tile: &Tile, image: I, time_request: Time) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
         assert!(!self.contains_tile(tile_cell));
@@ -267,7 +272,7 @@ impl ImageSurvey {
                     // Remove it from the textures HashMap
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
-                        texture.replace(&texture_cell, time_request, &self.config, exec);
+                        texture.replace(&texture_cell, time_request, &self.config, &mut self.exec.borrow_mut());
                         old_texture_cell = Some(oldest_texture.cell);
 
                         texture
@@ -310,10 +315,10 @@ impl ImageSurvey {
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
             let spawner = exec.spawner();
-            let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &self.config);
+            let task = SendTileToGPU::new(tile, texture, image, self.texture_2d_array.clone(), &self.config);
             //let cutoff_values_tile = self.cutoff_values_tile.clone();
             let tile = *tile;
-            spawner.spawn(TaskType::SendTileToGPU(tile_cell), async move {
+            spawner.spawn(TaskType::SendTileToGPU(tile.clone()), async move {
                 task.await;
 
                 /*if let Some(cutoff) = cutoff {
@@ -459,20 +464,20 @@ impl ImageSurvey {
     }
 
     // This is called when the HiPS changes
-    pub fn clear(&mut self, gl: &WebGl2Context, task_executor: &mut AladinTaskExecutor) {
+    pub fn clear(&mut self) {
         // Size i.e. the num of textures is the same
         // no matter the HiPS config
         self.heap.clear();
 
         for texture in self.textures.values() {
-            texture.clear_tasks_in_progress(&self.config, task_executor);
+            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
         }
         self.textures.clear();
 
         self.ready = false;
         self.num_root_textures_available = 0;
 
-        self.texture_2d_array = Rc::new(create_texture_array(gl, &self.config));
+        self.texture_2d_array = Rc::new(create_texture_array(self.gl, &self.config));
     }
 
     pub fn is_ready(&self) -> bool {
@@ -525,5 +530,19 @@ impl HasUniforms for ImageSurvey {
         }
 
         shader
+    }
+}
+
+impl Drop for ImageSurvey {
+    fn drop(&mut self) {
+        // Cleanup the heap
+        self.heap.clear();
+
+        // Cancel the tasks that have not been finished
+        // by the exec
+        for texture in self.textures.values() {
+            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
+        }
+        self.textures.clear();
     }
 }

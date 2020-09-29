@@ -421,6 +421,17 @@ View = (function() {
             view.dragging = true;
             if (view.mode==View.PAN) {
                 view.setCursor('move');
+                var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+                if (typeof posChangedFn === 'function') {
+                    var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
+                    if (pos !== undefined) {
+                        posChangedFn({
+                            ra: pos[0],
+                            dec: pos[1],
+                            dragging: true
+                        });
+                    }
+                }
             }
             else if (view.mode==View.SELECT) {
                 view.selectStartCoo = {x: view.dragx, y: view.dragy};
@@ -487,7 +498,17 @@ View = (function() {
                     if (view.mode===View.TOOL_SIMBAD_POINTER) {
                         view.setMode(View.PAN);
                     }
-
+                    var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+                    if (typeof posChangedFn === 'function') {
+                        var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
+                        if (pos !== undefined) {
+                            posChangedFn({
+                                ra: pos[0],
+                                dec: pos[1],
+                                dragging: true
+                            });
+                        }
+                    }
                     return;
                 }
             }
@@ -735,6 +756,26 @@ View = (function() {
             view.setZoomLevel(level);
             
             return false;
+        });
+
+        $(view.reticleCanvas).on('mouseup', function(event) {
+            view.setCursor('default');
+            var xymouse = view.imageCanvas.relMouseCoords(event);
+            updateLocation(view, xymouse.x, xymouse.y);
+            // call listener of 'mouseMove' event
+            var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
+            if (typeof onMouseMoveFunction === 'function') {
+                var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
+                if (pos !== undefined) {
+                    onMouseMoveFunction({
+                        ra: pos[0],
+                        dec: pos[1],
+                        x: xymouse.x,
+                        y: xymouse.y
+                    });
+                }
+            }
+            return true;
         });
 
     };

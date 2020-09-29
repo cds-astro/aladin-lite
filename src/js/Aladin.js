@@ -526,6 +526,12 @@ Aladin = (function() {
         }
 
         this.view.changeFrame(newFrame);
+
+        var frameChangedFunction = this.view.aladin.callbacksByEventName['cooFrameChanged'];
+        if (typeof frameChangedFunction === 'function') {
+            frameChangedFunction(newFrame.label);
+        }
+
         // màj select box
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
@@ -1043,7 +1049,7 @@ Aladin = (function() {
         return A.catalogFromURL(url, options, successCallback, false);
     };
 
-     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled']; 
+     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'objectHoverStop', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'cooFrameChanged'];      
      // API
      //
      // setting callbacks

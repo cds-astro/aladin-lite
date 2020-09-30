@@ -480,7 +480,7 @@ impl TileRequest {
             let resolved = self.resolved.clone();
 
             Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Found;
+                resolved.set(ResolvedStatus::Found);
             }) as Box<dyn FnMut(&web_sys::Event,)>)
         };
 

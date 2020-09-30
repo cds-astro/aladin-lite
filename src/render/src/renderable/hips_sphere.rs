@@ -210,6 +210,13 @@ impl Draw for ColoredImageSurvey {
 pub struct FITSImageSurveyColormap {
     pub survey: ImageSurvey,
     colormap: Colormap,
+
+    h: TransferFunction,
+    cutout_min: f32,
+    cutout_max: f32,
+    bscale: f32,
+    bzero: f32,
+    blank_value: Option<f32>,
 }
 
 impl Draw for FITSImageSurveyColormap {
@@ -226,6 +233,13 @@ impl Draw for FITSImageSurveyColormap {
 pub struct FITSImageSurveyColor {
     pub survey: ImageSurvey,
     color: cgmath::Vector3<f32>,
+
+    h: TransferFunction,
+    cutout_min: f32,
+    cutout_max: f32,
+    bscale: f32,
+    bzero: f32,
+    blank_value: Option<f32>,
 }
 
 impl Draw for FITSImageSurveyColor {

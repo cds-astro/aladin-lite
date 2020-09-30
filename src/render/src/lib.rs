@@ -1123,8 +1123,60 @@ impl WebClient {
         Ok(())
     }
 
-    /// Change HiPS
+    // Set primary image survey
     #[wasm_bindgen(js_name = setImageSurvey)]
+    pub fn set_color_survey(&mut self, properties: JsValue) -> Result<(), JsValue> {
+        let properties: HiPSDefinition = properties.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", properties));
+
+        self.projection.set_image_survey(&mut self.app, properties)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setFITSImageSurvey)]
+    pub fn set_fits_colormap_survey(&mut self, properties: JsValue, colormap: String) -> Result<(), JsValue> {
+        let properties: HiPSDefinition = properties.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", properties));
+
+        self.projection.set_image_survey(&mut self.app, properties)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = addFITSColorImageSurvey)]
+    pub fn set_fits_color_survey(&mut self, properties: JsValue, color: Box<[f32]>) -> Result<(), JsValue> {
+        let properties: HiPSDefinition = properties.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", properties));
+
+        self.projection.set_image_survey(&mut self.app, properties)?;
+
+        Ok(())
+    }
+
+    // Set a secondary image survey overlaying the primary one
+    #[wasm_bindgen(js_name = setOverlayImageSurvey)]
+    pub fn set_overlay_color_survey(&mut self, properties: JsValue) -> Result<(), JsValue> {
+        let properties: HiPSDefinition = properties.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", properties));
+
+        self.projection.set_image_survey(&mut self.app, properties)?;
+
+        Ok(())
+    }
+    
+    #[wasm_bindgen(js_name = setOverlayFITSImageSurvey)]
+    pub fn set_overlay_fits_colormap_survey(&mut self, properties: JsValue, colormap: String) -> Result<(), JsValue> {
+        let properties: HiPSDefinition = properties.into_serde().unwrap();
+        crate::log(&format!("hips_def222: {:?}", properties));
+
+        self.projection.set_image_survey(&mut self.app, properties)?;
+
+        Ok(())
+    }
+
+    /// Change HiPS
+    /*#[wasm_bindgen(js_name = setImageSurvey)]
     pub fn set_image_survey(&mut self,
         hips_definition: JsValue,
     ) -> Result<(), JsValue> {
@@ -1134,7 +1186,7 @@ impl WebClient {
         self.projection.set_image_survey(&mut self.app, hips_definition)?;
 
         Ok(())
-    }
+    }*/
 
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Result<Box<[f32]>, JsValue> {

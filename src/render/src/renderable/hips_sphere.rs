@@ -194,10 +194,6 @@ trait Draw {
     fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;
 }
 
-pub struct ColoredImageSurvey {
-    pub survey: ImageSurvey,
-}
-
 impl Draw for ColoredImageSurvey {
     fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
         P::get_rasterizer_shader_jpg(gl, shaders)
@@ -205,18 +201,6 @@ impl Draw for ColoredImageSurvey {
     fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
     }
-}
-
-pub struct FITSImageSurveyColormap {
-    pub survey: ImageSurvey,
-    colormap: Colormap,
-
-    h: TransferFunction,
-    cutout_min: f32,
-    cutout_max: f32,
-    bscale: f32,
-    bzero: f32,
-    blank_value: Option<f32>,
 }
 
 impl Draw for FITSImageSurveyColormap {
@@ -230,19 +214,72 @@ impl Draw for FITSImageSurveyColormap {
     }
 }
 
-pub struct FITSImageSurveyColor {
-    pub survey: ImageSurvey,
-    color: cgmath::Vector3<f32>,
+impl Draw for FITSImageSurveyColor {
 
-    h: TransferFunction,
-    cutout_min: f32,
-    cutout_max: f32,
-    bscale: f32,
-    bzero: f32,
-    blank_value: Option<f32>,
 }
 
-impl Draw for FITSImageSurveyColor {
+struct GrayscaleParameter {
+    h: TransferFunction,
+    min_value: f32,
+    max_value: f32,
+
+    scale: f32,
+    offset: f32,
+    blank: f32,
+}
+
+impl GrayscaleParameter {
+    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader.attach_uniforms_from(&self.h)
+            .attach_uniform("min_value", &self.min_value)
+            .attach_uniform("max_value", &self.max_value)
+            .attach_uniform("scale", &self.scale)
+            .attach_uniform("offset", &self.offset)
+            .attach_uniform("blank", &self.blank);
+    }
+}
+
+/// List of the different type of surveys
+enum ImageSurveyType {
+    ColoredSimple {
+        // The image survey texture buffer
+        pub survey: ImageSurvey,
+    },
+    GrayscaleSimple {
+        // The image survey texture buffer
+        pub survey: ImageSurvey,
+        colormap: String,
+
+        param: GrayscaleParameter,
+    },
+    GrayscaleComponent {
+        // The image survey texture buffer
+        pub survey: ImageSurvey,
+        // A color associated to the component
+        color: cgmath::Vector3<f32>,
+
+        param: GrayscaleParameter,
+    }
+}
+
+use crate::SimpleHiPS;
+impl From<SimpleHiPS> for ImageSurveyType {
+    fn from(hips: SimpleHiPS) -> ImageSurveyType {
+        let SimpleHiPS { properties, colormap } = hips;
+        let config = HiPSConfig::new(gl, &properties);
+        let survey = ImageSurvey::new();
+
+        if properties.isColor {
+            ImageSurveyType::ColoredSimple {
+                survey
+            }
+        } else {
+            // Use the colormap
+        }
+    }
+}
+
+impl Draw for ImageSurveyType {
     fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
         P::get_rasterizer_shader_fits_color(gl, shaders)
     }
@@ -250,18 +287,11 @@ impl Draw for FITSImageSurveyColor {
     fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // store the colormap, transfer function, cutouts here
         // not in the HiPSConfig
-        shader.attach_uniform("color_fits", &self.color);
+        shader.attach_uniform("C", &self.color)
+            .attach_uniform("K", &self.k);
 
         shader
     }
-    
-
-}
-
-enum ImageSurveyType {
-    FITSImageSurveyColor(FITSImageSurveyColor),
-    FITSImageSurveyColormap(FITSImageSurveyColormap),
-    ColoredImageSurvey(ColoredImageSurvey)
 }
 
 impl ImageSurveyType {
@@ -274,24 +304,44 @@ impl ImageSurveyType {
     }
 }
 
-enum ImageSurveyPrimaryType {
-    FITSImageSurveyColor(Vec<FITSImageSurveyColor>),
-    FITSImageSurveyColormap(FITSImageSurveyColormap),
-    ColoredImageSurvey(ColoredImageSurvey)
+enum ImageSurveyPrimaryType<'a> {
+    FITSImageSurveyColor(Vec<&'a str>),
+    FITSImageSurveyColormap(&'a str),
+    ColoredImageSurvey(&'a str)
 }
-enum ImageSurveyOverlayType {
-    FITSImageSurveyColormap(FITSImageSurveyColormap),
-    ColoredImageSurvey(ColoredImageSurvey)
+
+impl ImageSurveyPrimaryType {
+    fn append_fits(&self, root_url: &str) -> Result<(), JsValue> {
+        match self {
+            ImageSurveyPrimaryType::FITSImageSurveyColor(surveys) => {
+                if let Some(s) = surveys.get(root_url) {
+                    Some(s.survey)
+                } else {
+                    None
+                }
+            },
+            ImageSurveyPrimaryType::FITSImageSurveyColormap(FITSImageSurveyColormap { survey, ..}) => {
+                if survey.get_root_url() == root_url {
+                    Some(survey)
+                } else {
+                    None
+                }
+            },
+            ImageSurveyPrimaryType::ColoredImageSurvey(ColoredImageSurvey { survey }) => {
+                if survey.get_root_url() == root_url {
+                    Some(survey)
+                } else {
+                    None
+                }
+            },
+        }
+    }
 }
 
 use crate::camera::ViewHEALPixCells;
 struct ImageSurveys {
     surveys: HashMap<String, ImageSurveyType>,
     views: HashMap<String, ViewHEALPixCells>,
-
-    colored_image_survey: Option<String>,
-    fits_image_survey_colormap: Option<String>,
-    fits_image_survey_colors: Option<Vec<String>>,
 
     most_refined_survey: Option<String>,
 }
@@ -333,6 +383,10 @@ impl ImageSurveys {
         }
 
         most_refined_survey
+    }
+
+    pub fn set_primary_hips(&mut self, ) {
+
     }
 
     pub fn add(&mut self, survey: ImageSurveyType, camera: &CameraViewPort) {

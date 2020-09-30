@@ -129,8 +129,6 @@ export let HpxImageSurvey = (function() {
     };
 
     HpxImageSurvey.prototype.FromHiPSDefinition = function(hipsDefinition, options) {
-        this.id = hipsDefinition.getID();
-        this.name = hipsDefinition.properties["obs_title"];
         this.minOrder = hipsDefinition.properties["hips_order_min"];
         this.tileSize = +hipsDefinition.properties["hips_tile_width"];
         this.maxOrder = +hipsDefinition.properties["hips_order"];
@@ -140,6 +138,8 @@ export let HpxImageSurvey = (function() {
         this.minCutout = 0.0;
         this.maxCutout = 1.0;
         this.bitpix = 0;
+
+        this.isColor = hipsDefinition.properties["dataproduct_subtype"] ? true: false;
 
         if (this.imgFormat.includes("fits") && hipsDefinition.properties["hips_pixel_cut"]) {
             let hipsPixelCuts = hipsDefinition.properties["hips_pixel_cut"];
@@ -177,9 +177,7 @@ export let HpxImageSurvey = (function() {
         }
         if (! found) {
             let imageSurveyInfo = {
-                "id": this.id,
                 "url": this.rootUrl,
-                "name": this.name,
                 "maxOrder": this.maxOrder,
                 "frame": this.cooFrame,
                 "format": this.imgFormat,
@@ -188,6 +186,7 @@ export let HpxImageSurvey = (function() {
                 "minCutout": this.minCutout,
                 "maxCutout": this.maxCutout,
                 "bitpix": this.bitpix,
+                "isColor": this.isColor
             };
             console.log("insert new image survey info: ", imageSurveyInfo);
 

@@ -1270,12 +1270,8 @@ export let View = (function() {
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
-            else {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
+            spatialVector.set(lonlat[0], lonlat[1]);
+
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
             if (this.fov>60) {
@@ -1341,12 +1337,8 @@ export let View = (function() {
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
-            else {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
+            spatialVector.set(lonlat[0], lonlat[1]);
+
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
             if (this.fov>60) {

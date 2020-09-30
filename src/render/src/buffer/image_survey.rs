@@ -197,7 +197,6 @@ impl ImageSurvey {
         let ready = false;
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
-        //let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
         let gl = gl.clone();
         ImageSurvey {
             config,
@@ -207,7 +206,6 @@ impl ImageSurvey {
             num_root_textures_available,
 
             textures,
-            //cutoff_values_tile,
             texture_2d_array,
             available_tiles_during_frame,
 
@@ -216,31 +214,6 @@ impl ImageSurvey {
             gl
         }
     }
-
-    pub fn get_image_format(&self) -> &FormatImageType {
-        &self.config.format()
-    }
-
-    pub fn config(&self) -> &HiPSConfig {
-        &self.config
-    }
-
-    pub fn config_mut(&mut self) -> &mut HiPSConfig {
-        &mut self.config
-    }
-
-    pub fn get_root_url(&self) -> &str {
-        &self.config.root_url
-    }
-
-    #[inline]
-    pub fn get_blank_tile(&self) -> Rc<TileArrayBufferImage> {
-        self.config.get_blank_tile()
-    }
-
-    /*pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
-        self.cutoff_values_tile.borrow().get(tile_cell).cloned()
-    }*/
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
@@ -410,26 +383,6 @@ impl ImageSurvey {
             false
         }
     }
-    
-    pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
-        self.textures.get(texture_cell)
-    }
-
-    // Get the nearest parent tile found in the CPU buffer
-    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> HEALPixCell {
-        if cell.is_root() {
-            // Root cells are in the buffer by definition
-            *cell
-        } else {
-            let mut parent_cell = cell.parent();
-
-            while !self.contains(&parent_cell) && !parent_cell.is_root() {
-                parent_cell = parent_cell.parent();
-            }
-
-            parent_cell
-        }
-    }
 
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
@@ -478,6 +431,35 @@ impl ImageSurvey {
         self.num_root_textures_available = 0;
 
         self.texture_2d_array = Rc::new(create_texture_array(self.gl, &self.config));
+    }
+
+    /// Accessors
+    pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
+        self.textures.get(texture_cell)
+    }
+
+    // Get the nearest parent tile found in the CPU buffer
+    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> HEALPixCell {
+        if cell.is_root() {
+            // Root cells are in the buffer by definition
+            *cell
+        } else {
+            let mut parent_cell = cell.parent();
+
+            while !self.contains(&parent_cell) && !parent_cell.is_root() {
+                parent_cell = parent_cell.parent();
+            }
+
+            parent_cell
+        }
+    }
+
+    pub fn config(&self) -> &HiPSConfig {
+        &self.config
+    }
+
+    pub fn get_root_url(&self) -> &str {
+        &self.config.root_url
     }
 
     pub fn is_ready(&self) -> bool {

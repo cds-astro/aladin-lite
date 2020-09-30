@@ -12,9 +12,12 @@ out vec4 out_frag_color;
 
 @import ../color;
 
+uniform vec3 C;
+uniform float K;
+
 void main() {
-    vec4 color_start = color_hips_fits_from_color(frag_uv_start);
-    vec4 color_end = color_hips_fits_from_color(frag_uv_end);
+    vec3 color_start = K * C * get_grayscale_from_texture(frag_uv_start);
+    vec3 color_end = K * C * get_grayscale_from_texture(frag_uv_end);
     //vec4 color_end = vec4(1.0, 0.0, 0.0, 1.0);
-    out_frag_color = mix(color_start, color_end, frag_blending_factor);
+    out_frag_color = vec4(mix(color_start, color_end, frag_blending_factor), 1.0);
 }

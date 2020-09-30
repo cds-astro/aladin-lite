@@ -487,9 +487,10 @@ impl App {
         );*/
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
-    
-    fn add_image_survey<P: Projection>(&mut self, properties: HiPSDefinition) -> Result<(), JsValue> {
+
+    fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
         let config = HiPSConfig::new(gl, properties)?;
+        
         let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
             survey: ImageSurvey::new(gl, config, self.exec.clone())
         });
@@ -509,6 +510,7 @@ impl App {
         }
         self.sphere.set_projection::<P>(&self.camera, &mut self.shaders);
     }
+
     fn add_catalog(&mut self, name: String, table: JsValue) {
         let spawner = self.exec.spawner();
         let table = table;
@@ -784,13 +786,43 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_image_survey(&mut self, app: &mut App, hips_definition: HiPSDefinition) -> Result<(), JsValue> {
+    pub fn set_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.set_image_survey::<Aitoff>(hips_definition),
-            ProjectionType::MollWeide => app.set_image_survey::<Mollweide>(hips_definition),
-            ProjectionType::Ortho => app.set_image_survey::<Orthographic>(hips_definition),
-            ProjectionType::Arc => app.set_image_survey::<Mollweide>(hips_definition),
-            ProjectionType::Mercator => app.set_image_survey::<Mercator>(hips_definition),
+            ProjectionType::Aitoff => app.set_simple_hips::<Aitoff>(hips),
+            ProjectionType::MollWeide => app.set_simple_hips::<Mollweide>(hips),
+            ProjectionType::Ortho => app.set_simple_hips::<Orthographic>(hips),
+            ProjectionType::Arc => app.set_simple_hips::<Mollweide>(hips),
+            ProjectionType::Mercator => app.set_simple_hips::<Mercator>(hips),
+        }
+    }
+
+    pub fn set_composite_hips(&mut self, app: &mut App, hips: ComponentHiPS) -> Result<(), JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
+            ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
+            ProjectionType::Ortho => app.set_composite_hips::<Orthographic>(hips),
+            ProjectionType::Arc => app.set_composite_hips::<Mollweide>(hips),
+            ProjectionType::Mercator => app.set_composite_hips::<Mercator>(hips),
+        }
+    }
+
+    pub fn set_overlay_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.set_overlay_simple_hips::<Aitoff>(hips),
+            ProjectionType::MollWeide => app.set_overlay_simple_hips::<Mollweide>(hips),
+            ProjectionType::Ortho => app.set_overlay_simple_hips::<Orthographic>(hips),
+            ProjectionType::Arc => app.set_overlay_simple_hips::<Mollweide>(hips),
+            ProjectionType::Mercator => app.set_overlay_simple_hips::<Mercator>(hips),
+        }
+    }
+
+    pub fn set_overlay_composite_hips(&mut self, app: &mut App, hips: ComponentHiPS) -> Result<(), JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
+            ProjectionType::MollWeide => app.set_overlay_composite_hips::<Mollweide>(hips),
+            ProjectionType::Ortho => app.set_overlay_composite_hips::<Orthographic>(hips),
+            ProjectionType::Arc => app.set_overlay_composite_hips::<Mollweide>(hips),
+            ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
         }
     }
 
@@ -970,17 +1002,41 @@ pub struct Frame {
 use js_sys::JsString;
 #[derive(Deserialize)]
 #[derive(Debug)]
-pub struct HiPSDefinition {
-    pub id: String,
+pub struct HiPSProperties {
     pub url: String,
-    pub name: String,
+
     pub maxOrder: u8,
     pub frame: Frame,
     pub tileSize: i32,
     pub format: String,
+    // Used for FITS images
     pub minCutout: f32,
     pub maxCutout: f32,
     pub bitpix: i32,
+    // Tell whether to directly use the color
+    // as given or map it to a colormap
+    pub isColor: bool,
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub struct SimpleHiPS {
+    properties: HiPSProperties,
+    colormap: String,
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub struct ComponentHiPS {
+    properties: HiPSProperties,
+    color: [f32; 3],
+    k: f32 // contribution of the component
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub struct CompositeHiPS {
+    hipses: Vec<CompoundHiPS>
 }
 
 #[wasm_bindgen]
@@ -1124,53 +1180,43 @@ impl WebClient {
     }
 
     // Set primary image survey
-    #[wasm_bindgen(js_name = setImageSurvey)]
-    pub fn set_color_survey(&mut self, properties: JsValue) -> Result<(), JsValue> {
-        let properties: HiPSDefinition = properties.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", properties));
+    #[wasm_bindgen(js_name = setSimpleHiPS)]
+    pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        let hips: SimpleHiPS = hips.into_serde().unwrap();
+        crate::log(&format!("simple HiPS: {:?}", hips));
 
-        self.projection.set_image_survey(&mut self.app, properties)?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = setFITSImageSurvey)]
-    pub fn set_fits_colormap_survey(&mut self, properties: JsValue, colormap: String) -> Result<(), JsValue> {
-        let properties: HiPSDefinition = properties.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", properties));
-
-        self.projection.set_image_survey(&mut self.app, properties)?;
+        self.projection.set_simple_hips(&mut self.app, hips)?;
 
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addFITSColorImageSurvey)]
-    pub fn set_fits_color_survey(&mut self, properties: JsValue, color: Box<[f32]>) -> Result<(), JsValue> {
-        let properties: HiPSDefinition = properties.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", properties));
+    #[wasm_bindgen(js_name = setCompositeHiPS)]
+    pub fn set_composite_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        let hips: CompositeHiPS = hips.into_serde().unwrap();
+        crate::log(&format!("Composite HiPS: {:?}", hips));
 
-        self.projection.set_image_survey(&mut self.app, properties)?;
+        self.projection.set_composite_hips(&mut self.app, hips)?;
 
         Ok(())
     }
 
-    // Set a secondary image survey overlaying the primary one
-    #[wasm_bindgen(js_name = setOverlayImageSurvey)]
-    pub fn set_overlay_color_survey(&mut self, properties: JsValue) -> Result<(), JsValue> {
-        let properties: HiPSDefinition = properties.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", properties));
+    // Set an overlay HiPS
+    #[wasm_bindgen(js_name = setOverlaySimpleHiPS)]
+    pub fn set_overlay_color_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        let hips: SimpleHiPS = hips.into_serde().unwrap();
+        crate::log(&format!("simple HiPS: {:?}", hips));
 
-        self.projection.set_image_survey(&mut self.app, properties)?;
+        self.projection.set_overlay_simple_hips(&mut self.app, hips)?;
 
         Ok(())
     }
     
-    #[wasm_bindgen(js_name = setOverlayFITSImageSurvey)]
-    pub fn set_overlay_fits_colormap_survey(&mut self, properties: JsValue, colormap: String) -> Result<(), JsValue> {
-        let properties: HiPSDefinition = properties.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", properties));
+    #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
+    pub fn set_overlay_fits_colormap_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        let hips: ComponentHiPS = hips.into_serde().unwrap();
+        crate::log(&format!("Composite HiPS: {:?}", hips));
 
-        self.projection.set_image_survey(&mut self.app, properties)?;
+        self.projection.set_overlay_composite_hips(&mut self.app, hips)?;
 
         Ok(())
     }

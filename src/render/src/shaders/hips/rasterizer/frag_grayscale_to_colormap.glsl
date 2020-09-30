@@ -13,8 +13,8 @@ out vec4 out_frag_color;
 @import ../color;
 
 void main() {
-    vec4 color_start = color_hips(frag_uv_start);
-    vec4 color_end = color_hips(frag_uv_end);
+    vec4 color_start = vec4(colormap_f(get_grayscale_from_texture(frag_uv_start)).rgb, 1.0);
+    vec4 color_end = vec4(colormap_f(get_grayscale_from_texture(frag_uv_end)).rgb, 1.0);
 
     out_frag_color = mix(color_start, color_end, frag_blending_factor);
 }

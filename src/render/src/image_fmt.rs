@@ -11,6 +11,18 @@ impl JPG {
     const FORMAT: u32 = WebGl2RenderingContext::RGB as u32;
     const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGB as i32;
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+
+    pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
+        let num_channels = Self::NUM_CHANNELS;
+        let size_buf = width * width * num_channels;
+
+        let pixels = [0, 0, 0].iter()
+            .cycle()
+            .take(size_buf)
+            .collect();
+
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels);
+    }
 }
 
 impl FormatImage for JPG {
@@ -24,9 +36,21 @@ impl PNG {
     const FORMAT: u32 = WebGl2RenderingContext::RGBA as u32;
     const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGBA as i32;
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+
+    pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
+        let num_channels = Self::NUM_CHANNELS;
+        let size_buf = width * width * num_channels;
+
+        let pixels = [0, 0, 0, 255].iter()
+            .cycle()
+            .take(size_buf)
+            .collect();
+
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels);
+    }
 }
 
-impl FormatImage for PNG {
+impl FormatImage for PNG {    
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 }
@@ -65,6 +89,47 @@ impl FITS {
             internal_format,
             _type
         }
+    }
+
+    pub fn create_black_tile<T: ArrayBuffer>(width: i32) -> TileArrayBuffer<T> 
+    where <T as ArrayBuffer>::Item: FITSDataType {
+        let size_buf = width * width * 1;
+
+        let pixels = [T::Item::zero()].iter()
+            .cycle()
+            .take(size_buf)
+            .collect();
+
+        TileArrayBuffer::<T>::new(&pixels, width, 1);
+    }
+}
+
+trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
+    #[inline]
+    fn zero() -> Self;
+}
+impl f32 for FITSDataType {
+    #[inline]
+    fn zero() -> Self {
+        0.0
+    }
+}
+impl i32 for FITSDataType {
+    #[inline]
+    fn zero() -> Self {
+        0
+    }
+}
+impl i16 for FITSDataType {
+    #[inline]
+    fn zero() -> Self {
+        0
+    }
+}
+impl u8 for FITSDataType {
+    #[inline]
+    fn zero() -> Self {
+        0
     }
 }
 

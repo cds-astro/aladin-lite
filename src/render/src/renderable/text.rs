@@ -334,10 +334,10 @@ impl TextManager {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for TextManager {
+impl SendUniforms for TextManager {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
     }

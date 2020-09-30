@@ -2,13 +2,13 @@ uniform sampler2DArray tex;
 uniform isampler2DArray texInt;
 uniform float scale;
 uniform float offset;
+uniform float blank;
 
 uniform float min_value;
 uniform float max_value;
 uniform int H;
 
 uniform float size_tile_uv;
-uniform float blank;
 
 uniform int tex_storing_integers;
 

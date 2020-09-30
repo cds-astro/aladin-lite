@@ -109,6 +109,28 @@ impl<'a> Iterator for RequestsIterMut<'a> {
     }
 }
 
+// A tile is described by an image survey
+// and an HEALPix cell
+#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
+pub struct Tile {
+    cell: HEALPixCell,
+    root_url: String,
+    format: FormatImageType,
+}
+
+impl Tile {
+    fn new(cell: &HEALPixCell, config: &HiPSConfig) -> Self {
+        Tile {
+            cell: *cell,
+            root_url: String::from(config.get_root_url()),
+            format: config.get_format()
+        }
+    }
+}
+
+pub type Tiles = HashSet<Tile>;
+
 use super::tile_buffer::Tile;
 use std::collections::{VecDeque, HashSet};
 pub struct TileDownloader {
@@ -117,6 +139,8 @@ pub struct TileDownloader {
     html_img_tiles_to_req: VecDeque<Tile>,
 
     requests: Requests,
+
+    requested_tiles: Tiles,
 }
 
 // A power of two maximum simultaneous tile requests
@@ -136,12 +160,14 @@ impl TileDownloader {
         let requests: Requests::new();
         let html_img_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
         let fits_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
+        let requested_tiles = HashSet::with_capacity(64);
 
         Self {
             fits_tiles_to_req,
             html_img_tiles_to_req,
 
             requests,
+            requested_tiles,
         }
     }
 
@@ -152,10 +178,29 @@ impl TileDownloader {
         for req in self.requests.iter_mut() {
             req.clear();
         }
+        self.requested_tiles.clear();
+    }
+
+    pub fn request_tile(&mut self, tile: &Tile) {
+        let already_requested = self.requested_tiles.contains(tile);
+        // The cell is not already requested
+        if !already_requested {
+            // Add to the tiles requested
+            self.requested_tiles.insert(*tile);
+            self.add_tile_request(tile);
+        }
+    }
+
+    pub fn get_resolved_tiles(&mut self, available_tiles: &Tiles) -> ResolvedTiles {
+        let tiles_resolved = self.retrieve_resolved_tiles(available_tiles);
+
+
+
+        tiles_resolved
     }
 
     // Register further tile requests to launch
-    pub fn add_tile_request(&mut self, tile: Tile) {
+    fn add_tile_request(&mut self, tile: Tile) {
         match tile.format {
             FormatImageType::JPG | FormatImageType::PNG => {
                 self.html_img_tiles_to_req.push_back(tile);
@@ -170,7 +215,7 @@ impl TileDownloader {
     // Two possibilities:
     // * The image have been found and retrieved
     // * The image is missing
-    pub fn retrieve_resolved_tiles(&self, available_tiles: &Tiles, requested_tiles: &Tiles) -> ResolvedTiles {
+    fn retrieve_resolved_tiles(&self, available_tiles: &Tiles) -> ResolvedTiles {
         let mut resolved_tiles = HashMap::new();
 
         for req in self.requests.iter() {
@@ -185,12 +230,14 @@ impl TileDownloader {
                 if available_req {
                     req.set_ready();
                 } else {
-                    let req_just_resolved = requested_tiles.contains(tile);
+                    let req_just_resolved = self.requested_tiles.contains(tile);
                     // The tile has not been copied
                     if req_just_resolved {
                         // Tile received
                         let time_req = req.get_time_request();
-        
+                        // Remove from the requested tile
+                        self.requested_tiles.remove(tile);
+
                         let tile_resolved = match req.resolve_status() {
                             ResolvedStatus::Missing => {
                                 TileResolved::Missing { time_req }

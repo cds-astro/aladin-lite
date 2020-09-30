@@ -29,15 +29,6 @@ where T: ArrayBuffer {
         Self { buf, size }
     }
 
-    pub(super) fn blank(width: i32, num_channels: i32, blank_value: T::Item) -> Self {
-        let size_buf = width * width * num_channels;
-        let buf = T::empty(size_buf as u32, blank_value);
-
-        let size = Vector2::new(width, width);
-
-        Self { buf, size }
-    }
-
     // Compute the 1- and 99- percentile of the tile pixel values
     pub(super) fn get_cutoff_values(&self) -> (T::Item, T::Item) {
         let mut sorted_values: Vec<T::Item> = self.buf.to_vec();
@@ -55,8 +46,10 @@ where T: ArrayBuffer {
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug;
+
     fn new(buf: &[Self::Item]) -> Self;
     fn empty(size: u32, blank_value: Self::Item) -> Self;
+
     fn to_vec(&self) -> Vec<Self::Item>;
 }
 #[derive(Debug)]
@@ -361,7 +354,7 @@ struct FITSMetaData {
 
 pub enum RetrievedImageType {
     FITSImage { image: TileArrayBufferImage, metadata: FITSMetaData },
-    CompressedImage(TileHTMLImage)
+    CompressedImage { image: TileHTMLImage }
 }
 
 enum RequestType {

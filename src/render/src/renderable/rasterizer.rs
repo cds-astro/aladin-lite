@@ -234,172 +234,191 @@ fn add_uv_grid<P: Projection, E: RecomputeRasterizer>(
 use std::borrow::Cow;
 use crate::renderable::projection::*;
 use crate::shader::ShaderId;
-pub trait RasterizerProjection {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+pub trait GetShader {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+
+    fn get_raytracer_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RayTracerVS"),
+                Cow::Borrowed("RayTracerColorFS")
+            )
+        ).unwrap();
+    }
+    fn get_raytracer_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RayTracerVS"),
+                Cow::Borrowed("RayTracerGrayscale2ColormapFS")
+            )
+        ).unwrap();
+    }
+    fn get_raytracer_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RayTracerVS"),
+                Cow::Borrowed("RayTracerGrayscale2ColorFS")
+            )
+        ).unwrap();
+    }
 }
 
-impl RasterizerProjection for Aitoff {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+impl GetShader for Aitoff {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerJPGColorFS")
+                Cow::Borrowed("RasterizerColorFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerFITSColormapFS")
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerAitoffVS"),
-                Cow::Borrowed("RasterizerFITSColorFS")
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
-        ).unwrap()    
+        ).unwrap();
     }
 }
-impl RasterizerProjection for Mollweide {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+impl GetShader for Mollweide {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerJPGColorFS")
+                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerColorFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerFITSColormapFS")
+                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollVS"),
-                Cow::Borrowed("RasterizerFITSColorFS")
+                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
-        ).unwrap()    
+        ).unwrap();
     }
 }
-impl RasterizerProjection for AzimutalEquidistant {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+impl GetShader for AzimutalEquidistant {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerJPGColorFS")
+                Cow::Borrowed("RasterizerColorFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSColormapFS")
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSColorFS")
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
-        ).unwrap()    
+        ).unwrap();
     }
 }
-impl RasterizerProjection for Mercator {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+impl GetShader for Mercator {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerJPGColorFS")
+                Cow::Borrowed("RasterizerColorFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerFITSColormapFS")
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerMercatorVS"),
-                Cow::Borrowed("RasterizerFITSColorFS")
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
-        ).unwrap()    
+        ).unwrap();
     }
 }
-impl RasterizerProjection for Orthographic {
-    fn get_rasterizer_shader_jpg<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+impl GetShader for Orthographic {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerJPGColorFS")
+                Cow::Borrowed("RasterizerColorFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_colormap_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSColormapFS")
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
-        ).unwrap()
+        ).unwrap();
     }
-    fn get_rasterizer_shader_color_fits<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
                 Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFITSColorFS")
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
-        ).unwrap()    
+        ).unwrap();
     }
 }
 
 use crate::core::VertexArrayObject;
 pub struct Rasterizer {
     gl: WebGl2Context,
-    //vertices: Vec<f32>,
-    //idx_vertices: Vec<u16>,
-    max_num_vertices: usize,
-    max_num_idx: usize,
-    //num_vertices: usize,
-    //num_idx: u16,
-
-    sphere_sub: SphereSubdivided,
 
     vao: WebGlVertexArrayObject,
-    vbo: WebGlBuffer,
 }
 
 use crate::{
@@ -412,242 +431,37 @@ use crate::{
 };
 impl Rasterizer {
     pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager) -> Rasterizer {
-        // Compute the size of the VBO in bytes
-        // We do want to draw maximum 768 tiles
-        let max_hpx_cells = 768;
-        // Each cell has 4 vertices
-        let max_num_vertices = max_hpx_cells * 4;
-        // There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
-        let max_num_floats = max_num_vertices * 12;
-
-        // Define the Vertex Array Object where vertices data will be put
-        // Memory reserved from the stack
-        //let vertices = vec![0.0; max_num_floats];
-        let max_num_idx = max_hpx_cells * 6;
-        let idx_vertices = vec![0; max_num_idx];
-        //let mut vertex_array_object = VertexArrayObject::new(gl);
-
-        let shader = shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("RasterizerOrthoVS"),
-                Cow::Borrowed("RasterizerFS"),
-            )
-        ).unwrap();
-
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
 
-        let vbo = gl.create_buffer()
-            .ok_or("failed to create buffer")
-            .unwrap();
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+        // layout (location = 0) in vec2 lonlat;
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * mem::size_of::<f32>(), 0 * mem::size_of::<f32>());
+        gl.enable_vertex_attrib_array(0);
 
-        gl.buffer_data_with_i32(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            max_num_floats * std::mem::size_of::<f32>(),
-            WebGl2RenderingContext::DYNAMIC_DRAW
-        );
+        // layout (location = 1) in vec3 position;
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 2 * mem::size_of::<f32>());
+        gl.enable_vertex_attrib_array(1);
 
-        {
-            let shader_bound = shader.bind(gl);
-            
-            // layout (location = 0) in vec2 lonlat;
-            gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * mem::size_of::<f32>(), 0 * mem::size_of::<f32>());
-            gl.enable_vertex_attrib_array(0);
+        // layout (location = 2) in vec3 uv_start;
+        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 5 * mem::size_of::<f32>());
+        gl.enable_vertex_attrib_array(2);
 
-            // layout (location = 1) in vec3 position;
-            gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 2 * mem::size_of::<f32>());
-            gl.enable_vertex_attrib_array(1);
+        // layout (location = 3) in vec3 uv_end;
+        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 8 * mem::size_of::<f32>());
+        gl.enable_vertex_attrib_array(3);
 
-            // layout (location = 2) in vec3 uv_start;
-            gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 5 * mem::size_of::<f32>());
-            gl.enable_vertex_attrib_array(2);
-
-            // layout (location = 3) in vec3 uv_end;
-            gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), max_num_vertices * 8 * mem::size_of::<f32>());
-            gl.enable_vertex_attrib_array(3);
-
-            // layout (location = 4) in float time_tile_received;
-            gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, 1 * mem::size_of::<f32>(), max_num_vertices * 11 * mem::size_of::<f32>());
-            gl.enable_vertex_attrib_array(4);
-        }
-
-        // Element buffer
-        let ebo = gl.create_buffer()
-            .ok_or("failed to create buffer")
-            .unwrap();
-        // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-        gl.buffer_data_with_i32(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            max_num_floats * std::mem::size_of::<u16>(),
-            WebGl2RenderingContext::DYNAMIC_DRAW
-        );
-
-        /*
-            .bind_vertex_array_object(&mut vertex_array_object)
-            // Store the projeted and 3D vertex positions in a VBO
-            .add_array_buffer(
-                12 * mem::size_of::<f32>(),
-                &[2, 3, 3, 3, 1],    
-                &[
-                    0,
-                    2 * mem::size_of::<f32>(),
-                    5 * mem::size_of::<f32>(),
-                    8 * mem::size_of::<f32>(),
-                    11 * mem::size_of::<f32>(),
-                ],
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData(&vertices),
-            )
-            // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData(&idx_vertices),
-            )
-            // Unbind the buffer
-            .unbind();
-        */
-
-        let sphere_sub = SphereSubdivided::new();
+        // layout (location = 4) in float time_tile_received;
+        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, 1 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 11 * mem::size_of::<f32>());
+        gl.enable_vertex_attrib_array(4);
+        
         let gl = gl.clone();
         Rasterizer {
             gl,
-            //vertices,
-            //idx_vertices,
-            max_num_vertices,
-            max_num_idx,
-
-            sphere_sub,
-
             vao,
-            vbo
         }
     }
 
-    pub fn set_positions<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, last_user_action: UserAction) {
-        match last_user_action {
-            UserAction::Unzooming => {
-                self.update_positions::<P, UnZoom>(&cells_to_draw);
-            },
-            UserAction::Zooming => {
-                self.update_positions::<P, Zoom>(&cells_to_draw);
-            },
-            UserAction::Moving => {
-                self.update_positions::<P, Move>(&cells_to_draw);
-            },
-            UserAction::Starting => {
-                self.update_positions::<P, Move>(&cells_to_draw);
-            }
-        }
-    }
-
-    fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self, cells_in_fov: &HEALPixCells) {
-        let mut lonlats = vec![];
-        let mut positions = vec![];
-        let mut idx_vertices = vec![];
-
-        for cell in cells_in_fov {
-            add_positions_grid::<P, T>(
-                &mut lonlats,
-                &mut positions,
-                &mut idx_vertices,
-                &cell,
-                &self.sphere_sub,
-            );
-        }
-
-        self.gl.bind_vertex_array(Some(&self.vao));
-
-        let mut coo = lonlats;
-        let num_filling_floats = self.max_num_vertices * 2 - coo.len();
-        coo.extend(vec![0.0; num_filling_floats]);
-        coo.extend(positions);
-        let num_filling_floats = self.max_num_vertices * 5 - coo.len();
-        coo.extend(vec![0.0; num_filling_floats]);
-
-        let buf_positions = unsafe { js_sys::Float32Array::view(&coo) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            0 as i32,
-            &buf_positions
-        );
-
-        self.max_num_idx = idx_vertices.len();
-        let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            0 as i32,
-            &buf_idx
-        );
-    }
-
-    pub fn set_UVs<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, survey: &ImageSurvey, last_user_action: UserAction) {
-        match last_user_action {
-            UserAction::Unzooming => {
-                let textures = UnZoom::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, UnZoom>(textures);
-            },
-            UserAction::Zooming => {
-                let textures = Zoom::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Zoom>(textures);
-            },
-            UserAction::Moving => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Move>(textures);
-            },
-            UserAction::Starting => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, survey);
-                self.update_uvs::<P, Move>(textures);
-            }
-        }
-    }
-
-
-    fn update_uvs<P: Projection, T: RecomputeRasterizer>(&mut self, textures: &ImageSurveyTextures) {
-        let mut uv_start = vec![];
-        let mut uv_end = vec![];
-        let mut start_times = vec![];
-
-        for (cell, state) in textures.iter() {
-            let uv_0 = TileUVW::new(cell, &state.starting_texture);
-            let uv_1 = TileUVW::new(cell, &state.ending_texture);
-            let start_time = state.ending_texture.start_time();
-
-            add_uv_grid::<P, T>(
-                &mut uv_start,
-                &mut uv_end,
-                &mut start_times,
-                &cell,
-                &self.sphere_sub,
-
-                &uv_0, &uv_1,
-                start_time.as_millis(),
-            );
-        }
-
-        self.gl.bind_vertex_array(Some(&self.vao));
-
-        let mut uv = uv_start;
-        let num_filling_floats = self.max_num_vertices * 3 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        uv.extend(uv_end);
-        let num_filling_floats = self.max_num_vertices * 6 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        uv.extend(start_time);
-        let num_filling_floats = self.max_num_vertices * 7 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        let buf_uvs = unsafe { js_sys::Float32Array::view(&uv) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            self.max_num_vertices * 5 * std::mem::size_of::<f32>() as i32,
-            &buf_uvs
-        );
-    }
+    
 
     /*fn update_vertex_array_object<P: Projection, T: RecomputeRasterizer>(&mut self, tile_textures: &TextureStates, config: &HiPSConfig) {
         self.vertices.clear();
@@ -696,12 +510,15 @@ impl Rasterizer {
         }
     }*/
 
-    pub fn draw_vertices(&self) {
+    pub fn bind(&self) {
         self.gl.bind_vertex_array(Some(&self.vao));
+    }
+
+    pub fn draw(&self, num_idx: i32) {
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,
-            Some(self.max_num_idx as i32),
+            Some(num_idx),
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0
         );            

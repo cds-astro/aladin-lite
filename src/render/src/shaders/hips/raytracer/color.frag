@@ -20,7 +20,6 @@ struct Tile {
 };
 
 uniform int current_depth;
-
 uniform Tile textures_tiles[64];
 
 uniform int num_textures;
@@ -66,7 +65,7 @@ TileColor get_tile_color(vec3 pos, int depth) {
             vec2 offset = (vec2(idx_col, idx_row) + uv)/8.f;
             vec3 UV = vec3(offset, float(idx_texture));
 
-            vec3 color = color_fits_int(UV).rgb;
+            vec3 color = get_color_from_texture(UV).rgb;
 
             return TileColor(tile, color, true);
         } else if (uniq < textures_tiles[i].uniq) {
@@ -94,8 +93,8 @@ void main() {
     TileColor current_tile = get_tile_color(frag_pos, current_depth);
     out_frag_color = vec4(current_tile.color, 1.f);
 
-    vec3 out_color = vec3(0.f);
     if (!current_tile.found) {
+        vec3 out_color = vec3(0.f);
         int depth = 0;
         if (user_action == 1) {
             // zoom
@@ -115,30 +114,33 @@ void main() {
         TileColor base_tile = get_tile_color(frag_pos, 0);
 
         out_color = mix(base_tile.color, prev_tile.color, alpha);
-    } else {
-        float alpha = clamp((current_time - current_tile.tile.start_time) / duration, 0.f, 1.f);
-        
-        // Little optimization: if the current tile is loaded since the time duration
-        // then we do not need to evaluate the frag position for the previous/next depth
-        if (alpha == 1.f) {
-            out_frag_color = vec4(current_tile.color, 1.f);
-            return;
-        }
-        int depth = 0;
-        if (user_action == 1) {
-            // zoom
-            depth = max(0, current_depth - 1);
-        } else if (user_action == 2) {
-            // unzoom
-            depth = min(max_depth, current_depth + 1);
-        }
-
-        TileColor tile = get_tile_color(frag_pos, depth);
-        if (!tile.found) {
-            tile = get_tile_color(frag_pos, 0);
-        }
-
-        out_color = mix(tile.color, current_tile.color, alpha);
+        out_frag_color = vec4(out_color, 1.f);
+        return;
     }
+
+    float alpha = clamp((current_time - current_tile.tile.start_time) / duration, 0.f, 1.f);
+    
+    // Little optimization: if the current tile is loaded since the time duration
+    // then we do not need to evaluate the frag position for the previous/next depth
+    if (alpha == 1.f) {
+        out_frag_color = vec4(current_tile.color, 1.f);
+        return;
+    }
+    vec3 out_color = vec3(0.f);
+    int depth = 0;
+    if (user_action == 1) {
+        // zoom
+        depth = max(0, current_depth - 1);
+    } else if (user_action == 2) {
+        // unzoom
+        depth = min(max_depth, current_depth + 1);
+    }
+
+    TileColor tile = get_tile_color(frag_pos, depth);
+    if (!tile.found) {
+        tile = get_tile_color(frag_pos, 0);
+    }
+
+    out_color = mix(tile.color, current_tile.color, alpha);
     out_frag_color = vec4(out_color, 1.f);
 }

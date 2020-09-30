@@ -4,7 +4,7 @@ use crate::image_fmt::FormatImageType;
 struct TileConfig {
     // The size of the tile in the texture
     width: i32,
-    blank_tile: Rc<TileArrayBufferImage>,
+    default: Rc<TileArrayBufferImage>,
 }
 
 #[derive(Debug)]
@@ -21,24 +21,24 @@ use std::rc::Rc;
 use crate::WebGl2Context;
 use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
 
-fn create_empty_tile(format: &FormatImageType, width: i32) -> TileArrayBufferImage {
+fn create_black_tile(format: &FormatImageType, width: i32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;
     match format {
-        FormatImageType::JPG => TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::blank(width, num_channels, 0)),
-        FormatImageType::PNG => TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::blank(width, num_channels, 0)),
+        FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
+        FormatImageType::PNG => TileArrayBufferImage::U8(PNG::create_black_tile(width)),
         FormatImageType::FITS(fits) => {
             match format.get_type() {
                 WebGl2RenderingContext::FLOAT => {
-                    TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::blank(width, num_channels, 0))
+                    TileArrayBufferImage::F32(FITS::create_black_tile(width))
                 },
                 WebGl2RenderingContext::INT => {
-                    TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::blank(width, num_channels, 0))
+                    TileArrayBufferImage::I32(FITS::create_black_tile(width))
                 },
                 WebGl2RenderingContext::SHORT => {
-                    TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::blank(width, num_channels, 0))
+                    TileArrayBufferImage::I16(FITS::create_black_tile(width))
                 },
                 WebGl2RenderingContext::UNSIGNED_BYTE => {
-                    TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::blank(width, num_channels, 0))
+                    TileArrayBufferImage::U8(FITS::create_black_tile(width))
                 },
                 _ => unimplemented!()
             }
@@ -49,10 +49,10 @@ fn create_empty_tile(format: &FormatImageType, width: i32) -> TileArrayBufferIma
 impl TileConfig {
     fn new(width: i32, format: &FormatImageType) -> TileConfig {
         assert!(is_power_of_two(width as usize));
-        let blank_tile = Rc::new(create_empty_tile(format, width));
+        let default = Rc::new(create_black_tile(format, width));
         TileConfig {
             width,
-            blank_tile,
+            default,
         }
     }
 
@@ -62,8 +62,8 @@ impl TileConfig {
     }
 
     #[inline]
-    pub fn get_blank_tile(&self) -> Rc<TileArrayBufferImage> {
-        self.blank_tile.clone()
+    pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
+        self.default.clone()
     }
 }
 
@@ -220,8 +220,8 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn get_blank_tile(&self) -> Rc<TileArrayBufferImage> {
-        self.tile_config.get_blank_tile()
+    pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
+        self.tile_config.get_black_tile()
     }
 
     #[inline]
@@ -255,10 +255,10 @@ impl HiPSConfig {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for HiPSConfig {
+impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let tex_storing_integers = self.format.is_i_internal_format() as i32;
 

@@ -35,6 +35,9 @@ struct TileColor {
 @import ../color;
 @import ./healpix;
 
+uniform vec3 C;
+uniform float K;
+
 TileColor get_tile_color(vec3 pos, int depth) {
     HashDxDy result = hash_with_dxdy(depth, pos.zxy);
     int idx = result.idx;
@@ -66,7 +69,7 @@ TileColor get_tile_color(vec3 pos, int depth) {
             vec2 offset = (vec2(idx_col, idx_row) + uv)/8.f;
             vec3 UV = vec3(offset, float(idx_texture));
 
-            vec3 color = color_fits(UV).rgb;
+            vec3 color = K * C * get_grayscale_from_texture(UV);
 
             return TileColor(tile, color, true);
         } else if (uniq < textures_tiles[i].uniq) {

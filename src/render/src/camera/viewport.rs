@@ -330,10 +330,10 @@ impl CameraViewPort {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for CameraViewPort {
+impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniform("ndc_to_clip", self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor

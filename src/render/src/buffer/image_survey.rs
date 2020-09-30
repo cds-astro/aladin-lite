@@ -124,7 +124,7 @@ impl HEALPixCellHeap {
 use std::cell::RefCell;
 use std::rc::Rc;
 // Fixed sized binary heap
-pub struct ImageSurvey {
+pub struct ImageSurveyTextures {
     // Some information about the HiPS
     pub config: HiPSConfig,
     heap: HEALPixCellHeap,
@@ -181,8 +181,8 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 
 use std::cell::Cell;
 use crate::image_fmt::FormatImageType;
-impl ImageSurvey {
-    pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurvey {
+impl ImageSurveyTextures {
+    pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurveyTextures {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -198,7 +198,7 @@ impl ImageSurvey {
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
         let gl = gl.clone();
-        ImageSurvey {
+        ImageSurveyTextures {
             config,
             heap,
 
@@ -475,10 +475,10 @@ impl ImageSurvey {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 use crate::buffer::TextureUniforms;
-impl HasUniforms for ImageSurvey {
+impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send the textures
         let textures = self.get_sorted_textures();
@@ -515,7 +515,7 @@ impl HasUniforms for ImageSurvey {
     }
 }
 
-impl Drop for ImageSurvey {
+impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
         // Cleanup the heap
         self.heap.clear();

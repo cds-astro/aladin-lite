@@ -68,7 +68,7 @@ struct App {
     shaders: ShaderManager,
     camera: CameraViewport,
 
-    buffer: TileBuffer,
+    downloader: TileDownloader,
     surveys: ImageSurveys,
     //view: HEALPixCellsInView,
     
@@ -169,7 +169,7 @@ impl App {
         let camera = CameraViewport::new::<Orthographic>(&gl);
 
         // The tile buffer responsible for the tile requests
-        let buffer = TileBuffer::new(gl, &camera);
+        let downloader = TileDownloader::new(gl, &camera);
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new();
         surveys.add(survey, &camera);
@@ -221,7 +221,7 @@ impl App {
 
             camera,
 
-            buffer,
+            downloader,
             surveys,
             //view,
             rasterizer,
@@ -281,7 +281,7 @@ impl App {
                         format,
                         cell
                     };
-                    self.buffer.request_tile(&tile);
+                    self.downloader.request_tile(&tile);
                 }
             }
         }
@@ -368,10 +368,10 @@ impl App {
             // 1. Surveys must be aware of the new available tiles
             self.surveys.set_available_tiles(available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
-            let resolved_tiles = self.buffer.get_resolved_tiles(available_tiles);
+            let resolved_tiles = self.downloader.get_resolved_tiles(available_tiles);
             self.surveys.add_resolved_tiles(resolved_tiles, &mut self.exec);
             // 3. Try sending new tile requests after 
-            self.buffer.try_sending_tile_requests();
+            self.downloader.try_sending_tile_requests();
         }
 
         // The rendering is done following these different situations:
@@ -392,48 +392,6 @@ impl App {
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
         if !self.rendering {
             return;
-        }
-        // Then we compute different boolean for the update of the VBO
-        // for the rasterizer
-        // The rasterizer has a buffer containing:
-        // - The vertices of the HEALPix cells for the most refined survey
-        // - The starting and ending uv for the blending animation
-        // - The time for each HEALPix cell at which the animation begins
-        //
-        // Each of these data can be changed at different circumstances:
-        // - The vertices are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //   to the previous frame.
-        // - The UVs are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //     * there are new available tiles for the GPU 
-        // - The starting blending animation times are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //     * there are new available tiles for the GPU
-        let view_most_refined = self.surveys.get_most_refined_view();
-        let new_cells_added = view_most_refined.is_there_new_cells_added();
-        let update_positions = new_cells_added;
-
-        let last_user_action = camera.last_user_action();
-        // Get the cells to draw
-        let cells_to_draw = if last_user_action == UserAction::UnZooming {
-            if view_most_refined.has_depth_decreased() || self.cells_depth_increased {
-                self.cells_depth_increased = true;
-                let new_depth = view_most_refined.get_depth();
-
-                super::get_cells_in_fov(new_depth + 1, &camera)
-            } else {
-                view_most_refined.get_cells()
-            }
-        } else {
-            // no more unzooming
-            self.cells_depth_increased = false;
-            view_most_refined.get_cells()
-        };
-
-        if update_positions {
-            // Set the cells vertices in the VAO
-            self.rasterizer.set_positions(cells_to_draw, last_user_action);
         }
 
         // Render the scene
@@ -1023,6 +981,7 @@ pub struct HiPSProperties {
 pub struct SimpleHiPS {
     properties: HiPSProperties,
     colormap: String,
+    transfer: String,
 }
 
 #[derive(Deserialize)]
@@ -1030,6 +989,7 @@ pub struct SimpleHiPS {
 pub struct ComponentHiPS {
     properties: HiPSProperties,
     color: [f32; 3],
+    transfer: String,
     k: f32 // contribution of the component
 }
 

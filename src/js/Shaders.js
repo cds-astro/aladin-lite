@@ -24,18 +24,18 @@ import GridMercatorFS from '../render/src/shaders/grid/mercator.frag'
 // HiPS shaders
 // Raytracer
 import RayTracerVS from '../render/src/shaders/hips/raytracer/raytracer.vert'
-import RayTracerFS from '../render/src/shaders/hips/raytracer/raytracer.frag'
-import RayTracerFITSFS from '../render/src/shaders/hips/raytracer/raytracer_fits.frag'
-import RayTracerFITSIFS from '../render/src/shaders/hips/raytracer/raytracer_fits_i.frag'
+import RayTracerColorFS from '../render/src/shaders/hips/raytracer/raytracer.frag'
+import RayTracerGrayscale2ColorFS from '../render/src/shaders/hips/raytracer/grayscale_to_color.frag'
+import RayTracerGrayscale2ColormapFS from '../render/src/shaders/hips/raytracer/grayscale_to_colormap.frag'
 
 // Rasterizer
 import RasterizerOrthoVS from '../render/src/shaders/hips/rasterizer/ortho.vert'
 import RasterizerMercatorVS from '../render/src/shaders/hips/rasterizer/mercator.vert'
 import RasterizerAitoffVS from '../render/src/shaders/hips/rasterizer/aitoff.vert'
 import RasterizerMollVS from '../render/src/shaders/hips/rasterizer/mollweide.vert'
-import RasterizerColorFS from '../render/src/shaders/hips/rasterizer/frag_color.glsl'
-import RasterizerGrayscaleToColorFS from '../render/src/shaders/hips/rasterizer/frag_grayscale_to_color.glsl'
-import RasterizerGrayscaleToColormapFS from '../render/src/shaders/hips/rasterizer/frag_grayscale_to_colormap.glsl'
+import RasterizerColorFS from '../render/src/shaders/hips/rasterizer/color.frag'
+import RasterizerGrayscale2ColorFS from '../render/src/shaders/hips/rasterizer/grayscale_to_color.frag'
+import RasterizerGrayscale2ColormapFS from '../render/src/shaders/hips/rasterizer/grayscale_to_colormap.frag'
 // Misc
 import TextVS from '../render/src/shaders/misc/text.vert'
 import TextFS from '../render/src/shaders/misc/text.frag'
@@ -119,16 +119,16 @@ let shaders = [
         content: RayTracerVS,
     },
     {
-        id: "RayTracerFS",
-        content: RayTracerFS,
+        id: "RayTracerColorFS",
+        content: RayTracerColorFS,
     },
     {
-        id: "RayTracerFITSFS",
-        content: RayTracerFITSFS,
+        id: "RayTracerGrayscale2ColorFS",
+        content: RayTracerGrayscale2ColorFS,
     },
     {
-        id: "RayTracerFITSIFS",
-        content: RayTracerFITSIFS,
+        id: "RayTracerGrayscale2ColormapFS",
+        content: RayTracerGrayscale2ColormapFS,
     },
     /// Rasterizer
     {
@@ -152,12 +152,12 @@ let shaders = [
         content: RasterizerColorFS,
     },
     {
-        id: "RasterizerGrayscaleToColorFS",
-        content: RasterizerGrayscaleToColorFS,
+        id: "RasterizerGrayscale2ColorFS",
+        content: RasterizerGrayscale2ColorFS,
     },
     {
-        id: "RasterizerGrayscaleToColormapFS",
-        content: RasterizerGrayscaleToColormapFS,
+        id: "RasterizerGrayscale2ColormapFS",
+        content: RasterizerGrayscale2ColormapFS,
     },
     // Misc
     {

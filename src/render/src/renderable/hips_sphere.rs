@@ -190,32 +190,7 @@ use crate::renderable::Rasterizer;
 use crate::shaders::Colormap;
 
 trait Draw {
-    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader;
-    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;
-}
-
-impl Draw for ColoredImageSurvey {
-    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
-        P::get_rasterizer_shader_jpg(gl, shaders)
-    }
-    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader
-    }
-}
-
-impl Draw for FITSImageSurveyColormap {
-    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
-        P::get_rasterizer_shader_fits_colormap(gl, shaders)
-    }
-    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        // store the colormap, transfer function, cutouts here
-        // not in the HiPSConfig
-        shader
-    }
-}
-
-impl Draw for FITSImageSurveyColor {
-
+    fn draw<P: Projection>(gl: &WebGl2Context, shaders: &ShaderManager);
 }
 
 struct GrayscaleParameter {
@@ -228,8 +203,8 @@ struct GrayscaleParameter {
     blank: f32,
 }
 
-impl GrayscaleParameter {
-    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+impl SendUniforms for GrayscaleParameter {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniforms_from(&self.h)
             .attach_uniform("min_value", &self.min_value)
             .attach_uniform("max_value", &self.max_value)
@@ -239,75 +214,425 @@ impl GrayscaleParameter {
     }
 }
 
-/// List of the different type of surveys
-enum ImageSurveyType {
-    ColoredSimple {
-        // The image survey texture buffer
-        pub survey: ImageSurvey,
-    },
-    GrayscaleSimple {
-        // The image survey texture buffer
-        pub survey: ImageSurvey,
-        colormap: String,
+// Compute the size of the VBO in bytes
+// We do want to draw maximum 768 tiles
+const MAX_NUM_CELLS_TO_DRAW: usize = 768;
+// Each cell has 4 vertices
+const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
+// There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
+const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 12;
+const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
-        param: GrayscaleParameter,
-    },
-    GrayscaleComponent {
-        // The image survey texture buffer
-        pub survey: ImageSurvey,
-        // A color associated to the component
-        color: cgmath::Vector3<f32>,
+struct ImageSurvey {
+    id: String,
+    color: Color,
+    // The image survey texture buffer
+    textures: ImageSurveyTextures,
+    // Keep track of the cells in the FOV
+    view: ViewHEALPixCells,
 
-        param: GrayscaleParameter,
+    num_idx: usize,
+
+    sphere_sub: SphereSubdivided,
+    vbo: WebGlBuffer,
+    ebo: WebGlBuffer,
+
+    gl: WebGl2Context,
+}
+
+impl ImageSurvey {
+    fn new(gl: &WebGl2Context, config: HiPSConfig, color: Color, exec: Rc<RefCell<TaskExecutor>>) -> Self {
+        let id = config.get_root_url().clone();
+
+        let textures = ImageSurveyTextures::new(gl, config, exec);
+        let view = ViewHEALPixCells::new();
+
+        let vbo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+
+        gl.buffer_data_with_i32(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<f32>(),
+            WebGl2RenderingContext::DYNAMIC_DRAW
+        );
+        let ebo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        // Bind the buffer
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        gl.buffer_data_with_i32(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<u16>(),
+            WebGl2RenderingContext::DYNAMIC_DRAW
+        );
+
+        let num_idx = 0;
+        let sphere_sub = SphereSubdivided::new();
+        let gl = gl.clone();
+        let cells_depth_increased = false;
+        ImageSurvey {
+            id,
+            color,
+            // The image survey texture buffer
+            textures,
+            // Keep track of the cells in the FOV
+            view,
+            cells_depth_increased,
+        
+            num_idx,
+        
+            sphere_sub,
+            vbo,
+            ebo,
+        
+            gl,
+        }
+    }
+
+    pub fn from<T: HiPS>(hips: T, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Self {
+        hips.create()
+    }
+
+    pub fn set_positions<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, last_user_action: UserAction) {
+        match last_user_action {
+            UserAction::Unzooming => {
+                self.update_positions::<P, UnZoom>(&cells_to_draw);
+            },
+            UserAction::Zooming => {
+                self.update_positions::<P, Zoom>(&cells_to_draw);
+            },
+            UserAction::Moving => {
+                self.update_positions::<P, Move>(&cells_to_draw);
+            },
+            UserAction::Starting => {
+                self.update_positions::<P, Move>(&cells_to_draw);
+            }
+        }
+    }
+
+    fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self, cells_to_draw: &HEALPixCells) {
+        let mut lonlats = vec![];
+        let mut positions = vec![];
+        let mut idx_vertices = vec![];
+
+        for cell in cells_to_draw {
+            add_positions_grid::<P, T>(
+                &mut lonlats,
+                &mut positions,
+                &mut idx_vertices,
+                &cell,
+                &self.sphere_sub,
+            );
+        }
+
+        let mut coo = lonlats;
+        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 2 - coo.len();
+        coo.extend(vec![0.0; num_filling_floats]);
+        coo.extend(positions);
+        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 5 - coo.len();
+        coo.extend(vec![0.0; num_filling_floats]);
+
+        let buf_positions = unsafe { js_sys::Float32Array::view(&coo) };
+        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            0 as i32,
+            &buf_positions
+        );
+
+        self.num_idx = idx_vertices.len();
+        let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
+        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            0 as i32,
+            &buf_idx
+        );
+    }
+
+    pub fn set_UVs<P: Projection>(&mut self, cells_to_draw: &HEALPixCells, last_user_action: UserAction) {
+        match last_user_action {
+            UserAction::Unzooming => {
+                let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
+                self.update_UVs::<P, UnZoom>(textures);
+            },
+            UserAction::Zooming => {
+                let textures = Zoom::get_textures_from_survey(cells_to_draw, &self.textures);
+                self.update_UVs::<P, Zoom>(textures);
+            },
+            UserAction::Moving => {
+                let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
+                self.update_UVs::<P, Move>(textures);
+            },
+            UserAction::Starting => {
+                let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
+                self.update_UVs::<P, Move>(textures);
+            }
+        }
+    }
+
+
+    fn update_UVs<P: Projection, T: RecomputeRasterizer>(&mut self, textures: &ImageSurveyTextures) {
+        let mut uv_start = vec![];
+        let mut uv_end = vec![];
+        let mut start_times = vec![];
+
+        for (cell, state) in textures.iter() {
+            let uv_0 = TileUVW::new(cell, &state.starting_texture);
+            let uv_1 = TileUVW::new(cell, &state.ending_texture);
+            let start_time = state.ending_texture.start_time();
+
+            add_uv_grid::<P, T>(
+                &mut uv_start,
+                &mut uv_end,
+                &mut start_times,
+                &cell,
+                &self.sphere_sub,
+
+                &uv_0, &uv_1,
+                start_time.as_millis(),
+            );
+        }
+
+        let mut uv = uv_start;
+        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 3 - uv.len();
+        uv.extend(vec![0.0; num_filling_floats]);
+
+        uv.extend(uv_end);
+        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 6 - uv.len();
+        uv.extend(vec![0.0; num_filling_floats]);
+
+        uv.extend(start_time);
+        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 7 - uv.len();
+        uv.extend(vec![0.0; num_filling_floats]);
+
+        let buf_uvs = unsafe { js_sys::Float32Array::view(&uv) };
+        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            MAX_NUM_VERTICES_TO_DRAW * 5 * std::mem::size_of::<f32>() as i32,
+            &buf_uvs
+        );
+    }
+
+    fn get_textures(&self) -> &ImageSurveyTextures {
+        self.textures
     }
 }
 
-use crate::SimpleHiPS;
-impl From<SimpleHiPS> for ImageSurveyType {
-    fn from(hips: SimpleHiPS) -> ImageSurveyType {
-        let SimpleHiPS { properties, colormap } = hips;
-        let config = HiPSConfig::new(gl, &properties);
-        let survey = ImageSurvey::new();
+impl Draw for ImageSurvey {
+    fn draw<P: Projection>(&self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
+        if camera.get_aperture() > 150.0 {
+            // Raytracer
+            let shader = self.color.get_raytracer_shader(&self.gl, shaders).bind();
+            shader
+                .attach_uniforms_from(&self.camera)
+                .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&self.color)
+                .attach_uniform("model", camera.get_model_mat())
+                .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+                .attach_uniform("current_time", &utils::get_current_time());
 
-        if properties.isColor {
-            ImageSurveyType::ColoredSimple {
-                survey
+            // The raytracer vao is bound at the lib.rs level
+            raytracer.draw();
+            return;
+        }
+
+        // The rasterizer has a buffer containing:
+        // - The vertices of the HEALPix cells for the most refined survey
+        // - The starting and ending uv for the blending animation
+        // - The time for each HEALPix cell at which the animation begins
+        //
+        // Each of these data can be changed at different circumstances:
+        // - The vertices are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //       to the previous frame.
+        // - The UVs are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //     * there are new available tiles for the GPU 
+        // - The starting blending animation times are changed if:
+        //     * new cells are added/removed (because new cells are added)
+        //     * there are new available tiles for the GPU
+
+        let last_user_action = camera.last_user_action();
+        // Get the cells to draw
+        let cells_to_draw = if last_user_action == UserAction::UnZooming {
+            if self.view.has_depth_decreased() || self.cells_depth_increased {
+                self.cells_depth_increased = true;
+                let new_depth = self.view.get_depth();
+
+                super::get_cells_in_fov(new_depth + 1, &camera)
+            } else {
+                self.view.get_cells()
             }
         } else {
-            // Use the colormap
+            // no more unzooming
+            self.cells_depth_increased = false;
+            self.view.get_cells()
+        };
+
+        let new_cells_added = self.view.is_there_new_cells_added();
+        let recompute_vertex_positions = new_cells_added;
+        if recompute_vertex_positions {
+            self.set_positions(cells_to_draw, last_user_action);
+        }
+
+        let recompute_uvs = new_cells_added | self.textures.is_there_available_tiles();
+        if recompute_uvs {
+            self.set_UVs(cells_to_draw, last_user_action);
+        }
+
+        {
+            let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind();
+            shader
+                .attach_uniforms_from(&self.camera)
+                .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&self.color)
+                .attach_uniform("model", camera.get_model_mat())
+                .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+                .attach_uniform("current_time", &utils::get_current_time());
+
+            // The raster vao is bound at the lib.rs level
+            self.raster.draw(self.num_idx);
         }
     }
 }
 
-impl Draw for ImageSurveyType {
-    fn get_shader<'a, P: Projection>(gl: &WebGl2Context, shaders: &'a ShaderManager) -> &'a Shader {
-        P::get_rasterizer_shader_fits_color(gl, shaders)
+trait HiPS {
+    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue>;
+}
+
+impl HiPS for SimpleHiPS {
+    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+        let SimpleHiPS { properties, colormap, transfer } = self;
+
+        let config = HiPSConfig::new(gl, &properties)?;
+
+        if properties.isColor {
+            ImageSurvey::new(gl, config, Color::Colored, exec)
+        } else {
+            ImageSurvey::new(
+                gl,
+                config,
+                Color::Grayscale2Colormap {
+                    colormap: colormap.into(),
+                    param: GrayscaleParameter {
+                        h: transfer.into(),
+                        min_value: properties.minCutout,
+                        max_value: properties.maxCutout,
+                        
+                        // These Parameters are not in the properties
+                        // They will be retrieved by looking inside a tile
+                        scale: 1.0,
+                        offset: 0.0,
+                        blank: 0.0,
+                    }
+                },
+                exec
+            )
+        }
     }
+}
+use crate::{SimpleHiPS, ComponentHiPS};
+impl HiPS for ComponentHiPS {
+    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+        let ComponenHiPS { properties, color, transfer, k } = self;
 
-    fn set_uniforms<'a>(shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        // store the colormap, transfer function, cutouts here
-        // not in the HiPSConfig
-        shader.attach_uniform("C", &self.color)
-            .attach_uniform("K", &self.k);
+        let config = HiPSConfig::new(gl, &properties)?;
 
-        shader
+        if properties.isColor {
+            Err(format!("{} tiles does not contain grayscale data!", config.get_root_url()).into())
+        } else {
+            ImageSurvey::new(
+                gl,
+                config,
+                Color::Grayscale2Color {
+                    color,
+                    k,
+                    param: GrayscaleParameter {
+                        h: transfer.into(),
+                        min_value: properties.minCutout,
+                        max_value: properties.maxCutout,
+                        
+                        // These Parameters are not in the properties
+                        // They will be retrieved by looking inside a tile
+                        scale: 1.0,
+                        offset: 0.0,
+                        blank: 0.0,
+                    }
+                },
+                exec
+            )
+        }
     }
 }
 
-impl ImageSurveyType {
-    fn get_survey(&self) -> &ImageSurvey {
+/// List of the different type of surveys
+enum Color {
+    Colored,
+    Grayscale2Colormap {
+        colormap: Colormap,
+        param: GrayscaleParameter,
+    },
+    Grayscale2Color {
+        // A color associated to the component
+        color: cgmath::Vector3<f32>,
+        k: f32, // factor controlling the amount of this HiPS
+        param: GrayscaleParameter,
+    }
+}
+
+impl Color {
+    pub fn get_raster_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         match self {
-            ImageSurveyType::FITSImageSurveyColor(FITSImageSurveyColor {survey, ..}) => survey,
-            ImageSurveyType::FITSImageSurveyColormap(FITSImageSurveyColormap { survey, ..}) => survey,
-            ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey { survey }) => survey,
+            Color::Colored => {
+                P::get_raster_shader_color(gl, shaders)
+            },
+            Color::Grayscale2Colormap { .. } => {
+                P::get_raster_shader_grayscale2colormap(gl, shaders)
+            },
+            Color::Grayscale2Color { .. } => {
+                P::get_raster_shader_grayscale2color(gl, shaders)
+            },
+        }
+    }
+
+    pub fn get_raytracer_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        match self {
+            Color::Colored => {
+                P::get_raytracer_shader_color(gl, shaders)
+            },
+            Color::Grayscale2Colormap { .. } => {
+                P::get_raytracer_shader_grayscale2colormap(gl, shaders)
+            },
+            Color::Grayscale2Color { .. } => {
+                P::get_raytracer_shader_grayscale2color(gl, shaders)
+            },
         }
     }
 }
 
-enum ImageSurveyPrimaryType<'a> {
-    FITSImageSurveyColor(Vec<&'a str>),
-    FITSImageSurveyColormap(&'a str),
-    ColoredImageSurvey(&'a str)
+impl SendUniforms for Color {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        match self {
+            Color::Colored => (),
+            Color::Grayscale2Colormap { colormap, param } => {
+                shader
+                    .attach_uniforms_from(&colormap)
+                    .attach_uniforms_from(&param);
+            },
+            Color::Grayscale2Color { color, k, param } => {
+                shader
+                    .attach_uniforms_from(&param)
+                    .attach_uniform("C", &self.color)
+                    .attach_uniform("K", &self.k);
+            }
+        }
+    }
+}
+
+enum ImageSurveyIdx<'a> {
+    Composite(Vec<&'a str>),
+    Simple(&'a str),
 }
 
 impl ImageSurveyPrimaryType {
@@ -340,10 +665,7 @@ impl ImageSurveyPrimaryType {
 
 use crate::camera::ViewHEALPixCells;
 struct ImageSurveys {
-    surveys: HashMap<String, ImageSurveyType>,
-    views: HashMap<String, ViewHEALPixCells>,
-
-    most_refined_survey: Option<String>,
+    surveys: HashMap<String, ImageSurvey>,
 }
 
 impl ImageSurveys {
@@ -367,32 +689,10 @@ impl ImageSurveys {
         }
     }
 
-    fn get_most_refined_survey_id(&self) -> String {
-        let mut tex_size_min = std::i32::MAX;
-
-        let mut most_refined_survey = String::new();
-        for (id, survey) in self.surveys.iter() {
-            let tex_size_cur = survey.get_survey()
-                .config()
-                .get_texture_size();
-
-            if tex_size_cur < tex_size_min {
-                most_refined_survey = id;
-                tex_size_min = tex_size_cur;
-            }
-        }
-
-        most_refined_survey
-    }
-
-    pub fn set_primary_hips(&mut self, ) {
-
-    }
-
     pub fn add(&mut self, survey: ImageSurveyType, camera: &CameraViewPort) {
         let root_url = survey.get_root_url();
         match survey {
-            ImageSurveyType::FITSImageSurveyColor(_) {
+            ImageSurveyType::FITSImageSurveyColor(_) => {
                 if self.surveys.contains_key(root_url) {
                     self.surveys.remove(root_url);
                     self.views.remove(root_url);
@@ -438,20 +738,20 @@ impl ImageSurveys {
         }
 
         self.surveys.insert(root_url, survey);
-        // Instanciate a new view on this survey
+        /*// Instanciate a new view on this survey
         self.views.insert(root_url, ViewHEALPixCells::new());
 
         // Check for what is the most refined survey
-        self.most_refined_survey = Some(self.get_most_refined_survey_id());
+        self.most_refined_survey = Some(self.get_most_refined_survey_id());*/
     }
 
-    pub fn get_view_survey(&self, root_url: &str) -> &ViewHEALPixCells {
+   /* pub fn get_view_survey(&self, root_url: &str) -> &ViewHEALPixCells {
         self.views.get(root_url).unwrap()
     }
 
     pub fn get_view_most_refined_survey(&self) -> &ViewHEALPixCells {
         self.views.get(&self.most_refined_survey).unwrap()
-    }
+    }*/
 
     pub fn update_views(&mut self, camera: &CameraViewPort) {
         for (root_url, view) in self.views.iter_mut() {
@@ -463,31 +763,33 @@ impl ImageSurveys {
     // Update the surveys by telling which tiles are available
     pub fn set_available_tiles(&mut self, available_tiles: &Tiles) {
         for tile in available_tiles {
-            let mut survey = &mut self.surveys.get_mut(&tile.root_url).unwrap();
-            survey.register_available_tile(tile);
+            let mut textures = &mut self.surveys.get_mut(&tile.root_url)
+                .unwrap()
+                .get_textures();
+            textures.register_available_tile(tile);
         }
     }
 
     // Update the surveys by adding to the surveys the tiles
     // that have been resolved
-    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles, exec: &mut TaskExecutor) {
+    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
         for (tile, result) in resolved_tiles.iter() {
-            let mut survey = &mut self.surveys.get_mut(&tile.root_url)
+            let mut textures = &mut self.surveys.get_mut(&tile.root_url)
                 .unwrap()
-                .get_survey();
+                .get_textures();
 
             match result {
                 TileResolved::Missing { time_req } => {
-                    let missing_image = survey.get_blank_tile();
-                    survey.push::<TileArrayBufferImage>(tile, missing_image, time_req, exec);
+                    let default_image = textures.config().get_black_tile();
+                    textures.push::<TileArrayBufferImage>(tile, default_image, time_req);
                 },
                 TileResolved::Found { image, time_req } => {
                     match image {
                         RetrievedImageType::FITSImage { image, metadata } => {
-                            survey.push::<TileArrayBufferImage>(image, tile, time_req, exec);
+                            textures.push::<TileArrayBufferImage>(image, tile, time_req);
                         },
-                        RetrievedImageType::CompressedImage(image) => {
-                            survey.push::<TileHTMLImage>(image, tile, time_req, exec);
+                        RetrievedImageType::CompressedImage { image } => {
+                            textures.push::<TileHTMLImage>(image, tile, time_req);
                         }
                     }
                 }
@@ -495,7 +797,6 @@ impl ImageSurveys {
         }
     }
 
-    
     // Accessors
     fn get(&self, root_url: &str) -> Option<&ImageSurvey> {
         self.surveys.get(root_url)
@@ -505,56 +806,8 @@ impl ImageSurveys {
         self.surveys.len()
     }
 
-    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurveyType> {
+    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
         self.surveys.iter()
-    }
-
-    pub fn get_colored_survey(&self) -> Option<&ColoredImageSurvey> {
-        if let Some(colored_image_survey) = self.colored_image_survey {
-            let survey = self.surveys.get(colored_image_survey).unwrap();
-
-            match survey {
-                ImageSurveyType::ColoredImageSurvey(survey) => {
-                    Some(survey)
-                },
-                _ => unreachable!()
-            }
-        } else {
-            None
-        }
-    }
-    pub fn get_fits_colormap_survey(&self) -> Option<&FITSImageSurveyColormap> {
-        if let Some(fits_survey_colormap) = self.fits_image_survey_colormap {
-            let survey = self.surveys.get(fits_survey_colormap).unwrap();
-
-            match survey {
-                ImageSurveyType::FITSImageSurveyColormap(survey) => {
-                    Some(survey)
-                },
-                _ => unreachable!()
-            }
-        } else {
-            None
-        }
-    }
-    pub fn get_fits_color_surveys(&self) -> Option<Vec<&FITSImageSurveyColor>> {
-        if let Some(fits_survey_colors) = self.fits_image_survey_colors {
-            let surveys = fits_survey_colors.iter()
-                .map(|survey_color_id| {
-                    let survey = self.surveys.get(fits_survey_colormap).unwrap();
-                    match survey {
-                        ImageSurveyType::FITSImageSurveyColor(survey) => {
-                            survey
-                        },
-                        _ => unreachable!()
-                    }
-                })
-                .collect();
-
-            Some(surveys)
-        } else {
-            None
-        }
     }
 }
 /*

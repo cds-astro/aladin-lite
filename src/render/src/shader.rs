@@ -244,7 +244,7 @@ impl<'a> ShaderBound<'a> {
         self
     }
 
-    pub fn attach_uniforms_from<T: HasUniforms>(&'a self, t: &T) -> &'a Self {
+    pub fn attach_uniforms_from<T: SendUniforms>(&'a self, t: &T) -> &'a Self {
         t.attach_uniforms(self);
 
         self
@@ -263,7 +263,7 @@ impl<'a> ShaderBound<'a> {
     }
 }
 
-pub trait HasUniforms {
+pub trait SendUniforms {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;
 }
 

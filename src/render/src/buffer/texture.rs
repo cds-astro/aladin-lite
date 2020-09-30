@@ -207,9 +207,9 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-impl<'a> HasUniforms for TextureUniforms<'a> {
+impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader.attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
             .attach_uniform(&format!("{}{}", self.name, "texture_idx"), &self.texture.idx)

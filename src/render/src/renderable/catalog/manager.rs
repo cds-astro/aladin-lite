@@ -237,7 +237,7 @@ pub struct Catalog {
 
 use crate::{
     Projection,
-    viewport::CameraViewPort,
+    camera::CameraViewPort,
     utils,
 };
 use cgmath::Vector2;

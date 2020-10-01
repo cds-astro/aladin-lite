@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::viewport::CameraViewPort;
+use crate::camera::CameraViewPort;
 use crate::core::{VertexArrayObject, SliceData};
 use crate::color::Color;
 use web_sys::WebGl2RenderingContext;

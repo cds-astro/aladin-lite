@@ -1,7 +1,7 @@
 use crate::{
     core::{VertexArrayObject, VecData},
     shader::{ShaderBound, ShaderManager},
-    viewport::CameraViewPort,
+    camera::CameraViewPort,
     WebGl2Context,
     renderable::projection::Projection
 };
@@ -36,19 +36,17 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u
 
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlVertexArrayObject;
-
+use web_sys::{WebGlVertexArrayObject, WebGlBufferObject};
 pub struct RayTracer {
     vao: WebGlVertexArrayObject,
     vbo: WebGlBufferObject,
     ebo: WebGlBufferObject
 }
 
-use crate::{
-    buffer::TileBuffer,
-    Shader
-};
+use crate::Shader;
 use std::borrow::Cow;
 use crate::shader::ShaderId;
+use std::mem;
 impl RayTracer {
     pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl);
@@ -100,9 +98,7 @@ impl RayTracer {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
 
-    pub fn draw(
-        &self,
-    ) {
+    pub fn draw(&self) {
         //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,

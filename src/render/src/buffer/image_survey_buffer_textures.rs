@@ -181,6 +181,7 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 
 use std::cell::Cell;
 use crate::image_fmt::FormatImageType;
+use super::Tile;
 impl ImageSurveyTextures {
     pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurveyTextures {
         let size = config.num_textures();
@@ -287,7 +288,7 @@ impl ImageSurveyTextures {
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
-            let spawner = exec.spawner();
+            let spawner = self.exec.spawner();
             let task = SendTileToGPU::new(tile, texture, image, self.texture_2d_array.clone(), &self.config);
             //let cutoff_values_tile = self.cutoff_values_tile.clone();
             let tile = *tile;

@@ -1,12 +1,11 @@
-use crate::renderable::{
- HiPSSphere,
+/*use crate::renderable::{
  catalog::Manager,
  ProjetedGrid
 };
 
 use crate::event_manager::EventManager;
 
-use crate::viewport::CameraViewPort;
+use crate::camera::CameraViewPort;
 use crate::renderable::projection::Projection;
 use crate::time::DeltaTime;
 // A generic structure that will implement Transition
@@ -82,3 +81,4 @@ mod zooming;
 pub use zooming::UserZoom;
 mod location;
 pub use location::MoveSphere;
+*/

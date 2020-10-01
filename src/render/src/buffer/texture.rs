@@ -38,6 +38,7 @@ pub struct Texture {
 
 use crate::buffer::HiPSConfig;
 use crate::async_task::{TaskExecutor, TaskType};
+use super::Tile;
 impl Texture {
     pub fn new(config: &HiPSConfig, texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {
         let tiles = HashSet::with_capacity(config.num_tiles_per_texture());

@@ -30,6 +30,7 @@ impl FormatImage for JPG {
     const EXT: &'static str = "jpg";
 }
 
+use crate::buffer::{TileArrayBuffer, ArrayU8};
 #[derive(Clone, Copy, Debug)]
 pub struct PNG;
 impl PNG {
@@ -108,25 +109,25 @@ trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
     #[inline]
     fn zero() -> Self;
 }
-impl f32 for FITSDataType {
+impl FITSDataType for f32  {
     #[inline]
     fn zero() -> Self {
         0.0
     }
 }
-impl i32 for FITSDataType {
+impl FITSDataType for i32 {
     #[inline]
     fn zero() -> Self {
         0
     }
 }
-impl i16 for FITSDataType {
+impl FITSDataType for i16 {
     #[inline]
     fn zero() -> Self {
         0
     }
 }
-impl u8 for FITSDataType {
+impl FITSDataType for u8 {
     #[inline]
     fn zero() -> Self {
         0

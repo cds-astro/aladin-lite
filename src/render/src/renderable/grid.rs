@@ -11,7 +11,7 @@ use cgmath::Vector4;
 use crate::renderable::angle;
 use crate::renderable::TextManager;
 
-use crate::viewport::CameraViewPort;
+use crate::camera::CameraViewPort;
 pub struct ProjetedGrid {
     // The color of the grid
     color: Color,

@@ -62,6 +62,10 @@ use cgmath::Vector4;
 
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
+use crate::{
+    buffer::TileDownloader,
+    renderable::image_survey::ImageSurveys
+};
 struct App {
     gl: WebGl2Context,
 
@@ -70,10 +74,7 @@ struct App {
 
     downloader: TileDownloader,
     surveys: ImageSurveys,
-    //view: HEALPixCellsInView,
     
-    rasterizer: Rasterizer,
-    raytracer: RayTracer,
     time_start_blending: Time,
     rendering: bool,
 
@@ -116,12 +117,16 @@ struct MoveAnimation {
     start_anim_rot: SphericalRotation<f32>,
     goal_anim_rot: SphericalRotation<f32>,
     time_start_anim: Time,
+    goal_pos: Vector4<f32>,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
-
+use crate::time::Time;
+use crate::renderable::angle::ArcSec;
+use crate::renderable::image_survey::ImageSurvey;
+use crate::buffer::Tile;
 impl App {
-    fn new(gl: &WebGl2Context, _events: &EventManager, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
+    fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
@@ -132,23 +137,24 @@ impl App {
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
-        let hips_definition = HiPSDefinition {
-            id: String::from("SDSS/DR9/color"),
-            url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
-            name: String::from("SDSS/DR9/color"),
-            maxOrder: 10,
-            frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
-            tileSize: 512,
-            minCutout: 0.0,
-            maxCutout: 1.0,
-            format: String::from("jpeg"),
-            bitpix: 0,
-        };
+        let sdss = SimpleHiPS {
+            properties: HiPSProperties {
+                url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
 
-        let config = HiPSConfig::new(gl, hips_definition)?;
-        let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
-            survey: ImageSurvey::new(gl, config, exec.clone())
-        });
+                maxOrder: 10,
+                frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
+                tileSize: 512,
+                format: String::from("jpeg"),
+
+                minCutout: 0.0,
+                maxCutout: 1.0,
+                bitpix: 0,
+
+                isColor: true,
+            },
+            colormap: String::from("RedTemperature"),
+            transfer: String::from("linear")
+        };
 
         // camera definition
         // HiPS definition
@@ -171,19 +177,10 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new(gl, &camera);
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new();
-        surveys.add(survey, &camera);
+        let mut surveys = ImageSurveys::new(&gl, &mut shaders);
 
-        // Two mode of render, each storing a specific VBO
-        // - The rasterizer draws the HEALPix cells being in the current view
-        // This mode of rendering is used for small FoVs
-        let rasterizer = Rasterizer::new(&gl, &shaders);
-        // - The raytracer is a mesh covering the view. Each pixel of this mesh
-        //   is unprojected to get its (ra, dec). Then we query ang2pix to get
-        //   the HEALPix cell in which it is located.
-        //   We get the texture from this cell and draw the pixel
-        //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<Orthographic>(&gl, &camera, &shaders);
+        let sdss_survey = ImageSurvey::from(sdss, &gl, exec.clone());
+        surveys.add_primary_survey(sdss_survey);
 
         let time_start_blending = Time::now();
 
@@ -214,6 +211,7 @@ impl App {
         let move_animation = None;
         let tasks_finished = false;
         let start_render_time = Time::now();
+        let rendering = true;
         let app = App {
             gl,
 
@@ -255,13 +253,14 @@ impl App {
         self.surveys.update_views(camera);
 
         // Loop over the surveys
-        for (root_url, s) in self.surveys.iter() {
-            let survey = s.get_survey();
-            let view = self.surveys.get_view_survey(root_url);
+        for (survey_id, survey) in self.surveys.iter() {
+            let textures = survey.get_textures();
+            let view = survey.get_view();
+
             let cells_in_fov = view.get_cells();
 
             for cell in cells_in_fov.iter() {
-                let already_available = survey.contains_tile(cell);
+                let already_available = textures.contains_tile(cell);
                 let is_cell_new = view.is_new(cell);
 
                 if already_available {
@@ -271,13 +270,12 @@ impl App {
                         // New cells are 
                         self.time_start_blending = Time::now();
                     }
-                    survey.update_priority(cell, is_cell_new);
+                    textures.update_priority(cell, is_cell_new);
                 } else {
                     // Submit the request to the buffer
-                    let root_url = survey.get_root_url();
-                    let format = survey.get_image_format();
+                    let format = textures.get_image_format();
                     let tile = Tile {
-                        root_url,
+                        survey_id,
                         format,
                         cell
                     };
@@ -314,13 +312,12 @@ impl App {
             }
         }
 
-        Ok(tiles)
+        Ok(tiles_available)
     }
 
     fn update<P: Projection>(&mut self,
         dt: DeltaTime,
-        events: &EventManager,
-    ) -> Result<bool, JsValue> {
+    ) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
@@ -330,7 +327,7 @@ impl App {
         //self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
 
         // Check if there is an move animation to do
-        if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim} ) = self.move_animation {
+        if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim, goal_pos} ) = self.move_animation {
             let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
         
             // Undamped angular frequency of the oscillator
@@ -343,12 +340,12 @@ impl App {
             let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * ((-5_f32 * t).exp());
             let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
     
-            camera.set_rotation::<P>(&p);
+            self.camera.set_rotation::<P>(&p);
             self.look_for_new_tiles();
 
             // Animation stop criteria
             let cursor_pos = self.get_center::<P>();
-            let goal_pos = location;
+            let goal_pos = goal_anim_rot.;
             let err = math::ang_between_vect(&goal_pos, &cursor_pos);
             let thresh: Angle<f32> = ArcSec(2_f32).into();
             if err < thresh {
@@ -376,7 +373,7 @@ impl App {
 
         // The rendering is done following these different situations:
         // - the camera has moved
-        let has_camera_moved = camera.has_camera_moved();
+        let has_camera_moved = self.camera.has_camera_moved();
         // - there is at least one tile in its blending phase
         let blending_anim_occuring = (Time::now() - self.time_start_blending) < BLEND_TILE_ANIM_DURATION;
         self.rendering = blending_anim_occuring | has_camera_moved;
@@ -386,7 +383,7 @@ impl App {
             self.manager.update(&self.camera);
         }
 
-        Ok(render)
+        Ok(())
     }
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
@@ -399,35 +396,15 @@ impl App {
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
-        // Then we draw each survey one by one depending on its type
-        // i.e. FITS + color, FITS + colormap or PNG/JPEG HiPses
-        //
-        // 1. Draw the colored image survey
-        if let Some(colored) = self.surveys.get_colored_survey() {
-            // Write the UVs of the colored image survey to the VBO
-            self.rasterizer.set_UVs(cells_to_draw, colored.survey, last_user_action);
-            {
-                let shader = colored.get_shader(&self.gl, shaders).bind();
-                let shader = colored.set_uniforms(shader);
-                shader
-                    .attach_uniforms_from(&self.camera)
-                    .attach_uniforms_from(&colored.survey)
-                    .attach_uniform("model", camera.get_model_mat())
-                    .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
-                    .attach_uniform("current_time", &utils::get_current_time());
-
-                self.rasterizer.draw_vertices();
-            }
-        }
-
+        self.surveys.draw(&self.camera, &mut self.shaders);
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         // Draw the catalog
         self.manager.draw::<P>(
             &self.gl,
-            shaders,
-            camera
+            &mut self.shaders,
+            &self.camera
         );
         
         // Draw the grid
@@ -447,26 +424,16 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let config = HiPSConfig::new(gl, properties)?;
-        
-        let survey = ImageSurveyType::ColoredImageSurvey(ColoredImageSurvey {
-            survey: ImageSurvey::new(gl, config, self.exec.clone())
-        });
-        self.surveys.add::<P>(hips_definition, &mut self.camera)
+        let new_survey = ImageSurvey::from::<SimpleHiPS>(hips);
+        self.surveys.set_simple_hips(new_survey);
+
+        // Once its added, request its tiles
+        self.look_for_new_tiles();
     }
 
     fn set_projection<P: Projection>(&mut self) {
-        self.camera.reset::<P>(self.sphere.config());
-        // Update the camera
-        {
-            let cam = self.camera;
-            let screen_size = cam.get_screen_size();
-            let aperture = cam.get_aperture();
-            
-            cam.set_aperture::<P>(aperture);
-            cam.resize::<P>(screen_size.x, screen_size.y);
-        }
-        self.sphere.set_projection::<P>(&self.camera, &mut self.shaders);
+        self.camera.set_projection::<P>();
+        self.surveys.set_projection::<P>(self.camera, &mut self.shaders);
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
@@ -492,7 +459,7 @@ impl App {
 
         // Launch the new tile requests
         self.look_for_new_tiles();
-        manager.set_kernel_size(&self.camera);
+        self.manager.set_kernel_size(&self.camera);
     }
 
     fn set_colormap(&mut self, name: String, colormap: Colormap) {
@@ -552,7 +519,7 @@ impl App {
         Ok(model_pos.lonlat())
     }
 
-    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>, events: &mut EventManager) {
+    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
         let xyz: Vector4<f32> = lonlat.vector();
         let rot = SphericalRotation::from_sky_position(&xyz);
         self.camera.set_rotation::<P>(&rot);
@@ -573,6 +540,7 @@ impl App {
             time_start_moving: Time::now(),
             start_anim_rot,
             goal_anim_rot,
+            goal_pos,
         });
     }
 
@@ -714,13 +682,13 @@ impl ProjectionType {
         }
     }*/
 
-    fn update(&mut self, app: &mut App, dt: DeltaTime, events: &EventManager) -> Result<bool, JsValue> {
+    fn update(&mut self, app: &mut App, dt: DeltaTime) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.update::<Aitoff>(dt, events),
-            ProjectionType::MollWeide => app.update::<Mollweide>(dt, events),
-            ProjectionType::Ortho => app.update::<Orthographic>(dt, events),
-            ProjectionType::Arc => app.update::<Mollweide>(dt, events),
-            ProjectionType::Mercator => app.update::<Mercator>(dt, events),
+            ProjectionType::Aitoff => app.update::<Aitoff>(dt),
+            ProjectionType::MollWeide => app.update::<Mollweide>(dt),
+            ProjectionType::Ortho => app.update::<Orthographic>(dt),
+            ProjectionType::Arc => app.update::<Mollweide>(dt),
+            ProjectionType::Mercator => app.update::<Mercator>(dt),
         }
     }
 
@@ -814,13 +782,13 @@ impl ProjectionType {
         }; 
     }
 
-    pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f32>, events: &mut EventManager) {
+    pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
         match self {
-            ProjectionType::Aitoff => app.set_center::<Aitoff>(&lonlat, events),
-            ProjectionType::MollWeide => app.set_center::<Mollweide>(&lonlat, events),
-            ProjectionType::Ortho => app.set_center::<Orthographic>(&lonlat, events),
-            ProjectionType::Arc => app.set_center::<Mollweide>(&lonlat, events),
-            ProjectionType::Mercator => app.set_center::<Mercator>(&lonlat, events),
+            ProjectionType::Aitoff => app.set_center::<Aitoff>(&lonlat),
+            ProjectionType::MollWeide => app.set_center::<Mollweide>(&lonlat),
+            ProjectionType::Ortho => app.set_center::<Orthographic>(&lonlat),
+            ProjectionType::Arc => app.set_center::<Mollweide>(&lonlat),
+            ProjectionType::Mercator => app.set_center::<Mercator>(&lonlat),
         };
     }
 
@@ -920,9 +888,6 @@ pub struct WebClient {
     // The app
     app: App,
     projection: ProjectionType,
-    // Stores all the possible events
-    // with some associated data    
-    events: EventManager,
 
     // The time between the previous and the current
     // frame
@@ -996,7 +961,7 @@ pub struct ComponentHiPS {
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub struct CompositeHiPS {
-    hipses: Vec<CompoundHiPS>
+    hipses: Vec<ComponentHiPS>
 }
 
 #[wasm_bindgen]
@@ -1010,11 +975,10 @@ impl WebClient {
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGl2Context::new();
-        let events = EventManager::new();
         crate::log(&format!("shaders manager"));
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-        let app = App::new(&gl, &events, shaders, resources)?;
+        let app = App::new(&gl, shaders, resources)?;
 
         //let appconfig = AppConfig::Ortho(app);
         let dt = DeltaTime::zero();
@@ -1027,8 +991,6 @@ impl WebClient {
             app,
             projection,
 
-            events,
-
             dt,
             enable_inertia,
             enable_grid,
@@ -1038,24 +1000,19 @@ impl WebClient {
     }
 
     /// Main update method
-    pub fn update(&mut self, dt: f32) -> Result<bool, JsValue> {
+    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
-        let render = self.projection.update(
+        self.projection.update(
             &mut self.app,
             // Time of the previous frame rendering 
             self.dt,
-            // Event manager
-            &self.events,
         )?;
 
-        // Reset all the user events at the end of the frame
-        self.events.reset();
-
-        Ok(render)
+        Ok(())
     }
     
     /// Update our WebGL Water application. `index.html` will call this function in order
@@ -1264,7 +1221,7 @@ impl WebClient {
             ArcDeg(lon).into(),
             ArcDeg(lat).into()
         );
-        self.projection.start_moving_to(&mut self.app, lonlat);
+        self.projection.start_moving_to(&mut self.app, location);
 
         /*self.events.enable::<MoveToLocation>(
             LonLatT::new(
@@ -1279,7 +1236,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.projection.set_center(&mut self.app, lonlat, &mut self.events);
+        self.projection.set_center(&mut self.app, lonlat);
 
         Ok(())
     }

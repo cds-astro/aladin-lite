@@ -20,7 +20,7 @@ use std::rc::Rc;
 
 use crate::WebGl2Context;
 use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
-
+use crate::image_fmt::{PNG, JPG, FITS};
 fn create_black_tile(format: &FormatImageType, width: i32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;
     match format {

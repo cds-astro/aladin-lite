@@ -109,6 +109,7 @@ impl<'a> Iterator for RequestsIterMut<'a> {
     }
 }
 
+use crate::healpix_cell::HEALPixCell;
 // A tile is described by an image survey
 // and an HEALPix cell
 #[derive(PartialEq, Eq, Hash)]
@@ -149,15 +150,17 @@ const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 use crate::FormatImageType;
 
 use super::image::RetrievedImageType;
-enum TileResolved {
+use crate::time::Time;
+pub enum TileResolved {
     Missing { time_req: Time },
     Found { image: RetrievedImageType, time_req: Time }
 }
+use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
 impl TileDownloader {
     pub fn new() -> TileDownloader {
-        let requests: Requests::new();
+        let requests = Requests::new();
         let html_img_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
         let fits_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
         let requested_tiles = HashSet::with_capacity(64);

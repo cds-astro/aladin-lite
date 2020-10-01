@@ -3,12 +3,12 @@ use crate::healpix_cell::HEALPixCell;
 
 use std::slice::Iter;
 
-struct HEALPixCells {
+pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
 }
 use std::collections::hash_set::Iter;
-struct HEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
+pub struct HEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
 
 impl<'a> Iterator for HEALPixCellsIter<'a> {
     type Item = &'a HEALPixCell;
@@ -34,7 +34,7 @@ impl HEALPixCells {
         let npix = 12 << ((depth as usize) << 1);
 
         let mut cells = (0_u64..(npix as u64))
-            .map(|pix| HEALPixCell(depth, ipix))
+            .map(|pix| HEALPixCell(depth, pix))
             .collect::<HashSet<_>>();
 
         HEALPixCells {
@@ -77,7 +77,7 @@ impl HEALPixCells {
     }
 }
 
-struct NewHEALPixCells {
+pub struct NewHEALPixCells {
     depth: u8,
     // flags associating true to cells that
     // are new in the fov
@@ -159,7 +159,7 @@ impl<'a> Iterator for NewHEALPixCellsIter<'a> {
         self.0.next()
     }
 }
-
+use crate::math::log_2;
 fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
     let width = camera.get_screen_size().x;
     let aperture = camera.get_aperture().0;
@@ -206,6 +206,8 @@ pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
     }
 }
 
+use cgmath::Vector4;
+use crate::cdshealpix;
 fn polygon_coverage(
     vertices: &[Vector4<f32>],
     depth: u8,
@@ -229,6 +231,8 @@ pub struct HEALPixCellsInView {
     prev_depth: u8,
 }
 
+use crate::camera::CameraViewPort;
+use super::image_survey::ImageSurvey;
 impl HEALPixCellsInView {
     pub fn new() -> Self {
         let cells = HEALPixCells::new();
@@ -279,7 +283,7 @@ impl HEALPixCellsInView {
 
     #[inline]
     pub fn is_there_new_cells_added(&self) -> bool {
-        new_cells.is_there_new_cells_added()
+        self.new_cells.is_there_new_cells_added()
     }
 
     #[inline]

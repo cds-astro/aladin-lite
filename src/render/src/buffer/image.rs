@@ -202,7 +202,7 @@ impl Image for TileArrayBufferImage {
         }
     }
 
-    fn get_cutoff_values(&self) -> Option<(f32, f32)> {
+    /*fn get_cutoff_values(&self) -> Option<(f32, f32)> {
         match &self {
             TileArrayBufferImage::U8(b) => {
                 let values = b.get_cutoff_values();
@@ -222,7 +222,7 @@ impl Image for TileArrayBufferImage {
             },
             _ => unimplemented!()
         }
-    }
+    }*/
 }
 
 impl Image for Rc<TileArrayBufferImage> {
@@ -286,7 +286,7 @@ impl Image for Rc<TileArrayBufferImage> {
         }
     }
 
-    fn get_cutoff_values(&self) -> Option<(f32, f32)> {
+    /*fn get_cutoff_values(&self) -> Option<(f32, f32)> {
         let tile: &TileArrayBufferImage = &**self;
         match &tile {
             &TileArrayBufferImage::U8(b) => {
@@ -307,7 +307,7 @@ impl Image for Rc<TileArrayBufferImage> {
             },
             _ => unimplemented!()
         }
-    }
+    }*/
 }
 
 use crate::{
@@ -365,7 +365,7 @@ enum RequestType {
 pub trait ImageRequest {
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
-    fn image(&self) -> RetrievedImageType;
+    fn image(&self, config: &HiPSConfig) -> RetrievedImageType;
 
     const REQUEST_TYPE: RequestType;
 }
@@ -559,7 +559,7 @@ impl ImageRequest for CompressedImageRequest {
         self.image.set_onerror(fail);
     }
 
-    fn image(&self) -> RetrievedImageType {
+    fn image(&self, _config: &HiPSConfig) -> RetrievedImageType {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
@@ -597,7 +597,7 @@ impl ImageRequest for FITSImageRequest {
         self.image.send().unwrap();
     }
 
-    fn image(&self) -> RetrievedImageType {
+    fn image(&self, config: &HiPSConfig) -> RetrievedImageType {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()

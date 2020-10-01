@@ -7,7 +7,7 @@
 // * y_h in [-1, 1]
 
 // World space
-use crate::viewport::CameraViewPort;
+use crate::camera::CameraViewPort;
 
 
 

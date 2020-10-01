@@ -67,6 +67,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     gl.scissor(0, 0, width as i32, height as i32);
 }
 
+use crate::math;
 impl CameraViewPort {
     pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
@@ -209,9 +210,9 @@ impl CameraViewPort {
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
         self.last_user_action = if self.get_aperture() > aperture {
-            LastAction::Zooming
+            UserAction::Zooming
         } else {
-            LastAction::Unzooming
+            UserAction::Unzooming
         };
 
         self.aperture = if aperture <= P::aperture_start() {
@@ -248,6 +249,10 @@ impl CameraViewPort {
         self.update_rot_matrices::<P>();
     }
 
+    pub fn set_projection<P: Projection>(&mut self) {
+        self.vertices.set_projection(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+    }
+
     // Accessors
     pub fn get_rotation(&self) -> &SphericalRotation<f32> {
         &self.sr
@@ -272,7 +277,6 @@ impl CameraViewPort {
     pub fn get_vertices(&self) -> Option<&[ModelCoord]> {
         self.vertices.get_vertices()
     }
-
 
     pub fn get_screen_size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)

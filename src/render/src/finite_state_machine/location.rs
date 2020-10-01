@@ -1,4 +1,4 @@
-
+/*
 // Some states here
 pub struct Stalling;
 
@@ -51,7 +51,7 @@ use crate::renderable::{
  ProjetedGrid
 };
 use crate::event_manager::EventManager;
-use crate::viewport::CameraViewPort;
+use crate::camera::CameraViewPort;
 impl State for Stalling {
     fn update<P: Projection>(&mut self,
         // Time of the previous frame
@@ -241,4 +241,4 @@ impl MoveSphere {
             },
         }
     }
-}
+}*/

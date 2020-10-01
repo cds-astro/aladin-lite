@@ -56,6 +56,7 @@ pub struct FieldOfViewVertices {
     model_coo: Option<Vec<ModelCoord>>,
 }
 
+use crate::SphericalRotation;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
@@ -81,7 +82,7 @@ impl FieldOfViewVertices {
             ));
         }
 
-        let world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+        let world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
         let model_coo = if Some(world_coo) = world_coo {
             Some(world_to_model(world_coo, r))
         } else {
@@ -93,6 +94,16 @@ impl FieldOfViewVertices {
             world_coo,
             model_coo
         }
+    }
+
+    // Recompute the camera fov vertices when the projection is changing
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
+        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+        self.model_coo = if Some(world_coo) = self.world_coo {
+            Some(world_to_model(world_coo, r))
+        } else {
+            None
+        };
     }
 
     pub fn set_fov(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
@@ -111,6 +122,8 @@ impl FieldOfViewVertices {
     pub fn get_vertices(&self) ->  Option<&[ModelCoord]> {
         self.model_coo.as_ref()
     }
+
+
 }
 
 use std::iter;

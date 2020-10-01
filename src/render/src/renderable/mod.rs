@@ -1,8 +1,5 @@
 
 
-use crate::viewport::CameraViewPort;
-
-mod hips_sphere;
 pub mod projection;
 pub mod grid;
 
@@ -35,16 +32,19 @@ mod triangulation;
 use triangulation::Triangulation;
 
 mod view_on_surveys;
-use view_on_surveys::{ViewOnImageSurvey, get_cells_in_camera};
+use view_on_surveys::{HEALPixCellsInView, HEALPixCells, NewHEALPixCells, get_cells_in_camera};
 
-use hips_sphere::{
- RecomputeRasterizer,
- Zoom,
- UnZoom,
- Move,
- TextureStates
+pub mod image_survey;
+pub use image_survey::{
+    RecomputeRasterizer,
+    Zoom,
+    UnZoom,
+    Move,
+    TexturesToDraw,
+    MAX_NUM_VERTICES_TO_DRAW,
+    ImageSurvey,
 };
-pub use hips_sphere::HiPSSphere;
+
 pub use catalog::Manager;
 pub use grid::ProjetedGrid;
 

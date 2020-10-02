@@ -1054,23 +1054,4 @@ impl WebClient {
 
         Ok(())
     }
-
-    // Download a tile and add it to the buffer
-    pub fn start_download(&mut self, tile: HEALPixCellJS, url: String, cors: bool) -> Result<(), JsValue> {
-        //self.projection.start_download(&mut self.app, &url, cors);
-
-        Ok(())
-    }
-
-    #[wasm_bindgen]
-    pub fn is_tile_available(&self, tile: HEALPixCellJS) -> Result<bool, JsValue> {
-        
-        Ok(true)
-    }
-}
-
-#[wasm_bindgen]
-pub struct HEALPixCellJS {
-    pub depth: u8,
-    pub idx: u64
 }

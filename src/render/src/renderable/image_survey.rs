@@ -44,7 +44,7 @@ pub trait RecomputeRasterizer {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, P: Projection>(
+    fn get_textures_from_survey<'a>(
         cells_to_draw: &HEALPixCells,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
@@ -63,10 +63,10 @@ impl RecomputeRasterizer for Move  {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
-        for cell in cells_to_draw {
+        for cell in cells_to_draw.iter() {
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
@@ -97,10 +97,10 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
-        for cell in cells_to_draw {
+        for cell in cells_to_draw.iter() {
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
@@ -132,35 +132,35 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, P: Projection>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
-        for cell in cells_to_draw {
+        for cell in cells_to_draw.iter() {
             let parent_cell = cell.parent();
 
             if survey.contains(&parent_cell) {
                 let starting_cell = if survey.contains(&cell) {
-                    cell
+                    *cell
                 } else {
                     survey.get_nearest_parent(&parent_cell)
                 };
-                let starting_cell_in_tex = survey.get(&starting_cell);
-                let ending_cell_in_tex = survey.get(&parent_cell);
+                let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
+                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                textures.insert(cell, TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex));
             } else {
                 let starting_cell = if survey.contains(&cell) {
-                    cell
+                    *cell
                 } else {
                     survey.get_nearest_parent(&parent_cell)
                 };
 
                 let ending_cell = starting_cell;
 
-                let starting_cell_in_tex = survey.get(&starting_cell);
-                let ending_cell_in_tex = survey.get(&ending_cell);
+                let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
+                let ending_cell_in_tex = survey.get(&ending_cell).unwrap();
 
-                textures.insert(cell, TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex));
+                textures.insert(*cell, TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex));
             }
         }
 
@@ -188,7 +188,7 @@ use crate::renderable::Rasterizer;
 use crate::shaders::Colormap;
 
 trait Draw {
-    fn draw(&self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort);
+    fn draw<P: Projection>(&self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort);
 }
 
 #[derive(Clone, Copy)]
@@ -211,6 +211,8 @@ impl SendUniforms for GrayscaleParameter {
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)
             .attach_uniform("blank", &self.blank);
+
+        shader
     }
 }
 
@@ -224,7 +226,7 @@ enum Color {
     },
     Grayscale2Color {
         // A color associated to the component
-        color: cgmath::Vector3<f32>,
+        color: [f32; 3],
         k: f32, // factor controlling the amount of this HiPS
         param: GrayscaleParameter,
     }
@@ -237,10 +239,10 @@ impl Color {
                 P::get_raster_shader_color(gl, shaders)
             },
             Color::Grayscale2Colormap { .. } => {
-                P::get_raster_shader_grayscale2colormap(gl, shaders)
+                P::get_raster_shader_gray2colormap(gl, shaders)
             },
             Color::Grayscale2Color { .. } => {
-                P::get_raster_shader_grayscale2color(gl, shaders)
+                P::get_raster_shader_gray2color(gl, shaders)
             },
         }
     }
@@ -251,10 +253,10 @@ impl Color {
                 P::get_raytracer_shader_color(gl, shaders)
             },
             Color::Grayscale2Colormap { .. } => {
-                P::get_raytracer_shader_grayscale2colormap(gl, shaders)
+                P::get_raytracer_shader_gray2colormap(gl, shaders)
             },
             Color::Grayscale2Color { .. } => {
-                P::get_raytracer_shader_grayscale2color(gl, shaders)
+                P::get_raytracer_shader_gray2color(gl, shaders)
             },
         }
     }
@@ -267,16 +269,18 @@ impl SendUniforms for Color {
             Color::Colored => (),
             Color::Grayscale2Colormap { colormap, param } => {
                 shader
-                    .attach_uniforms_from(&colormap)
-                    .attach_uniforms_from(&param);
+                    .attach_uniforms_from(colormap)
+                    .attach_uniforms_from(param);
             },
             Color::Grayscale2Color { color, k, param } => {
                 shader
-                    .attach_uniforms_from(&param)
-                    .attach_uniform("C", &self.color)
-                    .attach_uniform("K", &self.k);
+                    .attach_uniforms_from(param)
+                    .attach_uniform("C", color)
+                    .attach_uniform("K", k);
             }
         }
+
+        shader
     }
 }
 
@@ -304,11 +308,11 @@ struct Position {
 }
 
 impl Position {
-    fn new(lonlat: &LonLatT<f32>) -> Vertex {
+    fn new(lonlat: &LonLatT<f32>) -> Position {
         let pos = lonlat.vector();
         let lon = lonlat.lon();
         let lat = lonlat.lat();
-        Vertex {
+        Position {
             lon,
             lat,
 
@@ -429,8 +433,8 @@ fn add_positions_grid<P: Projection, E: RecomputeRasterizer>(
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
 
-            let (lon, lat) = lonlat[id_vertex_0];
-            let position = lonlat[id_vertex_0].vector();
+            let (lon, lat) = (lonlat[id_vertex_0].lon().0, lonlat[id_vertex_0].lat().0);
+            let position: Vector3<f32> = lonlat[id_vertex_0].vector();
 
             lonlats.push(lon);
             lonlats.push(lat);
@@ -522,6 +526,10 @@ pub struct ImageSurvey {
     textures: ImageSurveyTextures,
     // Keep track of the cells in the FOV
     view: HEALPixCellsInView,
+    // Flag telling if the user is unzooming and
+    // the depth has decreased by at least 1
+    // This is used to draw the vbo vertices when users are unzooming
+    cells_depth_increased: bool,
 
     num_idx: usize,
 
@@ -544,7 +552,7 @@ impl ImageSurvey {
         exec: Rc<RefCell<TaskExecutor>>,
         _type: ImageSurveyType
     ) -> Self {
-        let id = config.get_root_url().clone();
+        let id = config.root_url.clone();
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
         let view = HEALPixCellsInView::new();
@@ -556,7 +564,7 @@ impl ImageSurvey {
 
         gl.buffer_data_with_i32(
             WebGl2RenderingContext::ARRAY_BUFFER,
-            MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<f32>(),
+            (MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<f32>()) as i32,
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
         let ebo = gl.create_buffer()
@@ -566,7 +574,7 @@ impl ImageSurvey {
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
         gl.buffer_data_with_i32(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<u16>(),
+            (MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<u16>()) as i32,
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
 
@@ -595,8 +603,8 @@ impl ImageSurvey {
         }
     }
 
-    pub fn from<T: HiPS>(hips: T, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Self {
-        hips.create()
+    pub fn from<T: HiPS>(hips: T, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
+        hips.create(gl, exec)
     }
 
     pub fn set_color(&mut self, color: &Color) {
@@ -625,7 +633,7 @@ impl ImageSurvey {
         let mut positions = vec![];
         let mut idx_vertices = vec![];
 
-        for cell in cells_to_draw {
+        for cell in cells_to_draw.iter() {
             add_positions_grid::<P, T>(
                 &mut lonlats,
                 &mut positions,
@@ -662,31 +670,33 @@ impl ImageSurvey {
         match last_user_action {
             UserAction::Unzooming => {
                 let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, UnZoom>(textures);
+                self.update_UVs::<P, UnZoom>(&textures);
             },
             UserAction::Zooming => {
                 let textures = Zoom::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Zoom>(textures);
+                self.update_UVs::<P, Zoom>(&textures);
             },
             UserAction::Moving => {
                 let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Move>(textures);
+                self.update_UVs::<P, Move>(&textures);
             },
             UserAction::Starting => {
                 let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Move>(textures);
+                self.update_UVs::<P, Move>(&textures);
             }
         }
     }
 
-    fn update_UVs<P: Projection, T: RecomputeRasterizer>(&mut self, textures: &ImageSurveyTextures) {
+    fn update_UVs<'a, P: Projection, T: RecomputeRasterizer>(&'a mut self, textures: &TexturesToDraw<'a>) {
         let mut uv_start = vec![];
         let mut uv_end = vec![];
         let mut start_times = vec![];
 
+        let survey_config = self.textures.config();
+
         for (cell, state) in textures.iter() {
-            let uv_0 = TileUVW::new(cell, &state.starting_texture);
-            let uv_1 = TileUVW::new(cell, &state.ending_texture);
+            let uv_0 = TileUVW::new(cell, &state.starting_texture, survey_config);
+            let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
             let start_time = state.ending_texture.start_time();
 
             add_uv_grid::<P, T>(
@@ -716,7 +726,7 @@ impl ImageSurvey {
         let buf_uvs = unsafe { js_sys::Float32Array::view(&uv) };
         self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
-            MAX_NUM_VERTICES_TO_DRAW * 5 * std::mem::size_of::<f32>() as i32,
+            (MAX_NUM_VERTICES_TO_DRAW * 5 * std::mem::size_of::<f32>()) as i32,
             &buf_uvs
         );
     }
@@ -726,17 +736,17 @@ impl ImageSurvey {
     }
 
     #[inline]
-    fn get_textures(&self) -> &ImageSurveyTextures {
+    pub fn get_textures(&self) -> &ImageSurveyTextures {
         &self.textures
     }
 
     #[inline]
-    fn get_view(&self) -> &HEALPixCellsInView {
+    pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
     }
 
     #[inline]
-    fn get_id(&self) -> &str {
+    pub fn get_id(&self) -> &str {
         &self.id
     }
 
@@ -755,14 +765,14 @@ impl Draw for ImageSurvey {
     fn draw<P: Projection>(&self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
         if camera.get_aperture() > 150.0 {
             // Raytracer
-            let shader = self.color.get_raytracer_shader(&self.gl, shaders).bind();
+            let shader = self.color.get_raytracer_shader(&self.gl, shaders).bind(&self.gl);
 
             let cells_to_draw = self.view.get_cells();
             shader
-                .attach_uniforms_from(&self.camera)
+                .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(&self.color)
-                .attach_uniform("model", camera.get_model_mat())
+                .attach_uniform("model", camera.get_w2m())
                 .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time());
 
@@ -789,43 +799,43 @@ impl Draw for ImageSurvey {
 
         let last_user_action = camera.last_user_action();
         // Get the cells to draw
-        let cells_to_draw = if last_user_action == UserAction::UnZooming {
+        let cells_to_draw = if last_user_action == UserAction::Unzooming {
             if self.view.has_depth_decreased() || self.cells_depth_increased {
                 self.cells_depth_increased = true;
                 let new_depth = self.view.get_depth();
 
-                super::view_on_surveys::get_cells_in_camera(new_depth + 1, &camera)
+                Cow::Owned(super::view_on_surveys::get_cells_in_camera(new_depth + 1, &camera))
             } else {
-                self.view.get_cells()
+                Cow::Borrowed(self.view.get_cells())
             }
         } else {
             // no more unzooming
             self.cells_depth_increased = false;
-            self.view.get_cells()
+            Cow::Borrowed(self.view.get_cells())
         };
 
         let new_cells_added = self.view.is_there_new_cells_added();
         let recompute_vertex_positions = new_cells_added;
         if recompute_vertex_positions {
-            self.set_positions(cells_to_draw, last_user_action);
+            self.set_positions(cells_to_draw.borrow(), last_user_action);
         }
 
         let recompute_uvs = new_cells_added | self.textures.is_there_available_tiles();
         if recompute_uvs {
-            self.set_UVs(cells_to_draw, last_user_action);
+            self.set_UVs(cells_to_draw.borrow(), last_user_action);
         }
 
-        let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind();
+        let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
         shader
-            .attach_uniforms_from(&self.camera)
+            .attach_uniforms_from(camera)
             .attach_uniforms_from(&self.textures)
             .attach_uniforms_from(&self.color)
-            .attach_uniform("model", camera.get_model_mat())
-            .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+            .attach_uniform("model", camera.get_w2m())
+            .attach_uniform("current_depth", &(cells_to_draw.borrow().get_depth() as i32))
             .attach_uniform("current_time", &utils::get_current_time());
 
         // The raster vao is bound at the lib.rs level
-        raster.draw(self.num_idx);        
+        raster.draw(self.num_idx as i32);        
     }
 }
 
@@ -843,9 +853,9 @@ impl HiPS for SimpleHiPS {
         let config = HiPSConfig::new(gl, &properties)?;
 
         if properties.isColor {
-            ImageSurvey::new(gl, config, Color::Colored, exec)
+            Ok(ImageSurvey::new(gl, config, Color::Colored, exec, ImageSurveyType::Simple))
         } else {
-            ImageSurvey::new(
+            Ok(ImageSurvey::new(
                 gl,
                 config,
                 Color::Grayscale2Colormap {
@@ -855,15 +865,16 @@ impl HiPS for SimpleHiPS {
                         min_value: properties.minCutout,
                         max_value: properties.maxCutout,
                         
-                        // These Parameters are not in the properties
+                        // These parameters are not in the properties
                         // They will be retrieved by looking inside a tile
                         scale: 1.0,
                         offset: 0.0,
                         blank: 0.0,
                     }
                 },
-                exec
-            )
+                exec,
+                ImageSurveyType::Simple
+            ))
         }
     }
 }
@@ -875,9 +886,9 @@ impl HiPS for ComponentHiPS {
         let config = HiPSConfig::new(gl, &properties)?;
 
         if properties.isColor {
-            Err(format!("{} tiles does not contain grayscale data!", config.get_root_url()).into())
+            Err(format!("{} tiles does not contain grayscale data!", config.root_url).into())
         } else {
-            ImageSurvey::new(
+            Ok(ImageSurvey::new(
                 gl,
                 config,
                 Color::Grayscale2Color {
@@ -896,7 +907,8 @@ impl HiPS for ComponentHiPS {
                     }
                 },
                 exec,
-            )
+                ImageSurveyType::Component
+            ))
         }
     }
 }
@@ -925,7 +937,6 @@ use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
 impl ImageSurveys {
     pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
         let surveys = HashMap::new();
-        let views = HashMap::new();
 
         let primary = ImageSurveyIdx::None;
         let overlay = ImageSurveyIdx::None;
@@ -933,13 +944,13 @@ impl ImageSurveys {
         // Two mode of render, each storing a specific VBO
         // - The rasterizer draws the HEALPix cells being in the current view
         // This mode of rendering is used for small FoVs
-        let rasterizer = Rasterizer::new(&gl, &shaders);
+        let rasterizer = Rasterizer::new(&gl, shaders);
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, &shaders);
+        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
 
         let gl = gl.clone();
         ImageSurveys {
@@ -972,15 +983,33 @@ impl ImageSurveys {
         match &self.primary {
             ImageSurveyIdx::Simple(idx) => {
                 let survey = self.surveys.get(idx).unwrap();
-                survey.draw(&self.rasterizer, &self.raytracer, shaders, camera);
+                survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
             },
             ImageSurveyIdx::Composite(indices) => {
                 // Add additive blending here
                 for idx in indices {
                     let survey = self.surveys.get(idx).unwrap();
-                    survey.draw(&self.rasterizer, &self.raytracer, shaders, camera);
+                    survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
                 }
-            }
+            },
+            _ => unreachable!()
+        }
+
+        // Overlay
+        match &self.overlay {
+            ImageSurveyIdx::Simple(idx) => {
+                let survey = self.surveys.get(idx).unwrap();
+                survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+            },
+            ImageSurveyIdx::Composite(indices) => {
+                // Add additive blending here
+                for idx in indices {
+                    let survey = self.surveys.get(idx).unwrap();
+                    survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+                }
+            },
+            // If no HiPS are overlaying we do nothing
+            _ => ()
         }
     }
 
@@ -998,13 +1027,13 @@ impl ImageSurveys {
                     if id == curr_id {
                         self.surveys.remove(curr_id);
 
-                        idx_to_remove = idx;
+                        idx_to_remove = idx as i32;
                         break;
                     }
                 }
 
                 if idx_to_remove >= 0 {
-                    curr_indices.remove(idx_to_remove);
+                    curr_indices.remove(idx_to_remove as usize);
                     if curr_indices.is_empty() {
                         self.primary = ImageSurveyIdx::None;
                     }
@@ -1013,13 +1042,13 @@ impl ImageSurveys {
         }
     }
 
-    pub fn add_primary_survey(&mut self, survey: ImageSurvey) {
-        let id = survey.get_id();
+    pub fn set_simple_hips(&mut self, survey: ImageSurvey) {
+        let id = survey.get_id().to_string();
         let _type = survey.get_type();
         
         match (&mut self.primary, _type) {
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Simple) => {
-                if *id == curr_id {
+                if &id == curr_id {
                     // The same survey is already selected.
                     // We update it with the new color and end up here
                     let s = self.surveys.get(curr_id).unwrap();
@@ -1028,17 +1057,17 @@ impl ImageSurveys {
                     // There is one other survey. We remove it
                     // from the container and add the new one
                     self.surveys.remove(curr_id);
-                    self.surveys.insert(id.clone(), survey);
+                    self.surveys.insert(id, survey);
 
-                    self.primary = ImageSurveyIdx::Simple(id.clone());
+                    self.primary = ImageSurveyIdx::Simple(id.to_string());
                 }
             },
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Component) => {
                 // A simple HiPS was in place, we replace it by a composite HiPS
                 self.surveys.remove(curr_id);
-                self.surveys.insert(id.clone(), survey);
+                self.surveys.insert(id, survey);
 
-                self.primary = ImageSurveyIdx::Composite(vec![id.clone()]);
+                self.primary = ImageSurveyIdx::Composite(vec![id]);
             },
             (ImageSurveyIdx::Composite(curr_indices), ImageSurveyType::Simple) => {
                 // A composite HiPS was in place, we replace it by a simple HiPS
@@ -1048,29 +1077,29 @@ impl ImageSurveys {
                     self.surveys.remove(idx);
                 }
 
-                self.surveys.insert(id.clone(), survey);
+                self.surveys.insert(id, survey);
 
-                self.primary = ImageSurveyIdx::Simple(id.clone());
+                self.primary = ImageSurveyIdx::Simple(id);
             },
             (ImageSurveyIdx::Composite(curr_indices), ImageSurveyType::Component) => {
                 // A composite HiPS was in place, we replace it by a simple HiPS
                 for idx in curr_indices {
                     // If it is already found in the components
-                    if *id == idx {
+                    if &id == idx {
                         let s = self.surveys.get(idx).unwrap();
                         s.set_color(survey.get_color());
                         return;
                     }
                 }
 
-                self.surveys.insert(id.clone(), survey);
-                curr_indices.push(id.clone());
+                self.surveys.insert(id.to_string(), survey);
+                curr_indices.push(id.to_string());
             }
         }
     }
 
     pub fn update_views(&mut self, camera: &CameraViewPort) {
-        for survey in self.surveys.iter_mut() {
+        for survey in self.surveys.values_mut() {
             survey.update_view(camera);
         }
     }
@@ -1088,7 +1117,7 @@ impl ImageSurveys {
     // Update the surveys by adding to the surveys the tiles
     // that have been resolved
     pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
-        for (tile, result) in resolved_tiles.iter() {
+        for (tile, result) in resolved_tiles.into_iter() {
             let mut textures = &mut self.surveys.get_mut(&tile.root_url)
                 .unwrap()
                 .get_textures();
@@ -1096,15 +1125,15 @@ impl ImageSurveys {
             match result {
                 TileResolved::Missing { time_req } => {
                     let default_image = textures.config().get_black_tile();
-                    textures.push::<TileArrayBufferImage>(tile, default_image, time_req);
+                    textures.push::<TileArrayBufferImage>(&tile, *default_image, time_req);
                 },
                 TileResolved::Found { image, time_req } => {
                     match image {
                         RetrievedImageType::FITSImage { image, metadata } => {
-                            textures.push::<TileArrayBufferImage>(image, tile, time_req);
+                            textures.push::<TileArrayBufferImage>(&tile, image, time_req);
                         },
                         RetrievedImageType::CompressedImage { image } => {
-                            textures.push::<TileHTMLImage>(image, tile, time_req);
+                            textures.push::<TileHTMLImage>(&tile, image, time_req);
                         }
                     }
                 }
@@ -1121,7 +1150,7 @@ impl ImageSurveys {
         self.surveys.len()
     }
 
-    fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
         self.surveys.iter()
     }
 }
@@ -1149,19 +1178,19 @@ use crate::TransferFunction;
         }
     }
 
-    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, viewport: &mut CameraViewPort, task_executor: &mut TaskExecutor) -> Result<(), JsValue> {        
+    pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, camera: &mut CameraViewPort, task_executor: &mut TaskExecutor) -> Result<(), JsValue> {        
         self.config.set_HiPS_definition(hips_definition)?;
-        // Tell the viewport the config has changed
-        viewport.set_image_survey::<P>(&self.config);
+        // Tell the camera the config has changed
+        camera.set_image_survey::<P>(&self.config);
 
         // Clear the buffer
-        self.buffer.reset(&self.gl, &self.config, viewport, task_executor);
+        self.buffer.reset(&self.gl, &self.config, camera, task_executor);
 
         Ok(())
     }*/
     
     /*pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {
-        // Ask for the real tiles being in the viewport
+        // Ask for the real tiles being in the camera
         self.buffer.ask_for_tiles(cells, &self.config);
     }*/
 
@@ -1170,9 +1199,9 @@ use crate::TransferFunction;
         self.buffer.get_resolved_tiles(available_tiles);
     }
 
-    pub fn set_projection<P: Projection>(&mut self, viewport: &CameraViewPort, shaders: &mut ShaderManager) {
-        self.update::<P>(viewport);
-        self.raytracer = RayTracer::new::<P>(&self.gl, viewport, shaders);
+    pub fn set_projection<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+        self.update::<P>(camera);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
     pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut TaskExecutor) -> IsNextFrameRendered {
@@ -1180,7 +1209,7 @@ use crate::TransferFunction;
 
         if self.survey.is_ready() {
             // Update the scene if:
-            // - The viewport changed
+            // - The camera changed
             // - There are remaining tiles to write to the GPU
             // - The tiles blending in GPU must be done (500ms + the write time)
             let update =  |
@@ -1208,20 +1237,20 @@ use crate::TransferFunction;
         &mut self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &CameraViewPort,
+        camera: &CameraViewPort,
     ) {
-        let aperture = viewport.get_aperture();
+        let aperture = camera.get_aperture();
         let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
 
         if aperture <= limit_aperture {
             // Rasterization
             let shader = Rasterizer::get_shader::<P>(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
-            shader_bound.attach_uniforms_from(viewport)
+            shader_bound.attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.survey)
                 //.attach_uniforms_from(&self.config)
                 //.attach_uniforms_from(&self.buffer)
-                .attach_uniform("inv_model", viewport.get_inverted_model_mat())
+                .attach_uniform("inv_model", camera.get_inverted_model_mat())
                 .attach_uniform("current_time", &utils::get_current_time());
 
             self.raster.draw::<P>(gl, &shader_bound);
@@ -1229,12 +1258,12 @@ use crate::TransferFunction;
             // Ray-tracing
             let shader = RayTracer::get_shader(gl, shaders, &self.buffer);
             let shader_bound = shader.bind(gl);
-            shader_bound.attach_uniforms_from(viewport)
+            shader_bound.attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.survey)
                 //.attach_uniforms_from(&self.config)
                 //.attach_uniforms_from(&self.buffer)
-                .attach_uniform("model", viewport.get_model_mat())
-                .attach_uniform("current_depth", &(viewport.depth() as i32))
+                .attach_uniform("model", camera.get_model_mat())
+                .attach_uniform("current_depth", &(camera.depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time());
 
             self.raytracer.draw(gl, &shader_bound);

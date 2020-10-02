@@ -1,7 +1,8 @@
 pub mod viewport;
 pub use viewport::{CameraViewPort, UserAction};
 
-mod fov_vertices;
+pub mod fov_vertices;
+pub use fov_vertices::FieldOfViewVertices;
 pub use fov_vertices::{
     NormalizedDeviceCoord,
     WorldCoord,

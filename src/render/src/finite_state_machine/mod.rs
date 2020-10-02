@@ -31,7 +31,7 @@ trait Transition {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -47,7 +47,7 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     );
@@ -61,13 +61,13 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime,
     ) -> Option<E>
     where T<Self, E>: Transition<S=Self, E=E> {
-        T::<Self, E>::condition::<P>(&self, sphere, catalogs, grid, viewport, events, dt)
+        T::<Self, E>::condition::<P>(&self, sphere, catalogs, grid, camera, events, dt)
     }
 }
 

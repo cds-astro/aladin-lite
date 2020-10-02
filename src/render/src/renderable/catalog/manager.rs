@@ -41,7 +41,7 @@ use crate::FormatImageType;
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
-    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &CameraViewPort, resources: &Resources) -> Self {
+    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, camera: &CameraViewPort, resources: &Resources) -> Self {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
         let kernel_texture = Texture2D::create(gl, "kernel", &kernel_filename, &[
@@ -136,13 +136,13 @@ impl Manager {
             kernel_size
         };
 
-        manager.set_kernel_size(viewport);
+        manager.set_kernel_size(camera);
 
         manager
     }
 
     // Private method adding a catalog into the manager
-    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, viewport: &CameraViewPort, config: &HiPSConfig) {
+    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, camera: &CameraViewPort, config: &HiPSConfig) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
         let catalog = Catalog::new::<P>(
@@ -150,7 +150,7 @@ impl Manager {
             shaders, 
             colormap,
             sources,
-            viewport,
+            camera,
             config
         );
 
@@ -172,8 +172,8 @@ impl Manager {
         // at depth 7
     }
 
-    pub fn set_kernel_size(&mut self, viewport: &CameraViewPort) {
-        let size = viewport.get_window_size();
+    pub fn set_kernel_size(&mut self, camera: &CameraViewPort) {
+        let size = camera.get_screen_size();
         self.kernel_size = Vector2::new(32.0 / size.x, 32.0 / size.y);
     }
 
@@ -190,13 +190,13 @@ impl Manager {
             })
     }
 
-    pub fn update<P: Projection>(&mut self, viewport: &CameraViewPort, config: &HiPSConfig) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, config: &HiPSConfig) {
         // Render only the sources in the current field of view
-        let cells = viewport.cells();
+        let cells = camera.cells();
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let mut depth = viewport.depth();
+        let mut depth = camera.depth();
         let cells = cells.into_iter()
             .map(|&cell| {
                 let d = cell.depth();
@@ -212,13 +212,13 @@ impl Manager {
             .collect::<HashSet<_>>();
 
         for catalog in self.catalogs.values_mut() {
-            catalog.update::<P>(&cells, depth, viewport, config);
+            catalog.update::<P>(&cells, depth, camera, config);
         }
     }
 
-    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &CameraViewPort) {
+    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, camera: &CameraViewPort) {
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(&gl, shaders, self, viewport);
+            catalog.draw::<P>(&gl, shaders, self, camera);
         }
     }
 }
@@ -252,7 +252,7 @@ impl Catalog {
         shaders: &mut ShaderManager,
         colormap: Colormap,
         mut sources: Vec<Source>,
-        viewport: &CameraViewPort,
+        camera: &CameraViewPort,
         config: &HiPSConfig
     ) -> Catalog {
         let alpha = 1_f32;
@@ -315,12 +315,12 @@ impl Catalog {
             vertex_array_object_catalog,
             max_density
         };
-        catalog.set_max_density::<P>(viewport, config);
+        catalog.set_max_density::<P>(camera, config);
         catalog
     }
 
-    fn set_max_density<P: Projection>(&mut self, viewport: &CameraViewPort, config: &HiPSConfig) {
-        let cells = viewport.cells().into_iter()
+    fn set_max_density<P: Projection>(&mut self, camera: &CameraViewPort, config: &HiPSConfig) {
+        let cells = camera.cells().into_iter()
             .map(|&cell| {
                 let d = cell.depth();
                 if d > 7 {
@@ -334,7 +334,7 @@ impl Catalog {
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
 
-        self.max_density = self.compute_max_density::<P>(viewport.depth_precise(config) + 5.0);
+        self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
             self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
         }
@@ -379,14 +379,14 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, viewport: &CameraViewPort, config: &HiPSConfig) {
+    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, camera: &CameraViewPort, config: &HiPSConfig) {
         let mut current_sources = vec![];
 
         let depth_kernel = (depth + 6).min(7);
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
 
-        self.max_density = self.compute_max_density::<P>(viewport.depth_precise(config) + 5.0);
+        self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
             self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
         }
@@ -420,7 +420,7 @@ impl Catalog {
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
-        viewport: &CameraViewPort
+        camera: &CameraViewPort
     ) {
         // If the catalog is transparent, simply discard the draw
         if self.alpha == 0_f32 {
@@ -431,7 +431,7 @@ impl Catalog {
             // bind the FBO
             gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
             let (fbo_width, fbo_height) = manager.fbo_texture.get_size();
-            // Set the viewport
+            // Set the camera
             gl.viewport(0, 0, fbo_width as i32, fbo_height as i32);
             gl.scissor(0, 0, fbo_width as i32, fbo_height as i32);
 
@@ -441,13 +441,13 @@ impl Catalog {
             //crate::log(&format!("offset: {}, num instances: {}", self.base_instance, self.num_instances));
             let shader = P::get_catalog_shader(gl, shaders);
             let shader_bound = shader.bind(gl);
-            // Uniforms associated to the viewport
+            // Uniforms associated to the camera
             //crate::log(&format!("max density: {:?}", self.max_density));
-            shader_bound.attach_uniforms_from(viewport)
+            shader_bound.attach_uniforms_from(camera)
                 // Attach catalog specialized uniforms
                 .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
                 .attach_uniform("strength", &self.strength) // Strengh of the kernel
-                .attach_uniform("model", viewport.get_inverted_model_mat())
+                .attach_uniform("model", camera.get_m2w())
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("kernel_size", &manager.kernel_size)
                 .attach_uniform("max_density", &self.max_density)
@@ -463,9 +463,9 @@ impl Catalog {
 
         // Render to the heatmap to the screen
         {
-            // Set the viewport
-            let window_size = viewport.get_window_size();
-            gl.viewport(0, 0, window_size.x as i32, window_size.y as i32);
+            // Set the camera
+            let size = camera.get_screen_size();
+            gl.viewport(0, 0, size.x as i32, size.y as i32);
 
             let shader = self.colormap.get_shader(gl, shaders);
             shader.bind(gl)

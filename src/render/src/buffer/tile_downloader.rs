@@ -19,7 +19,7 @@ impl Requests {
         let start_fits_req_idx = NUM_EVENT_LISTENERS >> 1;
 
         for idx in start_fits_req_idx..NUM_EVENT_LISTENERS {
-            reqs[idx] = TileRequest::<FITSImageRequest>::new();
+            reqs[idx] = TileRequest::new::<FITSImageRequest>();
         }
 
         Requests {
@@ -79,8 +79,8 @@ impl Requests {
         RequestsIterMut(self.reqs.iter_mut())
     }
 
-    fn iter<'a>(&'a mut self) -> RequestsIter<'a> {
-        RequestsIter(self.reqs.iter_mut())
+    fn iter<'a>(&'a self) -> RequestsIter<'a> {
+        RequestsIter(self.reqs.iter())
     }
 
     fn get_start_fits_req_idx(&self) -> usize {
@@ -120,11 +120,11 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new(cell: &HEALPixCell, config: &HiPSConfig) -> Self {
+    pub fn new(cell: &HEALPixCell, config: &HiPSConfig) -> Self {
         Tile {
             cell: *cell,
-            root_url: String::from(config.get_root_url()),
-            format: config.get_format()
+            root_url: config.root_url.to_string(),
+            format: config.format()
         }
     }
 }

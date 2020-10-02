@@ -312,7 +312,7 @@ impl ImageSurveyTextures {
     }
 
     // Return true if at least one task has been processed
-    pub fn register_available_tiles(&mut self, available_tile: &Tile) {
+    pub fn register_available_tile(&mut self, available_tile: &Tile) {
         let Tile {cell, ..} = available_tile;
         let texture_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
@@ -431,7 +431,7 @@ impl ImageSurveyTextures {
         self.ready = false;
         self.num_root_textures_available = 0;
 
-        self.texture_2d_array = Rc::new(create_texture_array(self.gl, &self.config));
+        self.texture_2d_array = Rc::new(create_texture_array(&self.gl, &self.config));
     }
 
     /// Accessors

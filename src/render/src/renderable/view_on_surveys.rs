@@ -1,7 +1,7 @@
 use std::collections::{HashSet, HashMap};
 use crate::healpix_cell::HEALPixCell;
 
-use std::slice::Iter;
+use std::collections::hash_set::Iter;
 
 pub struct HEALPixCells {
     pub depth: u8,
@@ -29,7 +29,7 @@ impl HEALPixCells {
         self.contains(cell)
     }
 
-    fn allsky(depth: u8) -> HEALPixCells {
+    pub fn allsky(depth: u8) -> HEALPixCells {
         let npix = 12 << ((depth as usize) << 1);
 
         let mut cells = (0_u64..(npix as u64))
@@ -63,16 +63,20 @@ impl HEALPixCells {
         }
     }
 
-    fn iter(&self) -> HEALPixCellsIter {
+    pub fn iter(&self) -> HEALPixCellsIter {
         HEALPixCellsIter(self.cells.iter())
     }
 
-    fn get_depth(&self) -> u8 {
+    pub fn get_depth(&self) -> u8 {
         self.depth
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.cells.len()
     }
 }
 
@@ -112,7 +116,7 @@ impl NewHEALPixCells {
         let flags = cells.iter()
             .cloned()
             .map(|cell| {
-                let new = !self.flags.contains(cell);
+                let new = !self.flags.contains_key(&cell);
                 is_new_cells_added |= new;
 
                 (cell, new)
@@ -133,16 +137,24 @@ impl NewHEALPixCells {
 
     #[inline]
     fn iter<'a>(&'a self) -> NewHEALPixCellsIter<'a> {
-        self.flags.iter()
-            .filter(|(cell, new)| {
-                new
+        let iter = self.flags.iter()
+            .filter_map(|(cell, new)| {
+                if *new {
+                    Some(*cell)
+                } else {
+                    None
+                }
             })
+            .collect::<HashSet<_>>()
+            .iter();
+
+        NewHEALPixCellsIter(iter)
     }
 
     #[inline]
     pub fn is_new(&self, cell: &HEALPixCell) -> bool {
         if let Some(is_cell_new) = self.flags.get(cell) {
-            is_cell_new
+            *is_cell_new
         } else {
             false
         }
@@ -172,7 +184,7 @@ fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8
     ).round() as i8;
 
     //let depth_texture = {
-        let conf = survey.config();
+        let conf = survey.get_textures().config();
         // The texture size in pixels
         let texture_size = conf.get_texture_size();
         //let survey_max_depth = conf.get_max_depth();
@@ -193,8 +205,9 @@ fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8
 }
 
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
-    let cells = if let Some(vertices) = camera.vertices() {
-        polygon_coverage(depth, vertices)
+    let cells = if let Some(vertices) = camera.get_vertices() {
+        let inside = camera.get_center();
+        polygon_coverage(vertices, depth, inside)
     } else {
         crate::healpix_cell::allsky(depth)
     };
@@ -210,15 +223,20 @@ use crate::cdshealpix;
 fn polygon_coverage(
     vertices: &[Vector4<f32>],
     depth: u8,
-    inside: &Vector4<f32>
+    inside: &Vector3<f32>
 ) -> HEALPixCells {
     let coverage = cdshealpix::HEALPixCoverage::new(depth, vertices, &inside);
 
-    coverage.flat_iter()
+    let cells = coverage.flat_iter()
         .map(|idx| {
             HEALPixCell(depth, idx)
         })
-        .collect()
+        .collect();
+    
+    HEALPixCells {
+        cells,
+        depth
+    }
 }
 
 // Contains the cells being in the FOV for a specific
@@ -246,7 +264,7 @@ impl HEALPixCellsInView {
     }
 
     // This method is called whenever the user does an action
-    // that moves the viewport.
+    // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
     pub fn update(&mut self, survey: &ImageSurvey, camera: &CameraViewPort) {
@@ -273,6 +291,11 @@ impl HEALPixCellsInView {
     #[inline]
     pub fn get_cells(&self) -> &HEALPixCells {
         &self.cells
+    }
+
+    #[inline]
+    pub fn get_depth(&self) -> u8 {
+        self.cells.get_depth()
     }
 
     #[inline]

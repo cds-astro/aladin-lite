@@ -35,10 +35,10 @@ fn ndc_to_world<P: Projection>(
 
     Some(world_coo)
 }
-fn world_to_model(&mut self, world_coo: &[WorldCoord], r: &SphericalRotation<f32>) -> Vec<ModelCoord> {
+fn world_to_model(world_coo: &[WorldCoord], r: &Rotation<f32>) -> Vec<ModelCoord> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
-    for w in &world_coo {
+    for w in world_coo.iter() {
         let m = r.rotate(w);
         model_coo.push(m);
     }
@@ -56,9 +56,9 @@ pub struct FieldOfViewVertices {
     model_coo: Option<Vec<ModelCoord>>,
 }
 
-use crate::SphericalRotation;
+use crate::Rotation;
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) -> Self {
+    pub fn new<P: Projection>(ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -83,7 +83,7 @@ impl FieldOfViewVertices {
         }
 
         let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
-        let model_coo = if Some(world_coo) = world_coo {
+        let model_coo = if let Some(world_coo) = &world_coo {
             Some(world_to_model(world_coo, r))
         } else {
             None
@@ -97,33 +97,31 @@ impl FieldOfViewVertices {
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        self.model_coo = if let Some(world_coo) = self.world_coo {
+        self.model_coo = if let Some(world_coo) = &self.world_coo {
             Some(world_to_model(world_coo, r))
         } else {
             None
         };
     }
 
-    pub fn set_fov(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
-        self.world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        if let Some(world_coo) = self.world_coo {
-            self.model_coo = world_to_model(world_coo, r);
+    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) {
+        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+        if let Some(world_coo) = &self.world_coo {
+            self.model_coo = Some(world_to_model(world_coo, r));
         }
     }
 
-    pub fn set_rotation(&mut self, r: &SphericalRotation<f32>) {
-        if let Some(world_coo) = self.world_coo {
-            self.model_coo = world_to_model(world_coo, r);
+    pub fn set_rotation(&mut self, r: &Rotation<f32>) {
+        if let Some(world_coo) = &self.world_coo {
+            self.model_coo = Some(world_to_model(world_coo, r));
         }
     }
     
-    pub fn get_vertices(&self) ->  Option<&[ModelCoord]> {
+    pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
         self.model_coo.as_ref()
     }
-
-
 }
 
 use std::iter;

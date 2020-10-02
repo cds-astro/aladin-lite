@@ -152,7 +152,7 @@ impl Texture {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         for tile_cell in self.texture_cell.get_tile_cells(config) {
-            let tile = Tile::new(tile_cell, config);
+            let tile = Tile::new(&tile_cell, config);
             exec.remove(&TaskType::SendTileToGPU(tile));
         }
         
@@ -168,7 +168,7 @@ impl Texture {
 
     pub fn clear_tasks_in_progress(&self, config: &HiPSConfig, exec: &mut TaskExecutor) {
         for tile_cell in self.texture_cell.get_tile_cells(config) {
-            let tile = Tile::new(tile_cell, config);
+            let tile = Tile::new(&tile_cell, config);
             exec.remove(&TaskType::SendTileToGPU(tile));
         }
     }

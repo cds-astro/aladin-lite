@@ -48,7 +48,7 @@ impl State for Stalling {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut CameraViewPort,
+        _camera: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {}
@@ -96,7 +96,7 @@ impl State for Moving {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
@@ -107,7 +107,7 @@ impl State for Moving {
                 &self.pos_world_space,
                 &pos_world_space,
                 sphere, catalogs, grid,
-                viewport
+                camera
             );
 
             // Update the previous position
@@ -134,7 +134,7 @@ impl State for Inertia {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -149,10 +149,10 @@ impl State for Inertia {
         // * m is its mass
         let theta = self.d0 * (Inertia::w0() * t + 1_f32) * ((-Inertia::w0() * t).exp());
 
-        viewport.apply_rotation::<P>(&(-self.axis), theta, sphere.config());
+        camera.apply_rotation::<P>(&(-self.axis), theta, sphere.config());
 
         // Ask for grand parent tiles
-        sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
+        sphere.ask_for_tiles::<P>(camera.new_healpix_cells());
 
         self.d = theta;
     }
@@ -170,7 +170,7 @@ impl Transition for T<Stalling, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -205,7 +205,7 @@ impl Transition for T<Moving, Stalling> {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -213,15 +213,15 @@ impl Transition for T<Moving, Stalling> {
         if !events.check::<SetCenterLocation>() {
             // Update all the renderables
             // Ask for grand parent tiles
-            let depth = viewport.depth();
+            let depth = camera.depth();
             let d0 = ((depth as i8) - 3).max(0) as u8;
 
-            let parent_cells = viewport.get_cells_in_fov::<P>(d0)
+            let parent_cells = camera.get_cells_in_fov::<P>(d0)
                 .into_iter()
                 .map(|cell| (cell, false))
                 .collect::<HashMap<_, _>>();
             sphere.ask_for_tiles::<P>(&parent_cells);
-            sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
+            sphere.ask_for_tiles::<P>(camera.new_healpix_cells());
 
             Some(Stalling {})
         } else {
@@ -242,7 +242,7 @@ impl Transition for T<Moving, Inertia> {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -282,7 +282,7 @@ impl Transition for T<Inertia, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         _events: &EventManager,
         dt: DeltaTime
@@ -290,15 +290,15 @@ impl Transition for T<Inertia, Stalling> {
         if s.d < 1e-5 {
             // Update all the renderables
             // Ask for grand parent tiles
-            let depth = viewport.depth();
+            let depth = camera.depth();
             let d0 = ((depth as i8) - 3).max(0) as u8;
 
-            let parent_cells = viewport.get_cells_in_fov::<P>(d0)
+            let parent_cells = camera.get_cells_in_fov::<P>(d0)
                 .into_iter()
                 .map(|cell| (cell, false))
                 .collect::<HashMap<_, _>>();
             sphere.ask_for_tiles::<P>(&parent_cells);
-            sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
+            sphere.ask_for_tiles::<P>(camera.new_healpix_cells());
 
             Some(Stalling {})
         } else {
@@ -318,7 +318,7 @@ impl Transition for T<Inertia, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -362,14 +362,14 @@ impl UserMoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
         match self {
-            UserMoveSphere::Stalling(s) => s.update::<P>(dt, sphere, catalogs, grid, viewport, events),
-            UserMoveSphere::Moving(s) => s.update::<P>(dt, sphere, catalogs, grid, viewport, events),
-            UserMoveSphere::Inertia(s) => s.update::<P>(dt, sphere, catalogs, grid, viewport, events),
+            UserMoveSphere::Stalling(s) => s.update::<P>(dt, sphere, catalogs, grid, camera, events),
+            UserMoveSphere::Moving(s) => s.update::<P>(dt, sphere, catalogs, grid, camera, events),
+            UserMoveSphere::Inertia(s) => s.update::<P>(dt, sphere, catalogs, grid, camera, events),
         }
     }
 
@@ -382,14 +382,14 @@ impl UserMoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
         // Update the current state
         self.update::<P>(dt,
             sphere, catalogs, grid,
-            viewport,
+            camera,
             events
         );
 
@@ -397,25 +397,25 @@ impl UserMoveSphere {
         match self {
             UserMoveSphere::Stalling(stalling) => {
                 // Checks the Stalling -> Moving condition
-                if let Some(e) = stalling.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                if let Some(e) = stalling.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = UserMoveSphere::Moving(e);
                 }
             },
             UserMoveSphere::Moving(moving) => {
                 // Checks the Moving -> Stalling condition
-                if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = UserMoveSphere::Stalling(e);
                 // Checks the Moving -> Inertia condition
-                } else if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                } else if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = UserMoveSphere::Inertia(e);
                 }
             },
             UserMoveSphere::Inertia(inertia) => {
                 // Checks the Inertia -> Stalling condition
-                if let Some(e) = inertia.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                if let Some(e) = inertia.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = UserMoveSphere::Stalling(e);
                 // Checks the Inertia -> Moving condition
-                } else if let Some(e) = inertia.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                } else if let Some(e) = inertia.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = UserMoveSphere::Moving(e);
                 }
             },

@@ -6,12 +6,12 @@ use cgmath::SquareMatrix;
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
-pub struct SphericalRotation<S: BaseFloat>(
+pub struct Rotation<S: BaseFloat>(
     pub Quaternion<S>,
 );
 
 use cgmath::{Matrix4, Matrix3};
-impl<S> From<&Matrix4<S>> for SphericalRotation<S>
+impl<S> From<&Matrix4<S>> for Rotation<S>
 where S: BaseFloat {
     fn from(m: &Matrix4<S>) -> Self {
         let m: [[S; 4]; 4] = (*m).into();
@@ -22,21 +22,21 @@ where S: BaseFloat {
             m[2][0], m[2][1], m[2][2]
         );
 
-        SphericalRotation(t.into())
+        Rotation(t.into())
     }
 }
-impl<S> From<&SphericalRotation<S>> for Matrix4<S>
+impl<S> From<&Rotation<S>> for Matrix4<S>
 where S: BaseFloat {
-    fn from(s: &SphericalRotation<S>) -> Self {
+    fn from(s: &Rotation<S>) -> Self {
         s.0.into()
     }
 }
 
 use crate::renderable::Angle;
 use cgmath::Rad;
-impl<S> SphericalRotation<S>
+impl<S> Rotation<S>
 where S: BaseFloat {
-    pub fn slerp(&self, other: &SphericalRotation<S>, alpha: S) -> SphericalRotation<S> {        
+    pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {        
         // Check if the dot of the two quaternions is negative
         // If so, negative one:
         // This comes from https://www.gamedev.net/forums/topic/551663-quaternion-rotation-issue-sometimes-take-longest-path/
@@ -47,7 +47,7 @@ where S: BaseFloat {
             self.0.slerp(other.0, alpha)
         };
 
-        SphericalRotation(q)
+        Rotation(q)
     }
 
     pub fn get_rot_x(&self) -> Matrix4<S> {
@@ -89,25 +89,25 @@ where S: BaseFloat {
         q.into()
     }
 
-    pub fn zero() -> SphericalRotation<S> {
+    pub fn zero() -> Rotation<S> {
         let q = Quaternion::new(S::one(), S::zero(), S::zero(), S::zero());
-        SphericalRotation(q)
+        Rotation(q)
     }
 
     // Define a rotation from a quaternion
-    pub fn from_quaternion(q: &Quaternion<S>) -> SphericalRotation<S> {
-        SphericalRotation(*q)
+    pub fn from_quaternion(q: &Quaternion<S>) -> Rotation<S> {
+        Rotation(*q)
     }
 
     // Define a rotation from an axis and a angle 
-    pub fn from_axis_angle(axis: &Vector3<S>, angle: Angle<S>) -> SphericalRotation<S> {
+    pub fn from_axis_angle(axis: &Vector3<S>, angle: Angle<S>) -> Rotation<S> {
         let angle: Rad<S> = angle.into();
         let mat4 = Matrix4::from_axis_angle(*axis, angle);
         (&mat4).into()
     }
 
     // Define a rotation from a normalized vector
-    pub fn from_sky_position(pos: &Vector4<S>) -> SphericalRotation<S> {
+    pub fn from_sky_position(pos: &Vector4<S>) -> Rotation<S> {
         let (lon, lat) = math::xyzw_to_radec(&pos.normalize());
 
         let rot_y = Matrix4::from_angle_y(lon);
@@ -134,12 +134,12 @@ where S: BaseFloat {
 }
 
 use std::ops::Mul;
-impl<S> Mul<SphericalRotation<S>> for SphericalRotation<S>
+impl<S> Mul<Rotation<S>> for Rotation<S>
 where S: BaseFloat {
     type Output = Self;
 
-    fn mul(self, rhs: SphericalRotation<S>) -> Self::Output {
+    fn mul(self, rhs: Rotation<S>) -> Self::Output {
         let q = self.0 * rhs.0;
-        SphericalRotation(q)
+        Rotation(q)
     }
 }

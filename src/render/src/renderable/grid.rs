@@ -28,7 +28,7 @@ use crate::WebGl2Context;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
-        _viewport: &CameraViewPort,
+        _camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         _text_manager: &TextManager
     ) -> ProjetedGrid {
@@ -83,12 +83,12 @@ impl ProjetedGrid {
         }
     }
 
-    pub fn update_label_positions<P: Projection>(&mut self, gl: &WebGl2Context, text_manager: &mut TextManager, viewport: &CameraViewPort, shaders: &ShaderManager) {
-        if !viewport.is_viewport_updated() {
+    /*pub fn update_label_positions<P: Projection>(&mut self, gl: &WebGl2Context, text_manager: &mut TextManager, camera: &CameraViewPort, shaders: &ShaderManager) {
+        if !camera.is_camera_updated() {
             return;
         }
         
-        let great_circles = viewport.get_great_circles_inside();
+        let great_circles = camera.get_great_circles_inside();
         let labels = great_circles.get_labels::<angle::DMS>();
 
         for (content, pos_world_space) in labels {
@@ -99,31 +99,31 @@ impl ProjetedGrid {
                 1_f32
             );
 
-            text_manager.add_text_on_sphere::<P>(&pos_world_space, &content, viewport);
+            text_manager.add_text_on_sphere::<P>(&pos_world_space, &content, camera);
         }
 
         // Update the VAO
         text_manager.update();
-    }
+    }*/
 
     pub fn draw<P: Projection>(
         &self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &CameraViewPort,
+        camera: &CameraViewPort,
         text_manager: &TextManager,
     ) {
         let shader = P::get_grid_shader(gl, shaders);
-        let great_circles = viewport.get_great_circles_inside();
+        //let great_circles = camera.get_great_circles_inside();
 
         shader.bind(gl)
-            // Attach all the uniforms from the viewport
-            .attach_uniforms_from(viewport)
+            // Attach all the uniforms from the camera
+            .attach_uniforms_from(camera)
             // Attach grid specialized uniforms
             .attach_uniform("grid_color", &self.color)
-            .attach_uniform("model2world", viewport.get_inverted_model_mat())
-            .attach_uniform("world2model", viewport.get_model_mat())
-            .attach_uniforms_from(great_circles)
+            .attach_uniform("model2world", camera.get_m2w())
+            .attach_uniform("world2model", camera.get_w2m())
+            //.attach_uniforms_from(great_circles)
             // Bind the Vertex Array Object for drawing
             .bind_vertex_array_object_ref(&self.vertex_array_object)
                 .draw_elements_with_i32(

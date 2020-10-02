@@ -5,9 +5,9 @@ pub struct Stalling;
 pub struct Moving {
     goal_pos: Vector3<f32>,
     // Quaternion describing the position of the center
-    start: SphericalRotation<f32>,
+    start: Rotation<f32>,
     // Quaternion describing the goal position
-    goal: SphericalRotation<f32>,
+    goal: Rotation<f32>,
     // Alpha coefficient between 0 and 1
     alpha: f32,
     // Start time
@@ -22,7 +22,7 @@ impl Moving {
         5_f32
     }
 
-    fn new(goal_pos: Vector3<f32>, start: SphericalRotation<f32>, goal: SphericalRotation<f32>) -> Moving {
+    fn new(goal_pos: Vector3<f32>, start: Rotation<f32>, goal: Rotation<f32>) -> Moving {
         let t0 = utils::get_current_time();
 
         let alpha = 0_f32;
@@ -61,7 +61,7 @@ impl State for Stalling {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        _viewport: &mut CameraViewPort,
+        _camera: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {}
@@ -69,7 +69,7 @@ impl State for Stalling {
 use cgmath::InnerSpace;
 use cgmath::Rotation;
 use cgmath::SquareMatrix;
-use crate::rotation::SphericalRotation;
+use crate::rotation::Rotation;
 impl State for Moving {
     fn update<P: Projection>(&mut self,
         // Time of the previous frame
@@ -79,7 +79,7 @@ impl State for Moving {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         _events: &EventManager
     ) {
@@ -96,8 +96,8 @@ impl State for Moving {
         let alpha = 1_f32 + (0_f32 - 1_f32) * (Moving::w0() * t + 1_f32) * ((-Moving::w0() * t).exp());
         let p = self.start.slerp(&self.goal, alpha);
 
-        viewport.set_rotation::<P>(&p, sphere.config());
-        sphere.ask_for_tiles::<P>(viewport.new_healpix_cells());
+        camera.set_rotation::<P>(&p, sphere.config());
+        sphere.ask_for_tiles::<P>(camera.new_healpix_cells());
 
         self.alpha = alpha;
     }
@@ -116,15 +116,15 @@ impl Transition for T<Stalling, Moving> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
     ) -> Option<Self::E> {
         if let Some(lonlat) = events.get::<MoveToLocation>() {
-            let start = *viewport.get_rotation();
+            let start = *camera.get_rotation();
             let goal_pos = lonlat.vector();
-            let goal = SphericalRotation::from_sky_position(&goal_pos);
+            let goal = Rotation::from_sky_position(&goal_pos);
             Some(Moving::new(goal_pos.truncate(), start, goal))
         } else {
             // No left button pressed, we keep stalling
@@ -151,7 +151,7 @@ impl Transition for T<Moving, Stalling> {
         _catalogs: &mut Manager,
         _grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -163,7 +163,7 @@ impl Transition for T<Moving, Stalling> {
         // or zooming/unzooming events
         } else {
             // Criteria
-            let err = math::ang_between_vect(&s.goal_pos, &viewport.compute_center_model_pos::<P>().truncate());
+            let err = math::ang_between_vect(&s.goal_pos, &camera.compute_center_model_pos::<P>().truncate());
             //let eps = (s.alpha - 1_f32).abs();
             let thresh: Angle<f32> = ArcSec(2_f32).into();
             if err < thresh {
@@ -195,13 +195,13 @@ impl MoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
         match self {
-            MoveSphere::Stalling(s) => s.update::<P>(dt, sphere, catalogs, grid, viewport, events),
-            MoveSphere::Moving(s) => s.update::<P>(dt, sphere, catalogs, grid, viewport, events),
+            MoveSphere::Stalling(s) => s.update::<P>(dt, sphere, catalogs, grid, camera, events),
+            MoveSphere::Moving(s) => s.update::<P>(dt, sphere, catalogs, grid, camera, events),
         }
     }
 
@@ -214,14 +214,14 @@ impl MoveSphere {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut CameraViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     ) {
         // Update the current state
         self.update::<P>(dt,
             sphere, catalogs, grid,
-            viewport,
+            camera,
             events
         );
 
@@ -229,13 +229,13 @@ impl MoveSphere {
         match self {
             MoveSphere::Stalling(stalling) => {
                 // Checks the Stalling -> Moving condition
-                if let Some(e) = stalling.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                if let Some(e) = stalling.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = MoveSphere::Moving(e);
                 }
             },
             MoveSphere::Moving(moving) => {
                 // Checks the Moving -> Stalling condition
-                if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, viewport, events, dt) {
+                if let Some(e) = moving.check::<_, P>(sphere, catalogs, grid, camera, events, dt) {
                     *self = MoveSphere::Stalling(e);
                 }
             },

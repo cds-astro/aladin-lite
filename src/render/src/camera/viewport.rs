@@ -6,16 +6,26 @@ pub enum UserAction {
     Starting = 4,
 }
 
+impl SendUniforms for UserAction {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader.attach_uniform("user_action", &(*self as i32));
+
+        shader
+    }
+}
+
+
 use super::fov_vertices::{
     FieldOfViewVertices,
     ModelCoord
 };
-use cgmath::{Vector2, Matrix4};
+use cgmath::{Vector2, Vector3, Matrix4};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
+    center: Vector4<f32>,
     // The rotation of the camera
-    w2m_rot: SphericalRotation<f32>,
+    w2m_rot: Rotation<f32>,
     w2m: Matrix4<f32>,
     m2w: Matrix4<f32>,
     // The width over height ratio
@@ -28,7 +38,7 @@ pub struct CameraViewPort {
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f32>,
     clip_zoom_factor: f32,
-    // The vertices in model space of the viewport
+    // The vertices in model space of the camera
     // This is useful for computing views according 
     // to different image surveys
     vertices: FieldOfViewVertices,
@@ -50,12 +60,12 @@ use crate::{
         projection::Projection,
         Angle,
     },
-    rotation::SphericalRotation,
+    rotation::Rotation,
     sphere_geometry::GreatCirclesInFieldOfView,
 };
 use std::collections::{HashSet, HashMap};
 use cgmath::{Matrix3, Vector4, SquareMatrix};
-
+use wasm_bindgen::JsCast;
 fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     let canvas = gl.canvas().unwrap()
         .dyn_into::<web_sys::HtmlCanvasElement>()
@@ -68,7 +78,13 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 }
 
 use crate::math;
+const CENTER_INIT_POS: Vector4<f32> = LonLatT::new(
+    ArcDeg(0.0).into(),
+    ArcDeg(0.0).into()
+).vector();
+
 impl CameraViewPort {
+
     pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
@@ -80,7 +96,7 @@ impl CameraViewPort {
 
         let moved = false;
 
-        let w2m_rot = SphericalRotation::zero();
+        let w2m_rot = Rotation::zero();
 
         // Get the initial size of the window
         let width = web_sys::window()
@@ -95,18 +111,20 @@ impl CameraViewPort {
             .unwrap()
             .as_f64()
             .unwrap() as f32;
-        set_canvas_size(width as u32, height as u32);
+        set_canvas_size(&self.gl, width as u32, height as u32);
 
         let aspect = width / height;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
         let clip_zoom_factor = 0_f32;
+        let center = CENTER_INIT_POS.clone();
 
         let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
-
         let gl = gl.clone();
+
         CameraViewPort {
             // The field of view angle
             aperture,
+            center,
             // The rotation of the camera
             w2m_rot,
             w2m,
@@ -121,7 +139,7 @@ impl CameraViewPort {
             // Internal variable used for projection purposes
             ndc_to_clip,
             clip_zoom_factor,
-            // The vertices in model space of the viewport
+            // The vertices in model space of the camera
             // This is useful for computing views according 
             // to different image surveys
             vertices,
@@ -147,7 +165,7 @@ impl CameraViewPort {
         sphere.ask_for_tiles::<P>(&self.new_healpix_cells());
         manager.set_kernel_size(&self);
 
-        self.viewport_updated = true;
+        self.camera_updated = true;
     }*/
 
     /*pub fn depth(&self) -> u8 {
@@ -168,7 +186,7 @@ impl CameraViewPort {
     }
 */
     /*pub fn update<P: Projection>(&mut self, manager: &mut catalog::Manager, config: &HiPSConfig) {
-        // Each time the viewport is updated
+        // Each time the camera is updated
         // we update the manager
         if self.moved {
             manager.update::<P>(&self, config);
@@ -177,7 +195,7 @@ impl CameraViewPort {
         self.moved = false;
     }*/
 /*
-    // Tell the viewport the HiPS have changed
+    // Tell the camera the HiPS have changed
     pub fn set_image_survey<P: Projection>(&mut self, config: &HiPSConfig) {
         self.fov.set_image_survey::<P>(config);
 
@@ -197,7 +215,7 @@ impl CameraViewPort {
 
         self.aspect = width / height;
 
-        set_canvas_size(width as u32, height as u32);
+        set_canvas_size(&self.gl, width as u32, height as u32);
 
         // Compute the new clip zoom factor
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
@@ -237,44 +255,44 @@ impl CameraViewPort {
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
-        let drot = SphericalRotation::from_axis_angle(axis, angle);
+        let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
         self.update_rot_matrices::<P>();
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, rot: &SphericalRotation<f32>) {
+    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f32>) {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices::<P>();
     }
 
     pub fn set_projection<P: Projection>(&mut self) {
-        self.vertices.set_projection(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.vertices.set_projection::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     // Accessors
-    pub fn get_rotation(&self) -> &SphericalRotation<f32> {
-        &self.sr
+    pub fn get_rotation(&self) -> &Rotation<f32> {
+        &self.w2m_rot
     }
 
     pub fn get_w2m(&self) -> &cgmath::Matrix4<f32> {
-        &self.model_mat
+        &self.w2m
     }
 
     pub fn get_m2w(&self) -> &cgmath::Matrix4<f32> {
-        &self.inverted_model_mat
+        &self.m2w
     }
 
     pub fn get_ndc_to_clip(&self) -> &Vector2<f32> {
-        self.ndc_to_clip
+        &self.ndc_to_clip
     }
 
     pub fn get_clip_zoom_factor(&self) -> f32 {
         self.clip_zoom_factor
     }
 
-    pub fn get_vertices(&self) -> Option<&[ModelCoord]> {
+    pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
         self.vertices.get_vertices()
     }
 
@@ -283,7 +301,7 @@ impl CameraViewPort {
     }
 
     pub fn last_user_action(&self) -> UserAction {
-        self.user_action
+        self.last_user_action
     }
 
     pub fn has_camera_moved(&mut self) -> bool {
@@ -293,15 +311,19 @@ impl CameraViewPort {
         res
     }
 
-    pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {
+    /*pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {
         P::clip_to_model_space(
             &Vector2::new(0_f32, 0_f32),
             self
         ).unwrap()
-    }
+    }*/
 
     pub fn get_aperture(&self) -> Angle<f32> {
         self.aperture
+    }
+
+    pub fn get_center(&self) -> &Vector4<f32> {
+        &self.center
     }
 
     // Useful methods for the grid purpose
@@ -328,6 +350,9 @@ impl CameraViewPort {
         self.w2m = (&self.w2m_rot).into();
         self.m2w = self.w2m.invert().unwrap();
 
+        // update the center position
+        self.center = self.w2m_rot.rotate(&CENTER_INIT_POS);
+
         self.last_user_action = UserAction::Moving;
 
         self.moved = true;
@@ -339,9 +364,10 @@ use crate::shader::ShaderBound;
 
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("ndc_to_clip", self.ndc_to_clip) // Send ndc to clip
+        shader
+            .attach_uniforms_from(&self.last_user_action)
+            .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
-            .attach_uniform("user_action", &(self.user_action as i32)) // Send last zoom action
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);
 

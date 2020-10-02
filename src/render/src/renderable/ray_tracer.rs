@@ -38,9 +38,14 @@ use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlVertexArrayObject;
 use web_sys::WebGlBuffer;
 pub struct RayTracer {
+    gl: WebGl2Context,
+
     vao: WebGlVertexArrayObject,
+
     vbo: WebGlBuffer,
-    ebo: WebGlBuffer
+    ebo: WebGlBuffer,
+
+    num_indices: i32, 
 }
 
 use crate::Shader;
@@ -48,18 +53,18 @@ use std::borrow::Cow;
 use crate::shader::ShaderId;
 use std::mem;
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl);
 
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
     
         // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 5 * mem::size_of::<f32>(), 0 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(0);
 
         // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 5 * mem::size_of::<f32>(), 3 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (3 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(1);
 
         let vbo = gl.create_buffer()
@@ -77,8 +82,9 @@ impl RayTracer {
             .unwrap();
         // Bind the buffer
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-        let buf_indices = unsafe { js_sys::Uint16Array::view(&idx) };
+        let num_indices = idx.len() as i32;
 
+        let buf_indices = unsafe { js_sys::Uint16Array::view(&idx) };
         gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
             &buf_indices,
@@ -87,10 +93,14 @@ impl RayTracer {
 
         let gl = gl.clone();
         RayTracer {
+            gl,
+
             vao,
+
             vbo,
             ebo,
-            gl
+
+            num_indices
         }
     }
 
@@ -103,7 +113,7 @@ impl RayTracer {
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,
-            None,
+            self.num_indices,
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0
         ); 

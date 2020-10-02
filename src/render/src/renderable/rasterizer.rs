@@ -31,23 +31,23 @@ impl Rasterizer {
         gl.bind_vertex_array(Some(&vao));
 
         // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * mem::size_of::<f32>(), 0 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (2 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(0);
 
         // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 2 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (3 * mem::size_of::<f32>()) as i32, (MAX_NUM_VERTICES_TO_DRAW * 2 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(1);
 
         // layout (location = 2) in vec3 uv_start;
-        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 5 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, (3 * mem::size_of::<f32>()) as i32, (MAX_NUM_VERTICES_TO_DRAW * 5 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(2);
 
         // layout (location = 3) in vec3 uv_end;
-        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, 3 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 8 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, (3 * mem::size_of::<f32>()) as i32, (MAX_NUM_VERTICES_TO_DRAW * 8 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(3);
 
         // layout (location = 4) in float time_tile_received;
-        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, 1 * mem::size_of::<f32>(), MAX_NUM_VERTICES_TO_DRAW * 11 * mem::size_of::<f32>());
+        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, (1 * mem::size_of::<f32>()) as i32, (MAX_NUM_VERTICES_TO_DRAW * 11 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(4);
         
         let gl = gl.clone();
@@ -114,7 +114,7 @@ impl Rasterizer {
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,
-            Some(num_idx),
+            num_idx,
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0
         );            

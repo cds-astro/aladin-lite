@@ -362,10 +362,11 @@ enum RequestType {
     HtmlImage
 }
 
+use crate::image_fmt::FormatImageType;
 pub trait ImageRequest {
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
-    fn image(&self, config: &HiPSConfig) -> RetrievedImageType;
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType;
 
     const REQUEST_TYPE: RequestType;
 }
@@ -378,13 +379,13 @@ impl ImageRequestType {
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
         match self {
             ImageRequestType::FITSImageRequest(r) => r.send(success, fail, url),
-            CompressedImageRequest::CompressedImageRequest(r) => r.send(success, fail, url),
+            ImageRequestType::CompressedImageRequest(r) => r.send(success, fail, url),
         }
     }
-    fn image(&self, config: &mut HiPSConfig) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
         match self {
-            ImageRequestType::FITSImageRequest(r) => r.image(config),
-            CompressedImageRequest::CompressedImageRequest(r) => r.image(config),
+            ImageRequestType::FITSImageRequest(r) => r.image(tile_width, format),
+            ImageRequestType::CompressedImageRequest(r) => r.image(tile_width, format),
         }
     }
 }
@@ -445,11 +446,11 @@ impl TileRequest {
         }
     }*/
 
-    pub fn send(&mut self, tile: Tile) {
+    pub fn send(&mut self, tile: &Tile) {
         assert!(self.is_ready());
 
-        self.tile = tile.clone();
-        let Tile { cell, root_url, format } = tile;
+        self.tile = Some(*tile);
+        let Tile { cell, root_url, format } = *tile;
 
         self.ready = false;
 
@@ -497,7 +498,7 @@ impl TileRequest {
     }
 
     pub fn get_tile(&self) -> &Tile {
-        &self.tile
+        self.tile.as_ref().unwrap()
     }
 
     pub fn get_time_request(&self) -> Time {
@@ -533,9 +534,9 @@ impl TileRequest {
         self.resolved.get()
     }
 
-    pub fn get_image(&mut self, config: &HiPSConfig) -> RetrievedImageType {
+    pub fn get_image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
         assert!(self.is_resolved());
-        self.req.image(config)
+        self.req.image(tile_width, format)
     }
 }
 
@@ -559,7 +560,7 @@ impl ImageRequest for CompressedImageRequest {
         self.image.set_onerror(fail);
     }
 
-    fn image(&self, _config: &HiPSConfig) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
@@ -599,7 +600,7 @@ impl ImageRequest for FITSImageRequest {
         self.image.send().unwrap();
     }
 
-    fn image(&self, config: &HiPSConfig) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()
@@ -608,22 +609,22 @@ impl ImageRequest for FITSImageRequest {
         let bytes = &array_buf.to_vec();
         let Fits { data, header } = Fits::from_bytes_slice(bytes).unwrap();
 
-        let format = &config.format();
-        let width = config.get_tile_size();
+        //let format = &config.format();
+        //let width = config.get_tile_size();
         let num_channels = format.get_num_channels() as i32;
 
         let image = match data {
             DataType::U8(data) => {
-                TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, width, num_channels))
+                TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, tile_width, num_channels))
             },
             DataType::I16(data) => {
-                TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::new(&data.0, width, num_channels))
+                TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::new(&data.0, tile_width, num_channels))
             },
             DataType::I32(data) => {
-                TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::new(&data.0, width, num_channels))
+                TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::new(&data.0, tile_width, num_channels))
             },
             DataType::F32(data) => {
-                TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, width, num_channels))
+                TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
             },
             _ => unreachable!()
         };
@@ -667,7 +668,7 @@ impl ImageRequest for FITSImageRequest {
 
 impl Default for TileRequest {
     fn default() -> Self {
-        TileRequest::<CompressedImageRequest>::new()
+        TileRequest::new::<CompressedImageRequest>()
     }
 }
 

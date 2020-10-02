@@ -82,7 +82,7 @@ impl FieldOfViewVertices {
             ));
         }
 
-        let world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
         let model_coo = if Some(world_coo) = world_coo {
             Some(world_to_model(world_coo, r))
         } else {
@@ -99,7 +99,7 @@ impl FieldOfViewVertices {
     // Recompute the camera fov vertices when the projection is changing
     pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        self.model_coo = if Some(world_coo) = self.world_coo {
+        self.model_coo = if let Some(world_coo) = self.world_coo {
             Some(world_to_model(world_coo, r))
         } else {
             None
@@ -108,13 +108,13 @@ impl FieldOfViewVertices {
 
     pub fn set_fov(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &SphericalRotation<f32>) {
         self.world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        if Some(world_coo) = self.world_coo {
+        if let Some(world_coo) = self.world_coo {
             self.model_coo = world_to_model(world_coo, r);
         }
     }
 
     pub fn set_rotation(&mut self, r: &SphericalRotation<f32>) {
-        if Some(world_coo) = self.world_coo {
+        if let Some(world_coo) = self.world_coo {
             self.model_coo = world_to_model(world_coo, r);
         }
     }

@@ -96,8 +96,6 @@ fn is_power_of_two(x: usize) -> bool {
     x & (x - 1) == 0
 }
 
-use crate::image_fmt::FITS;
-
 use crate::math;
 use web_sys::WebGl2RenderingContext;
 use wasm_bindgen::JsValue;

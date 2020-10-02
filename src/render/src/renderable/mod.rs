@@ -26,7 +26,6 @@ use ray_tracer::RayTracer;
 
 mod rasterizer;
 use rasterizer::Rasterizer;
-use rasterizer::RasterizerProjection;
 
 mod triangulation;
 use triangulation::Triangulation;
@@ -47,10 +46,6 @@ pub use image_survey::{
 
 pub use catalog::Manager;
 pub use grid::ProjetedGrid;
-
-pub trait DisableDrawing {
-    fn disable(&mut self, viewport: &CameraViewPort);
-}
 /*
 pub struct Renderable<T>
 where T: Mesh + DisableDrawing {

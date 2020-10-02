@@ -4,14 +4,14 @@ pub use texture::Texture;
 mod image_survey_buffer_textures;
 pub use image_survey_buffer_textures::ImageSurveyTextures;
 
-mod image;
-use image::{TileRequest, TileHTMLImage, ResolvedStatus, FITSImageRequest, CompressedImageRequest, ImageRequest};
-pub use image::{Image, TileArrayBuffer};
+pub mod image;
+use image::{TileRequest, ResolvedStatus, FITSImageRequest, CompressedImageRequest, ImageRequest};
+pub use image::{Image, TileArrayBuffer, ArrayBuffer, TileHTMLImage, RetrievedImageType};
 
-mod hips_config;
+pub mod hips_config;
 pub use hips_config::{HiPSConfig, TileArrayBufferImage};
 
 mod tile_downloader;
-pub use tile_downloader::{TileDownloader, Tile, Tiles, TileResolved};
+pub use tile_downloader::{TileDownloader, Tile, Tiles, TileResolved, ResolvedTiles};
 
-pub use image::{ArrayBuffer, ArrayU8, ArrayI16, ArrayI32, ArrayF32};
+pub use image::{ArrayU8, ArrayI16, ArrayI32, ArrayF32};

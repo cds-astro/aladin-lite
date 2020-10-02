@@ -40,13 +40,12 @@ pub use image_fmt::FormatImageType;
 use crate::{
     shader::{Shader, ShaderManager},
     renderable::{
-        HiPSSphere, TextManager, Angle, ArcDeg,
+        TextManager, Angle, ArcDeg,
         grid::ProjetedGrid,
         catalog::{Source, Manager},
         projection::{Aitoff, Orthographic, Mollweide, AzimutalEquidistant, Mercator, Projection},
     },
-    camera::CameraViewport,
-    finite_state_machine:: {UserMoveSphere, UserZoom, FiniteStateMachine, MoveSphere},
+    camera::CameraViewPort,
     math::{LonLatT, LonLat},
     async_task::{TaskResult, TaskType},
     buffer::HiPSConfig,
@@ -70,7 +69,7 @@ struct App {
     gl: WebGl2Context,
 
     shaders: ShaderManager,
-    camera: CameraViewport,
+    camera: CameraViewPort,
 
     downloader: TileDownloader,
     surveys: ImageSurveys,
@@ -112,7 +111,6 @@ use futures::stream::StreamExt; // for `next`
 
 use crate::shaders::Colormap;
 use crate::rotation::SphericalRotation;
-use crate::finite_state_machine::move_renderables;
 struct MoveAnimation {
     start_anim_rot: SphericalRotation<f32>,
     goal_anim_rot: SphericalRotation<f32>,
@@ -125,6 +123,7 @@ use crate::time::Time;
 use crate::renderable::angle::ArcSec;
 use crate::renderable::image_survey::ImageSurvey;
 use crate::buffer::Tile;
+use crate::camera::CameraViewPort;
 impl App {
     fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
@@ -172,7 +171,7 @@ impl App {
 
         log("shaders compiled");
         //panic!(format!("{:?}", aa));
-        let camera = CameraViewport::new::<Orthographic>(&gl);
+        let camera = CameraViewPort::new::<Orthographic>(&gl);
 
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new(gl, &camera);
@@ -221,9 +220,7 @@ impl App {
 
             downloader,
             surveys,
-            //view,
-            rasterizer,
-            raytracer,
+
             time_start_blending,
             rendering,
 
@@ -345,7 +342,6 @@ impl App {
 
             // Animation stop criteria
             let cursor_pos = self.get_center::<P>();
-            let goal_pos = goal_anim_rot.;
             let err = math::ang_between_vect(&goal_pos, &cursor_pos);
             let thresh: Angle<f32> = ArcSec(2_f32).into();
             if err < thresh {
@@ -437,7 +433,7 @@ impl App {
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
-        let spawner = self.exec.spawner();
+        let spawner = self.exec.borrow().spawner();
         let table = table;
         spawner.spawn(TaskType::ParseTable, async {
             let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);

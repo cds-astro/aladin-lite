@@ -26,13 +26,13 @@ impl<'a> TexturesToDraw<'a> {
 }
 
 impl<'a> core::ops::Deref for TexturesToDraw<'a> {
-    type Target = HashMap<HEALPixCell, TextureState<'a>>;
+    type Target = HashMap<HEALPixCell, TextureToDraw<'a>>;
 
     fn deref (self: &'_ Self) -> &'_ Self::Target {
         &self.0
     }
 }
-impl<'a> core::ops::DerefMut for SurveyTextures<'a> {
+impl<'a> core::ops::DerefMut for TexturesToDraw<'a> {
     fn deref_mut (self: &'_  mut Self) -> &'_ mut Self::Target {
         &mut self.0
     }
@@ -478,7 +478,6 @@ fn add_uv_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (positions.len()/3) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
 
@@ -535,7 +534,6 @@ pub struct ImageSurvey {
     _type: ImageSurveyType,
 }
 use crate::utils;
-use super::uv::TileUVW;
 use crate::camera::UserAction;
 use super::view_on_surveys::HEALPixCells;
 use web_sys::WebGl2RenderingContext;
@@ -549,7 +547,7 @@ impl ImageSurvey {
         let id = config.get_root_url().clone();
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
-        let view = ViewHEALPixCells::new();
+        let view = HEALPixCellsInView::new();
 
         let vbo = gl.create_buffer()
             .ok_or("failed to create buffer")
@@ -711,7 +709,7 @@ impl ImageSurvey {
         let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 6 - uv.len();
         uv.extend(vec![0.0; num_filling_floats]);
 
-        uv.extend(start_time);
+        uv.extend(start_times);
         let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 7 - uv.len();
         uv.extend(vec![0.0; num_filling_floats]);
 
@@ -758,6 +756,8 @@ impl Draw for ImageSurvey {
         if camera.get_aperture() > 150.0 {
             // Raytracer
             let shader = self.color.get_raytracer_shader(&self.gl, shaders).bind();
+
+            let cells_to_draw = self.view.get_cells();
             shader
                 .attach_uniforms_from(&self.camera)
                 .attach_uniforms_from(&self.textures)
@@ -794,7 +794,7 @@ impl Draw for ImageSurvey {
                 self.cells_depth_increased = true;
                 let new_depth = self.view.get_depth();
 
-                super::get_cells_in_fov(new_depth + 1, &camera)
+                super::view_on_surveys::get_cells_in_camera(new_depth + 1, &camera)
             } else {
                 self.view.get_cells()
             }
@@ -870,7 +870,7 @@ impl HiPS for SimpleHiPS {
 use crate::{SimpleHiPS, ComponentHiPS};
 impl HiPS for ComponentHiPS {
     fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
-        let ComponenHiPS { properties, color, transfer, k } = self;
+        let ComponentHiPS { properties, color, transfer, k } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
 
@@ -907,7 +907,7 @@ enum ImageSurveyIdx {
     None,
 }
 
-use crate::camera::HEALPixCellsInView;
+use crate::renderable::view_on_surveys::HEALPixCellsInView;
 pub struct ImageSurveys {
     surveys: HashMap<String, ImageSurvey>,
 
@@ -919,10 +919,11 @@ pub struct ImageSurveys {
 
     gl: WebGl2Context
 }
-
-use crate::buffer::TileResolved;
+use crate::buffer::Tiles;
+use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
+use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
 impl ImageSurveys {
-    pub fn new<P: Projection>(gl: &WebGl2Context, shaders: &mut ShaderManager) -> Self {
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
         let surveys = HashMap::new();
         let views = HashMap::new();
 
@@ -1014,9 +1015,9 @@ impl ImageSurveys {
 
     pub fn add_primary_survey(&mut self, survey: ImageSurvey) {
         let id = survey.get_id();
-        let type = survey.get_type();
+        let _type = survey.get_type();
         
-        match (&mut self.primary, type) {
+        match (&mut self.primary, _type) {
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Simple) => {
                 if *id == curr_id {
                     // The same survey is already selected.
@@ -1124,7 +1125,7 @@ impl ImageSurveys {
         self.surveys.iter()
     }
 }
-
+use std::collections::hash_map::Iter;
 use crate::{
     renderable::{Angle, ArcDeg},
     buffer::HiPSConfig,

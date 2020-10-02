@@ -54,7 +54,7 @@ use crate::{
     sphere_geometry::GreatCirclesInFieldOfView,
 };
 use std::collections::{HashSet, HashMap};
-use cgmath::{Matrix3, Matrix4, Vector4, SquareMatrix};
+use cgmath::{Matrix3, Vector4, SquareMatrix};
 
 fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     let canvas = gl.canvas().unwrap()

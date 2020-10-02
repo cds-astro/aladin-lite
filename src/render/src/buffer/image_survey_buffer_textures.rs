@@ -221,7 +221,7 @@ impl ImageSurveyTextures {
     pub fn push<I: Image + 'static>(&mut self, tile: &Tile, image: I, time_request: Time) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
-        assert!(!self.contains_tile(tile_cell));
+        assert!(!self.contains_tile(&tile_cell));
 
         // Get the texture cell in which the tile has to be
         let texture_cell = tile_cell.get_texture_cell(&self.config);
@@ -280,7 +280,7 @@ impl ImageSurveyTextures {
         // First get the texture
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.append(
-                tile_cell, // The tile cell
+                &tile_cell, // The tile cell
                 &self.config
             );
             // Compute the cutoff of the received tile
@@ -288,7 +288,7 @@ impl ImageSurveyTextures {
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
-            let spawner = self.exec.spawner();
+            let spawner = self.exec.borrow().spawner();
             let task = SendTileToGPU::new(tile, texture, image, self.texture_2d_array.clone(), &self.config);
             //let cutoff_values_tile = self.cutoff_values_tile.clone();
             let tile = *tile;

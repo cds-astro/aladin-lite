@@ -7,7 +7,6 @@ pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
 }
-use std::collections::hash_set::Iter;
 pub struct HEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
 
 impl<'a> Iterator for HEALPixCellsIter<'a> {

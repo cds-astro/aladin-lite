@@ -2,7 +2,6 @@ use super::{TileRequest, TileHTMLImage, TileArrayBuffer, ResolvedStatus, FITSIma
 use crate::WebGl2Context;
 
 use crate::buffer::{
-    ImageSurvey,
     HiPSConfig,
 };
 
@@ -115,9 +114,9 @@ use crate::healpix_cell::HEALPixCell;
 #[derive(PartialEq, Eq, Hash)]
 #[derive(Clone, Debug)]
 pub struct Tile {
-    cell: HEALPixCell,
-    root_url: String,
-    format: FormatImageType,
+    pub cell: HEALPixCell,
+    pub root_url: String,
+    pub format: FormatImageType,
 }
 
 impl Tile {
@@ -132,7 +131,6 @@ impl Tile {
 
 pub type Tiles = HashSet<Tile>;
 
-use super::tile_buffer::Tile;
 use std::collections::{VecDeque, HashSet};
 pub struct TileDownloader {
     // Waiting cells to be loaded
@@ -190,7 +188,7 @@ impl TileDownloader {
         if !already_requested {
             // Add to the tiles requested
             self.requested_tiles.insert(*tile);
-            self.add_tile_request(tile);
+            self.add_tile_request(*tile);
         }
     }
 

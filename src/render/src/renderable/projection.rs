@@ -71,12 +71,11 @@ use cgmath::Vector4;
 use cgmath::InnerSpace;
 
 use crate::renderable::{
- RasterizerProjection,
  catalog::CatalogShaderProjection,
  grid::GridShaderProjection,
 };
 
-pub trait Projection: RasterizerProjection + CatalogShaderProjection + GridShaderProjection + std::marker::Sized {
+pub trait Projection: CatalogShaderProjection + GridShaderProjection + std::marker::Sized {
     /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection

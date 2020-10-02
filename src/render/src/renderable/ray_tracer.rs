@@ -36,11 +36,11 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u
 
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlVertexArrayObject;
-use web_sys::{WebGlVertexArrayObject, WebGlBufferObject};
+use web_sys::WebGlBuffer;
 pub struct RayTracer {
     vao: WebGlVertexArrayObject,
-    vbo: WebGlBufferObject,
-    ebo: WebGlBufferObject
+    vbo: WebGlBuffer,
+    ebo: WebGlBuffer
 }
 
 use crate::Shader;

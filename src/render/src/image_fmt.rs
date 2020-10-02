@@ -13,15 +13,16 @@ impl JPG {
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
 
     pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
-        let num_channels = Self::NUM_CHANNELS;
-        let size_buf = width * width * num_channels;
+        let num_channels = Self::NUM_CHANNELS as i32;
+        let size_buf = (width * width * num_channels) as usize;
 
         let pixels = [0, 0, 0].iter()
+            .cloned()
             .cycle()
             .take(size_buf)
-            .collect();
+            .collect::<Vec<_>>();
 
-        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels);
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels)
     }
 }
 
@@ -39,15 +40,16 @@ impl PNG {
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
 
     pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
-        let num_channels = Self::NUM_CHANNELS;
-        let size_buf = width * width * num_channels;
+        let num_channels = Self::NUM_CHANNELS as i32;
+        let size_buf = (width * width * num_channels) as usize;
 
         let pixels = [0, 0, 0, 255].iter()
+            .cloned()
             .cycle()
             .take(size_buf)
-            .collect();
+            .collect::<Vec<_>>();
 
-        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels);
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels)
     }
 }
 
@@ -58,6 +60,7 @@ impl FormatImage for PNG {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct FITS { format: u32, internal_format: i32, _type: u32 }
 
+use crate::buffer::ArrayBuffer;
 impl FITS {
     pub fn new(internal_format: i32) -> Self {
         let (format, _type) = match internal_format as u32 {
@@ -94,14 +97,15 @@ impl FITS {
 
     pub fn create_black_tile<T: ArrayBuffer>(width: i32) -> TileArrayBuffer<T> 
     where <T as ArrayBuffer>::Item: FITSDataType {
-        let size_buf = width * width * 1;
+        let size_buf = (width * width * 1) as usize;
 
         let pixels = [T::Item::zero()].iter()
+            .cloned()
             .cycle()
             .take(size_buf)
-            .collect();
+            .collect::<Vec<_>>();
 
-        TileArrayBuffer::<T>::new(&pixels, width, 1);
+        TileArrayBuffer::<T>::new(&pixels[..], width, 1)
     }
 }
 

@@ -1,4 +1,4 @@
-mod viewport;
+pub mod viewport;
 pub use viewport::{CameraViewPort, UserAction};
 
 mod fov_vertices;

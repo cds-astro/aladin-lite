@@ -398,7 +398,7 @@ pub struct TileRequest {
     // the HtmlImageElement can be reused to download another tile
     ready: bool,
     resolved: Rc<Cell<ResolvedStatus>>,
-    tile: Tile,
+    tile: Option<Tile>,
     closures: [Closure<dyn FnMut(&web_sys::Event,)>; 2],
 }
 #[derive(Clone, Copy)]
@@ -411,7 +411,7 @@ pub enum ResolvedStatus {
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
-use super::tile_buffer::Tile;
+use super::Tile;
 impl TileRequest {
     pub fn new<R: ImageRequest>() -> Self {
         // By default, all the requests are parametrized to load
@@ -427,14 +427,14 @@ impl TileRequest {
 
         // By default, we say the tile is available to be reused
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
-        let cell = HEALPixCell(0, 13);
+        let tile = None;
         let closures = [
             Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
             Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
         ];
         let ready = true;
         let time_request = Time::now();
-        Self { req, resolved, ready, cell, closures, time_request }
+        Self { req, resolved, ready, tile, closures, time_request }
     }
 
     /*pub fn is<R: ImageRequest>(&self) -> bool {
@@ -496,7 +496,7 @@ impl TileRequest {
         self.time_request = Time::now();
     }
 
-    pub fn get_tile(&self) -> &HEALPixCell {
+    pub fn get_tile(&self) -> &Tile {
         &self.tile
     }
 
@@ -533,7 +533,7 @@ impl TileRequest {
         self.resolved.get()
     }
 
-    pub fn get_image(&mut self) -> RetrievedImageType {
+    pub fn get_image(&mut self, config: &HiPSConfig) -> RetrievedImageType {
         assert!(self.is_resolved());
         self.req.image(config)
     }
@@ -564,10 +564,12 @@ impl ImageRequest for CompressedImageRequest {
         let height = self.image.height() as i32;
 
         let size = Vector2::new(width, height);
-        RetrievedImageType::CompressedImage(TileHTMLImage {
-            size,
-            image: self.image.clone()
-        })
+        RetrievedImageType::CompressedImage {
+            image: TileHTMLImage {
+                size,
+                image: self.image.clone()
+            }
+        }
     }
 }
 
@@ -665,7 +667,7 @@ impl ImageRequest for FITSImageRequest {
 
 impl Default for TileRequest {
     fn default() -> Self {
-        RequestTile::<CompressedImageRequest>::new()
+        TileRequest::<CompressedImageRequest>::new()
     }
 }
 

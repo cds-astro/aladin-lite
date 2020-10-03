@@ -110,10 +110,10 @@ impl NewHEALPixCells {
         }
     }
 
-    fn insert_new_cells(self, cells: &HEALPixCells) -> NewHEALPixCells {
+    fn insert_new_cells(&mut self, cells: &HEALPixCells) {
         let mut is_new_cells_added = false;
-        let new_depth = cells.depth;
-        let flags = cells.iter()
+        self.depth = cells.depth;
+        self.flags = cells.iter()
             .cloned()
             .map(|cell| {
                 let new = !self.flags.contains_key(&cell);
@@ -122,12 +122,7 @@ impl NewHEALPixCells {
                 (cell, new)
             })
             .collect::<HashMap<_, _>>();
-
-        NewHEALPixCells {
-            depth: new_depth,
-            flags,
-            is_new_cells_added
-        }
+        self.is_new_cells_added = is_new_cells_added;
     }
 
     #[inline]
@@ -136,8 +131,8 @@ impl NewHEALPixCells {
     }
 
     #[inline]
-    fn iter<'a>(&'a self) -> NewHEALPixCellsIter<'a> {
-        let iter = self.flags.iter()
+    fn get_new_cells(&self) -> HEALPixCells {
+        let cells = self.flags.iter()
             .filter_map(|(cell, new)| {
                 if *new {
                     Some(*cell)
@@ -145,10 +140,12 @@ impl NewHEALPixCells {
                     None
                 }
             })
-            .collect::<HashSet<_>>()
-            .iter();
+            .collect();
 
-        NewHEALPixCellsIter(iter)
+        HEALPixCells {
+            depth: self.depth,
+            cells
+        }
     }
 
     #[inline]
@@ -171,50 +168,38 @@ impl<'a> Iterator for NewHEALPixCellsIter<'a> {
     }
 }
 use crate::math::log_2;
-fn compute_depth_for_survey(camera: &CameraViewPort, survey: &ImageSurvey) -> u8 {
+// Compute a depth from a number of pixels on screen
+pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> f32 {
     let width = camera.get_screen_size().x;
     let aperture = camera.get_aperture().0;
 
     let angle_per_pixel = aperture / width;
 
     let depth_pixel = (
-        (
-            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel)
-        ).log2() / 2.0
-    ).round() as i8;
+        std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel)
+    ).log2() / 2.0;
 
-    //let depth_texture = {
-        let conf = survey.get_textures().config();
-        // The texture size in pixels
-        let texture_size = conf.get_texture_size();
-        //let survey_max_depth = conf.get_max_depth();
-        // The depth of the texture
-        // A texture of 512x512 pixels will have a depth of 9
-        let depth_offset_texture = log_2(texture_size);
-        // The depth of the texture corresponds to the depth of a pixel
-        // minus the offset depth of the texture
-        let mut depth_texture = depth_pixel - depth_offset_texture;
-        if depth_texture < 0 {
-            depth_texture = 0;
-        }
+    //let survey_max_depth = conf.get_max_depth();
+    // The depth of the texture
+    // A texture of 512x512 pixels will have a depth of 9
+    let depth_offset_texture = log_2(num_pixels);
+    // The depth of the texture corresponds to the depth of a pixel
+    // minus the offset depth of the texture
+    let mut depth_texture = depth_pixel - (depth_offset_texture as f32);
+    if depth_texture < 0.0 {
+        depth_texture = 0.0;
+    }
 
-        //std::cmp::min(survey_max_depth, depth_texture)
-    //};
-   
-    depth_texture as u8
+    depth_texture
 }
 
+use cgmath::Vector3;
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
-    let cells = if let Some(vertices) = camera.get_vertices() {
-        let inside = camera.get_center();
-        polygon_coverage(vertices, depth, inside)
+    if let Some(vertices) = camera.get_vertices() {
+        let inside = camera.get_center().truncate();
+        polygon_coverage(vertices, depth, &inside)
     } else {
-        crate::healpix_cell::allsky(depth)
-    };
-
-    HEALPixCells {
-        depth,
-        cells
+        HEALPixCells::allsky(depth)
     }
 }
 
@@ -267,11 +252,13 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn update(&mut self, survey: &ImageSurvey, camera: &CameraViewPort) {
+    pub fn refresh_cells(&mut self, survey_tex_size: i32, camera: &CameraViewPort) {
         self.prev_depth = self.cells.get_depth();
 
         // Compute that depth
-        let depth = compute_depth_for_survey(camera, survey);
+        let num_pixels = survey_tex_size;
+        let depth = depth_from_pixels_on_screen(camera, num_pixels) as u8;
+        
         // Get the cells of that depth in the current field of view
         self.cells = get_cells_in_camera(depth, camera);
         self.new_cells.insert_new_cells(&self.cells);
@@ -279,8 +266,8 @@ impl HEALPixCellsInView {
 
     // Accessors
     #[inline]
-    pub fn get_new_cells<'a>(&'a self) -> NewHEALPixCellsIter<'a> {
-        self.new_cells.iter()
+    pub fn get_new_cells(&self) -> HEALPixCells {
+        self.new_cells.get_new_cells()
     }
 
     #[inline]

@@ -13,6 +13,23 @@ pub trait Image {
     //fn get_cutoff_values(&self) -> Option<(f32, f32)>;
 }
 
+impl<T> Image for Rc<T>
+where T: Image {
+    fn tex_sub_image_3d(&self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>
+    ) {
+        (&*self).tex_sub_image_3d(textures, offset);
+    }
+
+    // The size of the image
+    fn get_size(&self) -> &Vector2<i32> {
+        (&*self).get_size()
+    }
+}
+
 #[derive(Debug)]
 pub struct TileArrayBuffer<T: ArrayBuffer> {
     buf: T,
@@ -224,7 +241,7 @@ impl Image for TileArrayBufferImage {
         }
     }*/
 }
-
+/*
 impl Image for Rc<TileArrayBufferImage> {
     fn tex_sub_image_3d(&self,
         // The texture array
@@ -309,7 +326,7 @@ impl Image for Rc<TileArrayBufferImage> {
         }
     }*/
 }
-
+*/
 use crate::{
     healpix_cell::HEALPixCell,
     HiPSConfig,
@@ -346,7 +363,7 @@ impl Image for RetrievedImageType {
     }*/
 }
 */
-struct FITSMetaData {
+pub struct FITSMetaData {
     blank: f32,
     bzero: f32,
     bscale: f32,
@@ -357,7 +374,7 @@ pub enum RetrievedImageType {
     CompressedImage { image: TileHTMLImage }
 }
 
-enum RequestType {
+pub enum RequestType {
     File,
     HtmlImage
 }
@@ -446,11 +463,11 @@ impl TileRequest {
         }
     }*/
 
-    pub fn send(&mut self, tile: &Tile) {
+    pub fn send(&mut self, tile: Tile) {
         assert!(self.is_ready());
 
-        self.tile = Some(*tile);
-        let Tile { cell, root_url, format } = *tile;
+        self.tile = Some(tile.clone());
+        let Tile { cell, root_url, format } = tile;
 
         self.ready = false;
 

@@ -109,7 +109,7 @@ impl FITS {
     }
 }
 
-trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
+pub trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
     #[inline]
     fn zero() -> Self;
 }

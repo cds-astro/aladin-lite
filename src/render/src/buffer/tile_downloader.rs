@@ -1,4 +1,4 @@
-use super::{TileRequest, TileHTMLImage, TileArrayBuffer, ResolvedStatus, FITSImageRequest, CompressedImageRequest, ImageRequest};
+use super::{TileRequest, TileHTMLImage, TileArrayBuffer, ResolvedStatus, FITSImageRequest, CompressedImageRequest};
 use crate::WebGl2Context;
 
 use crate::buffer::{
@@ -28,48 +28,42 @@ impl Requests {
         }
     }
 
-    fn try_send(&mut self, tile: &Tile) -> TileSentFlag {
-        match tile.format {
+    fn check_send(&mut self, tile_format: FormatImageType) -> Option<&mut TileRequest> {
+        match tile_format {
             FormatImageType::JPG | FormatImageType::PNG => {
-                let cur_idx_comp = 0;
-                let mut req = &mut self.reqs[cur_idx_comp];
+                let mut cur_idx_comp = 0;
                 let mut html_image_req_available = true;
 
-                while !req.is_ready() && html_image_req_available  {
+                while !self.reqs[cur_idx_comp].is_ready() && html_image_req_available {
                     cur_idx_comp += 1;
                     if cur_idx_comp == self.start_fits_req_idx {
                         html_image_req_available = false;
-                    } else {
-                        req = &mut self.reqs[cur_idx_comp];
                     }
                 }
 
+                let req = &mut self.reqs[cur_idx_comp];
                 if req.is_ready() {
-                    req.send(tile);
-                    true
+                    Some(req)
                 } else {
-                    false
+                    None
                 }
             },
             FormatImageType::FITS(_) => {
-                let cur_idx_fits = self.start_fits_req_idx;
-                let mut req = &mut self.reqs[cur_idx_fits];
+                let mut cur_idx_fits = self.start_fits_req_idx;
                 let mut fits_image_req_available = true;
 
-                while !req.is_ready() && fits_image_req_available {
+                while !self.reqs[cur_idx_fits].is_ready() && fits_image_req_available {
                     cur_idx_fits += 1;
                     if cur_idx_fits == NUM_EVENT_LISTENERS {
                         fits_image_req_available = false;
-                    } else {
-                        req = &mut self.reqs[cur_idx_fits];
                     }
                 }
 
+                let req = &mut self.reqs[cur_idx_fits];
                 if req.is_ready() {
-                    req.send(tile);
-                    true
+                    Some(req)
                 } else {
-                    false
+                    None
                 }
             }
         }
@@ -156,6 +150,7 @@ pub enum TileResolved {
 use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
+use crate::ImageSurveys;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = Requests::new();
@@ -182,22 +177,14 @@ impl TileDownloader {
         self.requested_tiles.clear();
     }
 
-    pub fn request_tile(&mut self, tile: &Tile) {
-        let already_requested = self.requested_tiles.contains(tile);
+    pub fn request_tile(&mut self, tile: Tile) {
+        let already_requested = self.requested_tiles.contains(&tile);
         // The cell is not already requested
         if !already_requested {
             // Add to the tiles requested
-            self.requested_tiles.insert(*tile);
-            self.add_tile_request(*tile);
+            self.requested_tiles.insert(tile.clone());
+            self.add_tile_request(tile);
         }
-    }
-
-    pub fn get_resolved_tiles(&mut self, available_tiles: &Tiles) -> ResolvedTiles {
-        let tiles_resolved = self.retrieve_resolved_tiles(available_tiles);
-
-
-
-        tiles_resolved
     }
 
     // Register further tile requests to launch
@@ -216,10 +203,10 @@ impl TileDownloader {
     // Two possibilities:
     // * The image have been found and retrieved
     // * The image is missing
-    fn retrieve_resolved_tiles(&self, available_tiles: &Tiles) -> ResolvedTiles {
+    pub fn get_resolved_tiles(&mut self, available_tiles: &Tiles, surveys: &ImageSurveys) -> ResolvedTiles {
         let mut resolved_tiles = HashMap::new();
 
-        for req in self.requests.iter() {
+        for req in self.requests.iter_mut() {
             // First, tag the tile requests as ready if they just have been
             // given to the GPU
             if req.is_resolved() {
@@ -244,13 +231,17 @@ impl TileDownloader {
                                 TileResolved::Missing { time_req }
                             },
                             ResolvedStatus::Found => {
-                                let image = req.get_image();
+                                let config = surveys.get(&tile.root_url).unwrap()
+                                    .get_textures()
+                                    .config();
+
+                                let image = req.get_image(config.get_texture_size(), &config.format());
                                 TileResolved::Found { image, time_req }
                             },
                             _ => unreachable!()
                         };
 
-                        resolved_tiles.insert(*tile, tile_resolved);
+                        resolved_tiles.insert(tile.clone(), tile_resolved);
                     }
                 }
             }
@@ -261,22 +252,43 @@ impl TileDownloader {
 
     pub fn try_sending_tile_requests(&mut self) {
         // Try sending the fits tile requests
-        self.try_sending_tiles(&mut self.fits_tiles_to_req);
+        self.try_sending_fits_tiles();
         // And then the HTML image tile requests
-        self.try_sending_tiles(&mut self.html_img_tiles_to_req);
+        self.try_sending_html_tiles();
     }
 
-    fn try_sending_tiles(&mut self, tiles_to_req: &mut VecDeque<Tile>) {
-        let mut is_remaining_req = !tiles_to_req.is_empty();
+    fn try_sending_fits_tiles(&mut self) {
+        let mut is_remaining_req = !self.fits_tiles_to_req.is_empty();
 
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
-            let tile = tiles_to_req.front().unwrap();
+            let tile = self.fits_tiles_to_req.front().unwrap();
 
-            let tile_sent = self.requests.try_send(tile);
-            if tile_sent {
-                tiles_to_req.pop_front().unwrap();
+            if let Some(available_req) = self.requests.check_send(tile.format) {
+                let tile = self.fits_tiles_to_req.pop_front().unwrap();
+
+                available_req.send(tile);
+            } else {
+                // We have to wait for more requests
+                // to be available
+                downloader_overloaded = true;
+            }
+        }
+    }
+
+    fn try_sending_html_tiles(&mut self) {
+        let mut is_remaining_req = !self.html_img_tiles_to_req.is_empty();
+
+        let mut downloader_overloaded = false;
+
+        while is_remaining_req && !downloader_overloaded {
+            let tile = self.html_img_tiles_to_req.front().unwrap();
+
+            if let Some(available_req) = self.requests.check_send(tile.format) {
+                let tile = self.html_img_tiles_to_req.pop_front().unwrap();
+
+                available_req.send(tile);
             } else {
                 // We have to wait for more requests
                 // to be available

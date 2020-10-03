@@ -23,6 +23,7 @@ use cgmath::{Vector2, Vector3, Matrix4};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
+    center_init: Vector4<f32>,
     center: Vector4<f32>,
     // The rotation of the camera
     w2m_rot: Rotation<f32>,
@@ -78,10 +79,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 }
 
 use crate::math;
-const CENTER_INIT_POS: Vector4<f32> = LonLatT::new(
-    ArcDeg(0.0).into(),
-    ArcDeg(0.0).into()
-).vector();
+use crate::renderable::angle::ArcDeg;
 
 impl CameraViewPort {
 
@@ -111,20 +109,25 @@ impl CameraViewPort {
             .unwrap()
             .as_f64()
             .unwrap() as f32;
-        set_canvas_size(&self.gl, width as u32, height as u32);
+        set_canvas_size(&gl, width as u32, height as u32);
 
         let aspect = width / height;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
         let clip_zoom_factor = 0_f32;
-        let center = CENTER_INIT_POS.clone();
+        let center_init: Vector4<f32> = math::LonLatT::new(
+            ArcDeg(0.0).into(),
+            ArcDeg(0.0).into()
+        ).vector();
+        let center = center_init.clone();
 
-        let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
+        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
         let gl = gl.clone();
 
         CameraViewPort {
             // The field of view angle
             aperture,
             center,
+            center_init,
             // The rotation of the camera
             w2m_rot,
             w2m,
@@ -351,7 +354,7 @@ impl CameraViewPort {
         self.m2w = self.w2m.invert().unwrap();
 
         // update the center position
-        self.center = self.w2m_rot.rotate(&CENTER_INIT_POS);
+        self.center = self.w2m_rot.rotate(&self.center_init);
 
         self.last_user_action = UserAction::Moving;
 

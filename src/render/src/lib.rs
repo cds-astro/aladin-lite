@@ -106,7 +106,7 @@ impl Resources {
     }
 }
 
-use cgmath::Vector2;
+use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
 use crate::shaders::Colormap;
@@ -115,7 +115,7 @@ struct MoveAnimation {
     start_anim_rot: Rotation<f32>,
     goal_anim_rot: Rotation<f32>,
     time_start_anim: Time,
-    goal_pos: Vector4<f32>,
+    goal_pos: Vector3<f32>,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -123,7 +123,6 @@ use crate::time::Time;
 use crate::renderable::angle::ArcSec;
 use crate::renderable::image_survey::ImageSurvey;
 use crate::buffer::Tile;
-use crate::camera::CameraViewPort;
 impl App {
     fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
@@ -247,39 +246,51 @@ impl App {
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
-        self.surveys.update_views(&self.camera);
+        self.surveys.refresh_views(&self.camera);
 
         // Loop over the surveys
-        for (survey_id, survey) in self.surveys.iter() {
-            let textures = survey.get_textures();
-            let view = survey.get_view();
+        for (survey_id, survey) in self.surveys.iter_mut() {
+            let already_available_cells = {
+                let mut already_available_cells = HashSet::new();
 
-            let cells_in_fov = view.get_cells();
-
-            for cell in cells_in_fov.iter() {
-                let already_available = textures.contains_tile(cell);
-                let is_cell_new = view.is_new(cell);
-
-                if already_available {
-                    // Remove and append the texture with an updated
-                    // time_request
-                    if is_cell_new {
-                        // New cells are 
-                        self.time_start_blending = Time::now();
+                let textures = survey.get_textures();
+                let view = survey.get_view();
+    
+                let cells_in_fov = view.get_cells();
+    
+                for cell in cells_in_fov.iter() {
+                    let already_available = textures.contains_tile(cell);
+                    let is_cell_new = view.is_new(cell);
+    
+                    if already_available {
+                        // Remove and append the texture with an updated
+                        // time_request
+                        if is_cell_new {
+                            // New cells are 
+                            self.time_start_blending = Time::now();
+                        }
+                        already_available_cells.insert((*cell, is_cell_new));
+                    } else {
+                        // Submit the request to the buffer
+                        let format = textures.config().format();
+                        let root_url = survey_id.clone();
+                        let tile = Tile {
+                            root_url,
+                            format,
+                            cell: *cell
+                        };
+                        self.downloader.request_tile(tile);
                     }
-                    textures.update_priority(cell, is_cell_new);
-                } else {
-                    // Submit the request to the buffer
-                    let format = textures.config().format();
-                    let root_url = survey_id.clone();
-                    let tile = Tile {
-                        root_url,
-                        format,
-                        cell: *cell
-                    };
-                    self.downloader.request_tile(&tile);
                 }
+
+                already_available_cells
+            };
+            let textures = survey.get_textures_mut();
+
+            for (cell, is_new_cell) in already_available_cells {
+                textures.update_priority(&cell, is_new_cell);
             }
+
         }
     }
 
@@ -302,7 +313,14 @@ impl App {
             match result {
                 TaskResult::TableParsed { name, sources} => {
                     log("CATALOG FINISHED PARSED");
-                    self.manager.add_catalog::<P>(name, sources, Colormap::BluePastelRed, &mut self.shaders, &self.camera, self.sphere.config());
+                    self.manager.add_catalog::<P>(
+                        name,
+                        sources,
+                        Colormap::BluePastelRed,
+                        &mut self.shaders,
+                        &self.camera,
+                        &self.surveys.get_view().unwrap()
+                    );
                 },
                 TaskResult::TileSentToGPU { tile } => {
                     tiles_available.insert(tile);
@@ -342,8 +360,8 @@ impl App {
             self.look_for_new_tiles();
 
             // Animation stop criteria
-            let cursor_pos = self.camera.get_center();
-            let err = math::ang_between_vect(&goal_pos, cursor_pos);
+            let cursor_pos = self.camera.get_center().truncate();
+            let err = math::ang_between_vect(&goal_pos, &cursor_pos);
             let thresh: Angle<f32> = ArcSec(2_f32).into();
             if err < thresh {
                 self.move_animation = None;
@@ -362,7 +380,7 @@ impl App {
             // 1. Surveys must be aware of the new available tiles
             self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
-            let resolved_tiles = self.downloader.get_resolved_tiles(&available_tiles);
+            let resolved_tiles = self.downloader.get_resolved_tiles(&available_tiles, &self.surveys);
             self.surveys.add_resolved_tiles(resolved_tiles);
             // 3. Try sending new tile requests after 
             self.downloader.try_sending_tile_requests();
@@ -377,7 +395,7 @@ impl App {
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
-            self.manager.update(&self.camera);
+            self.manager.update::<P>(&self.camera, self.surveys.get_view().unwrap());
         }
 
         Ok(())
@@ -453,9 +471,9 @@ impl App {
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
-        let spawner = self.exec.borrow().spawner();
+        let mut exec_ref = self.exec.borrow_mut();
         let table = table;
-        spawner.spawn(TaskType::ParseTable, async {
+        exec_ref.spawner().spawn(TaskType::ParseTable, async {
             let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);
             crate::log("BEGIN PARSING");
             let mut results: Vec<Source> = vec![];
@@ -544,11 +562,11 @@ impl App {
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
         // Get the XYZ cartesian position from the lonlat
-        let cursor_pos: Vector4<f32> = self.camera.get_center().vector();
+        let cursor_pos = self.camera.get_center();
         let goal_pos: Vector4<f32> = lonlat.vector();
 
         // Convert these positions to rotations
-        let start_anim_rot = Rotation::from_sky_position(&cursor_pos);
+        let start_anim_rot = Rotation::from_sky_position(cursor_pos);
         let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
 
         // Set the moving animation object
@@ -556,7 +574,7 @@ impl App {
             time_start_anim: Time::now(),
             start_anim_rot,
             goal_anim_rot,
-            goal_pos,
+            goal_pos: goal_pos.truncate(),
         });
     }
 
@@ -1156,7 +1174,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
     pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
         let hipses: CompositeHiPS = hipses.into_serde().unwrap();
-        crate::log(&format!("Composite HiPS: {:?}", hips));
+        crate::log(&format!("Composite HiPS: {:?}", hipses));
 
         self.projection.set_overlay_composite_hips(&mut self.app, hipses)?;
 

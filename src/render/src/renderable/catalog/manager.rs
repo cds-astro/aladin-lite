@@ -142,7 +142,7 @@ impl Manager {
     }
 
     // Private method adding a catalog into the manager
-    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, camera: &CameraViewPort, config: &HiPSConfig) {
+    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, camera: &CameraViewPort, view: &HEALPixCellsInView) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
         let catalog = Catalog::new::<P>(
@@ -150,8 +150,8 @@ impl Manager {
             shaders, 
             colormap,
             sources,
+            view,
             camera,
-            config
         );
 
         // Update the number of sources loaded
@@ -190,13 +190,12 @@ impl Manager {
             })
     }
 
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, config: &HiPSConfig) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, view: &HEALPixCellsInView) {
         // Render only the sources in the current field of view
-        let cells = camera.cells();
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let mut depth = camera.depth();
+        let HEALPixCells { mut depth, cells } = view.get_cells();
         let cells = cells.into_iter()
             .map(|&cell| {
                 let d = cell.depth();
@@ -211,8 +210,13 @@ impl Manager {
             // This will delete the doublons if there is
             .collect::<HashSet<_>>();
 
+        let cells = HEALPixCells {
+            cells,
+            depth
+        };
+
         for catalog in self.catalogs.values_mut() {
-            catalog.update::<P>(&cells, depth, camera, config);
+            catalog.update::<P>(&cells, camera);
         }
     }
 
@@ -245,15 +249,16 @@ use std::collections::HashSet;
 use crate::healpix_cell::{HEALPixCell, HEALPixTilesIter};
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 use crate::HiPSConfig;
-
+use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
+use crate::renderable::{HEALPixCells, HEALPixCellsInView};
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         colormap: Colormap,
         mut sources: Vec<Source>,
+        view: &HEALPixCellsInView,
         camera: &CameraViewPort,
-        config: &HiPSConfig
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
@@ -315,12 +320,14 @@ impl Catalog {
             vertex_array_object_catalog,
             max_density
         };
-        catalog.set_max_density::<P>(camera, config);
+        catalog.set_max_density::<P>(view, camera);
         catalog
     }
 
-    fn set_max_density<P: Projection>(&mut self, camera: &CameraViewPort, config: &HiPSConfig) {
-        let cells = camera.cells().into_iter()
+    fn set_max_density<P: Projection>(&mut self, view: &HEALPixCellsInView, camera: &CameraViewPort) {
+        let HEALPixCells { depth, cells } = view.get_cells();
+
+        let cells = cells.into_iter()
             .map(|&cell| {
                 let d = cell.depth();
                 if d > 7 {
@@ -334,9 +341,12 @@ impl Catalog {
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
 
-        self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
+        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
+        let d_kernel = depth_from_pixels_on_screen(camera, 32);
+        self.max_density = self.compute_max_density::<P>(d_kernel);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            self.max_density *= d*d;
         }
     }
 
@@ -379,16 +389,20 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, camera: &CameraViewPort, config: &HiPSConfig) {
+    fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
+        let HEALPixCells {ref depth, ref cells} = cells;
         let mut current_sources = vec![];
 
         let depth_kernel = (depth + 6).min(7);
 
-        let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
-
-        self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
+        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
+        
+        let d_kernel = depth_from_pixels_on_screen(camera, 32);
+        self.max_density = self.compute_max_density::<P>(d_kernel);
+        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            self.max_density *= d*d;
         }
         // depth < 7
         for cell in cells {

@@ -102,7 +102,7 @@ use wasm_bindgen::JsValue;
 use crate::HiPSProperties;
 impl HiPSConfig {
     pub fn new(gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
-        let root_url = properties.url;
+        let root_url = properties.url.clone();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
         let num_textures_by_side_slice = 8;
@@ -114,7 +114,7 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let fmt = properties.format;
+        let fmt = &properties.format;
         let format : Result<_, JsValue> = if fmt.contains("fits") {
             // Check the bitpix to determine the internal format of the tiles
             match properties.bitpix {

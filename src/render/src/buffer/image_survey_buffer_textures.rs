@@ -218,7 +218,7 @@ impl ImageSurveyTextures {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile: &Tile, image: I, time_request: Time) {
+    pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
         assert!(!self.contains_tile(&tile_cell));
@@ -288,24 +288,27 @@ impl ImageSurveyTextures {
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
-            let spawner = self.exec.borrow().spawner();
-            let task = SendTileToGPU::new(tile, texture, image, self.texture_2d_array.clone(), &self.config);
-            //let cutoff_values_tile = self.cutoff_values_tile.clone();
-            let tile = *tile;
-            spawner.spawn(TaskType::SendTileToGPU(tile.clone()), async move {
-                task.await;
+            let mut exec_ref = self.exec.borrow_mut();
+            let task = SendTileToGPU::new(&tile, texture, image, self.texture_2d_array.clone(), &self.config);
 
-                /*if let Some(cutoff) = cutoff {
-                    // Remove the cutoff values of the image
-                    if let Some(oldest_tex_cell) = old_texture_cell {
-                        cutoff_values_tile.borrow_mut().remove(&oldest_tex_cell);
-                    }
+            let tile = tile.clone();
+            exec_ref.spawner().spawn(
+                TaskType::SendTileToGPU(tile.clone()),
+                async move {
+                    task.await;
 
-                    cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
-                }*/
+                    /*if let Some(cutoff) = cutoff {
+                        // Remove the cutoff values of the image
+                        if let Some(oldest_tex_cell) = old_texture_cell {
+                            cutoff_values_tile.borrow_mut().remove(&oldest_tex_cell);
+                        }
 
-                TaskResult::TileSentToGPU { tile }
-            });
+                        cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
+                    }*/
+
+                    TaskResult::TileSentToGPU { tile }
+                }
+            );
         } else {
             unreachable!()
         }

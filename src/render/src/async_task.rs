@@ -133,7 +133,7 @@ impl SendTileToGPU {
             idx_slice
         );
 
-        let tile = *tile;
+        let tile = tile.clone();
         let image = Box::new(image) as Box<dyn Image>;
         SendTileToGPU {
             tile,

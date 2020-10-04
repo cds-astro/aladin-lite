@@ -764,8 +764,8 @@ export let View = (function() {
             }
             view.realDragging = true;
 
-            //webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
-            webglAPI.setCenter(pos2[0], pos2[1]);
+            webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
+            //webglAPI.setCenter(pos2[0], pos2[1]);
             view.viewCenter.lon = pos2[0];
             view.viewCenter.lat = pos2[1];
 
@@ -924,6 +924,7 @@ export let View = (function() {
         var dt = now - this.prev;
 
         let updateView = this.aladin.webglAPI.update(dt);
+        this.aladin.webglAPI.render();
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
@@ -938,7 +939,7 @@ export let View = (function() {
         }
 
         //this.stats.update();
-        this.aladin.webglAPI.render();
+
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -1693,7 +1694,7 @@ export let View = (function() {
             // imageSurvey is an ID
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyProperties) => {
                 console.log('set HiPS info', imageSurveyProperties)
-                this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
+                //this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
             });
             if (newImageSurvey) {
                 this.imageSurvey = newImageSurvey;
@@ -1705,7 +1706,7 @@ export let View = (function() {
             // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
             newImageSurvey = imageSurvey;
             console.log("exist already", newImageSurvey.getSurveyInfo());
-            this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
+            //this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
         }
 
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16

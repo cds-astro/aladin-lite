@@ -28,12 +28,12 @@ float get_grayscale_from_texture(vec3 UV) {
     if (tex_storing_integers == 0) {
         x = texture(tex, reverse_uv(UV)).r;
     } else {
-        x = texture(texInt, reverse_uv(UV)).r;
+        x = float(texture(texInt, reverse_uv(UV)).r);
     }
 
-    if (x == blank) {
+    /*if (x == blank) {
         return transparent;
-    }
+    }*/
 
     float alpha = x * scale + offset;
     float h = transfer_func(H, alpha, min_value, max_value);
@@ -42,9 +42,9 @@ float get_grayscale_from_texture(vec3 UV) {
 }
 
 vec4 get_color_from_texture(vec3 UV) {
-    if (tex_storing_integers == 0) {
+    //if (tex_storing_integers == 0) {
         return vec4(texture(tex, UV).rgb, 1.0);
-    } else {
-        return vec4(texture(texInt, UV).rgb, 1.0);
-    }
+    //} else {
+    //    return vec4(texture(texInt, UV).rgb, 1.0);
+    //}
 }

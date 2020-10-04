@@ -25,7 +25,6 @@ const float PI = 3.1415926535897932384626433832795f;
 vec2 world2clip_mercator(vec3 p) {
     // X in [-1, 1]
     // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-    int max_iter = 10;
 
     float delta = asin(p.y);
     float theta = atan(p.x, p.z);

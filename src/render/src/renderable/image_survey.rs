@@ -286,7 +286,7 @@ impl SendUniforms for Color {
 
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
-const MAX_NUM_CELLS_TO_DRAW: usize = 768;
+const MAX_NUM_CELLS_TO_DRAW: usize = 2000;
 // Each cell has 4 vertices
 pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
 // There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
@@ -414,12 +414,16 @@ pub type IdxVerticesVec = Vec<u16>;
 // This method only computes the vertex positions
 // of a HEALPix cell and append them
 // to lonlats and positions vectors
-fn add_positions_grid<P: Projection, E: RecomputeRasterizer>(
-    lonlats: &mut LonLatVec,
-    positions: &mut PositionVec,
+fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
+    vertices: &mut Vec<f32>,
     idx_positions: &mut IdxVerticesVec,
+
     cell: &HEALPixCell,
     sphere_sub: &SphereSubdivided,
+
+    uv_0: &TileUVW,
+    uv_1: &TileUVW,
+    alpha: f32
 ) {
     let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
 
@@ -428,20 +432,50 @@ fn add_positions_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (positions.len()/3) as u16;
+    let off_idx_vertices = (vertices.len()/12) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
 
+            let hj0 = (j as f32) / (n_segments_by_side as f32);
+            let hi0 = (i as f32) / (n_segments_by_side as f32);
+
+            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+
+            let uv_s_vertex_0 = Vector3::new(
+                uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                uv_0[TileCorner::BottomLeft].z
+            );
+
+            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
+            let uv_e_vertex_0 = Vector3::new(
+                uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                uv_1[TileCorner::BottomLeft].z
+            );
+
             let (lon, lat) = (lonlat[id_vertex_0].lon().0, lonlat[id_vertex_0].lat().0);
             let position: Vector3<f32> = lonlat[id_vertex_0].vector();
 
-            lonlats.push(lon);
-            lonlats.push(lat);
+            vertices.push(lon);
+            vertices.push(lat);
 
-            positions.push(position.x);
-            positions.push(position.y);
-            positions.push(position.z);
+            vertices.push(position.x);
+            vertices.push(position.y);
+            vertices.push(position.z);
+
+            vertices.push(uv_s_vertex_0.x);
+            vertices.push(uv_s_vertex_0.y);
+            vertices.push(uv_s_vertex_0.z);
+    
+            vertices.push(uv_e_vertex_0.x);
+            vertices.push(uv_e_vertex_0.y);
+            vertices.push(uv_e_vertex_0.z);
+
+            vertices.push(alpha);
         }
     }
 
@@ -465,58 +499,6 @@ fn add_positions_grid<P: Projection, E: RecomputeRasterizer>(
 
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
-fn add_uv_grid<P: Projection, E: RecomputeRasterizer>(
-    uv_start: &mut UVStartVec,
-    uv_end: &mut UVEndVec,
-    start_time: &mut StartAnimTimeVec,
-
-    cell: &HEALPixCell,
-    sphere_sub: &SphereSubdivided,
-
-    uv_0: &TileUVW,
-    uv_1: &TileUVW,
-    alpha: f32
-) {
-    let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
-    let n_segments_by_side: u16 = 1_u16 << num_subdivision;
-
-    let n_vertices_per_segment = n_segments_by_side + 1;
-
-    for i in 0..n_vertices_per_segment {
-        for j in 0..n_vertices_per_segment {
-
-            let hj0 = (j as f32) / (n_segments_by_side as f32);
-            let hi0 = (i as f32) / (n_segments_by_side as f32);
-
-            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-
-            let uv_s_vertex_0 = Vector3::new(
-                uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                uv_0[TileCorner::BottomLeft].z
-            );
-
-            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-            let uv_e_vertex_0 = Vector3::new(
-                uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                uv_1[TileCorner::BottomLeft].z
-            );
-
-            uv_start.push(uv_s_vertex_0.x);
-            uv_start.push(uv_s_vertex_0.y);
-            uv_start.push(uv_s_vertex_0.z);
-    
-            uv_end.push(uv_e_vertex_0.x);
-            uv_end.push(uv_e_vertex_0.y);
-            uv_end.push(uv_e_vertex_0.z);
-
-            start_time.push(alpha);
-        }
-    }
-}
 
 use web_sys::WebGlBuffer;
 pub struct ImageSurvey {
@@ -547,35 +529,60 @@ use super::view_on_surveys::HEALPixCells;
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     fn new(gl: &WebGl2Context,
+        surveys: &ImageSurveys,
         config: HiPSConfig,
         color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
         _type: ImageSurveyType
     ) -> Self {
+        surveys.bind_raster_vao();
+
         let id = config.root_url.clone();
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
         let view = HEALPixCellsInView::new();
-        let cells_to_draw = Cow::Borrowed(&view.get_cells());
 
         let vbo = gl.create_buffer()
             .ok_or("failed to create buffer")
             .unwrap();
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
 
-        gl.buffer_data_with_i32(
+        let data = vec![0.0_f32; MAX_NUM_FLOATS_TO_DRAW];
+        gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
-            (MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<f32>()) as i32,
+            unsafe { &js_sys::Float32Array::view(&data) },
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
+
+        // layout (location = 0) in vec2 lonlat;
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(0);
+
+        // layout (location = 1) in vec3 position;
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(1);
+
+        // layout (location = 2) in vec3 uv_start;
+        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (5 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(2);
+
+        // layout (location = 3) in vec3 uv_end;
+        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (8 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(3);
+
+        // layout (location = 4) in float time_tile_received;
+        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (11 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(4);
+
         let ebo = gl.create_buffer()
             .ok_or("failed to create buffer")
             .unwrap();
         // Bind the buffer
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-        gl.buffer_data_with_i32(
+        let data = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            (MAX_NUM_FLOATS_TO_DRAW * std::mem::size_of::<u16>()) as i32,
+            unsafe { &js_sys::Uint16Array::view(&data) },
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
 
@@ -604,18 +611,19 @@ impl ImageSurvey {
         }
     }
 
-    pub fn from<T: HiPS>(hips: T, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
-        hips.create(gl, exec)
+    pub fn from<T: HiPS>(gl: &WebGl2Context, surveys: &ImageSurveys, hips: T, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
+        hips.create(gl, surveys, exec)
     }
 
     pub fn set_color(&mut self, color: &Color) {
         self.color = *color;
     }
 
-    pub fn set_positions<P: Projection>(&mut self, last_user_action: UserAction) {
+    /*pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction) {
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_positions::<P, UnZoom>();
+                let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
+                self.update_vertices::<P, UnZoom>(&textures);
             },
             UserAction::Zooming => {
                 self.update_positions::<P, Zoom>();
@@ -647,13 +655,19 @@ impl ImageSurvey {
         }
 
         let mut coo = lonlats;
+        crate::log(&format!("{:?} cells to draw", cells_to_draw));
+        crate::log(&format!("num coo {:?} ", coo.len()));
         let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 2 - coo.len();
         coo.extend(vec![0.0; num_filling_floats]);
         coo.extend(positions);
         let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 5 - coo.len();
         coo.extend(vec![0.0; num_filling_floats]);
+        crate::log(&format!("coo {:?} ", coo));
+        crate::log(&format!("num coo {:?} ", coo.len()));
 
         let buf_positions = unsafe { js_sys::Float32Array::view(&coo) };
+        crate::log(&format!("buf_positions coo {:?} ", buf_positions.length()));
+
         self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             0 as i32,
@@ -667,35 +681,33 @@ impl ImageSurvey {
             0 as i32,
             &buf_idx
         );
-    }
+        crate::log(&format!("buf_positions coo2 {:?} ", buf_positions.length()));
 
-    pub fn set_UVs<P: Projection>(&mut self, last_user_action: UserAction) {
-        let cells_to_draw = self.view.get_cells();
+    }*/
 
+    pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction) {
         match last_user_action {
             UserAction::Unzooming => {
-                let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, UnZoom>(&textures);
+                self.update_vertices::<P, UnZoom>();
             },
             UserAction::Zooming => {
-                let textures = Zoom::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Zoom>(&textures);
+                self.update_vertices::<P, Zoom>();
             },
             UserAction::Moving => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Move>(&textures);
+                self.update_vertices::<P, Move>();
             },
             UserAction::Starting => {
-                let textures = Move::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_UVs::<P, Move>(&textures);
+                self.update_vertices::<P, Move>();
             }
         }
     }
 
-    fn update_UVs<'a, P: Projection, T: RecomputeRasterizer>(&'a self, textures: &TexturesToDraw<'a>) {
-        let mut uv_start = vec![];
-        let mut uv_end = vec![];
-        let mut start_times = vec![];
+    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self) {
+        let cells_to_draw = self.view.get_cells();
+        let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
+
+        let mut vertices = vec![];
+        let mut idx_vertices = vec![];
 
         let survey_config = self.textures.config();
 
@@ -704,10 +716,10 @@ impl ImageSurvey {
             let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
             let start_time = state.ending_texture.start_time();
 
-            add_uv_grid::<P, T>(
-                &mut uv_start,
-                &mut uv_end,
-                &mut start_times,
+            add_vertices_grid::<P, T>(
+                &mut vertices,
+                &mut idx_vertices,
+
                 &cell,
                 &self.sphere_sub,
 
@@ -715,24 +727,20 @@ impl ImageSurvey {
                 start_time.as_millis(),
             );
         }
-
-        let mut uv = uv_start;
-        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 3 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        uv.extend(uv_end);
-        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 6 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        uv.extend(start_times);
-        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 7 - uv.len();
-        uv.extend(vec![0.0; num_filling_floats]);
-
-        let buf_uvs = unsafe { js_sys::Float32Array::view(&uv) };
+        self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
         self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
-            (MAX_NUM_VERTICES_TO_DRAW * 5 * std::mem::size_of::<f32>()) as i32,
-            &buf_uvs
+            0,
+            &buf_vertices
+        );
+        self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.ebo));
+        self.num_idx = idx_vertices.len();
+        let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
+        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            0 as i32,
+            &buf_idx
         );
     }
 
@@ -774,7 +782,13 @@ impl ImageSurvey {
 use std::borrow::Cow;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(&mut self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
-        if camera.get_aperture() > 150.0 {
+        if !self.textures.is_ready() {
+            // Do not render while the 12 base cell textures
+            // are not loaded
+            return;
+        }
+        let limit_aperture: Angle<f32> = ArcDeg(150.0).into();
+        if camera.get_aperture() > limit_aperture {
             // Raytracer
             let shader = self.color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
 
@@ -783,7 +797,6 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(&self.color)
-                .attach_uniform("model", camera.get_w2m())
                 .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time());
 
@@ -792,6 +805,8 @@ impl Draw for ImageSurvey {
             return;
         }
 
+        crate::log("raster draw");
+        crate::log(&format!("camera fov {:?}", camera.get_aperture()));
         // The rasterizer has a buffer containing:
         // - The vertices of the HEALPix cells for the most refined survey
         // - The starting and ending uv for the blending animation
@@ -826,14 +841,14 @@ impl Draw for ImageSurvey {
         };*/
 
         let new_cells_added = self.view.is_there_new_cells_added();
-        let recompute_vertex_positions = new_cells_added;
-        if recompute_vertex_positions {
+        let recompute_positions = new_cells_added;
+        /*if recompute_vertex_positions {
             self.set_positions::<P>(last_user_action);
-        }
+        }*/
 
-        let recompute_uvs = new_cells_added | self.textures.is_there_available_tiles();
-        if recompute_uvs {
-            self.set_UVs::<P>(last_user_action);
+        let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles();
+        if recompute_vertices {
+            self.set_vertices::<P>(last_user_action);
         }
 
         let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
@@ -841,7 +856,6 @@ impl Draw for ImageSurvey {
             .attach_uniforms_from(camera)
             .attach_uniforms_from(&self.textures)
             .attach_uniforms_from(&self.color)
-            .attach_uniform("model", camera.get_w2m())
             .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
             .attach_uniform("current_time", &utils::get_current_time());
 
@@ -852,22 +866,23 @@ impl Draw for ImageSurvey {
 
 use wasm_bindgen::JsValue;
 pub trait HiPS {
-    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue>;
+    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue>;
 }
 
 use std::rc::Rc;
 use std::cell::RefCell;
 impl HiPS for SimpleHiPS {
-    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
         let SimpleHiPS { properties, colormap, transfer } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
 
         if properties.isColor {
-            Ok(ImageSurvey::new(gl, config, Color::Colored, exec, ImageSurveyType::Simple))
+            Ok(ImageSurvey::new(gl, surveys, config, Color::Colored, exec, ImageSurveyType::Simple))
         } else {
             Ok(ImageSurvey::new(
                 gl,
+                surveys,
                 config,
                 Color::Grayscale2Colormap {
                     colormap: colormap.into(),
@@ -891,7 +906,7 @@ impl HiPS for SimpleHiPS {
 }
 use crate::{SimpleHiPS, ComponentHiPS};
 impl HiPS for ComponentHiPS {
-    fn create(self, gl: &WebGl2Context, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
         let ComponentHiPS { properties, color, transfer, k } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
@@ -901,6 +916,7 @@ impl HiPS for ComponentHiPS {
         } else {
             Ok(ImageSurvey::new(
                 gl,
+                surveys,
                 config,
                 Color::Grayscale2Color {
                     color,
@@ -980,6 +996,10 @@ impl ImageSurveys {
     pub fn set_projection<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+    }
+
+    pub fn bind_raster_vao(&self) {
+        self.rasterizer.bind();
     }
 
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {

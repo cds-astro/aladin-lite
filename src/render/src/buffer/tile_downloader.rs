@@ -6,6 +6,9 @@ use crate::buffer::{
 };
 
 use crate::async_task::TaskExecutor;
+// A power of two maximum simultaneous tile requests
+const NUM_EVENT_LISTENERS: usize = 16;
+const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 
 struct Requests {
     reqs: [TileRequest; NUM_EVENT_LISTENERS],
@@ -34,15 +37,18 @@ impl Requests {
                 let mut cur_idx_comp = 0;
                 let mut html_image_req_available = true;
 
+                crate::log(&format!("{}", self.start_fits_req_idx));
                 while !self.reqs[cur_idx_comp].is_ready() && html_image_req_available {
                     cur_idx_comp += 1;
                     if cur_idx_comp == self.start_fits_req_idx {
                         html_image_req_available = false;
                     }
                 }
+                crate::log(&format!("aasas"));
 
-                let req = &mut self.reqs[cur_idx_comp];
-                if req.is_ready() {
+                if html_image_req_available {
+                    let req = &mut self.reqs[cur_idx_comp];
+                    assert!(req.is_ready());
                     Some(req)
                 } else {
                     None
@@ -59,8 +65,9 @@ impl Requests {
                     }
                 }
 
-                let req = &mut self.reqs[cur_idx_fits];
-                if req.is_ready() {
+                if fits_image_req_available {
+                    let req = &mut self.reqs[cur_idx_fits];
+                    assert!(req.is_ready());
                     Some(req)
                 } else {
                     None
@@ -136,9 +143,6 @@ pub struct TileDownloader {
     requested_tiles: Tiles,
 }
 
-// A power of two maximum simultaneous tile requests
-const NUM_EVENT_LISTENERS: usize = 16;
-const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 use crate::FormatImageType;
 
 use super::image::RetrievedImageType;
@@ -267,7 +271,8 @@ impl TileDownloader {
 
             if let Some(available_req) = self.requests.check_send(tile.format) {
                 let tile = self.fits_tiles_to_req.pop_front().unwrap();
-
+                
+                is_remaining_req = !self.fits_tiles_to_req.is_empty();
                 available_req.send(tile);
             } else {
                 // We have to wait for more requests
@@ -288,6 +293,7 @@ impl TileDownloader {
             if let Some(available_req) = self.requests.check_send(tile.format) {
                 let tile = self.html_img_tiles_to_req.pop_front().unwrap();
 
+                is_remaining_req = !self.html_img_tiles_to_req.is_empty();
                 available_req.send(tile);
             } else {
                 // We have to wait for more requests

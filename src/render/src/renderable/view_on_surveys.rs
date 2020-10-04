@@ -3,6 +3,7 @@ use crate::healpix_cell::HEALPixCell;
 
 use std::collections::hash_set::Iter;
 
+#[derive(Debug)]
 pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
@@ -197,6 +198,7 @@ use cgmath::Vector3;
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
     if let Some(vertices) = camera.get_vertices() {
         let inside = camera.get_center().truncate();
+        //crate::log(&format!("vertices {:?}, inside {:?}", vertices, inside));
         polygon_coverage(vertices, depth, &inside)
     } else {
         HEALPixCells::allsky(depth)
@@ -257,10 +259,11 @@ impl HEALPixCellsInView {
 
         // Compute that depth
         let num_pixels = survey_tex_size;
-        let depth = depth_from_pixels_on_screen(camera, num_pixels) as u8;
+        let depth = depth_from_pixels_on_screen(camera, num_pixels).round() as u8;
         
         // Get the cells of that depth in the current field of view
         self.cells = get_cells_in_camera(depth, camera);
+        crate::log(&format!("CELLS in CAMERA, {:?}", self.cells));
         self.new_cells.insert_new_cells(&self.cells);
     }
 

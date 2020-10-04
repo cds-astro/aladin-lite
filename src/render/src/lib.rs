@@ -123,6 +123,7 @@ use crate::time::Time;
 use crate::renderable::angle::ArcSec;
 use crate::renderable::image_survey::ImageSurvey;
 use crate::buffer::Tile;
+use cgmath::InnerSpace;
 impl App {
     fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
@@ -177,7 +178,7 @@ impl App {
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
 
-        let sdss_survey = ImageSurvey::from(sdss, &gl, exec.clone())?;
+        let sdss_survey = ImageSurvey::from(&gl, &surveys, sdss, exec.clone())?;
         surveys.set_simple_hips(sdss_survey);
 
         let time_start_blending = Time::now();
@@ -241,6 +242,7 @@ impl App {
 
             tasks_finished,
         };
+
         Ok(app)
     } 
 
@@ -402,9 +404,9 @@ impl App {
     }
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
-        if !self.rendering {
+        /*if !self.rendering {
             return;
-        }
+        }*/
 
         // Render the scene
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
@@ -439,7 +441,7 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let new_survey = ImageSurvey::from::<SimpleHiPS>(hips, &self.gl, self.exec.clone())?;
+        let new_survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
         self.surveys.set_simple_hips(new_survey);
 
         // Once its added, request its tiles
@@ -452,7 +454,7 @@ impl App {
     }
     fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
         for hips in hipses {
-            let new_survey = ImageSurvey::from::<ComponentHiPS>(hips, &self.gl, self.exec.clone())?;
+            let new_survey = ImageSurvey::from::<ComponentHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
             self.surveys.set_simple_hips(new_survey);
         }
 
@@ -578,23 +580,27 @@ impl App {
         });
     }
 
-    /*pub fn move_camera<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
-        let model2world = self.camera.get_inverted_model_mat();
+    pub fn go_from_to<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+        let model2world = self.camera.get_m2w();
 
         let m1: Vector4<f32> = pos1.vector();
         let w1 = model2world * m1;
         let m2: Vector4<f32> = pos2.vector();
         let w2 = model2world * m2;
 
-        move_renderables::<P>(
-            &w1,
-            &w2,
-            //&mut self.sphere,
-            &mut self.manager,
-            &mut self.grid,
-            &mut self.camera
-        );
-    }*/
+        let r = self.camera.get_rotation();
+
+        let x = r.rotate(&w1).truncate();
+        let y = r.rotate(&w2).truncate();
+        if x != y {
+            let axis = x.cross(y)
+                .normalize();
+            let d = math::ang_between_vect(&x, &y);
+    
+            self.camera.rotate::<P>(&(-axis), d);
+            self.look_for_new_tiles();
+        }
+    }
     
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
         // Change the camera rotation
@@ -706,15 +712,15 @@ impl ProjectionType {
         }
     }
 
-    /*fn move_camera(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+    fn go_from_to(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
         match self {
-            ProjectionType::Aitoff => app.move_camera::<Aitoff>(pos1, pos2),
-            ProjectionType::MollWeide => app.move_camera::<Mollweide>(pos1, pos2),
-            ProjectionType::Ortho => app.move_camera::<Orthographic>(pos1, pos2),
-            ProjectionType::Arc => app.move_camera::<Mollweide>(pos1, pos2),
-            ProjectionType::Mercator => app.move_camera::<Mercator>(pos1, pos2),
+            ProjectionType::Aitoff => app.go_from_to::<Aitoff>(pos1, pos2),
+            ProjectionType::MollWeide => app.go_from_to::<Mollweide>(pos1, pos2),
+            ProjectionType::Ortho => app.go_from_to::<Orthographic>(pos1, pos2),
+            ProjectionType::Arc => app.go_from_to::<Mollweide>(pos1, pos2),
+            ProjectionType::Mercator => app.go_from_to::<Mercator>(pos1, pos2),
         }
-    }*/
+    }
 
     fn update(&mut self, app: &mut App, dt: DeltaTime) -> Result<(), JsValue> {
         match self {
@@ -1283,8 +1289,9 @@ impl WebClient {
 
         Ok(())
     }
-    /*#[wasm_bindgen(js_name = moveView)]
-    pub fn displace(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {
+
+    #[wasm_bindgen(js_name = goFromTo)]
+    pub fn go_from_to(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {
         let pos1 = LonLatT::new(
             ArcDeg(lon1).into(),
             ArcDeg(lat1).into()
@@ -1293,10 +1300,10 @@ impl WebClient {
             ArcDeg(lon2).into(),
             ArcDeg(lat2).into()
         );
-        self.projection.move_camera(&mut self.app, &pos1, &pos2);
+        self.projection.go_from_to(&mut self.app, &pos1, &pos2);
 
         Ok(())
-    }*/
+    }
 
     /// CATALOG INTERFACE METHODS
     /// Add new catalog

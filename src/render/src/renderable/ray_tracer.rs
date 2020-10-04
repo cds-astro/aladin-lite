@@ -58,14 +58,6 @@ impl RayTracer {
 
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
-    
-        // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
-        gl.enable_vertex_attrib_array(0);
-
-        // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (3 * mem::size_of::<f32>()) as i32);
-        gl.enable_vertex_attrib_array(1);
 
         let vbo = gl.create_buffer()
             .ok_or("failed to create buffer")
@@ -77,6 +69,15 @@ impl RayTracer {
             &buf_vertices,
             WebGl2RenderingContext::STATIC_DRAW
         );
+
+        // layout (location = 0) in vec2 lonlat;
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(0);
+
+        // layout (location = 1) in vec3 position;
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (3 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(1);
+
         let ebo = gl.create_buffer()
             .ok_or("failed to create buffer")
             .unwrap();

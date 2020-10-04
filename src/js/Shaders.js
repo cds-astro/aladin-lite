@@ -24,7 +24,7 @@ import GridMercatorFS from '../render/src/shaders/grid/mercator.frag'
 // HiPS shaders
 // Raytracer
 import RayTracerVS from '../render/src/shaders/hips/raytracer/raytracer.vert'
-import RayTracerColorFS from '../render/src/shaders/hips/raytracer/raytracer.frag'
+import RayTracerColorFS from '../render/src/shaders/hips/raytracer/color.frag'
 import RayTracerGrayscale2ColorFS from '../render/src/shaders/hips/raytracer/grayscale_to_color.frag'
 import RayTracerGrayscale2ColormapFS from '../render/src/shaders/hips/raytracer/grayscale_to_colormap.frag'
 

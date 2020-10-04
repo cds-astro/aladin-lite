@@ -23,7 +23,6 @@ use cgmath::{Vector2, Vector3, Matrix4};
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
-    center_init: Vector4<f32>,
     center: Vector4<f32>,
     // The rotation of the camera
     w2m_rot: Rotation<f32>,
@@ -82,7 +81,6 @@ use crate::math;
 use crate::renderable::angle::ArcDeg;
 
 impl CameraViewPort {
-
     pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
@@ -91,6 +89,7 @@ impl CameraViewPort {
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
+        let center = Vector4::new(0.0, 0.0, 0.0, 0.0);
 
         let moved = false;
 
@@ -114,20 +113,14 @@ impl CameraViewPort {
         let aspect = width / height;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
         let clip_zoom_factor = 0_f32;
-        let center_init: Vector4<f32> = math::LonLatT::new(
-            ArcDeg(0.0).into(),
-            ArcDeg(0.0).into()
-        ).vector();
-        let center = center_init.clone();
 
         let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
         let gl = gl.clone();
 
-        CameraViewPort {
+        let mut camera = CameraViewPort {
             // The field of view angle
             aperture,
             center,
-            center_init,
             // The rotation of the camera
             w2m_rot,
             w2m,
@@ -154,7 +147,11 @@ impl CameraViewPort {
 
             // A reference to the WebGL2 context
             gl,
-        }
+        };
+
+        camera.update_center::<P>();
+
+        camera
     }
     /*pub fn resize_window<P: Projection>(&mut self,
         width: f32,
@@ -224,6 +221,8 @@ impl CameraViewPort {
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
 
         self.moved = true;
+
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -255,6 +254,8 @@ impl CameraViewPort {
         self.clip_zoom_factor = p0.x.abs();
 
         self.moved = true;
+
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
@@ -286,6 +287,7 @@ impl CameraViewPort {
     pub fn get_m2w(&self) -> &cgmath::Matrix4<f32> {
         &self.m2w
     }
+
 
     pub fn get_ndc_to_clip(&self) -> &Vector2<f32> {
         &self.ndc_to_clip
@@ -353,12 +355,21 @@ impl CameraViewPort {
         self.w2m = (&self.w2m_rot).into();
         self.m2w = self.w2m.invert().unwrap();
 
-        // update the center position
-        self.center = self.w2m_rot.rotate(&self.center_init);
-
         self.last_user_action = UserAction::Moving;
 
         self.moved = true;
+
+        self.update_center::<P>();
+
+        self.vertices.set_rotation(&self.w2m_rot);
+    }
+
+    fn update_center<P: Projection>(&mut self) {
+        // update the center position
+        self.center = P::clip_to_model_space(
+            &Vector2::new(0_f32, 0_f32),
+            self
+        ).unwrap();
     }
 }
 
@@ -369,6 +380,8 @@ impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniforms_from(&self.last_user_action)
+            .attach_uniform("model", &self.w2m)
+            .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
             .attach_uniform("window_size", &self.get_screen_size()) // Window size

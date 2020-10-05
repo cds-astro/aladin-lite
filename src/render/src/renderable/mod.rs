@@ -30,8 +30,9 @@ use rasterizer::Rasterizer;
 mod triangulation;
 use triangulation::Triangulation;
 
-mod view_on_surveys;
-use view_on_surveys::{HEALPixCellsInView, HEALPixCells, NewHEALPixCells, get_cells_in_camera};
+pub mod view_on_surveys;
+use view_on_surveys::{HEALPixCellsInView, NewHEALPixCells, get_cells_in_camera};
+pub use view_on_surveys::HEALPixCells;
 
 pub mod image_survey;
 pub use image_survey::{

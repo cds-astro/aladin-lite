@@ -3,7 +3,7 @@ use crate::healpix_cell::HEALPixCell;
 
 use std::collections::hash_set::Iter;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
@@ -62,6 +62,21 @@ impl HEALPixCells {
                 cells
             }
         }
+    }
+
+    pub fn intersection<'a>(
+        &'a self,
+        other: &'a Self
+    ) -> HashSet<&'a HEALPixCell> {
+        self.cells.intersection(&other.cells)
+            .collect()
+    }
+    pub fn difference<'a>(
+        &'a self,
+        other: &'a Self
+    ) -> HashSet<&'a HEALPixCell> {
+        self.cells.difference(&other.cells)
+            .collect()
     }
 
     pub fn iter(&self) -> HEALPixCellsIter {
@@ -123,6 +138,8 @@ impl NewHEALPixCells {
                 (cell, new)
             })
             .collect::<HashMap<_, _>>();
+        
+
         self.is_new_cells_added = is_new_cells_added;
     }
 
@@ -200,9 +217,21 @@ pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
         let inside = camera.get_center().truncate();
         //crate::log(&format!("vertices {:?}, inside {:?}", vertices, inside));
         polygon_coverage(vertices, depth, &inside)
+
     } else {
         HEALPixCells::allsky(depth)
     }
+    
+    /*let center = camera.get_center();
+    if let Some(vertices) = camera.get_vertices() {
+        //crate::log(&format!("A {:?}, B {:?}", vertices, center.truncate()));
+
+        let radius = crate::math::ang_between_vect(&vertices[0].truncate(), &center.truncate());
+        crate::log(&format!("radius {:?}", radius));
+        cone_coverage(depth, radius.0, &center.truncate())
+    } else {
+        HEALPixCells::allsky(depth)
+    }*/
 }
 
 use cgmath::Vector4;
@@ -212,7 +241,25 @@ fn polygon_coverage(
     depth: u8,
     inside: &Vector3<f32>
 ) -> HEALPixCells {
-    let coverage = cdshealpix::HEALPixCoverage::new(depth, vertices, &inside);
+    let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
+
+    let cells = coverage.flat_iter()
+        .map(|idx| {
+            HEALPixCell(depth, idx)
+        })
+        .collect();
+    
+    HEALPixCells {
+        cells,
+        depth
+    }
+}
+fn cone_coverage(
+    depth: u8,
+    radius: f32,
+    center: &Vector3<f32>,
+) -> HEALPixCells {
+    let coverage = cdshealpix::from_cone(depth, radius, center);
 
     let cells = coverage.flat_iter()
         .map(|idx| {
@@ -233,20 +280,26 @@ pub struct HEALPixCellsInView {
     cells: HEALPixCells,
     new_cells: NewHEALPixCells,
     prev_depth: u8,
+    look_for_parents: bool,
+    is_new_cells: bool,
 }
 
-use crate::camera::CameraViewPort;
+use crate::camera::{CameraViewPort, UserAction};
 use super::image_survey::ImageSurvey;
 impl HEALPixCellsInView {
     pub fn new() -> Self {
         let cells = HEALPixCells::new();
         let new_cells = NewHEALPixCells::new(&cells);
         let prev_depth = 0;
+        let look_for_parents = false;
+        let is_new_cells = false;
 
         HEALPixCellsInView {
             cells,
             new_cells,
             prev_depth,
+            look_for_parents,
+            is_new_cells,
         }
     }
 
@@ -254,17 +307,32 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn refresh_cells(&mut self, survey_tex_size: i32, camera: &CameraViewPort) {
+    pub fn refresh_cells(&mut self, survey_tex_size: i32, max_depth: u8, camera: &CameraViewPort) {
         self.prev_depth = self.cells.get_depth();
 
         // Compute that depth
         let num_pixels = survey_tex_size;
-        let depth = depth_from_pixels_on_screen(camera, num_pixels).round() as u8;
+        let mut depth = depth_from_pixels_on_screen(camera, num_pixels).round() as u8;
         
+        if depth > max_depth {
+            depth = max_depth;
+        }
+
         // Get the cells of that depth in the current field of view
-        self.cells = get_cells_in_camera(depth, camera);
-        crate::log(&format!("CELLS in CAMERA, {:?}", self.cells));
+        let cells = get_cells_in_camera(depth, camera);
+        //self.is_new_cells = (cells.intersection(&self.cells).len() == cells.len());
+        self.is_new_cells = !cells.difference(&self.cells).is_empty();
+        self.cells = cells;
+        //crate::log(&format!("CELLS in CAMERA, {:?}", self.cells));
         self.new_cells.insert_new_cells(&self.cells);
+
+        if camera.get_last_user_action() == UserAction::Unzooming {
+            if self.has_depth_decreased() {
+                self.look_for_parents = true;
+            }
+        } else {
+            self.look_for_parents = false;
+        }
     }
 
     // Accessors
@@ -295,11 +363,23 @@ impl HEALPixCellsInView {
 
     #[inline]
     pub fn is_there_new_cells_added(&self) -> bool {
-        self.new_cells.is_there_new_cells_added()
+        //self.new_cells.is_there_new_cells_added()
+        self.is_new_cells
+    }
+
+    /*#[inline]
+    pub fn is_view_different(&self) -> bool {
+        self.is_new_cells
+    }*/
+
+    #[inline]
+    pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {
+        assert!(camera.get_last_user_action() == UserAction::Unzooming);
+        self.look_for_parents
     }
 
     #[inline]
-    pub fn has_depth_decreased(&self) -> bool {
+    fn has_depth_decreased(&self) -> bool {
         let depth = self.cells.get_depth();
         depth < self.prev_depth
     }

@@ -268,6 +268,8 @@ impl App {
                         // Remove and append the texture with an updated
                         // time_request
                         if is_cell_new {
+                            crate::log("new cell");
+
                             // New cells are 
                             self.time_start_blending = Time::now();
                         }
@@ -405,11 +407,12 @@ impl App {
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
         /*if !self.rendering {
+            crate::log("do not render");
             return;
         }*/
 
         // Render the scene
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear_color(0.08, 1.0, 0.08, 1.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
@@ -560,6 +563,9 @@ impl App {
         let rot = Rotation::from_sky_position(&xyz);
         self.camera.set_rotation::<P>(&rot);
         self.look_for_new_tiles();
+
+        // Stop the current animation if there is one
+        self.move_animation = None;
     }
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
@@ -568,7 +574,7 @@ impl App {
         let goal_pos: Vector4<f32> = lonlat.vector();
 
         // Convert these positions to rotations
-        let start_anim_rot = Rotation::from_sky_position(cursor_pos);
+        let start_anim_rot = *self.camera.get_rotation();
         let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
 
         // Set the moving animation object
@@ -600,6 +606,9 @@ impl App {
             self.camera.rotate::<P>(&(-axis), d);
             self.look_for_new_tiles();
         }
+
+        // Stop the current animation if there is one
+        self.move_animation = None;
     }
     
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
@@ -1222,6 +1231,14 @@ impl WebClient {
         self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
         // Tell the finite state machines the fov has manually been changed
         //self.events.enable::<SetFieldOfView>(());
+
+        Ok(())
+    }
+    
+    #[wasm_bindgen(js_name = setClipZoomFactor)]
+    pub fn set_clip_zoom_factor(&mut self, clip_zoom_factor: f32) -> Result<(), JsValue> {
+        //self.projection.set_clip_zoom_factor(&mut self.app, fov);
+
 
         Ok(())
     }

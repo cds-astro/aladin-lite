@@ -37,14 +37,13 @@ impl Requests {
                 let mut cur_idx_comp = 0;
                 let mut html_image_req_available = true;
 
-                crate::log(&format!("{}", self.start_fits_req_idx));
+                //crate::log(&format!("{}", self.start_fits_req_idx));
                 while !self.reqs[cur_idx_comp].is_ready() && html_image_req_available {
                     cur_idx_comp += 1;
                     if cur_idx_comp == self.start_fits_req_idx {
                         html_image_req_available = false;
                     }
                 }
-                crate::log(&format!("aasas"));
 
                 if html_image_req_available {
                     let req = &mut self.reqs[cur_idx_comp];

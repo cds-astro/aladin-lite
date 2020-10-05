@@ -45,7 +45,8 @@ pub trait RecomputeRasterizer {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(
-        cells_to_draw: &HEALPixCells,
+        camera: &CameraViewPort,
+        view: &HEALPixCellsInView,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
         survey: &'a ImageSurveyTextures,
@@ -63,7 +64,9 @@ impl RecomputeRasterizer for Move  {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+        let cells_to_draw = view.get_cells();
+        crate::log(&format!("cells to draw: {:?}", cells_to_draw));
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
         for cell in cells_to_draw.iter() {
@@ -97,7 +100,8 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+        let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
         for cell in cells_to_draw.iter() {
@@ -132,7 +136,18 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(cells_to_draw: &HEALPixCells, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+        let mut depth = view.get_depth();
+        let max_depth = survey.config().get_max_depth();
+
+        // We do not draw the parent cells if the depth has not decreased by at least one
+        let cells_to_draw = if depth < max_depth && view.has_depth_decreased_while_unzooming(camera) {
+            Cow::Owned(crate::renderable::view_on_surveys::get_cells_in_camera(depth + 1, camera))
+            //Cow::Borrowed(view.get_cells())
+        } else {
+            Cow::Borrowed(view.get_cells())
+        };
+
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
         for cell in cells_to_draw.iter() {
@@ -286,7 +301,7 @@ impl SendUniforms for Color {
 
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
-const MAX_NUM_CELLS_TO_DRAW: usize = 2000;
+const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 // Each cell has 4 vertices
 pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
 // There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
@@ -508,10 +523,6 @@ pub struct ImageSurvey {
     textures: ImageSurveyTextures,
     // Keep track of the cells in the FOV
     view: HEALPixCellsInView,
-    // Flag telling if the user is unzooming and
-    // the depth has decreased by at least 1
-    // This is used to draw the vbo vertices when users are unzooming
-    cells_depth_increased: bool,
 
     num_idx: usize,
 
@@ -522,6 +533,8 @@ pub struct ImageSurvey {
     gl: WebGl2Context,
 
     _type: ImageSurveyType,
+    size_vertices_buf: u32,
+    size_idx_vertices_buf: u32,
 }
 use crate::utils;
 use crate::camera::UserAction;
@@ -548,30 +561,32 @@ impl ImageSurvey {
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
 
         let data = vec![0.0_f32; MAX_NUM_FLOATS_TO_DRAW];
+        let size_vertices_buf = MAX_NUM_FLOATS_TO_DRAW as u32;
         gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             unsafe { &js_sys::Float32Array::view(&data) },
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
 
+        let num_bytes_per_f32 = mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 12 * num_bytes_per_f32, (0 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(0);
 
         // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, 12 * num_bytes_per_f32, (2 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(1);
 
         // layout (location = 2) in vec3 uv_start;
-        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (5 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, 12 * num_bytes_per_f32, (5 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(2);
 
         // layout (location = 3) in vec3 uv_end;
-        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (8 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(3, 3, WebGl2RenderingContext::FLOAT, false, 12 * num_bytes_per_f32, (8 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(3);
 
         // layout (location = 4) in float time_tile_received;
-        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, (12 * mem::size_of::<f32>()) as i32, (11 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(4, 1, WebGl2RenderingContext::FLOAT, false, 12 * num_bytes_per_f32, (11 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(4);
 
         let ebo = gl.create_buffer()
@@ -580,6 +595,7 @@ impl ImageSurvey {
         // Bind the buffer
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
         let data = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        let size_idx_vertices_buf = MAX_NUM_INDICES_TO_DRAW as u32;
         gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
             unsafe { &js_sys::Uint16Array::view(&data) },
@@ -589,7 +605,6 @@ impl ImageSurvey {
         let num_idx = 0;
         let sphere_sub = SphereSubdivided::new();
         let gl = gl.clone();
-        let cells_depth_increased = false;
         ImageSurvey {
             id,
             color,
@@ -597,7 +612,6 @@ impl ImageSurvey {
             textures,
             // Keep track of the cells in the FOV
             view,
-            cells_depth_increased,
         
             num_idx,
         
@@ -608,6 +622,8 @@ impl ImageSurvey {
             gl,
 
             _type,
+            size_vertices_buf,
+            size_idx_vertices_buf
         }
     }
 
@@ -685,26 +701,26 @@ impl ImageSurvey {
 
     }*/
 
-    pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction) {
+    pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction, camera: &CameraViewPort) {
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_vertices::<P, UnZoom>();
+                self.update_vertices::<P, UnZoom>(camera);
             },
             UserAction::Zooming => {
-                self.update_vertices::<P, Zoom>();
+                self.update_vertices::<P, Zoom>(camera);
             },
             UserAction::Moving => {
-                self.update_vertices::<P, Move>();
+                self.update_vertices::<P, Move>(camera);
             },
             UserAction::Starting => {
-                self.update_vertices::<P, Move>();
+                self.update_vertices::<P, Move>(camera);
             }
         }
     }
 
-    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self) {
-        let cells_to_draw = self.view.get_cells();
-        let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
+    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
+        crate::log("update vertices!");
+        let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
         let mut vertices = vec![];
         let mut idx_vertices = vec![];
@@ -727,26 +743,53 @@ impl ImageSurvey {
                 start_time.as_millis(),
             );
         }
+
         self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        //crate::log(&format!(": {} {}", vertices.len(), self.size_vertices_buf));
         let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            0,
-            &buf_vertices
-        );
+        if vertices.len() > self.size_vertices_buf as usize {
+            self.size_vertices_buf =  vertices.len() as u32;
+            //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
+
+            self.gl.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                &buf_vertices,
+                WebGl2RenderingContext::DYNAMIC_DRAW
+            );
+        } else {
+
+            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                0,
+                &buf_vertices
+            );
+        }
         self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.ebo));
+
         self.num_idx = idx_vertices.len();
         let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            0 as i32,
-            &buf_idx
-        );
+        if idx_vertices.len() > self.size_idx_vertices_buf as usize {
+            self.size_idx_vertices_buf = idx_vertices.len() as u32;
+            self.gl.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                &buf_idx,
+                WebGl2RenderingContext::DYNAMIC_DRAW
+            );
+        } else {
+
+            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                0,
+                &buf_idx
+            );
+        }
     }
 
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let texture_size = self.textures.config().get_texture_size();
-        self.view.refresh_cells(texture_size, camera);
+        let max_depth = self.textures.config().get_max_depth();
+
+        self.view.refresh_cells(texture_size, max_depth, camera);
     }
 
     #[inline]
@@ -787,6 +830,8 @@ impl Draw for ImageSurvey {
             // are not loaded
             return;
         }
+        let last_user_action = camera.get_last_user_action();
+
         let limit_aperture: Angle<f32> = ArcDeg(150.0).into();
         if camera.get_aperture() > limit_aperture {
             // Raytracer
@@ -805,8 +850,7 @@ impl Draw for ImageSurvey {
             return;
         }
 
-        crate::log("raster draw");
-        crate::log(&format!("camera fov {:?}", camera.get_aperture()));
+
         // The rasterizer has a buffer containing:
         // - The vertices of the HEALPix cells for the most refined survey
         // - The starting and ending uv for the blending animation
@@ -823,7 +867,7 @@ impl Draw for ImageSurvey {
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
 
-        let last_user_action = camera.last_user_action();
+
         // Get the cells to draw
         /*let cells_to_draw = if last_user_action == UserAction::Unzooming {
             if self.view.has_depth_decreased() || self.cells_depth_increased {
@@ -841,6 +885,7 @@ impl Draw for ImageSurvey {
         };*/
 
         let new_cells_added = self.view.is_there_new_cells_added();
+        //let new_cells_added = self.view.is_view_different();
         let recompute_positions = new_cells_added;
         /*if recompute_vertex_positions {
             self.set_positions::<P>(last_user_action);
@@ -848,7 +893,8 @@ impl Draw for ImageSurvey {
 
         let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles();
         if recompute_vertices {
-            self.set_vertices::<P>(last_user_action);
+            crate::log("recompute vertices");
+            self.set_vertices::<P>(last_user_action, camera);
         }
 
         let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
@@ -1183,6 +1229,7 @@ impl ImageSurveys {
             match result {
                 TileResolved::Missing { time_req } => {
                     let default_image = textures.config().get_black_tile();
+                    crate::log(&format!("missing {:?}", tile));
                     textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
                 },
                 TileResolved::Found { image, time_req } => {

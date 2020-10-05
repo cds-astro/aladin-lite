@@ -75,7 +75,7 @@ impl RayTracer {
         gl.enable_vertex_attrib_array(0);
 
         // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (3 * mem::size_of::<f32>()) as i32);
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(1);
 
         let ebo = gl.create_buffer()
@@ -110,6 +110,7 @@ impl RayTracer {
     }
 
     pub fn draw(&self) {
+        self.bind();
         //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,

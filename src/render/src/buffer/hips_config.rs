@@ -223,7 +223,7 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn max_depth(&self) -> u8 {
+    pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
     }
 

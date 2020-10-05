@@ -10,6 +10,26 @@ struct Face {
     max: Vector2<f32>,
 }
 
+struct Edge {
+    value: Range<f32>,
+    base: f32,
+    direction: DirectionEdge,
+};
+
+impl Egde {
+    fn intersect<P: Projection>(&self) -> Option<Vector2<f32>> {
+        None
+    }
+}
+
+pub enum DirectionEdge {
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+#[derive(Clone, Copy)]
 pub enum Direction {
     BottomLeft,
     BottomRight,
@@ -21,6 +41,12 @@ impl Face {
         Face {
             min, 
             max
+        }
+    }
+
+    fn get_edge(&self, dir: DirectionEdge) -> Edge {
+        match dir {
+
         }
     }
 
@@ -49,6 +75,25 @@ impl Face {
         } else {
             // top-left
             Vector2::new(self.min.x, self.max.y)
+        }
+    }
+
+    fn get_farthest_dir(&self) -> Direction {
+        let x_neg = self.min.x < 0_f32;
+        let y_neg = self.min.y < 0_f32;
+
+        if x_neg && y_neg {
+            // bottom-left
+            Direction::BottomLeft
+        } else if !x_neg && !y_neg {
+            // top-right
+            Direction::TopRight
+        } else if !x_neg && y_neg {
+            // bottom-right
+            Direction::BottomRight
+        } else {
+            // top-left
+            Direction::TopLeft
         }
     }
 
@@ -106,6 +151,39 @@ impl Face {
         ].iter());
     }
 
+    pub fn add_bl_triangle(&self, vertices: &mut Vec<Vector2<f32>>, idx: &mut Vec<u16>) {
+        self.add_triangle([Direction::BottomRight, Direction::TopRight, Direction::TopLeft], vertices, idx);
+    }
+    pub fn add_br_triangle(&self, vertices: &mut Vec<Vector2<f32>>, idx: &mut Vec<u16>) {
+        self.add_triangle([Direction::BottomLeft, Direction::TopRight, Direction::TopLeft], vertices, idx);
+    }
+    pub fn add_tr_triangle(&self, vertices: &mut Vec<Vector2<f32>>, idx: &mut Vec<u16>) {
+        self.add_triangle([Direction::BottomLeft, Direction::BottomRight, Direction::TopLeft], vertices, idx);
+    }
+    pub fn add_tl_triangle(&self, vertices: &mut Vec<Vector2<f32>>, idx: &mut Vec<u16>) {
+        self.add_triangle([Direction::BottomLeft, Direction::BottomRight, Direction::TopRight], vertices, idx);
+    }
+
+    fn add_triangle(&self, d: [Direction; 3], vertices: &mut Vec<Vector2<f32>>, idx: &mut Vec<u16>) {
+        let p1 = self.get_vertex(d[0]);
+        let p2 = self.get_vertex(d[1]);
+        let p3 = self.get_vertex(d[2]);
+
+        let off_idx = vertices.len() as u16;
+
+        // push the 4 vertices
+        vertices.push(p1);
+        vertices.push(p2);
+        vertices.push(p3);
+
+        // push the 6 indexes
+        idx.extend([
+            off_idx,
+            off_idx + 1,
+            off_idx + 2,
+        ].iter());
+    }
+
     pub fn get_child(&self, d: Direction) -> Self {
         let center = (self.min + self.max) * 0.5_f32;
         let (min, max) = match d {
@@ -142,7 +220,8 @@ fn recursive_triangulation<P: Projection>(
     face: &Face,
     vertices: &mut Vec<Vector2<f32>>,
     idx: &mut Vec<u16>,
-    depth: u8
+    depth: u8,
+    first: &mut bool,
 ) {
     if depth > 0 {
         // Look if the square is totally included in the projection
@@ -161,34 +240,49 @@ fn recursive_triangulation<P: Projection>(
                     &face.get_child(Direction::TopLeft),
                     vertices,
                     idx,
-                    depth - 1
+                    depth - 1,
+                    first
                 );
                 // top-right
                 recursive_triangulation::<P>(
                     &face.get_child(Direction::TopRight),
                     vertices,
                     idx,
-                    depth - 1
+                    depth - 1,
+                    first
                 );
                 // bottom-left
                 recursive_triangulation::<P>(
                     &face.get_child(Direction::BottomLeft),
                     vertices,
                     idx,
-                    depth - 1
+                    depth - 1,
+                    first
                 );
                 // bottom-right
                 recursive_triangulation::<P>(
                     &face.get_child(Direction::BottomRight),
                     vertices,
                     idx,
-                    depth - 1
+                    depth - 1,
+                    first
                 );
             }
         } 
     } else {
+        //face.add_tr_triangle(vertices, idx);
         // Leaf
         // TODO
+        //if !*first {
+            match face.get_farthest_dir() {
+                Direction::TopRight => face.add_tr_triangle(vertices, idx),
+                Direction::TopLeft => face.add_tl_triangle(vertices, idx),
+                Direction::BottomLeft => face.add_bl_triangle(vertices, idx),
+                Direction::BottomRight => face.add_br_triangle(vertices, idx),
+          //      _ => ()
+            }
+        //    *first = true;
+        //}
     }
 }
 
@@ -201,11 +295,12 @@ impl Triangulation {
         let root = Face::new(Vector2::new(-1_f32, -1_f32), Vector2::new(1_f32, 1_f32));
         let children = root.split();
 
-        let depth = 8;
-        recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth);
-        recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth);
-        recursive_triangulation::<P>(&children[2], &mut vertices, &mut idx, depth);
-        recursive_triangulation::<P>(&children[3], &mut vertices, &mut idx, depth);
+        let depth = 5;
+        let mut first = false;
+        recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth, &mut first);
+        recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth, &mut first);
+        recursive_triangulation::<P>(&children[2], &mut vertices, &mut idx, depth, &mut first);
+        recursive_triangulation::<P>(&children[3], &mut vertices, &mut idx, depth, &mut first);
 
         Triangulation {
             vertices,

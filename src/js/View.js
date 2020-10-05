@@ -706,7 +706,6 @@ export let View = (function() {
 
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                console.log("ALADIN LITE, ",webglAPI)
 
                 pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
@@ -1561,8 +1560,13 @@ export let View = (function() {
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
-        console.log("FOV, ", this.fov);
-        this.aladin.webglAPI.setFieldOfView(this.fov);
+        if (this.zoomFactor < 1.0) {
+            this.aladin.webglAPI.setClipZoomFactor(this.zoomFactor);
+        } else {
+            this.aladin.webglAPI.setFieldOfView(this.fov);
+        }
+        console.log("FOV, ", this.fov, this.zoomFactor);
+        
 
         // TODO: event/listener should be better
         updateFovDiv(this);

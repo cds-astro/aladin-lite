@@ -13,23 +13,83 @@ pub trait Image {
     //fn get_cutoff_values(&self) -> Option<(f32, f32)>;
 }
 
-impl<T> Image for Rc<T>
-where T: Image {
+impl<T> Image for Rc<T> where T: Image {
     fn tex_sub_image_3d(&self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>
     ) {
-        (&*self).tex_sub_image_3d(textures, offset);
+        let image = &**self;
+        image.tex_sub_image_3d(textures, offset);
+    }
+
+    fn get_size(&self) -> &Vector2<i32> {
+        let image = &**self;
+        image.get_size()
+    }
+}
+/*
+impl Image for Rc<TileArrayBufferImage> {
+    fn tex_sub_image_3d(&self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>
+    ) {
+        match &**self {
+            TileArrayBufferImage::U8(b) => textures.bind()
+                .tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.x,
+                    offset.y,
+                    offset.z,
+                    b.size.x,
+                    b.size.y,
+                    Some(b.buf.as_ref()),
+                ),
+            TileArrayBufferImage::I16(b) => textures.bind()
+                .tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.x,
+                    offset.y,
+                    offset.z,
+                    b.size.x,
+                    b.size.y,
+                    Some(b.buf.as_ref()),
+                ),
+            TileArrayBufferImage::I32(b) => textures.bind()
+                .tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.x,
+                    offset.y,
+                    offset.z,
+                    b.size.x,
+                    b.size.y,
+                    Some(b.buf.as_ref()),
+                ),
+            TileArrayBufferImage::F32(b) => textures.bind()
+                .tex_sub_image_3d_with_opt_array_buffer_view(
+                    offset.x,
+                    offset.y,
+                    offset.z,
+                    b.size.x,
+                    b.size.y,
+                    Some(b.buf.as_ref()),
+                ),
+            _ => unimplemented!()
+        }
     }
 
     // The size of the image
     fn get_size(&self) -> &Vector2<i32> {
-        (&*self).get_size()
+        match &**self {
+            TileArrayBufferImage::U8(b) => &b.size,
+            TileArrayBufferImage::I16(b) => &b.size,
+            TileArrayBufferImage::I32(b) => &b.size,
+            TileArrayBufferImage::F32(b) => &b.size,
+            _ => unimplemented!()
+        }
     }
 }
-
+*/
 #[derive(Debug)]
 pub struct TileArrayBuffer<T: ArrayBuffer> {
     buf: T,

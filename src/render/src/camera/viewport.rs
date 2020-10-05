@@ -89,7 +89,7 @@ impl CameraViewPort {
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
-        let center = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let center = Vector4::new(0.0, 0.0, 1.0, 1.0);
 
         let moved = false;
 
@@ -112,9 +112,9 @@ impl CameraViewPort {
 
         let aspect = width / height;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
-        let clip_zoom_factor = 0_f32;
+        let clip_zoom_factor = 1_f32;
 
-        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m_rot);
+        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m_rot);
         let gl = gl.clone();
 
         let mut camera = CameraViewPort {
@@ -148,8 +148,6 @@ impl CameraViewPort {
             // A reference to the WebGL2 context
             gl,
         };
-
-        camera.update_center::<P>();
 
         camera
     }
@@ -221,8 +219,9 @@ impl CameraViewPort {
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
 
         self.moved = true;
+        self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.vertices.set_fov::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -235,13 +234,14 @@ impl CameraViewPort {
             UserAction::Unzooming
         };
 
-        self.aperture = if aperture <= P::aperture_start() {
+        /*self.aperture = if aperture <= P::aperture_start() {
             aperture
         } else {
             // The start aperture of the new projection is < to the current aperture
             // We reset the wheel idx too
             P::aperture_start()
-        };
+        };*/
+        self.aperture = aperture;
 
         // Compute the new clip zoom factor
         let lon = aperture.abs() / 2_f32;
@@ -255,7 +255,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.vertices.set_fov::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
@@ -272,7 +272,9 @@ impl CameraViewPort {
     }
 
     pub fn set_projection<P: Projection>(&mut self) {
-        self.vertices.set_projection::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.last_user_action = UserAction::Starting;
+
+        self.vertices.set_projection::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
     }
 
     // Accessors
@@ -301,11 +303,15 @@ impl CameraViewPort {
         self.vertices.get_vertices()
     }
 
+    /*pub fn get_radius(&self) -> Option<&Angle<f32>> {
+        self.vertices.get_radius()
+    }
+    */
     pub fn get_screen_size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)
     }
 
-    pub fn last_user_action(&self) -> UserAction {
+    pub fn get_last_user_action(&self) -> UserAction {
         self.last_user_action
     }
 
@@ -359,9 +365,8 @@ impl CameraViewPort {
 
         self.moved = true;
 
+        self.vertices.set_rotation(&self.center, &self.w2m_rot);
         self.update_center::<P>();
-
-        self.vertices.set_rotation(&self.w2m_rot);
     }
 
     fn update_center<P: Projection>(&mut self) {

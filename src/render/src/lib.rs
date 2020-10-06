@@ -394,6 +394,7 @@ impl App {
         // The rendering is done following these different situations:
         // - the camera has moved
         let has_camera_moved = self.camera.has_camera_moved();
+
         // - there is at least one tile in its blending phase
         let blending_anim_occuring = (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
         self.rendering = blending_anim_occuring | has_camera_moved;
@@ -403,14 +404,16 @@ impl App {
             self.manager.update::<P>(&self.camera, self.surveys.get_view().unwrap());
         }
 
+        
+
         Ok(())
     }
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
-        /*if !self.rendering {
+        if !self.rendering {
             crate::log("do not render");
             return;
-        }*/
+        }
 
         // Render the scene
         self.gl.clear_color(0.08, 1.0, 0.08, 1.0);
@@ -418,6 +421,7 @@ impl App {
 
         self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         self.surveys.draw::<P>(&self.camera, &mut self.shaders);
+
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
@@ -427,6 +431,9 @@ impl App {
             &mut self.shaders,
             &self.camera
         );
+
+        // Reset the flags about the user action
+        self.camera.reset();
         
         // Draw the grid
         /*self.grid.draw::<P>(

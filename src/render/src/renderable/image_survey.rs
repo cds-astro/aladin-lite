@@ -891,7 +891,7 @@ impl Draw for ImageSurvey {
             self.set_positions::<P>(last_user_action);
         }*/
 
-        let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles();
+        let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
         if recompute_vertices {
             crate::log("recompute vertices");
             self.set_vertices::<P>(last_user_action, camera);
@@ -1049,7 +1049,7 @@ impl ImageSurveys {
     }
 
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        let raytracing = camera.get_aperture() > 150.0;
+        let raytracing = camera.get_aperture() > 110.0;
         // Bind the good VAO
         if raytracing {
             self.raytracer.bind();

@@ -4,6 +4,7 @@ use crate::healpix_cell::HEALPixCell;
 use std::collections::hash_set::Iter;
 
 #[derive(Debug, Clone)]
+#[derive(std::cmp::PartialEq)]
 pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
@@ -321,9 +322,10 @@ impl HEALPixCellsInView {
         // Get the cells of that depth in the current field of view
         let cells = get_cells_in_camera(depth, camera);
         //self.is_new_cells = (cells.intersection(&self.cells).len() == cells.len());
-        self.is_new_cells = !cells.difference(&self.cells).is_empty();
+        //self.is_new_cells = !cells.difference(&self.cells).is_empty();
+        self.is_new_cells = cells != self.cells;
         self.cells = cells;
-        //crate::log(&format!("CELLS in CAMERA, {:?}", self.cells));
+        crate::log(&format!("CELLS in CAMERA: {:?}", self.cells));
         self.new_cells.insert_new_cells(&self.cells);
 
         if camera.get_last_user_action() == UserAction::Unzooming {

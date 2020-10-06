@@ -113,7 +113,7 @@ impl RayTracer {
         self.bind();
         //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
         self.gl.draw_elements_with_i32(
-            //WebGl2RenderingContext::LINES,
+            //WebGl2RenderingContext::LINE_STRIP,
             WebGl2RenderingContext::TRIANGLES,
             self.num_indices,
             WebGl2RenderingContext::UNSIGNED_SHORT,

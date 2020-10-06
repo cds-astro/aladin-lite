@@ -318,11 +318,13 @@ impl CameraViewPort {
         self.last_user_action
     }
 
-    pub fn has_camera_moved(&mut self) -> bool {
-        let res = self.moved;
-        self.moved = false;
+    pub fn has_camera_moved(&self) -> bool {
+        self.moved
+    }
 
-        res
+    // Reset moving flag
+    pub fn reset(&mut self) {
+        self.moved = false;
     }
 
     /*pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {

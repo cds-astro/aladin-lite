@@ -250,8 +250,11 @@ impl CameraViewPort {
         let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
 
         // Project this vertex into the screen
-        let p0 = P::world_to_clip_space(&v0);
-        self.clip_zoom_factor = p0.x.abs();
+        if let Some(p0) = P::world_to_clip_space(&v0) {
+            self.clip_zoom_factor = p0.x.abs();
+        } else {
+            self.clip_zoom_factor = self.aperture.0 / P::aperture_start().0;
+        }
 
         self.moved = true;
 

@@ -153,29 +153,34 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     /// 
     /// * `x` - X mouse position in homogenous screen space (between [-1, 1])
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
-    fn world_to_normalized_device_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Vector2<f32> {
-        let pos_clip_space = Self::world_to_clip_space(pos_model_space);
-
-        let ndc_to_clip = camera.get_ndc_to_clip();
-        let clip_zoom_factor = camera.get_clip_zoom_factor();
-
-        let pos_normalized_device = Vector2::new(
-            pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
-            pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
-        );
-        pos_normalized_device
+    fn world_to_normalized_device_space(pos_world_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
+        if let Some(pos_clip_space) = Self::world_to_clip_space(pos_world_space) {
+            let ndc_to_clip = camera.get_ndc_to_clip();
+            let clip_zoom_factor = camera.get_clip_zoom_factor();
+    
+            let pos_normalized_device = Vector2::new(
+                pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
+                pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
+            );
+            Some(pos_normalized_device)
+        } else {
+            None
+        }
     }
 
-    fn world_to_screen_space(pos_world_space: &Vector4<f32>, camera: &CameraViewPort) -> Vector2<f32> {
-        let pos_normalized_device = Self::world_to_normalized_device_space(pos_world_space, camera);
-        self::ndc_to_screen_space(&pos_normalized_device, camera)
+    fn world_to_screen_space(pos_world_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
+        if let Some(pos_normalized_device) = Self::world_to_normalized_device_space(pos_world_space, camera) {
+            Some(self::ndc_to_screen_space(&pos_normalized_device, camera))
+        } else {
+            None
+        }
     }
     /// World to the clipping space deprojection
     /// 
     /// # Arguments
     /// 
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Vector2<f32>;
+    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Option<Vector2<f32>>;
 
     // Aperture angle at the start of the application (full view)
     // - 180 degrees for the 3D projections (i.e. ortho)
@@ -187,6 +192,9 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     fn is_front_of_camera(pos_world_space: &Vector4<f32>) -> bool;
 
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32>;
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)>;
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)>;
 }
 
 pub struct Aitoff;
@@ -215,7 +223,24 @@ impl Projection for Aitoff {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
-        (px2 * b2 + py2 * a2) <= a2 * b2
+        (px2 * b2 + py2 * a2) < a2 * b2
+    }
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 0.5_f32 {
+            None
+        } else {
+            let x = (1.0 - 4.0*y*y).sqrt();
+            Some((-x + 1e-3, x - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            let y = (1.0 - x*x).sqrt() * 0.5_f32;
+            Some((-y + 1e-3, y - 1e-3))
+        }
     }
 
     /// View to world space transformation
@@ -267,7 +292,7 @@ impl Projection for Aitoff {
     /// # Arguments
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Vector2<f32> {
+    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Option<Vector2<f32>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
@@ -288,7 +313,7 @@ impl Projection for Aitoff {
         let x = -2_f32 * inv_sinc_alpha * delta.0.cos() * theta_by_two.0.sin();
         let y = inv_sinc_alpha * delta.0.sin();
 
-        Vector2::new(x / std::f32::consts::PI, y / std::f32::consts::PI)
+        Some(Vector2::new(x / std::f32::consts::PI, y / std::f32::consts::PI))
     }
 
     fn aperture_start() -> Angle<f32> {
@@ -319,7 +344,24 @@ impl Projection for Mollweide {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
-        (px2 * b2 + py2 * a2) <= a2 * b2
+        (px2 * b2 + py2 * a2) < a2 * b2
+    }
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 0.5_f32 {
+            None
+        } else {
+            let x = (1.0 - 4.0*y*y).sqrt();
+            Some((-x + 1e-3, x - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            let y = (1.0 - x*x).sqrt() * 0.5_f32;
+            Some((-y + 1e-3, y - 1e-3))
+        }
     }
 
     /// View to world space transformation
@@ -363,7 +405,7 @@ impl Projection for Mollweide {
     /// # Arguments
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Vector2<f32> {
+    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Option<Vector2<f32>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         let epsilon = 1e-3;
@@ -392,7 +434,7 @@ impl Projection for Mollweide {
         let x = -(lon.0 / std::f32::consts::PI) * theta.cos();
         let y = 0.5_f32 * theta.sin();
 
-        Vector2::new(x, y)
+        Some(Vector2::new(x, y))
     }
 
     fn aperture_start() -> Angle<f32> {
@@ -415,7 +457,24 @@ impl Projection for Orthographic {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
-        (px2 + py2) <= 1_f32
+        (px2 + py2) < 1_f32
+    }
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 1.0_f32 {
+            None
+        } else {
+            let x = (1.0 - y*y).sqrt();
+            Some((-x + 1e-3, x - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            let y = (1.0 - x*x).sqrt();
+            Some((-y + 1e-3, y - 1e-3))
+        }
     }
 
     /// View to world space transformation
@@ -446,8 +505,12 @@ impl Projection for Orthographic {
     /// # Arguments
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &cgmath::Vector4<f32>) -> Vector2<f32> {
-        Vector2::new(-pos_world_space.x, pos_world_space.y)
+    fn world_to_clip_space(pos_world_space: &cgmath::Vector4<f32>) -> Option<Vector2<f32>> {
+        if pos_world_space.z < 0.0_f32 {
+            None
+        } else {
+            Some(Vector2::new(-pos_world_space.x, pos_world_space.y))
+        }
     }
 
     fn aperture_start() -> Angle<f32> {
@@ -468,9 +531,26 @@ impl Projection for AzimutalEquidistant {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
-        (px2 + py2) <= 1_f32
+        (px2 + py2) < 1_f32
     }
 
+    
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 1.0_f32 {
+            None
+        } else {
+            let x = (1.0 - y*y).sqrt();
+            Some((-x + 1e-3, x - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            let y = (1.0 - x*x).sqrt();
+            Some((-y + 1e-3, y - 1e-3))
+        }
+    }
     /// View to world space transformation
     /// 
     /// This returns a normalized vector along its first 3 dimensions.
@@ -511,7 +591,7 @@ impl Projection for AzimutalEquidistant {
     /// # Arguments
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Vector2<f32> {
+    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Option<Vector2<f32>> {
         let (theta, delta) = math::xyzw_to_radec(&pos_world_space);
         let c = delta.cos() * theta.cos();
 
@@ -520,7 +600,7 @@ impl Projection for AzimutalEquidistant {
         let x = -k* delta.cos() * theta.sin();
         let y = k*delta.sin();
 
-        Vector2::new(x.0 / std::f32::consts::PI, y.0 / std::f32::consts::PI)
+        Some(Vector2::new(x.0 / std::f32::consts::PI, y.0 / std::f32::consts::PI))
     }
 
     fn aperture_start() -> Angle<f32> {
@@ -542,7 +622,23 @@ impl Projection for Mercator {
         let px = pos_clip_space.x;
         let py = pos_clip_space.y;
 
-        px >= -1_f32 && px <= 1_f32 && py >= -1_f32 && py <= 1_f32
+        px > -1_f32 && px < 1_f32 && py > -1_f32 && py < 1_f32
+    }
+
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 1.0_f32 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
     }
 
     /// View to world space transformation
@@ -590,13 +686,13 @@ impl Projection for Mercator {
     /// # Arguments
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Vector2<f32> {
+    fn world_to_clip_space(pos_world_space: &Vector4<f32>) -> Option<Vector2<f32>> {
         let (theta, delta) = math::xyzw_to_radec(&pos_world_space);
 
-        Vector2::new(
+        Some(Vector2::new(
             -theta.0 / std::f32::consts::PI,
             (((std::f32::consts::PI / 4_f32) + (delta.0 / 2_f32)).tan()).ln() / std::f32::consts::PI
-        )
+        ))
     }
 
     fn aperture_start() -> Angle<f32> {

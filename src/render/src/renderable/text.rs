@@ -282,9 +282,9 @@ impl TextManager {
             return;
         }
 
-        let pos = P::world_to_screen_space(&pos_model_space, camera);
-
-        self.add_text(&pos, text);
+        if let Some(screen_pos) = P::world_to_screen_space(&pos_model_space, camera) {
+            self.add_text(&screen_pos, text);
+        }
     }
 
     pub fn update(&mut self) {

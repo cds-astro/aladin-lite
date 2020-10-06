@@ -170,6 +170,7 @@ impl App {
         );*/
 
         log("shaders compiled");
+        Orthographic::world_to_clip_space(&Vector4::new(0.0, 0.0, -1.0, 1.0));
         //panic!(format!("{:?}", aa));
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 

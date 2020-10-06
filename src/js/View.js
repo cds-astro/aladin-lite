@@ -787,9 +787,11 @@ export let View = (function() {
             } 
             if (delta>0) {
                 level += 1;
+                //zoom
             }
             else {
                 level -= 1;
+                //unzoom
             }
             view.setZoomLevel(level);
             
@@ -1527,6 +1529,15 @@ export let View = (function() {
 
     
     View.prototype.setZoomLevel = function(level) {
+        /*let zoom = {"action": undefined};
+
+        if (this.zoomLevel > level) {
+            console.log("unzoom")
+            zoom["action"] = "unzoom";
+        } else if (this.zoomLevel < level) {
+            zoom["action"] = "zoom";
+        }*/
+
         if (this.minFOV || this.maxFOV) {
             var newFov = doComputeFov(this, this.computeZoomFactor(Math.max(-2, level)));
             if (this.maxFOV && newFov>this.maxFOV  ||  this.minFOV && newFov<this.minFOV)  {
@@ -1548,7 +1559,8 @@ export let View = (function() {
                 }
             }
             else {
-                this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+                //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+                this.zoomLevel = Math.max(-5, level); // TODO : canvas freezes in firefox when max level is small
             }
         }
         else {
@@ -1560,13 +1572,14 @@ export let View = (function() {
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
-        if (this.zoomFactor < 1.0) {
-            this.aladin.webglAPI.setClipZoomFactor(this.zoomFactor);
-        } else {
+        if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
+        } else {
+            console.log("FOV, ", this.fov / this.zoomFactor);
+
+            // zoom factor
+            this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
         }
-        console.log("FOV, ", this.fov, this.zoomFactor);
-        
 
         // TODO: event/listener should be better
         updateFovDiv(this);

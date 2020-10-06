@@ -203,7 +203,7 @@ use crate::renderable::Rasterizer;
 use crate::shaders::Colormap;
 
 trait Draw {
-    fn draw<P: Projection>(&mut self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort);
+    fn draw<P: Projection>(&mut self, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort);
 }
 
 #[derive(Clone, Copy)]
@@ -515,7 +515,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
 
-use web_sys::WebGlBuffer;
+use web_sys::{WebGlVertexArrayObject, WebGlBuffer};
 pub struct ImageSurvey {
     id: String,
     color: Color,
@@ -527,6 +527,7 @@ pub struct ImageSurvey {
     num_idx: usize,
 
     sphere_sub: SphereSubdivided,
+    vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
     ebo: WebGlBuffer,
 
@@ -548,12 +549,10 @@ impl ImageSurvey {
         exec: Rc<RefCell<TaskExecutor>>,
         _type: ImageSurveyType
     ) -> Self {
-        surveys.bind_raster_vao();
-
         let id = config.root_url.clone();
 
-        let textures = ImageSurveyTextures::new(gl, config, exec);
-        let view = HEALPixCellsInView::new();
+        let vao = gl.create_vertex_array().unwrap();
+        gl.bind_vertex_array(Some(&vao));
 
         let vbo = gl.create_buffer()
             .ok_or("failed to create buffer")
@@ -604,7 +603,12 @@ impl ImageSurvey {
 
         let num_idx = 0;
         let sphere_sub = SphereSubdivided::new();
+
+        let textures = ImageSurveyTextures::new(gl, config, exec);
+        let view = HEALPixCellsInView::new();
+
         let gl = gl.clone();
+
         ImageSurvey {
             id,
             color,
@@ -616,6 +620,7 @@ impl ImageSurvey {
             num_idx,
         
             sphere_sub,
+            vao,
             vbo,
             ebo,
         
@@ -634,25 +639,7 @@ impl ImageSurvey {
     pub fn set_color(&mut self, color: &Color) {
         self.color = *color;
     }
-
-    /*pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction) {
-        match last_user_action {
-            UserAction::Unzooming => {
-                let textures = UnZoom::get_textures_from_survey(cells_to_draw, &self.textures);
-                self.update_vertices::<P, UnZoom>(&textures);
-            },
-            UserAction::Zooming => {
-                self.update_positions::<P, Zoom>();
-            },
-            UserAction::Moving => {
-                self.update_positions::<P, Move>();
-            },
-            UserAction::Starting => {
-                self.update_positions::<P, Move>();
-            }
-        }
-    }
-
+    /*
     fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self) {
         let cells_to_draw = self.view.get_cells();
 
@@ -822,19 +809,35 @@ impl ImageSurvey {
     }
 }
 
+impl Drop for ImageSurvey {
+    fn drop(&mut self) {
+        // Drop the vertex arrays
+        self.gl.delete_buffer(Some(&self.vbo));
+        self.gl.delete_buffer(Some(&self.ebo));
+
+        self.gl.delete_vertex_array(Some(&self.vao));
+
+
+        crate::log(&format!("drop {:?}", self.id));
+    }
+}
+
 use std::borrow::Cow;
 impl Draw for ImageSurvey {
-    fn draw<P: Projection>(&mut self, raster: &Rasterizer, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
+    fn draw<P: Projection>(&mut self, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
             // are not loaded
             return;
         }
+
         let last_user_action = camera.get_last_user_action();
 
-        let limit_aperture: Angle<f32> = ArcDeg(150.0).into();
+        let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         if camera.get_aperture() > limit_aperture {
+            //raytracer.bind();
             // Raytracer
+            raytracer.bind();
             let shader = self.color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
 
             let cells_to_draw = self.view.get_cells();
@@ -890,23 +893,32 @@ impl Draw for ImageSurvey {
         /*if recompute_vertex_positions {
             self.set_positions::<P>(last_user_action);
         }*/
+        {
+            self.gl.bind_vertex_array(Some(&self.vao));
 
-        let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
-        if recompute_vertices {
-            crate::log("recompute vertices");
-            self.set_vertices::<P>(last_user_action, camera);
+            let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
+            if recompute_vertices {
+                crate::log("recompute vertices");
+                self.set_vertices::<P>(last_user_action, camera);
+            }
+
+            let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
+            shader
+                .attach_uniforms_from(camera)
+                .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&self.color)
+                .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
+                .attach_uniform("current_time", &utils::get_current_time());
+
+            // The raster vao is bound at the lib.rs level
+            self.gl.draw_elements_with_i32(
+                //WebGl2RenderingContext::LINES,
+                WebGl2RenderingContext::TRIANGLES,
+                self.num_idx as i32,
+                WebGl2RenderingContext::UNSIGNED_SHORT,
+                0
+            );
         }
-
-        let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
-        shader
-            .attach_uniforms_from(camera)
-            .attach_uniforms_from(&self.textures)
-            .attach_uniforms_from(&self.color)
-            .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
-            .attach_uniform("current_time", &utils::get_current_time());
-
-        // The raster vao is bound at the lib.rs level
-        raster.draw(self.num_idx as i32);        
     }
 }
 
@@ -934,8 +946,8 @@ impl HiPS for SimpleHiPS {
                     colormap: colormap.into(),
                     param: GrayscaleParameter {
                         h: transfer.into(),
-                        min_value: properties.minCutout,
-                        max_value: properties.maxCutout,
+                        min_value: properties.minCutout.unwrap(),
+                        max_value: properties.maxCutout.unwrap(),
                         
                         // These parameters are not in the properties
                         // They will be retrieved by looking inside a tile
@@ -969,8 +981,8 @@ impl HiPS for ComponentHiPS {
                     k,
                     param: GrayscaleParameter {
                         h: transfer.into(),
-                        min_value: properties.minCutout,
-                        max_value: properties.maxCutout,
+                        min_value: properties.minCutout.unwrap(),
+                        max_value: properties.maxCutout.unwrap(),
                         
                         // These Parameters are not in the properties
                         // They will be retrieved by looking inside a tile
@@ -999,7 +1011,6 @@ pub struct ImageSurveys {
     primary: ImageSurveyIdx,
     overlay: ImageSurveyIdx,
 
-    rasterizer: Rasterizer,
     raytracer: RayTracer,
 
     gl: WebGl2Context
@@ -1007,6 +1018,7 @@ pub struct ImageSurveys {
 use crate::buffer::Tiles;
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
+const APERTURE_LIMIT: f32 = 110.0;
 impl ImageSurveys {
     pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
         let surveys = HashMap::new();
@@ -1014,10 +1026,6 @@ impl ImageSurveys {
         let primary = ImageSurveyIdx::None;
         let overlay = ImageSurveyIdx::None;
 
-        // Two mode of render, each storing a specific VBO
-        // - The rasterizer draws the HEALPix cells being in the current view
-        // This mode of rendering is used for small FoVs
-        let rasterizer = Rasterizer::new(&gl, shaders);
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
         //   the HEALPix cell in which it is located.
@@ -1032,7 +1040,6 @@ impl ImageSurveys {
             primary,
             overlay,
 
-            rasterizer,
             raytracer,
 
             gl
@@ -1044,29 +1051,23 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
-    pub fn bind_raster_vao(&self) {
-        self.rasterizer.bind();
-    }
-
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        let raytracing = camera.get_aperture() > 110.0;
+        let raytracing = camera.get_aperture() > APERTURE_LIMIT;
         // Bind the good VAO
         if raytracing {
             self.raytracer.bind();
-        } else {
-            self.rasterizer.bind();
         }
 
         match &self.primary {
             ImageSurveyIdx::Simple(idx) => {
                 let mut survey = self.surveys.get_mut(idx).unwrap();
-                survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+                survey.draw::<P>(&self.raytracer, shaders, camera);
             },
             ImageSurveyIdx::Composite(indices) => {
                 // Add additive blending here
                 for idx in indices {
                     let mut survey = self.surveys.get_mut(idx).unwrap();
-                    survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+                    survey.draw::<P>(&self.raytracer, shaders, camera);
                 }
             },
             _ => unreachable!()
@@ -1076,13 +1077,13 @@ impl ImageSurveys {
         match &self.overlay {
             ImageSurveyIdx::Simple(idx) => {
                 let mut survey = self.surveys.get_mut(idx).unwrap();
-                survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+                survey.draw::<P>(&self.raytracer, shaders, camera);
             },
             ImageSurveyIdx::Composite(indices) => {
                 // Add additive blending here
                 for idx in indices {
                     let mut survey = self.surveys.get_mut(idx).unwrap();
-                    survey.draw::<P>(&self.rasterizer, &self.raytracer, shaders, camera);
+                    survey.draw::<P>(&self.raytracer, shaders, camera);
                 }
             },
             // If no HiPS are overlaying we do nothing
@@ -1125,10 +1126,10 @@ impl ImageSurveys {
         
         match (&mut self.primary, _type) {
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Simple) => {
-                if &id == curr_id {
+                if let Some(s) = self.surveys.get_mut(&id) {
+                    crate::log("SAME SIMPLE SURVEY");
                     // The same survey is already selected.
                     // We update it with the new color and end up here
-                    let mut s = self.surveys.get_mut(curr_id).unwrap();
                     s.set_color(survey.get_color());
                 } else {
                     // There is one other survey. We remove it
@@ -1181,6 +1182,8 @@ impl ImageSurveys {
                 self.primary = ImageSurveyIdx::Composite(vec![id]);
             }
         }
+
+        crate::log("END ADD");
     }
 
     pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
@@ -1262,6 +1265,7 @@ impl ImageSurveys {
         self.surveys.iter_mut()
     }
 }
+
 use std::collections::hash_map::{Iter, IterMut};
 use crate::{
     renderable::{Angle, ArcDeg},

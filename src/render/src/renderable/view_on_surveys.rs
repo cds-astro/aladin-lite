@@ -325,7 +325,6 @@ impl HEALPixCellsInView {
         //self.is_new_cells = !cells.difference(&self.cells).is_empty();
         self.is_new_cells = cells != self.cells;
         self.cells = cells;
-        crate::log(&format!("CELLS in CAMERA: {:?}", self.cells));
         self.new_cells.insert_new_cells(&self.cells);
 
         if camera.get_last_user_action() == UserAction::Unzooming {

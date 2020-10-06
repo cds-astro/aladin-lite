@@ -121,3 +121,11 @@ impl RayTracer {
         ); 
     }
 }
+
+impl Drop for RayTracer {
+    fn drop(&mut self) {
+        self.gl.delete_vertex_array(Some(&self.vao));
+        self.gl.delete_buffer(Some(&self.vbo));
+        self.gl.delete_buffer(Some(&self.ebo));
+    }
+}

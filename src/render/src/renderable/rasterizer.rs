@@ -99,3 +99,9 @@ impl Rasterizer {
         );            
     }
 }
+
+impl Drop for Rasterizer {
+    fn drop(&mut self) {
+        self.gl.delete_vertex_array(Some(&self.vao));
+    }
+}

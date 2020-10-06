@@ -85,7 +85,7 @@ use crate::shader::ShaderBound;
 
 impl SendUniforms for Colormap {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap_id", self);
+        shader.attach_uniform("colormap", self);
 
         shader
     }

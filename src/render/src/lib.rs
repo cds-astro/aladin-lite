@@ -145,8 +145,8 @@ impl App {
                 tileSize: 512,
                 format: String::from("jpeg"),
 
-                minCutout: 0.0,
-                maxCutout: 1.0,
+                minCutout: None,
+                maxCutout: None,
                 bitpix: 0,
 
                 isColor: true,
@@ -988,31 +988,52 @@ pub struct HiPSProperties {
     pub maxOrder: u8,
     pub frame: Frame,
     pub tileSize: i32,
-    pub format: String,
-    // Used for FITS images
-    pub minCutout: f32,
-    pub maxCutout: f32,
-    pub bitpix: i32,
+    pub format: HiPSFormat,
     // Tell whether to directly use the color
-    // as given or map it to a colormap
+    // as given or map it to a colormap or one color
     pub isColor: bool,
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub enum HiPSFormat {
+    FITSImage {
+        minCutout: f32,
+        maxCutout: f32,
+        bitpix: i32
+    },
+    Image {
+        format: String,
+    }
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+pub enum HiPSColor {
+    Grayscale2Colormap {
+        colormap: String,
+        transfer: String,
+    },
+    Grayscale2Color {
+        color: [f32; 3],
+        transfer: String,
+        k: f32 // contribution of the component
+    },
+    Color
 }
 
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub struct SimpleHiPS {
     properties: HiPSProperties,
-    colormap: String,
-    transfer: String,
+    color: HiPSColor,
 }
 
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub struct ComponentHiPS {
     properties: HiPSProperties,
-    color: [f32; 3],
-    transfer: String,
-    k: f32 // contribution of the component
+    color: HiPSColor,
 }
 
 #[derive(Deserialize)]
@@ -1169,6 +1190,14 @@ impl WebClient {
         crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_simple_hips(&mut self.app, hips)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setHiPSFormat)]
+    pub fn set_hips_format(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        let hips: HiPSFormat = hips.into_serde().map_err(|e| e.to_string())?;
+        crate::log(&format!("simple HiPS: {:?}", hips));
 
         Ok(())
     }

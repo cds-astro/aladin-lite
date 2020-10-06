@@ -507,6 +507,7 @@ impl SendUniforms for ImageSurveyTextures {
         }
         num_textures += 1;
         shader.attach_uniform("num_textures", &(num_textures as i32));
+        shader.attach_uniforms_from(&self.config);
 
         // Texture 2d array
         if self.texture_2d_array.is_storing_integer() {

@@ -38,7 +38,7 @@ impl Requests {
                 let mut html_image_req_available = true;
 
                 //crate::log(&format!("{}", self.start_fits_req_idx));
-                while !self.reqs[cur_idx_comp].is_ready() && html_image_req_available {
+                while html_image_req_available && !self.reqs[cur_idx_comp].is_ready() {
                     cur_idx_comp += 1;
                     if cur_idx_comp == self.start_fits_req_idx {
                         html_image_req_available = false;
@@ -57,7 +57,7 @@ impl Requests {
                 let mut cur_idx_fits = self.start_fits_req_idx;
                 let mut fits_image_req_available = true;
 
-                while !self.reqs[cur_idx_fits].is_ready() && fits_image_req_available {
+                while fits_image_req_available && !self.reqs[cur_idx_fits].is_ready()  {
                     cur_idx_fits += 1;
                     if cur_idx_fits == NUM_EVENT_LISTENERS {
                         fits_image_req_available = false;

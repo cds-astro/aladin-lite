@@ -1,0 +1,37 @@
+hips = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/SDSS/DR9/color",
+
+		maxOrder: 10,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: "jpeg",
+
+		minCutout: undefined,
+		maxCutout: undefined,
+		bitpix: 0,
+
+		isColor: true,
+	},
+	colormap: "RedTemperature",
+	transfer: "linear"
+}
+
+hips = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Planets/Mars_MGS_MOLA_DEM/",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: "fits",
+
+		minCutout: -3567,
+		maxCutout: -1213,
+		bitpix: 16,
+
+		isColor: false,
+	},
+	colormap: "RedTemperature",
+	transfer: "linear"
+}

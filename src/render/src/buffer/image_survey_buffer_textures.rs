@@ -221,7 +221,9 @@ impl ImageSurveyTextures {
     pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
-        assert!(!self.contains_tile(&tile_cell));
+        if self.contains_tile(&tile_cell) {
+            return;
+        }
 
         // Get the texture cell in which the tile has to be
         let texture_cell = tile_cell.get_texture_cell(&self.config);

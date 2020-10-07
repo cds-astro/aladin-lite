@@ -301,4 +301,18 @@ impl TileDownloader {
             }
         }
     }
+
+    pub fn request_base_tiles(&mut self, url: &str, format: &FormatImageType) {
+        // Request base tiles
+        for idx in 0..12 {
+            let tile = Tile {
+                root_url: url.to_string(),
+                format: *format,
+                cell: HEALPixCell(0, idx)
+            };
+
+            self.request_tile(tile);
+        }
+
+    }
 }

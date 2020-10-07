@@ -931,70 +931,141 @@ use std::rc::Rc;
 use std::cell::RefCell;
 impl HiPS for SimpleHiPS {
     fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
-        let SimpleHiPS { properties, colormap, transfer } = self;
+        let SimpleHiPS { properties, color } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
 
-        if properties.isColor {
-            Ok(ImageSurvey::new(gl, surveys, config, Color::Colored, exec, ImageSurveyType::Simple))
-        } else {
-            Ok(ImageSurvey::new(
-                gl,
-                surveys,
-                config,
-                Color::Grayscale2Colormap {
-                    colormap: colormap.into(),
-                    param: GrayscaleParameter {
-                        h: transfer.into(),
-                        min_value: properties.minCutout.unwrap(),
-                        max_value: properties.maxCutout.unwrap(),
-                        
-                        // These parameters are not in the properties
-                        // They will be retrieved by looking inside a tile
-                        scale: 1.0,
-                        offset: 0.0,
-                        blank: 0.0,
-                    }
-                },
-                exec,
-                ImageSurveyType::Simple
-            ))
-        }
+        let survey = match color {
+            HiPSColor::Color => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Colored,
+                    exec,
+                    ImageSurveyType::Simple
+                ))
+            },
+            HiPSColor::Grayscale2Color {color, transfer, k} => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Grayscale2Color {
+                        color,
+                        k,
+                        param: GrayscaleParameter {
+                            h: transfer.into(),
+                            min_value: properties.minCutout.unwrap(),
+                            max_value: properties.maxCutout.unwrap(),
+                            
+                            // These Parameters are not in the properties
+                            // They will be retrieved by looking inside a tile
+                            scale: 1.0,
+                            offset: 0.0,
+                            blank: 0.0,
+                        }
+                    },
+                    exec,
+                    ImageSurveyType::Simple
+                ))
+            },
+            HiPSColor::Grayscale2Colormap {colormap, transfer} => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Grayscale2Colormap {
+                        colormap: colormap.into(),
+                        param: GrayscaleParameter {
+                            h: transfer.into(),
+                            min_value: properties.minCutout.unwrap(),
+                            max_value: properties.maxCutout.unwrap(),
+                            
+                            // These Parameters are not in the properties
+                            // They will be retrieved by looking inside a tile
+                            scale: 1.0,
+                            offset: 0.0,
+                            blank: 0.0,
+                        }
+                    },
+                    exec,
+                    ImageSurveyType::Simple
+                ))
+            }
+        };
+
+        survey
     }
 }
-use crate::{SimpleHiPS, ComponentHiPS};
+use crate::{SimpleHiPS, ComponentHiPS, HiPSColor};
 impl HiPS for ComponentHiPS {
     fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
-        let ComponentHiPS { properties, color, transfer, k } = self;
+        let ComponentHiPS { properties, color } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
 
-        if properties.isColor {
-            Err(format!("{} tiles does not contain grayscale data!", config.root_url).into())
-        } else {
-            Ok(ImageSurvey::new(
-                gl,
-                surveys,
-                config,
-                Color::Grayscale2Color {
-                    color,
-                    k,
-                    param: GrayscaleParameter {
-                        h: transfer.into(),
-                        min_value: properties.minCutout.unwrap(),
-                        max_value: properties.maxCutout.unwrap(),
-                        
-                        // These Parameters are not in the properties
-                        // They will be retrieved by looking inside a tile
-                        scale: 1.0,
-                        offset: 0.0,
-                        blank: 0.0,
-                    }
-                },
-                exec,
-                ImageSurveyType::Component
-            ))
-        }
+        let survey = match color {
+            HiPSColor::Color => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Colored,
+                    exec,
+                    ImageSurveyType::Component
+                ))
+            },
+            HiPSColor::Grayscale2Color {color, transfer, k} => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Grayscale2Color {
+                        color,
+                        k,
+                        param: GrayscaleParameter {
+                            h: transfer.into(),
+                            min_value: properties.minCutout.unwrap(),
+                            max_value: properties.maxCutout.unwrap(),
+                            
+                            // These Parameters are not in the properties
+                            // They will be retrieved by looking inside a tile
+                            scale: 1.0,
+                            offset: 0.0,
+                            blank: 0.0,
+                        }
+                    },
+                    exec,
+                    ImageSurveyType::Component
+                ))
+            },
+            HiPSColor::Grayscale2Colormap {colormap, transfer} => {
+                Ok(ImageSurvey::new(
+                    gl,
+                    surveys,
+                    config,
+                    Color::Grayscale2Colormap {
+                        colormap: colormap.into(),
+                        param: GrayscaleParameter {
+                            h: transfer.into(),
+                            min_value: properties.minCutout.unwrap(),
+                            max_value: properties.maxCutout.unwrap(),
+                            
+                            // These Parameters are not in the properties
+                            // They will be retrieved by looking inside a tile
+                            scale: 1.0,
+                            offset: 0.0,
+                            blank: 0.0,
+                        }
+                    },
+                    exec,
+                    ImageSurveyType::Component
+                ))
+            }
+        };
+
+        survey
     }
 }
 
@@ -1126,19 +1197,19 @@ impl ImageSurveys {
         
         match (&mut self.primary, _type) {
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Simple) => {
-                if let Some(s) = self.surveys.get_mut(&id) {
+                /*if let Some(s) = self.surveys.get_mut(&id) {
                     crate::log("SAME SIMPLE SURVEY");
                     // The same survey is already selected.
                     // We update it with the new color and end up here
                     s.set_color(survey.get_color());
-                } else {
+                } else {*/
                     // There is one other survey. We remove it
                     // from the container and add the new one
                     self.surveys.remove(curr_id);
                     self.surveys.insert(id.clone(), survey);
 
                     self.primary = ImageSurveyIdx::Simple(id.to_string());
-                }
+                //}
             },
             (ImageSurveyIdx::Simple(curr_id), ImageSurveyType::Component) => {
                 // A simple HiPS was in place, we replace it by a composite HiPS

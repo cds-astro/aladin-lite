@@ -99,7 +99,7 @@ fn is_power_of_two(x: usize) -> bool {
 use crate::math;
 use web_sys::WebGl2RenderingContext;
 use wasm_bindgen::JsValue;
-use crate::HiPSProperties;
+use crate::{HiPSProperties, HiPSFormat};
 impl HiPSConfig {
     pub fn new(gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.url.clone();
@@ -115,30 +115,28 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let fmt = &properties.format;
-        let format : Result<_, JsValue> = if fmt.contains("fits") {
-            // Check the bitpix to determine the internal format of the tiles
-            match properties.bitpix {
-                8 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32))),
-                16 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32))),
-                32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32))),
-                -32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32))),
-                _ => {
-                    // The bitpix is not good, so we check for jpeg or png tiles
-                    if fmt.contains("png") {
-                        Ok(FormatImageType::PNG)
-                    } else if fmt.contains("jpeg") || fmt.contains("jpg") {
-                        Ok(FormatImageType::JPG)
-                    } else {
+        let format : Result<_, JsValue> = match fmt {
+            HiPSFormat::FITSImage { bitpix, .. } => {
+                // Check the bitpix to determine the internal format of the tiles
+                match bitpix {
+                    8 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32))),
+                    16 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32))),
+                    32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32))),
+                    -32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32))),
+                    _ => {
                         Err(format!("Fits tiles exists but the BITPIX is not correct in the property file").into())
                     }
                 }
+            },
+            HiPSFormat::Image { format } => {
+                if format.contains("png") {
+                    Ok(FormatImageType::PNG)
+                } else if format.contains("jpeg") || format.contains("jpg") {
+                    Ok(FormatImageType::JPG)
+                } else {
+                    Err(format!("{} Unrecognized image format", format).into())
+                }
             }
-        } else if fmt.contains("png") {
-            Ok(FormatImageType::PNG)
-        } else if fmt.contains("jpeg") || fmt.contains("jpg") {
-            Ok(FormatImageType::JPG)
-        } else {
-            Err(format!("No format recognized").into())
         };
         let format = format?;
         let max_depth_tile = properties.maxOrder;

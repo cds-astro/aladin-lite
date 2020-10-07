@@ -5,18 +5,17 @@ hips = {
 		maxOrder: 10,
 		frame: { label: "J2000", system: "J2000" },
 		tileSize: 512,
-		format: "jpeg",
-
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
 		minCutout: undefined,
 		maxCutout: undefined,
-		bitpix: 0,
-
-		isColor: true,
 	},
-	colormap: "RedTemperature",
-	transfer: "linear"
+	color: "Color"
 }
-
+// Colormap FITS
 hips = {
 	properties: {
 		url: "http://alasky.u-strasbg.fr/Planets/Mars_MGS_MOLA_DEM/",
@@ -24,14 +23,42 @@ hips = {
 		maxOrder: 4,
 		frame: { label: "J2000", system: "J2000" },
 		tileSize: 512,
-		format: "fits",
-
+		format: {
+			FITSImage: {
+				bitpix: 16
+			}
+		},
 		minCutout: -3567,
 		maxCutout: -1213,
-		bitpix: 16,
-
-		isColor: false,
 	},
-	colormap: "RedTemperature",
-	transfer: "linear"
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "linear"
+		}
+	},
+}
+// Color FITS
+hips2 = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Planets/Mars_MGS_MOLA_DEM/",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: 16
+			}
+		},
+		minCutout: -3567,
+		maxCutout: -1213,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.5, 0.1, 0.9],
+			k: 1.0,
+			transfer: "linear"
+		}
+	},
 }

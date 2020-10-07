@@ -143,16 +143,15 @@ impl App {
                 maxOrder: 10,
                 frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
                 tileSize: 512,
-                format: String::from("jpeg"),
-
+                format: HiPSFormat::Image {
+                    format: String::from("jpeg")
+                },
                 minCutout: None,
                 maxCutout: None,
-                bitpix: 0,
-
-                isColor: true,
             },
-            colormap: String::from("RedTemperature"),
-            transfer: String::from("linear")
+            color: HiPSColor::Color
+            //colormap: String::from("RedTemperature"),
+            //transfer: String::from("linear")
         };
 
         // camera definition
@@ -452,7 +451,18 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let new_survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
+        let new_survey = {
+            let survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
+            let textures = survey.get_textures();
+
+            let format = textures.config().format();
+            let root_url = survey.get_id();
+
+            self.downloader.request_base_tiles(&root_url, &format);
+
+            survey
+        };
+
         self.surveys.set_simple_hips(new_survey);
 
         // Once its added, request its tiles
@@ -988,18 +998,15 @@ pub struct HiPSProperties {
     pub maxOrder: u8,
     pub frame: Frame,
     pub tileSize: i32,
+    pub minCutout: Option<f32>,
+    pub maxCutout: Option<f32>,
     pub format: HiPSFormat,
-    // Tell whether to directly use the color
-    // as given or map it to a colormap or one color
-    pub isColor: bool,
 }
 
 #[derive(Deserialize)]
 #[derive(Debug)]
 pub enum HiPSFormat {
     FITSImage {
-        minCutout: f32,
-        maxCutout: f32,
         bitpix: i32
     },
     Image {
@@ -1186,7 +1193,7 @@ impl WebClient {
     // Set primary image survey
     #[wasm_bindgen(js_name = setSimpleHiPS)]
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        let hips: SimpleHiPS = hips.into_serde().unwrap();
+        let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_simple_hips(&mut self.app, hips)?;

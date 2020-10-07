@@ -452,6 +452,8 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
+        self.downloader.clear_requests();
+
         let new_survey = {
             let survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
             let textures = survey.get_textures();
@@ -498,11 +500,11 @@ impl App {
     }
 
     fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
-        if reversed {
+        /*if reversed {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
-        }
+        }*/
 
         self.camera.set_longitude_reversed(reversed);
         self.surveys.set_longitude_reversed::<P>(reversed, &self.camera, &mut self.shaders);
@@ -1236,6 +1238,8 @@ impl WebClient {
     // Set primary image survey
     #[wasm_bindgen(js_name = setSimpleHiPS)]
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
+        crate::log(&format!("simple qsdqsd"));
+
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("simple HiPS: {:?}", hips));
 

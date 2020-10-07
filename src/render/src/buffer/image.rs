@@ -424,9 +424,9 @@ impl Image for RetrievedImageType {
 }
 */
 pub struct FITSMetaData {
-    blank: f32,
-    bzero: f32,
-    bscale: f32,
+    pub blank: f32,
+    pub bzero: f32,
+    pub bscale: f32,
 }
 
 pub enum RetrievedImageType {
@@ -673,7 +673,6 @@ impl ImageRequest for FITSImageRequest {
         self.image.set_onload(success);
         self.image.set_onerror(fail);
 
-        crate::log(&format!("url {:?}", url));
         self.image.send().unwrap();
     }
 
@@ -786,6 +785,5 @@ impl Image for TileHTMLImage {
 
 impl Drop for TileRequest {
     fn drop(&mut self) {
-        crate::log("Drop image!");
     }
 }

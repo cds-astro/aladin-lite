@@ -203,8 +203,10 @@ impl CameraViewPort {
         // blending between tiles and their parents (or children)
         self.last_user_action = if self.get_aperture() > aperture {
             UserAction::Zooming
-        } else {
+        } else if self.get_aperture() < aperture {
             UserAction::Unzooming
+        } else {
+            self.last_user_action
         };
 
         /*self.aperture = if aperture <= P::aperture_start() {
@@ -253,19 +255,7 @@ impl CameraViewPort {
 
     pub fn set_projection<P: Projection>(&mut self) {
         // Recompute the ndc_to_clip
-        let width = web_sys::window()
-            .unwrap()
-            .inner_width()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
-        let height = web_sys::window()
-            .unwrap()
-            .inner_height()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
-        self.set_screen_size::<P>(width, height);
+        self.set_screen_size::<P>(self.width, self.height);
         // Recompute clip zoom factor
         self.set_aperture::<P>(self.get_aperture());
 

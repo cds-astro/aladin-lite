@@ -16,7 +16,7 @@ impl JPG {
         let num_channels = Self::NUM_CHANNELS as i32;
         let size_buf = (width * width * num_channels) as usize;
 
-        let pixels = [255, 0, 0].iter()
+        let pixels = [0, 0, 0].iter()
             .cloned()
             .cycle()
             .take(size_buf)
@@ -44,7 +44,7 @@ impl PNG {
         let num_channels = Self::NUM_CHANNELS as i32;
         let size_buf = (width * width * num_channels) as usize;
 
-        let pixels = [255, 0, 0, 255].iter()
+        let pixels = [0, 0, 0, 255].iter()
             .cloned()
             .cycle()
             .take(size_buf)

@@ -206,15 +206,15 @@ trait Draw {
     fn draw<P: Projection>(&mut self, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort);
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub struct GrayscaleParameter {
     h: TransferFunction,
     min_value: f32,
     max_value: f32,
 
-    scale: f32,
-    offset: f32,
-    blank: f32,
+    pub scale: f32,
+    pub offset: f32,
+    pub blank: f32,
 }
 
 use crate::shader::{Shader, ShaderBound};
@@ -232,7 +232,7 @@ impl SendUniforms for GrayscaleParameter {
 }
 
 /// List of the different type of surveys
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub enum Color {
     Colored,
     Grayscale2Colormap {
@@ -639,7 +639,7 @@ impl ImageSurvey {
     }
 
     pub fn set_color(&mut self, color: &Color) {
-        self.color = *color;
+        self.color = color.clone();
     }
     /*
     fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self) {
@@ -810,6 +810,11 @@ impl ImageSurvey {
     fn get_color(&self) -> &Color {
         &self.color
     }
+
+    #[inline]
+    fn get_color_mut(&mut self) -> &mut Color {
+        &mut self.color
+    }
 }
 
 impl Drop for ImageSurvey {
@@ -818,9 +823,13 @@ impl Drop for ImageSurvey {
         //drop(&mut self.textures);
 
         // Drop the vertex arrays
+        self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+        self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
+
         self.gl.delete_buffer(Some(&self.vbo));
         self.gl.delete_buffer(Some(&self.ebo));
 
+        self.gl.bind_vertex_array(None);
         self.gl.delete_vertex_array(Some(&self.vao));
     }
 }
@@ -901,7 +910,6 @@ impl Draw for ImageSurvey {
 
             let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
             if recompute_vertices {
-                crate::log("recompute vertices");
                 self.set_vertices::<P>(camera);
             }
 
@@ -961,8 +969,8 @@ impl HiPS for SimpleHiPS {
                         k,
                         param: GrayscaleParameter {
                             h: transfer.into(),
-                            min_value: properties.minCutout.unwrap(),
-                            max_value: properties.maxCutout.unwrap(),
+                            min_value: properties.minCutout.unwrap_or(0.0),
+                            max_value: properties.maxCutout.unwrap_or(1.0),
                             
                             // These Parameters are not in the properties
                             // They will be retrieved by looking inside a tile
@@ -985,8 +993,8 @@ impl HiPS for SimpleHiPS {
                         colormap: colormap.into(),
                         param: GrayscaleParameter {
                             h: transfer.into(),
-                            min_value: properties.minCutout.unwrap(),
-                            max_value: properties.maxCutout.unwrap(),
+                            min_value: properties.minCutout.unwrap_or(0.0),
+                            max_value: properties.maxCutout.unwrap_or(1.0),
                             
                             // These Parameters are not in the properties
                             // They will be retrieved by looking inside a tile
@@ -1140,7 +1148,17 @@ impl ImageSurveys {
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
-
+        let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
+        let raytracing = camera.get_aperture().0 > limit_aperture.0;
+        if raytracing {
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
+        } else {
+            if camera.is_reversed_longitude() {
+                self.gl.cull_face(WebGl2RenderingContext::BACK);
+            } else {
+                self.gl.cull_face(WebGl2RenderingContext::FRONT);
+            }
+        }
 
         match &self.primary {
             ImageSurveyIdx::Simple(idx) => {
@@ -1309,12 +1327,12 @@ impl ImageSurveys {
     // that have been resolved
     pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
         for (tile, result) in resolved_tiles.into_iter() {
-            let textures = self.surveys.get_mut(&tile.root_url)
-                .unwrap()
-                .get_textures_mut();
 
             match result {
                 TileResolved::Missing { time_req } => {
+                    let survey = self.surveys.get_mut(&tile.root_url).unwrap();
+                    let textures = survey.get_textures_mut();
+
                     let default_image = textures.config().get_black_tile();
                     crate::log(&format!("missing {:?}", tile));
                     textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
@@ -1322,9 +1340,30 @@ impl ImageSurveys {
                 TileResolved::Found { image, time_req } => {
                     match image {
                         RetrievedImageType::FITSImage { image, metadata } => {
+                            let survey = self.surveys.get_mut(&tile.root_url).unwrap();
+                            let mut color = survey.get_color_mut();
+                            match color {
+                                Color::Grayscale2Color { ref mut param, .. } => {
+                                    param.scale = metadata.bscale;
+                                    param.offset = metadata.bzero;
+                                    param.blank = metadata.blank;
+                                },
+                                Color::Grayscale2Colormap { ref mut param, .. } => {
+                                    param.scale = metadata.bscale;
+                                    param.offset = metadata.bzero;
+                                    param.blank = metadata.blank;
+                                },
+                                _ => unreachable!()
+                            }
+                            crate::log(&format!("color {:?}", color));
+
+                            let survey = self.surveys.get_mut(&tile.root_url).unwrap();
+                            let textures = survey.get_textures_mut();
                             textures.push::<TileArrayBufferImage>(tile, image, time_req);
                         },
                         RetrievedImageType::CompressedImage { image } => {
+                            let survey = self.surveys.get_mut(&tile.root_url).unwrap();
+                            let textures = survey.get_textures_mut();
                             textures.push::<TileHTMLImage>(tile, image, time_req);
                         }
                     }

@@ -196,9 +196,7 @@ impl Texture2DArray {
             _type, // type
             None, // source
         ).expect("Texture 2D Array");
-        crate::log(&format!("AAAAA {:?} {:?} {:?}", internal_format, _type, format_tex));
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
-        crate::log(&format!("BBBB {:?} {:?} {:?}", internal_format, _type, format_tex));
 
         let gl = gl.clone();
         Texture2DArray {
@@ -233,6 +231,8 @@ impl Texture2DArray {
 impl Drop for Texture2DArray {
     fn drop(&mut self) {
         unsafe { crate::log(&"Delete texture array!"); }
+        //self.gl.active_texture(self.idx_texture_unit);
+        //self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
         self.gl.delete_texture(self.texture.as_ref());
     }
 }
@@ -240,6 +240,7 @@ impl Drop for Texture2DArray {
 pub struct Texture2DArrayBound<'a> {
     texture_2d_array: &'a Texture2DArray,
 }
+
 
 use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
 use crate::buffer::ArrayBuffer;

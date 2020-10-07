@@ -257,12 +257,17 @@ use crate::shader::ShaderBound;
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let tex_storing_integers = self.format.is_i_internal_format() as i32;
-        crate::log(&format!("AAA {:?}", tex_storing_integers));
+        let tex_storing_fits = if let FormatImageType::FITS(_) = self.format {
+            1
+        } else {
+            0
+        };
 
         // Send max depth
         shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
-            .attach_uniform("tex_storing_integers", &tex_storing_integers);
+            .attach_uniform("tex_storing_integers", &tex_storing_integers)
+            .attach_uniform("tex_storing_fits", &tex_storing_fits);
 
         shader
     }

@@ -149,7 +149,6 @@ impl Future for SendTileToGPU {
     type Output = ();
 
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
-        crate::log(&format!("tile to sub {:?}", self.tile));
         self.image.tex_sub_image_3d(&self.texture_array, &self.offset);
 
         Poll::Ready(())

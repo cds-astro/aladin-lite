@@ -11,6 +11,7 @@ uniform int H;
 uniform float size_tile_uv;
 
 uniform int tex_storing_integers;
+uniform int tex_storing_fits;
 
 @import ../colormaps/colormap;
 @import ./transfer_funcs;
@@ -25,10 +26,16 @@ const vec4 transparent = vec4(0.0, 1.0, 0.0, 1.0);
 
 float get_grayscale_from_texture(vec3 UV) {
     float x = 0.0;
+    vec3 uv = UV;
+    // FITS data pixels are reversed along the y axis
+    if (tex_storing_fits == 1) {
+        uv = reverse_uv(UV);
+    }
+
     if (tex_storing_integers == 0) {
-        x = texture(tex, reverse_uv(UV)).r;
+        x = texture(tex, uv).r;
     } else {
-        x = float(texture(texInt, reverse_uv(UV)).r);
+        x = float(texture(texInt, uv).r);
     }
 
     /*if (x == blank) {

@@ -146,7 +146,6 @@ impl FieldOfViewVertices {
 impl FieldOfViewVertices {
     fn compute_radius(&mut self, center: &Vector4<f32>) {
         self.radius = if let Some(model_coo) = &self.model_coo {
-            crate::log("compute radius");
             Some(math::ang_between_vect(&center.truncate(), &model_coo[0].truncate()))
         } else {
             None

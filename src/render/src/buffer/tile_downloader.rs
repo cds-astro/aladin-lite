@@ -131,11 +131,11 @@ impl Tile {
 
 pub type Tiles = HashSet<Tile>;
 
-use std::collections::{VecDeque, HashSet};
+use std::collections::HashSet;
 pub struct TileDownloader {
     // Waiting cells to be loaded
-    fits_tiles_to_req: VecDeque<Tile>,
-    html_img_tiles_to_req: VecDeque<Tile>,
+    fits_tiles_to_req: Vec<Tile>,
+    html_img_tiles_to_req: Vec<Tile>,
 
     requests: Requests,
 
@@ -157,8 +157,8 @@ use crate::ImageSurveys;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = Requests::new();
-        let html_img_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
-        let fits_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
+        let html_img_tiles_to_req = Vec::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
+        let fits_tiles_to_req = Vec::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
         let requested_tiles = HashSet::with_capacity(64);
 
         Self {
@@ -170,18 +170,14 @@ impl TileDownloader {
         }
     }
 
-    pub fn reset_survey_requests(&mut self) {
-        
-    }
-
-    pub fn reset(&mut self) {
-        self.html_img_tiles_to_req.clear();
-        self.fits_tiles_to_req.clear();
+    pub fn clear_requests(&mut self) {
+        //self.html_img_tiles_to_req.clear();
+        //self.fits_tiles_to_req.clear();
 
         for req in self.requests.iter_mut() {
             req.clear();
         }
-        self.requested_tiles.clear();
+        //self.requested_tiles.clear();
     }
 
     pub fn request_tile(&mut self, tile: Tile) {
@@ -198,10 +194,10 @@ impl TileDownloader {
     fn add_tile_request(&mut self, tile: Tile) {
         match tile.format {
             FormatImageType::JPG | FormatImageType::PNG => {
-                self.html_img_tiles_to_req.push_back(tile);
+                self.html_img_tiles_to_req.push(tile);
             },
             FormatImageType::FITS(_) => {
-                self.fits_tiles_to_req.push_back(tile);
+                self.fits_tiles_to_req.push(tile);
             }
         }
     }
@@ -270,10 +266,10 @@ impl TileDownloader {
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
-            let tile = self.fits_tiles_to_req.front().unwrap();
+            let tile = self.fits_tiles_to_req.last().unwrap();
 
             if let Some(available_req) = self.requests.check_send(tile.format) {
-                let tile = self.fits_tiles_to_req.pop_front().unwrap();
+                let tile = self.fits_tiles_to_req.pop().unwrap();
                 
                 is_remaining_req = !self.fits_tiles_to_req.is_empty();
                 available_req.send(tile);
@@ -291,10 +287,10 @@ impl TileDownloader {
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
-            let tile = self.html_img_tiles_to_req.front().unwrap();
+            let tile = self.html_img_tiles_to_req.last().unwrap();
 
             if let Some(available_req) = self.requests.check_send(tile.format) {
-                let tile = self.html_img_tiles_to_req.pop_front().unwrap();
+                let tile = self.html_img_tiles_to_req.pop().unwrap();
 
                 is_remaining_req = !self.html_img_tiles_to_req.is_empty();
                 available_req.send(tile);
@@ -302,7 +298,6 @@ impl TileDownloader {
                 // We have to wait for more requests
                 // to be available
                 downloader_overloaded = true;
-                crate::log("downloader overload");
 
             }
         }

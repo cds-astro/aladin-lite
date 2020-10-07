@@ -20,41 +20,12 @@ uniform float clip_zoom_factor;
 // current time in ms
 uniform float current_time;
 
-const float PI = 3.1415926535897932384626433832795f;
-
-vec2 world2clip_mollweide(vec3 p) {
-    // X in [-1, 1]
-    // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-    int max_iter = 10;
-
-    float delta = asin(p.y);
-    float theta = atan(p.x, p.z);
-
-    float cst = PI * sin(delta);
-
-    float phi = delta;
-    float f = phi + sin(phi) - cst;
-
-    int k = 0;
-    while (abs(f) > 1e-4 && k < max_iter) {
-        phi = phi - f / (1.f + cos(phi));
-        f = phi + sin(phi) - cst;
-
-        k = k + 1;
-    }
-
-    phi = phi * 0.5f;
-
-    // The minus is an astronomical convention.
-    // longitudes are increasing from right to left
-    float x = -(theta / PI) * cos(phi);
-    float y = 0.5f * sin(phi);
-
-    return vec2(x, y);
-}
+@import ../projection;
 
 void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    world_pos = check_inversed_longitude(world_pos);
+
     gl_Position = vec4(world2clip_mollweide(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
 
     screen_pos = gl_Position.xy;

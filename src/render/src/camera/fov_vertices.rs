@@ -13,7 +13,8 @@ pub type ModelCoord = Vector4<f32>;
 fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f32>,
-    clip_zoom_factor: f32
+    clip_zoom_factor: f32,
+    longitude_reversed: bool,
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
@@ -24,7 +25,7 @@ fn ndc_to_world<P: Projection>(
             n.x * ndc_to_clip.x * clip_zoom_factor,
             n.y * ndc_to_clip.y * clip_zoom_factor
         );
-        let w = P::clip_to_world_space(&c);
+        let w = P::clip_to_world_space(&c, longitude_reversed);
         if let Some(w) = w {
             world_coo.push(w);
         } else {
@@ -35,12 +36,12 @@ fn ndc_to_world<P: Projection>(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[WorldCoord], r: &Rotation<f32>) -> Vec<ModelCoord> {
+fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f32>) -> Vec<ModelCoord> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
-        let m = r.rotate(w);
-        model_coo.push(m);
+        //let m = r.rotate(w);
+        model_coo.push(mat * w);
     }
 
     model_coo
@@ -57,9 +58,10 @@ pub struct FieldOfViewVertices {
     radius: Option<Angle<f32>>,
 }
 
+use super::viewport::CameraViewPort;
 use crate::Rotation;
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) -> Self {
+    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -83,9 +85,9 @@ impl FieldOfViewVertices {
             ));
         }
 
-        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
+        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
         let model_coo = if let Some(world_coo) = &world_coo {
-            Some(world_to_model(world_coo, r))
+            Some(world_to_model(world_coo, mat))
         } else {
             None
         };
@@ -105,36 +107,31 @@ impl FieldOfViewVertices {
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) {
-        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, longitude_reversed: bool) {
+        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
         self.model_coo = if let Some(world_coo) = &self.world_coo {
-            Some(world_to_model(world_coo, r))
+            Some(world_to_model(world_coo, w2m))
         } else {
             None
         };
-
-        //self.compute_radius(center);
     }
 
-    pub fn set_fov<P: Projection>(&mut self, center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, r: &Rotation<f32>) {
-        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
+    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, longitude_reversed: bool) {
+        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
         if let Some(world_coo) = &self.world_coo {
-            self.model_coo = Some(world_to_model(world_coo, r));
+            self.model_coo = Some(world_to_model(world_coo, w2m));
+        } else {
+            self.model_coo = None;
+        }
+    }
+
+    pub fn set_rotation(&mut self, w2m: &Matrix4<f32>) {
+        if let Some(world_coo) = &self.world_coo {
+            self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
             self.model_coo = None;
         }
 
-        //self.compute_radius(center);
-    }
-
-    pub fn set_rotation(&mut self, center: &Vector4<f32>, r: &Rotation<f32>) {
-        if let Some(world_coo) = &self.world_coo {
-            self.model_coo = Some(world_to_model(world_coo, r));
-        } else {
-            self.model_coo = None;
-        }
-
-        //self.compute_radius(center);
     }
     
     pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {

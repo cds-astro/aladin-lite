@@ -66,7 +66,7 @@ impl RecomputeRasterizer for Move  {
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
-        crate::log(&format!("cells to draw: {:?}", cells_to_draw));
+        //crate::log(&format!("cells to draw: {:?}", cells_to_draw));
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
         for cell in cells_to_draw.iter() {
@@ -543,6 +543,7 @@ use super::view_on_surveys::HEALPixCells;
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     fn new(gl: &WebGl2Context,
+        camera: &CameraViewPort,
         surveys: &ImageSurveys,
         config: HiPSConfig,
         color: Color,
@@ -605,7 +606,8 @@ impl ImageSurvey {
         let sphere_sub = SphereSubdivided::new();
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
-        let view = HEALPixCellsInView::new();
+        let conf = textures.config();
+        let view = HEALPixCellsInView::new(conf.get_texture_size(), conf.get_max_depth(), camera);
 
         let gl = gl.clone();
 
@@ -632,8 +634,8 @@ impl ImageSurvey {
         }
     }
 
-    pub fn from<T: HiPS>(gl: &WebGl2Context, surveys: &ImageSurveys, hips: T, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
-        hips.create(gl, surveys, exec)
+    pub fn from<T: HiPS>(gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, hips: T, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
+        hips.create(gl, camera, surveys, exec)
     }
 
     pub fn set_color(&mut self, color: &Color) {
@@ -688,7 +690,8 @@ impl ImageSurvey {
 
     }*/
 
-    pub fn set_vertices<P: Projection>(&mut self, last_user_action: UserAction, camera: &CameraViewPort) {
+    pub fn set_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
+        let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
                 self.update_vertices::<P, UnZoom>(camera);
@@ -811,14 +814,14 @@ impl ImageSurvey {
 
 impl Drop for ImageSurvey {
     fn drop(&mut self) {
+        crate::log("drop image survey");
+        //drop(&mut self.textures);
+
         // Drop the vertex arrays
         self.gl.delete_buffer(Some(&self.vbo));
         self.gl.delete_buffer(Some(&self.ebo));
 
         self.gl.delete_vertex_array(Some(&self.vao));
-
-
-        crate::log(&format!("drop {:?}", self.id));
     }
 }
 
@@ -826,18 +829,18 @@ use std::borrow::Cow;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(&mut self, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort) {
         if !self.textures.is_ready() {
+            crate::log("not ready");
             // Do not render while the 12 base cell textures
             // are not loaded
             return;
         }
 
-        let last_user_action = camera.get_last_user_action();
-
         let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
-        if camera.get_aperture() > limit_aperture {
-            //raytracer.bind();
-            // Raytracer
+        let raytracing = camera.get_aperture().0 > limit_aperture.0;
+        //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
+        if raytracing {
             raytracer.bind();
+            // Raytracer
             let shader = self.color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
 
             let cells_to_draw = self.view.get_cells();
@@ -899,7 +902,7 @@ impl Draw for ImageSurvey {
             let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
             if recompute_vertices {
                 crate::log("recompute vertices");
-                self.set_vertices::<P>(last_user_action, camera);
+                self.set_vertices::<P>(camera);
             }
 
             let shader = self.color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
@@ -924,13 +927,13 @@ impl Draw for ImageSurvey {
 
 use wasm_bindgen::JsValue;
 pub trait HiPS {
-    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue>;
+    fn create(self, gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue>;
 }
 
 use std::rc::Rc;
 use std::cell::RefCell;
 impl HiPS for SimpleHiPS {
-    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+    fn create(self, gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
         let SimpleHiPS { properties, color } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
@@ -939,6 +942,7 @@ impl HiPS for SimpleHiPS {
             HiPSColor::Color => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Colored,
@@ -949,6 +953,7 @@ impl HiPS for SimpleHiPS {
             HiPSColor::Grayscale2Color {color, transfer, k} => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Grayscale2Color {
@@ -973,6 +978,7 @@ impl HiPS for SimpleHiPS {
             HiPSColor::Grayscale2Colormap {colormap, transfer} => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Grayscale2Colormap {
@@ -1000,7 +1006,7 @@ impl HiPS for SimpleHiPS {
 }
 use crate::{SimpleHiPS, ComponentHiPS, HiPSColor};
 impl HiPS for ComponentHiPS {
-    fn create(self, gl: &WebGl2Context, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
+    fn create(self, gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
         let ComponentHiPS { properties, color } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
@@ -1009,6 +1015,7 @@ impl HiPS for ComponentHiPS {
             HiPSColor::Color => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Colored,
@@ -1019,6 +1026,7 @@ impl HiPS for ComponentHiPS {
             HiPSColor::Grayscale2Color {color, transfer, k} => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Grayscale2Color {
@@ -1043,6 +1051,7 @@ impl HiPS for ComponentHiPS {
             HiPSColor::Grayscale2Colormap {colormap, transfer} => {
                 Ok(ImageSurvey::new(
                     gl,
+                    camera,
                     surveys,
                     config,
                     Color::Grayscale2Colormap {
@@ -1089,6 +1098,7 @@ pub struct ImageSurveys {
 use crate::buffer::Tiles;
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
+use cgmath::Vector2;
 const APERTURE_LIMIT: f32 = 110.0;
 impl ImageSurveys {
     pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
@@ -1122,12 +1132,15 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
+    pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+        // Recompute the raytracer
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+    }
+
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        let raytracing = camera.get_aperture() > APERTURE_LIMIT;
-        // Bind the good VAO
-        if raytracing {
-            self.raytracer.bind();
-        }
+        //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
+        //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
+
 
         match &self.primary {
             ImageSurveyIdx::Simple(idx) => {

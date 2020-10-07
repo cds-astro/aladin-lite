@@ -416,7 +416,7 @@ impl GetShader for Mollweide {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerMollVS"),
                 Cow::Borrowed("RasterizerColorFS")
             )
         ).unwrap()
@@ -425,7 +425,7 @@ impl GetShader for Mollweide {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerMollVS"),
                 Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
         ).unwrap()
@@ -434,7 +434,7 @@ impl GetShader for Mollweide {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerMollweideVS"),
+                Cow::Borrowed("RasterizerMollVS"),
                 Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
         ).unwrap()

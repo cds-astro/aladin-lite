@@ -7,7 +7,6 @@ precision lowp sampler2D;
 precision highp int;
 
 in vec3 out_vert_pos;
-in vec2 pos_clip;
 
 out vec4 out_frag_color;
 

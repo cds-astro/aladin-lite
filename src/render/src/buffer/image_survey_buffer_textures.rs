@@ -524,6 +524,7 @@ impl SendUniforms for ImageSurveyTextures {
 
 impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
+        crate::log("drop texture buf");
         // Cleanup the heap
         self.heap.clear();
 

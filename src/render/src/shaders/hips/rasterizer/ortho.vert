@@ -21,13 +21,15 @@ uniform float clip_zoom_factor;
 // current time in ms
 uniform float current_time;
 
-vec2 world2screen_orthographic(vec3 p) {
-    return vec2(-p.x, p.y);
-}
+@import ../projection;
 
 void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
-    gl_Position = vec4(world2screen_orthographic(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
+    world_pos = check_inversed_longitude(world_pos);
+
+    vec2 ndc_pos = world2clip_orthographic(world_pos) / (ndc_to_clip * clip_zoom_factor);
+
+    gl_Position = vec4(ndc_pos, 0.0, 1.0);
 
     //screen_pos = gl_Position.xy;
     frag_uv_start = uv_start;

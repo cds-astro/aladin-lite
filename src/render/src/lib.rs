@@ -75,14 +75,15 @@ struct App {
     surveys: ImageSurveys,
     
     time_start_blending: Time,
+    request_redraw: bool,
     rendering: bool,
 
     // The grid renderable
-    grid: ProjetedGrid,
+    //grid: ProjetedGrid,
     // Catalog manager
     manager: Manager,
     // Text example
-    text_manager: TextManager,
+    //text_manager: TextManager,
 
     // Finite State Machine declarations
     /*user_move_fsm: UserMoveSphere,
@@ -169,7 +170,6 @@ impl App {
         );*/
 
         log("shaders compiled");
-        Orthographic::world_to_clip_space(&Vector4::new(0.0, 0.0, -1.0, 1.0));
         //panic!(format!("{:?}", aa));
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 
@@ -178,7 +178,7 @@ impl App {
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
 
-        let sdss_survey = ImageSurvey::from(&gl, &surveys, sdss, exec.clone())?;
+        let sdss_survey = ImageSurvey::from(&gl, &camera, &surveys, sdss, exec.clone())?;
         surveys.set_simple_hips(sdss_survey);
 
         let time_start_blending = Time::now();
@@ -188,7 +188,7 @@ impl App {
 
         // Text 
         let font = myfont::FONT_CONFIG;
-        let text_manager = TextManager::new(&gl, font, &mut shaders);
+        //let text_manager = TextManager::new(&gl, font, &mut shaders);
         /*let _text = TextUponSphere::new(
             String::from("Aladin-Lite"),
             //&Vector2::new(300_f32, 100_f32),
@@ -199,7 +199,7 @@ impl App {
         );*/
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
+        //let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
 
         // Finite State Machines definitions
         /*let user_move_fsm = UserMoveSphere::init();
@@ -209,6 +209,7 @@ impl App {
         // Variable storing the location to move to
         let move_animation = None;
         let tasks_finished = false;
+        let request_redraw = false;
         let start_render_time = Time::now();
         let rendering = true;
         let app = App {
@@ -223,12 +224,12 @@ impl App {
 
             time_start_blending,
             rendering,
-
+            request_redraw,
             // The grid renderable
-            grid,
+            //grid,
             // The catalog renderable
             manager,
-            text_manager,
+            //text_manager,
             
             // Finite state machines,
             /*user_move_fsm,
@@ -275,6 +276,7 @@ impl App {
                         }
                         already_available_cells.insert((*cell, is_cell_new));
                     } else {
+                        crate::log("request tile");
                         // Submit the request to the buffer
                         let format = textures.config().format();
                         let root_url = survey_id.clone();
@@ -396,14 +398,13 @@ impl App {
 
         // - there is at least one tile in its blending phase
         let blending_anim_occuring = (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
-        self.rendering = blending_anim_occuring | has_camera_moved;
+        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw;
+        self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
             self.manager.update::<P>(&self.camera, self.surveys.get_view().unwrap());
         }
-
-        
 
         Ok(())
     }
@@ -452,7 +453,7 @@ impl App {
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
         let new_survey = {
-            let survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
+            let survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
             let textures = survey.get_textures();
 
             let format = textures.config().format();
@@ -475,7 +476,7 @@ impl App {
     }
     fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
         for hips in hipses {
-            let new_survey = ImageSurvey::from::<ComponentHiPS>(&self.gl, &self.surveys, hips, self.exec.clone())?;
+            let new_survey = ImageSurvey::from::<ComponentHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
             self.surveys.set_simple_hips(new_survey);
         }
 
@@ -491,6 +492,24 @@ impl App {
     fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
         self.surveys.set_projection::<P>(&self.camera, &mut self.shaders);
+
+        self.look_for_new_tiles();
+        self.request_redraw = true;
+    }
+
+    fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
+        if reversed {
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
+        } else {
+            self.gl.cull_face(WebGl2RenderingContext::FRONT);
+        }
+
+        self.camera.set_longitude_reversed(reversed);
+        self.surveys.set_longitude_reversed::<P>(reversed, &self.camera, &mut self.shaders);
+
+        self.look_for_new_tiles();
+
+        self.request_redraw = true;
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue) {
@@ -693,30 +712,45 @@ enum ProjectionType {
 }
 
 impl ProjectionType {
-    fn set_projection(&mut self, app: &mut App, name: String) {
-        *self = match name.as_str() {
+    fn set_projection(&mut self, app: &mut App, name: String) -> Result<(), JsValue> {
+        match name.as_str() {
             "aitoff" => {
                 app.set_projection::<Aitoff>();
-                ProjectionType::Aitoff
+                *self = ProjectionType::Aitoff;
+                Ok(())
             },
             "orthographic" => {
                 app.set_projection::<Orthographic>();
-                ProjectionType::Ortho
+                *self = ProjectionType::Ortho;
+                Ok(())
             },
             "mollweide" => {
                 app.set_projection::<Mollweide>();
-                ProjectionType::MollWeide
+                *self = ProjectionType::MollWeide;
+                Ok(())
             },
             "arc" => {
                 app.set_projection::<AzimutalEquidistant>();
-                ProjectionType::Arc
+                *self = ProjectionType::Arc;
+                Ok(())
             },
             "mercator" => {
                 app.set_projection::<Mercator>();
-                ProjectionType::Mercator
+                *self = ProjectionType::Mercator;
+                Ok(())
             },
-            _ => unimplemented!()
+            _ => Err(format!("{} is not a valid projection name. aitoff, orthographic, mollweide and mercator are accepted", name).into())
         }
+    }
+
+    fn set_longitude_reversed(&mut self, app: &mut App, reversed: bool) {
+        match self {
+            ProjectionType::Aitoff => app.set_longitude_reversed::<Aitoff>(reversed),
+            ProjectionType::MollWeide => app.set_longitude_reversed::<Mollweide>(reversed),
+            ProjectionType::Ortho => app.set_longitude_reversed::<Orthographic>(reversed),
+            ProjectionType::Arc => app.set_longitude_reversed::<Mollweide>(reversed),
+            ProjectionType::Mercator => app.set_longitude_reversed::<Mercator>(reversed),
+        };
     }
 
     fn set_colormap(&self, app: &mut App, name: String, colormap: Colormap) {
@@ -1118,8 +1152,17 @@ impl WebClient {
     }
 
     /// Change the current projection of the HiPS
+    #[wasm_bindgen(js_name = setProjection)]
     pub fn set_projection(&mut self, name: String) -> Result<(), JsValue> {
-        self.projection.set_projection(&mut self.app, name);
+        self.projection.set_projection(&mut self.app, name)?;
+
+        Ok(())
+    }
+
+    /// Change the current projection of the HiPS
+    #[wasm_bindgen(js_name = setLongitudeReversed)]
+    pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
+        self.projection.set_longitude_reversed(&mut self.app, reversed);
 
         Ok(())
     }
@@ -1253,6 +1296,7 @@ impl WebClient {
         Ok(())
     }*/
 
+    
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Result<Box<[f32]>, JsValue> {
         let lonlat = self.projection.screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))?;

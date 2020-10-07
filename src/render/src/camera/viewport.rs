@@ -20,6 +20,28 @@ use super::fov_vertices::{
     ModelCoord
 };
 use cgmath::{Vector2, Vector3, Matrix4};
+
+const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
+    -0.8676661489811610,
+    -0.0548755604024359,
+    0.4941094279435681,
+    0.0,
+
+    -0.1980763734646737,
+    -0.873437090247923,
+    -0.4448296299195045,
+    0.0,
+
+    0.4559837762325372,
+    -0.4838350155267381,
+    0.7469822444763707,
+    0.0,
+
+    0.0,
+    0.0,
+    0.0,
+    1.0
+);
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
@@ -48,6 +70,9 @@ pub struct CameraViewPort {
 
     // Tag the last action done by the user
     last_user_action: UserAction,
+
+    // longitude reversed flag
+    longitude_reversed: bool,
 
     // A reference to the WebGL2 context
     gl: WebGl2Context,
@@ -114,7 +139,8 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
         let clip_zoom_factor = 1_f32;
 
-        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m_rot);
+        let longitude_reversed = true;
+        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, longitude_reversed);
         let gl = gl.clone();
 
         let mut camera = CameraViewPort {
@@ -144,6 +170,8 @@ impl CameraViewPort {
 
             // Tag the last action done by the user
             last_user_action,
+            // longitude reversed flag
+            longitude_reversed,
 
             // A reference to the WebGL2 context
             gl,
@@ -151,61 +179,6 @@ impl CameraViewPort {
 
         camera
     }
-    /*pub fn resize_window<P: Projection>(&mut self,
-        width: f32,
-        height: f32,
-        sphere: &mut HiPSSphere,
-        manager: &mut catalog::Manager,
-    ) {
-        self.fov.resize_window::<P>(width, height, sphere.config());
-
-        // Launch the new tile requests
-        sphere.ask_for_tiles::<P>(&self.new_healpix_cells());
-        manager.set_kernel_size(&self);
-
-        self.camera_updated = true;
-    }*/
-
-    /*pub fn depth(&self) -> u8 {
-        self.fov.current_depth()
-    }
-    pub fn depth_precise(&self, config: &HiPSConfig) -> f32 {
-        let max_depth = config.max_depth() as f32;
-        
-        let depth = max_depth.min(
-            crate::math::fov_to_depth_precise(
-                self.fov.get_aperture(),
-                self.fov.get_width_screen(),
-                config
-            )
-        );
-
-        depth
-    }
-*/
-    /*pub fn update<P: Projection>(&mut self, manager: &mut catalog::Manager, config: &HiPSConfig) {
-        // Each time the camera is updated
-        // we update the manager
-        if self.moved {
-            manager.update::<P>(&self, config);
-
-        }
-        self.moved = false;
-    }*/
-/*
-    // Tell the camera the HiPS have changed
-    pub fn set_image_survey<P: Projection>(&mut self, config: &HiPSConfig) {
-        self.fov.set_image_survey::<P>(config);
-
-        self.user_action = LastAction::Starting;
-    }
-*/
-/*    pub fn reset_zoom_level<P: Projection>(&mut self, config: &HiPSConfig) {
-        // Update the aperture of the Field Of View
-        let aperture: Angle<f32> = P::aperture_start();
-        self.fov.set_aperture::<P>(aperture, config);
-    }
-*/
 
     pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
         self.width = width;
@@ -221,7 +194,7 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -250,7 +223,7 @@ impl CameraViewPort {
         let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
 
         // Project this vertex into the screen
-        if let Some(p0) = P::world_to_clip_space(&v0) {
+        if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
             self.clip_zoom_factor = p0.x.abs();
         } else {
             self.clip_zoom_factor = self.aperture.0 / P::aperture_start().0;
@@ -258,11 +231,15 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
-        let drot = Rotation::from_axis_angle(axis, angle);
+        //let j2000_to_gal: Rotation<f32> = (&J2000_TO_GALACTIC).into();
+
+        // Rotate the axis:
+        //let axis = (J2000_TO_GALACTIC.invert().unwrap() * Vector4::new(axis.x, axis.y, axis.z, 1.0)).truncate().normalize();
+        let drot = Rotation::from_axis_angle(&(axis), angle);
         self.w2m_rot = drot * self.w2m_rot;
 
         self.update_rot_matrices::<P>();
@@ -275,9 +252,29 @@ impl CameraViewPort {
     }
 
     pub fn set_projection<P: Projection>(&mut self) {
-        self.last_user_action = UserAction::Starting;
+        // Recompute the ndc_to_clip
+        let width = web_sys::window()
+            .unwrap()
+            .inner_width()
+            .unwrap()
+            .as_f64()
+            .unwrap() as f32;
+        let height = web_sys::window()
+            .unwrap()
+            .inner_height()
+            .unwrap()
+            .as_f64()
+            .unwrap() as f32;
+        self.set_screen_size::<P>(width, height);
+        // Recompute clip zoom factor
+        self.set_aperture::<P>(self.get_aperture());
 
-        self.vertices.set_projection::<P>(&self.center, &self.ndc_to_clip, self.clip_zoom_factor, &self.w2m_rot);
+        //self.last_user_action = UserAction::Starting;
+
+        //self.vertices.set_projection::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
+    }
+    pub fn set_longitude_reversed(&mut self, reversed: bool) {
+        self.longitude_reversed = reversed;
     }
 
     // Accessors
@@ -341,6 +338,9 @@ impl CameraViewPort {
     pub fn get_center(&self) -> &Vector4<f32> {
         &self.center
     }
+    pub fn is_reversed_longitude(&self) -> bool {
+        self.longitude_reversed
+    }
 
     // Useful methods for the grid purpose
     /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
@@ -364,13 +364,14 @@ impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
+        //self.w2m = self.w2m * J2000_TO_GALACTIC;
         self.m2w = self.w2m.invert().unwrap();
 
         self.last_user_action = UserAction::Moving;
 
         self.moved = true;
 
-        self.vertices.set_rotation(&self.center, &self.w2m_rot);
+        self.vertices.set_rotation(&self.w2m);
         self.update_center::<P>();
     }
 
@@ -382,7 +383,7 @@ impl CameraViewPort {
         ).unwrap();
     }
 }
-
+use cgmath::InnerSpace;
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
@@ -394,6 +395,7 @@ impl SendUniforms for CameraViewPort {
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
+            .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32)) 
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);
 

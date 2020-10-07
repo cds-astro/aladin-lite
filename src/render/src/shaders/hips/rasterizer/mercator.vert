@@ -20,23 +20,12 @@ uniform float clip_zoom_factor;
 // current time in ms
 uniform float current_time;
 
-const float PI = 3.1415926535897932384626433832795f;
-
-vec2 world2clip_mercator(vec3 p) {
-    // X in [-1, 1]
-    // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-
-    float delta = asin(p.y);
-    float theta = atan(p.x, p.z);
-
-    float x = -theta / PI;
-    float y = log(tan(PI * 0.25f + delta * 0.5f)) / PI;
-
-    return vec2(x, y);
-}
+@import ../projection;
 
 void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    world_pos = check_inversed_longitude(world_pos);
+
     gl_Position = vec4(world2clip_mercator(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
 
     screen_pos = gl_Position.xy;

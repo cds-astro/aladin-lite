@@ -99,6 +99,10 @@ where S: BaseFloat {
         Rotation(*q)
     }
 
+    pub fn from_matrix4(mat: &Matrix4<S>) -> Rotation<S> {
+        mat.into()
+    }
+
     // Define a rotation from an axis and a angle 
     pub fn from_axis_angle(axis: &Vector3<S>, angle: Angle<S>) -> Rotation<S> {
         let angle: Rad<S> = angle.into();

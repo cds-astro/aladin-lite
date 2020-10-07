@@ -288,20 +288,23 @@ pub struct HEALPixCellsInView {
 use crate::camera::{CameraViewPort, UserAction};
 use super::image_survey::ImageSurvey;
 impl HEALPixCellsInView {
-    pub fn new() -> Self {
+    pub fn new(survey_tex_size: i32, max_depth: u8, camera: &CameraViewPort) -> Self {
         let cells = HEALPixCells::new();
         let new_cells = NewHEALPixCells::new(&cells);
         let prev_depth = 0;
         let look_for_parents = false;
         let is_new_cells = false;
 
-        HEALPixCellsInView {
+        let mut view = HEALPixCellsInView {
             cells,
             new_cells,
             prev_depth,
             look_for_parents,
             is_new_cells,
-        }
+        };
+
+        view.refresh_cells(survey_tex_size, max_depth, camera);
+        view
     }
 
     // This method is called whenever the user does an action

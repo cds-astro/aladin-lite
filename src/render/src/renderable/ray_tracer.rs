@@ -11,13 +11,13 @@ pub trait RayTracingProjection {
 }
 
 use crate::renderable::Triangulation;
-fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u16>) {
+fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraViewPort) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
     let vertices = vertices
         .into_iter()
         .map(|pos_clip_space| {
-            let pos_world_space = P::clip_to_world_space(&pos_clip_space).unwrap();
+            let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
 
             vec![
                 pos_clip_space.x,
@@ -54,7 +54,7 @@ use crate::shader::ShaderId;
 use std::mem;
 impl RayTracer {
     pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
-        let (vertices, idx) = create_vertices_array::<P>(gl);
+        let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));

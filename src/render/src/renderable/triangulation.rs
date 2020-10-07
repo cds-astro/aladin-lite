@@ -236,7 +236,7 @@ fn recursive_triangulation<P: Projection>(
     if depth > 0 {
         // Look if the square is totally included in the projection
         let farthest_vertex = face.get_farthest_vertex();
-        if P::is_included_inside_projection(&farthest_vertex) && depth < 2 {
+        if P::is_included_inside_projection(&farthest_vertex) && depth < 1 {
             face.add(vertices, idx);
         // If not check if is traversed by the border of the projection
         } else {

@@ -170,6 +170,10 @@ impl TileDownloader {
         }
     }
 
+    pub fn reset_survey_requests(&mut self) {
+        
+    }
+
     pub fn reset(&mut self) {
         self.html_img_tiles_to_req.clear();
         self.fits_tiles_to_req.clear();
@@ -298,6 +302,8 @@ impl TileDownloader {
                 // We have to wait for more requests
                 // to be available
                 downloader_overloaded = true;
+                crate::log("downloader overload");
+
             }
         }
     }

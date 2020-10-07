@@ -20,30 +20,12 @@ uniform float clip_zoom_factor;
 // current time in ms
 uniform float current_time;
 
-const float PI = 3.1415926535897932384626433832795f;
-
-vec2 world2clip_aitoff(vec3 p) {
-    float delta = asin(p.y);
-    float theta = atan(p.x, p.z);
-
-    float theta_by_two = theta * 0.5f;
-
-    float alpha = acos(cos(delta)*cos(theta_by_two));
-    float inv_sinc_alpha = 1.f;
-    if (alpha > 1e-3f) {
-        inv_sinc_alpha = alpha / sin(alpha);
-    }
-
-    // The minus is an astronomical convention.
-    // longitudes are increasing from right to left
-    float x = -2.f * inv_sinc_alpha * cos(delta) * sin(theta_by_two);
-    float y = inv_sinc_alpha * sin(delta);
-
-    return vec2(x / PI, y / PI);
-}
+@import ../projection;
 
 void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    world_pos = check_inversed_longitude(world_pos);
+
     gl_Position = vec4(world2clip_aitoff(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
 
     screen_pos = gl_Position.xy;

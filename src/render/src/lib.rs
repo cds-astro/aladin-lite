@@ -125,14 +125,16 @@ use crate::renderable::angle::ArcSec;
 use crate::renderable::image_survey::ImageSurvey;
 use crate::buffer::Tile;
 use cgmath::InnerSpace;
+use crate::renderable::image_survey::HiPS;
 impl App {
     fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
-        //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+        //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
@@ -178,8 +180,8 @@ impl App {
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
 
-        let sdss_survey = ImageSurvey::from(&gl, &camera, &surveys, sdss, exec.clone())?;
-        surveys.set_simple_hips(sdss_survey);
+        let (survey, color) = sdss.create(&gl, &camera, &surveys, exec.clone())?;
+        surveys.add_simple_survey(survey, color, 0);
 
         let time_start_blending = Time::now();
 
@@ -419,11 +421,10 @@ impl App {
         self.gl.clear_color(0.08, 1.0, 0.08, 1.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+
+        //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         self.surveys.draw::<P>(&self.camera, &mut self.shaders);
-
         self.gl.enable(WebGl2RenderingContext::BLEND);
-
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         // Draw the catalog
         self.manager.draw::<P>(
@@ -452,43 +453,56 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        self.downloader.clear_requests();
+        let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+        let textures = survey.get_textures();
 
-        let new_survey = {
-            let survey = ImageSurvey::from::<SimpleHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
-            let textures = survey.get_textures();
+        let format = textures.config().format();
+        let root_url = survey.get_id().to_string();
 
-            let format = textures.config().format();
-            let root_url = survey.get_id();
-
+        let new_survey = self.surveys.add_simple_survey(survey, color, 0);
+        
+        if new_survey {
+            self.downloader.clear_requests();
             self.downloader.request_base_tiles(&root_url, &format);
-
-            survey
-        };
-
-        self.surveys.set_simple_hips(new_survey);
-
-        // Once its added, request its tiles
-        self.look_for_new_tiles();
+            // Once its added, request its tiles
+            self.look_for_new_tiles();
+        }
 
         Ok(())
     }
     fn set_overlay_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        self.set_simple_hips::<P>(hips)
+        let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+        let textures = survey.get_textures();
+
+        let format = textures.config().format();
+        let root_url = survey.get_id().to_string();
+
+        let new_survey = self.surveys.add_simple_survey(survey, color, 1);
+        
+        if new_survey {
+            self.downloader.clear_requests();
+            self.downloader.request_base_tiles(&root_url, &format);
+            // Once its added, request its tiles
+            self.look_for_new_tiles();
+        }
+
+        Ok(())
     }
     fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
-        for hips in hipses {
+        /*for hips in hipses {
             let new_survey = ImageSurvey::from::<ComponentHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
             self.surveys.set_simple_hips(new_survey);
         }
 
         // Once its added, request its tiles
-        self.look_for_new_tiles();
+        self.look_for_new_tiles();*/
 
         Ok(())
     }
     fn set_overlay_composite_hips<P: Projection>(&mut self, hips: CompositeHiPS) -> Result<(), JsValue> {
-        self.set_composite_hips::<P>(hips)
+        //self.set_composite_hips::<P>(hips)
+
+        Ok(())
     }
 
     fn set_projection<P: Projection>(&mut self) {

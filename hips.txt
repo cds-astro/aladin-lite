@@ -109,3 +109,48 @@ hips5 = {
 		}
 	},
 }
+panstarrs = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/y",
+
+		maxOrder: 11,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: 16,
+			}
+		},
+		minCutout: -0.2,
+		maxCutout: 8,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "asinh"
+		}
+	},
+}
+// GALEX
+galex = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/GALEX/GR6-03-2014/AIS-FD",
+
+		maxOrder: 8,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: 0,
+		maxCutout: 0.003,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "asinh"
+		}
+	},
+}

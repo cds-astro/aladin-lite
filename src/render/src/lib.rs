@@ -43,7 +43,7 @@ use crate::{
         TextManager, Angle, ArcDeg,
         grid::ProjetedGrid,
         catalog::{Source, Manager},
-        projection::{Aitoff, Orthographic, Mollweide, AzimutalEquidistant, Mercator, Projection},
+        projection::{Aitoff, Orthographic, Mollweide, AzimuthalEquidistant, Mercator, Projection},
     },
     camera::CameraViewPort,
     math::{LonLatT, LonLat},
@@ -131,9 +131,9 @@ impl App {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
-        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA);
+        //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
-        //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         gl.enable(WebGl2RenderingContext::CULL_FACE);
@@ -751,7 +751,7 @@ impl ProjectionType {
                 Ok(())
             },
             "arc" => {
-                app.set_projection::<AzimutalEquidistant>();
+                app.set_projection::<AzimuthalEquidistant>();
                 *self = ProjectionType::Arc;
                 Ok(())
             },
@@ -760,7 +760,7 @@ impl ProjectionType {
                 *self = ProjectionType::Mercator;
                 Ok(())
             },
-            _ => Err(format!("{} is not a valid projection name. aitoff, orthographic, mollweide and mercator are accepted", name).into())
+            _ => Err(format!("{} is not a valid projection name. aitoff, arc, orthographic, mollweide and mercator are accepted", name).into())
         }
     }
 
@@ -769,7 +769,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_longitude_reversed::<Aitoff>(reversed),
             ProjectionType::MollWeide => app.set_longitude_reversed::<Mollweide>(reversed),
             ProjectionType::Ortho => app.set_longitude_reversed::<Orthographic>(reversed),
-            ProjectionType::Arc => app.set_longitude_reversed::<Mollweide>(reversed),
+            ProjectionType::Arc => app.set_longitude_reversed::<AzimuthalEquidistant>(reversed),
             ProjectionType::Mercator => app.set_longitude_reversed::<Mercator>(reversed),
         };
     }
@@ -789,7 +789,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.screen_to_world::<Aitoff>(pos),
             ProjectionType::MollWeide => app.screen_to_world::<Mollweide>(pos),
             ProjectionType::Ortho => app.screen_to_world::<Orthographic>(pos),
-            ProjectionType::Arc => app.screen_to_world::<Mollweide>(pos),
+            ProjectionType::Arc => app.screen_to_world::<AzimuthalEquidistant>(pos),
             ProjectionType::Mercator => app.screen_to_world::<Mercator>(pos),
         }
     }
@@ -799,7 +799,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.go_from_to::<Aitoff>(pos1, pos2),
             ProjectionType::MollWeide => app.go_from_to::<Mollweide>(pos1, pos2),
             ProjectionType::Ortho => app.go_from_to::<Orthographic>(pos1, pos2),
-            ProjectionType::Arc => app.go_from_to::<Mollweide>(pos1, pos2),
+            ProjectionType::Arc => app.go_from_to::<AzimuthalEquidistant>(pos1, pos2),
             ProjectionType::Mercator => app.go_from_to::<Mercator>(pos1, pos2),
         }
     }
@@ -809,7 +809,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.update::<Aitoff>(dt),
             ProjectionType::MollWeide => app.update::<Mollweide>(dt),
             ProjectionType::Ortho => app.update::<Orthographic>(dt),
-            ProjectionType::Arc => app.update::<Mollweide>(dt),
+            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt),
             ProjectionType::Mercator => app.update::<Mercator>(dt),
         }
     }
@@ -819,7 +819,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.render::<Aitoff>(enable_grid),
             ProjectionType::MollWeide => app.render::<Mollweide>(enable_grid),
             ProjectionType::Ortho => app.render::<Orthographic>(enable_grid),
-            ProjectionType::Arc => app.render::<Mollweide>(enable_grid),
+            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(enable_grid),
             ProjectionType::Mercator => app.render::<Mercator>(enable_grid),
         };
     }
@@ -839,7 +839,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_simple_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_simple_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_simple_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_simple_hips::<Mollweide>(hips),
+            ProjectionType::Arc => app.set_simple_hips::<AzimuthalEquidistant>(hips),
             ProjectionType::Mercator => app.set_simple_hips::<Mercator>(hips),
         }
     }
@@ -849,7 +849,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_composite_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_composite_hips::<Mollweide>(hips),
+            ProjectionType::Arc => app.set_composite_hips::<AzimuthalEquidistant>(hips),
             ProjectionType::Mercator => app.set_composite_hips::<Mercator>(hips),
         }
     }
@@ -859,7 +859,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_overlay_simple_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_overlay_simple_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_overlay_simple_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_overlay_simple_hips::<Mollweide>(hips),
+            ProjectionType::Arc => app.set_overlay_simple_hips::<AzimuthalEquidistant>(hips),
             ProjectionType::Mercator => app.set_overlay_simple_hips::<Mercator>(hips),
         }
     }
@@ -869,7 +869,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_overlay_composite_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_overlay_composite_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_overlay_composite_hips::<Mollweide>(hips),
+            ProjectionType::Arc => app.set_overlay_composite_hips::<AzimuthalEquidistant>(hips),
             ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
         }
     }
@@ -888,7 +888,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.resize_window::<Aitoff>(width, height, enable_grid),
             ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height, enable_grid),
             ProjectionType::Ortho => app.resize_window::<Orthographic>(width, height, enable_grid),
-            ProjectionType::Arc => app.resize_window::<Mollweide>(width, height, enable_grid),
+            ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height, enable_grid),
             ProjectionType::Mercator => app.resize_window::<Mercator>(width, height, enable_grid),
         }; 
     }
@@ -898,7 +898,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_kernel_strength::<Aitoff>(name, strength),
             ProjectionType::MollWeide => app.set_kernel_strength::<Mollweide>(name, strength),
             ProjectionType::Ortho => app.set_kernel_strength::<Orthographic>(name, strength),
-            ProjectionType::Arc => app.set_kernel_strength::<Mollweide>(name, strength),
+            ProjectionType::Arc => app.set_kernel_strength::<AzimuthalEquidistant>(name, strength),
             ProjectionType::Mercator => app.set_kernel_strength::<Mercator>(name, strength),
         };
     }
@@ -918,7 +918,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_center::<Aitoff>(&lonlat),
             ProjectionType::MollWeide => app.set_center::<Mollweide>(&lonlat),
             ProjectionType::Ortho => app.set_center::<Orthographic>(&lonlat),
-            ProjectionType::Arc => app.set_center::<Mollweide>(&lonlat),
+            ProjectionType::Arc => app.set_center::<AzimuthalEquidistant>(&lonlat),
             ProjectionType::Mercator => app.set_center::<Mercator>(&lonlat),
         };
     }
@@ -928,7 +928,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.start_moving_to::<Aitoff>(&lonlat),
             ProjectionType::MollWeide => app.start_moving_to::<Mollweide>(&lonlat),
             ProjectionType::Ortho => app.start_moving_to::<Orthographic>(&lonlat),
-            ProjectionType::Arc => app.start_moving_to::<Mollweide>(&lonlat),
+            ProjectionType::Arc => app.start_moving_to::<AzimuthalEquidistant>(&lonlat),
             ProjectionType::Mercator => app.start_moving_to::<Mercator>(&lonlat),
         };
     }
@@ -938,7 +938,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.set_fov::<Aitoff>(&fov),
             ProjectionType::MollWeide => app.set_fov::<Mollweide>(&fov),
             ProjectionType::Ortho => app.set_fov::<Orthographic>(&fov),
-            ProjectionType::Arc => app.set_fov::<Aitoff>(&fov),
+            ProjectionType::Arc => app.set_fov::<AzimuthalEquidistant>(&fov),
             ProjectionType::Mercator => app.set_fov::<Mercator>(&fov),
         };
     }
@@ -948,7 +948,7 @@ impl ProjectionType {
             ProjectionType::Aitoff => app.get_center::<Aitoff>(),
             ProjectionType::MollWeide => app.get_center::<Mollweide>(),
             ProjectionType::Ortho => app.get_center::<Orthographic>(),
-            ProjectionType::Arc => app.get_center::<Aitoff>(),
+            ProjectionType::Arc => app.get_center::<AzimuthalEquidistant>(),
             ProjectionType::Mercator => app.get_center::<Mercator>(),
         }
     }

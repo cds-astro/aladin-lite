@@ -522,7 +522,7 @@ impl CatalogShaderProjection for Mollweide {
         ).unwrap()
     }
 }
-impl CatalogShaderProjection for AzimutalEquidistant {
+impl CatalogShaderProjection for AzimuthalEquidistant {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,

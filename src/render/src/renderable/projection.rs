@@ -201,7 +201,7 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
 pub struct Aitoff;
 pub struct Mollweide;
 pub struct Orthographic;
-pub struct AzimutalEquidistant;
+pub struct AzimuthalEquidistant;
 pub struct Mercator;
 
 use cgmath::Vector2;
@@ -546,7 +546,7 @@ impl Projection for Orthographic {
     }
 }
 
-impl Projection for AzimutalEquidistant {
+impl Projection for AzimuthalEquidistant {
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
@@ -575,6 +575,7 @@ impl Projection for AzimutalEquidistant {
             Some((-y + 1e-3, y - 1e-3))
         }
     }
+
     /// View to world space transformation
     /// 
     /// This returns a normalized vector along its first 3 dimensions.
@@ -587,30 +588,33 @@ impl Projection for AzimutalEquidistant {
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
-        let xw_2 = 1_f32 - pos_clip_space.x*pos_clip_space.x - pos_clip_space.y*pos_clip_space.y;
-        if xw_2 > 0_f32 {
-            let (x, y) = (2_f32 * pos_clip_space.x, 2_f32 * pos_clip_space.y);
+        // r <= pi
+        let x = pos_clip_space.x * std::f32::consts::PI;
+        let y = pos_clip_space.y * std::f32::consts::PI;
+        let mut r = (x * x + y * y).sqrt();
+        if (r > std::f32::consts::PI) {
+            None
+        } else {
+            let z = r.cos();
+            r = math::sincP(r);
 
-            let rho2 = x*x + y*y;
-            let rho = rho2.sqrt();
-
-            let c = 2_f32 * (0.5_f32 * rho).asin();
-
-            let mut delta = 0_f32;
-            let mut theta = 0_f32;
-            if c >= 1e-4 {
-                delta = (y * c.sin() / rho).asin() * std::f32::consts::PI;
-                theta = (x * c.sin()).atan2(rho * c.cos()) * std::f32::consts::PI;
-            }
-            let mut pos_world_space = math::radec_to_xyzw(Angle(theta), Angle(delta));
-            if longitude_reversed {
-                pos_world_space.x = -pos_world_space.x;
-            }
+            let pos_world_space = if longitude_reversed {
+                Vector4::new(
+                    -x * r,
+                    y * r,
+                    z,
+                    1.0
+                )
+            } else {
+                Vector4::new(
+                    -x * r,
+                    y * r,
+                    z,
+                    1.0
+                )
+            };
 
             Some(pos_world_space)
-        } else {
-            // Out of the sphere
-            None
         }
     }
 
@@ -620,23 +624,31 @@ impl Projection for AzimutalEquidistant {
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
-        let (mut theta, delta) = math::xyzw_to_radec(&pos_world_space);
-        if longitude_reversed {
-            theta.0 = -theta.0;
+        if pos_world_space.z > -1.0 {
+            // Distance in the Euclidean plane (xy)
+            // Angular distance is acos(x), but for small separation, asin(r)
+            // is more accurate.
+            let mut r = (pos_world_space.x * pos_world_space.x + pos_world_space.y * pos_world_space.y).sqrt();
+            if (pos_world_space.z > 0.0) { // Angular distance < PI/2, angular distance = asin(r)
+                r = math::asincP(r);
+            } else { // Angular distance > PI/2, angular distance = acos(x)
+                r = pos_world_space.z.acos() / r;
+            }
+            let x = if longitude_reversed {
+                pos_world_space.x * r
+            } else {
+                pos_world_space.x * r
+            };
+            let y = pos_world_space.y * r;
+
+            Some(Vector2::new(x / std::f32::consts::PI, y / std::f32::consts::PI))
+        } else {
+            Some(Vector2::new(1.0, 0.0))
         }
-
-        let c = delta.cos() * theta.cos();
-
-        let k = c / c.sin();
-
-        let x = k * delta.cos() * theta.sin();
-        let y = k * delta.sin();
-
-        Some(Vector2::new(x.0 / std::f32::consts::PI, y.0 / std::f32::consts::PI))
     }
 
     fn aperture_start() -> Angle<f32> {
-        ArcDeg(180_f32).into()
+        ArcDeg(360.0).into()
     }
 
     fn is_front_of_camera(_pos_world_space: &Vector4<f32>) -> bool {

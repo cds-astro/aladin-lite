@@ -440,12 +440,12 @@ impl GetShader for Mollweide {
         ).unwrap()
     }
 }
-impl GetShader for AzimutalEquidistant {
+impl GetShader for AzimuthalEquidistant {
     fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerArcVS"),
                 Cow::Borrowed("RasterizerColorFS")
             )
         ).unwrap()
@@ -454,7 +454,7 @@ impl GetShader for AzimutalEquidistant {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerArcVS"),
                 Cow::Borrowed("RasterizerGrayscale2ColormapFS")
             )
         ).unwrap()
@@ -463,7 +463,7 @@ impl GetShader for AzimutalEquidistant {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("RasterizerOrthoVS"),
+                Cow::Borrowed("RasterizerArcVS"),
                 Cow::Borrowed("RasterizerGrayscale2ColorFS")
             )
         ).unwrap()

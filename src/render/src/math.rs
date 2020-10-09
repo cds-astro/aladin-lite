@@ -1,6 +1,33 @@
 use cgmath::{InnerSpace, BaseFloat};
 use cgmath::Rad;
 use cgmath::{Vector4, Vector3};
+
+#[inline]
+pub fn asincP(mut x: f32) -> f32 {
+    assert!(x >= 0.0);
+    if x > 1.0e-4 {
+        x.asin() / x
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        x *= x;
+        1.0 + x * (1.0 + x * 9.0 / 20.0) / 6.0
+    }
+}
+
+#[inline]
+pub fn sincP(mut x: f32) -> f32 {
+    assert!(x >= 0.0);
+    if x > 1.0e-4 {
+        x.sin() / x
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        x *= x;
+        1.0 - x * (1.0 - x / 20.0) / 6.0
+    }
+}
+
 #[inline]
 pub fn ang_between_vect<S: BaseFloat>(x: &Vector3<S>, y: &cgmath::Vector3<S>) -> Angle<S> {
     let rad = Rad(x.cross(*y).magnitude().atan2(x.dot(*y)));

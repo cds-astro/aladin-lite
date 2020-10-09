@@ -83,3 +83,37 @@ vec2 world2clip_mercator(vec3 p) {
 
     return vec2(x, y);
 }
+
+float arc_sinc(float x) {
+    if (x > 1e-4) {
+        return asin(x) / x;
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        float x2 = x*x;
+        return 1.0 + x2 * (1.0 + x2 * 9.0 / 20.0) / 6.0;
+    }
+}
+
+vec2 world2clip_arc(vec3 p) {
+    if (p.z > -1.0) {
+        // Distance in the Euclidean plane (xy)
+        // Angular distance is acos(x), but for small separation, asin(r)
+        // is more accurate.
+        float r = length(p.xy);
+        if (p.z > 0.0) { // Angular distance < PI/2, angular distance = asin(r)
+            r = arc_sinc(r);
+        } else { // Angular distance > PI/2, angular distance = acos(x)
+            r = acos(p.z) / r;
+        }
+        float x = p.x * r;
+        /*if (inversed_longitude == 1) {
+            x = -x;
+        }*/
+        float y = p.y * r;
+
+        return vec2(x / PI, y / PI);
+    } else {
+        return vec2(1.0, 0.0);
+    }
+}

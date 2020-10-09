@@ -109,9 +109,66 @@ hips5 = {
 		}
 	},
 }
+// JAXA constellation
+jaxa_constellation = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/JAXA/JAXA_P_CONSTELLATIONS6/",
+
+		maxOrder: 6,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// Herschel
+herschel_spire = {
+	properties: {
+		url: "http://skies.esac.esa.int/Herschel/SPIRE-color",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// HSC g
+hscg = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_g",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.03,
+		maxCutout: 4,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [1.0, 0.0, 0.0],
+            k: 0.5,
+			transfer: "asinh"
+		}
+	},
+}
+// panstarrs r
 panstarrs = {
 	properties: {
-		url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/y",
+		url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
 
 		maxOrder: 11,
 		frame: { label: "J2000", system: "J2000" },
@@ -121,8 +178,8 @@ panstarrs = {
 				bitpix: 16,
 			}
 		},
-		minCutout: -0.2,
-		maxCutout: 8,
+		minCutout: -0.15,
+		maxCutout: 5,
 	},
 	color: {
 		Grayscale2Colormap: {
@@ -131,6 +188,40 @@ panstarrs = {
 		}
 	},
 }
+twomass = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/2MASS/Color/",
+
+		maxOrder: 9,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+	},
+	color: "Color"
+}
+
+xmm = {
+	properties: {
+		url: "http://saada.unistra.fr/PNColor/",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+
+
+
 // GALEX
 galex = {
 	properties: {

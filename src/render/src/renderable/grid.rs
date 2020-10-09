@@ -168,7 +168,7 @@ impl GridShaderProjection for Mollweide {
         ).unwrap()
     }
 }
-impl GridShaderProjection for AzimutalEquidistant {
+impl GridShaderProjection for AzimuthalEquidistant {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,

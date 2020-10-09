@@ -1103,6 +1103,8 @@ impl ImageSurveys {
                 self.gl.cull_face(WebGl2RenderingContext::FRONT);
             }
         }
+        self.gl.enable(WebGl2RenderingContext::BLEND);
+
         if self.opacity < 1.0 {
             let primary_layer = &self.layers[0];
             match &primary_layer {
@@ -1122,7 +1124,6 @@ impl ImageSurveys {
         }
 
         if self.opacity > 0.0 {
-            self.gl.enable(WebGl2RenderingContext::BLEND);
             // Overlay
             let overlay_layer = &self.layers[1];
             match &overlay_layer {

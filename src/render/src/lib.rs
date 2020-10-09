@@ -464,6 +464,7 @@ impl App {
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
+        self.request_redraw = true;
 
         Ok(())
     }
@@ -482,6 +483,7 @@ impl App {
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
+        self.request_redraw = true;
 
         Ok(())
     }
@@ -1291,7 +1293,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = setCompositeHiPS)]
     pub fn set_composite_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        let hips: CompositeHiPS = hips.into_serde().unwrap();
+        let hips: CompositeHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("Composite HiPS: {:?}", hips));
 
         self.projection.set_composite_hips(&mut self.app, hips)?;
@@ -1302,7 +1304,7 @@ impl WebClient {
     // Set an overlay HiPS
     #[wasm_bindgen(js_name = setOverlaySimpleHiPS)]
     pub fn set_overlay_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        let hips: SimpleHiPS = hips.into_serde().unwrap();
+        let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_overlay_simple_hips(&mut self.app, hips)?;
@@ -1312,7 +1314,7 @@ impl WebClient {
     
     #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
     pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
-        let hipses: CompositeHiPS = hipses.into_serde().unwrap();
+        let hipses: CompositeHiPS = hipses.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("Composite HiPS: {:?}", hipses));
 
         self.projection.set_overlay_composite_hips(&mut self.app, hipses)?;

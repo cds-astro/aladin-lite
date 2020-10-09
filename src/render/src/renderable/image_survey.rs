@@ -1062,7 +1062,7 @@ impl ImageSurveys {
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
 
-        let opacity = 1.0;
+        let opacity = 0.5;
         let gl = gl.clone();
         ImageSurveys {
             surveys,
@@ -1103,42 +1103,45 @@ impl ImageSurveys {
                 self.gl.cull_face(WebGl2RenderingContext::FRONT);
             }
         }
-
-        let primary_layer = &self.layers[0];
-        match &primary_layer {
-            ImageSurveyIdx::Simple { name, color } => {
-                let mut survey = self.surveys.get_mut(name).unwrap();
-                survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-            },
-            ImageSurveyIdx::Composite { names, colors } => {
-                // Add additive blending here
-                for (name, color) in names.iter().zip(colors.iter()) {
+        if self.opacity < 1.0 {
+            let primary_layer = &self.layers[0];
+            match &primary_layer {
+                ImageSurveyIdx::Simple { name, color } => {
                     let mut survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-                }
-            },
-            _ => unreachable!()
+                },
+                ImageSurveyIdx::Composite { names, colors } => {
+                    // Add additive blending here
+                    for (name, color) in names.iter().zip(colors.iter()) {
+                        let mut survey = self.surveys.get_mut(name).unwrap();
+                        survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
+                    }
+                },
+                _ => unreachable!()
+            }
         }
 
-        self.gl.enable(WebGl2RenderingContext::BLEND);
-        // Overlay
-        let overlay_layer = &self.layers[1];
-        match &overlay_layer {
-            ImageSurveyIdx::Simple { name, color } => {
-                let mut survey = self.surveys.get_mut(name).unwrap();
-                survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
-            },
-            ImageSurveyIdx::Composite { names, colors } => {
-                // Add additive blending here
-                for (name, color) in names.iter().zip(colors.iter()) {
+        if self.opacity > 0.0 {
+            self.gl.enable(WebGl2RenderingContext::BLEND);
+            // Overlay
+            let overlay_layer = &self.layers[1];
+            match &overlay_layer {
+                ImageSurveyIdx::Simple { name, color } => {
                     let mut survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
-                }
-            },
-            // If no HiPS are overlaying we do nothing
-            _ => ()
+                },
+                ImageSurveyIdx::Composite { names, colors } => {
+                    // Add additive blending here
+                    for (name, color) in names.iter().zip(colors.iter()) {
+                        let mut survey = self.surveys.get_mut(name).unwrap();
+                        survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
+                    }
+                },
+                // If no HiPS are overlaying we do nothing
+                _ => ()
+            }
+            self.gl.disable(WebGl2RenderingContext::BLEND);
         }
-        self.gl.disable(WebGl2RenderingContext::BLEND);
     }
 
     // Return the layer idx in which the survey is contained
@@ -1185,6 +1188,7 @@ impl ImageSurveys {
         for replaced_survey_name in replaced_survey_names.iter() {
             // ensure cur_idx is not contained in any other layers
             if self.contained_in_any_layer(replaced_survey_name).is_none() {
+                // if so we can remove it from the surveys hashmap
                 self.surveys.remove(replaced_survey_name);
             }
         }

@@ -463,6 +463,9 @@ impl ImageSurveyTextures {
     pub fn config(&self) -> &HiPSConfig {
         &self.config
     }
+    pub fn config_mut(&mut self) -> &mut HiPSConfig {
+        &mut self.config
+    }
 
     pub fn get_root_url(&self) -> &str {
         &self.config.root_url

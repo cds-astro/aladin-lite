@@ -96,11 +96,10 @@ impl FITS {
         }
     }
 
-    pub fn create_black_tile<T: ArrayBuffer>(width: i32) -> TileArrayBuffer<T> 
-    where <T as ArrayBuffer>::Item: FITSDataType {
+    pub fn create_black_tile<T: ArrayBuffer>(width: i32, value: T::Item) -> TileArrayBuffer<T> {
         let size_buf = (width * width * 1) as usize;
 
-        let pixels = [T::Item::zero()].iter()
+        let pixels = [value].iter()
             .cloned()
             .cycle()
             .take(size_buf)

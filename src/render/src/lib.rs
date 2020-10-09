@@ -131,7 +131,7 @@ impl App {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
-        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+        gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA);
 
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
@@ -271,14 +271,11 @@ impl App {
                         // Remove and append the texture with an updated
                         // time_request
                         if is_cell_new {
-                            crate::log("new cell");
-
                             // New cells are 
                             self.time_start_blending = Time::now();
                         }
                         already_available_cells.insert((*cell, is_cell_new));
                     } else {
-                        crate::log("request tile");
                         // Submit the request to the buffer
                         let format = textures.config().format();
                         let root_url = survey_id.clone();
@@ -486,6 +483,12 @@ impl App {
             self.look_for_new_tiles();
         }
 
+        Ok(())
+    }
+
+    fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
+        self.surveys.set_overlay_opacity(opacity);
+        self.request_redraw = true;
         Ok(())
     }
     fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
@@ -866,6 +869,15 @@ impl ProjectionType {
             ProjectionType::Ortho => app.set_overlay_composite_hips::<Orthographic>(hips),
             ProjectionType::Arc => app.set_overlay_composite_hips::<Mollweide>(hips),
             ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
+        }
+    }
+    pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.set_overlay_opacity(opacity),
+            ProjectionType::MollWeide => app.set_overlay_opacity(opacity),
+            ProjectionType::Ortho => app.set_overlay_opacity(opacity),
+            ProjectionType::Arc => app.set_overlay_opacity(opacity),
+            ProjectionType::Mercator => app.set_overlay_opacity(opacity),
         }
     }
 
@@ -1258,6 +1270,13 @@ impl WebClient {
         crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_simple_hips(&mut self.app, hips)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setOverlayOpacity)]
+    pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
+        self.projection.set_overlay_opacity(&mut self.app, opacity)?;
 
         Ok(())
     }

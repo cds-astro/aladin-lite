@@ -212,6 +212,9 @@ pub struct GrayscaleParameter {
     min_value: f32,
     max_value: f32,
 
+    // TODO: store this values in the ImageSurvey
+    // These are proper to the survey (FITS one) and not
+    // to a specific survey color
     pub scale: f32,
     pub offset: f32,
     pub blank: f32,
@@ -709,7 +712,6 @@ impl ImageSurvey {
     }
 
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
-        crate::log("update vertices!");
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
         let mut vertices = vec![];
@@ -1000,145 +1002,8 @@ impl HiPS for SimpleHiPS {
                 },
             )
         )
-        /*let survey = match color {
-            HiPSColor::Color => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Colored,
-                    exec,
-                    ImageSurveyType::Simple
-                ))
-            },
-            HiPSColor::Grayscale2Color {color, transfer, k} => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Grayscale2Color {
-                        color,
-                        k,
-                        param: GrayscaleParameter {
-                            h: transfer.into(),
-                            min_value: properties.minCutout.unwrap_or(0.0),
-                            max_value: properties.maxCutout.unwrap_or(1.0),
-                            
-                            // These Parameters are not in the properties
-                            // They will be retrieved by looking inside a tile
-                            scale: 1.0,
-                            offset: 0.0,
-                            blank: 0.0,
-                        }
-                    },
-                    exec,
-                    ImageSurveyType::Simple
-                ))
-            },
-            HiPSColor::Grayscale2Colormap {colormap, transfer} => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Grayscale2Colormap {
-                        colormap: colormap.into(),
-                        param: GrayscaleParameter {
-                            h: transfer.into(),
-                            min_value: properties.minCutout.unwrap_or(0.0),
-                            max_value: properties.maxCutout.unwrap_or(1.0),
-                            
-                            // These Parameters are not in the properties
-                            // They will be retrieved by looking inside a tile
-                            scale: 1.0,
-                            offset: 0.0,
-                            blank: 0.0,
-                        }
-                    },
-                    exec,
-                    ImageSurveyType::Simple
-                ))
-            }
-        };
-
-        survey*/
     }
 }
-
-/*impl HiPS for ComponentHiPS {
-    fn create(self, gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, exec: Rc<RefCell<TaskExecutor>>) -> Result<ImageSurvey, JsValue> {
-        let ComponentHiPS { properties, color } = self;
-
-        let config = HiPSConfig::new(gl, &properties)?;
-
-        let survey = match color {
-            HiPSColor::Color => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Colored,
-                    exec,
-                    ImageSurveyType::Component
-                ))
-            },
-            HiPSColor::Grayscale2Color {color, transfer, k} => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Grayscale2Color {
-                        color,
-                        k,
-                        param: GrayscaleParameter {
-                            h: transfer.into(),
-                            min_value: properties.minCutout.unwrap_or(0.0),
-                            max_value: properties.maxCutout.unwrap_or(1.0),
-                            
-                            // These Parameters are not in the properties
-                            // They will be retrieved by looking inside a tile
-                            scale: 1.0,
-                            offset: 0.0,
-                            blank: 0.0,
-                        }
-                    },
-                    exec,
-                    ImageSurveyType::Component
-                ))
-            },
-            HiPSColor::Grayscale2Colormap {colormap, transfer} => {
-                Ok(ImageSurvey::new(
-                    gl,
-                    camera,
-                    surveys,
-                    config,
-                    Color::Grayscale2Colormap {
-                        colormap: colormap.into(),
-                        param: GrayscaleParameter {
-                            h: transfer.into(),
-                            min_value: properties.minCutout.unwrap_or(0.0),
-                            max_value: properties.maxCutout.unwrap_or(1.0),
-                            
-                            // These Parameters are not in the properties
-                            // They will be retrieved by looking inside a tile
-                            scale: 1.0,
-                            offset: 0.0,
-                            blank: 0.0,
-                        }
-                    },
-                    exec,
-                    ImageSurveyType::Component
-                ))
-            }
-        };
-
-        survey
-    }
-}*/
 
 enum ImageSurveyIdx {
     Composite {
@@ -1197,7 +1062,7 @@ impl ImageSurveys {
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
 
-        let opacity = 0.5;
+        let opacity = 1.0;
         let gl = gl.clone();
         ImageSurveys {
             surveys,
@@ -1218,6 +1083,10 @@ impl ImageSurveys {
     pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+    }
+
+    pub fn set_overlay_opacity(&mut self, opacity: f32) {
+        self.opacity = opacity;
     }
 
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
@@ -1301,11 +1170,9 @@ impl ImageSurveys {
                 },
                 ImageSurveyIdx::Simple { name: cur_name, .. } => {
                     let cur_name = cur_name.clone();
-                    //crate::log(&format!("past survey name and new name {:?}, {:?}", cur_name, name));
                     *layer = ImageSurveyIdx::Simple { name: name.to_string(), color };
 
                     vec![cur_name]
-
                 },
                 ImageSurveyIdx::Composite { names: cur_names, .. } => {
                     let cur_names = cur_names.clone();
@@ -1426,16 +1293,21 @@ impl ImageSurveys {
                     let textures = survey.get_textures_mut();
 
                     let default_image = textures.config().get_black_tile();
-                    crate::log(&format!("missing {:?}", tile));
                     textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
                 },
                 TileResolved::Found { image, time_req } => {
                     match image {
                         RetrievedImageType::FITSImage { image, metadata } => {
-                            // Loop over all the colors from this survey
+                            // Update the metadata found in the header of the
+                            // FITS tile received
+                            let blank = metadata.blank;
                             self.set_metadata_fits_surveys(&tile.root_url, metadata);
+
                             let survey = self.surveys.get_mut(&tile.root_url).unwrap();
                             let textures = survey.get_textures_mut();
+                            // Update the blank textures
+                            textures.config_mut().set_black_tile_value(blank);
+
                             textures.push::<TileArrayBufferImage>(tile, image, time_req);
                         },
                         RetrievedImageType::CompressedImage { image } => {

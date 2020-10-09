@@ -5,6 +5,8 @@ struct TileConfig {
     // The size of the tile in the texture
     width: i32,
     default: Rc<TileArrayBufferImage>,
+    black_tile_value: f32,
+    format: FormatImageType,
 }
 
 #[derive(Debug)]
@@ -21,7 +23,7 @@ use std::rc::Rc;
 use crate::WebGl2Context;
 use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
 use crate::image_fmt::{PNG, JPG, FITS};
-fn create_black_tile(format: &FormatImageType, width: i32) -> TileArrayBufferImage {
+fn create_black_tile(format: &FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;
     match format {
         FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
@@ -29,16 +31,16 @@ fn create_black_tile(format: &FormatImageType, width: i32) -> TileArrayBufferIma
         FormatImageType::FITS(fits) => {
             match format.get_type() {
                 WebGl2RenderingContext::FLOAT => {
-                    TileArrayBufferImage::F32(FITS::create_black_tile(width))
+                    TileArrayBufferImage::F32(FITS::create_black_tile(width, value))
                 },
                 WebGl2RenderingContext::INT => {
-                    TileArrayBufferImage::I32(FITS::create_black_tile(width))
+                    TileArrayBufferImage::I32(FITS::create_black_tile(width, value as i32))
                 },
                 WebGl2RenderingContext::SHORT => {
-                    TileArrayBufferImage::I16(FITS::create_black_tile(width))
+                    TileArrayBufferImage::I16(FITS::create_black_tile(width, value as i16))
                 },
                 WebGl2RenderingContext::UNSIGNED_BYTE => {
-                    TileArrayBufferImage::U8(FITS::create_black_tile(width))
+                    TileArrayBufferImage::U8(FITS::create_black_tile(width, value as u8))
                 },
                 _ => unimplemented!()
             }
@@ -47,11 +49,14 @@ fn create_black_tile(format: &FormatImageType, width: i32) -> TileArrayBufferIma
 }
 
 impl TileConfig {
-    fn new(width: i32, format: &FormatImageType) -> TileConfig {
+    fn new(width: i32, format: FormatImageType) -> TileConfig {
         assert!(is_power_of_two(width as usize));
-        let default = Rc::new(create_black_tile(format, width));
+        let black_tile_value = 0.0;
+        let default = Rc::new(create_black_tile(&format, width, black_tile_value));
         TileConfig {
             width,
+            format,
+            black_tile_value,
             default,
         }
     }
@@ -64,6 +69,14 @@ impl TileConfig {
     #[inline]
     pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
         self.default.clone()
+    }
+
+    #[inline]
+    pub fn set_black_tile_value(&mut self, value: f32) {
+        if value != self.black_tile_value {
+            self.black_tile_value = value;
+            self.default = Rc::new(create_black_tile(&self.format, self.width, self.black_tile_value));
+        }
     }
 }
 
@@ -142,7 +155,7 @@ impl HiPSConfig {
         let max_depth_tile = properties.maxOrder;
         let tile_size = properties.tileSize;
 
-        let tile_config = TileConfig::new(tile_size, &format);
+        let tile_config = TileConfig::new(tile_size, format);
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         let num_tile_per_side_texture = texture_size / tile_size;
@@ -178,6 +191,11 @@ impl HiPSConfig {
         crate::log(&format!("new hips config {:?}", hips_config));
 
         Ok(hips_config)
+    }
+
+    #[inline]
+    pub fn set_black_tile_value(&mut self, value: f32) {
+        self.tile_config.set_black_tile_value(value);
     }
 
     #[inline]

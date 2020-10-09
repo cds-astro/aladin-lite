@@ -33,6 +33,8 @@ struct TileColor {
 @import ../color;
 @import ./healpix;
 
+uniform float opacity;
+
 TileColor get_tile_color(vec3 pos, int depth) {
     HashDxDy result = hash_with_dxdy(depth, pos.zxy);
     int idx = result.idx;
@@ -65,7 +67,6 @@ TileColor get_tile_color(vec3 pos, int depth) {
             vec3 UV = vec3(offset, float(idx_texture));
 
             vec3 color = get_color_from_texture(UV).rgb;
-
             return TileColor(tile, color, true);
         } else if (uniq < textures_tiles[i].uniq) {
             // go to left
@@ -90,7 +91,7 @@ void main() {
     // Get the HEALPix cell idx and the uv in the texture
 
     TileColor current_tile = get_tile_color(frag_pos, current_depth);
-    out_frag_color = vec4(current_tile.color, 1.f);
+    out_frag_color = vec4(current_tile.color, opacity);
 
     if (!current_tile.found) {
         vec3 out_color = vec3(0.f);
@@ -106,14 +107,14 @@ void main() {
         TileColor prev_tile = get_tile_color(frag_pos, depth);
         float alpha = clamp((current_time - prev_tile.tile.start_time) / duration, 0.f, 1.f);
         if (alpha == 1.f) {
-            out_frag_color = vec4(prev_tile.color, 1.f);
+            out_frag_color = vec4(prev_tile.color, opacity);
             return;
         }
 
         TileColor base_tile = get_tile_color(frag_pos, 0);
 
         out_color = mix(base_tile.color, prev_tile.color, alpha);
-        out_frag_color = vec4(out_color, 1.f);
+        out_frag_color = vec4(out_color, opacity);
         return;
     }
 
@@ -122,7 +123,7 @@ void main() {
     // Little optimization: if the current tile is loaded since the time duration
     // then we do not need to evaluate the frag position for the previous/next depth
     if (alpha == 1.f) {
-        out_frag_color = vec4(current_tile.color, 1.f);
+        out_frag_color = vec4(current_tile.color, opacity);
         return;
     }
     vec3 out_color = vec3(0.f);
@@ -141,5 +142,5 @@ void main() {
     }
 
     out_color = mix(tile.color, current_tile.color, alpha);
-    out_frag_color = vec4(out_color, 1.f);
+    out_frag_color = vec4(out_color, opacity);
 }

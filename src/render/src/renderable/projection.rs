@@ -699,14 +699,14 @@ impl Projection for Gnomonic {
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
-        let x_2d = pos_clip_space.x;
-        let y_2d = pos_clip_space.y;
-
-        let r = x_2d * x_2d + y_2d * y_2d;
-        if r >= 1.0 {
+        if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
             None
         } else {
-            let z = (1.0 + r*std::f32::consts::PI*std::f32::consts::PI).sqrt();
+            let x_2d = pos_clip_space.x * std::f32::consts::PI;
+            let y_2d = pos_clip_space.y * std::f32::consts::PI;
+            let r = x_2d * x_2d + y_2d * y_2d;
+
+            let z = (1.0 + r).sqrt();
             let pos_world_space = if longitude_reversed {
                 Vector4::new(
                     -z * x_2d,
@@ -737,21 +737,21 @@ impl Projection for Gnomonic {
             None
         } else {
             let pos_clip_space = if longitude_reversed {
-                Vector2::new(-pos_world_space.x/pos_world_space.z, pos_world_space.y/pos_world_space.z)
+                Vector2::new((-pos_world_space.x/pos_world_space.z) / std::f32::consts::PI, (pos_world_space.y/pos_world_space.z) / std::f32::consts::PI)
             } else {
-                Vector2::new(pos_world_space.x/pos_world_space.z, pos_world_space.y/pos_world_space.z)
+                Vector2::new((pos_world_space.x/pos_world_space.z) / std::f32::consts::PI, (pos_world_space.y/pos_world_space.z) / std::f32::consts::PI)
             };
             Some(pos_clip_space)
         }
     }
 
     fn aperture_start() -> Angle<f32> {
-        ArcDeg(360.0).into()
+        ArcDeg(180.0).into()
     }
 
-    fn is_front_of_camera(_pos_world_space: &Vector4<f32>) -> bool {
+    fn is_front_of_camera(pos_world_space: &Vector4<f32>) -> bool {
         // 2D projections always faces the camera
-        true
+        pos_world_space.z >= 1e-3
     }
 }
 

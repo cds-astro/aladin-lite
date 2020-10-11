@@ -119,9 +119,9 @@ vec2 world2clip_arc(vec3 p) {
 }
 
 vec2 world2clip_gnomonic(vec3 p) {
-    if (p.z <= 1e-3) { // Back hemisphere (x < 0) + diverges near x=0
+    if (p.z <= 1e-2) { // Back hemisphere (x < 0) + diverges near x=0
         return vec2(1.0, 0.0);
     } else {
-        return vec2(-p.x/p.z, p.y/p.z);
+        return vec2((p.x/p.z) / PI , (p.y/p.z) / PI);
     }
 }

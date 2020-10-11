@@ -766,7 +766,7 @@ impl ProjectionType {
                 *self = ProjectionType::Mercator;
                 Ok(())
             },
-            _ => Err(format!("{} is not a valid projection name. aitoff, arc, orthographic, mollweide and mercator are accepted", name).into())
+            _ => Err(format!("{} is not a valid projection name. aitoff, arc, orthographic, gnomonic, mollweide and mercator are accepted", name).into())
         }
     }
 

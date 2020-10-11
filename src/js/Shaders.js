@@ -32,6 +32,7 @@ import RayTracerGrayscale2ColormapFS from '../render/src/shaders/hips/raytracer/
 import RasterizerOrthoVS from '../render/src/shaders/hips/rasterizer/ortho.vert'
 import RasterizerMercatorVS from '../render/src/shaders/hips/rasterizer/mercator.vert'
 import RasterizerAitoffVS from '../render/src/shaders/hips/rasterizer/aitoff.vert'
+import RasterizerGnomonicVS from '../render/src/shaders/hips/rasterizer/gnomonic.vert'
 import RasterizerArcVS from '../render/src/shaders/hips/rasterizer/arc.vert'
 import RasterizerMollVS from '../render/src/shaders/hips/rasterizer/mollweide.vert'
 import RasterizerColorFS from '../render/src/shaders/hips/rasterizer/color.frag'
@@ -147,6 +148,10 @@ let shaders = [
     {
         id: "RasterizerArcVS",
         content: RasterizerArcVS,
+    },
+    {
+        id: "RasterizerGnomonicVS",
+        content: RasterizerGnomonicVS,
     },
     {
         id: "RasterizerMollVS",

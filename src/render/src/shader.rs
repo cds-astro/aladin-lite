@@ -469,6 +469,35 @@ impl GetShader for AzimuthalEquidistant {
         ).unwrap()
     }
 }
+impl GetShader for Gnomonic {
+    fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerGnomonicVS"),
+                Cow::Borrowed("RasterizerColorFS")
+            )
+        ).unwrap()
+    }
+    fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerGnomonicVS"),
+                Cow::Borrowed("RasterizerGrayscale2ColormapFS")
+            )
+        ).unwrap()
+    }
+    fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("RasterizerGnomonicVS"),
+                Cow::Borrowed("RasterizerGrayscale2ColorFS")
+            )
+        ).unwrap()
+    }
+}
 impl GetShader for Mercator {
     fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(

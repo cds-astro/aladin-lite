@@ -43,7 +43,7 @@ use crate::{
         TextManager, Angle, ArcDeg,
         grid::ProjetedGrid,
         catalog::{Source, Manager},
-        projection::{Aitoff, Orthographic, Mollweide, AzimuthalEquidistant, Mercator, Projection},
+        projection::{Aitoff, Orthographic, Mollweide, Gnomonic, AzimuthalEquidistant, Mercator, Projection},
     },
     camera::CameraViewPort,
     math::{LonLatT, LonLat},
@@ -730,6 +730,7 @@ enum ProjectionType {
     Arc,
     Mercator,
     Ortho,
+    Gnomonic,
 }
 
 impl ProjectionType {
@@ -755,6 +756,11 @@ impl ProjectionType {
                 *self = ProjectionType::Arc;
                 Ok(())
             },
+            "gnomonic" => {
+                app.set_projection::<Gnomonic>();
+                *self = ProjectionType::Gnomonic;
+                Ok(())
+            },
             "mercator" => {
                 app.set_projection::<Mercator>();
                 *self = ProjectionType::Mercator;
@@ -770,6 +776,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_longitude_reversed::<Mollweide>(reversed),
             ProjectionType::Ortho => app.set_longitude_reversed::<Orthographic>(reversed),
             ProjectionType::Arc => app.set_longitude_reversed::<AzimuthalEquidistant>(reversed),
+            ProjectionType::Gnomonic => app.set_longitude_reversed::<Gnomonic>(reversed),
             ProjectionType::Mercator => app.set_longitude_reversed::<Mercator>(reversed),
         };
     }
@@ -780,6 +787,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_colormap(name, colormap),
             ProjectionType::Ortho => app.set_colormap(name, colormap),
             ProjectionType::Arc => app.set_colormap(name, colormap),
+            ProjectionType::Gnomonic => app.set_colormap(name, colormap),
             ProjectionType::Mercator => app.set_colormap(name, colormap),
         };
     }
@@ -790,6 +798,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.screen_to_world::<Mollweide>(pos),
             ProjectionType::Ortho => app.screen_to_world::<Orthographic>(pos),
             ProjectionType::Arc => app.screen_to_world::<AzimuthalEquidistant>(pos),
+            ProjectionType::Gnomonic => app.screen_to_world::<Gnomonic>(pos),
             ProjectionType::Mercator => app.screen_to_world::<Mercator>(pos),
         }
     }
@@ -800,6 +809,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.go_from_to::<Mollweide>(pos1, pos2),
             ProjectionType::Ortho => app.go_from_to::<Orthographic>(pos1, pos2),
             ProjectionType::Arc => app.go_from_to::<AzimuthalEquidistant>(pos1, pos2),
+            ProjectionType::Gnomonic => app.go_from_to::<Gnomonic>(pos1, pos2),
             ProjectionType::Mercator => app.go_from_to::<Mercator>(pos1, pos2),
         }
     }
@@ -810,6 +820,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.update::<Mollweide>(dt),
             ProjectionType::Ortho => app.update::<Orthographic>(dt),
             ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt),
+            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt),
             ProjectionType::Mercator => app.update::<Mercator>(dt),
         }
     }
@@ -820,6 +831,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.render::<Mollweide>(enable_grid),
             ProjectionType::Ortho => app.render::<Orthographic>(enable_grid),
             ProjectionType::Arc => app.render::<AzimuthalEquidistant>(enable_grid),
+            ProjectionType::Gnomonic => app.render::<Gnomonic>(enable_grid),
             ProjectionType::Mercator => app.render::<Mercator>(enable_grid),
         };
     }
@@ -830,6 +842,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.add_catalog(name, table),
             ProjectionType::Ortho => app.add_catalog(name, table),
             ProjectionType::Arc => app.add_catalog(name, table),
+            ProjectionType::Gnomonic => app.add_catalog(name, table),
             ProjectionType::Mercator => app.add_catalog(name, table),
         };
     }
@@ -840,6 +853,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_simple_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_simple_hips::<Orthographic>(hips),
             ProjectionType::Arc => app.set_simple_hips::<AzimuthalEquidistant>(hips),
+            ProjectionType::Gnomonic => app.set_simple_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_simple_hips::<Mercator>(hips),
         }
     }
@@ -850,6 +864,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_composite_hips::<Orthographic>(hips),
             ProjectionType::Arc => app.set_composite_hips::<AzimuthalEquidistant>(hips),
+            ProjectionType::Gnomonic => app.set_composite_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_composite_hips::<Mercator>(hips),
         }
     }
@@ -860,6 +875,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_overlay_simple_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_overlay_simple_hips::<Orthographic>(hips),
             ProjectionType::Arc => app.set_overlay_simple_hips::<AzimuthalEquidistant>(hips),
+            ProjectionType::Gnomonic => app.set_overlay_simple_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_overlay_simple_hips::<Mercator>(hips),
         }
     }
@@ -870,6 +886,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_overlay_composite_hips::<Mollweide>(hips),
             ProjectionType::Ortho => app.set_overlay_composite_hips::<Orthographic>(hips),
             ProjectionType::Arc => app.set_overlay_composite_hips::<AzimuthalEquidistant>(hips),
+            ProjectionType::Gnomonic => app.set_overlay_composite_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
         }
     }
@@ -879,6 +896,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_overlay_opacity(opacity),
             ProjectionType::Ortho => app.set_overlay_opacity(opacity),
             ProjectionType::Arc => app.set_overlay_opacity(opacity),
+            ProjectionType::Gnomonic => app.set_overlay_opacity(opacity),
             ProjectionType::Mercator => app.set_overlay_opacity(opacity),
         }
     }
@@ -889,6 +907,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height, enable_grid),
             ProjectionType::Ortho => app.resize_window::<Orthographic>(width, height, enable_grid),
             ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height, enable_grid),
+            ProjectionType::Gnomonic => app.resize_window::<Gnomonic>(width, height, enable_grid),
             ProjectionType::Mercator => app.resize_window::<Mercator>(width, height, enable_grid),
         }; 
     }
@@ -899,6 +918,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_kernel_strength::<Mollweide>(name, strength),
             ProjectionType::Ortho => app.set_kernel_strength::<Orthographic>(name, strength),
             ProjectionType::Arc => app.set_kernel_strength::<AzimuthalEquidistant>(name, strength),
+            ProjectionType::Gnomonic => app.set_kernel_strength::<Gnomonic>(name, strength),
             ProjectionType::Mercator => app.set_kernel_strength::<Mercator>(name, strength),
         };
     }
@@ -909,6 +929,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_heatmap_opacity(name, opacity),
             ProjectionType::Ortho => app.set_heatmap_opacity(name, opacity),
             ProjectionType::Arc => app.set_heatmap_opacity(name, opacity),
+            ProjectionType::Gnomonic => app.set_heatmap_opacity(name, opacity),
             ProjectionType::Mercator => app.set_heatmap_opacity(name, opacity),
         }; 
     }
@@ -919,6 +940,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_center::<Mollweide>(&lonlat),
             ProjectionType::Ortho => app.set_center::<Orthographic>(&lonlat),
             ProjectionType::Arc => app.set_center::<AzimuthalEquidistant>(&lonlat),
+            ProjectionType::Gnomonic => app.set_center::<Gnomonic>(&lonlat),
             ProjectionType::Mercator => app.set_center::<Mercator>(&lonlat),
         };
     }
@@ -929,6 +951,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.start_moving_to::<Mollweide>(&lonlat),
             ProjectionType::Ortho => app.start_moving_to::<Orthographic>(&lonlat),
             ProjectionType::Arc => app.start_moving_to::<AzimuthalEquidistant>(&lonlat),
+            ProjectionType::Gnomonic => app.start_moving_to::<Gnomonic>(&lonlat),
             ProjectionType::Mercator => app.start_moving_to::<Mercator>(&lonlat),
         };
     }
@@ -939,6 +962,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_fov::<Mollweide>(&fov),
             ProjectionType::Ortho => app.set_fov::<Orthographic>(&fov),
             ProjectionType::Arc => app.set_fov::<AzimuthalEquidistant>(&fov),
+            ProjectionType::Gnomonic => app.set_fov::<Gnomonic>(&fov),
             ProjectionType::Mercator => app.set_fov::<Mercator>(&fov),
         };
     }
@@ -949,6 +973,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.get_center::<Mollweide>(),
             ProjectionType::Ortho => app.get_center::<Orthographic>(),
             ProjectionType::Arc => app.get_center::<AzimuthalEquidistant>(),
+            ProjectionType::Gnomonic => app.get_center::<Gnomonic>(),
             ProjectionType::Mercator => app.get_center::<Mercator>(),
         }
     }
@@ -959,6 +984,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_grid_color(red, green, blue),
             ProjectionType::Ortho => app.set_grid_color(red, green, blue),
             ProjectionType::Arc => app.set_grid_color(red, green, blue),
+            ProjectionType::Gnomonic => app.set_grid_color(red, green, blue),
             ProjectionType::Mercator => app.set_grid_color(red, green, blue),
         };
     }
@@ -999,6 +1025,7 @@ impl ProjectionType {
             ProjectionType::MollWeide => app.set_grid_opacity(alpha),
             ProjectionType::Ortho => app.set_grid_opacity(alpha),
             ProjectionType::Arc => app.set_grid_opacity(alpha),
+            ProjectionType::Gnomonic => app.set_grid_opacity(alpha),
             ProjectionType::Mercator => app.set_grid_opacity(alpha),
         };
     }

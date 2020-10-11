@@ -120,7 +120,7 @@ impl HiPSConfig {
         // characterics of the client
         let num_textures_by_side_slice = 8;
         let num_textures_by_slice = num_textures_by_side_slice * num_textures_by_side_slice;
-        let num_slices = 3;
+        let num_slices = 2;
         let num_textures = (num_textures_by_slice * num_slices) as usize;
 
         // Assert size is a power of two

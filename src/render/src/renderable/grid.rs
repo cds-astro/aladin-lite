@@ -179,6 +179,17 @@ impl GridShaderProjection for AzimuthalEquidistant {
         ).unwrap()
     }
 }
+impl GridShaderProjection for Gnomonic {
+    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("GridVS"),
+                Cow::Borrowed("GridOrthoFS"),
+            )
+        ).unwrap()
+    }
+}
 impl GridShaderProjection for Mercator {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(

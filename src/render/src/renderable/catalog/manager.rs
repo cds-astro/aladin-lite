@@ -55,7 +55,7 @@ impl Manager {
             ],
             FormatImageType::PNG
         );
-        let _ext = gl.get_extension("EXT_color_buffer_float");
+        //let _ext = gl.get_extension("EXT_color_buffer_float");
         // Initialize texture for framebuffer
         let fbo_texture = Texture2D::create_empty(
             gl,
@@ -545,6 +545,17 @@ impl CatalogShaderProjection for Mercator {
     }
 }
 impl CatalogShaderProjection for Orthographic {
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
+    }
+}
+impl CatalogShaderProjection for Gnomonic {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,

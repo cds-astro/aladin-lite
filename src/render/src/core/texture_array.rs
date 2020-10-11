@@ -173,9 +173,11 @@ impl Texture2DArray {
     ) -> Texture2DArray {
         let texture = gl.create_texture();
         let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
+        crate::log(&format!("{:?} bound", gl.get_parameter(WebGl2RenderingContext::TEXTURE_BINDING_2D)));
 
         gl.active_texture(idx_texture_unit);
         gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, texture.as_ref());
+        crate::log(&format!("{:?} bound", gl.get_parameter(WebGl2RenderingContext::TEXTURE_BINDING_2D)));
 
         for (pname, param) in tex_params.iter() {
             gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D_ARRAY, *pname, *param as i32);
@@ -196,7 +198,7 @@ impl Texture2DArray {
             _type, // type
             None, // source
         ).expect("Texture 2D Array");
-        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
+        gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
 
         let gl = gl.clone();
         Texture2DArray {
@@ -217,6 +219,7 @@ impl Texture2DArray {
 
         self.gl.active_texture(idx_texture_unit);
         self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, self.texture.as_ref());
+        crate::log(&format!("{:?} bound", self.gl.get_parameter(WebGl2RenderingContext::TEXTURE_BINDING_2D)));
 
         Texture2DArrayBound {
             texture_2d_array: self

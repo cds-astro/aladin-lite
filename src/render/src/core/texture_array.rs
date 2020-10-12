@@ -14,9 +14,7 @@ use web_sys::WebGlTexture;
 pub struct Texture2DArray {
     gl: WebGl2Context,
 
-    texture: Option<WebGlTexture>, // The texture data
-    idx_texture_unit: u32, // Internal index of the texture array
-    format: FormatImageType, // The storage format (e.g. RGB, RGBA)
+    textures: Vec<Texture2D>,
 
     width: i32, // Width of a texture element
     height: i32, // Height of a texture element
@@ -24,11 +22,11 @@ pub struct Texture2DArray {
 }
 
 use crate::core::IdxTextureUnit;
-
+use super::{Texture2D, Texture2DBound};
 use std::path::Path;
 
 impl Texture2DArray {
-    pub fn create_from_slice_images<P: AsRef<Path>>(
+    /*pub fn create_from_slice_images<P: AsRef<Path>>(
         gl: &WebGl2Context,
         // Paths to the same size images
         paths: &[P],
@@ -75,12 +73,12 @@ impl Texture2DArray {
         }
         
         texture_2d_array
-    }
+    }*/
 
     // Create a Texture2DArray from an image
     //
     // The number of texture is defined from the height of the image.
-    pub fn create<P: AsRef<Path>>(gl: &WebGl2Context,
+    /*pub fn create<P: AsRef<Path>>(gl: &WebGl2Context,
         // The path to the image
         path: &'static P,
         // The width of the individual textures
@@ -158,7 +156,7 @@ impl Texture2DArray {
             height,
             num_slices
         }
-    }
+    }*/
 
     pub fn create_empty(gl: &WebGl2Context,
         // The weight of the individual textures
@@ -171,7 +169,12 @@ impl Texture2DArray {
         // Texture format
         format: FormatImageType,
     ) -> Texture2DArray {
-        let texture = gl.create_texture();
+        let mut textures = vec![];
+        for slice_idx in 0..num_slices {
+            textures.push(Texture2D::create_empty(gl, width, height, tex_params, format));
+        }
+
+        /*let texture = gl.create_texture();
         let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
 
         gl.active_texture(idx_texture_unit);
@@ -197,53 +200,54 @@ impl Texture2DArray {
             _type, // type
             None, // source
         ).expect("Texture 2D Array");
-        gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
+        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);*/
+
+        
 
         let gl = gl.clone();
         Texture2DArray {
             gl,
 
-            texture,
-            idx_texture_unit,
-            format,
+            textures,
 
             width,
             height,
             num_slices
-        }
+        }        
     }
 
     pub fn bind(&self) -> Texture2DArrayBound {
-        let idx_texture_unit = self.idx_texture_unit;
-
-        self.gl.active_texture(idx_texture_unit);
-        self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, self.texture.as_ref());
-        crate::log(&format!("dfgd {:?} bound", self.gl.get_parameter(WebGl2RenderingContext::TEXTURE_BINDING_2D)));
+        let mut textures_bound = vec![];
+        for texture in self.textures.iter() {
+            textures_bound.push(texture.bind());
+        }
 
         Texture2DArrayBound {
-            texture_2d_array: self
+            gl: self.gl.clone(),
+            texture_2d_array: &textures_bound
         }
     }
 }
 
-impl Drop for Texture2DArray {
+/*impl Drop for Texture2DArray {
     fn drop(&mut self) {
         unsafe { crate::log(&"Delete texture array!"); }
         //self.gl.active_texture(self.idx_texture_unit);
         //self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
         self.gl.delete_texture(self.texture.as_ref());
     }
-}
+}*/
 
 pub struct Texture2DArrayBound<'a> {
-    texture_2d_array: &'a Texture2DArray,
+    texture_2d_array: &'a [Texture2DBound<'a>],
+    gl: WebGl2Context,
 }
 
-impl<'a> Drop for Texture2DArrayBound<'a> {
+/*impl<'a> Drop for Texture2DArrayBound<'a> {
     fn drop(&mut self) {
         self.texture_2d_array.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
     }
-}
+}*/
 
 use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
 use crate::buffer::ArrayBuffer;
@@ -360,19 +364,14 @@ impl<'a> Texture2DArrayBound<'a> {
         let format_tex = format.get_format();
         let _type = format.get_type();
 
-        self.texture_2d_array.gl.tex_sub_image_3d_with_opt_array_buffer_view(
-            WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-            0, // level: i32,
+        let texture = &self.textures[idx_texture as usize];
+        texture.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
             xoffset, // xoffset: i32,
             yoffset, // yoffset: i32,
-            idx_texture, // zoffset: i32,
             width, // width: i32,
             height, // height: i32,
-            1, // depth: i32,
-            format_tex, // format: u32,
-            _type, // type: u32
-            image,
-        ).expect("Sub texture 2d");
+            image
+        );
     }
 
     pub fn tex_sub_image_3d_with_html_image_element(&self,
@@ -387,7 +386,7 @@ impl<'a> Texture2DArrayBound<'a> {
         let format_tex = format.get_format();
         let _type = format.get_type();
 
-        self.texture_2d_array.gl.tex_sub_image_3d_with_html_image_element(
+        self.gl.tex_sub_image_3d_with_html_image_element(
             WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
             0, // level: i32,
             xoffset, // xoffset: i32,
@@ -409,12 +408,12 @@ impl<'a> Texture2DArrayBound<'a> {
         height: i32, // Height of the image
         src_data: Option<&[u8]> // image data
     ) {
-        let format = &self.texture_2d_array.format;
+        let texture = &self.texture_2d_array[idx_texture as usize].format;
 
         let format_tex = format.get_format();
         let _type = format.get_type();
 
-        self.texture_2d_array.gl.tex_sub_image_3d_with_opt_u8_array(
+        self.gl.tex_sub_image_3d_with_opt_u8_array(
             WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
             0, // level: i32,
             xoffset, // xoffset: i32,

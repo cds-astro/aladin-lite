@@ -415,7 +415,7 @@ impl App {
         }
 
         // Render the scene
-        self.gl.clear_color(0.08, 1.0, 0.08, 1.0);
+        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
 

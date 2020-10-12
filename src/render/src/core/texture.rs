@@ -225,7 +225,7 @@ impl<'a> Texture2DBound<'a> {
         idx_sampler
     }
 
-    pub fn _clear(&self) {
+    /*pub fn _clear(&self) {
         let (width, height) = (self.texture_2d.data.get_width(), self.texture_2d.data.get_height());
 
         let data = vec![0 as u8; 3 * (height as usize) * (width as usize)];
@@ -243,7 +243,7 @@ impl<'a> Texture2DBound<'a> {
             Some(&data),
         )
         .expect("Sub texture 2d");
-    }
+    }*/
 
     pub fn _tex_sub_image_2d_with_u32_and_u32_and_html_image_element(&self, dx: i32, dy: i32, image: &HtmlImageElement) {
         self.texture_2d.gl.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
@@ -254,6 +254,29 @@ impl<'a> Texture2DBound<'a> {
             WebGl2RenderingContext::RGB,
             WebGl2RenderingContext::UNSIGNED_BYTE,
             &image,
+        )
+        .expect("Sub texture 2d");
+    }
+    pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        width: i32, // Width of the image
+        height: i32, // Height of the image
+        image: Option<&js_sys::Object>
+    ) {
+        let _type = self.texture_2d.format.get_type();
+        let format = self.texture_2d.format.get_format();
+        self.texture_2d.gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+            WebGl2RenderingContext::TEXTURE_2D,
+            0,
+            dx,
+            dy,
+            width,
+            height,
+            format,
+            _type,
+            image,
         )
         .expect("Sub texture 2d");
     }

@@ -86,7 +86,7 @@ fn read_font_config_from_str(content: &str) -> Result<FontConfig, Box<dyn Error>
 
 use crate::core::Texture2DArray;
 pub struct TextManager {
-    font_textures: Rc<Texture2DArray>,
+    //font_textures: Rc<Texture2DArray>,
     letters: Vec<LetterInstance>, // letters that will be drawn at the next frame
     num_letters: usize,
 
@@ -133,7 +133,7 @@ impl TextManager {
         let height_texture = config.get_height_texture();
         let paths = &config.pages[..];
 
-        let font_textures = Texture2DArray::create_from_slice_images(
+        /*let font_textures = Texture2DArray::create_from_slice_images(
             gl,
             paths,
             width_texture,
@@ -147,7 +147,7 @@ impl TextManager {
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
             ],
             FormatImageType::PNG
-        );
+        );*/
 
         // Create a simple VAO mapped on the screen
         let vertex_array_object = {
@@ -213,7 +213,7 @@ impl TextManager {
             config,
             vertex_array_object,
             color,
-            font_textures,
+            //font_textures,
         }
     }
 
@@ -314,7 +314,7 @@ impl TextManager {
         ).unwrap();
 
         crate::log(&format!("num letters {:?}", self.num_letters));
-        let font_textures = self.font_textures.bind();
+        //let font_textures = self.font_textures.bind();
 
         shader.bind(gl)
             // Attach all the uniforms from the camera
@@ -322,7 +322,7 @@ impl TextManager {
             // Attach grid specialized uniforms
             .attach_uniform("text_color", &self.color)
             .attach_uniform("scaling", &0.5_f32)
-            .attach_uniform("font_textures", &font_textures)
+            //.attach_uniform("font_textures", &font_textures)
             // Bind the Vertex Array Object for drawing
             .bind_vertex_array_object_ref(&self.vertex_array_object)
                 .draw_elements_instanced_with_i32(

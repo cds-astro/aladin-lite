@@ -15,6 +15,7 @@ pub struct Texture2DArray {
     gl: WebGl2Context,
 
     textures: Vec<Texture2D>,
+    format: FormatImageType,
 
     width: i32, // Width of a texture element
     height: i32, // Height of a texture element
@@ -202,13 +203,12 @@ impl Texture2DArray {
         ).expect("Texture 2D Array");
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);*/
 
-        
-
         let gl = gl.clone();
         Texture2DArray {
             gl,
 
             textures,
+            format,
 
             width,
             height,
@@ -224,7 +224,8 @@ impl Texture2DArray {
 
         Texture2DArrayBound {
             gl: self.gl.clone(),
-            texture_2d_array: &textures_bound
+            format: self.format,
+            textures: textures_bound
         }
     }
 }
@@ -239,7 +240,8 @@ impl Texture2DArray {
 }*/
 
 pub struct Texture2DArrayBound<'a> {
-    texture_2d_array: &'a [Texture2DBound<'a>],
+    textures: Vec<Texture2DBound<'a>>,
+    format: FormatImageType,
     gl: WebGl2Context,
 }
 
@@ -252,13 +254,13 @@ pub struct Texture2DArrayBound<'a> {
 use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
 use crate::buffer::ArrayBuffer;
 impl<'a> Texture2DArrayBound<'a> {
-    pub fn get_idx_sampler(&self) -> i32 {
+    /*pub fn get_idx_sampler(&self) -> i32 {
         let idx_sampler: i32 = (self.texture_2d_array.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
             .try_into()
             .unwrap();
    
         idx_sampler
-    }
+    }*/
 
     /*pub fn clear(&self) {
         let format = &self.texture_2d_array.format;
@@ -359,7 +361,7 @@ impl<'a> Texture2DArrayBound<'a> {
         height: i32, // Height of the image
         image: Option<&js_sys::Object> // image data
     ) {
-        let format = &self.texture_2d_array.format;
+        let format = &self.format;
 
         let format_tex = format.get_format();
         let _type = format.get_type();
@@ -377,55 +379,55 @@ impl<'a> Texture2DArrayBound<'a> {
     pub fn tex_sub_image_3d_with_html_image_element(&self,
         xoffset: i32, yoffset: i32,
         idx_texture: i32, // Idx of the texture to replace
-        width: i32, // Width of the image
-        height: i32, // Height of the image
         image: &HtmlImageElement // image data
     ) {
-        let format = &self.texture_2d_array.format;
+        let format = &self.format;
 
         let format_tex = format.get_format();
         let _type = format.get_type();
 
-        self.gl.tex_sub_image_3d_with_html_image_element(
-            WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-            0, // level: i32,
+        let texture = &self.textures[idx_texture as usize];
+        texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
             xoffset, // xoffset: i32,
             yoffset, // yoffset: i32,
-            idx_texture, // zoffset: i32,
-            width, // width: i32,
-            height, // height: i32,
-            1, // depth: i32,
-            format_tex, // format: u32,
-            _type, // type: u32
-            image,
-        ).expect("Sub texture 2d");
+            image
+        );
     }
 
     pub fn tex_sub_image_3d_with_opt_u8_array(&self,
-        xoffset: i32, yoffset: i32,
+        xoffset: i32,
+        yoffset: i32,
         idx_texture: i32, // Idx of the texture to replace
         width: i32, // Width of the image
         height: i32, // Height of the image
         src_data: Option<&[u8]> // image data
     ) {
-        let texture = &self.texture_2d_array[idx_texture as usize].format;
+        let format = &self.format;
 
         let format_tex = format.get_format();
         let _type = format.get_type();
 
-        self.gl.tex_sub_image_3d_with_opt_u8_array(
-            WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-            0, // level: i32,
+        let texture = &self.textures[idx_texture as usize];
+        texture.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
             xoffset, // xoffset: i32,
             yoffset, // yoffset: i32,
-            idx_texture, // zoffset: i32,
             width, // width: i32,
             height, // height: i32,
-            1, // depth: i32,
-            format_tex, // format: u32,
-            _type as u32, // type: u32
-            src_data,
-        )
-        .expect("Sub texture 2d");
+            src_data
+        );
     }
 }
+
+use crate::shader::SendUniforms;
+use crate::shader::ShaderBound;
+impl<'a> SendUniforms for Texture2DArrayBound<'a> {
+    fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
+        let textures = &self.textures;
+        for (texture_idx, texture) in textures.iter().enumerate() {
+            let sampler_idx = texture.get_idx_sampler();
+            shader.attach_uniform(&format!("tex[{}]", texture_idx.to_string()), &sampler_idx);
+        }
+        shader.attach_uniform("num_tex", &(textures.len() as i32));
+        shader
+    }
+} 

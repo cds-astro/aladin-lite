@@ -46,7 +46,7 @@ pub struct Texture2D {
 
     data: TextureType,
 
-    format: FormatImageType,
+    pub format: FormatImageType,
 }
 
 static mut NUM_TEXTURE_UNIT: u32 = WebGl2RenderingContext::TEXTURE0;
@@ -245,18 +245,22 @@ impl<'a> Texture2DBound<'a> {
         .expect("Sub texture 2d");
     }*/
 
-    pub fn _tex_sub_image_2d_with_u32_and_u32_and_html_image_element(&self, dx: i32, dy: i32, image: &HtmlImageElement) {
+    pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(&self, dx: i32, dy: i32, image: &HtmlImageElement) {
+        let _type = self.texture_2d.format.get_type();
+        let format = self.texture_2d.format.get_format();
+
         self.texture_2d.gl.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
             WebGl2RenderingContext::TEXTURE_2D,
             0,
             dx,
             dy,
-            WebGl2RenderingContext::RGB,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
+            format,
+            _type,
             &image,
         )
         .expect("Sub texture 2d");
     }
+
     pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
         &self,
         dx: i32,
@@ -277,6 +281,30 @@ impl<'a> Texture2DBound<'a> {
             format,
             _type,
             image,
+        )
+        .expect("Sub texture 2d");
+    }
+
+    pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+        &self,
+        dx: i32,
+        dy: i32,
+        width: i32, // Width of the image
+        height: i32, // Height of the image
+        pixels: Option<&[u8]>
+    ) {
+        let _type = self.texture_2d.format.get_type();
+        let format = self.texture_2d.format.get_format();
+        self.texture_2d.gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+            WebGl2RenderingContext::TEXTURE_2D,
+            0,
+            dx,
+            dy,
+            width,
+            height,
+            format,
+            _type,
+            pixels,
         )
         .expect("Sub texture 2d");
     }

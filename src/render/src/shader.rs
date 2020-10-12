@@ -213,7 +213,7 @@ impl<'a> UniformType for Texture2DBound<'a> {
     }
 }
 
-use crate::core::Texture2DArrayBound;
+/*use crate::core::Texture2DArrayBound;
 impl<'a> UniformType for Texture2DArrayBound<'a> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Bind the texture array
@@ -221,10 +221,9 @@ impl<'a> UniformType for Texture2DArrayBound<'a> {
 
         // 2. Get its sampler idx and send it
         // to the the GPU as a i32 uniform
-        let idx_sampler = tex.get_idx_sampler();
-        gl.uniform1i(location, idx_sampler);
+
     }
-}
+}*/
 
 pub struct ShaderBound<'a> {
     shader: &'a Shader,

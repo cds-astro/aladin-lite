@@ -767,8 +767,7 @@ impl Image for TileHTMLImage {
                 offset.x,
                 offset.y,
                 offset.z,
-                size.x,
-                size.y,
+
                 &self.image,
             );
     }

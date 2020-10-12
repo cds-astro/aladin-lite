@@ -865,8 +865,8 @@ impl Draw for ImageSurvey {
                 //if self.textures.config.tex_storing_integers == 1 {
                 //    shader.attach_uniform("texInt", &texture_2d_array);
                 //} else {
-                    shader.attach_uniform("tex", &texture_2d_array);
-                //}
+                    shader.attach_uniforms_from(&texture_2d_array);
+                    //}
 
                 // Raytracer
                 shader.attach_uniforms_from(camera)
@@ -940,7 +940,7 @@ impl Draw for ImageSurvey {
                 //panic!();
                 //shader.attach_uniform("texInt", &texture_2d_array);
             //} else {
-                shader.attach_uniform("tex", &texture_2d_array);
+                shader.attach_uniforms_from(&texture_2d_array);
             //}
 
             shader

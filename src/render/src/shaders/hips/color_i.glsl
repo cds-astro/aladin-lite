@@ -1,4 +1,6 @@
-uniform isampler2DArray tex;
+uniform isampler2D tex[10];
+uniform int num_tex;
+
 uniform float scale;
 uniform float offset;
 uniform float blank;
@@ -15,6 +17,10 @@ uniform int tex_storing_fits;
 @import ../colormaps/colormap;
 @import ./transfer_funcs;
 
+vec3 get_pixels(vec3 uv) {
+    return texture(tex[uv.z], uv.xy);
+}
+
 vec3 reverse_uv(vec3 uv) {
     uv.y = size_tile_uv + 2.0*size_tile_uv*floor(uv.y / size_tile_uv) - uv.y;
 
@@ -28,7 +34,7 @@ float get_grayscale_from_texture(vec3 UV) {
         uv = reverse_uv(UV);
     }
 
-    float x = float(texture(tex, uv).r);
+    float x = float(get_pixels(uv).r);
 
     /*if (x == blank) {
         return transparent;

@@ -153,23 +153,7 @@ impl App {
                 maxCutout: None,
             },
             color: HiPSColor::Color
-            //colormap: String::from("RedTemperature"),
-            //transfer: String::from("linear")
         };
-
-        // camera definition
-        // HiPS definition
-        /*let config = HiPSConfig::new(
-            gl,
-            String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"), // Name of the HiPS
-            10, // max depth of the HiPS
-            512, // Size of a texture tile
-            0.0,
-            1.0,
-            TransferFunction::Asinh,
-            FormatImageType::JPG, // Format of the tile texture images,
-            None,
-        );*/
 
         log("shaders compiled");
         //panic!(format!("{:?}", aa));
@@ -488,25 +472,71 @@ impl App {
         Ok(())
     }
 
+    fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
+        let mut surveys = Vec::new();
+        let mut colors = Vec::new();
+        let mut survey_ids = Vec::new();
+        let mut survey_formats = Vec::new();
+
+        for hips in hipses.into_iter() {
+            let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+
+            survey_ids.push(survey.get_id().to_string());
+            survey_formats.push(survey.get_textures().config.format());
+
+            surveys.push(survey);
+            colors.push(color);
+        }
+
+        let new_survey = self.surveys.add_composite_surveys(surveys, colors, 0);
+        
+        if new_survey {
+            self.downloader.clear_requests();
+            for (id, format) in survey_ids.iter().zip(survey_formats.iter()) {
+                self.downloader.request_base_tiles(id, format);
+            }
+            // Once its added, request its tiles
+            self.look_for_new_tiles();
+        }
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
+    fn set_overlay_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
+        let mut surveys = Vec::new();
+        let mut colors = Vec::new();
+        let mut survey_ids = Vec::new();
+        let mut survey_formats = Vec::new();
+
+        for hips in hipses.into_iter() {
+            let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+
+            survey_ids.push(survey.get_id().to_string());
+            survey_formats.push(survey.get_textures().config.format());
+
+            surveys.push(survey);
+            colors.push(color);
+        }
+
+        let new_survey = self.surveys.add_composite_surveys(surveys, colors, 1);
+        
+        if new_survey {
+            self.downloader.clear_requests();
+            for (id, format) in survey_ids.iter().zip(survey_formats.iter()) {
+                self.downloader.request_base_tiles(id, format);
+            }
+            // Once its added, request its tiles
+            self.look_for_new_tiles();
+        }
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
     fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
         self.surveys.set_overlay_opacity(opacity);
         self.request_redraw = true;
-        Ok(())
-    }
-    fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
-        /*for hips in hipses {
-            let new_survey = ImageSurvey::from::<ComponentHiPS>(&self.gl, &self.camera, &self.surveys, hips, self.exec.clone())?;
-            self.surveys.set_simple_hips(new_survey);
-        }
-
-        // Once its added, request its tiles
-        self.look_for_new_tiles();*/
-
-        Ok(())
-    }
-    fn set_overlay_composite_hips<P: Projection>(&mut self, hips: CompositeHiPS) -> Result<(), JsValue> {
-        //self.set_composite_hips::<P>(hips)
-
         Ok(())
     }
 
@@ -1129,19 +1159,12 @@ pub struct SimpleHiPS {
 
 #[derive(Deserialize)]
 #[derive(Debug)]
-pub struct ComponentHiPS {
-    properties: HiPSProperties,
-    color: HiPSColor,
-}
-
-#[derive(Deserialize)]
-#[derive(Debug)]
 pub struct CompositeHiPS {
-    hipses: Vec<ComponentHiPS>
+    hipses: Vec<SimpleHiPS>
 }
 use std::iter::IntoIterator;
 impl IntoIterator for CompositeHiPS {
-    type Item = ComponentHiPS;
+    type Item = SimpleHiPS;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -1303,21 +1326,6 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = setOverlayOpacity)]
-    pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
-        self.projection.set_overlay_opacity(&mut self.app, opacity)?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = setHiPSFormat)]
-    pub fn set_hips_format(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        let hips: HiPSFormat = hips.into_serde().map_err(|e| e.to_string())?;
-        crate::log(&format!("simple HiPS: {:?}", hips));
-
-        Ok(())
-    }
-
     #[wasm_bindgen(js_name = setCompositeHiPS)]
     pub fn set_composite_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         let hips: CompositeHiPS = hips.into_serde().map_err(|e| e.to_string())?;
@@ -1345,6 +1353,13 @@ impl WebClient {
         crate::log(&format!("Composite HiPS: {:?}", hipses));
 
         self.projection.set_overlay_composite_hips(&mut self.app, hipses)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setOverlayOpacity)]
+    pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
+        self.projection.set_overlay_opacity(&mut self.app, opacity)?;
 
         Ok(())
     }

@@ -317,11 +317,11 @@ pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
 const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 12;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
-#[derive(Clone, Copy)]
+/*#[derive(Clone, Copy)]
 enum ImageSurveyType {
     Simple,
     Component
-}
+}*/
 
 #[repr(C)]
 struct Position {
@@ -541,7 +541,7 @@ pub struct ImageSurvey {
 
     gl: WebGl2Context,
 
-    _type: ImageSurveyType,
+    //_type: ImageSurveyType,
     size_vertices_buf: u32,
     size_idx_vertices_buf: u32,
 }
@@ -556,7 +556,7 @@ impl ImageSurvey {
         config: HiPSConfig,
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
-        _type: ImageSurveyType
+        //_type: ImageSurveyType
     ) -> Self {
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
@@ -634,7 +634,7 @@ impl ImageSurvey {
         
             gl,
 
-            _type,
+            //_type,
             size_vertices_buf,
             size_idx_vertices_buf
         }
@@ -807,10 +807,6 @@ impl ImageSurvey {
         &self.get_textures().config.root_url
     }
 
-    #[inline]
-    fn get_type(&self) -> ImageSurveyType {
-        self._type
-    }
 
     /*#[inline]
     fn get_color(&self) -> &Color {
@@ -852,21 +848,14 @@ impl Draw for ImageSurvey {
 
         let texture_2d_array = self.textures.get_texture_array();
 
-        let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
-        let raytracing = camera.get_aperture().0 > limit_aperture.0;
+        let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         if raytracing {
             raytracer.bind();
             {
                 let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
                 let texture_2d_array = texture_2d_array.bind();
-
-                // Texture 2d array
-                //if self.textures.config.tex_storing_integers == 1 {
-                //    shader.attach_uniform("texInt", &texture_2d_array);
-                //} else {
-                    shader.attach_uniforms_from(&texture_2d_array);
-                    //}
+                shader.attach_uniforms_from(&texture_2d_array);
 
                 // Raytracer
                 shader.attach_uniforms_from(camera)
@@ -936,12 +925,7 @@ impl Draw for ImageSurvey {
             //shader.attach_uniform("texInt", &texture_2d_array);
             //shader.attach_uniform("tex", &texture_2d_array);
             // Texture 2d array
-            //if self.textures.config.tex_storing_integers == 1 {
-                //panic!();
-                //shader.attach_uniform("texInt", &texture_2d_array);
-            //} else {
-                shader.attach_uniforms_from(&texture_2d_array);
-            //}
+            shader.attach_uniforms_from(&texture_2d_array);
 
             shader
                 .attach_uniforms_from(camera)
@@ -972,7 +956,7 @@ pub trait HiPS {
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::{SimpleHiPS, ComponentHiPS, HiPSColor};
+use crate::{SimpleHiPS, HiPSColor};
 
 impl HiPS for SimpleHiPS {
     fn get_color(&self) -> &HiPSColor {
@@ -991,7 +975,7 @@ impl HiPS for SimpleHiPS {
                     surveys,
                     config,
                     exec,
-                    ImageSurveyType::Simple
+                    //ImageSurveyType::Simple
                 ),
                 match color {
                     HiPSColor::Color => Color::Colored,
@@ -1110,7 +1094,7 @@ impl ImageSurveys {
         //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
-        let raytracing = camera.get_aperture().0 > limit_aperture.0;
+        let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
@@ -1131,6 +1115,7 @@ impl ImageSurveys {
                 },
                 ImageSurveyIdx::Composite { names, colors } => {
                     // Add additive blending here
+                    self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
                     for (name, color) in names.iter().zip(colors.iter()) {
                         let mut survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
@@ -1150,6 +1135,8 @@ impl ImageSurveys {
                 },
                 ImageSurveyIdx::Composite { names, colors } => {
                     // Add additive blending here
+                    self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+
                     for (name, color) in names.iter().zip(colors.iter()) {
                         let mut survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
@@ -1178,15 +1165,60 @@ impl ImageSurveys {
         }
     }
 
-    pub fn add_simple_survey(&mut self, survey: ImageSurvey, color: Color, layer_idx: usize) -> bool {
-        let name = survey.get_id();
-        //let _type = survey.get_type();
+    pub fn add_composite_surveys(&mut self, surveys: Vec<ImageSurvey>, colors: Vec<Color>, layer_idx: usize) -> bool {
+        let names = surveys.iter()
+            .map(|s| s.get_id().to_string())
+            .collect::<Vec<String>>();
 
         let replaced_survey_names: Vec<String> = {
             let layer = &mut self.layers[layer_idx];
             match layer {
                 ImageSurveyIdx::None => {
-                    crate::log(&format!("color hips added {:?}", color));
+                    *layer = ImageSurveyIdx::Composite { names: names.clone(), colors };
+                    vec![]
+                },
+                ImageSurveyIdx::Simple { name: cur_name, .. } => {
+                    let cur_name = cur_name.clone();
+                    *layer = ImageSurveyIdx::Composite { names: names.clone(), colors };
+
+                    vec![cur_name]
+                },
+                ImageSurveyIdx::Composite { names: cur_names, .. } => {
+                    let cur_names = cur_names.clone();
+                    *layer = ImageSurveyIdx::Composite { names: names.clone(), colors };
+                    cur_names
+                }
+            }
+        };
+
+        for replaced_survey_name in replaced_survey_names.iter() {
+            // ensure cur_idx is not contained in any other layers
+            if self.contained_in_any_layer(replaced_survey_name).is_none() {
+                // if so we can remove it from the surveys hashmap
+                self.surveys.remove(replaced_survey_name);
+            }
+        }
+
+        //crate::log("END ADD");
+        // If it is a new survey, insert it
+        let mut new_surveys = false;
+        for (name, survey) in names.iter().zip(surveys.into_iter()) {
+            if !self.surveys.contains_key(name) {
+                self.surveys.insert(name.to_string(), survey);
+                new_surveys = true;
+            }
+        }
+
+        new_surveys
+    }
+
+    pub fn add_simple_survey(&mut self, survey: ImageSurvey, color: Color, layer_idx: usize) -> bool {
+        let name = survey.get_id();
+
+        let replaced_survey_names: Vec<String> = {
+            let layer = &mut self.layers[layer_idx];
+            match layer {
+                ImageSurveyIdx::None => {
                     *layer = ImageSurveyIdx::Simple { name: name.to_string(), color };
                     vec![]
                 },
@@ -1215,7 +1247,6 @@ impl ImageSurveys {
         //crate::log("END ADD");
         // If it is a new survey, insert it
         if !self.surveys.contains_key(name) {
-            crate::log(&format!("new hips config {:?}", survey.get_textures().config));
             self.surveys.insert(name.to_string(), survey);
             true
         } else {
@@ -1260,50 +1291,6 @@ impl ImageSurveys {
             textures.register_available_tile(tile);
         }
     }
-
-    /*fn set_metadata_fits_surveys(&mut self, name: &str, metadata: FITSMetaData) {
-        for layer in self.layers.iter_mut() {
-            match layer {
-                ImageSurveyIdx::None => (),
-                ImageSurveyIdx::Simple { name: cur_name, color } => {
-                    if *cur_name == *name {
-                        match color {
-                            Color::Grayscale2Color { ref mut param, .. } => {
-                                param.scale = metadata.bscale;
-                                param.offset = metadata.bzero;
-                                param.blank = metadata.blank;
-                            },
-                            Color::Grayscale2Colormap { ref mut param, .. } => {
-                                param.scale = metadata.bscale;
-                                param.offset = metadata.bzero;
-                                param.blank = metadata.blank;
-                            },
-                            _ => unreachable!()
-                        }
-                    }
-                },
-                ImageSurveyIdx::Composite { names, colors } => {
-                    for (cur_name, color) in names.iter().zip(colors.iter_mut()) {
-                        if *cur_name == *name {
-                            match color {
-                                Color::Grayscale2Color { ref mut param, .. } => {
-                                    param.scale = metadata.bscale;
-                                    param.offset = metadata.bzero;
-                                    param.blank = metadata.blank;
-                                },
-                                Color::Grayscale2Colormap { ref mut param, .. } => {
-                                    param.scale = metadata.bscale;
-                                    param.offset = metadata.bzero;
-                                    param.blank = metadata.blank;
-                                },
-                                _ => unreachable!()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }*/
 
     // Update the surveys by adding to the surveys the tiles
     // that have been resolved

@@ -196,6 +196,8 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
 
     fn solve_along_abscissa(y: f32) -> Option<(f32, f32)>;
     fn solve_along_ordinate(x: f32) -> Option<(f32, f32)>;
+
+    const RASTER_THRESHOLD_ANGLE: f32;
 }
 
 pub struct Aitoff;
@@ -334,6 +336,8 @@ impl Projection for Aitoff {
         // 2D projections always faces the camera
         true
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }
 
 
@@ -462,6 +466,8 @@ impl Projection for Mollweide {
         // 2D projections always faces the camera
         true
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }
 
 use crate::renderable::Angle;
@@ -545,6 +551,8 @@ impl Projection for Orthographic {
     fn is_front_of_camera(pos_world_space: &Vector4<f32>) -> bool {
         pos_world_space.z > 0_f32
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for AzimuthalEquidistant {
@@ -656,6 +664,8 @@ impl Projection for AzimuthalEquidistant {
         // 2D projections always faces the camera
         true
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for Gnomonic {
@@ -753,6 +763,8 @@ impl Projection for Gnomonic {
         // 2D projections always faces the camera
         pos_world_space.z >= 1e-3
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for Mercator {
@@ -853,4 +865,6 @@ impl Projection for Mercator {
         // 2D projections always faces the camera
         true
     }
+
+    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
 }

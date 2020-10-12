@@ -1,6 +1,7 @@
 #version 300 es
 precision highp float;
 precision lowp sampler2DArray;
+precision lowp isampler2DArray;
 precision highp int;
 
 layout (location = 0) in vec2 pos_clip_space;

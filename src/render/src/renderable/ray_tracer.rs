@@ -109,8 +109,11 @@ impl RayTracer {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
 
+    pub fn unbind(&self) {
+        self.gl.bind_vertex_array(None);
+    }
+
     pub fn draw(&self) {
-        self.bind();
         //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINE_STRIP,

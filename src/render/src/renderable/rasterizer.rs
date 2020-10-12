@@ -85,7 +85,7 @@ impl Rasterizer {
         }
     }*/
 
-    pub fn bind(&self) {
+    /*pub fn bind(&self) {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
 
@@ -97,7 +97,7 @@ impl Rasterizer {
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0
         );            
-    }
+    }*/
 }
 
 impl Drop for Rasterizer {

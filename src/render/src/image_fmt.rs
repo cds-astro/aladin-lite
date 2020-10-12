@@ -65,6 +65,9 @@ use crate::buffer::ArrayBuffer;
 impl FITS {
     pub fn new(internal_format: i32) -> Self {
         let (format, _type) = match internal_format as u32 {
+            WebGl2RenderingContext::RED => {
+                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
+            },
             WebGl2RenderingContext::R32F => {
                 (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
             },

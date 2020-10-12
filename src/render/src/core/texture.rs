@@ -209,6 +209,13 @@ impl Drop for Texture2D {
 pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
 }
+
+impl<'a> Drop for Texture2DBound<'a> {
+    fn drop(&mut self) {
+        self.texture_2d.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+    }
+}
+
 impl<'a> Texture2DBound<'a> {
     pub fn get_idx_sampler(&self) -> i32 {
         let idx_sampler: i32 = (self.texture_2d.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)

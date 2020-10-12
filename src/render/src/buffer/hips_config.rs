@@ -6,7 +6,6 @@ struct TileConfig {
     width: i32,
     default: Rc<TileArrayBufferImage>,
     black_tile_value: f32,
-    format: FormatImageType,
 }
 
 #[derive(Debug)]
@@ -23,7 +22,7 @@ use std::rc::Rc;
 use crate::WebGl2Context;
 use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
 use crate::image_fmt::{PNG, JPG, FITS};
-fn create_black_tile(format: &FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
+fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;
     match format {
         FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
@@ -52,10 +51,9 @@ impl TileConfig {
     fn new(width: i32, format: FormatImageType) -> TileConfig {
         assert!(is_power_of_two(width as usize));
         let black_tile_value = 0.0;
-        let default = Rc::new(create_black_tile(&format, width, black_tile_value));
+        let default = Rc::new(create_black_tile(format, width, black_tile_value));
         TileConfig {
             width,
-            format,
             black_tile_value,
             default,
         }
@@ -72,10 +70,10 @@ impl TileConfig {
     }
 
     #[inline]
-    pub fn set_black_tile_value(&mut self, value: f32) {
+    pub fn set_black_tile_value(&mut self, value: f32, format: FormatImageType) {
         if value != self.black_tile_value {
             self.black_tile_value = value;
-            self.default = Rc::new(create_black_tile(&self.format, self.width, self.black_tile_value));
+            self.default = Rc::new(create_black_tile(format, self.width, self.black_tile_value));
         }
     }
 }
@@ -153,17 +151,23 @@ impl HiPSConfig {
                         tex_storing_integers = 1;
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32)))
                     },
-                    32 => {
+                    /*32 => {
                         tex_storing_integers = 1;
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32)))
+                    },*/
+                    -32 => {
+                        tex_storing_integers = 0;
+                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
                     },
-                    -32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32))),
                     _ => {
                         Err(format!("Fits tiles exists but the BITPIX is not correct in the property file").into())
                     }
                 }
             },
             HiPSFormat::Image { format } => {
+                tex_storing_fits = 0;
+                tex_storing_integers = 0;
+
                 if format.contains("png") {
                     Ok(FormatImageType::PNG)
                 } else if format.contains("jpeg") || format.contains("jpg") {
@@ -224,7 +228,7 @@ impl HiPSConfig {
 
     #[inline]
     pub fn set_black_tile_value(&mut self, value: f32) {
-        self.tile_config.set_black_tile_value(value);
+        self.tile_config.set_black_tile_value(value, self.format);
     }
 
     #[inline]
@@ -306,7 +310,7 @@ impl SendUniforms for HiPSConfig {
         // Send max depth
         shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
-            .attach_uniform("tex_storing_integers", &self.tex_storing_integers)
+            .attach_uniform("tex_storing_integers", &(self.tex_storing_integers as f32))
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)

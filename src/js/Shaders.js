@@ -27,6 +27,8 @@ import RayTracerVS from '../render/src/shaders/hips/raytracer/raytracer.vert'
 import RayTracerColorFS from '../render/src/shaders/hips/raytracer/color.frag'
 import RayTracerGrayscale2ColorFS from '../render/src/shaders/hips/raytracer/grayscale_to_color.frag'
 import RayTracerGrayscale2ColormapFS from '../render/src/shaders/hips/raytracer/grayscale_to_colormap.frag'
+import RayTracerGrayscale2ColorIntegerFS from '../render/src/shaders/hips/raytracer/grayscale_to_color_i.frag'
+import RayTracerGrayscale2ColormapIntegerFS from '../render/src/shaders/hips/raytracer/grayscale_to_colormap_i.frag'
 
 // Rasterizer
 import RasterizerOrthoVS from '../render/src/shaders/hips/rasterizer/ortho.vert'
@@ -38,6 +40,8 @@ import RasterizerMollVS from '../render/src/shaders/hips/rasterizer/mollweide.ve
 import RasterizerColorFS from '../render/src/shaders/hips/rasterizer/color.frag'
 import RasterizerGrayscale2ColorFS from '../render/src/shaders/hips/rasterizer/grayscale_to_color.frag'
 import RasterizerGrayscale2ColormapFS from '../render/src/shaders/hips/rasterizer/grayscale_to_colormap.frag'
+import RasterizerGrayscale2ColorIntegerFS from '../render/src/shaders/hips/rasterizer/grayscale_to_color_i.frag'
+import RasterizerGrayscale2ColormapIntegerFS from '../render/src/shaders/hips/rasterizer/grayscale_to_colormap_i.frag'
 // Misc
 import TextVS from '../render/src/shaders/misc/text.vert'
 import TextFS from '../render/src/shaders/misc/text.frag'
@@ -168,6 +172,14 @@ let shaders = [
     {
         id: "RasterizerGrayscale2ColormapFS",
         content: RasterizerGrayscale2ColormapFS,
+    },
+    {
+        id: "RasterizerGrayscale2ColorIntegerFS",
+        content: RasterizerGrayscale2ColorIntegerFS,
+    },
+    {
+        id: "RasterizerGrayscale2ColormapIntegerFS",
+        content: RasterizerGrayscale2ColormapIntegerFS,
     },
     // Misc
     {

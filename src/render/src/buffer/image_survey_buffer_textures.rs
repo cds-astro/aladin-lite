@@ -482,6 +482,10 @@ impl ImageSurveyTextures {
         textures.sort_unstable();
         textures
     }
+
+    pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
+        self.texture_2d_array.clone()
+    }
 }
 
 use crate::shader::SendUniforms;
@@ -513,13 +517,7 @@ impl SendUniforms for ImageSurveyTextures {
         num_textures += 1;
         shader.attach_uniform("num_textures", &(num_textures as i32));
         shader.attach_uniforms_from(&self.config);
-
-        // Texture 2d array
-        if self.config.tex_storing_integers == 1 {
-            shader.attach_uniform("texInt", &*self.texture_2d_array);
-        } else {
-            shader.attach_uniform("tex", &*self.texture_2d_array);
-        }
+        crate::log(&format!("url: {} integers tex: {}", self.config.root_url, self.config.tex_storing_integers));
 
         shader
     }

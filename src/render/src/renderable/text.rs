@@ -314,13 +314,15 @@ impl TextManager {
         ).unwrap();
 
         crate::log(&format!("num letters {:?}", self.num_letters));
+        let font_textures = self.font_textures.bind();
+
         shader.bind(gl)
             // Attach all the uniforms from the camera
             .attach_uniforms_from(camera)
             // Attach grid specialized uniforms
             .attach_uniform("text_color", &self.color)
             .attach_uniform("scaling", &0.5_f32)
-            .attach_uniform("font_textures", &*self.font_textures)
+            .attach_uniform("font_textures", &font_textures)
             // Bind the Vertex Array Object for drawing
             .bind_vertex_array_object_ref(&self.vertex_array_object)
                 .draw_elements_instanced_with_i32(

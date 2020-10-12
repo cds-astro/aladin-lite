@@ -173,7 +173,6 @@ impl Texture2DArray {
     ) -> Texture2DArray {
         let texture = gl.create_texture();
         let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
-        crate::log(&format!("{:?} bound", gl.get_parameter(WebGl2RenderingContext::TEXTURE_BINDING_2D)));
 
         gl.active_texture(idx_texture_unit);
         gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, texture.as_ref());
@@ -198,7 +197,7 @@ impl Texture2DArray {
             _type, // type
             None, // source
         ).expect("Texture 2D Array");
-        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
+        gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);
 
         let gl = gl.clone();
         Texture2DArray {
@@ -240,6 +239,11 @@ pub struct Texture2DArrayBound<'a> {
     texture_2d_array: &'a Texture2DArray,
 }
 
+impl<'a> Drop for Texture2DArrayBound<'a> {
+    fn drop(&mut self) {
+        self.texture_2d_array.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
+    }
+}
 
 use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
 use crate::buffer::ArrayBuffer;
@@ -252,7 +256,7 @@ impl<'a> Texture2DArrayBound<'a> {
         idx_sampler
     }
 
-    pub fn clear(&self) {
+    /*pub fn clear(&self) {
         let format = &self.texture_2d_array.format;
         let format_tex = format.get_format();
 
@@ -342,7 +346,7 @@ impl<'a> Texture2DArrayBound<'a> {
         };
 
 
-    }
+    }*/
 
     pub fn tex_sub_image_3d_with_opt_array_buffer_view(&self,
         xoffset: i32, yoffset: i32,

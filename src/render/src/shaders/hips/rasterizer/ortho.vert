@@ -13,7 +13,6 @@ layout (location = 4) in float time_tile_received;
 out vec3 frag_uv_start;
 out vec3 frag_uv_end;
 out float frag_blending_factor;
-//out vec2 screen_pos;
 
 uniform mat4 inv_model;
 uniform vec2 ndc_to_clip;
@@ -31,7 +30,6 @@ void main() {
 
     gl_Position = vec4(ndc_pos, 0.0, 1.0);
 
-    //screen_pos = gl_Position.xy;
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;
 

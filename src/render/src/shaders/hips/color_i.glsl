@@ -1,4 +1,4 @@
-uniform sampler2DArray tex;
+uniform isampler2DArray tex;
 uniform float scale;
 uniform float offset;
 uniform float blank;
@@ -27,8 +27,8 @@ float get_grayscale_from_texture(vec3 UV) {
     if (tex_storing_fits == 1) {
         uv = reverse_uv(UV);
     }
-    
-    float x = texture(tex, uv).r;
+
+    float x = float(texture(tex, uv).r);
 
     /*if (x == blank) {
         return transparent;
@@ -38,8 +38,4 @@ float get_grayscale_from_texture(vec3 UV) {
     float h = transfer_func(H, alpha, min_value, max_value);
 
     return h;
-}
-
-vec4 get_color_from_texture(vec3 UV) {
-    return vec4(texture(tex, UV).rgb, 1.0);
 }

@@ -236,7 +236,7 @@ galex = {
 			}
 		},
 		minCutout: 0,
-		maxCutout: 0.003,
+		maxCutout: 0.01,
 	},
 	color: {
 		Grayscale2Colormap: {

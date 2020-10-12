@@ -241,30 +241,46 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn get_raster_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    pub fn get_raster_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager, integer_tex: bool) -> &'a Shader {
         match self {
             Color::Colored => {
                 P::get_raster_shader_color(gl, shaders)
             },
             Color::Grayscale2Colormap { .. } => {
-                P::get_raster_shader_gray2colormap(gl, shaders)
+                if integer_tex {
+                    P::get_raster_shader_gray2colormap_integer(gl, shaders)
+                } else {
+                    P::get_raster_shader_gray2colormap(gl, shaders)
+                }
             },
             Color::Grayscale2Color { .. } => {
-                P::get_raster_shader_gray2color(gl, shaders)
+                if integer_tex {
+                    P::get_raster_shader_gray2color_integer(gl, shaders)
+                } else {
+                    P::get_raster_shader_gray2color(gl, shaders)
+                }
             },
         }
     }
 
-    pub fn get_raytracer_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    pub fn get_raytracer_shader<'a, P: Projection>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager, integer_tex: bool) -> &'a Shader {
         match self {
             Color::Colored => {
                 P::get_raytracer_shader_color(gl, shaders)
             },
             Color::Grayscale2Colormap { .. } => {
-                P::get_raytracer_shader_gray2colormap(gl, shaders)
+                if integer_tex {
+                    P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
+                } else {
+                    P::get_raytracer_shader_gray2colormap(gl, shaders)
+                }
             },
             Color::Grayscale2Color { .. } => {
-                P::get_raytracer_shader_gray2color(gl, shaders)
+                if integer_tex {
+                    P::get_raytracer_shader_gray2color_integer(gl, shaders)
+                } else {
+                    P::get_raytracer_shader_gray2color(gl, shaders)
+                }
             },
         }
     }
@@ -510,7 +526,6 @@ use crate::cdshealpix;
 
 use web_sys::{WebGlVertexArrayObject, WebGlBuffer};
 pub struct ImageSurvey {
-    id: String,
     //color: Color,
     // The image survey texture buffer
     textures: ImageSurveyTextures,
@@ -543,8 +558,6 @@ impl ImageSurvey {
         exec: Rc<RefCell<TaskExecutor>>,
         _type: ImageSurveyType
     ) -> Self {
-        let id = config.root_url.clone();
-
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
 
@@ -594,6 +607,7 @@ impl ImageSurvey {
             unsafe { &js_sys::Uint16Array::view(&data) },
             WebGl2RenderingContext::DYNAMIC_DRAW
         );
+        gl.bind_vertex_array(None);
 
         let num_idx = 0;
         let sphere_sub = SphereSubdivided::new();
@@ -605,7 +619,6 @@ impl ImageSurvey {
         let gl = gl.clone();
 
         ImageSurvey {
-            id,
             //color,
             // The image survey texture buffer
             textures,
@@ -727,6 +740,8 @@ impl ImageSurvey {
         }
 
         self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.ebo));
+
         //crate::log(&format!(": {} {}", vertices.len(), self.size_vertices_buf));
         let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
         if vertices.len() > self.size_vertices_buf as usize {
@@ -746,7 +761,6 @@ impl ImageSurvey {
                 &buf_vertices
             );
         }
-        self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.ebo));
 
         self.num_idx = idx_vertices.len();
         let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
@@ -790,7 +804,7 @@ impl ImageSurvey {
 
     #[inline]
     pub fn get_id(&self) -> &str {
-        &self.id
+        &self.get_textures().config.root_url
     }
 
     #[inline]
@@ -815,13 +829,13 @@ impl Drop for ImageSurvey {
         //drop(&mut self.textures);
 
         // Drop the vertex arrays
-        self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
-        self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
+        //self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+        //self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
 
         self.gl.delete_buffer(Some(&self.vbo));
         self.gl.delete_buffer(Some(&self.ebo));
 
-        self.gl.bind_vertex_array(None);
+        //self.gl.bind_vertex_array(None);
         self.gl.delete_vertex_array(Some(&self.vao));
     }
 }
@@ -836,28 +850,37 @@ impl Draw for ImageSurvey {
             return;
         }
 
+        let texture_2d_array = self.textures.get_texture_array();
+
         let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         let raytracing = camera.get_aperture().0 > limit_aperture.0;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         if raytracing {
             raytracer.bind();
-
             {
-                let shader = color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
+                let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
+                let texture_2d_array = texture_2d_array.bind();
+
+                // Texture 2d array
+                //if self.textures.config.tex_storing_integers == 1 {
+                //    shader.attach_uniform("texInt", &texture_2d_array);
+                //} else {
+                    shader.attach_uniform("tex", &texture_2d_array);
+                //}
 
                 // Raytracer
-    
-                let cells_to_draw = self.view.get_cells();
                 shader.attach_uniforms_from(camera)
                     .attach_uniforms_from(&self.textures)
                     .attach_uniforms_from(color)
-                    .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+                    .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("opacity", &opacity);
     
                 // The raytracer vao is bound at the lib.rs level
                 raytracer.draw();
             }
+            raytracer.unbind();
+
             return;
         }
 
@@ -908,7 +931,18 @@ impl Draw for ImageSurvey {
                 self.set_vertices::<P>(camera);
             }
 
-            let shader = color.get_raster_shader::<P>(&self.gl, shaders).bind(&self.gl);
+            let shader = color.get_raster_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
+            let texture_2d_array = texture_2d_array.bind();
+            //shader.attach_uniform("texInt", &texture_2d_array);
+            //shader.attach_uniform("tex", &texture_2d_array);
+            // Texture 2d array
+            //if self.textures.config.tex_storing_integers == 1 {
+                //panic!();
+                //shader.attach_uniform("texInt", &texture_2d_array);
+            //} else {
+                shader.attach_uniform("tex", &texture_2d_array);
+            //}
+
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
@@ -925,6 +959,7 @@ impl Draw for ImageSurvey {
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0
             );
+            self.gl.bind_vertex_array(None);
         }
     }
 }
@@ -1123,8 +1158,8 @@ impl ImageSurveys {
                 // If no HiPS are overlaying we do nothing
                 _ => ()
             }
-            self.gl.disable(WebGl2RenderingContext::BLEND);
         }
+        self.gl.disable(WebGl2RenderingContext::BLEND);
     }
 
     // Return the layer idx in which the survey is contained
@@ -1151,6 +1186,7 @@ impl ImageSurveys {
             let layer = &mut self.layers[layer_idx];
             match layer {
                 ImageSurveyIdx::None => {
+                    crate::log(&format!("color hips added {:?}", color));
                     *layer = ImageSurveyIdx::Simple { name: name.to_string(), color };
                     vec![]
                 },
@@ -1179,7 +1215,7 @@ impl ImageSurveys {
         //crate::log("END ADD");
         // If it is a new survey, insert it
         if !self.surveys.contains_key(name) {
-            //crate::log("new");
+            crate::log(&format!("new hips config {:?}", survey.get_textures().config));
             self.surveys.insert(name.to_string(), survey);
             true
         } else {

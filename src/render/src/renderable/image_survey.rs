@@ -211,13 +211,6 @@ pub struct GrayscaleParameter {
     h: TransferFunction,
     min_value: f32,
     max_value: f32,
-
-    // TODO: store this values in the ImageSurvey
-    // These are proper to the survey (FITS one) and not
-    // to a specific survey color
-    pub scale: f32,
-    pub offset: f32,
-    pub blank: f32,
 }
 
 use crate::shader::{Shader, ShaderBound};
@@ -225,10 +218,7 @@ impl SendUniforms for GrayscaleParameter {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniforms_from(&self.h)
             .attach_uniform("min_value", &self.min_value)
-            .attach_uniform("max_value", &self.max_value)
-            .attach_uniform("scale", &self.scale)
-            .attach_uniform("offset", &self.offset)
-            .attach_uniform("blank", &self.blank);
+            .attach_uniform("max_value", &self.max_value);
 
         shader
     }
@@ -851,19 +841,23 @@ impl Draw for ImageSurvey {
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         if raytracing {
             raytracer.bind();
-            // Raytracer
-            let shader = color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
 
-            let cells_to_draw = self.view.get_cells();
-            shader.attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.textures)
-                .attach_uniforms_from(color)
-                .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
-                .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity);
+            {
+                let shader = color.get_raytracer_shader::<P>(&self.gl, shaders).bind(&self.gl);
 
-            // The raytracer vao is bound at the lib.rs level
-            raytracer.draw();
+                // Raytracer
+    
+                let cells_to_draw = self.view.get_cells();
+                shader.attach_uniforms_from(camera)
+                    .attach_uniforms_from(&self.textures)
+                    .attach_uniforms_from(color)
+                    .attach_uniform("current_depth", &(cells_to_draw.get_depth() as i32))
+                    .attach_uniform("current_time", &utils::get_current_time())
+                    .attach_uniform("opacity", &opacity);
+    
+                // The raytracer vao is bound at the lib.rs level
+                raytracer.draw();
+            }
             return;
         }
 
@@ -974,12 +968,6 @@ impl HiPS for SimpleHiPS {
                                 h: transfer.into(),
                                 min_value: properties.minCutout.unwrap_or(0.0),
                                 max_value: properties.maxCutout.unwrap_or(1.0),
-                                
-                                // These Parameters are not in the properties
-                                // They will be retrieved by looking inside a tile
-                                scale: 1.0,
-                                offset: 0.0,
-                                blank: 0.0,
                             }
                         }
                     },
@@ -990,12 +978,6 @@ impl HiPS for SimpleHiPS {
                                 h: transfer.into(),
                                 min_value: properties.minCutout.unwrap_or(0.0),
                                 max_value: properties.maxCutout.unwrap_or(1.0),
-                                
-                                // These Parameters are not in the properties
-                                // They will be retrieved by looking inside a tile
-                                scale: 1.0,
-                                offset: 0.0,
-                                blank: 0.0,
                             }
                         }
                     }
@@ -1243,7 +1225,7 @@ impl ImageSurveys {
         }
     }
 
-    fn set_metadata_fits_surveys(&mut self, name: &str, metadata: FITSMetaData) {
+    /*fn set_metadata_fits_surveys(&mut self, name: &str, metadata: FITSMetaData) {
         for layer in self.layers.iter_mut() {
             match layer {
                 ImageSurveyIdx::None => (),
@@ -1285,7 +1267,7 @@ impl ImageSurveys {
                 }
             }
         }
-    }
+    }*/
 
     // Update the surveys by adding to the surveys the tiles
     // that have been resolved
@@ -1306,12 +1288,17 @@ impl ImageSurveys {
                             // Update the metadata found in the header of the
                             // FITS tile received
                             let blank = metadata.blank;
-                            self.set_metadata_fits_surveys(&tile.root_url, metadata);
+                            //self.set_metadata_fits_surveys(&tile.root_url, metadata);
 
                             let survey = self.surveys.get_mut(&tile.root_url).unwrap();
+
+
                             let textures = survey.get_textures_mut();
+                            textures.config.blank = metadata.blank;
+                            textures.config.scale = metadata.bscale;
+                            textures.config.offset = metadata.bzero;
                             // Update the blank textures
-                            textures.config_mut().set_black_tile_value(blank);
+                            textures.config.set_black_tile_value(blank);
 
                             textures.push::<TileArrayBufferImage>(tile, image, time_req);
                         },

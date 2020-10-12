@@ -102,6 +102,16 @@ pub struct HiPSConfig {
     num_textures_by_slice: i32,
     num_slices: i32,
     num_textures: usize,
+
+    // TODO: store this values in the ImageSurvey
+    // These are proper to the survey (FITS one) and not
+    // to a specific survey color
+    pub scale: f32,
+    pub offset: f32,
+    pub blank: f32,
+
+    pub tex_storing_integers: i32,
+    pub tex_storing_fits: i32
 }
 
 #[inline]
@@ -128,13 +138,25 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let fmt = &properties.format;
+        let mut tex_storing_integers = 0;
+        let mut tex_storing_fits = 0;
         let format : Result<_, JsValue> = match fmt {
             HiPSFormat::FITSImage { bitpix, .. } => {
+                tex_storing_fits = 1;
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
-                    8 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32))),
-                    16 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32))),
-                    32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32))),
+                    8 => {
+                        tex_storing_integers = 1;
+                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32)))
+                    },
+                    16 => {
+                        tex_storing_integers = 1;
+                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32)))
+                    },
+                    32 => {
+                        tex_storing_integers = 1;
+                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32)))
+                    },
                     -32 => Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32))),
                     _ => {
                         Err(format!("Fits tiles exists but the BITPIX is not correct in the property file").into())
@@ -186,6 +208,13 @@ impl HiPSConfig {
             num_textures_by_slice,
             num_slices,
             num_textures,
+
+            scale: 1.0,
+            offset: 0.0,
+            blank: 0.0,
+
+            tex_storing_fits,
+            tex_storing_integers
         };
 
         crate::log(&format!("new hips config {:?}", hips_config));
@@ -274,18 +303,14 @@ use crate::shader::ShaderBound;
 
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        let tex_storing_integers = self.format.is_i_internal_format() as i32;
-        let tex_storing_fits = if let FormatImageType::FITS(_) = self.format {
-            1
-        } else {
-            0
-        };
-
         // Send max depth
         shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
-            .attach_uniform("tex_storing_integers", &tex_storing_integers)
-            .attach_uniform("tex_storing_fits", &tex_storing_fits);
+            .attach_uniform("tex_storing_integers", &self.tex_storing_integers)
+            .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
+            .attach_uniform("scale", &self.scale)
+            .attach_uniform("offset", &self.offset)
+            .attach_uniform("blank", &self.blank);
 
         shader
     }

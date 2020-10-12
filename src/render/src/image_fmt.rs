@@ -68,12 +68,6 @@ impl FITS {
             WebGl2RenderingContext::R32F => {
                 (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
             },
-            WebGl2RenderingContext::RGBA32F => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
-            WebGl2RenderingContext::R16F => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::HALF_FLOAT)
-            },
             WebGl2RenderingContext::R8UI => {
                 (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE)
             },
@@ -82,9 +76,6 @@ impl FITS {
             },
             WebGl2RenderingContext::R32I => {
                 (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT)
-            },
-            WebGl2RenderingContext::RED => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
             },
             _ => unimplemented!()
         };
@@ -210,7 +201,7 @@ impl FormatImageType {
         }
     }
 
-    pub fn is_i_internal_format(&self) -> bool {
+    /*pub fn is_i_internal_format(&self) -> bool {
         match self {
             &FormatImageType::FITS(fits) => {
                 match fits._type {
@@ -223,5 +214,5 @@ impl FormatImageType {
             &FormatImageType::PNG => false,
             &FormatImageType::JPG => false,
         }
-    }
+    }*/
 }

@@ -337,7 +337,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (180.0 / 180.0) * std::f32::consts::PI;
 }
 
 
@@ -467,7 +467,7 @@ impl Projection for Mollweide {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (180.0 / 180.0) * std::f32::consts::PI;
 }
 
 use crate::renderable::Angle;
@@ -552,7 +552,7 @@ impl Projection for Orthographic {
         pos_world_space.z > 0_f32
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (180.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for AzimuthalEquidistant {
@@ -665,7 +665,7 @@ impl Projection for AzimuthalEquidistant {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (160.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for Gnomonic {
@@ -764,7 +764,7 @@ impl Projection for Gnomonic {
         pos_world_space.z >= 1e-3
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (130.0 / 180.0) * std::f32::consts::PI;
 }
 
 impl Projection for Mercator {
@@ -866,5 +866,5 @@ impl Projection for Mercator {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (110.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (180.0 / 180.0) * std::f32::consts::PI;
 }

@@ -228,38 +228,34 @@ impl Image for TileArrayBufferImage {
         offset: &Vector3<i32>
     ) {
         match &self {
-            TileArrayBufferImage::U8(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
+            TileArrayBufferImage::U8(b) => textures.bind_texture_slice(offset.z)
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
-                    offset.z,
                     b.size.x,
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I16(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
+            TileArrayBufferImage::I16(b) => textures.bind_texture_slice(offset.z)
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
-                    offset.z,
                     b.size.x,
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I32(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
+            TileArrayBufferImage::I32(b) => textures.bind_texture_slice(offset.z)
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
-                    offset.z,
                     b.size.x,
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::F32(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
+            TileArrayBufferImage::F32(b) => textures.bind_texture_slice(offset.z)
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
-                    offset.z,
                     b.size.x,
                     b.size.y,
                     Some(b.buf.as_ref()),
@@ -761,12 +757,11 @@ impl Image for TileHTMLImage {
         offset: &Vector3<i32>
     ) {
         let size = self.get_size();
+        let texture = textures.bind_texture_slice(offset.z);
 
-        textures.bind()
-            .tex_sub_image_3d_with_html_image_element(
+        texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
                 offset.x,
                 offset.y,
-                offset.z,
 
                 &self.image,
             );

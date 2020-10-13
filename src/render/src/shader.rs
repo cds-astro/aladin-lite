@@ -49,7 +49,7 @@ fn link_program(
 
 fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> UniformLocations {
     let num_uniforms = gl.get_program_parameter(program, WebGl2RenderingContext::ACTIVE_UNIFORMS).as_f64().unwrap();
-    crate::log(&format!("{}", num_uniforms));
+    //crate::log(&format!("{}", num_uniforms));
 
     let uniforms = (0..num_uniforms as u32)
         .map(|idx_uniform| {
@@ -60,7 +60,7 @@ fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> U
             let name_uniform = active_uniform.name();
             // Get the location by the name of the active uniform
             let location_uniform = gl.get_uniform_location(&program, &name_uniform);
-            //console::log_1(&format!("{:?}", *name).into());
+            //crate::log(&format!("{:?}", name_uniform));
             (name_uniform, location_uniform)
         })
         .collect::<HashMap<_, _>>();
@@ -71,7 +71,7 @@ type UniformLocations = HashMap<String, Option<WebGlUniformLocation>>;
 
 use std::collections::HashMap;
 pub struct Shader {
-    program: WebGlProgram,
+    pub program: WebGlProgram,
     uniform_locations: UniformLocations,
 }
 
@@ -200,11 +200,11 @@ impl UniformType for Matrix4<f32> {
     }
 }
 
-use crate::core::Texture2DBound;
-impl<'a> UniformType for Texture2DBound<'a> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
+use crate::core::Texture2D;
+impl UniformType for Texture2D {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         // 1. Bind the texture
-        //let tex = value.bind();
+        let tex = value.bind();
 
         // 2. Get its sampler idx and send it
         // to the the GPU as a i32 uniform
@@ -226,7 +226,7 @@ impl<'a> UniformType for Texture2DArrayBound<'a> {
 }*/
 
 pub struct ShaderBound<'a> {
-    shader: &'a Shader,
+    pub shader: &'a Shader,
     gl: WebGl2Context,
 }
 

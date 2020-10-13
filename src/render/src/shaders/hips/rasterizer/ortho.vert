@@ -1,7 +1,5 @@
 #version 300 es
 precision highp float;
-//precision lowp sampler2DArray;
-//precision lowp isampler2DArray;
 precision lowp sampler2D;
 precision lowp isampler2D;
 precision highp int;

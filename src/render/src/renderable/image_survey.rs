@@ -846,17 +846,29 @@ impl Draw for ImageSurvey {
             return;
         }
 
-        let texture_2d_array = self.textures.get_texture_array();
+        let textures_array = self.textures.get_texture_array();
 
         let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
-        //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         if raytracing {
             raytracer.bind();
             {
                 let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
-                let texture_2d_array = texture_2d_array.bind();
-                shader.attach_uniforms_from(&texture_2d_array);
 
+                // Textures 2D array
+                let num_tex = textures_array.textures.len();
+                //let mut textures_bound = Vec::with_capacity(num_tex);
+                for (texture_idx, texture) in textures_array.textures.iter().enumerate() {
+                    let texture_bound = textures_array.bind_texture_slice(texture_idx as i32);
+        
+                    let name = format!("tex[{}]", texture_idx.to_string());
+                    let location = self.gl.get_uniform_location(&shader.shader.program, &name);
+                    self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
+
+                    //textures_bound.push(texture_bound);
+                }
+
+                shader.attach_uniform("num_tex", &(num_tex as i32));
+                // Textures 2D array
                 // Raytracer
                 shader.attach_uniforms_from(camera)
                     .attach_uniforms_from(&self.textures)
@@ -867,6 +879,16 @@ impl Draw for ImageSurvey {
     
                 // The raytracer vao is bound at the lib.rs level
                 raytracer.draw();
+
+                self.gl.active_texture(WebGl2RenderingContext::TEXTURE0);
+                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+                self.gl.active_texture(WebGl2RenderingContext::TEXTURE1);
+                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+                self.gl.active_texture(WebGl2RenderingContext::TEXTURE2);
+                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+                /*for texture_bound in &textures_bound {
+                    texture_bound.unbind();
+                }*/
             }
             raytracer.unbind();
 
@@ -889,29 +911,8 @@ impl Draw for ImageSurvey {
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
 
-
-        // Get the cells to draw
-        /*let cells_to_draw = if last_user_action == UserAction::Unzooming {
-            if self.view.has_depth_decreased() || self.cells_depth_increased {
-                self.cells_depth_increased = true;
-                let new_depth = self.view.get_depth();
-
-                Cow::Owned(&super::view_on_surveys::get_cells_in_camera(new_depth + 1, &camera))
-            } else {
-                Cow::Borrowed(&self.view.get_cells())
-            }
-        } else {
-            // no more unzooming
-            self.cells_depth_increased = false;
-            Cow::Borrowed(&self.view.get_cells())
-        };*/
-
         let new_cells_added = self.view.is_there_new_cells_added();
-        //let new_cells_added = self.view.is_view_different();
         let recompute_positions = new_cells_added;
-        /*if recompute_vertex_positions {
-            self.set_positions::<P>(last_user_action);
-        }*/
         {
             self.gl.bind_vertex_array(Some(&self.vao));
 
@@ -921,20 +922,30 @@ impl Draw for ImageSurvey {
             }
 
             let shader = color.get_raster_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
-            let texture_2d_array = texture_2d_array.bind();
-            //shader.attach_uniform("texInt", &texture_2d_array);
-            //shader.attach_uniform("tex", &texture_2d_array);
-            // Texture 2d array
-            shader.attach_uniforms_from(&texture_2d_array);
+            // Textures 2D array
+            let num_tex = textures_array.textures.len();
+            //let mut textures_bound = Vec::with_capacity(num_tex);
+            for (texture_idx, texture) in textures_array.textures.iter().enumerate() {
+                let texture_bound = textures_array.bind_texture_slice(texture_idx as i32);
+    
+                let name = format!("tex[{}]", texture_idx.to_string());
+                let location = self.gl.get_uniform_location(&shader.shader.program, &name);
+                self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
 
-            shader
-                .attach_uniforms_from(camera)
+                //texture_bound.unbind();
+                //textures_bound.push(texture_bound);
+            }
+
+            shader.attach_uniform("num_tex", &(num_tex as i32));
+            // Textures 2D array
+
+            shader.attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity);
-
+            //crate::log("raster");
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
                 //WebGl2RenderingContext::LINES,
@@ -943,7 +954,17 @@ impl Draw for ImageSurvey {
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0
             );
+            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0);
+            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+            self.gl.active_texture(WebGl2RenderingContext::TEXTURE1);
+            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+            self.gl.active_texture(WebGl2RenderingContext::TEXTURE2);
+            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+
             self.gl.bind_vertex_array(None);
+
+
+
         }
     }
 }

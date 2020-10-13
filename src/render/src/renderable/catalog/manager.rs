@@ -455,12 +455,12 @@ impl Catalog {
             //crate::log(&format!("offset: {}, num instances: {}", self.base_instance, self.num_instances));
             let shader = P::get_catalog_shader(gl, shaders);
             let shader_bound = shader.bind(gl);
-            let kernel_tex = manager.kernel_texture.bind();
+            //let kernel_tex = manager.kernel_texture.bind();
             // Uniforms associated to the camera
             //crate::log(&format!("max density: {:?}", self.max_density));
             shader_bound.attach_uniforms_from(camera)
                 // Attach catalog specialized uniforms
-                .attach_uniform("kernel_texture", &kernel_tex) // Gaussian kernel texture
+                .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
                 .attach_uniform("strength", &self.strength) // Strengh of the kernel
                 .attach_uniform("model", camera.get_m2w())
                 .attach_uniform("current_time", &utils::get_current_time())
@@ -482,11 +482,11 @@ impl Catalog {
             let size = camera.get_screen_size();
             gl.viewport(0, 0, size.x as i32, size.y as i32);
 
-            let fbo_tex = manager.fbo_texture.bind();
+            //let fbo_tex = .bind();
 
             let shader = self.colormap.get_shader(gl, shaders);
             shader.bind(gl)
-                .attach_uniform("texture_fbo", &fbo_tex) // FBO density texture computed just above
+                .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
                 .attach_uniform("alpha", &self.alpha) // Alpha channel
                 .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
                     .draw_elements_with_i32(

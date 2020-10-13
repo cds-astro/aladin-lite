@@ -1,4 +1,5 @@
-uniform sampler2D tex[10];
+const int MAX_NUM_TEX = 10;
+uniform sampler2D tex[MAX_NUM_TEX];
 uniform int num_tex;
 
 uniform float scale;
@@ -18,7 +19,8 @@ uniform int tex_storing_fits;
 @import ./transfer_funcs;
 
 vec3 get_pixels(vec3 uv) {
-    return texture(tex[uv.z], uv.xy);
+    int idx_texture = int(uv.z);
+    return texture(tex[idx_texture], uv.xy).rgb;
 }
 
 vec3 reverse_uv(vec3 uv) {

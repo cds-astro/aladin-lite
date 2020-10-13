@@ -136,6 +136,14 @@ let shaders = [
         id: "RayTracerGrayscale2ColormapFS",
         content: RayTracerGrayscale2ColormapFS,
     },
+    {
+        id: "RayTracerGrayscale2ColorIntegerFS",
+        content: RayTracerGrayscale2ColorIntegerFS,
+    },
+    {
+        id: "RayTracerGrayscale2ColormapIntegerFS",
+        content: RayTracerGrayscale2ColormapIntegerFS,
+    },
     /// Rasterizer
     {
         id: "RasterizerOrthoVS",

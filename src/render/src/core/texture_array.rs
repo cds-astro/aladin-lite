@@ -14,7 +14,7 @@ use web_sys::WebGlTexture;
 pub struct Texture2DArray {
     gl: WebGl2Context,
 
-    textures: Vec<Texture2D>,
+    pub textures: Vec<Texture2D>,
     format: FormatImageType,
 
     width: i32, // Width of a texture element
@@ -172,7 +172,8 @@ impl Texture2DArray {
     ) -> Texture2DArray {
         let mut textures = vec![];
         for slice_idx in 0..num_slices {
-            textures.push(Texture2D::create_empty(gl, width, height, tex_params, format));
+            let texture = Texture2D::create_empty(gl, width, height, tex_params, format);
+            textures.push(texture);
         }
 
         /*let texture = gl.create_texture();
@@ -216,7 +217,12 @@ impl Texture2DArray {
         }        
     }
 
-    pub fn bind(&self) -> Texture2DArrayBound {
+    pub fn bind_texture_slice(&self, idx_texture: i32) -> Texture2DBound {
+        let texture = &self.textures[idx_texture as usize];
+        texture.bind()
+    }
+
+    /*pub fn bind(&self) -> Texture2DArrayBound {
         let mut textures_bound = vec![];
         for texture in self.textures.iter() {
             textures_bound.push(texture.bind());
@@ -227,7 +233,7 @@ impl Texture2DArray {
             format: self.format,
             textures: textures_bound
         }
-    }
+    }*/
 }
 
 /*impl Drop for Texture2DArray {
@@ -247,10 +253,14 @@ pub struct Texture2DArrayBound<'a> {
 
 /*impl<'a> Drop for Texture2DArrayBound<'a> {
     fn drop(&mut self) {
-        self.texture_2d_array.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
+        for texture in &self.textures {
+            crate::log("unbind!");
+            texture.unbind();
+        }
+        //self.texture_2d_array.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
     }
-}*/
-
+}
+*/
 use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
 use crate::buffer::ArrayBuffer;
 impl<'a> Texture2DArrayBound<'a> {
@@ -354,8 +364,9 @@ impl<'a> Texture2DArrayBound<'a> {
 
     }*/
 
-    pub fn tex_sub_image_3d_with_opt_array_buffer_view(&self,
-        xoffset: i32, yoffset: i32,
+    /*pub fn tex_sub_image_3d_with_opt_array_buffer_view(&self,
+        xoffset: i32,
+        yoffset: i32,
         idx_texture: i32, // Idx of the texture to replace
         width: i32, // Width of the image
         height: i32, // Height of the image
@@ -377,7 +388,8 @@ impl<'a> Texture2DArrayBound<'a> {
     }
 
     pub fn tex_sub_image_3d_with_html_image_element(&self,
-        xoffset: i32, yoffset: i32,
+        xoffset: i32,
+        yoffset: i32,
         idx_texture: i32, // Idx of the texture to replace
         image: &HtmlImageElement // image data
     ) {
@@ -415,19 +427,22 @@ impl<'a> Texture2DArrayBound<'a> {
             height, // height: i32,
             src_data
         );
-    }
+    }*/
 }
 
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-impl<'a> SendUniforms for Texture2DArrayBound<'a> {
-    fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
-        let textures = &self.textures;
-        for (texture_idx, texture) in textures.iter().enumerate() {
-            let sampler_idx = texture.get_idx_sampler();
-            shader.attach_uniform(&format!("tex[{}]", texture_idx.to_string()), &sampler_idx);
+impl SendUniforms for Texture2DArray {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        for (texture_idx, texture) in self.textures.iter().enumerate() {
+            let texture = self.bind_texture_slice(texture_idx as i32);
+
+            let name = format!("tex[{}]", texture_idx.to_string());
+            let location = self.gl.get_uniform_location(&shader.shader.program, &name);
+            self.gl.uniform1i(location.as_ref(), texture.get_idx_sampler());
         }
-        shader.attach_uniform("num_tex", &(textures.len() as i32));
+
+        shader.attach_uniform("num_tex", &(self.textures.len() as i32));
         shader
     }
-} 
+}

@@ -88,6 +88,7 @@ impl TileUVW {
             Vector3::new(u + dp, v + ds - dp, idx_texture),
             Vector3::new(u + ds - dp, v + ds - dp, idx_texture)
         ])*/
+        //crate::log(&format!("idx texture {:?}", idx_texture));
         TileUVW([
             Vector3::new(u, v, idx_texture),
             Vector3::new(u + ds, v, idx_texture),

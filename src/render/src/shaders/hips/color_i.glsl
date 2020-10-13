@@ -20,7 +20,13 @@ uniform int tex_storing_fits;
 
 float get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
-    return float(texture(tex[idx_texture], uv.xy).r);
+    if (idx_texture == 0) {
+        return float(texture(tex[0], uv.xy).r);
+    } else if (idx_texture == 1) {
+        return float(texture(tex[1], uv.xy).r);
+    } else {
+        return float(texture(tex[2], uv.xy).r);
+    }
 }
 
 vec3 reverse_uv(vec3 uv) {

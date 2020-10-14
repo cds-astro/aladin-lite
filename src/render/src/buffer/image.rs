@@ -472,7 +472,7 @@ pub struct TileRequest {
     // the HtmlImageElement can be reused to download another tile
     ready: bool,
     resolved: Rc<Cell<ResolvedStatus>>,
-    tile: Option<Tile>,
+    pub tile: Option<Tile>,
     closures: [Closure<dyn FnMut(&web_sys::Event,)>; 2],
 }
 #[derive(Clone, Copy)]

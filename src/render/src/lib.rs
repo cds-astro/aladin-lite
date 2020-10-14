@@ -133,7 +133,7 @@ impl App {
         //gl.enable(WebGl2RenderingContext::BLEND);
         //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
-        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         gl.enable(WebGl2RenderingContext::CULL_FACE);
@@ -268,6 +268,7 @@ impl App {
                             format,
                             cell: *cell
                         };
+
                         self.downloader.request_tile(tile);
                     }
                 }
@@ -290,7 +291,7 @@ impl App {
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.exec.borrow_mut().run(dt.0 * 0.5_f32);
+        let results = self.exec.borrow_mut().run(dt.0 * 0.3_f32);
         self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been
@@ -394,7 +395,6 @@ impl App {
 
     fn render<P: Projection>(&mut self, _enable_grid: bool) {
         if !self.rendering {
-            crate::log("do not render");
             return;
         }
 
@@ -488,12 +488,13 @@ impl App {
             colors.push(color);
         }
 
-        let new_survey = self.surveys.add_composite_surveys(surveys, colors, 0);
+        let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 0);
         
-        if new_survey {
+        if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
-            for (id, format) in survey_ids.iter().zip(survey_formats.iter()) {
-                self.downloader.request_base_tiles(id, format);
+            for id in new_survey_ids.iter() {
+                let format = self.surveys.get(id).unwrap().get_textures().config.format();
+                self.downloader.request_base_tiles(id, &format);
             }
             // Once its added, request its tiles
             self.look_for_new_tiles();
@@ -519,12 +520,13 @@ impl App {
             colors.push(color);
         }
 
-        let new_survey = self.surveys.add_composite_surveys(surveys, colors, 1);
+        let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 1);
         
-        if new_survey {
+        if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
-            for (id, format) in survey_ids.iter().zip(survey_formats.iter()) {
-                self.downloader.request_base_tiles(id, format);
+            for id in new_survey_ids.iter() {
+                let format = self.surveys.get(id).unwrap().get_textures().config.format();
+                self.downloader.request_base_tiles(id, &format);
             }
             // Once its added, request its tiles
             self.look_for_new_tiles();
@@ -568,7 +570,6 @@ impl App {
         let table = table;
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
             let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);
-            crate::log("BEGIN PARSING");
             let mut results: Vec<Source> = vec![];
         
             while let Some(item) = stream.next().await {
@@ -576,7 +577,6 @@ impl App {
                 results.push(item.into());
             }
         
-            crate::log("END PARSING");
             TaskResult::TableParsed { name, sources: results }
         });
     }
@@ -1177,13 +1177,11 @@ impl WebClient {
     /// Create a new web client
     #[wasm_bindgen(constructor)]
     pub fn new(shaders: &JsValue, resources: &JsValue) -> Result<WebClient, JsValue> {
-        crate::log(&format!("shaders manager2"));
 
         let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGl2Context::new();
-        crate::log(&format!("shaders manager"));
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = App::new(&gl, shaders, resources)?;
@@ -1316,7 +1314,6 @@ impl WebClient {
     // Set primary image survey
     #[wasm_bindgen(js_name = setSimpleHiPS)]
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        crate::log(&format!("simple qsdqsd"));
 
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         crate::log(&format!("simple HiPS: {:?}", hips));
@@ -1364,20 +1361,6 @@ impl WebClient {
         Ok(())
     }
 
-    /// Change HiPS
-    /*#[wasm_bindgen(js_name = setImageSurvey)]
-    pub fn set_image_survey(&mut self,
-        hips_definition: JsValue,
-    ) -> Result<(), JsValue> {
-        let hips_definition: HiPSDefinition = hips_definition.into_serde().unwrap();
-        crate::log(&format!("hips_def222: {:?}", hips_definition));
-
-        self.projection.set_image_survey(&mut self.app, hips_definition)?;
-
-        Ok(())
-    }*/
-
-    
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Result<Box<[f32]>, JsValue> {
         let lonlat = self.projection.screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))?;

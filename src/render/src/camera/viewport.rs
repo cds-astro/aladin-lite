@@ -227,7 +227,6 @@ impl CameraViewPort {
         // Project this vertex into the screen
         if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
             self.clip_zoom_factor = p0.x.abs().min(1.0);
-            crate::log(&format!("{:?} {}", p0, self.clip_zoom_factor));
         } else {
             self.clip_zoom_factor = self.aperture.0 / P::aperture_start().0;
         }

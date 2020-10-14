@@ -141,6 +141,38 @@ herschel_spire = {
 	},
 	color: "Color"
 }
+// decaps
+decaps = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
+
+		maxOrder: 11,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// mellinger
+mellinger = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/MellingerRGB",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+	},
+	color: "Color"
+}
 // HSC g
 hscg = {
 	properties: {
@@ -155,12 +187,58 @@ hscg = {
 			}
 		},
 		minCutout: -0.03,
-		maxCutout: 4,
+		maxCutout: 10,
 	},
 	color: {
 		Grayscale2Color: {
 			color: [1.0, 0.0, 0.0],
-            k: 0.5,
+            k: 1.0,
+			transfer: "asinh"
+		}
+	},
+}
+hsci = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_i",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.045,
+		maxCutout: 16,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.0, 0.0, 1.0],
+            k: 1.0,
+			transfer: "asinh"
+		}
+	},
+}
+hscy = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_y",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.045,
+		maxCutout: 100,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.0, 1.0, 0.0],
+            k: 1,
 			transfer: "asinh"
 		}
 	},

@@ -221,8 +221,6 @@ impl HiPSConfig {
             tex_storing_integers
         };
 
-        crate::log(&format!("new hips config {:?}", hips_config));
-
         Ok(hips_config)
     }
 

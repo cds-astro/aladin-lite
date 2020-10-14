@@ -177,7 +177,7 @@ impl TileDownloader {
         for req in self.requests.iter_mut() {
             req.clear();
         }
-        //self.requested_tiles.clear();
+        self.requested_tiles.clear();
     }
 
     pub fn request_tile(&mut self, tile: Tile) {
@@ -196,16 +196,16 @@ impl TileDownloader {
             FormatImageType::JPG | FormatImageType::PNG => {
                 self.html_img_tiles_to_req.push_back(tile);
 
-                if self.html_img_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
+                /*if self.html_img_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
                     self.html_img_tiles_to_req.pop_front();
-                }
+                }*/
             },
             FormatImageType::FITS(_) => {
                 self.fits_tiles_to_req.push_back(tile);
 
-                if self.fits_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
+                /*if self.fits_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
                     self.fits_tiles_to_req.pop_front();
-                }
+                }*/
             }
         }
     }

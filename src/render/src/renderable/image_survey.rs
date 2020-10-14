@@ -822,7 +822,7 @@ impl ImageSurvey {
 impl Drop for ImageSurvey {
     fn drop(&mut self) {
         crate::log("drop image survey");
-        //drop(&mut self.textures);
+        drop(&mut self.textures);
 
         // Drop the vertex arrays
         //self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
@@ -847,50 +847,26 @@ impl Draw for ImageSurvey {
         }
 
         let textures_array = self.textures.get_texture_array();
+        let survey_storing_integers = self.textures.config.tex_storing_integers == 1;
 
         let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
             raytracer.bind();
-            {
-                let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
+            let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
+                .bind(&self.gl);
 
-                // Textures 2D array
-                let num_tex = textures_array.textures.len();
-                //let mut textures_bound = Vec::with_capacity(num_tex);
-                for (texture_idx, texture) in textures_array.textures.iter().enumerate() {
-                    let texture_bound = textures_array.bind_texture_slice(texture_idx as i32);
-        
-                    let name = format!("tex[{}]", texture_idx.to_string());
-                    let location = self.gl.get_uniform_location(&shader.shader.program, &name);
-                    self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
+            textures_array.bind_all_textures(&shader);
 
-                    //textures_bound.push(texture_bound);
-                }
+            let num_tex = textures_array.textures.len();
+            shader.attach_uniforms_from(camera)
+                .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(color)
+                .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
+                .attach_uniform("current_time", &utils::get_current_time())
+                .attach_uniform("opacity", &opacity)
+                .attach_uniform("num_tex", &(num_tex as i32));
 
-                shader.attach_uniform("num_tex", &(num_tex as i32));
-                // Textures 2D array
-                // Raytracer
-                shader.attach_uniforms_from(camera)
-                    .attach_uniforms_from(&self.textures)
-                    .attach_uniforms_from(color)
-                    .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
-                    .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("opacity", &opacity);
-    
-                // The raytracer vao is bound at the lib.rs level
-                raytracer.draw();
-
-                self.gl.active_texture(WebGl2RenderingContext::TEXTURE0);
-                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-                self.gl.active_texture(WebGl2RenderingContext::TEXTURE1);
-                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-                self.gl.active_texture(WebGl2RenderingContext::TEXTURE2);
-                self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-                /*for texture_bound in &textures_bound {
-                    texture_bound.unbind();
-                }*/
-            }
-            raytracer.unbind();
+            raytracer.draw();
 
             return;
         }
@@ -921,30 +897,18 @@ impl Draw for ImageSurvey {
                 self.set_vertices::<P>(camera);
             }
 
-            let shader = color.get_raster_shader::<P>(&self.gl, shaders, self.textures.config.tex_storing_integers == 1).bind(&self.gl);
-            // Textures 2D array
-            let num_tex = textures_array.textures.len();
-            //let mut textures_bound = Vec::with_capacity(num_tex);
-            for (texture_idx, texture) in textures_array.textures.iter().enumerate() {
-                let texture_bound = textures_array.bind_texture_slice(texture_idx as i32);
+            let shader = color.get_raster_shader::<P>(&self.gl, shaders, survey_storing_integers)
+                .bind(&self.gl);
+            textures_array.bind_all_textures(&shader);
     
-                let name = format!("tex[{}]", texture_idx.to_string());
-                let location = self.gl.get_uniform_location(&shader.shader.program, &name);
-                self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
-
-                //texture_bound.unbind();
-                //textures_bound.push(texture_bound);
-            }
-
-            shader.attach_uniform("num_tex", &(num_tex as i32));
-            // Textures 2D array
-
+            let num_tex = textures_array.textures.len();
             shader.attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity);
+                .attach_uniform("opacity", &opacity)
+                .attach_uniform("num_tex", &(num_tex as i32));
             //crate::log("raster");
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
@@ -954,17 +918,6 @@ impl Draw for ImageSurvey {
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0
             );
-            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0);
-            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-            self.gl.active_texture(WebGl2RenderingContext::TEXTURE1);
-            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-            self.gl.active_texture(WebGl2RenderingContext::TEXTURE2);
-            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-
-            self.gl.bind_vertex_array(None);
-
-
-
         }
     }
 }
@@ -1125,26 +1078,31 @@ impl ImageSurveys {
                 self.gl.cull_face(WebGl2RenderingContext::FRONT);
             }
         }
-        self.gl.enable(WebGl2RenderingContext::BLEND);
 
-        if self.opacity < 1.0 {
-            let primary_layer = &self.layers[0];
-            match &primary_layer {
-                ImageSurveyIdx::Simple { name, color } => {
+        let primary_layer = &self.layers[0];
+        match &primary_layer {
+            ImageSurveyIdx::Simple { name, color } => {
+                let mut survey = self.surveys.get_mut(name).unwrap();
+                survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
+            },
+            ImageSurveyIdx::Composite { names, colors } => {
+                // Add the first hips on top of the background
+                let mut survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
+                survey.draw::<P>(&self.raytracer, shaders, camera, colors.first().unwrap(), 1.0);
+                
+                // Enable the blending for the following HiPSes
+                self.gl.enable(WebGl2RenderingContext::BLEND);
+                self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+
+                for (name, color) in names.iter().skip(1).zip(colors.iter().skip(1)) {
                     let mut survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-                },
-                ImageSurveyIdx::Composite { names, colors } => {
-                    // Add additive blending here
-                    self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-                    for (name, color) in names.iter().zip(colors.iter()) {
-                        let mut survey = self.surveys.get_mut(name).unwrap();
-                        survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-                    }
-                },
-                _ => unreachable!()
-            }
+                }
+            },
+            _ => unreachable!()
         }
+        self.gl.enable(WebGl2RenderingContext::BLEND);
+        self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         if self.opacity > 0.0 {
             // Overlay
@@ -1155,9 +1113,7 @@ impl ImageSurveys {
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
                 },
                 ImageSurveyIdx::Composite { names, colors } => {
-                    // Add additive blending here
-                    self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-
+                    // All the hipses are plotted blended with the primary one
                     for (name, color) in names.iter().zip(colors.iter()) {
                         let mut survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
@@ -1186,7 +1142,7 @@ impl ImageSurveys {
         }
     }
 
-    pub fn add_composite_surveys(&mut self, surveys: Vec<ImageSurvey>, colors: Vec<Color>, layer_idx: usize) -> bool {
+    pub fn add_composite_surveys(&mut self, surveys: Vec<ImageSurvey>, colors: Vec<Color>, layer_idx: usize) -> Vec<String> {
         let names = surveys.iter()
             .map(|s| s.get_id().to_string())
             .collect::<Vec<String>>();
@@ -1222,15 +1178,16 @@ impl ImageSurveys {
 
         //crate::log("END ADD");
         // If it is a new survey, insert it
-        let mut new_surveys = false;
+        let mut new_survey_ids = Vec::new();
         for (name, survey) in names.iter().zip(surveys.into_iter()) {
             if !self.surveys.contains_key(name) {
-                self.surveys.insert(name.to_string(), survey);
-                new_surveys = true;
+                let id = name.to_string();
+                self.surveys.insert(id.clone(), survey);
+                new_survey_ids.push(id);
             }
         }
 
-        new_surveys
+        new_survey_ids
     }
 
     pub fn add_simple_survey(&mut self, survey: ImageSurvey, color: Color, layer_idx: usize) -> bool {
@@ -1317,39 +1274,34 @@ impl ImageSurveys {
     // that have been resolved
     pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
         for (tile, result) in resolved_tiles.into_iter() {
-
-            match result {
-                TileResolved::Missing { time_req } => {
-                    let survey = self.surveys.get_mut(&tile.root_url).unwrap();
-                    let textures = survey.get_textures_mut();
-
-                    let default_image = textures.config().get_black_tile();
-                    textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
-                },
-                TileResolved::Found { image, time_req } => {
-                    match image {
-                        RetrievedImageType::FITSImage { image, metadata } => {
-                            // Update the metadata found in the header of the
-                            // FITS tile received
-                            let blank = metadata.blank;
-                            //self.set_metadata_fits_surveys(&tile.root_url, metadata);
-
-                            let survey = self.surveys.get_mut(&tile.root_url).unwrap();
-
-
-                            let textures = survey.get_textures_mut();
-                            textures.config.blank = metadata.blank;
-                            textures.config.scale = metadata.bscale;
-                            textures.config.offset = metadata.bzero;
-                            // Update the blank textures
-                            textures.config.set_black_tile_value(blank);
-
-                            textures.push::<TileArrayBufferImage>(tile, image, time_req);
-                        },
-                        RetrievedImageType::CompressedImage { image } => {
-                            let survey = self.surveys.get_mut(&tile.root_url).unwrap();
-                            let textures = survey.get_textures_mut();
-                            textures.push::<TileHTMLImage>(tile, image, time_req);
+            if let Some(survey) = self.surveys.get_mut(&tile.root_url) {
+                let textures = survey.get_textures_mut();
+                match result {
+                    TileResolved::Missing { time_req } => {
+    
+                        let default_image = textures.config().get_black_tile();
+                        textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
+                    },
+                    TileResolved::Found { image, time_req } => {
+                        match image {
+                            RetrievedImageType::FITSImage { image, metadata } => {
+                                // Update the metadata found in the header of the
+                                // FITS tile received
+                                let blank = metadata.blank;
+                                //self.set_metadata_fits_surveys(&tile.root_url, metadata);
+    
+                                textures.config.blank = metadata.blank;
+                                textures.config.scale = metadata.bscale;
+                                textures.config.offset = metadata.bzero;
+                                // Update the blank textures
+                                textures.config.set_black_tile_value(blank);
+    
+                                textures.push::<TileArrayBufferImage>(tile, image, time_req);
+                            },
+                            RetrievedImageType::CompressedImage { image } => {
+    
+                                textures.push::<TileHTMLImage>(tile, image, time_req);
+                            }
                         }
                     }
                 }

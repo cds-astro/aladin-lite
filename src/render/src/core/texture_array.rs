@@ -222,6 +222,22 @@ impl Texture2DArray {
         texture.bind()
     }
 
+    pub fn bind_all_textures<'a>(&self, shader: &ShaderBound<'a>) -> Texture2DArrayBound {
+        for (tex_idx, texture) in self.textures.iter().enumerate() {
+            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
+            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.texture.as_ref());
+
+            let name_location = format!("tex[{}]", tex_idx);
+            let location = self.gl.get_uniform_location(&shader.shader.program, &name_location);
+            self.gl.uniform1i(location.as_ref(), tex_idx as i32);
+        }
+
+        Texture2DArrayBound {
+            gl: self.gl.clone(),
+            textures: &self.textures
+        }
+    }
+
     /*pub fn bind(&self) -> Texture2DArrayBound {
         let mut textures_bound = vec![];
         for texture in self.textures.iter() {
@@ -246,189 +262,18 @@ impl Texture2DArray {
 }*/
 
 pub struct Texture2DArrayBound<'a> {
-    textures: Vec<Texture2DBound<'a>>,
-    format: FormatImageType,
+    textures: &'a Vec<Texture2D>,
     gl: WebGl2Context,
 }
 
 /*impl<'a> Drop for Texture2DArrayBound<'a> {
     fn drop(&mut self) {
-        for texture in &self.textures {
-            crate::log("unbind!");
-            texture.unbind();
+        for (tex_idx, texture) in self.textures.iter().enumerate() {
+            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
+            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
         }
-        //self.texture_2d_array.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
     }
-}
-*/
-use crate::buffer::{ArrayF32, ArrayI32, ArrayI16, ArrayU8};
-use crate::buffer::ArrayBuffer;
-impl<'a> Texture2DArrayBound<'a> {
-    /*pub fn get_idx_sampler(&self) -> i32 {
-        let idx_sampler: i32 = (self.texture_2d_array.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
-            .try_into()
-            .unwrap();
-   
-        idx_sampler
-    }*/
-
-    /*pub fn clear(&self) {
-        let format = &self.texture_2d_array.format;
-        let format_tex = format.get_format();
-
-        let size = (self.texture_2d_array.height as usize) * (self.texture_2d_array.width as usize) * (self.texture_2d_array.num_slices as usize) * format.get_num_channels();
-
-        let _type = format.get_type();
-
-
-        match _type {
-            WebGl2RenderingContext::FLOAT => {
-                let buf = ArrayF32::new(&vec![0.0; size]);
-                self.texture_2d_array.gl.tex_sub_image_3d_with_opt_array_buffer_view(
-                    WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-                    0, // level: i32,
-                    0, // xoffset: i32,
-                    0, // yoffset: i32,
-                    0, // zoffset: i32,
-        
-                    self.texture_2d_array.width, // width: i32,
-                    self.texture_2d_array.height, // height: i32,
-                    self.texture_2d_array.num_slices, // depth: i32,
-        
-                    format_tex, // format: u32,
-                    _type, // type: u32
-                    Some(buf.as_ref()),
-                )
-                .expect("Sub texture 2d");
-            },
-            WebGl2RenderingContext::INT => {
-                let buf = ArrayI32::new(&vec![0; size]);
-                self.texture_2d_array.gl.tex_sub_image_3d_with_opt_array_buffer_view(
-                    WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-                    0, // level: i32,
-                    0, // xoffset: i32,
-                    0, // yoffset: i32,
-                    0, // zoffset: i32,
-        
-                    self.texture_2d_array.width, // width: i32,
-                    self.texture_2d_array.height, // height: i32,
-                    self.texture_2d_array.num_slices, // depth: i32,
-        
-                    format_tex, // format: u32,
-                    _type, // type: u32
-                    Some(buf.as_ref()),
-                )
-                .expect("Sub texture 2d");
-            },
-            WebGl2RenderingContext::SHORT => {
-                let buf = ArrayI16::new(&vec![0; size]);
-                self.texture_2d_array.gl.tex_sub_image_3d_with_opt_array_buffer_view(
-                    WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-                    0, // level: i32,
-                    0, // xoffset: i32,
-                    0, // yoffset: i32,
-                    0, // zoffset: i32,
-        
-                    self.texture_2d_array.width, // width: i32,
-                    self.texture_2d_array.height, // height: i32,
-                    self.texture_2d_array.num_slices, // depth: i32,
-        
-                    format_tex, // format: u32,
-                    _type, // type: u32
-                    Some(buf.as_ref()),
-                )
-                .expect("Sub texture 2d");
-            },
-            WebGl2RenderingContext::UNSIGNED_BYTE => {
-                let buf = ArrayU8::new(&vec![0; size]);
-                self.texture_2d_array.gl.tex_sub_image_3d_with_opt_array_buffer_view(
-                    WebGl2RenderingContext::TEXTURE_2D_ARRAY, // target: u32,
-                    0, // level: i32,
-                    0, // xoffset: i32,
-                    0, // yoffset: i32,
-                    0, // zoffset: i32,
-        
-                    self.texture_2d_array.width, // width: i32,
-                    self.texture_2d_array.height, // height: i32,
-                    self.texture_2d_array.num_slices, // depth: i32,
-        
-                    format_tex, // format: u32,
-                    _type, // type: u32
-                    Some(buf.as_ref()),
-                )
-                .expect("Sub texture 2d");
-            },
-            _ => unimplemented!()
-        };
-
-
-    }*/
-
-    /*pub fn tex_sub_image_3d_with_opt_array_buffer_view(&self,
-        xoffset: i32,
-        yoffset: i32,
-        idx_texture: i32, // Idx of the texture to replace
-        width: i32, // Width of the image
-        height: i32, // Height of the image
-        image: Option<&js_sys::Object> // image data
-    ) {
-        let format = &self.format;
-
-        let format_tex = format.get_format();
-        let _type = format.get_type();
-
-        let texture = &self.textures[idx_texture as usize];
-        texture.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-            xoffset, // xoffset: i32,
-            yoffset, // yoffset: i32,
-            width, // width: i32,
-            height, // height: i32,
-            image
-        );
-    }
-
-    pub fn tex_sub_image_3d_with_html_image_element(&self,
-        xoffset: i32,
-        yoffset: i32,
-        idx_texture: i32, // Idx of the texture to replace
-        image: &HtmlImageElement // image data
-    ) {
-        let format = &self.format;
-
-        let format_tex = format.get_format();
-        let _type = format.get_type();
-
-        let texture = &self.textures[idx_texture as usize];
-        texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
-            xoffset, // xoffset: i32,
-            yoffset, // yoffset: i32,
-            image
-        );
-    }
-
-    pub fn tex_sub_image_3d_with_opt_u8_array(&self,
-        xoffset: i32,
-        yoffset: i32,
-        idx_texture: i32, // Idx of the texture to replace
-        width: i32, // Width of the image
-        height: i32, // Height of the image
-        src_data: Option<&[u8]> // image data
-    ) {
-        let format = &self.format;
-
-        let format_tex = format.get_format();
-        let _type = format.get_type();
-
-        let texture = &self.textures[idx_texture as usize];
-        texture.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-            xoffset, // xoffset: i32,
-            yoffset, // yoffset: i32,
-            width, // width: i32,
-            height, // height: i32,
-            src_data
-        );
-    }*/
-}
+}*/
 
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;

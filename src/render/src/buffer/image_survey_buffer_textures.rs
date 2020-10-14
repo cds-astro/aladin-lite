@@ -332,7 +332,6 @@ impl ImageSurveyTextures {
 
                 if self.num_root_textures_available == 12 {
                     self.ready = true;
-                    crate::log("READYYYY");
                 }
             }
         } else {
@@ -517,7 +516,6 @@ impl SendUniforms for ImageSurveyTextures {
         num_textures += 1;
         shader.attach_uniform("num_textures", &(num_textures as i32));
         shader.attach_uniforms_from(&self.config);
-        crate::log(&format!("url: {} integers tex: {}", self.config.root_url, self.config.tex_storing_integers));
 
         shader
     }
@@ -525,7 +523,6 @@ impl SendUniforms for ImageSurveyTextures {
 
 impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
-        crate::log("drop texture buf");
         // Cleanup the heap
         self.heap.clear();
 

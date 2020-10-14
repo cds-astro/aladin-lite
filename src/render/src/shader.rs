@@ -640,7 +640,6 @@ impl GetShader for Mercator {
 }
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        //crate::log("raster shader color");
         shaders.get(
             gl,
             &ShaderId(
@@ -650,7 +649,6 @@ impl GetShader for Orthographic {
         ).unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        crate::log("raster shader gray2colormap");
         shaders.get(
             gl,
             &ShaderId(
@@ -660,7 +658,6 @@ impl GetShader for Orthographic {
         ).unwrap()
     }
     fn get_raster_shader_gray2color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        crate::log("raster shader gray2color");
         shaders.get(
             gl,
             &ShaderId(

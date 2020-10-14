@@ -1190,6 +1190,38 @@ impl ImageSurveys {
         new_survey_ids
     }
 
+    pub fn remove_overlay(&mut self) {
+        let replaced_survey_names: Vec<String> = {
+            let layer = &mut self.layers[1];
+            match layer {
+                ImageSurveyIdx::None => {
+                    *layer = ImageSurveyIdx::None;
+                    vec![]
+                },
+                ImageSurveyIdx::Simple { name: cur_name, .. } => {
+                    let cur_name = cur_name.clone();
+                    *layer = ImageSurveyIdx::None;
+
+                    vec![cur_name]
+                },
+                ImageSurveyIdx::Composite { names: cur_names, .. } => {
+                    let cur_names = cur_names.clone();
+                    *layer = ImageSurveyIdx::None;
+                    cur_names
+                }
+            }
+        };
+
+        for replaced_survey_name in replaced_survey_names.iter() {
+            // ensure cur_idx is not contained in any other layers
+            if self.contained_in_any_layer(replaced_survey_name).is_none() {
+                // if so we can remove it from the surveys hashmap
+                self.surveys.remove(replaced_survey_name);
+            }
+        }
+    }
+
+
     pub fn add_simple_survey(&mut self, survey: ImageSurvey, color: Color, layer_idx: usize) -> bool {
         let name = survey.get_id();
 

@@ -472,6 +472,11 @@ impl App {
         Ok(())
     }
 
+    fn remove_overlay(&mut self) {
+        self.surveys.remove_overlay();
+        self.request_redraw = true;
+    }
+
     fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
         let mut surveys = Vec::new();
         let mut colors = Vec::new();
@@ -641,9 +646,9 @@ impl App {
         //self.grid.set_alpha(alpha);
     }
 
-    pub fn world_to_screen<P: Projection>(&self, lonlat: &LonLatT<f32>) -> Result<Vector2<f32>, String> {
+    pub fn world_to_screen<P: Projection>(&self, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
         let model_pos_xyz = lonlat.vector();
-        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.viewport);
+        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
     }
 
@@ -819,21 +824,17 @@ impl ProjectionType {
 
     fn set_colormap(&self, app: &mut App, name: String, colormap: Colormap) {
         match self {
-            ProjectionType::Aitoff => app.set_colormap(name, colormap),
-            ProjectionType::MollWeide => app.set_colormap(name, colormap),
-            ProjectionType::Ortho => app.set_colormap(name, colormap),
-            ProjectionType::Arc => app.set_colormap(name, colormap),
-            ProjectionType::Gnomonic => app.set_colormap(name, colormap),
-            ProjectionType::Mercator => app.set_colormap(name, colormap),
+            _ => app.set_colormap(name, colormap),
         };
     }
 
-    fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Vector2<f32>, String> {
+    fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
         match self {
             ProjectionType::Aitoff => app.world_to_screen::<Aitoff>(lonlat),
             ProjectionType::MollWeide => app.world_to_screen::<Mollweide>(lonlat),
             ProjectionType::Ortho => app.world_to_screen::<Orthographic>(lonlat),
-            ProjectionType::Arc => app.world_to_screen::<Mollweide>(lonlat),
+            ProjectionType::Arc => app.world_to_screen::<AzimuthalEquidistant>(lonlat),
+            ProjectionType::Gnomonic => app.world_to_screen::<Gnomonic>(lonlat),
             ProjectionType::Mercator => app.world_to_screen::<Mercator>(lonlat),
         }
     }
@@ -884,12 +885,7 @@ impl ProjectionType {
 
     pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue) {
         match self {
-            ProjectionType::Aitoff => app.add_catalog(name, table),
-            ProjectionType::MollWeide => app.add_catalog(name, table),
-            ProjectionType::Ortho => app.add_catalog(name, table),
-            ProjectionType::Arc => app.add_catalog(name, table),
-            ProjectionType::Gnomonic => app.add_catalog(name, table),
-            ProjectionType::Mercator => app.add_catalog(name, table),
+            _ => app.add_catalog(name, table),
         };
     }
 
@@ -926,6 +922,14 @@ impl ProjectionType {
         }
     }
 
+    pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
+        match self {
+            _ => app.remove_overlay(),
+        }
+
+        Ok(())
+    }
+
     pub fn set_overlay_composite_hips(&mut self, app: &mut App, hips: CompositeHiPS) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
@@ -938,12 +942,7 @@ impl ProjectionType {
     }
     pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.set_overlay_opacity(opacity),
-            ProjectionType::MollWeide => app.set_overlay_opacity(opacity),
-            ProjectionType::Ortho => app.set_overlay_opacity(opacity),
-            ProjectionType::Arc => app.set_overlay_opacity(opacity),
-            ProjectionType::Gnomonic => app.set_overlay_opacity(opacity),
-            ProjectionType::Mercator => app.set_overlay_opacity(opacity),
+            _ => app.set_overlay_opacity(opacity),
         }
     }
 
@@ -971,12 +970,7 @@ impl ProjectionType {
 
     pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) {       
         match self {
-            ProjectionType::Aitoff => app.set_heatmap_opacity(name, opacity),
-            ProjectionType::MollWeide => app.set_heatmap_opacity(name, opacity),
-            ProjectionType::Ortho => app.set_heatmap_opacity(name, opacity),
-            ProjectionType::Arc => app.set_heatmap_opacity(name, opacity),
-            ProjectionType::Gnomonic => app.set_heatmap_opacity(name, opacity),
-            ProjectionType::Mercator => app.set_heatmap_opacity(name, opacity),
+            _ => app.set_heatmap_opacity(name, opacity),
         }; 
     }
 
@@ -1026,12 +1020,7 @@ impl ProjectionType {
 
     pub fn set_grid_color(&mut self, app: &mut App, red: f32, green: f32, blue: f32) {
         match self {
-            ProjectionType::Aitoff => app.set_grid_color(red, green, blue),
-            ProjectionType::MollWeide => app.set_grid_color(red, green, blue),
-            ProjectionType::Ortho => app.set_grid_color(red, green, blue),
-            ProjectionType::Arc => app.set_grid_color(red, green, blue),
-            ProjectionType::Gnomonic => app.set_grid_color(red, green, blue),
-            ProjectionType::Mercator => app.set_grid_color(red, green, blue),
+            _ => app.set_grid_color(red, green, blue),
         };
     }
 
@@ -1067,12 +1056,7 @@ impl ProjectionType {
 
     pub fn set_grid_opacity(&mut self, app: &mut App, alpha: f32) {
         match self {
-            ProjectionType::Aitoff => app.set_grid_opacity(alpha),
-            ProjectionType::MollWeide => app.set_grid_opacity(alpha),
-            ProjectionType::Ortho => app.set_grid_opacity(alpha),
-            ProjectionType::Arc => app.set_grid_opacity(alpha),
-            ProjectionType::Gnomonic => app.set_grid_opacity(alpha),
-            ProjectionType::Mercator => app.set_grid_opacity(alpha),
+            _ => app.set_grid_opacity(alpha),
         };
     }
 }
@@ -1359,6 +1343,13 @@ impl WebClient {
 
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = removeOverlayHiPS)]
+    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
+        self.projection.remove_overlay_hips(&mut self.app);
+
+        Ok(())
+    }
     
     #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
     pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
@@ -1378,14 +1369,16 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f32, lat: f32) -> Result<Box<[f32]>, JsValue> {
+    pub fn world_to_screen(&self, lon: f32, lat: f32) -> Result<Option<Box<[f32]>>, JsValue> {
         let lonlat = LonLatT::new(
             ArcDeg(lon).into(),
             ArcDeg(lat).into()
         );
-        let screen_pos = self.projection.world_to_screen(&self.app, &lonlat)?;
-
-        Ok(Box::new([screen_pos.x, screen_pos.y]))
+        if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
+            Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
+        } else {
+            Ok(None)
+        }
     }
 
     #[wasm_bindgen(js_name = screenToWorld)]

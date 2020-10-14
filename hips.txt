@@ -266,6 +266,28 @@ panstarrs = {
 		}
 	},
 }
+dss2red = {
+    properties: {
+        url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+
+        maxOrder: 9,
+        frame: { label: "J2000", system: "J2000" },
+        tileSize: 512,
+        format: {
+            FITSImage: {
+                bitpix: 16,
+            }
+        },
+        minCutout: 500,
+        maxCutout: 25000,
+    },
+    color: {
+        Grayscale2Colormap: {
+            colormap: "RedTemperature",
+            transfer: "sqrt"
+        }
+    },
+}
 twomass = {
 	properties: {
 		url: "http://alasky.u-strasbg.fr/2MASS/Color/",

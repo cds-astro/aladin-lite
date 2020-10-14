@@ -77,6 +77,28 @@ export let View = (function() {
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
             this.aladin.webglAPI.resize(500, 400);
+            this.aladin.webglAPI.setSimpleHiPS({
+                properties: {
+                    url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+            
+                    maxOrder: 9,
+                    frame: { label: "J2000", system: "J2000" },
+                    tileSize: 512,
+                    format: {
+                        FITSImage: {
+                            bitpix: 16,
+                        }
+                    },
+                    minCutout: 500,
+                    maxCutout: 25000,
+                },
+                color: {
+                    Grayscale2Colormap: {
+                        colormap: "RedTemperature",
+                        transfer: "sqrt"
+                    }
+                },
+            });
 
             this.location = location;
             this.fovDiv = fovDiv;

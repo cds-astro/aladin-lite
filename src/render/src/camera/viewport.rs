@@ -349,13 +349,13 @@ impl CameraViewPort {
         self.fov.get_great_circles_intersecting()
     }*/
 }
-
+use cgmath::Matrix;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
         //self.w2m = self.w2m * J2000_TO_GALACTIC;
-        self.m2w = self.w2m.invert().unwrap();
+        self.m2w = self.w2m.transpose();
 
         self.last_user_action = UserAction::Moving;
 

@@ -34,6 +34,7 @@ where S: BaseFloat {
 
 use crate::renderable::Angle;
 use cgmath::Rad;
+use cgmath::Matrix;
 impl<S> Rotation<S>
 where S: BaseFloat {
     pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {        
@@ -122,18 +123,18 @@ where S: BaseFloat {
     }
 
     // Apply a rotation to a position
-    pub fn rotate(&self, pos_model_space: &Vector4<S>) -> Vector4<S> {
-        let model2world: &Matrix4<S> = &self.into();
+    pub fn rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
+        let w2m: &Matrix4<S> = &self.into();
 
-        let pos_world_space = model2world * pos_model_space;
-        pos_world_space
-    }
-    pub fn inv_rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
-        let model2world: &Matrix4<S> = &self.into();
-        let world2model = model2world.invert().unwrap();
-
-        let pos_model_space = world2model * pos_world_space;
+        let pos_model_space = w2m * pos_world_space;
         pos_model_space
+    }
+    pub fn inv_rotate(&self, pos_model_space: &Vector4<S>) -> Vector4<S> {
+        let w2m: &Matrix4<S> = &self.into();
+        let m2w = w2m.transpose();
+
+        let pos_world_space = m2w * pos_model_space;
+        pos_world_space
     }
 }
 

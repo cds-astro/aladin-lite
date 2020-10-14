@@ -12,7 +12,7 @@ out vec3 out_vert_pos;
 uniform mat4 model;
 uniform vec2 ndc_to_clip;
 uniform float clip_zoom_factor;
-
+/*
 const mat4 GALACTIC_TO_J2000 = mat4(
     -0.0548755604024359,
     -0.8734370902479237,
@@ -55,7 +55,7 @@ const mat4 J2000_TO_GALACTIC = mat4(
     0.0,
     1.0
 );
-
+*/
 void main() {
     gl_Position = vec4(pos_clip_space / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
     //out_vert_pos = vec3(inverse(gal_to_icrs) * model * vec4(pos_world_space, 1.f));

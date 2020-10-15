@@ -23,7 +23,6 @@ mod math;
 #[path = "../img/myfont.rs"]
 mod myfont;
 mod transfert_function;
-mod projeted_grid;
 //mod mouse_inertia;
 mod event_manager;
 mod color;
@@ -79,7 +78,7 @@ struct App {
     rendering: bool,
 
     // The grid renderable
-    //grid: ProjetedGrid,
+    grid: ProjetedGrid,
     // Catalog manager
     manager: Manager,
     // Text example
@@ -186,6 +185,7 @@ impl App {
 
         // Grid definition
         //let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders);
 
         // Finite State Machines definitions
         /*let user_move_fsm = UserMoveSphere::init();
@@ -212,7 +212,7 @@ impl App {
             rendering,
             request_redraw,
             // The grid renderable
-            //grid,
+            grid,
             // The catalog renderable
             manager,
             //text_manager,
@@ -378,7 +378,7 @@ impl App {
 
         // The rendering is done following these different situations:
         // - the camera has moved
-        let has_camera_moved = self.camera.has_camera_moved();
+        let has_camera_moved = self.camera.has_moved();
 
         // - there is at least one tile in its blending phase
         let blending_anim_occuring = (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
@@ -389,6 +389,7 @@ impl App {
         if has_camera_moved {
             self.manager.update::<P>(&self.camera, self.surveys.get_view().unwrap());
         }
+        self.grid.update::<P>(&self.camera);
 
         Ok(())
     }
@@ -405,6 +406,7 @@ impl App {
 
         //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         self.surveys.draw::<P>(&self.camera, &mut self.shaders);
+        self.grid.draw::<P>(&self.camera, &mut self.shaders);
         self.gl.enable(WebGl2RenderingContext::BLEND);
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         // Draw the catalog

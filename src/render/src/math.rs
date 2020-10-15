@@ -1,6 +1,11 @@
 use cgmath::{InnerSpace, BaseFloat};
 use cgmath::Rad;
-use cgmath::{Vector4, Vector3};
+use cgmath::{Vector4, Vector2, Vector3};
+
+#[inline]
+pub fn angle<S: BaseFloat>(AB: &Vector2<S>, BC: &Vector2<S>) -> Angle<S> {
+    Angle((AB.dot(*BC)).acos())
+}
 
 #[inline]
 pub fn asincP(mut x: f32) -> f32 {

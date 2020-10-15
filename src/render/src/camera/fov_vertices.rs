@@ -4,7 +4,7 @@ use cgmath::SquareMatrix;
 
 
 use std::collections::HashSet;
-use crate::sphere_geometry::GreatCirclesInFieldOfView;
+use crate::sphere_geometry::GreatCircles;
 
 pub type NormalizedDeviceCoord = Vector2<f32>;
 pub type WorldCoord = Vector4<f32>;
@@ -55,13 +55,16 @@ pub struct FieldOfViewVertices {
     ndc_coo: Vec<NormalizedDeviceCoord>,
     world_coo: Option<Vec<WorldCoord>>,
     model_coo: Option<Vec<ModelCoord>>,
-    radius: Option<Angle<f32>>,
+
+    // Meridians and parallels contained
+    // in the field of view
+    great_circles: GreatCircles,
 }
 
 use super::viewport::CameraViewPort;
 use crate::Rotation;
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
+    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -92,67 +95,59 @@ impl FieldOfViewVertices {
             None
         };
 
-        let radius = None;
+        let great_circles = if let Some(vertices) = &model_coo {
+            GreatCircles::new_polygon(vertices, aspect)
+        } else {
+            GreatCircles::new_allsky()
+        };
 
         let mut fov = FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
-            radius
+            great_circles
         };
-
-        //fov.compute_radius(center);
 
         fov
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, longitude_reversed: bool) {
-        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
-        self.model_coo = if let Some(world_coo) = &self.world_coo {
-            Some(world_to_model(world_coo, w2m))
-        } else {
-            None
-        };
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) {
+        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aspect, longitude_reversed);
     }
 
-    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, longitude_reversed: bool) {
+    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
-        if let Some(world_coo) = &self.world_coo {
-            self.model_coo = Some(world_to_model(world_coo, w2m));
-        } else {
-            self.model_coo = None;
-        }
+        self.set_rotation(w2m, aspect);
     }
 
-    pub fn set_rotation(&mut self, w2m: &Matrix4<f32>) {
+    pub fn set_rotation(&mut self, w2m: &Matrix4<f32>, aspect: f32) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
             self.model_coo = None;
         }
 
+        self.set_great_circles(aspect);
+    }
+
+    fn set_great_circles(&mut self, aspect: f32) {
+        if let Some(vertices) = &self.model_coo {
+            self.great_circles = GreatCircles::new_polygon(vertices, aspect);
+        } else {
+            self.great_circles = GreatCircles::new_allsky();
+        }
     }
     
     pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
         self.model_coo.as_ref()
     }
 
-    /*pub fn get_radius(&self) -> Option<&Angle<f32>> {
-        self.radius.as_ref()
-    }*/
-}
-
-impl FieldOfViewVertices {
-    fn compute_radius(&mut self, center: &Vector4<f32>) {
-        self.radius = if let Some(model_coo) = &self.model_coo {
-            Some(math::ang_between_vect(&center.truncate(), &model_coo[0].truncate()))
-        } else {
-            None
-        };
+    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+        self.great_circles.get_bounding_box()
     }
 }
-
+use crate::sphere_geometry::BoundingBox;
 use std::iter;
 use crate::math;
 

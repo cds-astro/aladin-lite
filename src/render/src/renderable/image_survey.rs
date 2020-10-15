@@ -851,7 +851,7 @@ impl Draw for ImageSurvey {
 
         let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
-            raytracer.bind();
+            //raytracer.bind();
             let shader = color.get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);
 
@@ -892,7 +892,7 @@ impl Draw for ImageSurvey {
         {
             self.gl.bind_vertex_array(Some(&self.vao));
 
-            let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_camera_moved();
+            let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_moved();
             if recompute_vertices {
                 self.set_vertices::<P>(camera);
             }
@@ -1070,6 +1070,7 @@ impl ImageSurveys {
         let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
+            self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
             if camera.is_reversed_longitude() {

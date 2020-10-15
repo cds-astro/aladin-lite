@@ -288,6 +288,52 @@ dss2red = {
         }
     },
 }
+dss2green = {
+    properties: {
+        url: "http://alasky.u-strasbg.fr/DSS/DSS2-NIR/",
+
+        maxOrder: 9,
+        frame: { label: "J2000", system: "J2000" },
+        tileSize: 512,
+        format: {
+            FITSImage: {
+                bitpix: 16,
+            }
+        },
+        minCutout: 3000,
+        maxCutout: 10940,
+    },
+    color: {
+        Grayscale2Color: {
+            color: [0.0, 1.0, 0.0],
+            k: 1.0,
+            transfer: "sqrt"
+        }
+    },
+}
+dss2blue = {
+    properties: {
+        url: "http://alasky.u-strasbg.fr/DSS/DSS2-blue-XJ-S",
+
+        maxOrder: 9,
+        frame: { label: "J2000", system: "J2000" },
+        tileSize: 512,
+        format: {
+            FITSImage: {
+                bitpix: 16,
+            }
+        },
+        minCutout: 4286,
+        maxCutout: 19959,
+    },
+    color: {
+        Grayscale2Color: {
+            color: [0.0, 0.0, 1.0],
+            k: 1.0,
+            transfer: "sqrt"
+        }
+    },
+}
 twomass = {
 	properties: {
 		url: "http://alasky.u-strasbg.fr/2MASS/Color/",

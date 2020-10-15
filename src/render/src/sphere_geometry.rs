@@ -9,7 +9,7 @@ use crate::renderable::angle::{Angle, ArcDeg, ArcMin, ArcSec, SerializeToString}
 
 use cgmath::InnerSpace;
 
-pub enum GreatCirclesInFieldOfView {
+pub enum GreatCircles {
     AllSkyGrid(AllSkyGrid),
     PolygonGrid(PolygonGrid)
 }
@@ -20,21 +20,32 @@ use std::collections::HashMap;
 //#[repr(C)]
 //pub struct ClipSpacePosition<S: BaseFloat>(Vector2<S>);
 
-impl GreatCirclesInFieldOfView {
-    pub fn new_allsky() -> GreatCirclesInFieldOfView {
-        let allsky = GreatCirclesInFieldOfView::AllSkyGrid(AllSkyGrid::new());
+impl GreatCircles {
+    pub fn new_allsky() -> GreatCircles {
+        let allsky = GreatCircles::AllSkyGrid(AllSkyGrid::new());
 
         allsky
     }
     
-    pub fn new_polygon(vertices: Vec<Vector4<f32>>, aspect: f32) -> GreatCirclesInFieldOfView {
-        GreatCirclesInFieldOfView::PolygonGrid(PolygonGrid::new(vertices, aspect))
+    pub fn new_polygon(vertices: &[Vector4<f32>], aspect: f32) -> GreatCircles {
+        GreatCircles::PolygonGrid(PolygonGrid::new(vertices, aspect))
+    }
+
+    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+        match self {
+            GreatCircles::AllSkyGrid(_) => {
+                None
+            },
+            GreatCircles::PolygonGrid(poly) => {
+                Some(poly.get_bbox())
+            }
+        }
     }
 
     pub fn get_labels<F: FormatType>(&self) -> HashMap<String, Vector3<f32>> {
         let mut great_circles_labels = HashMap::new();
 
-        if let GreatCirclesInFieldOfView::PolygonGrid(polygon) = self {
+        if let GreatCircles::PolygonGrid(polygon) = self {
             let meridians_labels = polygon.get_meridians_intersecting_fov::<F>();
             great_circles_labels.extend(meridians_labels.into_iter());
         }
@@ -69,13 +80,13 @@ impl GreatCirclesInFieldOfView {
     }*/
 }
 
-impl SendUniforms for GreatCirclesInFieldOfView {
+impl SendUniforms for GreatCircles {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
         match self {
-            GreatCirclesInFieldOfView::AllSkyGrid(ref allsky) => {
+            GreatCircles::AllSkyGrid(ref allsky) => {
                 shader.attach_uniforms_from(allsky);
             },
-            GreatCirclesInFieldOfView::PolygonGrid(polygon) => {
+            GreatCircles::PolygonGrid(polygon) => {
                 shader.attach_uniforms_from(polygon);
             }
         }
@@ -208,9 +219,9 @@ impl PoleContained {
 }
 
 use std::ops::Range;
-struct BoundingBox {
-    lon: Range<Angle<f32>>,
-    lat: Range<Angle<f32>>,
+pub struct BoundingBox {
+    pub lon: Range<Angle<f32>>,
+    pub lat: Range<Angle<f32>>,
 }
 
 impl BoundingBox {
@@ -417,7 +428,7 @@ pub struct Polygon {
 
 // A polygon must contain at least 3 vertices
 impl Polygon {
-    fn new(vertices: Vec<Vector4<f32>>) -> Polygon {
+    fn new(vertices: &[Vector4<f32>]) -> Polygon {
         assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
@@ -576,7 +587,7 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    fn _intersect_parallel<LatT: Into<Angle<f32>>>(&self, _lat: LatT) -> Option<Vector3<f32>> {
+    fn intersect_parallel<LatT: Into<Angle<f32>>>(&self, _lat: LatT) -> Option<Vector3<f32>> {
         if self.is_containing_a_pole() {
             // TODO
             None
@@ -597,18 +608,18 @@ impl Polygon {
         }
     }
 
-    // Return if it exists, the intersection between a polygon and a parallel
+    // Return if it exists, the intersection between a polygon and a meridian
     //
     // There can be many intersections. The intersection returned is the one
-    // having the min longitude
+    // having the min latitude
     fn intersect_meridian<LonT: Into<Angle<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
         if self.is_containing_a_pole() {
-            // TODO
             None
         } else {
             let lon: Angle<f32> = lon.into();
             // Normal of a meridian
             let n = Vector3::new(lon.cos().0, 0_f32, -lon.sin().0);
+
 
             for edge in self.edges_sorted_lat.iter() {
                 // Return the first intersection found
@@ -770,7 +781,7 @@ pub struct PolygonGrid {
 
 use crate::renderable::FormatType;
 impl PolygonGrid {
-    fn new(vertices: Vec<Vector4<f32>>, aspect: f32) -> PolygonGrid {
+    fn new(vertices: &[Vector4<f32>], aspect: f32) -> PolygonGrid {
         let poly = Polygon::new(vertices);
         let bbox = poly.get_bbox();
 
@@ -925,9 +936,9 @@ impl PolygonGrid {
 
     // Return if it exists, the intersection between a polygon and a meridian
     //
-    // There can be many intersections. The intersection returned is the one
-    // having the min longitude
-    fn _intersect_meridian<LonT: Into<Angle<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
+    // There can be many intersections. The intersection returned is the ones
+    // having the min latitude
+    fn intersect_meridian<LonT: Into<Angle<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
         self.poly.intersect_meridian(lon)
     }
 
@@ -935,8 +946,12 @@ impl PolygonGrid {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    fn _intersect_parallel<LatT: Into<Angle<f32>>>(&self, lat: LatT) -> Option<Vector3<f32>> {
-        self.poly._intersect_parallel(lat)
+    fn intersect_parallel<LatT: Into<Angle<f32>>>(&self, lat: LatT) -> Option<Vector3<f32>> {
+        self.poly.intersect_parallel(lat)
+    }
+
+    fn get_bbox(&self) -> &BoundingBox {
+        &self.bbox
     }
 }
 

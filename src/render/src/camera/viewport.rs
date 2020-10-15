@@ -73,6 +73,7 @@ pub struct CameraViewPort {
 
     // longitude reversed flag
     longitude_reversed: bool,
+    is_allsky: bool,
 
     // A reference to the WebGL2 context
     gl: WebGl2Context,
@@ -86,7 +87,7 @@ use crate::{
         Angle,
     },
     rotation::Rotation,
-    sphere_geometry::GreatCirclesInFieldOfView,
+    sphere_geometry::GreatCircles,
 };
 use std::collections::{HashSet, HashMap};
 use cgmath::{Matrix3, Vector4, SquareMatrix};
@@ -104,6 +105,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 
 use crate::math;
 use crate::renderable::angle::ArcDeg;
+use crate::sphere_geometry::BoundingBox;
 
 impl CameraViewPort {
     pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
@@ -140,8 +142,10 @@ impl CameraViewPort {
         let clip_zoom_factor = 1_f32;
 
         let longitude_reversed = true;
-        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, longitude_reversed);
+        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, aspect, longitude_reversed);
         let gl = gl.clone();
+
+        let is_allsky = true;
 
         let mut camera = CameraViewPort {
             // The field of view angle
@@ -157,6 +161,7 @@ impl CameraViewPort {
             width,
             // The height of the screen in pixels
             height,
+            is_allsky,
 
             // Internal variable used for projection purposes
             ndc_to_clip,
@@ -194,7 +199,8 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.longitude_reversed);
+        self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -233,7 +239,8 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.longitude_reversed);
+        self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
@@ -258,10 +265,6 @@ impl CameraViewPort {
         self.set_screen_size::<P>(self.width, self.height);
         // Recompute clip zoom factor
         self.set_aperture::<P>(self.get_aperture());
-
-        //self.last_user_action = UserAction::Starting;
-
-        //self.vertices.set_projection::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.longitude_reversed);
     }
     pub fn set_longitude_reversed(&mut self, reversed: bool) {
         self.longitude_reversed = reversed;
@@ -305,7 +308,7 @@ impl CameraViewPort {
         self.last_user_action
     }
 
-    pub fn has_camera_moved(&self) -> bool {
+    pub fn has_moved(&self) -> bool {
         self.moved
     }
 
@@ -332,6 +335,10 @@ impl CameraViewPort {
         self.longitude_reversed
     }
 
+    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+        self.vertices.get_bounding_box()
+    }
+
     // Useful methods for the grid purpose
     /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
         self.fov.intersect_meridian(lon)
@@ -345,9 +352,13 @@ impl CameraViewPort {
     // that are inside the grid
     // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
     // The only thing to do is to recompute the grid whenever the field of view changes
-    /*pub fn get_great_circles_inside(&self) -> &GreatCirclesInFieldOfView {
+    /*pub fn get_great_circles_inside(&self) -> &GreatCircles {
         self.fov.get_great_circles_intersecting()
     }*/
+
+    pub fn is_allsky(&self) -> bool {
+        self.is_allsky
+    }
 }
 use cgmath::Matrix;
 impl CameraViewPort {
@@ -361,7 +372,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_rotation(&self.w2m);
+        self.vertices.set_rotation(&self.w2m, self.aspect);
         self.update_center::<P>();
     }
 

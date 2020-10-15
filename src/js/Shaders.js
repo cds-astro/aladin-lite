@@ -21,6 +21,9 @@ import GridAitoffFS from '../render/src/shaders/grid/aitoff.frag'
 import GridMollFS from '../render/src/shaders/grid/mollweide.frag'
 import GridOrthoFS from '../render/src/shaders/grid/ortho.frag'
 import GridMercatorFS from '../render/src/shaders/grid/mercator.frag'
+import GridVS_CPU from '../render/src/shaders/grid/grid_cpu.vert'
+import GridFS_CPU from '../render/src/shaders/grid/grid_cpu.frag'
+
 // HiPS shaders
 // Raytracer
 import RayTracerVS from '../render/src/shaders/hips/raytracer/raytracer.vert'
@@ -117,6 +120,14 @@ let shaders = [
     {
         id: "GridMercatorFS",
         content: GridMercatorFS,
+    },
+    {
+        id: "GridFS_CPU",
+        content: GridFS_CPU,
+    },
+    {
+        id: "GridVS_CPU",
+        content: GridVS_CPU,
     },
     // HiPS shaders
     // Raytracer

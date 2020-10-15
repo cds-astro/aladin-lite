@@ -124,18 +124,26 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
             None
         }
     }
+
     fn model_to_screen_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
 
         Self::world_to_screen_space(&pos_world_space, camera)
     }
+
+    fn model_to_ndc_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
+        let m2w = camera.get_m2w();
+        let pos_world_space = m2w * pos_model_space;
+
+        Self::world_to_normalized_device_space(&pos_world_space, camera)
+    } 
+
     fn clip_to_model_space(pos_clip_space: &Vector2<f32>, camera: &CameraViewPort) -> Option<Vector4<f32>> {
         let pos_world_space = Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_w2m();
-            //let pos_model_space = r.rotate(&pos_world_space);
             let pos_model_space = r * pos_world_space;
 
             Some(pos_model_space)

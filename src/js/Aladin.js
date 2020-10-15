@@ -328,9 +328,6 @@ export let Aladin = (function () {
         $(aladinDiv).find('.aladin-frameChoice').change(function () {
             aladin.setFrame($(this).val());
         });
-        $('#projectionChoice').change(function () {
-            aladin.setProjection($(this).val());
-        });
 
 
         $(aladinDiv).find('.aladin-target-form').submit(function () {
@@ -490,7 +487,7 @@ export let Aladin = (function () {
             options.survey = requestedSurveyId;
         }
         var requestedZoom = $.urlParam('zoom');
-        if (requestedZoom && requestedZoom > 0 && requestedZoom < 180) {
+        if (requestedZoom && requestedZoom > 0 && requestedZoom < 360) {
             options.zoom = requestedZoom;
         }
 
@@ -569,6 +566,10 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.setProjection = function (projectionName) {
+        console.log('setProj', projectionName);
+        this.webglAPI.setProjection(projectionName);
+
+        /*
         if (!projectionName) {
             return;
         }
@@ -581,6 +582,7 @@ export let Aladin = (function () {
             default:
                 this.view.changeProjection(ProjectionEnum.SIN);
         }
+        */
     };
 
     /** point view to a given object (resolved by Sesame) or position
@@ -1092,11 +1094,13 @@ export let Aladin = (function () {
             self.exportAsPNG();
         });
 
-        /*
-        '<div class="aladin-box-separator"></div>' +
-        '<div class="aladin-label">Projection</div>' +
-        '<select id="projectionChoice"><option>SINUS</option><option>AITOFF</option></select><br/>'
-        */
+        layerBox.append('<div class="aladin-box-separator"></div>' +
+            '<div class="aladin-label">Projection</div>' +
+            '<select id="projectionChoice"><option value="orthographic">SINUS</option><option value="aitoff">AITOFF</option><option value="mercator">MERCATOR</option><option value="arc">ARC</option></select><br/>');
+
+        $('#projectionChoice').change(function () {
+            aladin.setProjection($(this).val());
+        });
 
         layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
 
@@ -1709,6 +1713,7 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     var url = URLBuilder.buildSkyBotCSURL(ra, dec, radius, epoch, queryOptions);
     return A.catalogFromURL(url, options, successCallback, false);
 };
+
 
 //A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
 A.init = Promise.all([import('../render/pkg/')]).then(async (values) => {

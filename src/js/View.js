@@ -39,8 +39,9 @@ import { Coo }            from "./libs/astro/coo.js";
 import { AladinUtils }    from "./AladinUtils.js";
 import { HealpixIndex }   from "./libs/healpix.js";
 import { HealpixCache }   from "./HealpixCache.js";
-import { SpatialVector }   from "./libs/healpix.js";
+import { SpatialVector }  from "./libs/healpix.js";
 import { Utils }          from "./Utils.js";
+import { SimbadPointer }  from "./SimbadPointer.js";
 import { TileBuffer }     from "./TileBuffer.js";
 import { Downloader }     from "./Downloader.js";
 import { Stats }          from "./libs/Stats.js";
@@ -367,7 +368,8 @@ export let View = (function() {
         // if zoom factor < 1, we view 180°
         var fov;
         if (view.zoomFactor<1) {
-            fov = 180;
+            //fov = 180;
+            fov = 360;
         }
         else {
             // TODO : fov sur les 2 dimensions !!
@@ -1517,7 +1519,7 @@ export let View = (function() {
     
     View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
+            return AladinUtils.getZoomFactorForAngle(360/Math.pow(1.15, level), this.projectionMethod);
         }
         else {
             return 1 + 0.1*level;
@@ -1525,10 +1527,10 @@ export let View = (function() {
     };
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
+        if (fovDegrees<0 || (fovDegrees>360 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
-        var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
+        var zoomLevel = Math.log(360/fovDegrees)/Math.log(1.15);
         this.setZoomLevel(zoomLevel);
     };
     

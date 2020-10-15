@@ -134,8 +134,8 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
 
     fn model_to_ndc_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
         let m2w = camera.get_m2w();
-        let pos_world_space = m2w * pos_model_space;
-
+        let mut pos_world_space = m2w * pos_model_space;
+        //pos_world_space.x = -pos_world_space.x;
         Self::world_to_normalized_device_space(&pos_world_space, camera)
     } 
 

@@ -24,6 +24,8 @@ pub struct ProjetedGrid {
 
     lines: Vec<GridLine>,
     size_vertices_buf: usize,
+    sizes: Vec<usize>,
+    offsets: Vec<usize>,
 
     num_vertices: usize,
 
@@ -110,6 +112,8 @@ impl ProjetedGrid {
         let color = Color::new(0_f32, 1_f32, 0_f32, 0.2_f32);
         let gl = gl.clone();
         let opacity = 1.0;
+        let sizes = vec![];
+        let offsets = vec![];
         ProjetedGrid {
             color,
             opacity,
@@ -120,6 +124,9 @@ impl ProjetedGrid {
             lines,
             size_vertices_buf,
             num_vertices,
+
+            sizes,
+            offsets,
 
             gl
         }
@@ -136,8 +143,23 @@ impl ProjetedGrid {
                 sum += line.vertices.len();
                 sum
             });*/
-            
-            let mut vertices: Vec<Vector2<f32>> = lines.into_iter().map(|line| line.vertices).flatten().collect();
+            self.offsets.clear();
+            self.sizes.clear();
+            let mut vertices: Vec<Vector2<f32>> = lines
+                .into_iter()
+                .map(|line| {
+                    if self.sizes.is_empty() {
+                        self.offsets.push(0);
+                    } else {
+                        let last_offset = self.offsets.last().unwrap();
+                        self.offsets.push(last_offset + self.sizes.last().unwrap());
+                    }
+                    self.sizes.push(line.vertices.len());
+
+                    line.vertices
+                })
+                .flatten()
+                .collect();
             self.num_vertices = vertices.len();
 
             let vertices: Vec<f32> = unsafe {
@@ -219,11 +241,14 @@ impl ProjetedGrid {
         //crate::log("raster");
         // The raster vao is bound at the lib.rs level
         self.gl.bind_vertex_array(Some(&self.vao));
-        self.gl.draw_arrays(
-            WebGl2RenderingContext::LINE_STRIP,
-            0,
-            self.num_vertices as i32
-        );
+        for (offset, size) in self.offsets.iter().zip(self.sizes.iter()) {
+            self.gl.draw_arrays(
+                WebGl2RenderingContext::LINE_STRIP,
+                *offset as i32,
+                *size as i32
+            );
+        }
+        
 
         //if camera.is_allsky() {
             /*let shader = P::get_grid_shader(gl, shaders);
@@ -332,7 +357,7 @@ impl GridShaderProjection for Orthographic {
 use crate::sphere_geometry::{GreatCircles, BoundingBox};
 
 use cgmath::InnerSpace;
-const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 20.0 * std::f32::consts::PI / 180.0;
+const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
 fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, camera: &CameraViewPort) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));

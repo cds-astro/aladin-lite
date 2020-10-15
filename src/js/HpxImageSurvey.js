@@ -262,6 +262,18 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.DEFAULT_SURVEY_ID = "CDS/P/DSS2/color";
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
+        {
+        "id": "CDS/P/Coronelli",
+        "url": "http://alasky.u-strasbg.fr/CDS_P_Coronelli",
+        "maxOrder": 4,
+        "tileSize": 512,
+        "frame": CooFrameEnum.J2000,
+        "format": "jpeg",
+        "name": "Coronelli",
+        "minCutout": 0, // Ce sont des valeurs par défaut pour les HiPS qui n'ont pas de FITS
+        "maxCutout": 1, // valeur par défaut aussi
+        "bitpix": 0, // valeur par défaut aussi
+    },
     {
         "id": "CDS/P/2MASS/color",
         "url": "http://alasky.u-strasbg.fr/2MASS/Color",

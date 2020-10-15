@@ -547,6 +547,10 @@ export let Catalog = (function() {
             return false;
         }
         var sourceSize = catalogInstance.sourceSize;
+        //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
+        var xy = aladin.webglAPI.worldToScreen(s.ra, s.dec);
+
+        /*
         // TODO : we could factorize this code with Aladin.world2pix
         var xy;
         if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
@@ -556,11 +560,11 @@ export let Catalog = (function() {
         else {
             xy = projection.project(s.ra, s.dec);
         }
+        */
 
         if (xy) {
-            var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
-            console.log('xy', xy);
-            console.log('xyview', xyview);
+            //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);
+            var xyview = {vx: xy[0], vy: xy[1]};
             var max = s.popup ? 100 : s.sourceSize;
             if (xyview) {
                 // TODO : index sources by HEALPix cells at level 3, 4 ?

@@ -1,12 +1,11 @@
-use crate::renderable::{
- HiPSSphere,
+/*use crate::renderable::{
  catalog::Manager,
  ProjetedGrid
 };
 
 use crate::event_manager::EventManager;
 
-use crate::viewport::ViewPort;
+use crate::camera::CameraViewPort;
 use crate::renderable::projection::Projection;
 use crate::time::DeltaTime;
 // A generic structure that will implement Transition
@@ -32,7 +31,7 @@ trait Transition {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime
@@ -48,7 +47,7 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager
     );
@@ -62,13 +61,13 @@ trait State: std::marker::Sized {
         catalogs: &mut Manager,
         grid: &mut ProjetedGrid,
         // Viewport
-        viewport: &mut ViewPort,
+        camera: &mut CameraViewPort,
         // User events
         events: &EventManager,
         dt: DeltaTime,
     ) -> Option<E>
     where T<Self, E>: Transition<S=Self, E=E> {
-        T::<Self, E>::condition::<P>(&self, sphere, catalogs, grid, viewport, events, dt)
+        T::<Self, E>::condition::<P>(&self, sphere, catalogs, grid, camera, events, dt)
     }
 }
 
@@ -82,3 +81,4 @@ mod zooming;
 pub use zooming::UserZoom;
 mod location;
 pub use location::MoveSphere;
+*/

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::viewport::ViewPort;
+use crate::camera::CameraViewPort;
 use crate::core::{VertexArrayObject, SliceData};
 use crate::color::Color;
 use web_sys::WebGl2RenderingContext;
@@ -86,7 +86,7 @@ fn read_font_config_from_str(content: &str) -> Result<FontConfig, Box<dyn Error>
 
 use crate::core::Texture2DArray;
 pub struct TextManager {
-    font_textures: Rc<Texture2DArray>,
+    //font_textures: Rc<Texture2DArray>,
     letters: Vec<LetterInstance>, // letters that will be drawn at the next frame
     num_letters: usize,
 
@@ -133,7 +133,7 @@ impl TextManager {
         let height_texture = config.get_height_texture();
         let paths = &config.pages[..];
 
-        let font_textures = Texture2DArray::create_from_slice_images(
+        /*let font_textures = Texture2DArray::create_from_slice_images(
             gl,
             paths,
             width_texture,
@@ -147,7 +147,7 @@ impl TextManager {
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
             ],
             FormatImageType::PNG
-        );
+        );*/
 
         // Create a simple VAO mapped on the screen
         let vertex_array_object = {
@@ -213,7 +213,7 @@ impl TextManager {
             config,
             vertex_array_object,
             color,
-            font_textures,
+            //font_textures,
         }
     }
 
@@ -271,9 +271,9 @@ impl TextManager {
         (w, h)
     }
 
-    pub fn add_text_on_sphere<P: Projection>(&mut self, pos: &Vector4<f32>, text: &str, viewport: &ViewPort) {
-        let r = viewport.get_inverted_model_mat();
-        let pos_model_space = r * pos;
+    pub fn add_text_on_sphere<P: Projection>(&mut self, pos: &Vector4<f32>, text: &str, camera: &CameraViewPort) {
+        let m2w = camera.get_m2w();
+        let pos_model_space = m2w * pos;
 
         let in_front_of_camera = P::is_front_of_camera(&pos_model_space);
 
@@ -282,9 +282,9 @@ impl TextManager {
             return;
         }
 
-        let pos = P::world_to_screen_space(&pos_model_space, viewport);
-
-        self.add_text(&pos, text);
+        if let Some(screen_pos) = P::world_to_screen_space(&pos_model_space, camera) {
+            self.add_text(&screen_pos, text);
+        }
     }
 
     pub fn update(&mut self) {
@@ -303,7 +303,7 @@ impl TextManager {
         &self,
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
-        viewport: &ViewPort,
+        camera: &CameraViewPort,
     ) {
         let shader = shaders.get(
             gl,
@@ -314,13 +314,15 @@ impl TextManager {
         ).unwrap();
 
         crate::log(&format!("num letters {:?}", self.num_letters));
+        //let font_textures = self.font_textures.bind();
+
         shader.bind(gl)
-            // Attach all the uniforms from the viewport
-            .attach_uniforms_from(viewport)
+            // Attach all the uniforms from the camera
+            .attach_uniforms_from(camera)
             // Attach grid specialized uniforms
             .attach_uniform("text_color", &self.color)
             .attach_uniform("scaling", &0.5_f32)
-            .attach_uniform("font_textures", &*self.font_textures)
+            //.attach_uniform("font_textures", &font_textures)
             // Bind the Vertex Array Object for drawing
             .bind_vertex_array_object_ref(&self.vertex_array_object)
                 .draw_elements_instanced_with_i32(
@@ -334,10 +336,10 @@ impl TextManager {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for TextManager {
+impl SendUniforms for TextManager {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
     }

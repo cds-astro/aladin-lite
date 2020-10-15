@@ -95,24 +95,24 @@ where K: Hash + Eq + Clone {
 }
 
 /// Task executor that receives tasks off of a channel and runs them.
-pub struct TaskExecutor<K, T>
+pub struct Executor<K, T>
 where K: Hash + Eq + Clone {
     tasks: Rc<Incoming<K, T>>,
     spawner: Spawner<K, T>,
 }
 
-impl<K, T> Default for TaskExecutor<K, T>
+impl<K, T> Default for Executor<K, T>
 where K: Hash + Eq + Clone {
     fn default() -> Self {
         let tasks = Rc::new(RefCell::new(KeyedVecDeque::new()));
         let spawner = Spawner { 
             tasks: Rc::downgrade(&tasks),
         };
-        TaskExecutor { tasks, spawner }
+        Executor { tasks, spawner }
     }
 }
 
-impl<K, T> TaskExecutor<K, T>
+impl<K, T> Executor<K, T>
 where K: Hash + Eq + Clone + Sized {
     pub fn new() -> Self {
         Self::default()
@@ -182,7 +182,7 @@ where K: Hash + Eq + Clone + Sized {
 
 #[cfg(test)]
 mod tests {
-    use super::TaskExecutor;
+    use super::Executor;
     use std::task::{Context, Poll};
     use std::pin::Pin;
     use futures::Future;
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let executor = TaskExecutor::new();
+        let executor = Executor::new();
         let spawner = executor.spawner();
         // Spawn a task to print before and after waiting on a timer.
         spawner.spawn(async {
@@ -311,7 +311,7 @@ mod tests {
     use futures::stream::StreamExt; // for `next`
     #[test]
     fn it_works2() {
-        let executor = TaskExecutor::new();
+        let executor = Executor::new();
         let spawner = executor.spawner();
         // Spawn a task to print before and after waiting on a timer.
         spawner.spawn(async {

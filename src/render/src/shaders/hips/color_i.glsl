@@ -1,5 +1,5 @@
 const int MAX_NUM_TEX = 10;
-uniform sampler2D tex[MAX_NUM_TEX];
+uniform isampler2D tex[MAX_NUM_TEX];
 uniform int num_tex;
 
 uniform float scale;
@@ -18,14 +18,14 @@ uniform int tex_storing_fits;
 @import ../colormaps/colormap;
 @import ./transfer_funcs;
 
-vec3 get_pixels(vec3 uv) {
+float get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return texture(tex[0], uv.xy).rgb;
+        return float(texture(tex[0], uv.xy).r);
     } else if (idx_texture == 1) {
-        return texture(tex[1], uv.xy).rgb;
+        return float(texture(tex[1], uv.xy).r);
     } else {
-        return texture(tex[2], uv.xy).rgb;
+        return float(texture(tex[2], uv.xy).r);
     }
 }
 
@@ -41,8 +41,8 @@ float get_grayscale_from_texture(vec3 UV) {
     if (tex_storing_fits == 1) {
         uv = reverse_uv(UV);
     }
-    
-    float x = get_pixels(uv).r;
+
+    float x = get_pixels(uv);
 
     /*if (x == blank) {
         return transparent;
@@ -52,8 +52,4 @@ float get_grayscale_from_texture(vec3 UV) {
     float h = transfer_func(H, alpha, min_value, max_value);
 
     return h;
-}
-
-vec4 get_color_from_texture(vec3 UV) {
-    return vec4(get_pixels(UV).rgb, 1.0);
 }

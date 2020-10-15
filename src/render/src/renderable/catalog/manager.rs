@@ -41,7 +41,7 @@ use crate::FormatImageType;
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
-    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort, resources: &Resources) -> Self {
+    pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, camera: &CameraViewPort, resources: &Resources) -> Self {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
         let kernel_texture = Texture2D::create(gl, "kernel", &kernel_filename, &[
@@ -55,7 +55,7 @@ impl Manager {
             ],
             FormatImageType::PNG
         );
-        let _ext = gl.get_extension("EXT_color_buffer_float");
+        //let _ext = gl.get_extension("EXT_color_buffer_float");
         // Initialize texture for framebuffer
         let fbo_texture = Texture2D::create_empty(
             gl,
@@ -136,13 +136,13 @@ impl Manager {
             kernel_size
         };
 
-        manager.set_kernel_size(viewport);
+        manager.set_kernel_size(camera);
 
         manager
     }
 
     // Private method adding a catalog into the manager
-    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn add_catalog<P: Projection>(&mut self, name: String, sources: Vec<Source>, colormap: Colormap, shaders: &mut ShaderManager, camera: &CameraViewPort, view: &HEALPixCellsInView) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
         let catalog = Catalog::new::<P>(
@@ -150,8 +150,8 @@ impl Manager {
             shaders, 
             colormap,
             sources,
-            viewport,
-            config
+            view,
+            camera,
         );
 
         // Update the number of sources loaded
@@ -172,8 +172,8 @@ impl Manager {
         // at depth 7
     }
 
-    pub fn set_kernel_size(&mut self, viewport: &ViewPort) {
-        let size = viewport.get_window_size();
+    pub fn set_kernel_size(&mut self, camera: &CameraViewPort) {
+        let size = camera.get_screen_size();
         self.kernel_size = Vector2::new(32.0 / size.x, 32.0 / size.y);
     }
 
@@ -190,13 +190,12 @@ impl Manager {
             })
     }
 
-    pub fn update<P: Projection>(&mut self, viewport: &ViewPort, config: &HiPSConfig) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, view: &HEALPixCellsInView) {
         // Render only the sources in the current field of view
-        let cells = viewport.cells();
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let mut depth = viewport.depth();
+        let HEALPixCells { mut depth, cells } = view.get_cells();
         let cells = cells.into_iter()
             .map(|&cell| {
                 let d = cell.depth();
@@ -211,14 +210,19 @@ impl Manager {
             // This will delete the doublons if there is
             .collect::<HashSet<_>>();
 
+        let cells = HEALPixCells {
+            cells,
+            depth
+        };
+
         for catalog in self.catalogs.values_mut() {
-            catalog.update::<P>(&cells, depth, viewport, config);
+            catalog.update::<P>(&cells, camera);
         }
     }
 
-    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, viewport: &ViewPort) {
+    pub fn draw<P: Projection>(&self, gl: &WebGl2Context, shaders: &mut ShaderManager, camera: &CameraViewPort) {
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(&gl, shaders, self, viewport);
+            catalog.draw::<P>(&gl, shaders, self, camera);
         }
     }
 }
@@ -237,7 +241,7 @@ pub struct Catalog {
 
 use crate::{
     Projection,
-    viewport::ViewPort,
+    camera::CameraViewPort,
     utils,
 };
 use cgmath::Vector2;
@@ -245,15 +249,16 @@ use std::collections::HashSet;
 use crate::healpix_cell::{HEALPixCell, HEALPixTilesIter};
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 use crate::HiPSConfig;
-
+use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
+use crate::renderable::{HEALPixCells, HEALPixCellsInView};
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         colormap: Colormap,
         mut sources: Vec<Source>,
-        viewport: &ViewPort,
-        config: &HiPSConfig
+        view: &HEALPixCellsInView,
+        camera: &CameraViewPort,
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
@@ -315,12 +320,14 @@ impl Catalog {
             vertex_array_object_catalog,
             max_density
         };
-        catalog.set_max_density::<P>(viewport, config);
+        catalog.set_max_density::<P>(view, camera);
         catalog
     }
 
-    fn set_max_density<P: Projection>(&mut self, viewport: &ViewPort, config: &HiPSConfig) {
-        let cells = viewport.cells().into_iter()
+    fn set_max_density<P: Projection>(&mut self, view: &HEALPixCellsInView, camera: &CameraViewPort) {
+        let HEALPixCells { depth, cells } = view.get_cells();
+
+        let cells = cells.into_iter()
             .map(|&cell| {
                 let d = cell.depth();
                 if d > 7 {
@@ -334,9 +341,12 @@ impl Catalog {
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
 
-        self.max_density = self.compute_max_density::<P>(viewport.depth_precise(config) + 5.0);
+        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
+        let d_kernel = depth_from_pixels_on_screen(camera, 32);
+        self.max_density = self.compute_max_density::<P>(d_kernel);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            self.max_density *= d*d;
         }
     }
 
@@ -379,16 +389,20 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &HashSet<HEALPixCell>, depth: u8, viewport: &ViewPort, config: &HiPSConfig) {
+    fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
+        let HEALPixCells {ref depth, ref cells} = cells;
         let mut current_sources = vec![];
 
         let depth_kernel = (depth + 6).min(7);
 
-        let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
-
-        self.max_density = self.compute_max_density::<P>(viewport.depth_precise(config) + 5.0);
+        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
+        
+        let d_kernel = depth_from_pixels_on_screen(camera, 32);
+        self.max_density = self.compute_max_density::<P>(d_kernel);
+        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            self.max_density *= (MAX_SOURCES_PER_CATALOG / num_sources_in_fov) * (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            self.max_density *= d*d;
         }
         // depth < 7
         for cell in cells {
@@ -420,7 +434,7 @@ impl Catalog {
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
-        viewport: &ViewPort
+        camera: &CameraViewPort
     ) {
         // If the catalog is transparent, simply discard the draw
         if self.alpha == 0_f32 {
@@ -431,7 +445,7 @@ impl Catalog {
             // bind the FBO
             gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
             let (fbo_width, fbo_height) = manager.fbo_texture.get_size();
-            // Set the viewport
+            // Set the camera
             gl.viewport(0, 0, fbo_width as i32, fbo_height as i32);
             gl.scissor(0, 0, fbo_width as i32, fbo_height as i32);
 
@@ -441,13 +455,14 @@ impl Catalog {
             //crate::log(&format!("offset: {}, num instances: {}", self.base_instance, self.num_instances));
             let shader = P::get_catalog_shader(gl, shaders);
             let shader_bound = shader.bind(gl);
-            // Uniforms associated to the viewport
+            //let kernel_tex = manager.kernel_texture.bind();
+            // Uniforms associated to the camera
             //crate::log(&format!("max density: {:?}", self.max_density));
-            shader_bound.attach_uniforms_from(viewport)
+            shader_bound.attach_uniforms_from(camera)
                 // Attach catalog specialized uniforms
                 .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
                 .attach_uniform("strength", &self.strength) // Strengh of the kernel
-                .attach_uniform("model", viewport.get_inverted_model_mat())
+                .attach_uniform("model", camera.get_m2w())
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("kernel_size", &manager.kernel_size)
                 .attach_uniform("max_density", &self.max_density)
@@ -463,9 +478,11 @@ impl Catalog {
 
         // Render to the heatmap to the screen
         {
-            // Set the viewport
-            let window_size = viewport.get_window_size();
-            gl.viewport(0, 0, window_size.x as i32, window_size.y as i32);
+            // Set the camera
+            let size = camera.get_screen_size();
+            gl.viewport(0, 0, size.x as i32, size.y as i32);
+
+            //let fbo_tex = .bind();
 
             let shader = self.colormap.get_shader(gl, shaders);
             shader.bind(gl)
@@ -508,7 +525,7 @@ impl CatalogShaderProjection for Mollweide {
         ).unwrap()
     }
 }
-impl CatalogShaderProjection for AzimutalEquidistant {
+impl CatalogShaderProjection for AzimuthalEquidistant {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,
@@ -531,6 +548,17 @@ impl CatalogShaderProjection for Mercator {
     }
 }
 impl CatalogShaderProjection for Orthographic {
+    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders.get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogFS")
+            )
+        ).unwrap()
+    }
+}
+impl CatalogShaderProjection for Gnomonic {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders.get(
             gl,

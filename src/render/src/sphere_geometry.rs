@@ -69,7 +69,7 @@ impl GreatCirclesInFieldOfView {
     }*/
 }
 
-impl HasUniforms for GreatCirclesInFieldOfView {
+impl SendUniforms for GreatCirclesInFieldOfView {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
         match self {
             GreatCirclesInFieldOfView::AllSkyGrid(ref allsky) => {
@@ -89,11 +89,11 @@ pub trait ZoneFieldOfView {
     fn parallels(&self) -> &[Angle<f32>];
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
 use crate::renderable::angle::transmute_angles;
-impl<T> HasUniforms for T where T: ZoneFieldOfView {
+impl<T> SendUniforms for T where T: ZoneFieldOfView {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
         // Meridians
         let meridians = unsafe { transmute_angles(self.meridians()) };

@@ -23,13 +23,19 @@ impl TransferFunction {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
-impl HasUniforms for TransferFunction {
+impl SendUniforms for TransferFunction {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniform("H", self);
 
         shader
+    }
+}
+
+impl From<String> for TransferFunction {
+    fn from(id: String) -> Self {
+        TransferFunction::new(&id)
     }
 }

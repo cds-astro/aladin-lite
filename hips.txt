@@ -1,0 +1,347 @@
+hips = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/SDSS/DR9/color",
+
+		maxOrder: 10,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+		minCutout: undefined,
+		maxCutout: undefined,
+	},
+	color: "Color"
+}
+// Colormap FITS
+hips2 = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Planets/Mars_MGS_MOLA_DEM/",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: 16
+			}
+		},
+		minCutout: -3567,
+		maxCutout: -1213,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "linear"
+		}
+	},
+}
+// Color FITS
+hips3 = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Planets/Mars_MGS_MOLA_DEM/",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: 16
+			}
+		},
+		minCutout: -3567,
+		maxCutout: -1213,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.5, 0.1, 0.9],
+			k: 1.0,
+			transfer: "linear"
+		}
+	},
+}
+// jpeg mapped to color
+hips4 = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/SDSS/DR9/color",
+
+		maxOrder: 10,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+		minCutout: undefined,
+		maxCutout: undefined,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.5, 0.1, 0.9],
+			k: 1.0,
+			transfer: "linear"
+		}
+	},
+}
+//2 mass png
+hips5 = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/2MASS6X/2MASS6X_H",
+
+		maxOrder: 9,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+		minCutout: undefined,
+		maxCutout: undefined,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "linear"
+		}
+	},
+}
+// JAXA constellation
+jaxa_constellation = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/JAXA/JAXA_P_CONSTELLATIONS6/",
+
+		maxOrder: 6,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// Herschel
+herschel_spire = {
+	properties: {
+		url: "http://skies.esac.esa.int/Herschel/SPIRE-color",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// decaps
+decaps = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
+
+		maxOrder: 11,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+// mellinger
+mellinger = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/MellingerRGB",
+
+		maxOrder: 4,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+	},
+	color: "Color"
+}
+// HSC g
+hscg = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_g",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.03,
+		maxCutout: 10,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [1.0, 0.0, 0.0],
+            k: 1.0,
+			transfer: "asinh"
+		}
+	},
+}
+hsci = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_i",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.045,
+		maxCutout: 16,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.0, 0.0, 1.0],
+            k: 1.0,
+			transfer: "asinh"
+		}
+	},
+}
+hscy = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_y",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.045,
+		maxCutout: 100,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.0, 1.0, 0.0],
+            k: 1,
+			transfer: "asinh"
+		}
+	},
+}
+// panstarrs r
+panstarrs = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
+
+		maxOrder: 11,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: 16,
+			}
+		},
+		minCutout: -0.15,
+		maxCutout: 5,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "asinh"
+		}
+	},
+}
+dss2red = {
+    properties: {
+        url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+
+        maxOrder: 9,
+        frame: { label: "J2000", system: "J2000" },
+        tileSize: 512,
+        format: {
+            FITSImage: {
+                bitpix: 16,
+            }
+        },
+        minCutout: 500,
+        maxCutout: 25000,
+    },
+    color: {
+        Grayscale2Colormap: {
+            colormap: "RedTemperature",
+            transfer: "sqrt"
+        }
+    },
+}
+twomass = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/2MASS/Color/",
+
+		maxOrder: 9,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "jpeg",
+			}
+		},
+	},
+	color: "Color"
+}
+
+xmm = {
+	properties: {
+		url: "http://saada.unistra.fr/PNColor/",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			Image: {
+				format: "png",
+			}
+		},
+	},
+	color: "Color"
+}
+
+
+
+// GALEX
+galex = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/GALEX/GR6-03-2014/AIS-FD",
+
+		maxOrder: 8,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: 0,
+		maxCutout: 0.01,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "asinh"
+		}
+	},
+}

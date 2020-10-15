@@ -124,7 +124,9 @@ impl HEALPixCellHeap {
 use std::cell::RefCell;
 use std::rc::Rc;
 // Fixed sized binary heap
-pub struct Textures {
+pub struct ImageSurveyTextures {
+    // Some information about the HiPS
+    pub config: HiPSConfig,
     heap: HEALPixCellHeap,
 
     num_root_textures_available: usize,
@@ -132,19 +134,24 @@ pub struct Textures {
     size: usize,
 
     pub textures: HashMap<HEALPixCell, Texture>,
-    pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
+    //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
 
     // Array of 2D textures
     texture_2d_array: Rc<Texture2DArray>,
 
     // A boolean ensuring the root textures
     // have already been loaded
-    ready: bool
+    ready: bool,
+
+    available_tiles_during_frame: bool,
+
+    exec: Rc<RefCell<TaskExecutor>>,
+    gl: WebGl2Context,
 }
 use crate::{
     WebGl2Context,
     buffer::Image,
-    async_task::{AladinTaskExecutor, TaskType, TaskResult, SendTileToGPU}
+    async_task::{TaskExecutor, TaskType, TaskResult, SendTileToGPU}
 };
 use std::collections::HashSet;
 use web_sys::WebGl2RenderingContext;
@@ -173,8 +180,10 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
 }
 
 use std::cell::Cell;
-impl Textures {
-    pub fn new(gl: &WebGl2Context, config: &HiPSConfig) -> Textures {
+use crate::image_fmt::FormatImageType;
+use super::Tile;
+impl ImageSurveyTextures {
+    pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurveyTextures {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -183,45 +192,47 @@ impl Textures {
 
         let textures = HashMap::with_capacity(size);
         
-        let texture_2d_array = Rc::new(create_texture_array(gl, config));
+        let texture_2d_array = Rc::new(create_texture_array(gl, &config));
 
         // The root textures have not been loaded
         let ready = false;
         let num_root_textures_available = 0;
-        let cutoff_values_tile = Rc::new(RefCell::new(HashMap::new()));
-        // Push the 
-        Textures {
+        let available_tiles_during_frame = false;
+        let gl = gl.clone();
+        ImageSurveyTextures {
+            config,
             heap,
 
             size,
             num_root_textures_available,
 
             textures,
-            cutoff_values_tile,
             texture_2d_array,
+            available_tiles_during_frame,
 
             ready,
+            exec,
+            gl
         }
-    }
-
-    pub fn get_cutoff(&self, tile_cell: &HEALPixCell) -> Option<(f32, f32)> {
-        self.cutoff_values_tile.borrow().get(tile_cell).cloned()
     }
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile_cell: &HEALPixCell, time_request: Time, image: I, task_executor: &mut AladinTaskExecutor, config: &HiPSConfig) {
+    pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time) {
+        let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
-        assert!(!self.contains_tile(tile_cell, config));
+        if self.contains_tile(&tile_cell) {
+            return;
+        }
 
         // Get the texture cell in which the tile has to be
-        let texture_cell = tile_cell.get_texture_cell(config);
+        let texture_cell = tile_cell.get_texture_cell(&self.config);
         let mut old_texture_cell = None;
         // Check whether the texture is a new texture
         if !self.textures.contains_key(&texture_cell) {
             let HEALPixCell(_, idx) = texture_cell;
             let texture = if texture_cell.is_root() {
-                let texture = Texture::new(config, &texture_cell, idx as i32, time_request);
+                let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
 
                 texture
             } else {
@@ -237,7 +248,7 @@ impl Textures {
                     // Remove it from the textures HashMap
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
-                        texture.replace(&texture_cell, time_request, config, task_executor);
+                        texture.replace(&texture_cell, time_request, &self.config, &mut self.exec.borrow_mut());
                         old_texture_cell = Some(oldest_texture.cell);
 
                         texture
@@ -252,7 +263,7 @@ impl Textures {
                     let root_texture_off_idx = 12;
                     let idx = root_texture_off_idx + self.heap.len();
 
-                    let texture = Texture::new(config, &texture_cell, idx as i32, time_request);
+                    let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
                     texture
                 };
                 // Push it to the buffer
@@ -271,60 +282,69 @@ impl Textures {
         // First get the texture
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.append(
-                tile_cell, // The tile cell
-                config
+                &tile_cell, // The tile cell
+                &self.config
             );
             // Compute the cutoff of the received tile
             //let cutoff = image.get_cutoff_values();
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
-            let spawner = task_executor.spawner();
-            let task = SendTileToGPU::new(tile_cell, texture, image, self.texture_2d_array.clone(), &config);
-            let tile_cell = *tile_cell;
-            let cutoff_values_tile = self.cutoff_values_tile.clone();
-            spawner.spawn(TaskType::SendTileToGPU(tile_cell), async move {
-                task.await;
+            let mut exec_ref = self.exec.borrow_mut();
+            let task = SendTileToGPU::new(&tile, texture, image, self.texture_2d_array.clone(), &self.config);
 
-                /*if let Some(cutoff) = cutoff {
-                    // Remove the cutoff values of the image
-                    if let Some(oldest_tex_cell) = old_texture_cell {
-                        cutoff_values_tile.borrow_mut().remove(&oldest_tex_cell);
-                    }
+            let tile = tile.clone();
+            exec_ref.spawner().spawn(
+                TaskType::SendTileToGPU(tile.clone()),
+                async move {
+                    task.await;
 
-                    cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
-                }*/
+                    /*if let Some(cutoff) = cutoff {
+                        // Remove the cutoff values of the image
+                        if let Some(oldest_tex_cell) = old_texture_cell {
+                            cutoff_values_tile.borrow_mut().remove(&oldest_tex_cell);
+                        }
 
-                TaskResult::TileSentToGPU { tile_cell }
-            });
+                        cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
+                    }*/
+
+                    TaskResult::TileSentToGPU { tile }
+                }
+            );
         } else {
             unreachable!()
         }
     }
 
     // Return true if at least one task has been processed
-    pub fn register_tiles_sent_to_gpu(&mut self, copied_tiles: &HashSet<HEALPixCell>, config: &HiPSConfig) {
-        for cell in copied_tiles {
-            let texture_cell = cell.get_texture_cell(config);
+    pub fn register_available_tile(&mut self, available_tile: &Tile) {
+        let Tile {cell, ..} = available_tile;
+        let texture_cell = cell.get_texture_cell(&self.config);
+        self.available_tiles_during_frame = true;
 
-            if let Some(texture) = self.textures.get_mut(&texture_cell) {
-                texture.register_tile_sent_to_gpu(cell, config);
+        if let Some(texture) = self.textures.get_mut(&texture_cell) {
+            texture.register_available_tile(cell, &self.config);
 
-                if texture_cell.is_root() && texture.is_available() {
-                    self.num_root_textures_available += 1;
-                    assert!(self.num_root_textures_available <= 12);
-                    //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
+            if texture_cell.is_root() && texture.is_available() {
+                self.num_root_textures_available += 1;
+                assert!(self.num_root_textures_available <= 12);
+                //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
 
-                    if self.num_root_textures_available == 12 {
-                        self.ready = true;
-                        crate::log("READYYYY");
-                    }
+                if self.num_root_textures_available == 12 {
+                    self.ready = true;
                 }
-            } else {
-                // Textures written have to be in the textures collection
-                unreachable!();
             }
+        } else {
+            // Textures written have to be in the textures collection
+            unreachable!();
         }
+    }
+
+    pub fn is_there_available_tiles(&mut self) -> bool {
+        let available_tiles_during_frame = self.available_tiles_during_frame;
+        self.available_tiles_during_frame = false;
+
+        return available_tiles_during_frame;
     }
 
     fn is_heap_full(&self) -> bool {
@@ -336,11 +356,29 @@ impl Textures {
         full_heap
     }
 
+    // Tell if a texture is available meaning all its sub tiles
+    // must have been written for the GPU
+    pub fn contains(&self, texture_cell: &HEALPixCell) -> bool {
+        if let Some(texture) = self.textures.get(texture_cell) {
+            // The texture is in the buffer i.e. there is at least one
+            // sub tile received
+
+            // It is possible that it is not available. Available means
+            // all its sub tiles have been received and written to the
+            // textures array!
+            texture.is_available()
+        } else {
+            // The texture is not contained in the buffer i.e.
+            // even not one sub tile that has been received
+            false
+        }
+    }
+
     // Check whether the buffer has a tile
     // For that purpose, we first need to verify that its
     // texture ancestor exists and then, it it contains the tile
-    pub fn contains_tile(&self, cell: &HEALPixCell, config: &HiPSConfig) -> bool {
-        let texture_cell = cell.get_texture_cell(config);
+    pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
+        let texture_cell = cell.get_texture_cell(&self.config);
         if let Some(texture) = self.textures.get(&texture_cell) {
             // The texture is present in the buffer
             // We must check whether it contains the tile
@@ -351,17 +389,13 @@ impl Textures {
         }
     }
 
-    pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
-        self.textures.get(texture_cell)
-    }
-
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
-    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool, start_time: Time, config: &HiPSConfig) {
-        assert!(self.contains_tile(cell, config));
+    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool) {
+        assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
-        let texture_cell = cell.get_texture_cell(config);
+        let texture_cell = cell.get_texture_cell(&self.config);
         if texture_cell.is_root() {
             return;
         }
@@ -369,7 +403,7 @@ impl Textures {
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             // Reset the time the tile has been received if it is a new cell present in the fov
             if new_fov_cell {
-                texture.update_start_time(start_time);
+                texture.update_start_time(Time::now());
             }
 
             // MAYBE WE DO NOT NEED TO UPDATE THE TIME REQUEST IN THE BHEAP
@@ -388,20 +422,52 @@ impl Textures {
     }
 
     // This is called when the HiPS changes
-    pub fn clear(&mut self, gl: &WebGl2Context, config: &HiPSConfig, task_executor: &mut AladinTaskExecutor) {
+    pub fn clear(&mut self) {
         // Size i.e. the num of textures is the same
         // no matter the HiPS config
         self.heap.clear();
 
         for texture in self.textures.values() {
-            texture.clear_tasks_in_progress(config, task_executor);
+            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
         }
         self.textures.clear();
 
         self.ready = false;
         self.num_root_textures_available = 0;
 
-        self.texture_2d_array = Rc::new(create_texture_array(gl, config));
+        self.texture_2d_array = Rc::new(create_texture_array(&self.gl, &self.config));
+    }
+
+    /// Accessors
+    pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
+        self.textures.get(texture_cell)
+    }
+
+    // Get the nearest parent tile found in the CPU buffer
+    pub fn get_nearest_parent(&self, cell: &HEALPixCell) -> HEALPixCell {
+        if cell.is_root() {
+            // Root cells are in the buffer by definition
+            *cell
+        } else {
+            let mut parent_cell = cell.parent();
+
+            while !self.contains(&parent_cell) && !parent_cell.is_root() {
+                parent_cell = parent_cell.parent();
+            }
+
+            parent_cell
+        }
+    }
+
+    pub fn config(&self) -> &HiPSConfig {
+        &self.config
+    }
+    pub fn config_mut(&mut self) -> &mut HiPSConfig {
+        &mut self.config
+    }
+
+    pub fn get_root_url(&self) -> &str {
+        &self.config.root_url
     }
 
     pub fn is_ready(&self) -> bool {
@@ -415,12 +481,16 @@ impl Textures {
         textures.sort_unstable();
         textures
     }
+
+    pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
+        self.texture_2d_array.clone()
+    }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 use crate::buffer::TextureUniforms;
-impl HasUniforms for Textures {
+impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send the textures
         let textures = self.get_sorted_textures();
@@ -445,14 +515,22 @@ impl HasUniforms for Textures {
         }
         num_textures += 1;
         shader.attach_uniform("num_textures", &(num_textures as i32));
-
-        // Texture 2d array
-        if self.texture_2d_array.is_storing_integer() {
-            shader.attach_uniform("texInt", &*self.texture_2d_array);
-        } else {
-            shader.attach_uniform("tex", &*self.texture_2d_array);
-        }
+        shader.attach_uniforms_from(&self.config);
 
         shader
+    }
+}
+
+impl Drop for ImageSurveyTextures {
+    fn drop(&mut self) {
+        // Cleanup the heap
+        self.heap.clear();
+
+        // Cancel the tasks that have not been finished
+        // by the exec
+        for texture in self.textures.values() {
+            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
+        }
+        self.textures.clear();
     }
 }

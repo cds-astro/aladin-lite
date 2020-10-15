@@ -26,7 +26,7 @@ void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
     world_pos = check_inversed_longitude(world_pos);
 
-    gl_Position = vec4(world2clip_aitoff(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
+    gl_Position = vec4(world2clip_arc(world_pos) / (ndc_to_clip * clip_zoom_factor), 0.0, 1.0);
 
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;

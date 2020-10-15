@@ -78,6 +78,28 @@ export let View = (function() {
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
             this.aladin.webglAPI.resize(500, 400);
+            this.aladin.webglAPI.setSimpleHiPS({
+                properties: {
+                    url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+            
+                    maxOrder: 9,
+                    frame: { label: "J2000", system: "J2000" },
+                    tileSize: 512,
+                    format: {
+                        FITSImage: {
+                            bitpix: 16,
+                        }
+                    },
+                    minCutout: 500,
+                    maxCutout: 25000,
+                },
+                color: {
+                    Grayscale2Colormap: {
+                        colormap: "RedTemperature",
+                        transfer: "sqrt"
+                    }
+                },
+            });
 
             this.location = location;
             this.fovDiv = fovDiv;
@@ -707,7 +729,6 @@ export let View = (function() {
 
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                console.log("ALADIN LITE, ",webglAPI)
 
                 pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
@@ -765,7 +786,7 @@ export let View = (function() {
             }
             view.realDragging = true;
 
-            webglAPI.moveView(pos1[0], pos1[1], pos2[0], pos2[1]);
+            webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
             //webglAPI.setCenter(pos2[0], pos2[1]);
             view.viewCenter.lon = pos2[0];
             view.viewCenter.lat = pos2[1];
@@ -792,9 +813,11 @@ export let View = (function() {
             } 
             if (delta>0) {
                 level += 1;
+                //zoom
             }
             else {
                 level -= 1;
+                //unzoom
             }
             view.setZoomLevel(level);
             
@@ -928,6 +951,7 @@ export let View = (function() {
         var dt = now - this.prev;
 
         let updateView = this.aladin.webglAPI.update(dt);
+        this.aladin.webglAPI.render();
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
@@ -942,7 +966,7 @@ export let View = (function() {
         }
 
         //this.stats.update();
-        this.aladin.webglAPI.render();
+
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -1276,12 +1300,8 @@ export let View = (function() {
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
-            else {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
+            spatialVector.set(lonlat[0], lonlat[1]);
+
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
             if (this.fov>60) {
@@ -1347,12 +1367,8 @@ export let View = (function() {
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
-            else {
-                spatialVector.set(lonlat[0], lonlat[1]);
-            }
+            spatialVector.set(lonlat[0], lonlat[1]);
+
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
             if (this.fov>60) {
@@ -1541,6 +1557,15 @@ export let View = (function() {
 
     
     View.prototype.setZoomLevel = function(level) {
+        /*let zoom = {"action": undefined};
+
+        if (this.zoomLevel > level) {
+            console.log("unzoom")
+            zoom["action"] = "unzoom";
+        } else if (this.zoomLevel < level) {
+            zoom["action"] = "zoom";
+        }*/
+
         if (this.minFOV || this.maxFOV) {
             var newFov = doComputeFov(this, this.computeZoomFactor(Math.max(-2, level)));
             if (this.maxFOV && newFov>this.maxFOV  ||  this.minFOV && newFov<this.minFOV)  {
@@ -1562,7 +1587,8 @@ export let View = (function() {
                 }
             }
             else {
-                this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+                //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+                this.zoomLevel = Math.max(-5, level); // TODO : canvas freezes in firefox when max level is small
             }
         }
         else {
@@ -1574,8 +1600,14 @@ export let View = (function() {
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
-        console.log("FOV, ", this.fov);
-        this.aladin.webglAPI.setFieldOfView(this.fov);
+        if (this.zoomFactor >= 1.0) {
+            this.aladin.webglAPI.setFieldOfView(this.fov);
+        } else {
+            console.log("FOV, ", this.fov / this.zoomFactor);
+
+            // zoom factor
+            this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
+        }
 
         // TODO: event/listener should be better
         updateFovDiv(this);
@@ -1707,7 +1739,7 @@ export let View = (function() {
             // imageSurvey is an ID
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyProperties) => {
                 console.log('set HiPS info', imageSurveyProperties)
-                this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
+                //this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
             });
             if (newImageSurvey) {
                 this.imageSurvey = newImageSurvey;
@@ -1719,7 +1751,7 @@ export let View = (function() {
             // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
             newImageSurvey = imageSurvey;
             console.log("exist already", newImageSurvey.getSurveyInfo());
-            this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
+            //this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
         }
 
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16

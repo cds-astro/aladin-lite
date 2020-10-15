@@ -50,39 +50,48 @@ use cgmath::{Vector4, Vector3};
 use crate::math::LonLat;
 pub struct HEALPixCoverage(BMOC);
 
-impl HEALPixCoverage {
-    pub fn new<S: BaseFloat>(
-        // The depth of the smallest HEALPix cells contained in it
-        depth: u8,
-        // The vertices of the polygon delimiting the coverage
-        vertices: &[Vector4<S>],
-        // A vertex being inside the coverage,
-        // typically the center of projection
-        inside: &Vector3<S>
-    ) -> HEALPixCoverage {
-        let lonlat = vertices.iter()
-            .map(|vertex| {
-                let (lon, lat) = math::xyzw_to_radec(vertex);
-                // Risky wrapping here
-                (S::to_f64(&lon.0).unwrap(), S::to_f64(&lat.0).unwrap())
-            })
-            .collect::<Vec<_>>();
-        let moc = healpix::nested::polygon_coverage(depth, &lonlat, false);
-        let inside_lonlat = inside.lonlat();
-        // Risky wrapping here
-        let (lon, lat) = (
-            S::to_f64(&inside_lonlat.lon().0).unwrap(),
-            S::to_f64(&inside_lonlat.lat().0).unwrap()
-        );
-        let result = moc.test_coo(lon, lat);
-        let moc = match result {
-            Status::OUT => {
-                moc.not()
-            },
-            _ => moc
-        };
-        HEALPixCoverage(moc)
-    }
+use crate::renderable::view_on_surveys::HEALPixCells;
+pub fn from_polygon(
+    // The depth of the smallest HEALPix cells contained in it
+    depth: u8,
+    // The vertices of the polygon delimiting the coverage
+    vertices: &[Vector4<f32>],
+    // A vertex being inside the coverage,
+    // typically the center of projection
+    inside: &Vector3<f32>
+) -> HEALPixCoverage {
+    let lonlat = vertices.iter()
+        .map(|vertex| {
+            let (lon, lat) = math::xyzw_to_radec(vertex);
+            (lon.0 as f64, lat.0 as f64)
+        })
+        .collect::<Vec<_>>();
+    let moc = healpix::nested::polygon_coverage(depth, &lonlat[..], false);
+    let inside_lonlat = inside.lonlat();
+    let result = moc.test_coo(inside_lonlat.lon().0 as f64, inside_lonlat.lat().0 as f64);
+    let moc = match result {
+        Status::OUT => {
+            moc.not()
+        },
+        _ => moc
+    };
+    HEALPixCoverage(moc)
+}
+
+pub fn from_cone(
+    // The depth of the smallest HEALPix cells contained in it
+    depth: u8,
+    radius: f32,
+    // A vertex being inside the coverage,
+    // typically the center of projection
+    center: &Vector3<f32>
+) -> HEALPixCoverage {
+    let (lon, lat) = math::xyz_to_radec(center);
+    let (lon, lat) = (lon.0 as f64, lat.0 as f64);
+
+    let moc = healpix::nested::cone_coverage_approx(depth, lon, lat, radius as f64);
+
+    HEALPixCoverage(moc)
 }
 
 use core::ops::Deref;

@@ -37,7 +37,8 @@ pub struct Texture {
 }
 
 use crate::buffer::HiPSConfig;
-use crate::async_task::{AladinTaskExecutor, TaskType};
+use crate::async_task::{TaskExecutor, TaskType};
+use super::Tile;
 impl Texture {
     pub fn new(config: &HiPSConfig, texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {
         let tiles = HashSet::with_capacity(config.num_tiles_per_texture());
@@ -85,7 +86,7 @@ impl Texture {
         }
     }
 
-    pub fn register_tile_sent_to_gpu(&mut self, cell: &HEALPixCell, config: &HiPSConfig) {
+    pub fn register_available_tile(&mut self, cell: &HEALPixCell, config: &HiPSConfig) {
         let texture_cell = cell.get_texture_cell(config);
         assert!(texture_cell == self.texture_cell);
 
@@ -147,11 +148,12 @@ impl Texture {
         self.time_request = time_request;
     }
 
-    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time, config: &HiPSConfig, task_executor: &mut AladinTaskExecutor) {
+    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time, config: &HiPSConfig, exec: &mut TaskExecutor) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         for tile_cell in self.texture_cell.get_tile_cells(config) {
-            task_executor.remove(&TaskType::SendTileToGPU(tile_cell));
+            let tile = Tile::new(&tile_cell, config);
+            exec.remove(&TaskType::SendTileToGPU(tile));
         }
         
         self.texture_cell = *texture_cell;
@@ -164,9 +166,10 @@ impl Texture {
         self.num_tiles_written = 0;
     }
 
-    pub fn clear_tasks_in_progress(&self, config: &HiPSConfig, task_executor: &mut AladinTaskExecutor) {
+    pub fn clear_tasks_in_progress(&self, config: &HiPSConfig, exec: &mut TaskExecutor) {
         for tile_cell in self.texture_cell.get_tile_cells(config) {
-            task_executor.remove(&TaskType::SendTileToGPU(tile_cell));
+            let tile = Tile::new(&tile_cell, config);
+            exec.remove(&TaskType::SendTileToGPU(tile));
         }
     }
 }
@@ -205,9 +208,9 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use crate::shader::HasUniforms;
+use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-impl<'a> HasUniforms for TextureUniforms<'a> {
+impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader.attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
             .attach_uniform(&format!("{}{}", self.name, "texture_idx"), &self.texture.idx)

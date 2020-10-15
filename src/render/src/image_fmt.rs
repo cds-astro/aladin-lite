@@ -11,6 +11,20 @@ impl JPG {
     const FORMAT: u32 = WebGl2RenderingContext::RGB as u32;
     const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGB as i32;
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+
+    pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
+        let num_channels = Self::NUM_CHANNELS as i32;
+        let size_buf = (width * width * num_channels) as usize;
+
+        let pixels = [0, 0, 0].iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+        crate::log(&format!("length pixels {}", pixels.len()));
+
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels)
+    }
 }
 
 impl FormatImage for JPG {
@@ -18,32 +32,44 @@ impl FormatImage for JPG {
     const EXT: &'static str = "jpg";
 }
 
+use crate::buffer::{TileArrayBuffer, ArrayU8};
 #[derive(Clone, Copy, Debug)]
 pub struct PNG;
 impl PNG {
     const FORMAT: u32 = WebGl2RenderingContext::RGBA as u32;
     const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGBA as i32;
     const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+
+    pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayU8> {
+        let num_channels = Self::NUM_CHANNELS as i32;
+        let size_buf = (width * width * num_channels) as usize;
+
+        let pixels = [0, 0, 0, 255].iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+
+        TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels)
+    }
 }
 
-impl FormatImage for PNG {
+impl FormatImage for PNG {    
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct FITS { format: u32, internal_format: i32, _type: u32 }
 
+use crate::buffer::ArrayBuffer;
 impl FITS {
     pub fn new(internal_format: i32) -> Self {
         let (format, _type) = match internal_format as u32 {
+            WebGl2RenderingContext::RED => {
+                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
+            },
             WebGl2RenderingContext::R32F => {
                 (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
-            WebGl2RenderingContext::RGBA32F => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
-            WebGl2RenderingContext::R16F => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::HALF_FLOAT)
             },
             WebGl2RenderingContext::R8UI => {
                 (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE)
@@ -54,9 +80,6 @@ impl FITS {
             WebGl2RenderingContext::R32I => {
                 (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT)
             },
-            WebGl2RenderingContext::RED => {
-                (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
             _ => unimplemented!()
         };
 
@@ -65,6 +88,47 @@ impl FITS {
             internal_format,
             _type
         }
+    }
+
+    pub fn create_black_tile<T: ArrayBuffer>(width: i32, value: T::Item) -> TileArrayBuffer<T> {
+        let size_buf = (width * width * 1) as usize;
+
+        let pixels = [value].iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+
+        TileArrayBuffer::<T>::new(&pixels[..], width, 1)
+    }
+}
+
+pub trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
+    #[inline]
+    fn zero() -> Self;
+}
+impl FITSDataType for f32  {
+    #[inline]
+    fn zero() -> Self {
+        0.0
+    }
+}
+impl FITSDataType for i32 {
+    #[inline]
+    fn zero() -> Self {
+        0
+    }
+}
+impl FITSDataType for i16 {
+    #[inline]
+    fn zero() -> Self {
+        0
+    }
+}
+impl FITSDataType for u8 {
+    #[inline]
+    fn zero() -> Self {
+        0
     }
 }
 
@@ -93,7 +157,7 @@ impl FITS {
     }
 }
 */
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum FormatImageType {
     FITS(FITS),
     PNG,
@@ -140,7 +204,7 @@ impl FormatImageType {
         }
     }
 
-    pub fn is_i_internal_format(&self) -> bool {
+    /*pub fn is_i_internal_format(&self) -> bool {
         match self {
             &FormatImageType::FITS(fits) => {
                 match fits._type {
@@ -153,5 +217,5 @@ impl FormatImageType {
             &FormatImageType::PNG => false,
             &FormatImageType::JPG => false,
         }
-    }
+    }*/
 }

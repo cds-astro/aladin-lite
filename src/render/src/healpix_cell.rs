@@ -217,18 +217,6 @@ impl<'a> Ord for HEALPixCellUniqOrd<'a> {
     }
 }
 
-use std::collections::HashSet;
-pub fn allsky(depth: u8) -> HashSet<HEALPixCell> {
-    let npix = 12 << ((depth as usize) << 1);
-
-    let mut cells = HashSet::with_capacity(npix);
-    for ipix in 0..npix {
-        cells.insert(HEALPixCell(depth, ipix as u64));
-    }
-
-    cells
-}
-
 pub struct SphereSubdivided(Box<[u8; 12288]>);
 
 fn subdivision(cell: &HEALPixCell) -> u8 {

@@ -1,8 +1,5 @@
 
 
-use crate::viewport::ViewPort;
-
-mod hips_sphere;
 pub mod projection;
 pub mod grid;
 
@@ -29,25 +26,27 @@ use ray_tracer::RayTracer;
 
 mod rasterizer;
 use rasterizer::Rasterizer;
-use rasterizer::RasterizerProjection;
 
 mod triangulation;
 use triangulation::Triangulation;
 
-use hips_sphere::{
- RecomputeRasterizer,
- Zoom,
- UnZoom,
- Move,
- TextureStates
+pub mod view_on_surveys;
+use view_on_surveys::{HEALPixCellsInView, NewHEALPixCells, get_cells_in_camera};
+pub use view_on_surveys::HEALPixCells;
+
+pub mod image_survey;
+pub use image_survey::{
+    RecomputeRasterizer,
+    Zoom,
+    UnZoom,
+    Move,
+    TexturesToDraw,
+    MAX_NUM_VERTICES_TO_DRAW,
+    ImageSurvey,
 };
-pub use hips_sphere::HiPSSphere;
+
 pub use catalog::Manager;
 pub use grid::ProjetedGrid;
-
-pub trait DisableDrawing {
-    fn disable(&mut self, viewport: &ViewPort);
-}
 /*
 pub struct Renderable<T>
 where T: Mesh + DisableDrawing {

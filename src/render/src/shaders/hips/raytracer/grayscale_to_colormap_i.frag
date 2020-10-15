@@ -1,9 +1,7 @@
 #version 300 es
 precision highp float;
-precision lowp sampler2DArray;
-precision lowp isampler2DArray;
-precision lowp sampler3D;
 precision lowp sampler2D;
+precision lowp isampler2D;
 precision highp int;
 
 in vec3 out_vert_pos;
@@ -20,10 +18,11 @@ struct Tile {
 };
 
 uniform int current_depth;
+
 uniform Tile textures_tiles[64];
 
 uniform int num_textures;
-
+uniform float opacity;
 uniform float current_time; // current time in ms
 struct TileColor {
     Tile tile;
@@ -31,7 +30,7 @@ struct TileColor {
     bool found;
 };
 
-@import ../color;
+@import ../color_i;
 @import ./healpix;
 
 TileColor get_tile_color(vec3 pos, int depth) {
@@ -65,7 +64,7 @@ TileColor get_tile_color(vec3 pos, int depth) {
             vec2 offset = (vec2(idx_col, idx_row) + uv)/8.f;
             vec3 UV = vec3(offset, float(idx_texture));
 
-            vec3 color = color(UV).rgb;
+            vec3 color = colormap_f(get_grayscale_from_texture(UV)).rgb;
 
             return TileColor(tile, color, true);
         } else if (uniq < textures_tiles[i].uniq) {
@@ -85,16 +84,16 @@ TileColor get_tile_color(vec3 pos, int depth) {
 
 const float duration = 500.f; // 500ms
 uniform int max_depth; // max depth of the HiPS
-
+/*
 void main() {
     vec3 frag_pos = normalize(out_vert_pos);
     // Get the HEALPix cell idx and the uv in the texture
 
     TileColor current_tile = get_tile_color(frag_pos, current_depth);
-    out_frag_color = vec4(current_tile.color, 1.f);
+    out_frag_color = vec4(current_tile.color, opacity);
 
+    vec3 out_color = vec3(0.f);
     if (!current_tile.found) {
-        vec3 out_color = vec3(0.f);
         int depth = 0;
         if (user_action == 1) {
             // zoom
@@ -107,23 +106,80 @@ void main() {
         TileColor prev_tile = get_tile_color(frag_pos, depth);
         float alpha = clamp((current_time - prev_tile.tile.start_time) / duration, 0.f, 1.f);
         if (alpha == 1.f) {
-            out_frag_color = vec4(prev_tile.color, 1.f);
+            out_frag_color = vec4(prev_tile.color, opacity);
             return;
         }
 
         TileColor base_tile = get_tile_color(frag_pos, 0);
 
         out_color = mix(base_tile.color, prev_tile.color, alpha);
-        out_frag_color = vec4(out_color, 1.f);
-        return;
-    }
+    } else {
+        float alpha = clamp((current_time - current_tile.tile.start_time) / duration, 0.f, 1.f);
+        
+        // Little optimization: if the current tile is loaded since the time duration
+        // then we do not need to evaluate the frag position for the previous/next depth
+        if (alpha == 1.f) {
+            out_frag_color = vec4(current_tile.color, opacity);
+            return;
+        }
+        int depth = 0;
+        if (user_action == 1) {
+            // zoom
+            depth = max(0, current_depth - 1);
+        } else if (user_action == 2) {
+            // unzoom
+            depth = min(max_depth, current_depth + 1);
+        }
 
-    float alpha = clamp((current_time - current_tile.tile.start_time) / duration, 0.f, 1.f);
+        TileColor tile = get_tile_color(frag_pos, depth);
+        if (!tile.found) {
+            tile = get_tile_color(frag_pos, 0);
+        }
+
+        out_color = mix(tile.color, current_tile.color, alpha);
+    }
+    out_frag_color = vec4(out_color, opacity);
+}*/
+void main() {
+    vec3 frag_pos = normalize(out_vert_pos);
+    // Get the HEALPix cell idx and the uv in the texture
+
+    TileColor current_tile = get_tile_color(frag_pos, current_depth);
+    out_frag_color = vec4(current_tile.color, opacity);
+
+    //if (!current_tile.found) {
+        /*vec3 out_color = vec3(0.f);
+        int depth = 0;
+        if (user_action == 1) {
+            // zoom
+            depth = max(0, current_depth - 1);
+        } else {
+            // unzoom
+            depth = min(max_depth, current_depth + 1);
+        }
+
+        TileColor prev_tile = get_tile_color(frag_pos, depth);
+        float alpha = clamp((current_time - prev_tile.tile.start_time) / duration, 0.f, 1.f);
+        if (alpha == 1.f) {
+            out_frag_color = vec4(prev_tile.color, opacity);
+            return;
+        }
+
+        TileColor base_tile = get_tile_color(frag_pos, 0);
+        out_color = mix(base_tile.color, prev_tile.color, alpha);
+        out_frag_color = vec4(out_color, opacity);*/
+        //TileColor base_tile = get_tile_color(frag_pos, 0);
+        //out_frag_color = vec4(base_tile.color, opacity);
+        //out_frag_color = vec4(1.0, 0.0, 0.0, 1.0);
+        //return;
+    //}
+
+    /*float alpha = clamp((current_time - current_tile.tile.start_time) / duration, 0.f, 1.f);
     
     // Little optimization: if the current tile is loaded since the time duration
     // then we do not need to evaluate the frag position for the previous/next depth
     if (alpha == 1.f) {
-        out_frag_color = vec4(current_tile.color, 1.f);
+        out_frag_color = vec4(current_tile.color, opacity);
         return;
     }
     vec3 out_color = vec3(0.f);
@@ -142,5 +198,5 @@ void main() {
     }
 
     out_color = mix(tile.color, current_tile.color, alpha);
-    out_frag_color = vec4(out_color, 1.f);
+    out_frag_color = vec4(out_color, opacity);*/
 }

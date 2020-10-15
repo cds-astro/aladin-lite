@@ -1,6 +1,33 @@
 use cgmath::{InnerSpace, BaseFloat};
 use cgmath::Rad;
 use cgmath::{Vector4, Vector3};
+
+#[inline]
+pub fn asincP(mut x: f32) -> f32 {
+    assert!(x >= 0.0);
+    if x > 1.0e-4 {
+        x.asin() / x
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        x *= x;
+        1.0 + x * (1.0 + x * 9.0 / 20.0) / 6.0
+    }
+}
+
+#[inline]
+pub fn sincP(mut x: f32) -> f32 {
+    assert!(x >= 0.0);
+    if x > 1.0e-4 {
+        x.sin() / x
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        x *= x;
+        1.0 - x * (1.0 - x / 20.0) / 6.0
+    }
+}
+
 #[inline]
 pub fn ang_between_vect<S: BaseFloat>(x: &Vector3<S>, y: &cgmath::Vector3<S>) -> Angle<S> {
     let rad = Rad(x.cross(*y).magnitude().atan2(x.dot(*y)));
@@ -49,7 +76,7 @@ pub trait LonLat<S: BaseFloat> {
 
 use crate::renderable::angle::Angle;
 #[derive(Clone, Copy)]
-pub struct LonLatT<S: BaseFloat>(Angle<S>, Angle<S>);
+pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
 impl<S> LonLatT<S>
 where S: BaseFloat {
@@ -190,48 +217,6 @@ pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S
     depth as u8
 }*/
 
-// Used for selecting the current depth for a given FOV
-// We need to select a depth so that we do not see any pixels
-// This takes into account the screen resolution and can impact
-// the number of healpix cells to load. Bigger resolution will need
-// more cells which can overfit the buffer!
-use crate::buffer::HiPSConfig;
-pub fn fov_to_depth(fov: Angle<f32>, width: f32, config: &HiPSConfig) -> u8 {
-    let pixel_ang = fov / width;
-
-    let depth_pixel = ((((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32) + 0.5_f32).floor() as i8;
-
-    // The texture size in pixels
-    let texture_size = config.get_texture_size();
-    // The depth of the texture
-    // A texture of 512x512 pixels will have a depth of 9
-    let depth_offset_texture = log_2(texture_size);
-    // The depth of the texture corresponds to the depth of a pixel
-    // minus the offset depth of the texture
-    let mut depth_texture = depth_pixel - depth_offset_texture;
-    if depth_texture < 0 {
-        depth_texture = 0;
-    }
-    depth_texture as u8
-}
-pub fn fov_to_depth_precise(fov: Angle<f32>, width: f32, config: &HiPSConfig) -> f32 {
-    let pixel_ang = fov / width;
-
-    let depth_pixel = (((4_f32 * std::f32::consts::PI) / (12_f32 * pixel_ang.0 * pixel_ang.0)).log2() / 2_f32);
-
-    // The texture size in pixels
-    let texture_size = config.get_texture_size();
-    // The depth of the texture
-    // A texture of 512x512 pixels will have a depth of 9
-    let depth_offset_texture = log_2(texture_size) as f32;
-    // The depth of the texture corresponds to the depth of a pixel
-    // minus the offset depth of the texture
-    let mut depth_texture = depth_pixel - depth_offset_texture;
-    if depth_texture < 0.0 {
-        depth_texture = 0.0;
-    }
-    depth_texture
-}
 /*
 pub fn depth_to_fov(depth: u8) -> Rad<f32> {
     let sphere_area = 4_f32 * std::f32::consts::PI;

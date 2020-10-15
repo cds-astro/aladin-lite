@@ -1,7 +1,7 @@
 use crate::{
     core::{VertexArrayObject, VecData},
     shader::{ShaderBound, ShaderManager},
-    viewport::ViewPort,
+    camera::CameraViewPort,
     WebGl2Context,
     renderable::projection::Projection
 };
@@ -11,13 +11,13 @@ pub trait RayTracingProjection {
 }
 
 use crate::renderable::Triangulation;
-fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u16>) {
+fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraViewPort) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
     let vertices = vertices
         .into_iter()
         .map(|pos_clip_space| {
-            let pos_world_space = P::clip_to_world_space(&pos_clip_space).unwrap();
+            let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
 
             vec![
                 pos_clip_space.x,
@@ -35,106 +35,100 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context) -> (Vec<f32>, Vec<u
 }
 
 use web_sys::WebGl2RenderingContext;
-fn create_vertex_array_object<P: Projection>(
-    gl: &WebGl2Context,
-    _viewport: &ViewPort,
-    shaders: &mut ShaderManager
-) -> VertexArrayObject {
-    let (vertices, idx) = create_vertices_array::<P>(gl);
-    
-    let mut vertex_array_object = VertexArrayObject::new(gl);
-
-    let shader = shaders.get(
-        gl,
-        &ShaderId(
-            Cow::Borrowed("RayTracerVS"),
-            Cow::Borrowed("RayTracerFS")
-        )
-    ).unwrap();
-    shader.bind(gl)
-        // VAO for per-pixel computation mode (only in case of large fovs and 2D projections)
-        .bind_vertex_array_object(&mut vertex_array_object)
-            // Store the projeted and 3D vertex positions in a VBO
-            .add_array_buffer(
-                5 * std::mem::size_of::<f32>(),
-                &[2, 3],
-                &[0, 2 * std::mem::size_of::<f32>()],
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData(vertices.as_ref()),
-            )
-            // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData(idx.as_ref()),
-            )
-            // Unbind the buffer
-            .unbind();
-
-    vertex_array_object
-}
-
+use web_sys::WebGlVertexArrayObject;
+use web_sys::WebGlBuffer;
 pub struct RayTracer {
-    vao: VertexArrayObject,
+    gl: WebGl2Context,
+
+    vao: WebGlVertexArrayObject,
+
+    vbo: WebGlBuffer,
+    ebo: WebGlBuffer,
+
+    num_indices: i32, 
 }
 
-use crate::{
-    buffer::BufferTextures,
-    Shader
-};
+use crate::Shader;
 use std::borrow::Cow;
 use crate::shader::ShaderId;
+use std::mem;
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, viewport: &ViewPort, shaders: &mut ShaderManager) -> RayTracer {
-        let vao = create_vertex_array_object::<P>(gl, viewport, shaders);
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
+        let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
+        let vao = gl.create_vertex_array().unwrap();
+        gl.bind_vertex_array(Some(&vao));
+
+        let vbo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            &buf_vertices,
+            WebGl2RenderingContext::STATIC_DRAW
+        );
+
+        // layout (location = 0) in vec2 lonlat;
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(0);
+
+        // layout (location = 1) in vec3 position;
+        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(1);
+
+        let ebo = gl.create_buffer()
+            .ok_or("failed to create buffer")
+            .unwrap();
+        // Bind the buffer
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        let num_indices = idx.len() as i32;
+
+        let buf_indices = unsafe { js_sys::Uint16Array::view(&idx) };
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            &buf_indices,
+            WebGl2RenderingContext::STATIC_DRAW
+        );
+
+        let gl = gl.clone();
         RayTracer {
-            vao
+            gl,
+
+            vao,
+
+            vbo,
+            ebo,
+
+            num_indices
         }
     }
 
-    pub fn get_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager, buffer: &BufferTextures) -> &'a Shader {
-        // Fits tiles are handled by other shaders
-        if buffer.fits_tiles_requested() {
-            if buffer.fits_i_format() {
-                shaders.get(
-                    gl,
-                    &ShaderId(
-                        Cow::Borrowed("RayTracerVS"),
-                        Cow::Borrowed("RayTracerFITSIFS")
-                    )
-                ).unwrap()
-            } else {
-                shaders.get(
-                    gl,
-                    &ShaderId(
-                        Cow::Borrowed("RayTracerVS"),
-                        Cow::Borrowed("RayTracerFITSFS")
-                    )
-                ).unwrap()            }
-        } else {
-            shaders.get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("RayTracerVS"),
-                    Cow::Borrowed("RayTracerFS")
-                )
-            ).unwrap()
-        }
+    pub fn bind(&self) {
+        self.gl.bind_vertex_array(Some(&self.vao));
     }
 
-    pub fn draw(
-        &self,
-        _gl: &WebGl2Context,
-        shader: &ShaderBound,
-    ) {
+    pub fn unbind(&self) {
+        self.gl.bind_vertex_array(None);
+    }
+
+    pub fn draw(&self) {
         //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
-        shader.bind_vertex_array_object_ref(&self.vao)
-            .draw_elements_with_i32(
-                WebGl2RenderingContext::TRIANGLES,
-                //WebGl2RenderingContext::LINE_LOOP,
-                //WebGl2RenderingContext::POINTS,
-                None,
-                WebGl2RenderingContext::UNSIGNED_SHORT
-            );
+        self.gl.draw_elements_with_i32(
+            //WebGl2RenderingContext::LINE_STRIP,
+            WebGl2RenderingContext::TRIANGLES,
+            self.num_indices,
+            WebGl2RenderingContext::UNSIGNED_SHORT,
+            0
+        ); 
+    }
+}
+
+impl Drop for RayTracer {
+    fn drop(&mut self) {
+        self.gl.delete_vertex_array(Some(&self.vao));
+        self.gl.delete_buffer(Some(&self.vbo));
+        self.gl.delete_buffer(Some(&self.ebo));
     }
 }

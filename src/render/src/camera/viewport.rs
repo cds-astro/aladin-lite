@@ -199,7 +199,7 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.aperture.0, self.longitude_reversed);
         self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
@@ -215,31 +215,31 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        /*self.aperture = if aperture <= P::aperture_start() {
+        self.aperture = if aperture <= P::aperture_start() {
+            // Compute the new clip zoom factor
+            let lon = aperture.abs() / 2_f32;
+
+            // Vertex in the WCS of the FOV
+            let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
+            if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
+                self.clip_zoom_factor = p0.x.abs().min(1.0);
+            } else {
+                // Gnomonic unzoomed case!
+                self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
+            }
             aperture
         } else {
+
+            self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
             // The start aperture of the new projection is < to the current aperture
             // We reset the wheel idx too
             P::aperture_start()
-        };*/
-        self.aperture = aperture;
-
-        // Compute the new clip zoom factor
-        let lon = aperture.abs() / 2_f32;
-
-        // Vertex in the WCS of the FOV
-        let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
-
+        };
         // Project this vertex into the screen
-        if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
-            self.clip_zoom_factor = p0.x.abs().min(1.0);
-        } else {
-            self.clip_zoom_factor = self.aperture.0 / P::aperture_start().0;
-        }
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.aperture.0, self.longitude_reversed);
         self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
@@ -335,7 +335,7 @@ impl CameraViewPort {
         self.longitude_reversed
     }
 
-    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+    pub fn get_bounding_box(&self) -> &BoundingBox {
         self.vertices.get_bounding_box()
     }
 
@@ -372,7 +372,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_rotation(&self.w2m, self.aspect);
+        self.vertices.set_rotation::<P>(&self.w2m, self.aspect, self.aperture.0);
         self.update_center::<P>();
     }
 

@@ -31,13 +31,13 @@ impl GreatCircles {
         GreatCircles::PolygonGrid(PolygonGrid::new(vertices, aspect))
     }
 
-    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+    pub fn get_bounding_box(&self) -> &BoundingBox {
         match self {
-            GreatCircles::AllSkyGrid(_) => {
-                None
+            GreatCircles::AllSkyGrid(allsky) => {
+                allsky.get_bbox()
             },
             GreatCircles::PolygonGrid(poly) => {
-                Some(poly.get_bbox())
+                poly.get_bbox()
             }
         }
     }
@@ -125,6 +125,7 @@ impl<T> SendUniforms for T where T: ZoneFieldOfView {
 pub struct AllSkyGrid {
     meridians: Vec<Angle<f32>>,
     parallels: Vec<Angle<f32>>,
+    bbox: BoundingBox,
 }
 
 impl AllSkyGrid {
@@ -147,10 +148,17 @@ impl AllSkyGrid {
             ArcDeg(60_f32).into(),
         ];
 
+        let bbox = BoundingBox::fullsky();
+
         AllSkyGrid {
             meridians,
-            parallels
+            parallels,
+            bbox,
         }
+    }
+
+    fn get_bbox(&self) -> &BoundingBox {
+        &self.bbox
     }
 }
 
@@ -219,6 +227,7 @@ impl PoleContained {
 }
 
 use std::ops::Range;
+#[derive(Clone)]
 pub struct BoundingBox {
     pub lon: Range<Angle<f32>>,
     pub lat: Range<Angle<f32>>,
@@ -226,28 +235,54 @@ pub struct BoundingBox {
 
 impl BoundingBox {
     #[inline]
-    fn get_lon_size(&self) -> Angle<f32> {
+    pub fn get_lon_size(&self) -> Angle<f32> {
         self.lon.end - self.lon.start
     }
+
     #[inline]
-    fn get_lat_size(&self) -> Angle<f32> {
+    pub fn all_lon(&self) -> bool {
+        (self.lon.end.0 - self.lon.start.0) == TWICE_PI
+    }
+
+    #[inline]
+    pub fn all_lat(&self) -> bool {
+        (self.lat.end.0 - self.lat.start.0) == PI
+    }
+
+    #[inline]
+    pub fn get_lat_size(&self) -> Angle<f32> {
         self.lat.end - self.lat.start
     }
     #[inline]
-    fn lon_min(&self) -> Angle<f32> {
+    pub fn lon_min(&self) -> Angle<f32> {
         self.lon.start
     }
     #[inline]
-    fn lon_max(&self) -> Angle<f32> {
+    pub fn lon_max(&self) -> Angle<f32> {
         self.lon.end
     }
     #[inline]
-    fn lat_min(&self) -> Angle<f32> {
+    pub fn lat_min(&self) -> Angle<f32> {
         self.lat.start
     }
     #[inline]
-    fn lat_max(&self) -> Angle<f32> {
+    pub fn lat_max(&self) -> Angle<f32> {
         self.lat.end
+    }
+    #[inline]
+    pub fn get_lon(&self) -> Range<f32> {
+        self.lon.start.0..self.lon.end.0
+    }
+    #[inline]
+    pub fn get_lat(&self) -> Range<f32> {
+        self.lat.start.0..self.lat.end.0
+    }
+
+    pub fn fullsky() -> Self {
+        BoundingBox {
+            lon: Angle(0_f32)..Angle(TWICE_PI),
+            lat: Angle(-HALF_PI)..Angle(HALF_PI)
+        }
     }
 }
 
@@ -823,7 +858,6 @@ impl PolygonGrid {
             ArcSec(2e-6).into(),
             ArcSec(1e-6).into(),
         ];
-
         let parallels = vec![];
         let num_max_parallels = 5;
         let meridians = vec![];
@@ -883,6 +917,7 @@ impl PolygonGrid {
         // can handle
         //assert!(self.meridians.len() <= self.num_max_meridians);
     }
+
     fn compute_parallels(&mut self) {
         // We do have the bounding box, let's return the list of meridians intersecting
         let fov = self.bbox.get_lat_size();

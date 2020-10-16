@@ -350,7 +350,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f32 = (180.0 / 180.0) * std::f32::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: f32 = (150.0 / 180.0) * std::f32::consts::PI;
 }
 
 
@@ -657,7 +657,7 @@ impl Projection for AzimuthalEquidistant {
                 r = pos_world_space.z.acos() / r;
             }
             let x = if longitude_reversed {
-                pos_world_space.x * r
+                -pos_world_space.x * r
             } else {
                 pos_world_space.x * r
             };
@@ -866,7 +866,7 @@ impl Projection for Mercator {
 
         Some(Vector2::new(
             theta.0 / std::f32::consts::PI,
-            (((std::f32::consts::PI / 4_f32) + (delta.0 / 2_f32)).tan()).ln() / std::f32::consts::PI
+            ((delta.0 / std::f32::consts::PI).tan()).asinh() as f32
         ))
     }
 

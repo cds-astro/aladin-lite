@@ -406,8 +406,9 @@ impl App {
 
         //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
         self.surveys.draw::<P>(&self.camera, &mut self.shaders);
-        self.grid.draw::<P>(&self.camera, &mut self.shaders);
         self.gl.enable(WebGl2RenderingContext::BLEND);
+        self.grid.draw::<P>(&self.camera, &mut self.shaders);
+
         //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         // Draw the catalog
         self.manager.draw::<P>(

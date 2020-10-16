@@ -51,7 +51,7 @@ impl ProjetedGrid {
             .ok_or("failed to create buffer")
             .unwrap();
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-        gl.line_width(2.0);
+        gl.line_width(1.0);
         let data = vec![0.0_f32; 1000];
         let size_vertices_buf = 1000;
         let num_vertices = 0;
@@ -111,7 +111,7 @@ impl ProjetedGrid {
 
         let color = Color::new(0_f32, 1_f32, 0_f32, 0.2_f32);
         let gl = gl.clone();
-        let opacity = 1.0;
+        let opacity = 0.4;
         let sizes = vec![];
         let offsets = vec![];
         ProjetedGrid {
@@ -136,7 +136,6 @@ impl ProjetedGrid {
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
         if camera.has_moved() {
             let mut lines = lines::<P>(camera);
-            crate::log(&format!("length {:?}", lines));
 
             /*let num_lines = lines.len();
             let num_vertices: usize = lines.iter().fold(0, |mut sum, line| {
@@ -172,7 +171,6 @@ impl ProjetedGrid {
                 vertices.set_len(vertices.len() * 2);
                 std::mem::transmute(vertices)
             };
-            crate::log(&format!("vertices {:?}", vertices));
 
             let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
 
@@ -243,7 +241,7 @@ impl ProjetedGrid {
         self.gl.bind_vertex_array(Some(&self.vao));
         for (offset, size) in self.offsets.iter().zip(self.sizes.iter()) {
             self.gl.draw_arrays(
-                WebGl2RenderingContext::LINE_STRIP,
+                WebGl2RenderingContext::LINES,
                 *offset as i32,
                 *size as i32
             );
@@ -358,39 +356,60 @@ use crate::sphere_geometry::{GreatCircles, BoundingBox};
 
 use cgmath::InnerSpace;
 const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
-fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, camera: &CameraViewPort) {
+fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, first_call: bool, camera: &CameraViewPort) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
     let b: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
     let c: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
-    let A = P::model_to_ndc_space(&a, camera).unwrap();
-    let B = P::model_to_ndc_space(&b, camera).unwrap();
-    let C = P::model_to_ndc_space(&c, camera).unwrap();
+    let A = P::model_to_ndc_space(&a, camera);
+    let B = P::model_to_ndc_space(&b, camera);
+    let C = P::model_to_ndc_space(&c, camera);
+
+    if A.is_none() || B.is_none() || C.is_none() {
+        return;
+    }
+    let A = A.unwrap();
+    let B = B.unwrap();
+    let C = C.unwrap(); 
 
     // Compute the angle between a->b and b->c
-    let AB = (B - A).normalize();
-    let BC = (C - B).normalize();
-    let theta = math::angle(&AB, &BC);
+    let AB = (B - A);
+    let BC = (C - B);
+    let AB_l = AB.magnitude2();
+    let BC_l = BC.magnitude2();
 
-    if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION || depth == 0 {
-        // We do not need to subdivide the line anymore
-        if vertices.is_empty() {
-            vertices.push(A);
-        }
+    let theta = math::angle(&AB.normalize(), &BC.normalize());
+
+    if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && !first_call {
+        vertices.push(A);
+        vertices.push(B);
 
         vertices.push(B);
         vertices.push(C);
     } else {
-        // Subdivide a->b and b->c
-        let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
-        let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
-        subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, camera);
+        if depth > 0 {
+            // Subdivide a->b and b->c
+            let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
+            let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
+            subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, false, camera);
 
-        let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
-        let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
-        subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, camera);
+            let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
+            let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
+            subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, false, camera);
+        } else {
+            if AB_l.min(BC_l) / AB_l.max(BC_l) < 0.1 {
+                if AB_l == AB_l.min(BC_l) {
+                    vertices.push(A);
+                    vertices.push(B);
+                } else {
+                    vertices.push(B);
+                    vertices.push(C);
+                }
+                return;
+            }
+        }
     }
 }
 use crate::math::{self, LonLatT};
@@ -411,7 +430,8 @@ impl GridLine {
                 (lon, (lat.start + lat.end)*0.5_f32),
                 (lon, lat.end),
             ],
-            5,
+            10,
+            true,
             camera,
         );
 
@@ -428,7 +448,8 @@ impl GridLine {
                 (0.5*(lon.start + lon.end), lat),
                 (lon.end, lat),
             ],
-            5,
+            10,
+            true,
             camera,
         );
 
@@ -438,37 +459,112 @@ impl GridLine {
     }
 }
 
-const NUM_LINES_LONGITUDES: usize = 5;
-fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
-    if !camera.is_allsky() {
-        let BoundingBox { lat, lon } = camera.get_bounding_box().unwrap();
-        let lon = lon.start.0..lon.end.0;
-        let lat = lat.start.0..lat.end.0;
-    
-        let alpha_step = (lat.end - lat.start)/(NUM_LINES_LONGITUDES as f32 + 1.0);
-        let theta_step = (lon.end - lon.start)/(NUM_LINES_LONGITUDES as f32 + 1.0);
-        crate::log(&format!("bounding box {:?} {:?}", lon, lat));
+const GRID_STEPS: &'static [f64] = &[
+    0.34906584,
+    0.17453292,
+    0.08726646,
+    0.034906585,
+    0.017453292,
+    0.008726646,
+    0.004363323,
+    0.0029088822,
+    0.0014544411,
+    0.00058177643,
+    0.00029088822,
+    0.00014544411,
+    0.000072722054,
+    0.000048481368,
+    0.000024240684,
+    0.000009696274,
+    0.000004848137,
+    0.0000024240685,
+    0.0000009696274,
+    0.0000004848137,
+    0.00000024240686,
+    0.00000009696274,
+    0.00000004848137,
+    0.000000024240684,
+    0.000000009696274,
+    0.000000004848137,
+    0.0000000024240685,
+    0.0000000009696273,
+    0.00000000048481363,
+    0.00000000024240682,
+    0.000000000096962736,
+    0.000000000048481368,
+    0.000000000024240684,
+    0.000000000009696273,
+    0.0000000000048481366
+];
 
-        let mut lines = vec![];
-        // Add meridians
-        let mut theta = lon.start + theta_step;
-        for i in 0..NUM_LINES_LONGITUDES {
-            let line = GridLine::meridian::<P>(theta, &lat, camera);
-            lines.push(line);
-            theta += theta_step;
-        }
-        // Add parallels
-        let mut alpha = lat.start + alpha_step;
-        for i in 0..NUM_LINES_LONGITUDES {
-            let line = GridLine::parallel::<P>(&lon, alpha, camera);
-            lines.push(line);
-            alpha += alpha_step;
-        }
-    
-        lines
+const NUM_LINES_LONGITUDES: usize = 10;
+fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
+    /*let bbox: BoundingBox = if not_fullsky {
+        camera.get_bounding_box().unwrap().clone()
     } else {
-        crate::log("allsky");
-        // Allsky
-        vec![]
+        BoundingBox::fullsky()
+    };*/
+    let bbox = camera.get_bounding_box();
+
+    let step_lon = select_grid_step(&bbox, bbox.get_lon_size().0 as f64, NUM_LINES_LONGITUDES);
+
+    let mut lines = vec![];
+    // Add meridians
+    let mut theta = bbox.lon_min().0 - (bbox.lon_min().0 % step_lon);
+    let mut stop_theta = bbox.lon_max().0;
+    if bbox.all_lon() {
+        stop_theta -= 1e-3;
     }
+
+    while theta < stop_theta {
+        let line = GridLine::meridian::<P>(theta, &bbox.get_lat(), camera);
+        lines.push(line);
+        theta += step_lon;
+    }
+
+    // Add parallels
+    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES_LONGITUDES);
+
+    let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
+    let mut stop_alpha = bbox.lat_max().0;
+    if bbox.all_lat() {
+        // Do not plot the -PI/2 parallel
+        alpha += step_lat;
+        //stop_alpha -= 1e-3;
+    }
+
+    while alpha < stop_alpha {
+        let line = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera);
+        lines.push(line);
+        alpha += step_lat;
+    }
+
+    lines
+}
+
+fn select_grid_step(bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
+
+    // Select the best meridian grid step
+    let mut i = 0;
+    let mut step = GRID_STEPS[0];
+    while i < GRID_STEPS.len() {
+        if fov >= GRID_STEPS[i] {
+            let num_meridians_in_fov = (fov / GRID_STEPS[i]) as usize;
+
+            if num_meridians_in_fov >= max_lines - 1 {
+                let idx_grid = if i == 0 {
+                    0
+                } else {
+                    i - 1
+                };
+                step = GRID_STEPS[idx_grid];
+                break;
+            }
+        }
+
+        step = GRID_STEPS[i];
+        i += 1;
+    }
+
+    step as f32
 }

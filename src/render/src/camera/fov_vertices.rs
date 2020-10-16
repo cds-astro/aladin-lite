@@ -47,8 +47,8 @@ fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f32>) -> Vec<ModelCoor
     model_coo
 }
 use crate::renderable::angle::Angle;
-const NUM_VERTICES_WIDTH: usize = 5;
-const NUM_VERTICES_HEIGHT: usize = 5;
+const NUM_VERTICES_WIDTH: usize = 10;
+const NUM_VERTICES_HEIGHT: usize = 10;
 const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
@@ -112,29 +112,34 @@ impl FieldOfViewVertices {
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) {
-        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aspect, longitude_reversed);
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, aperture: f32, longitude_reversed: bool) {
+        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aspect, aperture, longitude_reversed);
     }
 
-    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) {
+    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, aperture: f32, longitude_reversed: bool) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
-        self.set_rotation(w2m, aspect);
+        self.set_rotation::<P>(w2m, aspect, aperture);
     }
 
-    pub fn set_rotation(&mut self, w2m: &Matrix4<f32>, aspect: f32) {
+    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f32>, aspect: f32, aperture: f32) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
             self.model_coo = None;
         }
 
-        self.set_great_circles(aspect);
+        self.set_great_circles::<P>(aspect, aperture);
     }
 
-    fn set_great_circles(&mut self, aspect: f32) {
-        if let Some(vertices) = &self.model_coo {
-            self.great_circles = GreatCircles::new_polygon(vertices, aspect);
+    fn set_great_circles<P: Projection>(&mut self, aspect: f32, aperture: f32) {
+        if aperture < P::RASTER_THRESHOLD_ANGLE {
+            if let Some(vertices) = &self.model_coo {
+                self.great_circles = GreatCircles::new_polygon(vertices, aspect);
+            } else {
+                self.great_circles = GreatCircles::new_allsky();
+            }
         } else {
+            // We are too unzoomed => we plot the allsky grid
             self.great_circles = GreatCircles::new_allsky();
         }
     }
@@ -143,7 +148,7 @@ impl FieldOfViewVertices {
         self.model_coo.as_ref()
     }
 
-    pub fn get_bounding_box(&self) -> Option<&BoundingBox> {
+    pub fn get_bounding_box(&self) -> &BoundingBox {
         self.great_circles.get_bounding_box()
     }
 }

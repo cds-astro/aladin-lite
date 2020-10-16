@@ -790,7 +790,7 @@ export let View = (function() {
             view.viewCenter.lat = pos2[1];
 
 
-            console.log(view.viewCenter);
+            //console.log(view.viewCenter);
 
             view.requestRedraw();
         }); //// endof mousemove ////
@@ -1006,7 +1006,6 @@ export let View = (function() {
 
         
         this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
-        console.log("center", this.viewCenter);
         // do we have to redo that every time? Probably not
         //this.projection.setProjection(this.projectionMethod);
     
@@ -1570,7 +1569,8 @@ export let View = (function() {
                 return;
             }
         }
-        
+        console.log("zoom factor, ", this.zoomFactor);
+
         if (this.projectionMethod==ProjectionEnum.SIN) {
             if (this.aladin.options.allowFullZoomout === true) {
                 // special case for Andreas Wicenec until I fix the problem
@@ -1586,7 +1586,7 @@ export let View = (function() {
             }
             else {
                 //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
-                this.zoomLevel = Math.max(-5, level); // TODO : canvas freezes in firefox when max level is small
+                this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
             }
         }
         else {
@@ -1601,6 +1601,9 @@ export let View = (function() {
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
         } else {
+            console.log("zoom factor, ", this.zoomFactor);
+            console.log("this.fov, ", this.fov);
+
             console.log("FOV, ", this.fov / this.zoomFactor);
 
             // zoom factor

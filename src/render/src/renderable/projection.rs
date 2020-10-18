@@ -210,6 +210,8 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     fn solve_along_abscissa(y: f32) -> Option<(f32, f32)>;
     fn solve_along_ordinate(x: f32) -> Option<(f32, f32)>;
 
+    const ALLOW_UNZOOM_MORE: bool;
+
     const RASTER_THRESHOLD_ANGLE: f32;
 }
 
@@ -225,6 +227,8 @@ use cgmath::Vector2;
 use crate::renderable::ArcDeg;
 
 impl Projection for Aitoff {
+    const ALLOW_UNZOOM_MORE: bool = true;
+
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
@@ -356,6 +360,8 @@ impl Projection for Aitoff {
 
 use crate::math;
 impl Projection for Mollweide {
+    const ALLOW_UNZOOM_MORE: bool = true;
+
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
@@ -485,6 +491,8 @@ impl Projection for Mollweide {
 
 use crate::renderable::Angle;
 impl Projection for Orthographic {
+    const ALLOW_UNZOOM_MORE: bool = true;
+
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
@@ -569,6 +577,8 @@ impl Projection for Orthographic {
 }
 
 impl Projection for AzimuthalEquidistant {
+    const ALLOW_UNZOOM_MORE: bool = true;
+
     fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
@@ -682,7 +692,9 @@ impl Projection for AzimuthalEquidistant {
 }
 
 impl Projection for Gnomonic {
-    fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
+    const ALLOW_UNZOOM_MORE: bool = false;
+
+    /*fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, height / width)
     }
 
@@ -708,6 +720,32 @@ impl Projection for Gnomonic {
             let y = (1.0 - x*x).sqrt();
             Some((-y + 1e-3, y - 1e-3))
         }
+    }*/
+    fn compute_ndc_to_clip_factor(width: f32, height: f32) -> Vector2<f32> {
+        Vector2::new(1_f32, height / width)
+    }
+
+    fn is_included_inside_projection(pos_clip_space: &Vector2<f32>) -> bool {
+        let px = pos_clip_space.x;
+        let py = pos_clip_space.y;
+
+        px > -1_f32 && px < 1_f32 && py > -1_f32 && py < 1_f32
+    }
+
+
+    fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
+        if y.abs() > 1.0_f32 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
+    }
+    fn solve_along_ordinate(x: f32) -> Option<(f32, f32)> {
+        if x.abs() > 1_f32 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
     }
 
     /// View to world space transformation
@@ -722,9 +760,9 @@ impl Projection for Gnomonic {
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
-        if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
-            None
-        } else {
+        //if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
+        //    None
+        //} else {
             let x_2d = pos_clip_space.x * std::f32::consts::PI;
             let y_2d = pos_clip_space.y * std::f32::consts::PI;
             let r = x_2d * x_2d + y_2d * y_2d;
@@ -747,7 +785,7 @@ impl Projection for Gnomonic {
             };
 
             Some(pos_world_space)
-        }
+        //}
     }
 
     /// World to screen space transformation
@@ -781,6 +819,8 @@ impl Projection for Gnomonic {
 }
 
 impl Projection for Mercator {
+    const ALLOW_UNZOOM_MORE: bool = false;
+
     fn compute_ndc_to_clip_factor(_width: f32, _height: f32) -> Vector2<f32> {
         Vector2::new(1_f32, 0.5_f32)
     }

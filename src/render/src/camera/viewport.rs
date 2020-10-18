@@ -229,6 +229,10 @@ impl CameraViewPort {
             }
             aperture
         } else {
+            if !P::ALLOW_UNZOOM_MORE {
+                self.set_aperture::<P>(P::aperture_start());
+                return;
+            }
 
             self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
             // The start aperture of the new projection is < to the current aperture

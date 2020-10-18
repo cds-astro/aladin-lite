@@ -355,7 +355,7 @@ impl GridShaderProjection for Orthographic {
 use crate::sphere_geometry::{GreatCircles, BoundingBox};
 
 use cgmath::InnerSpace;
-const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
+const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 10.0 * std::f32::consts::PI / 180.0;
 fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, first_call: bool, camera: &CameraViewPort) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
@@ -366,49 +366,128 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
     let A = P::model_to_ndc_space(&a, camera);
     let B = P::model_to_ndc_space(&b, camera);
     let C = P::model_to_ndc_space(&c, camera);
+    match (A, B, C) {
+        (None, None, None) => {
+            return;
+        },
+        (Some(A), Some(B), Some(C)) => {
+            // Compute the angle between a->b and b->c
+            let AB = (B - A);
+            let BC = (C - B);
+            let AB_l = AB.magnitude2();
+            let BC_l = BC.magnitude2();
 
-    if A.is_none() || B.is_none() || C.is_none() {
-        return;
-    }
-    let A = A.unwrap();
-    let B = B.unwrap();
-    let C = C.unwrap(); 
+            let theta = math::angle(&AB.normalize(), &BC.normalize());
 
-    // Compute the angle between a->b and b->c
-    let AB = (B - A);
-    let BC = (C - B);
-    let AB_l = AB.magnitude2();
-    let BC_l = BC.magnitude2();
+            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && !first_call {
+                vertices.push(A);
+                vertices.push(B);
 
-    let theta = math::angle(&AB.normalize(), &BC.normalize());
+                vertices.push(B);
+                vertices.push(C);
+            } else {
+                if depth > 0 {
+                    // Subdivide a->b and b->c
+                    let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
+                    let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
+                    subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, false, camera);
 
-    if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && !first_call {
-        vertices.push(A);
-        vertices.push(B);
-
-        vertices.push(B);
-        vertices.push(C);
-    } else {
-        if depth > 0 {
-            // Subdivide a->b and b->c
-            let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
-            let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
-            subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, false, camera);
-
-            let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
-            let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
-            subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, false, camera);
-        } else {
-            if AB_l.min(BC_l) / AB_l.max(BC_l) < 0.1 {
-                if AB_l == AB_l.min(BC_l) {
-                    vertices.push(A);
-                    vertices.push(B);
+                    let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
+                    let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
+                    subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, false, camera);
                 } else {
-                    vertices.push(B);
-                    vertices.push(C);
+                    if AB_l.min(BC_l) / AB_l.max(BC_l) < 0.1 {
+                        if AB_l == AB_l.min(BC_l) {
+                            vertices.push(A);
+                            vertices.push(B);
+                        } else {
+                            vertices.push(B);
+                            vertices.push(C);
+                        }
+                        return;
+                    }
                 }
+            }
+        },
+        (Some(A), None, None) => {
+            if depth == 0 {
                 return;
             }
+            subdivide::<P>(vertices,
+                [
+                    lonlat[0],
+                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
+                    lonlat[1]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
+        },
+        (None, None, Some(C)) => {
+            if depth == 0 {
+                return;
+            }
+            subdivide::<P>(vertices,
+                [
+                    lonlat[1],
+                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
+                    lonlat[2]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
+        },
+        (None, Some(B), None) => {
+            if depth == 0 {
+                return;
+            }
+            subdivide::<P>(vertices,
+                [
+                    lonlat[0],
+                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
+                    lonlat[1]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
+            subdivide::<P>(vertices,
+                [
+                    lonlat[1],
+                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
+                    lonlat[2]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
+        },
+        _ => {
+            if depth == 0 {
+                return;
+            }
+            subdivide::<P>(vertices,
+                [
+                    lonlat[0],
+                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
+                    lonlat[1]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
+            subdivide::<P>(vertices,
+                [
+                    lonlat[1],
+                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
+                    lonlat[2]
+                ],
+                depth - 1,
+                false,
+                camera
+            );
         }
     }
 }
@@ -430,7 +509,7 @@ impl GridLine {
                 (lon, (lat.start + lat.end)*0.5_f32),
                 (lon, lat.end),
             ],
-            10,
+            7,
             true,
             camera,
         );
@@ -448,7 +527,7 @@ impl GridLine {
                 (0.5*(lon.start + lon.end), lat),
                 (lon.end, lat),
             ],
-            10,
+            7,
             true,
             camera,
         );

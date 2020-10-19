@@ -12,7 +12,8 @@ use crate::renderable::angle;
 use crate::renderable::TextManager;
 
 use crate::camera::CameraViewPort;
-use web_sys::{WebGlVertexArrayObject, WebGlBuffer};
+use web_sys::{WebGlVertexArrayObject, WebGlBuffer, CanvasRenderingContext2d};
+
 pub struct ProjetedGrid {
     // The color of the grid
     color: Color,
@@ -21,8 +22,10 @@ pub struct ProjetedGrid {
     // The vertex array object of the screen in NDC
     vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
+    // A pointer over the 2d context where we can write text
+    ctx2d: CanvasRenderingContext2d,
 
-    lines: Vec<GridLine>,
+    labels: Vec<Label>,
     size_vertices_buf: usize,
     sizes: Vec<usize>,
     offsets: Vec<usize>,
@@ -36,11 +39,12 @@ use crate::renderable::projection::Projection;
 
 use crate::ShaderManager;
 use crate::WebGl2Context;
-
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
-        _camera: &CameraViewPort,
+        camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         //_text_manager: &TextManager
     ) -> ProjetedGrid {
@@ -66,7 +70,7 @@ impl ProjetedGrid {
         gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * num_bytes_per_f32, (0 * num_bytes_per_f32) as i32);
         gl.enable_vertex_attrib_array(0);
 
-        let lines = vec![];
+        let labels = vec![];
         /*let vertex_array_object = {
             let mut vao = VertexArrayObject::new(gl);
 
@@ -114,6 +118,28 @@ impl ProjetedGrid {
         let opacity = 0.4;
         let sizes = vec![];
         let offsets = vec![];
+
+        // Get the canvas rendering context
+        let document = web_sys::window().unwrap().document().unwrap();
+        let canvas = document.get_elements_by_class_name("aladin-gridCanvas")
+            .get_with_index(0)
+            .unwrap();
+        canvas.set_attribute("style", "z-index:1; position:absolute; top:0; left:0;");
+        let canvas: web_sys::HtmlCanvasElement = canvas
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+        let size_screen = camera.get_screen_size();
+        canvas.set_width(size_screen.x as u32);
+        canvas.set_height(size_screen.y as u32);
+
+        let ctx2d = canvas
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
+            .dyn_into::<web_sys::CanvasRenderingContext2d>()
+            .unwrap();
+        ctx2d.set_font("bold 48px serif");
+
         ProjetedGrid {
             color,
             opacity,
@@ -121,21 +147,22 @@ impl ProjetedGrid {
             vao,
             vbo,
 
-            lines,
+            labels,
             size_vertices_buf,
             num_vertices,
 
             sizes,
             offsets,
 
+            ctx2d,
             gl
         }
     }
-
+    
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
         if camera.has_moved() {
-            let mut lines = lines::<P>(camera);
+            let lines = lines::<P>(camera);
 
             /*let num_lines = lines.len();
             let num_vertices: usize = lines.iter().fold(0, |mut sum, line| {
@@ -144,7 +171,7 @@ impl ProjetedGrid {
             });*/
             self.offsets.clear();
             self.sizes.clear();
-            let mut vertices: Vec<Vector2<f32>> = lines
+            let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Label>) = lines
                 .into_iter()
                 .map(|line| {
                     if self.sizes.is_empty() {
@@ -155,10 +182,12 @@ impl ProjetedGrid {
                     }
                     self.sizes.push(line.vertices.len());
 
-                    line.vertices
+                    (line.vertices, line.label)
                 })
-                .flatten()
-                .collect();
+                .unzip();
+            self.labels = labels;
+            let mut vertices = vertices.into_iter().flatten().collect::<Vec<_>>();
+            //self.lines = lines;
             self.num_vertices = vertices.len();
 
             let vertices: Vec<f32> = unsafe {
@@ -222,8 +251,7 @@ impl ProjetedGrid {
         &self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        //text_manager: &TextManager,
-    ) {
+    ) -> Result<(), JsValue> {
         let shader = shaders.get(
             &self.gl,
             &ShaderId(
@@ -246,7 +274,19 @@ impl ProjetedGrid {
                 *size as i32
             );
         }
-        
+
+        // Draw the labels here
+        let size_screen = &camera.get_screen_size();
+        self.ctx2d.clear_rect(
+            0.0, 0.0,
+            size_screen.x as f64, size_screen.y as f64
+        );
+        //self.ctx2d.set_font("100px Verdana");
+        for label in self.labels.iter() {
+            self.ctx2d.fill_text(&label.content, label.position.x as f64, label.position.y as f64).unwrap();
+        }
+
+        Ok(())
 
         //if camera.is_allsky() {
             /*let shader = P::get_grid_shader(gl, shaders);
@@ -352,7 +392,7 @@ impl GridShaderProjection for Orthographic {
     }
 }
 
-use crate::sphere_geometry::{GreatCircles, BoundingBox};
+use crate::sphere_geometry::{FieldOfViewType, BoundingBox};
 
 use cgmath::InnerSpace;
 const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 10.0 * std::f32::consts::PI / 180.0;
@@ -495,29 +535,55 @@ use crate::math::{self, LonLatT};
 use cgmath::Vector2;
 use core::ops::Range;
 use crate::Angle;
+
+#[derive(Debug)]
+struct Label {
+    position: Vector2<f32>,
+    content: String,
+}
+
 #[derive(Debug)]
 struct GridLine {
-    vertices: Vec<Vector2<f32>>
+    vertices: Vec<Vector2<f32>>,
+    label: Label,
 }
+use cgmath::Rad;
+use super::angle::SerializeToString;
 impl GridLine {
-    fn meridian<P: Projection>(lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Self {
-        let mut vertices = vec![];
-        subdivide::<P>(
-            &mut vertices,
-            [
-                (lon, lat.start),
-                (lon, (lat.start + lat.end)*0.5_f32),
-                (lon, lat.end),
-            ],
-            7,
-            true,
-            camera,
-        );
+    fn meridian<P: Projection>(lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
+        let fov = camera.get_field_of_view();
+        //let labels = great_circles.get_labels::<angle::DMS>();
 
-        GridLine {
-            vertices
+        if let Some(p) = fov.intersect_meridian(Rad(lon)) {
+            let position = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera).unwrap();
+            let content = Angle(lon).to_string::<angle::DMS>();
+
+            let label = Label {
+                position,
+                content,
+            };
+
+            let mut vertices = vec![];
+            subdivide::<P>(
+                &mut vertices,
+                [
+                    (lon, lat.start),
+                    (lon, (lat.start + lat.end)*0.5_f32),
+                    (lon, lat.end),
+                ],
+                7,
+                true,
+                camera,
+            );
+            Some(GridLine {
+                vertices,
+                label
+            })
+        } else {
+            None
         }
     }
+
     fn parallel<P: Projection>(lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Self {
         let mut vertices = vec![];
         subdivide::<P>(
@@ -532,8 +598,14 @@ impl GridLine {
             camera,
         );
 
+        let label = Label {
+            position: Vector2::new(0.0, 0.0),
+            content: String::from("test"),
+        };
+
         GridLine {
-            vertices
+            vertices,
+            label
         }
     }
 }
@@ -596,8 +668,9 @@ fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
     }
 
     while theta < stop_theta {
-        let line = GridLine::meridian::<P>(theta, &bbox.get_lat(), camera);
-        lines.push(line);
+        if let Some(line) = GridLine::meridian::<P>(theta, &bbox.get_lat(), camera) {
+            lines.push(line);
+        }
         theta += step_lon;
     }
 
@@ -606,11 +679,6 @@ fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
 
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     let mut stop_alpha = bbox.lat_max().0;
-    if bbox.all_lat() {
-        // Do not plot the -PI/2 parallel
-        alpha += step_lat;
-        //stop_alpha -= 1e-3;
-    }
 
     while alpha < stop_alpha {
         let line = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera);

@@ -69,7 +69,7 @@ export let View = (function() {
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too
             let shaders = loadShaders();
-            console.log(shaders);
+            //console.log(shaders);
         
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             let resources = {
@@ -242,17 +242,20 @@ export let View = (function() {
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
-        
+        a.find('.aladin-gridCanvas').remove();
+
         // canvas to draw the images
         //this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the overlays
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+        // canvas to draw the grid
+        this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the reticle
         this.reticleCanvas = $("<canvas class='aladin-reticleCanvas'></canvas>").appendTo(this.aladinDiv)[0];
+
     };
-    
     
     // called at startup and when window is resized
     View.prototype.fixLayoutDimensions = function() {
@@ -281,15 +284,17 @@ export let View = (function() {
         
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
-        
+        this.gridCtx = this.gridCanvas.getContext("2d");
+
         this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;
         this.reticleCtx.canvas.width = this.width;
-
+        this.gridCtx.canvas.width = this.width;
         
         this.imageCtx.canvas.height = this.height;
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
+        this.gridCtx.canvas.height = this.height;
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -364,7 +369,8 @@ export let View = (function() {
         ctx.drawImage(this.imageCanvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.reticleCanvas, 0, 0, c.width, c.height);
-        
+        ctx.drawImage(this.gridCanvas, 0, 0, c.width, c.height);
+
         return c.toDataURL(imgType);
         //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
     };
@@ -936,8 +942,6 @@ export let View = (function() {
             height: this.height   
         };
     };
-    
-    
 
     /**
      * redraw the whole view
@@ -1251,6 +1255,16 @@ export let View = (function() {
         this.prev = now;
 
     };
+
+    /*View.prototype.drawGridLabels = function (text) {
+        //let ctx = this.imageCanvas.getContext("webgl2");
+        //var c = document.getElementById("myCanvas");
+        //var ctx = c.getContext("2d");
+        
+        this.reticleCtx.font = "30px Verdana";
+        this.reticleCtx.fillText(text, 200, 50);
+        //ctx.font = "30px Verdana";
+    }*/
 
     View.prototype.forceRedraw = function() {
         this.flagForceRedraw = true;

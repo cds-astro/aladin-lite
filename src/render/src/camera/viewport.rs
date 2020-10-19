@@ -87,7 +87,7 @@ use crate::{
         Angle,
     },
     rotation::Rotation,
-    sphere_geometry::GreatCircles,
+    sphere_geometry::FieldOfViewType,
 };
 use std::collections::{HashSet, HashMap};
 use cgmath::{Matrix3, Vector4, SquareMatrix};
@@ -142,7 +142,7 @@ impl CameraViewPort {
         let clip_zoom_factor = 1_f32;
 
         let longitude_reversed = true;
-        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, aspect, longitude_reversed);
+        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, longitude_reversed);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -199,7 +199,7 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.aperture.0, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aperture.0, self.longitude_reversed);
         self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
@@ -243,7 +243,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aspect, self.aperture.0, self.longitude_reversed);
+        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aperture.0, self.longitude_reversed);
         self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
     }
 
@@ -272,6 +272,10 @@ impl CameraViewPort {
     }
     pub fn set_longitude_reversed(&mut self, reversed: bool) {
         self.longitude_reversed = reversed;
+    }
+
+    pub fn get_field_of_view(&self) -> &FieldOfViewType {
+        self.vertices._type()
     }
 
     // Accessors
@@ -356,7 +360,7 @@ impl CameraViewPort {
     // that are inside the grid
     // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
     // The only thing to do is to recompute the grid whenever the field of view changes
-    /*pub fn get_great_circles_inside(&self) -> &GreatCircles {
+    /*pub fn get_great_circles_inside(&self) -> &FieldOfViewType {
         self.fov.get_great_circles_intersecting()
     }*/
 
@@ -376,7 +380,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_rotation::<P>(&self.w2m, self.aspect, self.aperture.0);
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture.0);
         self.update_center::<P>();
     }
 

@@ -9,9 +9,9 @@ use crate::renderable::angle::{Angle, ArcDeg, ArcMin, ArcSec, SerializeToString}
 
 use cgmath::InnerSpace;
 
-pub enum GreatCircles {
-    AllSkyGrid(AllSkyGrid),
-    PolygonGrid(PolygonGrid)
+pub enum FieldOfViewType {
+    Allsky(Allsky),
+    Polygon(Polygon)
 }
 
 //use cgmath::Vector2;
@@ -20,73 +20,74 @@ use std::collections::HashMap;
 //#[repr(C)]
 //pub struct ClipSpacePosition<S: BaseFloat>(Vector2<S>);
 
-impl GreatCircles {
-    pub fn new_allsky() -> GreatCircles {
-        let allsky = GreatCircles::AllSkyGrid(AllSkyGrid::new());
+impl FieldOfViewType {
+    pub fn new_allsky() -> FieldOfViewType {
+        let allsky = FieldOfViewType::Allsky(Allsky::new());
 
         allsky
     }
     
-    pub fn new_polygon(vertices: &[Vector4<f32>], aspect: f32) -> GreatCircles {
-        GreatCircles::PolygonGrid(PolygonGrid::new(vertices, aspect))
+    pub fn new_polygon(vertices: &[Vector4<f32>]/*, aspect: f32*/) -> FieldOfViewType {
+        FieldOfViewType::Polygon(Polygon::new(vertices/*, aspect*/))
     }
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
         match self {
-            GreatCircles::AllSkyGrid(allsky) => {
+            FieldOfViewType::Allsky(allsky) => {
                 allsky.get_bbox()
             },
-            GreatCircles::PolygonGrid(poly) => {
+            FieldOfViewType::Polygon(poly) => {
                 poly.get_bbox()
             }
         }
     }
 
-    pub fn get_labels<F: FormatType>(&self) -> HashMap<String, Vector3<f32>> {
+    /*pub fn get_labels<F: FormatType>(&self) -> HashMap<String, Vector3<f32>> {
         let mut great_circles_labels = HashMap::new();
 
-        if let GreatCircles::PolygonGrid(polygon) = self {
+        if let FieldOfViewType::Polygon(polygon) = self {
             let meridians_labels = polygon.get_meridians_intersecting_fov::<F>();
             great_circles_labels.extend(meridians_labels.into_iter());
         }
 
         great_circles_labels
-    }
+    }*/
 
-    /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
         match self {
-            FieldOfViewType::AllSkyGrid(_grid) => {
+            FieldOfViewType::Allsky(_) => {
                 // Allsky case
                 // We do an approx saying allsky fovs intersect all meridian
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
-                true
+                Some(Vector3::new(0.0, 0.0, 0.0))
             },
-            FieldOfViewType::PolygonGrid(polygon) => {
+            FieldOfViewType::Polygon(polygon) => {
                 polygon.intersect_meridian(lon)
             }
         }
     }
 
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> bool {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<Vector3<f32>> {
         match self {
-            FieldOfViewType::AllSkyGrid(_grid) => {
-                true
+            FieldOfViewType::Allsky(_) => {
+                // TODO
+                Some(Vector3::new(0.0, 0.0, 0.0))
             },
-            FieldOfViewType::PolygonGrid(polygon) => {
-                polygon.intersect_parallel(lat)
+            FieldOfViewType::Polygon(poly) => {
+                poly.intersect_parallel(lat)
             }
         }
-    }*/
+    }
 }
-
-impl SendUniforms for GreatCircles {
+/*
+impl SendUniforms for FieldOfViewType {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
         match self {
-            GreatCircles::AllSkyGrid(ref allsky) => {
+            FieldOfViewType::Allsky(ref allsky) => {
                 shader.attach_uniforms_from(allsky);
             },
-            GreatCircles::PolygonGrid(polygon) => {
+            FieldOfViewType::Polygon(polygon) => {
                 shader.attach_uniforms_from(polygon);
             }
         }
@@ -121,15 +122,15 @@ impl<T> SendUniforms for T where T: ZoneFieldOfView {
         shader
     }
 }
-
-pub struct AllSkyGrid {
+*/
+pub struct Allsky {
     meridians: Vec<Angle<f32>>,
     parallels: Vec<Angle<f32>>,
     bbox: BoundingBox,
 }
 
-impl AllSkyGrid {
-    fn new() -> AllSkyGrid {
+impl Allsky {
+    fn new() -> Allsky {
         let meridians = vec![
             ArcDeg(0_f32).into(),
             ArcDeg(45_f32).into(),
@@ -150,7 +151,7 @@ impl AllSkyGrid {
 
         let bbox = BoundingBox::fullsky();
 
-        AllSkyGrid {
+        Allsky {
             meridians,
             parallels,
             bbox,
@@ -161,8 +162,8 @@ impl AllSkyGrid {
         &self.bbox
     }
 }
-
-impl ZoneFieldOfView for AllSkyGrid {
+/*
+impl ZoneFieldOfView for Allsky {
     fn meridians(&self) -> &[Angle<f32>] {
         &self.meridians
     }
@@ -170,19 +171,19 @@ impl ZoneFieldOfView for AllSkyGrid {
         &self.parallels
     }
 }
-
+*/
 #[derive(PartialEq, Eq)]
-enum PoleContained {
+enum Pole {
     North,
     South,
     None,
 }
 
-impl PoleContained {
+impl Pole {
     // This checks whether the polygon contains a pole
     // The code is inspired by the formula given here:
     // https://www.edwilliams.org/avform.htm#Crs
-    fn new(lon: &[Angle<f32>], lat: &[Angle<f32>]) -> PoleContained {
+    fn contained_in_polygon(lon: &[Angle<f32>], lat: &[Angle<f32>]) -> Option<Self> {
         // For each edge of the polygon, we compute the heading angle (i.e. course)
         // from the starting vertex of the edge to the ending one.
         let mut sum_delta_lon = Angle::new(Rad(0_f32));
@@ -216,13 +217,28 @@ impl PoleContained {
             // More than the half of the vertices are located
             // in the south hemisphere
             if (num_vertices_in_south << 1) >= num_vertices {
-                PoleContained::South
+                Some(Pole::South)
             } else {
-                PoleContained::North
+                Some(Pole::North)
             }
         } else {
-            PoleContained::None
+            None
         }
+    }
+
+    #[inline]
+    fn is_containing_a_pole(&self) -> bool {
+        *self != Pole::None
+    }
+
+    #[inline]
+    fn is_south(&self) -> bool {
+        *self == Pole::South
+    }
+
+    #[inline]
+    fn is_north(&self) -> bool {
+        *self == Pole::North
     }
 }
 
@@ -234,6 +250,52 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
+    fn from_polygon(pole_contained: &Option<Pole>, lon: &[Angle<f32>], lat: &[Angle<f32>]) -> Self {
+        if let Some(pole) = pole_contained {
+            let lat = if pole.is_south() {
+                // All the latitudes lower than the maximum latitude
+                // of the vertices are included or intersect the polygon
+                let max_lat = lat.iter()
+                    .fold(Angle::min_value(), |a, b| a.max(*b));
+    
+                Angle(-HALF_PI)..max_lat
+            } else {
+                // All the latitudes upper than the minimum latitude
+                // of the vertices are included or intersect the polygon
+                let min_lat = lat.iter()
+                    .fold(Angle::max_value(), |a, b| a.min(*b));
+    
+                min_lat..Angle(HALF_PI)
+            };
+    
+            let lon = Angle(0_f32)..Angle(TWICE_PI);
+            BoundingBox  { lon, lat }
+        } else {
+            // The polygon does not contain any pole
+            // Meridian 0deg is not crossing the polygon
+            let (min_lat, max_lat) = lat.iter()
+                .fold((Angle::max_value(), Angle::min_value()),
+                    |(min, max), b| (
+                        min.min(*b),
+                        max.max(*b)
+                    )
+                );
+    
+            let lat = min_lat..max_lat;
+    
+            let (min_lon, max_lon) = lon.iter()
+                .fold((Angle::max_value(), Angle::min_value()), 
+                    |(min, max), b| (
+                        min.min(*b),
+                        max.max(*b)
+                    )
+                );
+    
+            let lon = min_lon..max_lon;
+            BoundingBox  { lon, lat }
+        }
+    }
+
     #[inline]
     pub fn get_lon_size(&self) -> Angle<f32> {
         self.lon.end - self.lon.start
@@ -449,16 +511,16 @@ where S: BaseFloat {
 }
 
 pub struct Polygon {
+    bbox: BoundingBox,
     // Coordinates longitudes
     lon: Vec<Angle<f32>>,
     // Coordinates latitudes
     lat: Vec<Angle<f32>>,
     // Edges of the polygon sorted by increasing longitudes
-    _edges_sorted_lon: EdgesSortedLon<f32>,
+    edges_sorted_lon: EdgesSortedLon<f32>,
     edges_sorted_lat: EdgesSortedLat<f32>,
-    // Variable storing the info if the
-    // polygon contains a pole
-    pole: PoleContained,
+    // Pole contained
+    pole: Option<Pole>
 }
 
 // A polygon must contain at least 3 vertices
@@ -500,161 +562,75 @@ impl Polygon {
                 })
                 .collect::<Vec<_>>()
         };
-
-        let pole = PoleContained::new(&lon, &lat);
+        
 
         let edges_sorted_lat = EdgesSortedLat::new(&vertices);
-        let _edges_sorted_lon = EdgesSortedLon::new(&vertices);
+        let edges_sorted_lon = EdgesSortedLon::new(&vertices);
+
+        let pole = Pole::contained_in_polygon(&lon, &lat);
+        let bbox = BoundingBox::from_polygon(&pole, &lon, &lat);
 
         Polygon {
             lon,
             lat,
             edges_sorted_lat,
-            _edges_sorted_lon,
-            pole
+            edges_sorted_lon,
+            bbox,
+            pole,
         }
     }
 
-    #[inline]
-    fn is_containing_a_pole(&self) -> bool {
-        self.pole == PoleContained::North || self.pole == PoleContained::South
-    }
-
-    #[inline]
-    fn is_containing_south_pole(&self) -> bool {
-        self.pole == PoleContained::South
-    }
-
-    #[inline]
-    fn is_containing_north_pole(&self) -> bool {
-        self.pole == PoleContained::North
-    }
-
-    fn get_bbox(&self) -> BoundingBox {
-        let lat = if self.is_containing_south_pole() {
-            // All the latitudes lower than the maximum latitude
-            // of the vertices are included or intersect the polygon
-            let max_lat = self.lat.iter()
-                .fold(Angle::min_value(), |a, b| a.max(*b));
-
-            Angle(-HALF_PI)..max_lat
-        } else if self.is_containing_north_pole() {
-            // All the latitudes upper than the minimum latitude
-            // of the vertices are included or intersect the polygon
-            let min_lat = self.lat.iter()
-                .fold(Angle::max_value(), |a, b| a.min(*b));
-
-            min_lat..Angle(HALF_PI)
-        } else {
-            // The polygon does not contain any pole
-            // Meridian 0deg is not crossing the polygon
-            let (min_lat, max_lat) = self.lat.iter()
-                .fold((Angle::max_value(), Angle::min_value()),
-                    |(min, max), b| (
-                        min.min(*b),
-                        max.max(*b)
-                    )
-                );
-
-            min_lat..max_lat
-        };
-
-        let lon = if self.is_containing_a_pole() {
-            Angle(0_f32)..Angle(TWICE_PI)
-        } else {
-            let (min_lon, max_lon) = self.lon.iter()
-                .fold((Angle::max_value(), Angle::min_value()), 
-                    |(min, max), b| (
-                        min.min(*b),
-                        max.max(*b)
-                    )
-                );
-
-            min_lon..max_lon
-        };
-
-        BoundingBox {
-            lon,
-            lat
-        }
-    }
-
-    #[inline]
-    // Compute the intersection between a great-circle defined by its normal vector
-    // with an arc of great-circle defined by two vertices
-    // Precondition:
-    // - ``n`` is a normal vector that has to be normalized
-    // - ``a`` and ``b`` are positions on the sphere, they are normalized too
-    fn intersect_great_circle(n: &Vector3<f32>, edge: &Edge<f32>) -> Option<Vector3<f32>> {
-        let v1 = edge.v1.vector();
-        let v2 = edge.v2.vector();
-        // The intersection between the two great-circles is given
-        // by r = n x (v1 x v2)
-        //      = dot(n, v2) x v1 - dot(n, v1) x v2
-        let mut r = n.dot(v2) * v1 - n.dot(v1) * v2;
-        r = r.normalize();
-        // Look whether r is in the arc of great-circle defined by a and b
-/*        let l = r.lon();
-        let left_l = edge.v1.lon();
-        let right_l = edge.v2.lon();
-
-        if is_in_lon_range(l, left_l, right_l) {
-            Some(r)
-        } else {
-            // Check the opposite point 
-            let l_opp = l + PI;
-            if is_in_lon_range(l_opp, left_l, right_l) {
-                Some(-r)
-            } else {
-                None
+    /*fn get_meridians_intersecting_fov<F: FormatType>(&self, meridians: ) -> HashMap<String, Vector3<f32>> {
+        let mut meridians_labels = HashMap::with_capacity(self.num_max_meridians);
+        for &meridian in self.meridians() {
+            let vertex = self.intersect_meridian(meridian);
+            // If there is intersection
+            if let Some(vertex) = vertex {
+                meridians_labels.insert(meridian.to_string::<F>(), vertex);
             }
-        }*/
-        if edge.is_in_lon_range(&r) {
-            Some(r)
-        } else if edge.is_in_lon_range(&(-r)) {
-            Some(-r)
-        } else {
-            None
         }
+
+        meridians_labels
+    }*/
+
+    #[inline]
+    fn get_bbox(&self) -> &BoundingBox {
+        &self.bbox
     }
 
     // Return if it exists, the intersection between a polygon and a parallel
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    fn intersect_parallel<LatT: Into<Angle<f32>>>(&self, _lat: LatT) -> Option<Vector3<f32>> {
-        if self.is_containing_a_pole() {
-            // TODO
-            None
-        } else {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, _lat: LatT) -> Option<Vector3<f32>> {
+        //if let Some(pole) = &self.pole {
             // Normal of a parallel
             let n = Vector3::new(0_f32, 1_f32, 0_f32);
 
-            for edge in self._edges_sorted_lon.iter() {
+            for edge in self.edges_sorted_lon.iter() {
                 // Return the first intersection found
                 if let Some(vertex) = Self::intersect_great_circle(&n, edge) {
                     return Some(vertex);
                 }
             }
-            
+
             // All the edges have been processed and
             // no intersections have been found
             None
-        }
+        /*} else {
+            None
+        }*/
     }
 
     // Return if it exists, the intersection between a polygon and a meridian
     //
     // There can be many intersections. The intersection returned is the one
     // having the min latitude
-    fn intersect_meridian<LonT: Into<Angle<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
-        if self.is_containing_a_pole() {
-            None
-        } else {
-            let lon: Angle<f32> = lon.into();
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
+        //if let Some(pole) = &self.pole {
+            let lon: Rad<f32> = lon.into();
             // Normal of a meridian
-            let n = Vector3::new(lon.cos().0, 0_f32, -lon.sin().0);
-
+            let n = Vector3::new(lon.0.cos(), 0_f32, -lon.0.sin());
 
             for edge in self.edges_sorted_lat.iter() {
                 // Return the first intersection found
@@ -662,78 +638,16 @@ impl Polygon {
                     return Some(vertex);
                 }
             }
-            
+
             // All the edges have been processed and
             // no intersections have been found
             None
-        }
+        /*} else {
+            None
+        }*/
     }
 
-    /*// Return the intesection between a polygon and a great-circle defined by its
-    // normal vector
-    fn intersect_great_circle(&self, n: &Vector3<f32>) -> Option<> {
-        // If the polygon contains a pole, then it intersect all the meridians
-        if self.contains_pole() {
-            return true;
-        }
-
-        // Get the longitude of the meridian in radians
-        let lon: Rad<f32> = lon.into();
-        // Compute a vector normal to the plane intersecting the sphere
-        // that gives the meridian great-circle
-        // this vector is normalized
-        let n = Vector3::new(lon.0.cos(), 0_f32, -lon.0.sin());
-
-        let mut j = (self.lon.len() - 1) as usize;
-        // Loop over all the edge of the polygon
-        for i in 0..=j {
-            // We approx the computation saying that the edges of the polygon
-            // lie on great-circle arcs which may not be totally true
-            // This is a decent approx because the fov has multiple control
-            // vertices, it is not just 4 vertices
-
-            // We compute the vector normal to the plane defining the great-circle
-            // passing by i and j
-            let vertex_i = math::radec_to_xyz(self.lon[i], self.lat[i]);
-            let vertex_j = math::radec_to_xyz(self.lon[j], self.lat[j]);
-            let edge_length = math::ang_between_vect(&vertex_i, &vertex_j);
-
-            let u = vertex_j.cross(vertex_i).normalize();
-
-            // The direction of the intersectional vertices is given
-            // by n x u
-            let r = n.cross(u).normalize();
-            // Check the longitude of r to be equal to lon
-            let (lon_r, _) = math::xyz_to_radec(&r);
-            // We have two candidates, r and its antipodal vertex
-            // Check r first to know if it is lying in the great-circle arc
-            // corresponding to the edge
-            if (lon.0 - lon_r.0).abs() < 1e-4 {
-                let r_to_i_length = math::ang_between_vect(&r, &vertex_i);
-                let r_to_j_length = math::ang_between_vect(&r, &vertex_j);
-                let r_between_i_and_j = ((edge_length - (r_to_i_length + r_to_j_length)).0).abs() < 1e-4;
-
-                if r_between_i_and_j {
-                    return true;
-                }
-            } else {
-                // consider the antipodal as the good longitude
-                let anti_r_to_i_length = math::ang_between_vect(&(-r), &vertex_i);
-                let anti_r_to_j_length = math::ang_between_vect(&(-r), &vertex_j);
-                let anti_r_between_i_and_j = ((edge_length - (anti_r_to_i_length + anti_r_to_j_length)).0).abs() < 1e-4;
-            
-                if anti_r_between_i_and_j {
-                    return true;
-                }
-            }
-
-            j = i;
-        }
-
-        false
-    }*/
-
-    fn _is_intersecting_meridian<MeridianT: Into<Angle<f32>>>(&self, lon: MeridianT) -> bool {
+    /*fn _is_intersecting_meridian<MeridianT: Into<Angle<f32>>>(&self, lon: MeridianT) -> bool {
         if self.is_containing_a_pole() {
             // Contains a pole
             true
@@ -795,209 +709,45 @@ impl Polygon {
 
             false
         }
-    }
+    }*/
 }
 
-pub struct PolygonGrid {
-    // Polygon of the field of view
-    poly: Polygon,
-    // Bounding box of the polygon
-    bbox: BoundingBox,
+impl Polygon {
+    // Compute the intersection between a great-circle defined by its normal vector
+    // with an arc of great-circle defined by two vertices
+    // Precondition:
+    // - ``n`` is a normal vector that has to be normalized
+    // - ``a`` and ``b`` are positions on the sphere, they are normalized too
+    fn intersect_great_circle(n: &Vector3<f32>, edge: &Edge<f32>) -> Option<Vector3<f32>> {
+        let v1 = edge.v1.vector();
+        let v2 = edge.v2.vector();
+        // The intersection between the two great-circles is given
+        // by r = n x (v1 x v2)
+        //      = dot(n, v2) x v1 - dot(n, v1) x v2
+        let mut r = n.dot(v2) * v1 - n.dot(v1) * v2;
+        r = r.normalize();
 
-    // Meridians intersecting the polygon
-    meridians: Vec<Angle<f32>>,
-    num_max_meridians: usize,
-    // Parallels intersecting the polygon
-    parallels: Vec<Angle<f32>>,
-    num_max_parallels: usize,
-
-    grid_steps: Vec<Angle<f32>>,
+        if edge.is_in_lon_range(&r) {
+            Some(r)
+        } else if edge.is_in_lon_range(&(-r)) {
+            Some(-r)
+        } else {
+            None
+        }
+    }
 }
 
 use crate::renderable::FormatType;
-impl PolygonGrid {
-    fn new(vertices: &[Vector4<f32>], aspect: f32) -> PolygonGrid {
-        let poly = Polygon::new(vertices);
-        let bbox = poly.get_bbox();
 
-        let grid_steps = vec![
-            ArcDeg(45_f32).into(),
-            ArcDeg(20_f32).into(),
-            ArcDeg(10_f32).into(),
-            ArcDeg(5_f32).into(),
-            ArcDeg(2_f32).into(),
-            ArcDeg(1_f32).into(),
-            ArcMin(30_f32).into(),
-            ArcMin(15_f32).into(),
-            ArcMin(10_f32).into(),
-            ArcMin(5_f32).into(),
-            ArcMin(2_f32).into(),
-            ArcMin(1_f32).into(),
-            ArcSec(30_f32).into(),
-            ArcSec(15_f32).into(),
-            ArcSec(10_f32).into(),
-            ArcSec(5_f32).into(),
-            ArcSec(2_f32).into(),
-            ArcSec(1_f32).into(),
-            ArcSec(5e-1).into(),
-            ArcSec(2e-1).into(),
-            ArcSec(1e-1).into(),
-            ArcSec(5e-2).into(),
-            ArcSec(2e-2).into(),
-            ArcSec(1e-2).into(),
-            ArcSec(5e-3).into(),
-            ArcSec(2e-3).into(),
-            ArcSec(1e-3).into(),
-            ArcSec(5e-4).into(),
-            ArcSec(2e-4).into(),
-            ArcSec(1e-4).into(),
-            ArcSec(5e-5).into(),
-            ArcSec(2e-5).into(),
-            ArcSec(1e-5).into(),
-            ArcSec(5e-6).into(),
-            ArcSec(2e-6).into(),
-            ArcSec(1e-6).into(),
-        ];
-        let parallels = vec![];
-        let num_max_parallels = 5;
-        let meridians = vec![];
-        let num_max_meridians = ((num_max_parallels as f32) * aspect) as usize;
 
-        let mut polygon = PolygonGrid {
-            poly,
-            bbox,
-
-            meridians,
-            parallels,
-            grid_steps,
-            num_max_meridians,
-            num_max_parallels,
-        };
-
-        polygon.compute_meridians();
-        polygon.compute_parallels();
-
-        polygon
-    }
-
-    fn compute_meridians(&mut self) {
-        let fov = self.bbox.get_lon_size();
-
-        // Select the best meridian grid step
-        let mut i = 0;
-        let mut step = self.grid_steps[0];
-        while i < self.grid_steps.len() {
-            if fov >= self.grid_steps[i] {
-                let num_meridians_in_fov = (fov / self.grid_steps[i]).0 as usize;
-
-                if num_meridians_in_fov >= self.num_max_meridians - 1 {
-                    let idx_grid = if i == 0 {
-                        0
-                    } else {
-                        i - 1
-                    };
-                    step = self.grid_steps[idx_grid];
-                    break;
-                }
-            }
-
-            step = self.grid_steps[i];
-            i += 1;
-        }
-
-        let mut meridian = self.bbox.lon_min() - (self.bbox.lon_min() % step);
-
-        while meridian < self.bbox.lon_max() {
-            self.meridians.push(meridian);
-            meridian += step;
-        }
-
-        // Assert the number of meridians to plot does not
-        // exceed the max number of meridians that the GPU
-        // can handle
-        //assert!(self.meridians.len() <= self.num_max_meridians);
-    }
-
-    fn compute_parallels(&mut self) {
-        // We do have the bounding box, let's return the list of meridians intersecting
-        let fov = self.bbox.get_lat_size();
-        // Select the best meridian grid step
-        let mut i = 0;
-        let mut step = self.grid_steps[0];
-        while i < self.grid_steps.len() {
-            if fov >= self.grid_steps[i] {
-                let num_parallels_in_fov = (fov / self.grid_steps[i]).0 as usize;
-
-                if num_parallels_in_fov >= self.num_max_parallels - 1 {
-                    let idx_grid = if i == 0 {
-                        0
-                    } else {
-                        i - 1
-                    };
-                    step = self.grid_steps[idx_grid];
-                    break;
-                }
-            }
-
-            step = self.grid_steps[i];
-            i += 1;
-        }
-
-        let mut parallel = self.bbox.lat_min() - (self.bbox.lat_min() % step);
-
-        while parallel < self.bbox.lat_max() {
-            self.parallels.push(parallel);
-            parallel += step;
-        }
-
-        // Assert the number of parallels to plot does not
-        // exceed the max number of parallels that the GPU
-        // can handle
-        assert!(self.parallels.len() <= self.num_max_parallels);
-    }
-
-    fn get_meridians_intersecting_fov<F: FormatType>(&self) -> HashMap<String, Vector3<f32>> {
-        let mut meridians_labels = HashMap::with_capacity(self.num_max_meridians);
-        for &meridian in self.meridians() {
-            let vertex = self.poly.intersect_meridian(meridian);
-            // If there is intersection
-            if let Some(vertex) = vertex {
-                meridians_labels.insert(meridian.to_string::<F>(), vertex);
-            }
-        }
-
-        meridians_labels
-    }
-
-    // Return if it exists, the intersection between a polygon and a meridian
-    //
-    // There can be many intersections. The intersection returned is the ones
-    // having the min latitude
-    fn intersect_meridian<LonT: Into<Angle<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
-        self.poly.intersect_meridian(lon)
-    }
-
-    // Return if it exists, the intersection between a polygon and a parallel
-    //
-    // There can be many intersections. The intersection returned is the one
-    // having the min longitude
-    fn intersect_parallel<LatT: Into<Angle<f32>>>(&self, lat: LatT) -> Option<Vector3<f32>> {
-        self.poly.intersect_parallel(lat)
-    }
-
-    fn get_bbox(&self) -> &BoundingBox {
-        &self.bbox
-    }
-}
-
-impl ZoneFieldOfView for PolygonGrid {
+/*impl ZoneFieldOfView for Polygon {
     fn meridians(&self) -> &[Angle<f32>] {
         &self.meridians
     }
     fn parallels(&self) -> &[Angle<f32>] {
         &self.parallels
     }
-}
+}*/
 
 #[inline]
 fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {

@@ -4,7 +4,7 @@ use cgmath::SquareMatrix;
 
 
 use std::collections::HashSet;
-use crate::sphere_geometry::GreatCircles;
+use crate::sphere_geometry::FieldOfViewType;
 
 pub type NormalizedDeviceCoord = Vector2<f32>;
 pub type WorldCoord = Vector4<f32>;
@@ -58,13 +58,13 @@ pub struct FieldOfViewVertices {
 
     // Meridians and parallels contained
     // in the field of view
-    great_circles: GreatCircles,
+    great_circles: FieldOfViewType,
 }
 
 use super::viewport::CameraViewPort;
 use crate::Rotation;
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, aspect: f32, longitude_reversed: bool) -> Self {
+    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -96,9 +96,9 @@ impl FieldOfViewVertices {
         };
 
         let great_circles = if let Some(vertices) = &model_coo {
-            GreatCircles::new_polygon(vertices, aspect)
+            FieldOfViewType::new_polygon(vertices)
         } else {
-            GreatCircles::new_allsky()
+            FieldOfViewType::new_allsky()
         };
 
         let mut fov = FieldOfViewVertices {
@@ -112,35 +112,39 @@ impl FieldOfViewVertices {
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, aperture: f32, longitude_reversed: bool) {
-        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aspect, aperture, longitude_reversed);
+    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aperture: f32, longitude_reversed: bool) {
+        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aperture, longitude_reversed);
     }
 
-    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aspect: f32, aperture: f32, longitude_reversed: bool) {
+    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aperture: f32, longitude_reversed: bool) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
-        self.set_rotation::<P>(w2m, aspect, aperture);
+        self.set_rotation::<P>(w2m, aperture);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f32>, aspect: f32, aperture: f32) {
+    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f32>, aperture: f32) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
             self.model_coo = None;
         }
 
-        self.set_great_circles::<P>(aspect, aperture);
+        self.set_great_circles::<P>(aperture);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aspect: f32, aperture: f32) {
+    fn set_great_circles<P: Projection>(&mut self, aperture: f32) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
-                self.great_circles = GreatCircles::new_polygon(vertices, aspect);
+                self.great_circles = FieldOfViewType::new_polygon(vertices);
             } else {
-                self.great_circles = GreatCircles::new_allsky();
+                if let FieldOfViewType::Polygon(_) = &self.great_circles {
+                    self.great_circles = FieldOfViewType::new_allsky();
+                }
             }
         } else {
             // We are too unzoomed => we plot the allsky grid
-            self.great_circles = GreatCircles::new_allsky();
+            if let FieldOfViewType::Polygon(_) = &self.great_circles {
+                self.great_circles = FieldOfViewType::new_allsky();
+            }
         }
     }
     
@@ -150,6 +154,10 @@ impl FieldOfViewVertices {
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
         self.great_circles.get_bounding_box()
+    }
+
+    pub fn _type(&self) -> &FieldOfViewType {
+        &self.great_circles
     }
 }
 use crate::sphere_geometry::BoundingBox;

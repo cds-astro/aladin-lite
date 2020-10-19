@@ -394,46 +394,47 @@ impl App {
         Ok(())
     }
 
-    fn render<P: Projection>(&mut self, _enable_grid: bool) {
-        if !self.rendering {
-            return;
+    fn render<P: Projection>(&mut self, _enable_grid: bool) -> Result<(), JsValue> {
+        if self.rendering {
+
+            // Render the scene
+            self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+            self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+
+            //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+            self.surveys.draw::<P>(&self.camera, &mut self.shaders);
+            self.gl.enable(WebGl2RenderingContext::BLEND);
+            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
+
+            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+            // Draw the catalog
+            /*self.manager.draw::<P>(
+                &self.gl,
+                &mut self.shaders,
+                &self.camera
+            );*/
+
+            // Reset the flags about the user action
+            self.camera.reset();
+            
+            // Draw the grid
+            /*self.grid.draw::<P>(
+                &self.gl,
+                shaders,
+                camera,
+                &self.text_manager
+            );*/
+
+            /*self.text_manager.draw(
+                &self.gl,
+                shaders,
+                camera
+            );*/
+            self.gl.disable(WebGl2RenderingContext::BLEND);
         }
 
-        // Render the scene
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
-        self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-
-        //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
-        self.surveys.draw::<P>(&self.camera, &mut self.shaders);
-        self.gl.enable(WebGl2RenderingContext::BLEND);
-        self.grid.draw::<P>(&self.camera, &mut self.shaders);
-
-        //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-        // Draw the catalog
-        self.manager.draw::<P>(
-            &self.gl,
-            &mut self.shaders,
-            &self.camera
-        );
-
-        // Reset the flags about the user action
-        self.camera.reset();
-        
-        // Draw the grid
-        /*self.grid.draw::<P>(
-            &self.gl,
-            shaders,
-            camera,
-            &self.text_manager
-        );*/
-
-        /*self.text_manager.draw(
-            &self.gl,
-            shaders,
-            camera
-        );*/
-        self.gl.disable(WebGl2RenderingContext::BLEND);
+        Ok(())
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
@@ -875,15 +876,17 @@ impl ProjectionType {
         }
     }
 
-    fn render(&mut self, app: &mut App, enable_grid: bool) {
+    fn render(&mut self, app: &mut App, enable_grid: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.render::<Aitoff>(enable_grid),
-            ProjectionType::MollWeide => app.render::<Mollweide>(enable_grid),
-            ProjectionType::Ortho => app.render::<Orthographic>(enable_grid),
-            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(enable_grid),
-            ProjectionType::Gnomonic => app.render::<Gnomonic>(enable_grid),
-            ProjectionType::Mercator => app.render::<Mercator>(enable_grid),
+            ProjectionType::Aitoff => app.render::<Aitoff>(enable_grid)?,
+            ProjectionType::MollWeide => app.render::<Mollweide>(enable_grid)?,
+            ProjectionType::Ortho => app.render::<Orthographic>(enable_grid)?,
+            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(enable_grid)?,
+            ProjectionType::Gnomonic => app.render::<Gnomonic>(enable_grid)?,
+            ProjectionType::Mercator => app.render::<Mercator>(enable_grid)?,
         };
+
+        Ok(())
     }
 
     pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue) {
@@ -1096,6 +1099,12 @@ extern "C" {
     fn log(s: &str);
 }
 
+/*#[wasm_bindgen(module = "./js/View.js")]
+extern "C" {
+    #[wasm_bindgen(method, js_class = "View", js_name = drawGridLabels)]
+    fn draw_grid_labels(text: &String);
+}*/
+
 use serde::Deserialize; 
 #[derive(Debug, Deserialize)]
 pub struct FileSrc {
@@ -1227,7 +1236,7 @@ impl WebClient {
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
     pub fn render(&mut self, min_value: f32, max_value: f32) -> Result<(), JsValue> {
-        self.projection.render(&mut self.app, self.enable_grid);
+        self.projection.render(&mut self.app, self.enable_grid)?;
 
         Ok(())
     }

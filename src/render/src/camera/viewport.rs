@@ -291,6 +291,9 @@ impl CameraViewPort {
         &self.m2w
     }
 
+    pub fn get_aspect(&self) -> f32 {
+        self.aspect
+    }
 
     pub fn get_ndc_to_clip(&self) -> &Vector2<f32> {
         &self.ndc_to_clip

@@ -138,7 +138,6 @@ impl ProjetedGrid {
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
-        ctx2d.set_font("bold 48px serif");
 
         ProjetedGrid {
             color,
@@ -281,9 +280,37 @@ impl ProjetedGrid {
             0.0, 0.0,
             size_screen.x as f64, size_screen.y as f64
         );
-        //self.ctx2d.set_font("100px Verdana");
+        self.ctx2d.set_fill_style(&JsValue::from_str("green"));
+        self.ctx2d.set_font("30px Verdana");
+        let text_height = 30.0;
+        self.ctx2d.set_text_align("center");
         for label in self.labels.iter() {
-            self.ctx2d.fill_text(&label.content, label.position.x as f64, label.position.y as f64).unwrap();
+            let dim = self.ctx2d.measure_text(&label.content)?;
+            //let to_center = (size_screen/2.0) - label.position;
+            self.ctx2d.save();
+            //self.ctx2d.translate(label.position.x as f64 - dim.width() / 2.0, label.position.y as f64 + (text_height/2.0));
+            let k = Vector2::new(label.rot.cos() as f64, label.rot.sin() as f64) * (dim.width() * 0.5 + 10.0);
+
+            self.ctx2d.translate(label.position.x as f64 + k.x, label.position.y as f64 + k.y);
+            let a = label.rot;
+            let rot = if k.y > 0.0 {
+                if a > HALF_PI {
+                    -PI + a
+                } else {
+                    a
+                }
+            } else {
+                if a < -HALF_PI {
+                    PI + a
+                } else {
+                    a
+                }
+            };
+
+            self.ctx2d.rotate(rot as f64);
+            self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
+            self.ctx2d.restore();
+            //self.ctx2d.fill_text(&label.content, label.position.x as f64 - dim.width() / 2.0 + (to_center.x as f64 * 0.05), label.position.y as f64 + text_height/2.0 + (to_center.y as f64 * 0.05)).unwrap();
         }
 
         Ok(())
@@ -395,7 +422,7 @@ impl GridShaderProjection for Orthographic {
 use crate::sphere_geometry::{FieldOfViewType, BoundingBox};
 
 use cgmath::InnerSpace;
-const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 10.0 * std::f32::consts::PI / 180.0;
+const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
 fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, first_call: bool, camera: &CameraViewPort) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
@@ -540,6 +567,7 @@ use crate::Angle;
 struct Label {
     position: Vector2<f32>,
     content: String,
+    rot: f32,
 }
 
 #[derive(Debug)]
@@ -549,63 +577,141 @@ struct GridLine {
 }
 use cgmath::Rad;
 use super::angle::SerializeToString;
+const PI: f32 = std::f32::consts::PI;
+const TWICE_PI: f32 = 2.0*PI;
+const HALF_PI: f32 = 0.5*PI;
 impl GridLine {
     fn meridian<P: Projection>(lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
         let fov = camera.get_field_of_view();
-        //let labels = great_circles.get_labels::<angle::DMS>();
 
-        if let Some(p) = fov.intersect_meridian(Rad(lon)) {
-            let position = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera).unwrap();
-            let content = Angle(lon).to_string::<angle::DMS>();
+        if let Some((p, u)) = fov.intersect_meridian(Rad(lon)) {
+            if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
+                let t = (p + u*1e-3).normalize();
 
-            let label = Label {
-                position,
-                content,
-            };
+                if let Some(p2) = P::model_to_screen_space(&Vector4::new(t.x, t.y, t.z, 1.0), camera) {
+                    let r = (p2 - p1).normalize();
 
-            let mut vertices = vec![];
-            subdivide::<P>(
-                &mut vertices,
-                [
-                    (lon, lat.start),
-                    (lon, (lat.start + lat.end)*0.5_f32),
-                    (lon, lat.end),
-                ],
-                7,
-                true,
-                camera,
-            );
-            Some(GridLine {
-                vertices,
-                label
-            })
+                    // rot is between -PI and +PI
+                    /*let rot = if r.y > 0.0 {
+                        let a = r.x.acos();
+                        if a > HALF_PI {
+                            -PI + a
+                        } else {
+                            a
+                        }
+                    } else {
+                        let a = -r.x.acos();
+                        if a < -HALF_PI {
+                            PI + a
+                        } else {
+                            a
+                        }
+                    };*/                  
+                    let rot = if r.y > 0.0 {
+                        r.x.acos()
+                    } else {
+                        -r.x.acos()
+                    };
+                    let content = Angle(lon).to_string::<angle::DMS>();
+
+                    let label = Label {
+                        position: p1,
+                        content,
+                        rot
+                    };
+
+                    let mut vertices = vec![];
+                    subdivide::<P>(
+                        &mut vertices,
+                        [
+                            (lon, lat.start),
+                            (lon, (lat.start + lat.end)*0.5_f32),
+                            (lon, lat.end),
+                        ],
+                        7,
+                        true,
+                        camera,
+                    );
+                    Some(GridLine {
+                        vertices,
+                        label
+                    })
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         } else {
             None
         }
     }
 
-    fn parallel<P: Projection>(lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Self {
-        let mut vertices = vec![];
-        subdivide::<P>(
-            &mut vertices,
-            [
-                (lon.start, lat),
-                (0.5*(lon.start + lon.end), lat),
-                (lon.end, lat),
-            ],
-            7,
-            true,
-            camera,
-        );
+    fn parallel<P: Projection>(lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Option<Self> {
+        let fov = camera.get_field_of_view();
+        //let labels = great_circles.get_labels::<angle::DMS>();
 
-        let label = Label {
-            position: Vector2::new(0.0, 0.0),
-            content: String::from("test"),
-        };
+        if let Some((p, u)) = fov.intersect_parallel(Rad(lat)) {
+            if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
+                let t = (p + u*1e-3).normalize();
 
-        GridLine {
-            vertices,
-            label
+                if let Some(p2) = P::model_to_screen_space(&Vector4::new(t.x, t.y, t.z, 1.0), camera) {
+                    let r = (p2 - p1).normalize();
+
+                    // rot is between -PI and +PI
+                    /*let rot = if r.y > 0.0 {
+                        let a = r.x.acos();
+                        if a > HALF_PI {
+                            -PI + a
+                        } else {
+                            a
+                        }
+                    } else {
+                        let a = -r.x.acos();
+                        if a < -HALF_PI {
+                            PI + a
+                        } else {
+                            a
+                        }
+                    };*/                  
+                    let rot = if r.y > 0.0 {
+                        r.x.acos()
+                    } else {
+                        -r.x.acos()
+                    };
+
+                    let content = Angle(lat).to_string::<angle::DMS>();
+                    let label = Label {
+                        position: p1,
+                        content,
+                        rot
+                    };
+
+                    let mut vertices = vec![];
+                    subdivide::<P>(
+                        &mut vertices,
+                        [
+                            (lon.start, lat),
+                            (0.5*(lon.start + lon.end), lat),
+                            (lon.end, lat),
+                        ],
+                        7,
+                        true,
+                        camera,
+                    );
+
+                    Some(GridLine {
+                        vertices,
+                        label
+                    })
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 }
@@ -648,16 +754,11 @@ const GRID_STEPS: &'static [f64] = &[
     0.0000000000048481366
 ];
 
-const NUM_LINES_LONGITUDES: usize = 10;
+const NUM_LINES_LATITUDES: usize = 5;
 fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
-    /*let bbox: BoundingBox = if not_fullsky {
-        camera.get_bounding_box().unwrap().clone()
-    } else {
-        BoundingBox::fullsky()
-    };*/
     let bbox = camera.get_bounding_box();
 
-    let step_lon = select_grid_step(&bbox, bbox.get_lon_size().0 as f64, NUM_LINES_LONGITUDES);
+    let step_lon = select_grid_step(&bbox, bbox.get_lon_size().0 as f64, (NUM_LINES_LATITUDES as f32 * camera.get_aspect()) as usize);
 
     let mut lines = vec![];
     // Add meridians
@@ -675,14 +776,21 @@ fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
     }
 
     // Add parallels
-    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES_LONGITUDES);
+    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES_LATITUDES);
 
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
+    if alpha == -HALF_PI {
+        alpha += step_lat;
+    }
     let mut stop_alpha = bbox.lat_max().0;
+    if stop_alpha == HALF_PI {
+        stop_alpha -= 1e-3;
+    }
 
     while alpha < stop_alpha {
-        let line = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera);
-        lines.push(line);
+        if let Some(line) = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera) {
+            lines.push(line);
+        }
         alpha += step_lat;
     }
 

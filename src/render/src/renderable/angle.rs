@@ -16,6 +16,9 @@ where T: BaseFloat {
     fn truncate(&mut self) {
         *self = Self((*self).trunc());
     }
+    /*fn round(&mut self) {
+        *self = Self((*self).round());
+    }*/
 }
 
 use cgmath::{Rad, Deg};
@@ -204,15 +207,18 @@ impl FormatType for DMM {
 impl FormatType for DMS {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
-
+        //crate::log(&format!("angle: {0}"))
         let mut degrees: ArcDeg<S> = angle.into();
         let mut minutes = degrees.get_frac_minutes();
         let seconds = minutes.get_frac_seconds();
 
-        degrees.truncate();
-        minutes.truncate();
+        let num_per_sec_per_minutes = S::from(60).unwrap();
 
-        let mut result = degrees.to_string() + &"d";
+        let degrees = degrees.round();
+        let minutes = minutes.round() % num_per_sec_per_minutes;
+        let seconds = seconds.round() % num_per_sec_per_minutes;
+
+        let mut result = degrees.to_string() + &"°";
         result += &minutes.to_string();
         result += "\'";
         result += &seconds.to_string();

@@ -80,13 +80,17 @@ pub trait LonLat<S: BaseFloat> {
 }
 
 use crate::renderable::angle::Angle;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
 impl<S> LonLatT<S>
 where S: BaseFloat {
     pub fn new(lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
         LonLatT(lon, lat)
+    }
+
+    pub fn from_radians(lon: Rad<S>, lat: Rad<S>) -> LonLatT<S> {
+        LonLatT(lon.into(), lat.into())
     }
 
     #[inline]

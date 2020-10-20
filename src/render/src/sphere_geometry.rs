@@ -53,14 +53,14 @@ impl FieldOfViewType {
         great_circles_labels
     }*/
 
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<(Vector3<f32>, Vector3<f32>)> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // Allsky case
                 // We do an approx saying allsky fovs intersect all meridian
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
-                Some(Vector3::new(0.0, 0.0, 0.0))
+                Some((Vector3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 1.0, 0.0)))
             },
             FieldOfViewType::Polygon(polygon) => {
                 polygon.intersect_meridian(lon)
@@ -68,11 +68,11 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<Vector3<f32>> {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<(Vector3<f32>, Vector3<f32>)> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // TODO
-                Some(Vector3::new(0.0, 0.0, 0.0))
+                Some((Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 0.0, 0.0)))
             },
             FieldOfViewType::Polygon(poly) => {
                 poly.intersect_parallel(lat)
@@ -412,9 +412,14 @@ where S: BaseFloat {
         if !self.finished {
             let prev = self.prev;
             let curr = self.curr;
-            let v1 = self.vertices[prev].lonlat();
-            let v2 = self.vertices[curr].lonlat();
-
+            let mut v1 = self.vertices[prev].lonlat();
+            /*if v1.0.0 > S::from(PI).unwrap() {
+                v1.0.0 -= S::from(TWICE_PI).unwrap();
+            }*/
+            let mut v2 = self.vertices[curr].lonlat();
+            /*if v2.0.0 > S::from(PI).unwrap() {
+                v2.0.0 -= S::from(TWICE_PI).unwrap();
+            }*/
             let edge = Edge {
                 v1,
                 v2
@@ -529,7 +534,7 @@ impl Polygon {
         assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
-        let (lon, lat): (Vec<_>, Vec<_>) = vertices.iter()
+        let (lon, lat): (Vec<_>, Vec<_>) = vertices.into_iter()
             .map(|vertex| {
                 let lonlat: LonLatT<f32> = vertex.lonlat();
                 (lonlat.lon(), lonlat.lat())
@@ -562,7 +567,11 @@ impl Polygon {
                 })
                 .collect::<Vec<_>>()
         };
-        
+        let vertices = lon.iter().zip(lat.iter())
+            .map(|(lon, lat)| {
+                LonLatT::new(*lon, *lat).vector()
+            })
+            .collect::<Vec<_>>();
 
         let edges_sorted_lat = EdgesSortedLat::new(&vertices);
         let edges_sorted_lon = EdgesSortedLon::new(&vertices);
@@ -602,39 +611,63 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, _lat: LatT) -> Option<Vector3<f32>> {
-        //if let Some(pole) = &self.pole {
-            // Normal of a parallel
-            let n = Vector3::new(0_f32, 1_f32, 0_f32);
-
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<(Vector3<f32>, Vector3<f32>)> {
+        if let Some(pole) = &self.pole {
+            // A pole is contained in the polygon
+            // We know there is an intersection if lat is 
+            if pole.is_north() {
+                // North pole
+                let lat_min: Rad<f32> = self.bbox.lat_min().into();
+                let lat: Rad<f32> = lat.into();
+                if lat > lat_min {
+                    let I: Vector3<f32> = LonLatT::from_radians(Rad(10.0), lat).vector();
+                    let v = Vector3::new(-I.z, 0.0, I.x);
+                    Some((I, v))
+                } else {
+                    None
+                }
+            } else {
+                // South pole
+                let lat_max: Rad<f32> = self.bbox.lat_max().into();
+                let lat: Rad<f32> = lat.into();
+                if lat < lat_max {
+                    let I: Vector3<f32> = LonLatT::from_radians(Rad(10.0), lat).vector();
+                    let v = Vector3::new(-I.z, 0.0, I.x);
+                    Some((I, v))
+                } else {
+                    None
+                }
+            }
+        } else {
+            let lat = (lat.into() as Rad<f32>).0;
             for edge in self.edges_sorted_lon.iter() {
                 // Return the first intersection found
-                if let Some(vertex) = Self::intersect_great_circle(&n, edge) {
+                if let Some(vertex) = Self::get_parallel_intersect(lat, edge) {
                     return Some(vertex);
                 }
             }
 
-            // All the edges have been processed and
-            // no intersections have been found
             None
-        /*} else {
-            None
-        }*/
+        }
     }
 
     // Return if it exists, the intersection between a polygon and a meridian
     //
     // There can be many intersections. The intersection returned is the one
     // having the min latitude
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<(Vector3<f32>, Vector3<f32>)> {
         //if let Some(pole) = &self.pole {
-            let lon: Rad<f32> = lon.into();
+            let mut lon = (lon.into() as Rad<f32>).0;
+            if lon > PI {
+                lon -= TWICE_PI;
+            }
+            
             // Normal of a meridian
-            let n = Vector3::new(lon.0.cos(), 0_f32, -lon.0.sin());
+            //let n = Vector3::new(lon.0.cos(), 0_f32, -lon.0.sin());
 
             for edge in self.edges_sorted_lat.iter() {
                 // Return the first intersection found
-                if let Some(vertex) = Self::intersect_great_circle(&n, edge) {
+                if let Some(vertex) = Self::get_meridian_intersect(lon, edge) {
                     return Some(vertex);
                 }
             }
@@ -718,7 +751,7 @@ impl Polygon {
     // Precondition:
     // - ``n`` is a normal vector that has to be normalized
     // - ``a`` and ``b`` are positions on the sphere, they are normalized too
-    fn intersect_great_circle(n: &Vector3<f32>, edge: &Edge<f32>) -> Option<Vector3<f32>> {
+    /*fn intersect_great_circle(n: &Vector3<f32>, edge: &Edge<f32>) -> Option<Vector3<f32>> {
         let v1 = edge.v1.vector();
         let v2 = edge.v2.vector();
         // The intersection between the two great-circles is given
@@ -733,6 +766,101 @@ impl Polygon {
             Some(-r)
         } else {
             None
+        }
+    }*/
+    // Compute the intersection between a great-circle defined by its normal vector
+    // with an arc of great-circle defined by two vertices
+    // Precondition:
+    // - ``n`` is a normal vector that has to be normalized
+    // - ``a`` and ``b`` are positions on the sphere, they are normalized too
+    fn get_meridian_intersect(lon: f32, edge: &Edge<f32>) -> Option<(Vector3<f32>, Vector3<f32>)> {
+        if !is_in_lon_range(Angle(lon), edge.v1.lon(), edge.v2.lon()) {
+            None
+        } else {
+            let v1 = edge.v1.vector();
+            let v2 = edge.v2.vector();
+            let n = Vector3::new(lon.cos(), 0_f32, -lon.sin());
+            // The intersection between the two great-circles is given
+            // by r = n x (v1 x v2)
+            //      = dot(n, v2) x v1 - dot(n, v1) x v2
+            let mut r = n.dot(v2) * v1 - n.dot(v1) * v2;
+            r = r.normalize();
+    
+            if edge.is_in_lon_range(&r) {
+                let mut u = Vector3::new(0.0, 1.0, 0.0);
+                if u.y < 0.0 {
+                    u = -u;
+                }
+                Some((r, u))
+            } else if edge.is_in_lon_range(&(-r)) {
+                let mut u = Vector3::new(0.0, 1.0, 0.0);
+                if u.y < 0.0 {
+                    u = -u;
+                }
+                Some((-r, u))
+            } else {
+                None
+            }
+        }
+    }
+
+    fn get_parallel_intersect(lat: f32, edge: &Edge<f32>) -> Option<(Vector3<f32>, Vector3<f32>)> {
+        let lat_max = edge.v1.lat().0.max(edge.v2.lat().0);
+        let lat_min = edge.v1.lat().0.min(edge.v2.lat().0);
+
+        if lat < lat_min || lat > lat_max {
+            // No intersection possible
+            None
+        } else {
+            // Code from https://math.stackexchange.com/questions/1157278/find-the-intersection-point-of-a-great-circle-arc-and-latitude-line
+            // that computes the intersection between an arc that lies in a great circle
+            // and a parallel
+            let p1: Vector3<f32> = edge.v1.vector();
+            let p2: Vector3<f32> = edge.v2.vector();
+
+            let gc = p1.cross(p2).normalize();
+
+            let a = p1.y;
+            let b = gc.z*p1.x - gc.x*p1.z;
+            let c = lat.sin();
+            let r = (a*a+b*b).sqrt();
+
+            let A = (b/a).atan();
+            let B = (c/r).acos();
+            let alpha = A - B;
+
+            let ca = alpha.cos();
+            let sa = alpha.sin();
+            let C = gc.cross(p1);
+            let I = p1*ca + C*sa;
+
+            if edge.is_in_lon_range(&I) {
+                //let u = Vector3::new(I.x, 0.0, I.z);
+                let v = Vector3::new(-I.z, 0.0, I.x).normalize();
+                Some((I, v))
+            } else if edge.is_in_lon_range(&(-I)) {
+                //let u = Vector3::new(-I.x, 0.0, -I.z);
+                let v = Vector3::new(I.z, 0.0, -I.x).normalize();
+                Some((-I, v))
+            } else {
+                let alpha = A + B;
+                let ca = alpha.cos();
+                let sa = alpha.sin();
+                let I = p1*ca + C*sa;
+
+                if edge.is_in_lon_range(&I) {
+                    //let u = Vector3::new(I.x, 0.0, I.z);
+                    let v = Vector3::new(-I.z, 0.0, I.x).normalize();
+                    Some((I, v))
+                } else if edge.is_in_lon_range(&(-I)) {
+                    //let u = Vector3::new(-I.x, 0.0, -I.z);
+                    let v = Vector3::new(I.z, 0.0, -I.x).normalize();
+                    Some((-I, v))
+                } else {
+                    unreachable!();
+                    None
+                }
+            }
         }
     }
 }

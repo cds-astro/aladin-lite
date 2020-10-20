@@ -161,7 +161,7 @@ impl ProjetedGrid {
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
         if camera.has_moved() {
-            let lines = lines::<P>(camera);
+            let lines = lines::<P>(camera, &self.ctx2d);
 
             /*let num_lines = lines.len();
             let num_vertices: usize = lines.iter().fold(0, |mut sum, line| {
@@ -281,33 +281,15 @@ impl ProjetedGrid {
             size_screen.x as f64, size_screen.y as f64
         );
         self.ctx2d.set_fill_style(&JsValue::from_str("green"));
-        self.ctx2d.set_font("30px Verdana");
-        let text_height = 30.0;
+        self.ctx2d.set_font("15px Verdana");
+        let text_height = 15.0;
         self.ctx2d.set_text_align("center");
         for label in self.labels.iter() {
-            let dim = self.ctx2d.measure_text(&label.content)?;
             //let to_center = (size_screen/2.0) - label.position;
             self.ctx2d.save();
             //self.ctx2d.translate(label.position.x as f64 - dim.width() / 2.0, label.position.y as f64 + (text_height/2.0));
-            let k = Vector2::new(label.rot.cos() as f64, label.rot.sin() as f64) * (dim.width() * 0.5 + 10.0);
-
-            self.ctx2d.translate(label.position.x as f64 + k.x, label.position.y as f64 + k.y);
-            let a = label.rot;
-            let rot = if k.y > 0.0 {
-                if a > HALF_PI {
-                    -PI + a
-                } else {
-                    a
-                }
-            } else {
-                if a < -HALF_PI {
-                    PI + a
-                } else {
-                    a
-                }
-            };
-
-            self.ctx2d.rotate(rot as f64);
+            self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
+            self.ctx2d.rotate(label.rot as f64);
             self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
             self.ctx2d.restore();
             //self.ctx2d.fill_text(&label.content, label.position.x as f64 - dim.width() / 2.0 + (to_center.x as f64 * 0.05), label.position.y as f64 + text_height/2.0 + (to_center.y as f64 * 0.05)).unwrap();
@@ -581,40 +563,42 @@ const PI: f32 = std::f32::consts::PI;
 const TWICE_PI: f32 = 2.0*PI;
 const HALF_PI: f32 = 0.5*PI;
 impl GridLine {
-    fn meridian<P: Projection>(lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
+    fn meridian<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
-        if let Some((p, u)) = fov.intersect_meridian(Rad(lon)) {
+        if let Some((p, u)) = fov.intersect_meridian(Rad(lon), camera) {
             if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
                 let t = (p + u*1e-3).normalize();
 
                 if let Some(p2) = P::model_to_screen_space(&Vector4::new(t.x, t.y, t.z, 1.0), camera) {
                     let r = (p2 - p1).normalize();
-
-                    // rot is between -PI and +PI
-                    /*let rot = if r.y > 0.0 {
-                        let a = r.x.acos();
-                        if a > HALF_PI {
-                            -PI + a
-                        } else {
-                            a
-                        }
-                    } else {
-                        let a = -r.x.acos();
-                        if a < -HALF_PI {
-                            PI + a
-                        } else {
-                            a
-                        }
-                    };*/                  
                     let rot = if r.y > 0.0 {
                         r.x.acos()
                     } else {
                         -r.x.acos()
                     };
-                    let content = Angle(lon).to_string::<angle::DMS>();
 
+                    let content = Angle(lon).to_string::<angle::DMS>();
+                    let dim = ctx2d.measure_text(&content).unwrap();
+
+                    //let k = Vector2::new(rot.cos(), rot.sin()) * (dim.width() as f32 * 0.5 + 10.0);
+
+                    // rot is between -PI and +PI
+                    let rot = if r.y > 0.0 {
+                        if rot > HALF_PI {
+                            -PI + rot
+                        } else {
+                            rot
+                        }
+                    } else {
+                        if rot < -HALF_PI {
+                            PI + rot
+                        } else {
+                            rot
+                        }
+                    };  
                     let label = Label {
+                        //position: p1 + k,
                         position: p1,
                         content,
                         rot
@@ -647,11 +631,11 @@ impl GridLine {
         }
     }
 
-    fn parallel<P: Projection>(lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Option<Self> {
+    fn parallel<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Option<Self> {
         let fov = camera.get_field_of_view();
         //let labels = great_circles.get_labels::<angle::DMS>();
 
-        if let Some((p, u)) = fov.intersect_parallel(Rad(lat)) {
+        if let Some((p, u)) = fov.intersect_parallel(Rad(lat), camera) {
             if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
                 let t = (p + u*1e-3).normalize();
 
@@ -659,27 +643,24 @@ impl GridLine {
                     let r = (p2 - p1).normalize();
 
                     // rot is between -PI and +PI
-                    /*let rot = if r.y > 0.0 {
-                        let a = r.x.acos();
-                        if a > HALF_PI {
-                            -PI + a
-                        } else {
-                            a
-                        }
-                    } else {
-                        let a = -r.x.acos();
-                        if a < -HALF_PI {
-                            PI + a
-                        } else {
-                            a
-                        }
-                    };*/                  
                     let rot = if r.y > 0.0 {
                         r.x.acos()
                     } else {
                         -r.x.acos()
                     };
-
+                    let rot = if r.y > 0.0 {
+                        if rot > HALF_PI {
+                            -PI + rot
+                        } else {
+                            rot
+                        }
+                    } else {
+                        if rot < -HALF_PI {
+                            PI + rot
+                        } else {
+                            rot
+                        }
+                    }; 
                     let content = Angle(lat).to_string::<angle::DMS>();
                     let label = Label {
                         position: p1,
@@ -755,7 +736,7 @@ const GRID_STEPS: &'static [f64] = &[
 ];
 
 const NUM_LINES_LATITUDES: usize = 5;
-fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
+fn lines<P: Projection>(camera: &CameraViewPort, ctx2d: &CanvasRenderingContext2d) -> Vec<GridLine> {
     let bbox = camera.get_bounding_box();
 
     let step_lon = select_grid_step(&bbox, bbox.get_lon_size().0 as f64, (NUM_LINES_LATITUDES as f32 * camera.get_aspect()) as usize);
@@ -769,7 +750,7 @@ fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
     }
 
     while theta < stop_theta {
-        if let Some(line) = GridLine::meridian::<P>(theta, &bbox.get_lat(), camera) {
+        if let Some(line) = GridLine::meridian::<P>(ctx2d, theta, &bbox.get_lat(), camera) {
             lines.push(line);
         }
         theta += step_lon;
@@ -788,7 +769,7 @@ fn lines<P: Projection>(camera: &CameraViewPort) -> Vec<GridLine> {
     }
 
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera) {
+        if let Some(line) = GridLine::parallel::<P>(ctx2d, &bbox.get_lon(), alpha, camera) {
             lines.push(line);
         }
         alpha += step_lat;

@@ -16,7 +16,7 @@ pub enum FieldOfViewType {
 
 //use cgmath::Vector2;
 use std::collections::HashMap;
-
+use crate::CameraViewPort;
 //#[repr(C)]
 //pub struct ClipSpacePosition<S: BaseFloat>(Vector2<S>);
 
@@ -53,14 +53,17 @@ impl FieldOfViewType {
         great_circles_labels
     }*/
 
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<(Vector3<f32>, Vector3<f32>)> {
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT, camera: &CameraViewPort) -> Option<(Vector3<f32>, Vector3<f32>)> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // Allsky case
                 // We do an approx saying allsky fovs intersect all meridian
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
-                Some((Vector3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 1.0, 0.0)))
+                let center = camera.get_center().lonlat();
+                let lon: Rad<f32> = lon.into();
+                let pos: Vector3<f32> = LonLatT::new(lon.into(), center.lat()).vector();
+                Some((pos, Vector3::new(0.0, 1.0, 0.0)))
             },
             FieldOfViewType::Polygon(polygon) => {
                 polygon.intersect_meridian(lon)
@@ -68,14 +71,18 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<(Vector3<f32>, Vector3<f32>)> {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT, camera: &CameraViewPort) -> Option<(Vector3<f32>, Vector3<f32>)> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // TODO
-                Some((Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 0.0, 0.0)))
+                let center = camera.get_center().lonlat();
+                let lat: Rad<f32> = lat.into();
+                let pos: Vector3<f32> = LonLatT::new(center.lon(), lat.into()).vector();
+                let u = Vector3::new(pos.z, 0.0, -pos.x).normalize();
+                Some((pos, u))
             },
             FieldOfViewType::Polygon(poly) => {
-                poly.intersect_parallel(lat)
+                poly.intersect_parallel(lat, camera)
             }
         }
     }
@@ -611,7 +618,7 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> Option<(Vector3<f32>, Vector3<f32>)> {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT, camera: &CameraViewPort) -> Option<(Vector3<f32>, Vector3<f32>)> {
         if let Some(pole) = &self.pole {
             // A pole is contained in the polygon
             // We know there is an intersection if lat is 
@@ -620,7 +627,8 @@ impl Polygon {
                 let lat_min: Rad<f32> = self.bbox.lat_min().into();
                 let lat: Rad<f32> = lat.into();
                 if lat > lat_min {
-                    let I: Vector3<f32> = LonLatT::from_radians(Rad(10.0), lat).vector();
+                    let center = camera.get_center().lonlat();
+                    let I: Vector3<f32> = LonLatT::from_radians(center.lon().into(), lat).vector();
                     let v = Vector3::new(-I.z, 0.0, I.x);
                     Some((I, v))
                 } else {
@@ -631,7 +639,8 @@ impl Polygon {
                 let lat_max: Rad<f32> = self.bbox.lat_max().into();
                 let lat: Rad<f32> = lat.into();
                 if lat < lat_max {
-                    let I: Vector3<f32> = LonLatT::from_radians(Rad(10.0), lat).vector();
+                    let center = camera.get_center().lonlat();
+                    let I: Vector3<f32> = LonLatT::from_radians(center.lon().into(), lat).vector();
                     let v = Vector3::new(-I.z, 0.0, I.x);
                     Some((I, v))
                 } else {

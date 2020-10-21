@@ -8,6 +8,12 @@
 
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
 
+<style>
+.slider_tf {
+    width: 4em;
+}
+</style>
+
 
 </head>
 <body>
@@ -45,8 +51,12 @@
     <label for="min_cut_c1">Min cut: </label>
     <input id="min_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
+    <input id="min_cut_c1_tf" type="text" class="slider_tf">
+    <br>
     <label for="max_cut_c1">Max cut: </label>
     <input id="max_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
+    <br>
+    <input id="max_cut_c1_tf" type="text" class="slider_tf">
   </td>
   <td>
     <label for="stretch_c2">Stretch: </label>
@@ -63,8 +73,12 @@
     <label for="min_cut_c2">Min cut: </label>
     <input id="min_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
+    <input id="min_cut_c2_tf" type="text" class="slider_tf">
+    <br>
     <label for="max_cut_c2">Max cut: </label>
     <input id="max_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
+    <br>
+    <input id="max_cut_c2_tf" type="text" class="slider_tf">
   </td>
   <td>
     <label for="stretch_c3">Stretch: </label>
@@ -81,8 +95,12 @@
     <label for="min_cut_c3">Min cut: </label>
     <input id="min_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
+    <input id="min_cut_c3_tf" type="text" class="slider_tf">
+    <br>
     <label for="max_cut_c3">Max cut: </label>
     <input id="max_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
+    <br>
+    <input id="max_cut_c3_tf" type="text" class="slider_tf">
   </td>
 
   <td>
@@ -100,8 +118,12 @@
     <label for="min_cut_c4">Min cut: </label>
     <input id="min_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
+    <input id="min_cut_c4_tf" type="text" class="slider_tf">
+    <br>
     <label for="max_cut_c4">Max cut: </label>
     <input id="max_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
+    <br>
+    <input id="max_cut_c4_tf" type="text" class="slider_tf">
   </td>
 
 </tr>
@@ -170,15 +192,17 @@ var init = function() {
         },
         onSelect: function(e, term, item){
             var hips = hipsesDict[term];
-            $('#min_cut_c1').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#min_cut_c1').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c1').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c1').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#min_cut_c1').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#min_cut_c1').val(hips.min_cut);
+            $('#min_cut_c1_tf').val(hips.min_cut);
 
-            $('#max_cut_c1').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#max_cut_c1').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c1').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c1').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#max_cut_c1').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#max_cut_c1').val(hips.max_cut);
+            $('#max_cut_c1_tf').val(hips.max_cut);
 
             update();
         }
@@ -203,15 +227,17 @@ var init = function() {
         },
         onSelect: function(e, term, item){
             var hips = hipsesDict[term];
-            $('#min_cut_c2').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#min_cut_c2').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c2').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c2').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#min_cut_c2').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#min_cut_c2').val(hips.min_cut);
+            $('#min_cut_c2_tf').val(hips.min_cut);
 
-            $('#max_cut_c2').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#max_cut_c2').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c2').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c2').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#max_cut_c2').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#max_cut_c2').val(hips.max_cut);
+            $('#max_cut_c2_tf').val(hips.max_cut);
 
             update();
         }
@@ -236,15 +262,17 @@ var init = function() {
         },
         onSelect: function(e, term, item){
             var hips = hipsesDict[term];
-            $('#min_cut_c3').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#min_cut_c3').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c3').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c3').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#min_cut_c3').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#min_cut_c3').val(hips.min_cut);
+            $('#min_cut_c3_tf').val(hips.min_cut);
 
-            $('#max_cut_c3').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#max_cut_c3').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c3').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c3').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#max_cut_c3').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#max_cut_c3').val(hips.max_cut);
+            $('#max_cut_c3_tf').val(hips.max_cut);
 
             update();
         }
@@ -269,15 +297,17 @@ var init = function() {
         },
         onSelect: function(e, term, item){
             var hips = hipsesDict[term];
-            $('#min_cut_c4').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#min_cut_c4').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c4').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c4').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#min_cut_c4').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#min_cut_c4').val(hips.min_cut);
+            $('#min_cut_c4_tf').val(hips.min_cut);
 
-            $('#max_cut_c4').attr('min', hips.min_cut - 0.2*(hips.max_cut - hips.min_cut));
-            $('#max_cut_c4').attr('max', hips.max_cut + 1.5*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c4').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c4').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
             $('#max_cut_c4').attr('step', (hips.max_cut-hips.min_cut)/100.0);
             $('#max_cut_c4').val(hips.max_cut);
+            $('#max_cut_c4_tf').val(hips.max_cut);
 
             update();
         }
@@ -299,20 +329,20 @@ function update() {
 
 
     var stretch_c1 = $('#stretch_c1').val();
-    var min_cut_c1 = $('#min_cut_c1').val();
-    var max_cut_c1 = $('#max_cut_c1').val();
+    var min_cut_c1 = parseFloat($('#min_cut_c1_tf').val());
+    var max_cut_c1 = parseFloat($('#max_cut_c1_tf').val());
 
     var stretch_c2 = $('#stretch_c2').val();
-    var min_cut_c2 = $('#min_cut_c2').val();
-    var max_cut_c2 = $('#max_cut_c2').val();
+    var min_cut_c2 = parseFloat($('#min_cut_c2_tf').val());
+    var max_cut_c2 = parseFloat($('#max_cut_c2_tf').val());
 
     var stretch_c3 = $('#stretch_c3').val();
-    var min_cut_c3 = $('#min_cut_c3').val();
-    var max_cut_c3 = $('#max_cut_c3').val();
+    var min_cut_c3 = parseFloat($('#min_cut_c3_tf').val());
+    var max_cut_c3 = parseFloat($('#max_cut_c3_tf').val());
 
     var stretch_c4 = $('#stretch_c4').val();
-    var min_cut_c4 = $('#min_cut_c4').val();
-    var max_cut_c4 = $('#max_cut_c4').val();
+    var min_cut_c4 = parseFloat($('#min_cut_c4_tf').val());
+    var max_cut_c4 = parseFloat($('#max_cut_c4_tf').val());
 
     var c1HiPS = $('#c1_hips').val();
     var c2HiPS = $('#c2_hips').val();
@@ -448,6 +478,17 @@ console.log('titile'+ c2HiPS+ 'tt');
 
 $('#color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4').on('change input', function() {
     update();
+});
+
+$('#min_cut_c1, #max_cut_c1,  #min_cut_c2, #max_cut_c2, #min_cut_c3, #max_cut_c3, #min_cut_c4, #max_cut_c4').on('change input', function() {
+    $(this).nextAll('.slider_tf').first().val($(this).val());
+});
+
+$('.slider_tf').on('keyup', function(event) {
+    // if key press on enter
+    if(event.keyCode == 13) {
+        update();
+    }
 });
 
 

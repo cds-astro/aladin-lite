@@ -120,8 +120,9 @@ impl ProjetedGrid {
         }
     }
     
-    pub fn enable(&mut self) {
+    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
         self.enabled = true;
+        self.force_update::<P>(camera);
     }
 
     pub fn disable(&mut self, camera: &CameraViewPort) {
@@ -134,6 +135,57 @@ impl ProjetedGrid {
         );
     }
 
+    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
+        let lines = lines::<P>(camera, &self.ctx2d);
+
+        self.offsets.clear();
+        self.sizes.clear();
+        let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
+            .into_iter()
+            .map(|line| {
+                if self.sizes.is_empty() {
+                    self.offsets.push(0);
+                } else {
+                    let last_offset = self.offsets.last().unwrap();
+                    self.offsets.push(last_offset + self.sizes.last().unwrap());
+                }
+                self.sizes.push(line.vertices.len());
+
+                (line.vertices, line.label)
+            })
+            .unzip();
+        self.labels = labels;
+        let mut vertices = vertices.into_iter().flatten().collect::<Vec<_>>();
+        //self.lines = lines;
+        self.num_vertices = vertices.len();
+
+        let vertices: Vec<f32> = unsafe {
+            vertices.set_len(vertices.len() * 2);
+            std::mem::transmute(vertices)
+        };
+
+        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
+
+        self.gl.bind_vertex_array(Some(&self.vao));
+        self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        if vertices.len() > self.size_vertices_buf {
+            self.size_vertices_buf =  vertices.len();
+            //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
+
+            self.gl.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                &buf_vertices,
+                WebGl2RenderingContext::DYNAMIC_DRAW
+            );
+        } else {
+            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                0,
+                &buf_vertices
+            );
+        }
+    }
+
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
         if !self.enabled {
@@ -141,54 +193,7 @@ impl ProjetedGrid {
         }
 
         if camera.has_moved() {
-            let lines = lines::<P>(camera, &self.ctx2d);
-
-            self.offsets.clear();
-            self.sizes.clear();
-            let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
-                .into_iter()
-                .map(|line| {
-                    if self.sizes.is_empty() {
-                        self.offsets.push(0);
-                    } else {
-                        let last_offset = self.offsets.last().unwrap();
-                        self.offsets.push(last_offset + self.sizes.last().unwrap());
-                    }
-                    self.sizes.push(line.vertices.len());
-
-                    (line.vertices, line.label)
-                })
-                .unzip();
-            self.labels = labels;
-            let mut vertices = vertices.into_iter().flatten().collect::<Vec<_>>();
-            //self.lines = lines;
-            self.num_vertices = vertices.len();
-
-            let vertices: Vec<f32> = unsafe {
-                vertices.set_len(vertices.len() * 2);
-                std::mem::transmute(vertices)
-            };
-
-            let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-
-            self.gl.bind_vertex_array(Some(&self.vao));
-            self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
-            if vertices.len() > self.size_vertices_buf {
-                self.size_vertices_buf =  vertices.len();
-                //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
-    
-                self.gl.buffer_data_with_array_buffer_view(
-                    WebGl2RenderingContext::ARRAY_BUFFER,
-                    &buf_vertices,
-                    WebGl2RenderingContext::DYNAMIC_DRAW
-                );
-            } else {
-                self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-                    WebGl2RenderingContext::ARRAY_BUFFER,
-                    0,
-                    &buf_vertices
-                );
-            }
+            self.force_update::<P>(camera);
         }
     }
 

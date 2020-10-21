@@ -100,6 +100,7 @@ impl<T> TileArrayBuffer<T>
 where T: ArrayBuffer {
     pub fn new(buf: &[T::Item], width: i32, num_channels: i32) -> Self {
         let size_buf = width * width * num_channels;
+        crate::log(&format!("width: {:?}, num chan {:?}", width, num_channels));
         assert_eq!(size_buf, buf.len() as i32);
         let buf = T::new(buf);
         let size = Vector2::new(width, width);

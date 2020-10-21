@@ -317,10 +317,10 @@ impl HEALPixCellsInView {
         // Compute that depth
         let num_pixels = survey_tex_size;
         let mut depth = depth_from_pixels_on_screen(camera, num_pixels).round() as u8;
-        
         if depth > max_depth {
             depth = max_depth;
         }
+        crate::log(&format!("depth {} tile size {} max depth {}", depth, num_pixels, max_depth));
 
         // Get the cells of that depth in the current field of view
         let cells = get_cells_in_camera(depth, camera);

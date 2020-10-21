@@ -246,7 +246,7 @@ impl TileDownloader {
                                     .get_textures()
                                     .config();
 
-                                let image = req.get_image(config.get_texture_size(), &config.format());
+                                let image = req.get_image(config.get_tile_size(), &config.format());
                                 TileResolved::Found { image, time_req }
                             },
                             _ => unreachable!()
@@ -311,17 +311,19 @@ impl TileDownloader {
         }
     }
 
-    pub fn request_base_tiles(&mut self, url: &str, format: &FormatImageType) {
+    pub fn request_base_tiles(&mut self, config: &HiPSConfig) {
         // Request base tiles
         for idx in 0..12 {
-            let tile = Tile {
-                root_url: url.to_string(),
-                format: *format,
-                cell: HEALPixCell(0, idx)
-            };
-
-            self.request_tile(tile);
+            let texture_cell = HEALPixCell(0, idx);
+            for cell in texture_cell.get_tile_cells(config) {
+                let tile = Tile {
+                    root_url: config.root_url.clone(),
+                    format: config.format(),
+                    cell
+                };
+    
+                self.request_tile(tile);
+            }
         }
-
     }
 }

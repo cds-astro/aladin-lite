@@ -1,4 +1,5 @@
 
+const float TWICE_PI = 6.28318530718f;
 const float PI = 3.141592653589793f;
 const float FOUR_OVER_PI = 1.27323954474f;
 const float TRANSITION_Z = 0.66666666666f;
@@ -76,22 +77,23 @@ struct HashDxDy {
 
 uniform sampler2D ang2pixd[3];
 HashDxDy hash_with_dxdy2(int depth, vec2 radec) {
+    vec2 aa = vec2(radec.x/TWICE_PI + 1.0, (radec.y/PI) + 0.5);
     if (depth == 0) {
-        vec3 v = texture(ang2pixd[0], radec).rgb;
+        vec3 v = texture(ang2pixd[0], aa).rgb;
         return HashDxDy(
             int(v.x * 255.0),
             v.y,
             v.z
         );
     } else if (depth == 1) {
-        vec3 v = texture(ang2pixd[1], radec).rgb;
+        vec3 v = texture(ang2pixd[1], aa).rgb;
         return HashDxDy(
             int(v.x * 255.0),
             v.y,
             v.z
         );
     } else {
-        vec3 v = texture(ang2pixd[2], radec).rgb;
+        vec3 v = texture(ang2pixd[2], aa).rgb;
         return HashDxDy(
             int(v.x * 255.0),
             v.y,

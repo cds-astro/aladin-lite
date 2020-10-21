@@ -95,6 +95,7 @@ pub struct HiPSConfig {
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
+    max_depth_tile: u8,
     max_depth_texture: u8,
     num_textures_by_side_slice: i32,
     num_textures_by_slice: i32,
@@ -208,6 +209,7 @@ impl HiPSConfig {
             num_tiles_per_texture,
             // Max depth of the current HiPS tiles
             max_depth_texture,
+            max_depth_tile,
             num_textures_by_side_slice,
             num_textures_by_slice,
             num_slices,
@@ -273,6 +275,11 @@ impl HiPSConfig {
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
     }
+
+    /*#[inline]
+    pub fn get_max_tile_depth(&self) -> u8 {
+        self.max_depth_tile
+    }*/
 
     #[inline]
     pub fn num_textures(&self) -> usize {

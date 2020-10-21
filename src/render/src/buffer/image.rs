@@ -29,67 +29,7 @@ impl<T> Image for Rc<T> where T: Image {
         image.get_size()
     }
 }
-/*
-impl Image for Rc<TileArrayBufferImage> {
-    fn tex_sub_image_3d(&self,
-        // The texture array
-        textures: &Texture2DArray,
-        // An offset to write the image in the texture array
-        offset: &Vector3<i32>
-    ) {
-        match &**self {
-            TileArrayBufferImage::U8(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
-                    offset.x,
-                    offset.y,
-                    offset.z,
-                    b.size.x,
-                    b.size.y,
-                    Some(b.buf.as_ref()),
-                ),
-            TileArrayBufferImage::I16(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
-                    offset.x,
-                    offset.y,
-                    offset.z,
-                    b.size.x,
-                    b.size.y,
-                    Some(b.buf.as_ref()),
-                ),
-            TileArrayBufferImage::I32(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
-                    offset.x,
-                    offset.y,
-                    offset.z,
-                    b.size.x,
-                    b.size.y,
-                    Some(b.buf.as_ref()),
-                ),
-            TileArrayBufferImage::F32(b) => textures.bind()
-                .tex_sub_image_3d_with_opt_array_buffer_view(
-                    offset.x,
-                    offset.y,
-                    offset.z,
-                    b.size.x,
-                    b.size.y,
-                    Some(b.buf.as_ref()),
-                ),
-            _ => unimplemented!()
-        }
-    }
 
-    // The size of the image
-    fn get_size(&self) -> &Vector2<i32> {
-        match &**self {
-            TileArrayBufferImage::U8(b) => &b.size,
-            TileArrayBufferImage::I16(b) => &b.size,
-            TileArrayBufferImage::I32(b) => &b.size,
-            TileArrayBufferImage::F32(b) => &b.size,
-            _ => unimplemented!()
-        }
-    }
-}
-*/
 #[derive(Debug)]
 pub struct TileArrayBuffer<T: ArrayBuffer> {
     buf: T,
@@ -100,7 +40,6 @@ impl<T> TileArrayBuffer<T>
 where T: ArrayBuffer {
     pub fn new(buf: &[T::Item], width: i32, num_channels: i32) -> Self {
         let size_buf = width * width * num_channels;
-        crate::log(&format!("width: {:?}, num chan {:?}", width, num_channels));
         assert_eq!(size_buf, buf.len() as i32);
         let buf = T::new(buf);
         let size = Vector2::new(width, width);
@@ -220,6 +159,28 @@ impl ArrayBuffer for ArrayF32 {
     }
 }
 
+#[derive(Debug)]
+pub struct ArrayF64(js_sys::Float64Array);
+impl AsRef<js_sys::Object> for ArrayF64 {
+    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+}
+
+impl ArrayBuffer for ArrayF64 {
+    type Item = f64;
+
+    fn new(buf: &[Self::Item]) -> Self {
+        ArrayF64(buf.into())
+    }
+    fn empty(size: u32, blank_value: Self::Item) -> Self {
+        let f64_arr = js_sys::Float64Array::new_with_length(size).fill(blank_value, 0, size);
+        let array = ArrayF64(f64_arr);
+        array
+    }
+
+    fn to_vec(&self) -> Vec<Self::Item> {
+        self.0.to_vec()
+    }
+}
 use super::TileArrayBufferImage;
 impl Image for TileArrayBufferImage {
     fn tex_sub_image_3d(&self,
@@ -698,6 +659,9 @@ impl ImageRequest for FITSImageRequest {
             },
             DataType::F32(data) => {
                 TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
+            },
+            DataType::F64(data) => {
+                TileArrayBufferImage::F64(TileArrayBuffer::<ArrayF64>::new(&data.0, tile_width, num_channels))
             },
             _ => unreachable!()
         };

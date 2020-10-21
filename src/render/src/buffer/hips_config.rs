@@ -11,6 +11,7 @@ struct TileConfig {
 #[derive(Debug)]
 pub enum TileArrayBufferImage {
     F32(TileArrayBuffer<ArrayF32>),
+    F64(TileArrayBuffer<ArrayF64>),
     U8(TileArrayBuffer<ArrayU8>),
     I16(TileArrayBuffer<ArrayI16>),
     I32(TileArrayBuffer<ArrayI32>),
@@ -20,7 +21,7 @@ use super::TileArrayBuffer;
 use std::rc::Rc;
 
 use crate::WebGl2Context;
-use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
+use super::{ArrayU8, ArrayF32, ArrayF64, ArrayI32, ArrayI16};
 use crate::image_fmt::{PNG, JPG, FITS};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;

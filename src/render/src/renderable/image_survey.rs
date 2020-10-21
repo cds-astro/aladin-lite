@@ -1328,7 +1328,7 @@ impl ImageSurveys {
                                 textures.config.scale = metadata.bscale;
                                 textures.config.offset = metadata.bzero;
                                 // Update the blank textures
-                                textures.config.set_black_tile_value(blank);
+                                textures.config.set_black_tile_value(metadata.bscale*blank + metadata.bzero);
     
                                 textures.push::<TileArrayBufferImage>(tile, image, time_req);
                             },

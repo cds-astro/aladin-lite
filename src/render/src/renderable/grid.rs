@@ -75,7 +75,7 @@ impl ProjetedGrid {
 
         let color = Color::new(0_f32, 1_f32, 0_f32, 0.2_f32);
         let gl = gl.clone();
-        let opacity = 0.4;
+        let opacity = 0.2;
         let sizes = vec![];
         let offsets = vec![];
 

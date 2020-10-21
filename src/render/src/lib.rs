@@ -396,7 +396,6 @@ impl App {
 
     fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
         if self.rendering {
-            crate::log("rendering");
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);

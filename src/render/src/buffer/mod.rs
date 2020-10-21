@@ -14,4 +14,4 @@ pub use hips_config::{HiPSConfig, TileArrayBufferImage};
 mod tile_downloader;
 pub use tile_downloader::{TileDownloader, Tile, Tiles, TileResolved, ResolvedTiles};
 
-pub use image::{ArrayU8, ArrayI16, ArrayI32, ArrayF32};
+pub use image::{ArrayU8, ArrayI16, ArrayI32, ArrayF32, ArrayF64};

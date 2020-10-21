@@ -24,8 +24,10 @@ vec3 get_pixels(vec3 uv) {
         return texture(tex[0], uv.xy).rgb;
     } else if (idx_texture == 1) {
         return texture(tex[1], uv.xy).rgb;
-    } else {
+    } else if (idx_texture == 2) {
         return texture(tex[2], uv.xy).rgb;
+    } else {
+        return vec3(0.0, 1.0, 1.0);
     }
 }
 

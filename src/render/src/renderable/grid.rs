@@ -25,7 +25,7 @@ pub struct ProjetedGrid {
     // A pointer over the 2d context where we can write text
     ctx2d: CanvasRenderingContext2d,
 
-    labels: Vec<Label>,
+    labels: Vec<Option<Label>>,
     size_vertices_buf: usize,
     sizes: Vec<usize>,
     offsets: Vec<usize>,
@@ -33,6 +33,7 @@ pub struct ProjetedGrid {
     num_vertices: usize,
 
     gl: WebGl2Context,
+    enabled: bool,
 }
 
 use crate::renderable::projection::Projection;
@@ -71,47 +72,6 @@ impl ProjetedGrid {
         gl.enable_vertex_attrib_array(0);
 
         let labels = vec![];
-        /*let vertex_array_object = {
-            let mut vao = VertexArrayObject::new(gl);
-
-            let shader = shaders.get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("GridVS"),
-                    Cow::Borrowed("GridOrthoFS"),
-                )
-            ).unwrap();
-            shader.bind(gl)
-                .bind_vertex_array_object(&mut vao)
-                    // Store the screen and uv of the billboard in a VBO
-                    .add_array_buffer(
-                        2 * std::mem::size_of::<f32>(),
-                        &[2],
-                        &[0],
-                        WebGl2RenderingContext::STATIC_DRAW,
-                        VecData(
-                            &vec![
-                                -1.0, -1.0,
-                                1.0, -1.0,
-                                1.0, 1.0,
-                                -1.0, 1.0,
-                            ]
-                        ),
-                    )
-                    // Set the element buffer
-                    .add_element_buffer(
-                        WebGl2RenderingContext::STATIC_DRAW,
-                        VecData(
-                            &vec![
-                                0_u16, 1_u16, 2_u16,
-                                0_u16, 2_u16, 3_u16,
-                            ]
-                        ),
-                    )
-                    // Unbind the buffer
-                    .unbind();
-            vao
-        };*/
 
         let color = Color::new(0_f32, 1_f32, 0_f32, 0.2_f32);
         let gl = gl.clone();
@@ -139,6 +99,7 @@ impl ProjetedGrid {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
 
+        let enabled = false;
         ProjetedGrid {
             color,
             opacity,
@@ -154,23 +115,37 @@ impl ProjetedGrid {
             offsets,
 
             ctx2d,
-            gl
+            gl,
+            enabled,
         }
     }
     
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    pub fn disable(&mut self, camera: &CameraViewPort) {
+        let size_screen = &camera.get_screen_size();
+
+        self.enabled = false;
+        self.ctx2d.clear_rect(
+            0.0, 0.0,
+            size_screen.x as f64, size_screen.y as f64
+        );
+    }
+
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+        if !self.enabled {
+            return;
+        }
+
         if camera.has_moved() {
             let lines = lines::<P>(camera, &self.ctx2d);
 
-            /*let num_lines = lines.len();
-            let num_vertices: usize = lines.iter().fold(0, |mut sum, line| {
-                sum += line.vertices.len();
-                sum
-            });*/
             self.offsets.clear();
             self.sizes.clear();
-            let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Label>) = lines
+            let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
                 .into_iter()
                 .map(|line| {
                     if self.sizes.is_empty() {
@@ -190,12 +165,6 @@ impl ProjetedGrid {
             self.num_vertices = vertices.len();
 
             let vertices: Vec<f32> = unsafe {
-                /*crate::log(&format!("sum {:?}", vertices));
-
-                let ptr = vertices.as_mut_ptr() as *mut f32;
-                let len = vertices.len() << 1;
-
-                Vec::from_raw_parts(ptr, len, len)*/
                 vertices.set_len(vertices.len() * 2);
                 std::mem::transmute(vertices)
             };
@@ -223,104 +192,59 @@ impl ProjetedGrid {
         }
     }
 
-    /*pub fn update_label_positions<P: Projection>(&mut self, gl: &WebGl2Context, text_manager: &mut TextManager, camera: &CameraViewPort, shaders: &ShaderManager) {
-        if !camera.is_camera_updated() {
-            return;
-        }
-        
-        let great_circles = camera.get_great_circles_inside();
-        let labels = great_circles.get_labels::<angle::DMS>();
-
-        for (content, pos_world_space) in labels {
-            let pos_world_space = Vector4::new(
-                pos_world_space.x,
-                pos_world_space.y,
-                pos_world_space.z,
-                1_f32
-            );
-
-            text_manager.add_text_on_sphere::<P>(&pos_world_space, &content, camera);
-        }
-
-        // Update the VAO
-        text_manager.update();
-    }*/
-
     pub fn draw<P: Projection>(
         &self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
-        let shader = shaders.get(
-            &self.gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS_CPU"),
-                Cow::Borrowed("GridFS_CPU"),
-            )
-        ).unwrap();
+        if self.enabled {
+            let shader = shaders.get(
+                &self.gl,
+                &ShaderId(
+                    Cow::Borrowed("GridVS_CPU"),
+                    Cow::Borrowed("GridFS_CPU"),
+                )
+            ).unwrap();
 
-        shader.bind(&self.gl)
-            .attach_uniforms_from(camera)
-            .attach_uniform("color", &self.color)
-            .attach_uniform("opacity", &self.opacity);
-        //crate::log("raster");
-        // The raster vao is bound at the lib.rs level
-        self.gl.bind_vertex_array(Some(&self.vao));
-        for (offset, size) in self.offsets.iter().zip(self.sizes.iter()) {
-            self.gl.draw_arrays(
-                WebGl2RenderingContext::LINES,
-                *offset as i32,
-                *size as i32
+            shader.bind(&self.gl)
+                .attach_uniforms_from(camera)
+                .attach_uniform("color", &self.color)
+                .attach_uniform("opacity", &self.opacity);
+            //crate::log("raster");
+            // The raster vao is bound at the lib.rs level
+            self.gl.bind_vertex_array(Some(&self.vao));
+            for (offset, size) in self.offsets.iter().zip(self.sizes.iter()) {
+                if *size > 0 {
+                    self.gl.draw_arrays(
+                        WebGl2RenderingContext::LINES,
+                        *offset as i32,
+                        *size as i32
+                    );
+                }
+            }
+
+            // Draw the labels here
+            let size_screen = &camera.get_screen_size();
+            self.ctx2d.clear_rect(
+                0.0, 0.0,
+                size_screen.x as f64, size_screen.y as f64
             );
-        }
-
-        // Draw the labels here
-        let size_screen = &camera.get_screen_size();
-        self.ctx2d.clear_rect(
-            0.0, 0.0,
-            size_screen.x as f64, size_screen.y as f64
-        );
-        self.ctx2d.set_fill_style(&JsValue::from_str("green"));
-        self.ctx2d.set_font("15px Verdana");
-        let text_height = 15.0;
-        self.ctx2d.set_text_align("center");
-        for label in self.labels.iter() {
-            //let to_center = (size_screen/2.0) - label.position;
-            self.ctx2d.save();
-            //self.ctx2d.translate(label.position.x as f64 - dim.width() / 2.0, label.position.y as f64 + (text_height/2.0));
-            self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
-            self.ctx2d.rotate(label.rot as f64);
-            self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
-            self.ctx2d.restore();
-            //self.ctx2d.fill_text(&label.content, label.position.x as f64 - dim.width() / 2.0 + (to_center.x as f64 * 0.05), label.position.y as f64 + text_height/2.0 + (to_center.y as f64 * 0.05)).unwrap();
+            self.ctx2d.set_fill_style(&JsValue::from_str("#00ff00"));
+            self.ctx2d.set_font("15px Verdana");
+            let text_height = 15.0;
+            self.ctx2d.set_text_align("center");
+            for label in self.labels.iter() {
+                if let Some(label) = &label {
+                    self.ctx2d.save();
+                    self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
+                    self.ctx2d.rotate(label.rot as f64);
+                    self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
+                    self.ctx2d.restore();
+                }
+            }
         }
 
         Ok(())
-
-        //if camera.is_allsky() {
-            /*let shader = P::get_grid_shader(gl, shaders);
-            //let great_circles = camera.get_great_circles_inside();
-    
-            shader.bind(gl)
-                // Attach all the uniforms from the camera
-                .attach_uniforms_from(camera)
-                // Attach grid specialized uniforms
-                .attach_uniform("grid_color", &self.color)
-                .attach_uniform("model2world", camera.get_m2w())
-                .attach_uniform("world2model", camera.get_w2m());
-                //.attach_uniforms_from(great_circles)
-                // Bind the Vertex Array Object for drawing
-            gl.bind_vertex_array(Some(&self.vertex_array_object));
-            gl.draw_elements_with_i32(
-                // Mode of render
-                WebGl2RenderingContext::TRIANGLES,
-                // Number of elements, by default None
-                None,
-                WebGl2RenderingContext::UNSIGNED_SHORT
-            );*/
-        /*} else {
-
-        }*/
     }
 }
 
@@ -405,7 +329,7 @@ use crate::sphere_geometry::{FieldOfViewType, BoundingBox};
 
 use cgmath::InnerSpace;
 const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
-fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, first_call: bool, camera: &CameraViewPort) {
+fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, min_subdivision_level: i32, camera: &CameraViewPort) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
     let b: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
@@ -428,7 +352,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
 
             let theta = math::angle(&AB.normalize(), &BC.normalize());
 
-            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && !first_call {
+            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && min_subdivision_level <= 0 {
                 vertices.push(A);
                 vertices.push(B);
 
@@ -439,11 +363,11 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     // Subdivide a->b and b->c
                     let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
                     let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
-                    subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, false, camera);
+                    subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, min_subdivision_level - 1, camera);
 
                     let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
                     let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
-                    subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, false, camera);
+                    subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, min_subdivision_level - 1, camera);
                 } else {
                     if AB_l.min(BC_l) / AB_l.max(BC_l) < 0.1 {
                         if AB_l == AB_l.min(BC_l) {
@@ -469,7 +393,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[1]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
         },
@@ -484,7 +408,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[2]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
         },
@@ -499,7 +423,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[1]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
             subdivide::<P>(vertices,
@@ -509,7 +433,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[2]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
         },
@@ -524,7 +448,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[1]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
             subdivide::<P>(vertices,
@@ -534,7 +458,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                     lonlat[2]
                 ],
                 depth - 1,
-                false,
+                min_subdivision_level - 1,
                 camera
             );
         }
@@ -555,9 +479,9 @@ struct Label {
 #[derive(Debug)]
 struct GridLine {
     vertices: Vec<Vector2<f32>>,
-    label: Label,
+    label: Option<Label>,
 }
-use cgmath::Rad;
+use cgmath::{Rad, Vector3};
 use super::angle::SerializeToString;
 const PI: f32 = std::f32::consts::PI;
 const TWICE_PI: f32 = 2.0*PI;
@@ -566,11 +490,25 @@ impl GridLine {
     fn meridian<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
-        if let Some((p, u)) = fov.intersect_meridian(Rad(lon), camera) {
-            if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
+        if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
+            let mut vertices = vec![];
+            subdivide::<P>(
+                &mut vertices,
+                [
+                    (lon, lat.start),
+                    (lon, (lat.start + lat.end)*0.5_f32),
+                    (lon, lat.end),
+                ],
+                7,
+                2,
+                camera,
+            );
+
+            let label = if let Some(p1) = P::model_to_screen_space(&p.extend(1.0), camera) {
+                let u = Vector3::new(0.0, 1.0, 0.0);
                 let t = (p + u*1e-3).normalize();
 
-                if let Some(p2) = P::model_to_screen_space(&Vector4::new(t.x, t.y, t.z, 1.0), camera) {
+                if let Some(p2) = P::model_to_screen_space(&t.extend(1.0), camera) {
                     let r = (p2 - p1).normalize();
                     let rot = if r.y > 0.0 {
                         r.x.acos()
@@ -579,9 +517,13 @@ impl GridLine {
                     };
 
                     let content = Angle(lon).to_string::<angle::DMS>();
-                    let dim = ctx2d.measure_text(&content).unwrap();
-
-                    //let k = Vector2::new(rot.cos(), rot.sin()) * (dim.width() as f32 * 0.5 + 10.0);
+                    let position = if !fov.is_allsky() {
+                        let dim = ctx2d.measure_text(&content).unwrap();
+                        let k = r * (dim.width() as f32 * 0.5 + 10.0);
+                        p1 + k
+                    } else {
+                        p1
+                    };
 
                     // rot is between -PI and +PI
                     let rot = if r.y > 0.0 {
@@ -596,36 +538,24 @@ impl GridLine {
                         } else {
                             rot
                         }
-                    };  
-                    let label = Label {
-                        //position: p1 + k,
-                        position: p1,
+                    };
+  
+                    Some(Label {
+                        position,
                         content,
                         rot
-                    };
-
-                    let mut vertices = vec![];
-                    subdivide::<P>(
-                        &mut vertices,
-                        [
-                            (lon, lat.start),
-                            (lon, (lat.start + lat.end)*0.5_f32),
-                            (lon, lat.end),
-                        ],
-                        7,
-                        true,
-                        camera,
-                    );
-                    Some(GridLine {
-                        vertices,
-                        label
                     })
                 } else {
                     None
                 }
             } else {
                 None
-            }
+            };
+
+            Some(GridLine {
+                vertices,
+                label
+            })
         } else {
             None
         }
@@ -633,13 +563,32 @@ impl GridLine {
 
     fn parallel<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Option<Self> {
         let fov = camera.get_field_of_view();
-        //let labels = great_circles.get_labels::<angle::DMS>();
 
-        if let Some((p, u)) = fov.intersect_parallel(Rad(lat), camera) {
-            if let Some(p1) = P::model_to_screen_space(&Vector4::new(p.x, p.y, p.z, 1.0), camera) {
+        if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
+
+            let mut vertices = vec![];
+            subdivide::<P>(
+                &mut vertices,
+                [
+                    (lon.start, lat),
+                    (0.5*(lon.start + lon.end), lat),
+                    (lon.end, lat),
+                ],
+                7,
+                2,
+                camera,
+            );
+
+            let label = if let Some(p1) = P::model_to_screen_space(&p.extend(1.0), camera) {
+                let mut u = Vector3::new(-p.z, 0.0, p.x).normalize();
+                let center = camera.get_center().truncate();
+                if center.dot(u) < 0.0 {
+                    u=-u;
+                }
+
                 let t = (p + u*1e-3).normalize();
 
-                if let Some(p2) = P::model_to_screen_space(&Vector4::new(t.x, t.y, t.z, 1.0), camera) {
+                if let Some(p2) = P::model_to_screen_space(&t.extend(1.0), camera) {
                     let r = (p2 - p1).normalize();
 
                     // rot is between -PI and +PI
@@ -648,6 +597,15 @@ impl GridLine {
                     } else {
                         -r.x.acos()
                     };
+                    let content = Angle(lat).to_string::<angle::DMS>();
+                    let position = if !fov.is_allsky() && !fov.contains_pole() {
+                        let dim = ctx2d.measure_text(&content).unwrap();
+                        let k = r * (dim.width() as f32 * 0.5 + 10.0);
+
+                        p1 + k
+                    } else {
+                        p1
+                    };
                     let rot = if r.y > 0.0 {
                         if rot > HALF_PI {
                             -PI + rot
@@ -660,37 +618,24 @@ impl GridLine {
                         } else {
                             rot
                         }
-                    }; 
-                    let content = Angle(lat).to_string::<angle::DMS>();
-                    let label = Label {
-                        position: p1,
-                        content,
-                        rot
                     };
 
-                    let mut vertices = vec![];
-                    subdivide::<P>(
-                        &mut vertices,
-                        [
-                            (lon.start, lat),
-                            (0.5*(lon.start + lon.end), lat),
-                            (lon.end, lat),
-                        ],
-                        7,
-                        true,
-                        camera,
-                    );
-
-                    Some(GridLine {
-                        vertices,
-                        label
+                    Some(Label {
+                        position,
+                        content,
+                        rot
                     })
                 } else {
                     None
                 }
             } else {
                 None
-            }
+            };
+
+            Some(GridLine {
+                vertices,
+                label
+            })
         } else {
             None
         }

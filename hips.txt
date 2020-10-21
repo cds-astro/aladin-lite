@@ -366,6 +366,76 @@ xmm = {
 	color: "Color"
 }
 
+xmm_eb2 = {
+	properties: {
+		url: "http://galhecos/allsky/PNRed",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+        minCutout: 1e-4,
+        maxCutout: 1e-3,
+	},
+    color: {
+        Grayscale2Color: {
+            color: [1.0, 0.0, 0.0],
+            k: 1.0,
+            transfer: "sqrt"
+        }
+    },
+}
+xmm_eb3 = {
+	properties: {
+		url: "http://galhecos/allsky/PNGreen",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+        minCutout: 1e-4,
+        maxCutout: 1e-3,
+	},
+    color: {
+        Grayscale2Color: {
+            color: [0.0, 1.0, 0.0],
+            k: 1.0,
+            transfer: "sqrt"
+        }
+    },
+}
+xmm_eb4 = {
+	properties: {
+		url: "http://galhecos/allsky/PNBlue",
+
+		maxOrder: 7,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+        minCutout: 1e-4,
+        maxCutout: 1e-3,
+	},
+    color: {
+        Grayscale2Color: {
+            color: [0.0, 0.0, 1.0],
+            k: 1.0,
+            transfer: "sqrt"
+        }
+    },
+}
+
 
 
 // GALEX

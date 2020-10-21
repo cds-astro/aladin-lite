@@ -37,6 +37,7 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraView
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlVertexArrayObject;
 use web_sys::WebGlBuffer;
+use crate::core::Texture2D;
 pub struct RayTracer {
     gl: WebGl2Context,
 
@@ -46,14 +47,17 @@ pub struct RayTracer {
     ebo: WebGlBuffer,
 
     num_indices: i32, 
+
+    ang2pix: [Texture2D; 3],
 }
 
 use crate::Shader;
 use std::borrow::Cow;
 use crate::shader::ShaderId;
 use std::mem;
+use crate::{FormatImageType, Resources};
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager, resources: &Resources) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
         let vao = gl.create_vertex_array().unwrap();
@@ -92,6 +96,55 @@ impl RayTracer {
             WebGl2RenderingContext::STATIC_DRAW
         );
 
+        // Load the texture of the gaussian kernel
+        let ang2pix = [
+            Texture2D::create(
+                gl,
+                "ang2pixd0",
+                &resources.get_filename("ang2pixd0").unwrap(),
+                &[
+                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
+                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
+                    
+                    // Prevents s-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    // Prevents t-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                ],
+                FormatImageType::PNG
+            ),
+            Texture2D::create(
+                gl,
+                "ang2pixd1",
+                &resources.get_filename("ang2pixd1").unwrap(),
+                &[
+                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
+                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
+                    
+                    // Prevents s-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    // Prevents t-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                ],
+                FormatImageType::PNG
+            ),
+            Texture2D::create(
+                gl,
+                "ang2pixd2",
+                &resources.get_filename("ang2pixd2").unwrap(),
+                &[
+                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
+                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
+                    
+                    // Prevents s-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    // Prevents t-coordinate wrapping (repeating)
+                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                ],
+                FormatImageType::PNG
+            ),
+        ];
+
         let gl = gl.clone();
         RayTracer {
             gl,
@@ -101,7 +154,8 @@ impl RayTracer {
             vbo,
             ebo,
 
-            num_indices
+            num_indices,
+            ang2pix
         }
     }
 
@@ -113,8 +167,11 @@ impl RayTracer {
         self.gl.bind_vertex_array(None);
     }
 
-    pub fn draw(&self) {
-        //let vertex_array_object = P::get_raytracer_vertex_array_object(&self);
+    pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
+        shader.attach_uniform("ang2pixd[0]", &self.ang2pix[0])
+            .attach_uniform("ang2pixd[1]", &self.ang2pix[1])
+            .attach_uniform("ang2pixd[2]", &self.ang2pix[2]);
+
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINE_STRIP,
             WebGl2RenderingContext::TRIANGLES,

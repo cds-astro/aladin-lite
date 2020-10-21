@@ -161,7 +161,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
+        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources);
 
         let (survey, color) = sdss.create(&gl, &camera, &surveys, exec.clone())?;
         surveys.add_simple_survey(survey, color, 0);
@@ -186,7 +186,6 @@ impl App {
         // Grid definition
         //let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders);
-
         // Finite State Machines definitions
         /*let user_move_fsm = UserMoveSphere::init();
         let user_zoom_fsm = UserZoom::init();
@@ -280,7 +279,6 @@ impl App {
             for (cell, is_new_cell) in already_available_cells {
                 textures.update_priority(&cell, is_new_cell);
             }
-
         }
     }
 
@@ -394,7 +392,7 @@ impl App {
         Ok(())
     }
 
-    fn render<P: Projection>(&mut self, _enable_grid: bool) -> Result<(), JsValue> {
+    fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
         if self.rendering {
 
             // Render the scene
@@ -406,7 +404,6 @@ impl App {
             self.surveys.draw::<P>(&self.camera, &mut self.shaders);
             self.gl.enable(WebGl2RenderingContext::BLEND);
             self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
-
             //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
             // Draw the catalog
             /*self.manager.draw::<P>(
@@ -553,7 +550,7 @@ impl App {
 
     fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
-        self.surveys.set_projection::<P>(&self.camera, &mut self.shaders);
+        self.surveys.set_projection::<P>(&self.camera, &mut self.shaders, &self.resources);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -567,7 +564,7 @@ impl App {
         }*/
 
         self.camera.set_longitude_reversed(reversed);
-        self.surveys.set_longitude_reversed::<P>(reversed, &self.camera, &mut self.shaders);
+        self.surveys.set_longitude_reversed::<P>(reversed, &self.camera, &mut self.shaders, &self.resources);
 
         self.look_for_new_tiles();
 
@@ -590,7 +587,7 @@ impl App {
         });
     }
 
-    fn resize_window<P: Projection>(&mut self, width: f32, height: f32, _enable_grid: bool) {
+    fn resize_window<P: Projection>(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size::<P>(width, height);
 
         // Launch the new tile requests
@@ -648,6 +645,15 @@ impl App {
 
     pub fn set_grid_opacity(&mut self, _alpha: f32) {
         //self.grid.set_alpha(alpha);
+    }
+
+    pub fn enable_grid(&mut self) {
+        self.grid.enable();
+        self.request_redraw = true;
+    }
+    pub fn disable_grid(&mut self) {
+        self.grid.disable(&self.camera);
+        self.request_redraw = true;
     }
 
     pub fn world_to_screen<P: Projection>(&self, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
@@ -876,14 +882,14 @@ impl ProjectionType {
         }
     }
 
-    fn render(&mut self, app: &mut App, enable_grid: bool) -> Result<(), JsValue> {
+    fn render(&mut self, app: &mut App) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.render::<Aitoff>(enable_grid)?,
-            ProjectionType::MollWeide => app.render::<Mollweide>(enable_grid)?,
-            ProjectionType::Ortho => app.render::<Orthographic>(enable_grid)?,
-            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(enable_grid)?,
-            ProjectionType::Gnomonic => app.render::<Gnomonic>(enable_grid)?,
-            ProjectionType::Mercator => app.render::<Mercator>(enable_grid)?,
+            ProjectionType::Aitoff => app.render::<Aitoff>()?,
+            ProjectionType::MollWeide => app.render::<Mollweide>()?,
+            ProjectionType::Ortho => app.render::<Orthographic>()?,
+            ProjectionType::Arc => app.render::<AzimuthalEquidistant>()?,
+            ProjectionType::Gnomonic => app.render::<Gnomonic>()?,
+            ProjectionType::Mercator => app.render::<Mercator>()?,
         };
 
         Ok(())
@@ -952,14 +958,14 @@ impl ProjectionType {
         }
     }
 
-    pub fn resize(&mut self, app: &mut App, width: f32, height: f32, enable_grid: bool) {       
+    pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {       
         match self {
-            ProjectionType::Aitoff => app.resize_window::<Aitoff>(width, height, enable_grid),
-            ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height, enable_grid),
-            ProjectionType::Ortho => app.resize_window::<Orthographic>(width, height, enable_grid),
-            ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height, enable_grid),
-            ProjectionType::Gnomonic => app.resize_window::<Gnomonic>(width, height, enable_grid),
-            ProjectionType::Mercator => app.resize_window::<Mercator>(width, height, enable_grid),
+            ProjectionType::Aitoff => app.resize_window::<Aitoff>(width, height),
+            ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height),
+            ProjectionType::Ortho => app.resize_window::<Orthographic>(width, height),
+            ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height),
+            ProjectionType::Gnomonic => app.resize_window::<Gnomonic>(width, height),
+            ProjectionType::Mercator => app.resize_window::<Mercator>(width, height),
         }; 
     }
 
@@ -1024,12 +1030,23 @@ impl ProjectionType {
         }
     }
 
+    pub fn enable_grid(&mut self, app: &mut App) {
+        match self {
+            _ => app.enable_grid(),
+        };
+    }
+
+    pub fn disable_grid(&mut self, app: &mut App) {
+        match self {
+            _ => app.disable_grid(),
+        };
+    }
+
     pub fn set_grid_color(&mut self, app: &mut App, red: f32, green: f32, blue: f32) {
         match self {
             _ => app.set_grid_color(red, green, blue),
         };
     }
-
     /*pub fn set_cutouts(&mut self, app: &mut App, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
         match self {
             ProjectionType::Aitoff => app.set_cutouts(min_cutout, max_cutout),
@@ -1086,11 +1103,6 @@ pub struct WebClient {
     // The time between the previous and the current
     // frame
     dt: DeltaTime,
-
-    // Some booleans for enabling/desabling
-    // specific computations
-    enable_inertia: bool,
-    enable_grid: bool,
 }
 
 #[wasm_bindgen]
@@ -1200,8 +1212,6 @@ impl WebClient {
 
         //let appconfig = AppConfig::Ortho(app);
         let dt = DeltaTime::zero();
-        let enable_inertia = false;
-        let enable_grid = true;
         let projection = ProjectionType::Ortho;
 
         let webclient = WebClient {
@@ -1210,8 +1220,6 @@ impl WebClient {
             projection,
 
             dt,
-            enable_inertia,
-            enable_grid,
         };
 
         Ok(webclient)
@@ -1236,7 +1244,7 @@ impl WebClient {
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
     pub fn render(&mut self, min_value: f32, max_value: f32) -> Result<(), JsValue> {
-        self.projection.render(&mut self.app, self.enable_grid)?;
+        self.projection.render(&mut self.app)?;
 
         Ok(())
     }
@@ -1253,35 +1261,6 @@ impl WebClient {
     #[wasm_bindgen(js_name = setLongitudeReversed)]
     pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
         self.projection.set_longitude_reversed(&mut self.app, reversed);
-
-        Ok(())
-    }
-
-    /// Enable mouse inertia
-    pub fn enable_inertia(&mut self) -> Result<(), JsValue> {
-        self.enable_inertia = true;
-
-        Ok(())
-    }
-    /// Disable mouse inertia
-    pub fn disable_inertia(&mut self) -> Result<(), JsValue> {
-        self.enable_inertia = false;
-
-        Ok(())
-    }
-
-    /// Enable equatorial grid
-    pub fn enable_equatorial_grid(&mut self) -> Result<(), JsValue> {
-        self.enable_grid = true;
-
-        //self.projection.enable_grid(&mut self.app);
-
-        Ok(())
-    }
-
-    /// Disable equatorial grid
-    pub fn disable_equatorial_grid(&mut self) -> Result<(), JsValue> {
-        self.enable_grid = false;
 
         Ok(())
     }
@@ -1413,17 +1392,25 @@ impl WebClient {
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f32) -> Result<(), JsValue> {
         self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
-        // Tell the finite state machines the fov has manually been changed
-        //self.events.enable::<SetFieldOfView>(());
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = enableGrid)]
+    pub fn enable_grid(&mut self) -> Result<(), JsValue> {
+        self.projection.enable_grid(&mut self.app);
+
+        Ok(())
+    }
+    #[wasm_bindgen(js_name = disableGrid)]
+    pub fn disable_grid(&mut self) -> Result<(), JsValue> {
+        self.projection.disable_grid(&mut self.app);
 
         Ok(())
     }
     
     #[wasm_bindgen(js_name = setClipZoomFactor)]
     pub fn set_clip_zoom_factor(&mut self, clip_zoom_factor: f32) -> Result<(), JsValue> {
-        //self.projection.set_clip_zoom_factor(&mut self.app, fov);
-
-
         Ok(())
     }
 
@@ -1545,7 +1532,7 @@ impl WebClient {
 
     /// Resize the window
     pub fn resize(&mut self, width: f32, height: f32) -> Result<(), JsValue> {
-        self.projection.resize(&mut self.app, width, height, self.enable_grid);
+        self.projection.resize(&mut self.app, width, height);
 
         Ok(())
     }

@@ -36,7 +36,14 @@ struct TileColor {
 uniform float opacity;
 
 TileColor get_tile_color(vec3 pos, int depth) {
-    HashDxDy result = hash_with_dxdy(depth, pos.zxy);
+    // Get the radec
+    float ra = atan(pos.x, pos.z);
+    float dec = atan(pos.y, length(pos.xz));
+    vec2 radec = vec2(ra, dec);
+
+    //HashDxDy result = hash_with_dxdy(depth, pos.zxy);
+    HashDxDy result = hash_with_dxdy2(depth, radec);
+
     int idx = result.idx;
     //int uniq = (1 << ((int(depth) + 1) << 1)) + int(idx);
     int uniq = (16 << (depth << 1)) | idx;
@@ -88,6 +95,7 @@ uniform int max_depth; // max depth of the HiPS
 
 void main() {
     vec3 frag_pos = normalize(out_vert_pos);
+
     // Get the HEALPix cell idx and the uv in the texture
 
     TileColor current_tile = get_tile_color(frag_pos, current_depth);

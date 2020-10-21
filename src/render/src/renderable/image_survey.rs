@@ -866,7 +866,7 @@ impl Draw for ImageSurvey {
                 .attach_uniform("opacity", &opacity)
                 .attach_uniform("num_tex", &(num_tex as i32));
 
-            raytracer.draw();
+            raytracer.draw(&shader);
 
             return;
         }
@@ -1025,8 +1025,9 @@ use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
 use cgmath::Vector2;
 use crate::buffer::FITSMetaData;
 const APERTURE_LIMIT: f32 = 110.0;
+use crate::Resources;
 impl ImageSurveys {
-    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager, rs: &Resources) -> Self {
         let surveys = HashMap::new();
         let layers = [ImageSurveyIdx::None, ImageSurveyIdx::None];
 
@@ -1035,7 +1036,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
+        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs);
 
         let opacity = 0.5;
         let gl = gl.clone();
@@ -1050,14 +1051,14 @@ impl ImageSurveys {
         }
     }
 
-    pub fn set_projection<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+    pub fn set_projection<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager, rs: &Resources) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
     }
 
-    pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+    pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager, rs: &Resources) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
     }
 
     pub fn set_overlay_opacity(&mut self, opacity: f32) {

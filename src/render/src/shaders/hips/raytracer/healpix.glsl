@@ -74,6 +74,31 @@ struct HashDxDy {
     float dy;
 };
 
+uniform sampler2D ang2pixd[3];
+HashDxDy hash_with_dxdy2(int depth, vec2 radec) {
+    if (depth == 0) {
+        vec3 v = texture(ang2pixd[0], radec).rgb;
+        return HashDxDy(
+            int(v.x * 255.0),
+            v.y,
+            v.z
+        );
+    } else if (depth == 1) {
+        vec3 v = texture(ang2pixd[1], radec).rgb;
+        return HashDxDy(
+            int(v.x * 255.0),
+            v.y,
+            v.z
+        );
+    } else {
+        vec3 v = texture(ang2pixd[2], radec).rgb;
+        return HashDxDy(
+            int(v.x * 255.0),
+            v.y,
+            v.z
+        );
+    }
+}
 // Returns the cell number (hash value) associated with the given position on the unit sphere, 
 // together with the offset `(dx, dy)` on the Euclidean plane of the projected position with
 // respect to the origin of the cell (South vertex).

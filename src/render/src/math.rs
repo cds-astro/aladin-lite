@@ -180,7 +180,6 @@ where S: BaseFloat {
     }
 }
 
-
 #[inline]
 pub fn xyz_to_radec<S: BaseFloat>(v: &cgmath::Vector3<S>) -> (Angle<S>, Angle<S>) {
     let lon = Angle(v.x.atan2(v.z));

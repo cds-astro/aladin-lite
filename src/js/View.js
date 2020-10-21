@@ -390,8 +390,8 @@ export let View = (function() {
         // if zoom factor < 1, we view 180°
         var fov;
         if (view.zoomFactor<1) {
-            //fov = 180;
-            fov = 360;
+            fov = 180;
+            //fov = 360;
         }
         else {
             // TODO : fov sur les 2 dimensions !!
@@ -405,6 +405,8 @@ export let View = (function() {
             
             fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
         }
+
+        fov = Math.min(360, fov);
         
         return fov;
     }
@@ -1535,7 +1537,7 @@ export let View = (function() {
     
     View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(360/Math.pow(1.15, level), this.projectionMethod);
+            return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
         }
         else {
             return 1 + 0.1*level;
@@ -1543,10 +1545,10 @@ export let View = (function() {
     };
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || (fovDegrees>360 && ! this.aladin.options.allowFullZoomout)) {
+        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
-        var zoomLevel = Math.log(360/fovDegrees)/Math.log(1.15);
+        var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
         this.setZoomLevel(zoomLevel);
     };
     
@@ -1574,22 +1576,8 @@ export let View = (function() {
         }
         
         if (this.projectionMethod==ProjectionEnum.SIN) {
-            if (this.aladin.options.allowFullZoomout === true) {
-                // special case for Andreas Wicenec until I fix the problem
-                if (this.width/this.height>2) {
-                    this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-                }
-                else if (this.width/this.height<0.5) {
-                    this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
-                }
-                else {
-                    this.zoomLevel = Math.max(-6, level); // TODO : canvas freezes in firefox when max level is small
-                }
-            }
-            else {
                 //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
                 this.zoomLevel = Math.max(-5, level); // TODO : canvas freezes in firefox when max level is small
-            }
         }
         else {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
@@ -1603,6 +1591,8 @@ export let View = (function() {
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
         } else {
+            console.log("zoom factor", this.zoomFactor);
+            console.log("this.fov", this.fov);
             console.log("FOV, ", this.fov / this.zoomFactor);
 
             // zoom factor

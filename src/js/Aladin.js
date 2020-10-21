@@ -487,7 +487,7 @@ export let Aladin = (function () {
             options.survey = requestedSurveyId;
         }
         var requestedZoom = $.urlParam('zoom');
-        if (requestedZoom && requestedZoom > 0 && requestedZoom < 360) {
+        if (requestedZoom && requestedZoom > 0 && requestedZoom < 180) {
             options.zoom = requestedZoom;
         }
 

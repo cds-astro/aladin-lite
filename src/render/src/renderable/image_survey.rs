@@ -1312,11 +1312,12 @@ impl ImageSurveys {
                 let textures = survey.get_textures_mut();
                 match result {
                     TileResolved::Missing { time_req } => {
-    
+                        let missing = true;
                         let default_image = textures.config().get_black_tile();
-                        textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req);
+                        textures.push::<Rc<TileArrayBufferImage>>(tile, default_image, time_req, missing);
                     },
                     TileResolved::Found { image, time_req } => {
+                        let missing = false;
                         match image {
                             RetrievedImageType::FITSImage { image, metadata } => {
                                 // Update the metadata found in the header of the
@@ -1328,13 +1329,13 @@ impl ImageSurveys {
                                 textures.config.scale = metadata.bscale;
                                 textures.config.offset = metadata.bzero;
                                 // Update the blank textures
-                                textures.config.set_black_tile_value(metadata.bscale*blank + metadata.bzero);
+                                textures.config.set_black_tile_value(blank);
     
-                                textures.push::<TileArrayBufferImage>(tile, image, time_req);
+                                textures.push::<TileArrayBufferImage>(tile, image, time_req, missing);
                             },
                             RetrievedImageType::CompressedImage { image } => {
     
-                                textures.push::<TileHTMLImage>(tile, image, time_req);
+                                textures.push::<TileHTMLImage>(tile, image, time_req, missing);
                             }
                         }
                     }

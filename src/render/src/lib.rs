@@ -552,7 +552,9 @@ impl App {
         self.look_for_new_tiles();
         self.request_redraw = true;
     }
-
+    fn get_max_fov<P: Projection>(&self) -> f32 {
+        P::aperture_start().0
+    }
     fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
         /*if reversed {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -659,9 +661,12 @@ impl App {
         Ok(screen_pos)
     }
 
-    pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f32>) -> Result<LonLatT<f32>, String> {
-        let model_pos = P::screen_to_model_space(pos, &self.camera).ok_or(format!("{:?} is out of projection", pos))?;
-        Ok(model_pos.lonlat())
+    pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f32>) -> Option<LonLatT<f32>> {
+        if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
+            Some(model_pos.lonlat())
+        } else {
+            None
+        }
     }
 
     pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
@@ -846,7 +851,19 @@ impl ProjectionType {
         }
     }
 
-    fn screen_to_world(&self, app: &App, pos: &Vector2<f32>) -> Result<LonLatT<f32>, String> {
+
+    fn get_max_fov(&self, app: &App) -> f32 {
+        match self {
+            ProjectionType::Aitoff => app.get_max_fov::<Aitoff>(),
+            ProjectionType::MollWeide => app.get_max_fov::<Mollweide>(),
+            ProjectionType::Ortho => app.get_max_fov::<Orthographic>(),
+            ProjectionType::Arc => app.get_max_fov::<AzimuthalEquidistant>(),
+            ProjectionType::Gnomonic => app.get_max_fov::<Gnomonic>(),
+            ProjectionType::Mercator => app.get_max_fov::<Mercator>(),
+        }
+    }
+
+    fn screen_to_world(&self, app: &App, pos: &Vector2<f32>) -> Option<LonLatT<f32>> {
         match self {
             ProjectionType::Aitoff => app.screen_to_world::<Aitoff>(pos),
             ProjectionType::MollWeide => app.screen_to_world::<Mollweide>(pos),
@@ -1375,13 +1392,15 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = screenToWorld)]
-    pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Result<Box<[f32]>, JsValue> {
-        let lonlat = self.projection.screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))?;
+    pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Option<Box<[f32]>> {
+        if let Some(lonlat) = self.projection.screen_to_world(&self.app, &Vector2::new(pos_x, pos_y)) {
+            let lon_deg: ArcDeg<f32> = lonlat.lon().into();
+            let lat_deg: ArcDeg<f32> = lonlat.lat().into();
 
-        let lon_deg: ArcDeg<f32> = lonlat.lon().into();
-        let lat_deg: ArcDeg<f32> = lonlat.lat().into();
-
-        Ok(Box::new([lon_deg.0, lat_deg.0]))
+            Some(Box::new([lon_deg.0, lat_deg.0]))
+        } else {
+            None
+        }
     }
 
     #[wasm_bindgen(js_name = getFieldOfView)]
@@ -1410,12 +1429,11 @@ impl WebClient {
 
         Ok(())
     }
-    
-    #[wasm_bindgen(js_name = setClipZoomFactor)]
-    pub fn set_clip_zoom_factor(&mut self, clip_zoom_factor: f32) -> Result<(), JsValue> {
-        Ok(())
-    }
 
+    #[wasm_bindgen(js_name = getMaxFieldOfView)]
+    pub fn get_max_fov(&mut self) -> f32 {
+        self.projection.get_max_fov(&mut self.app)
+    }
     /// Set directly the center position
     #[wasm_bindgen(js_name = getCenter)]
     pub fn get_center(&self) -> Result<Box<[f32]>, JsValue> {

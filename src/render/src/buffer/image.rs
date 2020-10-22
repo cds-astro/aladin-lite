@@ -643,7 +643,6 @@ impl ImageRequest for FITSImageRequest {
         //crate::log(&format!("bytes {:?}", bytes));
         if let Ok(Fits { data, header }) = Fits::from_bytes_slice(bytes) {
             let num_channels = format.get_num_channels() as i32;
-            //crate::log(&format!("data {:?}", data));
 
             let image = match data {
                 DataType::U8(data) => {
@@ -659,7 +658,8 @@ impl ImageRequest for FITSImageRequest {
                     TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
                 },
                 DataType::F64(data) => {
-                    TileArrayBufferImage::F64(TileArrayBuffer::<ArrayF64>::new(&data.0, tile_width, num_channels))
+                    let data = data.0.into_iter().map(|v| v as f32).collect::<Vec<_>>();
+                    TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data, tile_width, num_channels))
                 },
                 _ => unimplemented!()
             };

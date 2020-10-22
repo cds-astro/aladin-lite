@@ -34,6 +34,7 @@ pub struct Texture {
     // Flag telling whether the texture is available
     // for drawing
     is_available: bool,
+    missing: bool,
 }
 
 use crate::buffer::HiPSConfig;
@@ -48,6 +49,7 @@ impl Texture {
         let texture_cell = *texture_cell;
         let uniq = texture_cell.uniq();
         let is_available = false;
+        let missing = true;
         let num_tiles_written = 0;
         Texture {
             texture_cell,
@@ -59,6 +61,7 @@ impl Texture {
             full,
             is_available,
             num_tiles_written,
+            missing
         }
     }
 
@@ -67,11 +70,14 @@ impl Texture {
     // Return true if the tile is newly added
     pub fn append(&mut self,
         cell: &HEALPixCell,
-        config: &HiPSConfig
+        config: &HiPSConfig,
+        missing: bool
     ) {
         let texture_cell = cell.get_texture_cell(config);
         assert!(texture_cell == self.texture_cell);
         assert!(!self.full);
+
+        self.missing &= missing;
 
         // cell has the good ancestor for this texture
         let new_tile = self.tiles.insert(*cell);
@@ -163,6 +169,7 @@ impl Texture {
         self.time_request = time_request;
         self.tiles.clear();
         self.is_available = false;
+        self.missing = true;
         self.num_tiles_written = 0;
     }
 
@@ -214,6 +221,7 @@ impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader.attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
             .attach_uniform(&format!("{}{}", self.name, "texture_idx"), &self.texture.idx)
+            .attach_uniform(&format!("{}{}", self.name, "empty"), &(self.texture.missing as i32))
             .attach_uniform(&format!("{}{}", self.name, "start_time"), &self.texture.start_time());
 
         shader

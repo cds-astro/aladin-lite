@@ -15,6 +15,7 @@ struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
     float start_time; // Absolute time that the load has been done in ms
+    int empty;
 };
 
 uniform int current_depth;
@@ -67,17 +68,21 @@ TileColor get_tile_color(vec3 pos, int depth) {
         if (uniq == textures_tiles[i].uniq) {
             Tile tile = textures_tiles[i];
 
-            int idx_texture = tile.texture_idx >> 6;
-            int off = tile.texture_idx % 64;
-            float idx_row = float(off >> 3); // in [0; 7]
-            float idx_col = float(off % 8); // in [0; 7]
+            if (tile.empty == 1) {
+                return TileColor(tile, vec3(0.0), true);
+            } else {
+                int idx_texture = tile.texture_idx >> 6;
+                int off = tile.texture_idx % 64;
+                float idx_row = float(off >> 3); // in [0; 7]
+                float idx_col = float(off % 8); // in [0; 7]
 
-            vec2 offset = (vec2(idx_col, idx_row) + uv)/8.f;
-            vec3 UV = vec3(offset, float(idx_texture));
+                vec2 offset = (vec2(idx_col, idx_row) + uv)/8.f;
+                vec3 UV = vec3(offset, float(idx_texture));
 
-            vec3 color = K * C * get_grayscale_from_texture(UV);
+                vec3 color = K * C * get_grayscale_from_texture(UV);
 
-            return TileColor(tile, color, true);
+                return TileColor(tile, color, true);
+            }
         } else if (uniq < textures_tiles[i].uniq) {
             // go to left
             b = i - 1;
@@ -89,7 +94,7 @@ TileColor get_tile_color(vec3 pos, int depth) {
     }
 
     // code unreachable
-    Tile empty = Tile(0, -1, current_time);
+    Tile empty = Tile(0, -1, current_time, 1);
     return TileColor(empty, vec3(0.f), false);
 }
 

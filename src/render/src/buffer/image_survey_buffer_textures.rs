@@ -218,7 +218,7 @@ impl ImageSurveyTextures {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time) {
+    pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time, missing: bool) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
         if self.contains_tile(&tile_cell) {
@@ -283,7 +283,8 @@ impl ImageSurveyTextures {
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.append(
                 &tile_cell, // The tile cell
-                &self.config
+                &self.config,
+                missing
             );
             // Compute the cutoff of the received tile
             //let cutoff = image.get_cutoff_values();

@@ -153,11 +153,15 @@ impl HiPSConfig {
                         tex_storing_integers = 1;
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32)))
                     },
-                    /*32 => {
+                    32 => {
                         tex_storing_integers = 1;
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32)))
-                    },*/
+                    },
                     -32 => {
+                        tex_storing_integers = 0;
+                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
+                    },
+                    -64 => {
                         tex_storing_integers = 0;
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
                     },

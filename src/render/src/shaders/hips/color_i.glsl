@@ -46,10 +46,6 @@ float get_grayscale_from_texture(vec3 UV) {
 
     float x = get_pixels(uv);
 
-    /*if (x == blank) {
-        return transparent;
-    }*/
-
     float alpha = x * scale + offset;
     float h = transfer_func(H, alpha, min_value, max_value);
 

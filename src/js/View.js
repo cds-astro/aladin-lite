@@ -115,6 +115,7 @@ export let View = (function() {
             this.mode = View.PAN;
             
             this.minFOV = this.maxFOV = null; // by default, no restriction
+            this.fov_limit = 180.0;
             
             this.healpixGrid = new HealpixGrid(this.imageCanvas);
             if (cooFrame) {
@@ -402,7 +403,8 @@ export let View = (function() {
         // if zoom factor < 1, we view 180°
         var fov;
         if (view.zoomFactor<1) {
-            fov = 180;
+            console.log(view.fov_limit)
+            fov = view.fov_limit;
             //fov = 360;
         }
         else {
@@ -418,7 +420,7 @@ export let View = (function() {
             fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
         }
 
-        fov = Math.min(360, fov);
+        fov = Math.min(view.fov_limit, fov);
         
         return fov;
     }
@@ -730,6 +732,9 @@ export let View = (function() {
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
                 pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY);
+                if (pos2 == undefined)  {
+                    return;
+                }
             }
             else {
                 /*
@@ -746,6 +751,10 @@ export let View = (function() {
 
                 pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
+
+                if (pos2 == undefined)  {
+                    return;
+                }
             }
             
             // TODO : faut il faire ce test ??
@@ -1556,18 +1565,26 @@ export let View = (function() {
     
     View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
+            return AladinUtils.getZoomFactorForAngle(this.fov_limit/Math.pow(1.15, level), this.projectionMethod);
         }
         else {
             return 1 + 0.1*level;
         }
     };
+    /*View.prototype.computeZoomLevelFromFOV = function() {
+        if (level>0) {
+            return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
+        }
+        else {
+            return 1 + 0.1*level;
+        }
+    };*/
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
+        if (fovDegrees<0 || (fovDegrees>this.fov_limit && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
-        var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
+        var zoomLevel = Math.log(this.fov_limit/fovDegrees)/Math.log(1.15);
         this.setZoomLevel(zoomLevel);
     };
     
@@ -1587,29 +1604,30 @@ export let View = (function() {
             zoom["action"] = "zoom";
         }*/
 
-        if (this.minFOV || this.maxFOV) {
+        /*if (this.minFOV || this.maxFOV) {
             var newFov = doComputeFov(this, this.computeZoomFactor(Math.max(-2, level)));
             if (this.maxFOV && newFov>this.maxFOV  ||  this.minFOV && newFov<this.minFOV)  {
                 return;
             }
-        }
+        }*/
 
-        if (this.projectionMethod==ProjectionEnum.SIN) {
+        /*if (this.projectionMethod==ProjectionEnum.SIN) {
             //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
         } else {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-        }
-        
+        }*/
+        this.zoomLevel = Math.max(-7, level);
         
         this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
+        console.log(this.zoomLevel, this.fov);
+
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
         } else {
-
             console.log("FOV, ", this.fov / this.zoomFactor);
 
             // zoom factor

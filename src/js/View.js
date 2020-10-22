@@ -39,8 +39,9 @@ import { Coo }            from "./libs/astro/coo.js";
 import { AladinUtils }    from "./AladinUtils.js";
 import { HealpixIndex }   from "./libs/healpix.js";
 import { HealpixCache }   from "./HealpixCache.js";
-import { SpatialVector }   from "./libs/healpix.js";
+import { SpatialVector }  from "./libs/healpix.js";
 import { Utils }          from "./Utils.js";
+import { SimbadPointer }  from "./SimbadPointer.js";
 import { TileBuffer }     from "./TileBuffer.js";
 import { Downloader }     from "./Downloader.js";
 import { Stats }          from "./libs/Stats.js";
@@ -402,6 +403,7 @@ export let View = (function() {
         var fov;
         if (view.zoomFactor<1) {
             fov = 180;
+            //fov = 360;
         }
         else {
             // TODO : fov sur les 2 dimensions !!
@@ -415,6 +417,8 @@ export let View = (function() {
             
             fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
         }
+
+        fov = Math.min(360, fov);
         
         return fov;
     }
@@ -1592,24 +1596,9 @@ export let View = (function() {
         console.log("zoom factor, ", this.zoomFactor);
 
         if (this.projectionMethod==ProjectionEnum.SIN) {
-            if (this.aladin.options.allowFullZoomout === true) {
-                // special case for Andreas Wicenec until I fix the problem
-                if (this.width/this.height>2) {
-                    this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-                }
-                else if (this.width/this.height<0.5) {
-                    this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
-                }
-                else {
-                    this.zoomLevel = Math.max(-6, level); // TODO : canvas freezes in firefox when max level is small
-                }
-            }
-            else {
-                //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
-                this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-            }
-        }
-        else {
+            //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
+            this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
+        } else {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
         }
         
@@ -1621,8 +1610,6 @@ export let View = (function() {
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
         } else {
-            console.log("zoom factor, ", this.zoomFactor);
-            console.log("this.fov, ", this.fov);
 
             console.log("FOV, ", this.fov / this.zoomFactor);
 

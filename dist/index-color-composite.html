@@ -1,0 +1,509 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="css/auto-complete.css">
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+<style>
+.slider_tf {
+    width: 4em;
+}
+</style>
+
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 95vw; height: 75vh"></div>
+
+
+<div id="controls">
+<table style="margin-top: 5px;border: 1px solid;" style="width: 92vw;">
+<tr>
+    <td><input type="color" id="color_c1" value="#ff0000"></td><td><input type="color" id="color_c2" value="#00ff00"></td><td><input type="color" id="color_c3" value="#0000ff"></td><td><input type="color" id="color_c4" value="#ffffff"></td>
+</tr>
+<tr>
+    <td><input id="c1_hips" style="width: 95%;"></td>
+    <td><input id="c2_hips" style="width: 95%;"></td>
+    <td><input id="c3_hips" style="width: 95%;"></td>
+    <td><input id="c4_hips" style="width: 95%;"></td>
+</tr>
+<tr>
+  <td>
+    <label for="stretch_c1">Stretch: </label>
+    <select id="stretch_c1">
+      <option value="power">Pow</option>
+      <option value="linear">Linear</option>
+      <option value="sqrt">Square root</option>
+      <option value="log">Log</option>
+      <option value="asinh" selected>Asinh</option>
+    </select>
+
+    <br/>
+
+    <label for="min_cut_c1">Min cut: </label>
+    <input id="min_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
+    <br>
+    <input id="min_cut_c1_tf" type="text" class="slider_tf">
+    <br>
+    <label for="max_cut_c1">Max cut: </label>
+    <input id="max_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
+    <br>
+    <input id="max_cut_c1_tf" type="text" class="slider_tf">
+  </td>
+  <td>
+    <label for="stretch_c2">Stretch: </label>
+    <select id="stretch_c2">
+      <option value="power">Pow</option>
+      <option value="linear">Linear</option>
+      <option value="sqrt">Square root</option>
+      <option value="log">Log</option>
+      <option value="asinh" selected>Asinh</option>
+    </select>
+
+    <br/>
+
+    <label for="min_cut_c2">Min cut: </label>
+    <input id="min_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
+    <br>
+    <input id="min_cut_c2_tf" type="text" class="slider_tf">
+    <br>
+    <label for="max_cut_c2">Max cut: </label>
+    <input id="max_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
+    <br>
+    <input id="max_cut_c2_tf" type="text" class="slider_tf">
+  </td>
+  <td>
+    <label for="stretch_c3">Stretch: </label>
+    <select id="stretch_c3">
+      <option value="power">Pow</option>
+      <option value="linear">Linear</option>
+      <option value="sqrt">Square root</option>
+      <option value="log">Log</option>
+      <option value="asinh" selected>Asinh</option>
+    </select>
+
+    <br/>
+
+    <label for="min_cut_c3">Min cut: </label>
+    <input id="min_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
+    <br>
+    <input id="min_cut_c3_tf" type="text" class="slider_tf">
+    <br>
+    <label for="max_cut_c3">Max cut: </label>
+    <input id="max_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
+    <br>
+    <input id="max_cut_c3_tf" type="text" class="slider_tf">
+  </td>
+
+  <td>
+    <label for="stretch_c4">Stretch: </label>
+    <select id="stretch_c4">
+      <option value="power">Pow</option>
+      <option value="linear">Linear</option>
+      <option value="sqrt">Square root</option>
+      <option value="log">Log</option>
+      <option value="asinh" selected>Asinh</option>
+    </select>
+
+    <br/>
+
+    <label for="min_cut_c4">Min cut: </label>
+    <input id="min_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
+    <br>
+    <input id="min_cut_c4_tf" type="text" class="slider_tf">
+    <br>
+    <label for="max_cut_c4">Max cut: </label>
+    <input id="max_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
+    <br>
+    <input id="max_cut_c4_tf" type="text" class="slider_tf">
+  </td>
+
+</tr>
+</table>
+</div>
+
+<script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
+
+<script src="js/auto-complete.js"></script>
+
+
+<script type="text/javascript">
+
+    let hipsesDict = {};
+    let hipsesArray = [];
+    let aladin;
+
+$( document ).ready(function() {
+    $.ajax({
+        url: 'http://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&get=record&hips_frame=equatorial&fmt=json',
+    }).done(function(data) {
+        
+        for (var k=0; k<data.length; k++) {
+            var hips = data[k];
+            var id = hips.ID;
+
+            // ignore color HiPS
+            if (hips.hasOwnProperty('dataproduct_subtype') && hips.dataproduct_subtype=='color') {
+                continue;
+            }
+            if (hips['hips_pixel_cut'] === undefined) {
+                continue;
+                console.log('no pixel cut for: ', hips.ID);
+            }
+            var pixel_cuts = hips['hips_pixel_cut'].split(' ')
+            hips.min_cut = parseFloat(pixel_cuts[0]);
+            hips.max_cut = parseFloat(pixel_cuts[1]);
+
+            hipsesDict[id] = hips;
+            hipsesArray.push(hips);
+        }
+		console.log(hipsesDict);
+        init();
+    });
+});
+
+
+var init = function() {
+    new autoComplete({
+        selector: '#c1_hips',
+        minChars: 2,
+        source: function(term, suggest) {
+            term = term.toLowerCase();
+            var choices = hipsesArray;
+            var matches = [];
+            for (i=0; i<choices.length; i++)
+            if (choices[i].ID.toLowerCase().indexOf(term)>=0) {
+                matches.push(choices[i].ID);
+            }
+            suggest(matches);
+        },
+        renderItem: function (item, search){
+            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+    return '<div class="autocomplete-suggestion" data-val="' + item + '">' + item.replace(re, "<b>$1</b>") + '</div>';
+        },
+        onSelect: function(e, term, item){
+            var hips = hipsesDict[term];
+            $('#min_cut_c1').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c1').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c1').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#min_cut_c1').val(hips.min_cut);
+            $('#min_cut_c1_tf').val(hips.min_cut);
+
+            $('#max_cut_c1').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c1').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c1').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#max_cut_c1').val(hips.max_cut);
+            $('#max_cut_c1_tf').val(hips.max_cut);
+
+            update();
+        }
+    });
+    new autoComplete({
+        selector: '#c2_hips',
+        minChars: 2,
+        source: function(term, suggest) {
+            term = term.toLowerCase();
+            var choices = hipsesArray;
+            var matches = [];
+            for (i=0; i<choices.length; i++)
+            if (choices[i].ID.toLowerCase().indexOf(term)>=0) {
+                matches.push(choices[i].ID);
+            }
+            suggest(matches);
+        },
+        renderItem: function (item, search){
+            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+    return '<div class="autocomplete-suggestion" data-val="' + item + '">' + item.replace(re, "<b>$1</b>") + '</div>';
+        },
+        onSelect: function(e, term, item){
+            var hips = hipsesDict[term];
+            $('#min_cut_c2').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c2').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c2').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#min_cut_c2').val(hips.min_cut);
+            $('#min_cut_c2_tf').val(hips.min_cut);
+
+            $('#max_cut_c2').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c2').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c2').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#max_cut_c2').val(hips.max_cut);
+            $('#max_cut_c2_tf').val(hips.max_cut);
+
+            update();
+        }
+    });
+    new autoComplete({
+        selector: '#c3_hips',
+        minChars: 2,
+        source: function(term, suggest) {
+            term = term.toLowerCase();
+            var choices = hipsesArray;
+            var matches = [];
+            for (i=0; i<choices.length; i++)
+            if (choices[i].ID.toLowerCase().indexOf(term)>=0) {
+                matches.push(choices[i].ID);
+            }
+            suggest(matches);
+        },
+        renderItem: function (item, search){
+            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+    return '<div class="autocomplete-suggestion" data-val="' + item + '">' + item.replace(re, "<b>$1</b>") + '</div>';
+        },
+        onSelect: function(e, term, item){
+            var hips = hipsesDict[term];
+            $('#min_cut_c3').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c3').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c3').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#min_cut_c3').val(hips.min_cut);
+            $('#min_cut_c3_tf').val(hips.min_cut);
+
+            $('#max_cut_c3').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c3').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c3').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#max_cut_c3').val(hips.max_cut);
+            $('#max_cut_c3_tf').val(hips.max_cut);
+
+            update();
+        }
+    });
+    new autoComplete({
+        selector: '#c4_hips',
+        minChars: 2,
+        source: function(term, suggest) {
+            term = term.toLowerCase();
+            var choices = hipsesArray;
+            var matches = [];
+            for (i=0; i<choices.length; i++)
+            if (choices[i].ID.toLowerCase().indexOf(term)>=0) {
+                matches.push(choices[i].ID);
+            }
+            suggest(matches);
+        },
+        renderItem: function (item, search){
+            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+    return '<div class="autocomplete-suggestion" data-val="' + item + '">' + item.replace(re, "<b>$1</b>") + '</div>';
+        },
+        onSelect: function(e, term, item){
+            var hips = hipsesDict[term];
+            $('#min_cut_c4').attr('min', hips.min_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c4').attr('max', hips.min_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#min_cut_c4').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#min_cut_c4').val(hips.min_cut);
+            $('#min_cut_c4_tf').val(hips.min_cut);
+
+            $('#max_cut_c4').attr('min', hips.max_cut - 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c4').attr('max', hips.max_cut + 0.4*(hips.max_cut - hips.min_cut));
+            $('#max_cut_c4').attr('step', (hips.max_cut-hips.min_cut)/100.0);
+            $('#max_cut_c4').val(hips.max_cut);
+            $('#max_cut_c4_tf').val(hips.max_cut);
+
+            update();
+        }
+    });
+};
+
+function parseColor(colorHexaStr) {
+    var s = colorHexaStr.substring(1);
+	return [parseInt(s.substring(0, 2), 16)/255, parseInt(s.substring(2, 4), 16)/255, parseInt(s.substring(4, 6), 16)/255];
+}
+
+function update() {
+	var hipsComponents = [];
+
+	var c1Color = $('#color_c1').val();
+	var c2Color = $('#color_c2').val();
+	var c3Color = $('#color_c3').val();
+	var c4Color = $('#color_c4').val();
+
+
+    var stretch_c1 = $('#stretch_c1').val();
+    var min_cut_c1 = parseFloat($('#min_cut_c1_tf').val());
+    var max_cut_c1 = parseFloat($('#max_cut_c1_tf').val());
+
+    var stretch_c2 = $('#stretch_c2').val();
+    var min_cut_c2 = parseFloat($('#min_cut_c2_tf').val());
+    var max_cut_c2 = parseFloat($('#max_cut_c2_tf').val());
+
+    var stretch_c3 = $('#stretch_c3').val();
+    var min_cut_c3 = parseFloat($('#min_cut_c3_tf').val());
+    var max_cut_c3 = parseFloat($('#max_cut_c3_tf').val());
+
+    var stretch_c4 = $('#stretch_c4').val();
+    var min_cut_c4 = parseFloat($('#min_cut_c4_tf').val());
+    var max_cut_c4 = parseFloat($('#max_cut_c4_tf').val());
+
+    var c1HiPS = $('#c1_hips').val();
+    var c2HiPS = $('#c2_hips').val();
+    var c3HiPS = $('#c3_hips').val();
+    var c4HiPS = $('#c4_hips').val();
+
+    var useC1, useC2, useC3, useC4;
+    useC1 = useC2 = useC3 = useC4 = false;
+    if (c1HiPS.length>0) {
+		c1HiPS = hipsesDict[c1HiPS];
+		hipsComponents.push({
+            properties: {
+		        url: c1HiPS.hips_service_url,
+		        maxOrder: parseInt(c1HiPS.hips_order),
+                // TODO
+		        frame: { label: "J2000", system: "J2000" },
+		        tileSize: parseInt(c1HiPS.hips_tile_width),
+		        format: {
+			        FITSImage: {
+				        bitpix: parseInt(c1HiPS.hips_pixel_bitpix)
+			        }
+		        },
+		        minCutout: parseFloat(min_cut_c1),
+		        maxCutout: parseFloat(max_cut_c1),
+	        },
+	        color: {
+		        Grayscale2Color: {
+			        color: parseColor(c1Color),
+                    k: 1.0,
+			        transfer: stretch_c1
+		        }
+	        }
+        });
+
+        useC1 = true;
+    }
+    if (c2HiPS.length>0) {
+console.log('titile'+ c2HiPS+ 'tt');
+		c2HiPS = hipsesDict[c2HiPS];
+		hipsComponents.push({
+            properties: {
+		        url: c2HiPS.hips_service_url,
+		        maxOrder: parseInt(c2HiPS.hips_order),
+                // TODO
+		        frame: { label: "J2000", system: "J2000" },
+		        tileSize: parseInt(c2HiPS.hips_tile_width),
+		        format: {
+			        FITSImage: {
+				        bitpix: parseInt(c2HiPS.hips_pixel_bitpix)
+			        }
+		        },
+		        minCutout: parseFloat(min_cut_c2),
+		        maxCutout: parseFloat(max_cut_c2),
+	        },
+	        color: {
+		        Grayscale2Color: {
+			        color: parseColor(c2Color),
+                    k: 1.0,
+			        transfer: stretch_c2
+		        }
+	        }
+        });
+
+        useC2 = true;
+    }
+    if (c3HiPS.length>0) {
+		c3HiPS = hipsesDict[c3HiPS];
+		hipsComponents.push({
+            properties: {
+		        url: c3HiPS.hips_service_url,
+		        maxOrder: parseInt(c3HiPS.hips_order),
+                // TODO
+		        frame: { label: "J2000", system: "J2000" },
+		        tileSize: parseInt(c3HiPS.hips_tile_width),
+		        format: {
+			        FITSImage: {
+				        bitpix: parseInt(c3HiPS.hips_pixel_bitpix)
+			        }
+		        },
+		        minCutout: parseFloat(min_cut_c3),
+		        maxCutout: parseFloat(max_cut_c3),
+	        },
+	        color: {
+		        Grayscale2Color: {
+			        color: parseColor(c3Color),
+                    k: 1.0,
+			        transfer: stretch_c3
+		        }
+	        }
+        });
+
+        useC3 = true;
+    }
+    if (c4HiPS.length>0) {
+		c4HiPS = hipsesDict[c4HiPS];
+		hipsComponents.push({
+            properties: {
+		        url: c4HiPS.hips_service_url,
+		        maxOrder: parseInt(c4HiPS.hips_order),
+                // TODO
+		        frame: { label: "J2000", system: "J2000" },
+		        tileSize: parseInt(c4HiPS.hips_tile_width),
+		        format: {
+			        FITSImage: {
+				        bitpix: parseInt(c4HiPS.hips_pixel_bitpix)
+			        }
+		        },
+		        minCutout: parseFloat(min_cut_c4),
+		        maxCutout: parseFloat(max_cut_c4),
+	        },
+	        color: {
+		        Grayscale2Color: {
+			        color: parseColor(c4Color),
+                    k: 1.0,
+			        transfer: stretch_c4
+		        }
+	        }
+        });
+
+        useC4 = true;
+    }
+
+    if (!useC1 && !useC2 && !useC3 && !useC4) {
+        return;
+    }
+
+	console.log('UPDAte !!');
+    aladin.webglAPI.setCompositeHiPS({hipses: hipsComponents})
+
+    // aladin.web...
+
+}
+
+$('#color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4').on('change input', function() {
+    update();
+});
+
+$('#min_cut_c1, #max_cut_c1,  #min_cut_c2, #max_cut_c2, #min_cut_c3, #max_cut_c3, #min_cut_c4, #max_cut_c4').on('change input', function() {
+    $(this).nextAll('.slider_tf').first().val($(this).val());
+});
+
+$('.slider_tf').on('keyup', function(event) {
+    // if key press on enter
+    if(event.keyCode == 13) {
+        update();
+    }
+});
+
+
+
+    A.init.then(() => {
+        console.log("then of init")
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
+
+
+    });
+
+
+
+
+</script>
+</body>
+</html>

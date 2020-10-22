@@ -32,5 +32,7 @@
 
  export let ProjectionEnum = {
     SIN: Projection.PROJ_SIN,
-    AITOFF:  Projection.PROJ_AITOFF
+    AITOFF:  Projection.PROJ_AITOFF,
+    MERCATOR:  Projection.PROJ_MERCATOR,
+    ARC:  Projection.PROJ_ARC,
  };

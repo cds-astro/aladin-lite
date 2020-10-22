@@ -21,7 +21,7 @@
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 
 
-<div id="aladin-lite-div" style="width: 95vw; height: 75vh"></div>
+<div id="aladin-lite-div" style="width: 95vw; height: 70vh"></div>
 
 
 <div id="controls">
@@ -37,7 +37,11 @@
 </tr>
 <tr>
   <td>
-    <label for="stretch_c1">Stretch: </label>
+    <label for="k_c1">k</label>
+    <input id="k_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="0" max="3" type="range" value="1" />
+    <br>
+
+    <label for="stretch_c1">Stretch</label>
     <select id="stretch_c1">
       <option value="power">Pow</option>
       <option value="linear">Linear</option>
@@ -46,20 +50,24 @@
       <option value="asinh" selected>Asinh</option>
     </select>
 
-    <br/>
+    <br>
 
-    <label for="min_cut_c1">Min cut: </label>
+    <label for="min_cut_c1">Min cut</label>
     <input id="min_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
     <input id="min_cut_c1_tf" type="text" class="slider_tf">
     <br>
-    <label for="max_cut_c1">Max cut: </label>
+    <label for="max_cut_c1">Max cut</label>
     <input id="max_cut_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
     <br>
     <input id="max_cut_c1_tf" type="text" class="slider_tf">
   </td>
   <td>
-    <label for="stretch_c2">Stretch: </label>
+    <label for="k_c2">k</label>
+    <input id="k_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="0" max="3" type="range" value="1" />
+    <br>
+
+    <label for="stretch_c2">Stretch</label>
     <select id="stretch_c2">
       <option value="power">Pow</option>
       <option value="linear">Linear</option>
@@ -70,18 +78,22 @@
 
     <br/>
 
-    <label for="min_cut_c2">Min cut: </label>
+    <label for="min_cut_c2">Min cut</label>
     <input id="min_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
     <input id="min_cut_c2_tf" type="text" class="slider_tf">
     <br>
-    <label for="max_cut_c2">Max cut: </label>
+    <label for="max_cut_c2">Max cut</label>
     <input id="max_cut_c2" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="2" />
     <br>
     <input id="max_cut_c2_tf" type="text" class="slider_tf">
   </td>
   <td>
-    <label for="stretch_c3">Stretch: </label>
+    <label for="k_c3">k</label>
+    <input id="k_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="0" max="3" type="range" value="1" />
+    <br>
+
+    <label for="stretch_c3">Stretch</label>
     <select id="stretch_c3">
       <option value="power">Pow</option>
       <option value="linear">Linear</option>
@@ -92,19 +104,23 @@
 
     <br/>
 
-    <label for="min_cut_c3">Min cut: </label>
+    <label for="min_cut_c3">Min cut</label>
     <input id="min_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
     <input id="min_cut_c3_tf" type="text" class="slider_tf">
     <br>
-    <label for="max_cut_c3">Max cut: </label>
+    <label for="max_cut_c3">Max cut</label>
     <input id="max_cut_c3" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
     <br>
     <input id="max_cut_c3_tf" type="text" class="slider_tf">
   </td>
 
   <td>
-    <label for="stretch_c4">Stretch: </label>
+    <label for="k_c4">k</label>
+    <input id="k_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="0" max="3" type="range" value="1" />
+    <br>
+
+    <label for="stretch_c4">Stretch</label>
     <select id="stretch_c4">
       <option value="power">Pow</option>
       <option value="linear">Linear</option>
@@ -115,12 +131,12 @@
 
     <br/>
 
-    <label for="min_cut_c4">Min cut: </label>
+    <label for="min_cut_c4">Min cut</label>
     <input id="min_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="0" />
     <br>
     <input id="min_cut_c4_tf" type="text" class="slider_tf">
     <br>
-    <label for="max_cut_c4">Max cut: </label>
+    <label for="max_cut_c4">Max cut</label>
     <input id="max_cut_c4" style="vertical-align: middle; width:10vw;" step="0.1" min="-1" max="10" type="range" value="3" />
     <br>
     <input id="max_cut_c4_tf" type="text" class="slider_tf">
@@ -371,7 +387,7 @@ function update() {
 	        color: {
 		        Grayscale2Color: {
 			        color: parseColor(c1Color),
-                    k: 1.0,
+                    k: parseFloat($('#k_c1').val()),
 			        transfer: stretch_c1
 		        }
 	        }
@@ -382,7 +398,6 @@ function update() {
         useC1 = true;
     }
     if (c2HiPS.length>0) {
-console.log('titile'+ c2HiPS+ 'tt');
 		c2HiPS = hipsesDict[c2HiPS];
 		hipsComponents.push({
             properties: {
@@ -402,7 +417,7 @@ console.log('titile'+ c2HiPS+ 'tt');
 	        color: {
 		        Grayscale2Color: {
 			        color: parseColor(c2Color),
-                    k: 1.0,
+                    k: parseFloat($('#k_c2').val()),
 			        transfer: stretch_c2
 		        }
 	        }
@@ -430,7 +445,7 @@ console.log('titile'+ c2HiPS+ 'tt');
 	        color: {
 		        Grayscale2Color: {
 			        color: parseColor(c3Color),
-                    k: 1.0,
+                    k: parseFloat($('#k_c3').val()),
 			        transfer: stretch_c3
 		        }
 	        }
@@ -458,7 +473,7 @@ console.log('titile'+ c2HiPS+ 'tt');
 	        color: {
 		        Grayscale2Color: {
 			        color: parseColor(c4Color),
-                    k: 1.0,
+                    k: parseFloat($('#k_c4').val()),
 			        transfer: stretch_c4
 		        }
 	        }
@@ -471,14 +486,13 @@ console.log('titile'+ c2HiPS+ 'tt');
         return;
     }
 
-	console.log('UPDAte !!');
     aladin.webglAPI.setCompositeHiPS({hipses: hipsComponents})
 
     // aladin.web...
 
 }
 
-$('#color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4').on('change input', function() {
+$('#k_c1, #k_c2, #k_c3, #k_c4, #color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4').on('change input', function() {
     update();
 });
 

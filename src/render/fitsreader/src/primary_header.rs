@@ -16,8 +16,7 @@ impl<'a> PrimaryHeader<'a> {
         let mut simple = false;
         let mut naxis = false;
         let mut bitpix = false;
-
-        while !end {
+        while !end && !input.is_empty() {
             let (input_next, card) = parse_card(input)?;
             input = input_next;
 

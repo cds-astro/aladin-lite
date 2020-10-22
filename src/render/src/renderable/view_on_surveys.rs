@@ -320,8 +320,6 @@ impl HEALPixCellsInView {
         if depth > max_depth {
             depth = max_depth;
         }
-        crate::log(&format!("depth {} tile size {} max depth {}", depth, num_pixels, max_depth));
-
         // Get the cells of that depth in the current field of view
         let cells = get_cells_in_camera(depth, camera);
         //self.is_new_cells = (cells.intersection(&self.cells).len() == cells.len());

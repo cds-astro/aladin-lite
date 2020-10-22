@@ -640,8 +640,10 @@ impl ImageRequest for FITSImageRequest {
             self.image.response().unwrap().as_ref()
         );
         let bytes = &array_buf.to_vec();
+        //crate::log(&format!("bytes {:?}", bytes));
         if let Ok(Fits { data, header }) = Fits::from_bytes_slice(bytes) {
             let num_channels = format.get_num_channels() as i32;
+            //crate::log(&format!("data {:?}", data));
 
             let image = match data {
                 DataType::U8(data) => {
@@ -659,7 +661,7 @@ impl ImageRequest for FITSImageRequest {
                 DataType::F64(data) => {
                     TileArrayBufferImage::F64(TileArrayBuffer::<ArrayF64>::new(&data.0, tile_width, num_channels))
                 },
-                _ => unreachable!()
+                _ => unimplemented!()
             };
     
             let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {

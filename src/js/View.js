@@ -1593,7 +1593,6 @@ export let View = (function() {
                 return;
             }
         }
-        console.log("zoom factor, ", this.zoomFactor);
 
         if (this.projectionMethod==ProjectionEnum.SIN) {
             //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small

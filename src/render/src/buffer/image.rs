@@ -401,7 +401,7 @@ use crate::image_fmt::FormatImageType;
 pub trait ImageRequest {
     fn new() -> Self;
     fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
-    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType;
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType>;
 
     const REQUEST_TYPE: RequestType;
 }
@@ -417,7 +417,7 @@ impl ImageRequestType {
             ImageRequestType::CompressedImageRequest(r) => r.send(success, fail, url),
         }
     }
-    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
         match self {
             ImageRequestType::FITSImageRequest(r) => r.image(tile_width, format),
             ImageRequestType::CompressedImageRequest(r) => r.image(tile_width, format),
@@ -569,7 +569,7 @@ impl TileRequest {
         self.resolved.get()
     }
 
-    pub fn get_image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
+    pub fn get_image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
         assert!(self.is_resolved());
         self.req.image(tile_width, format)
     }
@@ -595,17 +595,17 @@ impl ImageRequest for CompressedImageRequest {
         self.image.set_onerror(fail);
     }
 
-    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
         let size = Vector2::new(width, height);
-        RetrievedImageType::CompressedImage {
+        Some(RetrievedImageType::CompressedImage {
             image: TileHTMLImage {
                 size,
                 image: self.image.clone()
             }
-        }
+        })
     }
 }
 
@@ -634,72 +634,71 @@ impl ImageRequest for FITSImageRequest {
         self.image.send().unwrap();
     }
 
-    fn image(&self, tile_width: i32, format: &FormatImageType) -> RetrievedImageType {
+    fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(
             self.image.response().unwrap().as_ref()
         );
-
         let bytes = &array_buf.to_vec();
-        let Fits { data, header } = Fits::from_bytes_slice(bytes).unwrap();
+        if let Ok(Fits { data, header }) = Fits::from_bytes_slice(bytes) {
+            let num_channels = format.get_num_channels() as i32;
 
-        //let format = &config.format();
-        //let width = config.get_tile_size();
-        let num_channels = format.get_num_channels() as i32;
-
-        let image = match data {
-            DataType::U8(data) => {
-                TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, tile_width, num_channels))
-            },
-            DataType::I16(data) => {
-                TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::new(&data.0, tile_width, num_channels))
-            },
-            DataType::I32(data) => {
-                TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::new(&data.0, tile_width, num_channels))
-            },
-            DataType::F32(data) => {
-                TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
-            },
-            DataType::F64(data) => {
-                TileArrayBufferImage::F64(TileArrayBuffer::<ArrayF64>::new(&data.0, tile_width, num_channels))
-            },
-            _ => unreachable!()
-        };
-
-        let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
-            if let FITSKeywordValue::FloatingPoint(bscale) = value {
-                *bscale as f32
+            let image = match data {
+                DataType::U8(data) => {
+                    TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, tile_width, num_channels))
+                },
+                DataType::I16(data) => {
+                    TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::new(&data.0, tile_width, num_channels))
+                },
+                DataType::I32(data) => {
+                    TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::new(&data.0, tile_width, num_channels))
+                },
+                DataType::F32(data) => {
+                    TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
+                },
+                DataType::F64(data) => {
+                    TileArrayBufferImage::F64(TileArrayBuffer::<ArrayF64>::new(&data.0, tile_width, num_channels))
+                },
+                _ => unreachable!()
+            };
+    
+            let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
+                if let FITSKeywordValue::FloatingPoint(bscale) = value {
+                    *bscale as f32
+                } else {
+                    1.0
+                }
             } else {
                 1.0
-            }
-        } else {
-            1.0
-        };
-        let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
-            if let FITSKeywordValue::FloatingPoint(bzero) = value {
-                *bzero as f32
+            };
+            let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
+                if let FITSKeywordValue::FloatingPoint(bzero) = value {
+                    *bzero as f32
+                } else {
+                    0.0
+                }
             } else {
                 0.0
-            }
-        } else {
-            0.0
-        };
-        let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
-            if let FITSKeywordValue::FloatingPoint(blank) = value {
-                *blank as f32
+            };
+            let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
+                if let FITSKeywordValue::FloatingPoint(blank) = value {
+                    *blank as f32
+                } else {
+                    std::f32::MIN
+                }
             } else {
                 std::f32::MIN
-            }
+            };
+    
+            let metadata = FITSMetaData {
+                blank,
+                bscale,
+                bzero,
+            };
+            Some(RetrievedImageType::FITSImage { image, metadata })
         } else {
-            std::f32::MIN
-        };
-
-        let metadata = FITSMetaData {
-            blank,
-            bscale,
-            bzero,
-        };
-        RetrievedImageType::FITSImage { image, metadata }
+            None
+        }
     }
 }
 

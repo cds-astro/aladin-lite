@@ -20,34 +20,33 @@ impl<'a> PrimaryHeader<'a> {
         while !end {
             let (input_next, card) = parse_card(input)?;
             input = input_next;
-            if card == FITSHeaderKeyword::End {
-                // Do not push the END keyword to the cards
-                end = true;
-            } else {
-                let key = match card {
-                    FITSHeaderKeyword::Simple => {
-                        simple = true;
-                        "SIMPLE"
-                    }
-                    FITSHeaderKeyword::Bitpix(_) => {
-                        bitpix = true;
-                        "BITPIX"
-                    }
-                    FITSHeaderKeyword::Naxis(_) => {
-                        naxis = true;
-                        "NAXIS"
-                    },
-                    FITSHeaderKeyword::Blank(_) => "BLANK",
-                    FITSHeaderKeyword::NaxisSize { name, .. } => name,
-                    FITSHeaderKeyword::Comment(_) => "COMMENT",
-                    FITSHeaderKeyword::History(_) => "HISTORY",
-                    FITSHeaderKeyword::Other { name, .. } => std::str::from_utf8(name).unwrap(),
-                    _ => unreachable!(),
-                };
 
-                cards.push((key, card));
-                keys.insert(key);
-            }
+            let key = match card {
+                FITSHeaderKeyword::Simple => {
+                    simple = true;
+                    "SIMPLE"
+                }
+                FITSHeaderKeyword::Bitpix(_) => {
+                    bitpix = true;
+                    "BITPIX"
+                }
+                FITSHeaderKeyword::Naxis(_) => {
+                    naxis = true;
+                    "NAXIS"
+                },
+                FITSHeaderKeyword::Blank(_) => "BLANK",
+                FITSHeaderKeyword::NaxisSize { name, .. } => name,
+                FITSHeaderKeyword::Comment(_) => "COMMENT",
+                FITSHeaderKeyword::History(_) => "HISTORY",
+                FITSHeaderKeyword::Other { name, .. } => std::str::from_utf8(name).unwrap(),
+                FITSHeaderKeyword::End => {
+                    end = true;
+                    continue;
+                }
+            };
+
+            cards.push((key, card));
+            keys.insert(key);
         }
         use std::borrow::Cow;
         // Check mandatory keys are present
@@ -68,13 +67,12 @@ impl<'a> PrimaryHeader<'a> {
                         return Err(Error::MandatoryKeywordMissing(key.into()));
                     }
                 }
+
+                let header = Self { cards, keys };
+                Ok((input, header))
             } else {
-                unreachable!();
+                Err(Error::MandatoryKeywordMissing("NAXISM".into()))
             }
-
-            let header = Self { cards, keys };
-
-            Ok((input, header))
         }
     }
 

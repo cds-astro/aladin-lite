@@ -298,4 +298,20 @@ mod tests {
             };
         }
     }
+    #[test]
+    fn test_fits_tile8() {
+        use std::fs::File;
+        use crate::DataType;
+        let  f  = File::open("misc/Npix44108.fits").unwrap();
+        let  bytes: Result<Vec<_>, _> =  f.bytes().collect();
+        let  buf  =  bytes.unwrap();
+        let  Fits { data, .. } =  Fits::from_bytes_slice(&buf).unwrap();
+        
+        match data {
+            DataType::F32(v) => {
+                println!("{:?}", v);
+            },
+            _ => unreachable!()
+        };
+    }
 }

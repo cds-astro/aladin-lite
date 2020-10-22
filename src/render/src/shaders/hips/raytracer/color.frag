@@ -37,12 +37,12 @@ uniform float opacity;
 
 TileColor get_tile_color(vec3 pos, int depth) {
     // Get the radec
-    float ra = atan(pos.x, pos.z);
+    /*float ra = atan(pos.x, pos.z);
     float dec = atan(pos.y, length(pos.xz));
     vec2 radec = vec2(ra, dec);
+    HashDxDy result = hash_with_dxdy2(depth, radec);*/
 
-    //HashDxDy result = hash_with_dxdy(depth, pos.zxy);
-    HashDxDy result = hash_with_dxdy2(depth, radec);
+    HashDxDy result = hash_with_dxdy(depth, pos.zxy);
 
     int idx = result.idx;
     //int uniq = (1 << ((int(depth) + 1) << 1)) + int(idx);

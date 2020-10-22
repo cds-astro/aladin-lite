@@ -353,7 +353,7 @@ function update() {
     useC1 = useC2 = useC3 = useC4 = false;
     if (c1HiPS.length>0) {
 		c1HiPS = hipsesDict[c1HiPS];
-		hipsComponents.push({
+        let hipsComponent = {
             properties: {
 		        url: c1HiPS.hips_service_url,
 		        maxOrder: parseInt(c1HiPS.hips_order),
@@ -375,7 +375,9 @@ function update() {
 			        transfer: stretch_c1
 		        }
 	        }
-        });
+        };
+        console.log('HIPS COMPONENT', hipsComponent)
+		hipsComponents.push(hipsComponent);
 
         useC1 = true;
     }

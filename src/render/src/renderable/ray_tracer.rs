@@ -168,9 +168,9 @@ impl RayTracer {
     }
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
-        shader.attach_uniform("ang2pixd[0]", &self.ang2pix[0])
+        /*shader.attach_uniform("ang2pixd[0]", &self.ang2pix[0])
             .attach_uniform("ang2pixd[1]", &self.ang2pix[1])
-            .attach_uniform("ang2pixd[2]", &self.ang2pix[2]);
+            .attach_uniform("ang2pixd[2]", &self.ang2pix[2]);*/
 
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINE_STRIP,

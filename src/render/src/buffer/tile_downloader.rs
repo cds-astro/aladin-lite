@@ -246,8 +246,11 @@ impl TileDownloader {
                                     .get_textures()
                                     .config();
 
-                                let image = req.get_image(config.get_tile_size(), &config.format());
-                                TileResolved::Found { image, time_req }
+                                if let Some(image) = req.get_image(config.get_tile_size(), &config.format()) {
+                                    TileResolved::Found { image, time_req }
+                                } else {
+                                    TileResolved::Missing { time_req }
+                                }
                             },
                             _ => unreachable!()
                         };

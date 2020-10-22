@@ -165,7 +165,6 @@ export let Aladin = (function () {
 
 
         var location = new Location(locationDiv.find('.aladin-location-text'));
-        console.log("kjskdjsff3")
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
@@ -301,7 +300,6 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-        console.log("SURVEYYYY: ", options.survey)
         
         /*let webglAPI = await import('../render/pkg/');
         console.log('webgl imported');
@@ -1718,7 +1716,6 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
 
 //A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
 A.init = Promise.all([import('../render/pkg/')]).then(async (values) => {
-    console.log(values);
     //let [hpxAPI, webglAPI] = values;
     let [webglAPI] = values;
 

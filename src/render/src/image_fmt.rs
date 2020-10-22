@@ -21,7 +21,6 @@ impl JPG {
             .cycle()
             .take(size_buf)
             .collect::<Vec<_>>();
-        crate::log(&format!("length pixels {}", pixels.len()));
 
         TileArrayBuffer::<ArrayU8>::new(&pixels, width, num_channels)
     }

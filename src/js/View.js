@@ -403,8 +403,7 @@ export let View = (function() {
         // if zoom factor < 1, we view 180°
         var fov;
         if (view.zoomFactor<1) {
-            console.log(view.fov_limit)
-            fov = view.fov_limit;
+            fov = 180.0;
             //fov = 360;
         }
         else {
@@ -420,7 +419,7 @@ export let View = (function() {
             fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
         }
 
-        fov = Math.min(view.fov_limit, fov);
+        fov = Math.min(180.0, fov);
         
         return fov;
     }
@@ -901,7 +900,6 @@ export let View = (function() {
         // initial draw
         view.fov = computeFov(view);
         updateFovDiv(view);
-        console.log("first DRAW")
         //view.redraw();
     };
 
@@ -1565,7 +1563,7 @@ export let View = (function() {
     
     View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(this.fov_limit/Math.pow(1.15, level), this.projectionMethod);
+            return AladinUtils.getZoomFactorForAngle(180.0/Math.pow(1.15, level), this.projectionMethod);
         }
         else {
             return 1 + 0.1*level;
@@ -1581,10 +1579,10 @@ export let View = (function() {
     };*/
     
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || (fovDegrees>this.fov_limit && ! this.aladin.options.allowFullZoomout)) {
+        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
-        var zoomLevel = Math.log(this.fov_limit/fovDegrees)/Math.log(1.15);
+        var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
         this.setZoomLevel(zoomLevel);
     };
     
@@ -1623,12 +1621,12 @@ export let View = (function() {
         
         var oldFov = this.fov;
         this.fov = computeFov(this);
-        console.log(this.zoomLevel, this.fov);
+        //console.log(this.zoomLevel, this.fov);
 
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
         } else {
-            console.log("FOV, ", this.fov / this.zoomFactor);
+            //console.log("FOV, ", this.fov / this.zoomFactor);
 
             // zoom factor
             this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
@@ -1758,12 +1756,10 @@ export let View = (function() {
         if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
             this.untaintCanvases();
         }
-        console.log('type imageSurvey', typeof imageSurvey);
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
             // imageSurvey is an ID
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyProperties) => {
-                console.log('set HiPS info', imageSurveyProperties)
                 //this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
             });
             if (newImageSurvey) {
@@ -1877,12 +1873,10 @@ export let View = (function() {
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1];
         }
-        console.log("point to ", ra, dec)
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         if (this.fov > 30.0 || options.forceAnimation) {
             this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
         } else {
-            console.log("set center", ra, dec)
             this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         }
         

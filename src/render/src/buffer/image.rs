@@ -640,7 +640,6 @@ impl ImageRequest for FITSImageRequest {
             self.image.response().unwrap().as_ref()
         );
         let bytes = &array_buf.to_vec();
-        //crate::log(&format!("bytes {:?}", bytes));
         if let Ok(Fits { data, header }) = Fits::from_bytes_slice(bytes) {
             let num_channels = format.get_num_channels() as i32;
 

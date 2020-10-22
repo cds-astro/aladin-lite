@@ -203,7 +203,6 @@ impl Texture2D {
 
 impl Drop for Texture2D {
     fn drop(&mut self) {
-        unsafe { crate::log("Delete texture!"); }
         self.gl.delete_texture(self.texture.as_ref());
     }
 }

@@ -685,7 +685,7 @@ const GRID_STEPS: &'static [f64] = &[
     0.0000000000048481366
 ];
 
-const NUM_LINES_LATITUDES: usize = 5;
+const NUM_LINES_LATITUDES: usize = 6;
 fn lines<P: Projection>(camera: &CameraViewPort, ctx2d: &CanvasRenderingContext2d) -> Vec<GridLine> {
     let bbox = camera.get_bounding_box();
 

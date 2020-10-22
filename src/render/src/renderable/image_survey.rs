@@ -821,7 +821,6 @@ impl ImageSurvey {
 
 impl Drop for ImageSurvey {
     fn drop(&mut self) {
-        crate::log("drop image survey");
         drop(&mut self.textures);
 
         // Drop the vertex arrays
@@ -840,7 +839,6 @@ use std::borrow::Cow;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(&mut self, raytracer: &RayTracer, shaders: &mut ShaderManager, camera: &CameraViewPort, color: &Color, opacity: f32) {
         if !self.textures.is_ready() {
-            crate::log("not ready");
             // Do not render while the 12 base cell textures
             // are not loaded
             return;

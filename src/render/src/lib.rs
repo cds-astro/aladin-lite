@@ -154,7 +154,6 @@ impl App {
             color: HiPSColor::Color
         };
 
-        log("shaders compiled");
         //panic!(format!("{:?}", aa));
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 
@@ -1326,7 +1325,7 @@ impl WebClient {
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
 
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
-        crate::log(&format!("simple HiPS: {:?}", hips));
+        //crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_simple_hips(&mut self.app, hips)?;
 
@@ -1336,7 +1335,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setCompositeHiPS)]
     pub fn set_composite_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         let hips: CompositeHiPS = hips.into_serde().map_err(|e| e.to_string())?;
-        crate::log(&format!("Composite HiPS: {:?}", hips));
+        //crate::log(&format!("Composite HiPS: {:?}", hips));
 
         self.projection.set_composite_hips(&mut self.app, hips)?;
 

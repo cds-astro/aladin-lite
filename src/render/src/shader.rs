@@ -303,7 +303,7 @@ impl ShaderManager {
             })
             .collect::<HashMap<_, _>>();
         
-        crate::log(&format!("src {:?}", src));
+        //crate::log(&format!("src {:?}", src));
         /*let mut manager = ShaderManager(HashMap::new());
         for shader_src in shaders_src {
             let name = shader_src.name;

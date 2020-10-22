@@ -165,7 +165,7 @@ $( document ).ready(function() {
             hipsesDict[id] = hips;
             hipsesArray.push(hips);
         }
-		console.log(hipsesDict);
+		//console.log(hipsesDict);
         init();
     });
 });
@@ -496,7 +496,6 @@ $('.slider_tf').on('keyup', function(event) {
 
 
     A.init.then(() => {
-        console.log("then of init")
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
 

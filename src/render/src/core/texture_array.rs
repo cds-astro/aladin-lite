@@ -254,7 +254,6 @@ impl Texture2DArray {
 
 /*impl Drop for Texture2DArray {
     fn drop(&mut self) {
-        unsafe { crate::log(&"Delete texture array!"); }
         //self.gl.active_texture(self.idx_texture_unit);
         //self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D_ARRAY, None);
         self.gl.delete_texture(self.texture.as_ref());

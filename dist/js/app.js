@@ -1,6 +1,5 @@
     let aladin;
     A.init.then(() => {
-        console.log("then of init")
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {showSimbadPointerControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false, survey: 'CDS/P/2MASS/color'});
         //aladin.setImageSurvey('CDS/P/Coronelli');

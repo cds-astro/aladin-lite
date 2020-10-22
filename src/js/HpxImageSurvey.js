@@ -65,10 +65,7 @@ export let HpxImageSurvey = (function() {
             this.rootUrl = this.rootUrl.replace('http://', 'https://');
         }
 
-        console.log("URL: ", rootURL)
         HiPSDefinition.fromURL(this.rootUrl, (hipsDefinition) => {
-            console.log("hips def ,", hipsDefinition)
-
             this.FromHiPSDefinition(hipsDefinition, options);
 
             if (callback) {
@@ -188,7 +185,6 @@ export let HpxImageSurvey = (function() {
                 "bitpix": this.bitpix,
                 "isColor": this.isColor
             };
-            console.log("insert new image survey info: ", imageSurveyInfo);
 
             HpxImageSurvey.SURVEYS.push(imageSurveyInfo);
         } else {
@@ -202,7 +198,6 @@ export let HpxImageSurvey = (function() {
     
     HpxImageSurvey.prototype.getSurveyInfo = function() {
         var surveys = HpxImageSurvey.getAvailableSurveys();
-        console.log("SURVEYS", surveys, this.id)
         for (var i=0; i < surveys.length; i++) {
             if (surveys[i].id==this.id) {
                 return surveys[i];

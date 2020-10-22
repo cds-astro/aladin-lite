@@ -614,7 +614,7 @@ impl ImageSurvey {
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
         let conf = textures.config();
-        let view = HEALPixCellsInView::new(conf.get_texture_size(), conf.get_max_depth(), camera);
+        let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
 
         let gl = gl.clone();
 
@@ -782,10 +782,10 @@ impl ImageSurvey {
     }
 
     fn refresh_view(&mut self, camera: &CameraViewPort) {
-        let texture_size = self.textures.config().get_texture_size();
+        let tile_size = self.textures.config().get_tile_size();
         let max_depth = self.textures.config().get_max_depth();
 
-        self.view.refresh_cells(texture_size, max_depth, camera);
+        self.view.refresh_cells(tile_size, max_depth, camera);
     }
 
     #[inline]
@@ -1328,7 +1328,7 @@ impl ImageSurveys {
                                 textures.config.scale = metadata.bscale;
                                 textures.config.offset = metadata.bzero;
                                 // Update the blank textures
-                                textures.config.set_black_tile_value(blank);
+                                textures.config.set_black_tile_value(metadata.bscale*blank + metadata.bzero);
     
                                 textures.push::<TileArrayBufferImage>(tile, image, time_req);
                             },

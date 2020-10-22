@@ -103,13 +103,13 @@ impl RayTracer {
                 "ang2pixd0",
                 &resources.get_filename("ang2pixd0").unwrap(),
                 &[
-                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
-                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
+                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
+                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
                     
                     // Prevents s-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
                     // Prevents t-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
                 ],
                 FormatImageType::PNG
             ),
@@ -118,13 +118,13 @@ impl RayTracer {
                 "ang2pixd1",
                 &resources.get_filename("ang2pixd1").unwrap(),
                 &[
-                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
-                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
+                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
+                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
                     
                     // Prevents s-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
                     // Prevents t-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
                 ],
                 FormatImageType::PNG
             ),

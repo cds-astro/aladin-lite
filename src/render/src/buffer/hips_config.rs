@@ -11,6 +11,7 @@ struct TileConfig {
 #[derive(Debug)]
 pub enum TileArrayBufferImage {
     F32(TileArrayBuffer<ArrayF32>),
+    F64(TileArrayBuffer<ArrayF64>),
     U8(TileArrayBuffer<ArrayU8>),
     I16(TileArrayBuffer<ArrayI16>),
     I32(TileArrayBuffer<ArrayI32>),
@@ -20,7 +21,7 @@ use super::TileArrayBuffer;
 use std::rc::Rc;
 
 use crate::WebGl2Context;
-use super::{ArrayU8, ArrayF32, ArrayI32, ArrayI16};
+use super::{ArrayU8, ArrayF32, ArrayF64, ArrayI32, ArrayI16};
 use crate::image_fmt::{PNG, JPG, FITS};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let num_channels = format.get_num_channels() as i32;
@@ -95,6 +96,7 @@ pub struct HiPSConfig {
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
+    max_depth_tile: u8,
     max_depth_texture: u8,
     num_textures_by_side_slice: i32,
     num_textures_by_slice: i32,
@@ -208,6 +210,7 @@ impl HiPSConfig {
             num_tiles_per_texture,
             // Max depth of the current HiPS tiles
             max_depth_texture,
+            max_depth_tile,
             num_textures_by_side_slice,
             num_textures_by_slice,
             num_slices,
@@ -273,6 +276,11 @@ impl HiPSConfig {
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
     }
+
+    /*#[inline]
+    pub fn get_max_tile_depth(&self) -> u8 {
+        self.max_depth_tile
+    }*/
 
     #[inline]
     pub fn num_textures(&self) -> usize {

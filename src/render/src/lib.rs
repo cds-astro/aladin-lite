@@ -244,31 +244,33 @@ impl App {
                 let textures = survey.get_textures();
                 let view = survey.get_view();
     
-                let cells_in_fov = view.get_cells();
+                let texture_cells_in_fov = view.get_cells();
     
-                for cell in cells_in_fov.iter() {
-                    let already_available = textures.contains_tile(cell);
-                    let is_cell_new = view.is_new(cell);
+                for texture_cell in texture_cells_in_fov.iter() {
+                    for cell in texture_cell.get_tile_cells(&textures.config()) {
+                        let already_available = textures.contains_tile(&cell);
+                        let is_cell_new = view.is_new(&cell);
+        
+                        if already_available {
+                            // Remove and append the texture with an updated
+                            // time_request
+                            if is_cell_new {
+                                // New cells are 
+                                self.time_start_blending = Time::now();
+                            }
+                            already_available_cells.insert((cell, is_cell_new));
+                        } else {
+                            // Submit the request to the buffer
+                            let format = textures.config().format();
+                            let root_url = survey_id.clone();
+                            let tile = Tile {
+                                root_url,
+                                format,
+                                cell
+                            };
     
-                    if already_available {
-                        // Remove and append the texture with an updated
-                        // time_request
-                        if is_cell_new {
-                            // New cells are 
-                            self.time_start_blending = Time::now();
+                            self.downloader.request_tile(tile);
                         }
-                        already_available_cells.insert((*cell, is_cell_new));
-                    } else {
-                        // Submit the request to the buffer
-                        let format = textures.config().format();
-                        let root_url = survey_id.clone();
-                        let tile = Tile {
-                            root_url,
-                            format,
-                            cell: *cell
-                        };
-
-                        self.downloader.request_tile(tile);
                     }
                 }
 
@@ -394,7 +396,6 @@ impl App {
 
     fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
         if self.rendering {
-
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -436,16 +437,14 @@ impl App {
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
         let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
-        let textures = survey.get_textures();
-
-        let format = textures.config().format();
-        let root_url = survey.get_id().to_string();
+        let id = survey.get_textures().config().root_url.clone();
 
         let new_survey = self.surveys.add_simple_survey(survey, color, 0);
         
         if new_survey {
             self.downloader.clear_requests();
-            self.downloader.request_base_tiles(&root_url, &format);
+            let config = self.surveys.get(&id).unwrap().get_textures().config();
+            self.downloader.request_base_tiles(&config);
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
@@ -455,16 +454,14 @@ impl App {
     }
     fn set_overlay_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
         let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
-        let textures = survey.get_textures();
-
-        let format = textures.config().format();
-        let root_url = survey.get_id().to_string();
+        let id = survey.get_textures().config().root_url.clone();
 
         let new_survey = self.surveys.add_simple_survey(survey, color, 1);
         
         if new_survey {
             self.downloader.clear_requests();
-            self.downloader.request_base_tiles(&root_url, &format);
+            let config = self.surveys.get(&id).unwrap().get_textures().config();
+            self.downloader.request_base_tiles(&config);
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
@@ -499,8 +496,8 @@ impl App {
         if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
             for id in new_survey_ids.iter() {
-                let format = self.surveys.get(id).unwrap().get_textures().config.format();
-                self.downloader.request_base_tiles(id, &format);
+                let config = &self.surveys.get(id).unwrap().get_textures().config;
+                self.downloader.request_base_tiles(config);
             }
             // Once its added, request its tiles
             self.look_for_new_tiles();
@@ -531,8 +528,8 @@ impl App {
         if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
             for id in new_survey_ids.iter() {
-                let format = self.surveys.get(id).unwrap().get_textures().config.format();
-                self.downloader.request_base_tiles(id, &format);
+                let config = &self.surveys.get(id).unwrap().get_textures().config;
+                self.downloader.request_base_tiles(config);
             }
             // Once its added, request its tiles
             self.look_for_new_tiles();
@@ -647,8 +644,8 @@ impl App {
         //self.grid.set_alpha(alpha);
     }
 
-    pub fn enable_grid(&mut self) {
-        self.grid.enable();
+    pub fn enable_grid<P: Projection>(&mut self) {
+        self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
     pub fn disable_grid(&mut self) {
@@ -1032,7 +1029,12 @@ impl ProjectionType {
 
     pub fn enable_grid(&mut self, app: &mut App) {
         match self {
-            _ => app.enable_grid(),
+            ProjectionType::Aitoff => app.enable_grid::<Aitoff>(),
+            ProjectionType::MollWeide => app.enable_grid::<Mollweide>(),
+            ProjectionType::Ortho => app.enable_grid::<Orthographic>(),
+            ProjectionType::Arc => app.enable_grid::<AzimuthalEquidistant>(),
+            ProjectionType::Gnomonic => app.enable_grid::<Gnomonic>(),
+            ProjectionType::Mercator => app.enable_grid::<Mercator>(),
         };
     }
 

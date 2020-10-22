@@ -461,3 +461,26 @@ galex = {
 		}
 	},
 }
+// simbad tile
+simbad = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/ancillary/simbad-biblio/2015",
+
+		maxOrder: 3,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 64,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.02017,
+		maxCutout: 26.09,
+	},
+	color: {
+		Grayscale2Colormap: {
+			colormap: "RedTemperature",
+			transfer: "asinh"
+		}
+	},
+}

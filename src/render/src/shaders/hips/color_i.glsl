@@ -24,8 +24,10 @@ float get_pixels(vec3 uv) {
         return float(texture(tex[0], uv.xy).r);
     } else if (idx_texture == 1) {
         return float(texture(tex[1], uv.xy).r);
-    } else {
+    } else if (idx_texture == 2) {
         return float(texture(tex[2], uv.xy).r);
+    } else {
+        return 0.1;
     }
 }
 

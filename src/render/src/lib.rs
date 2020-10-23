@@ -154,7 +154,6 @@ impl App {
             color: HiPSColor::Color
         };
 
-        //panic!(format!("{:?}", aa));
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 
         // The tile buffer responsible for the tile requests
@@ -172,23 +171,9 @@ impl App {
 
         // Text 
         let font = myfont::FONT_CONFIG;
-        //let text_manager = TextManager::new(&gl, font, &mut shaders);
-        /*let _text = TextUponSphere::new(
-            String::from("Aladin-Lite"),
-            //&Vector2::new(300_f32, 100_f32),
-            &Vector4::new(0.0, 1.0, 0.0, 1.0),
-            &gl,
-            &_text_manager,
-            &shaders,
-        );*/
 
         // Grid definition
-        //let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders);
-        // Finite State Machines definitions
-        /*let user_move_fsm = UserMoveSphere::init();
-        let user_zoom_fsm = UserZoom::init();
-        let move_fsm = MoveSphere::init();*/
 
         // Variable storing the location to move to
         let move_animation = None;
@@ -213,12 +198,6 @@ impl App {
             grid,
             // The catalog renderable
             manager,
-            //text_manager,
-            
-            // Finite state machines,
-            /*user_move_fsm,
-            user_zoom_fsm,
-            move_fsm,*/
 
             exec,
             resources,
@@ -290,7 +269,7 @@ impl App {
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.exec.borrow_mut().run(dt.0 * 0.3_f32);
+        let results = self.exec.borrow_mut().run(7.0);
         self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been
@@ -326,11 +305,6 @@ impl App {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
-        // Run the FSMs
-        //self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        //self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        //self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-
         // Check if there is an move animation to do
         if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim, goal_pos} ) = self.move_animation {
             let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
@@ -357,9 +331,6 @@ impl App {
             }
         }
 
-        // Update the grid in consequence
-        //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.camera, &self.shaders);
-        //self.text.update_from_camera::<P>(&self.camera);
         {
             // Newly available tiles must lead to
             if is_there_new_available_tiles {
@@ -406,28 +377,15 @@ impl App {
             self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
             //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
             // Draw the catalog
-            /*self.manager.draw::<P>(
+            self.manager.draw::<P>(
                 &self.gl,
                 &mut self.shaders,
                 &self.camera
-            );*/
+            );
 
             // Reset the flags about the user action
             self.camera.reset();
-            
-            // Draw the grid
-            /*self.grid.draw::<P>(
-                &self.gl,
-                shaders,
-                camera,
-                &self.text_manager
-            );*/
 
-            /*self.text_manager.draw(
-                &self.gl,
-                shaders,
-                camera
-            );*/
             self.gl.disable(WebGl2RenderingContext::BLEND);
         }
 
@@ -573,7 +531,7 @@ impl App {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
-            let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);
+            let mut stream = async_task::ParseTable::<[f32; 2]>::new(table);
             let mut results: Vec<Source> = vec![];
         
             while let Some(item) = stream.next().await {
@@ -1514,6 +1472,7 @@ impl WebClient {
 
     /// CATALOG INTERFACE METHODS
     /// Add new catalog
+    #[wasm_bindgen(js_name = addCatalog)]
     pub fn add_catalog(&mut self, name_catalog: String, data: JsValue) -> Result<(), JsValue> {
         self.projection.add_catalog(&mut self.app, name_catalog, data);
 

@@ -393,7 +393,7 @@ impl Catalog {
         let HEALPixCells {ref depth, ref cells} = cells;
         let mut current_sources = vec![];
 
-        let depth_kernel = (depth + 6).min(7);
+        let depth_kernel = 7;
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
         
@@ -530,7 +530,7 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogArcVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()
@@ -541,7 +541,7 @@ impl CatalogShaderProjection for Mercator {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogMercatorVS"),
+                Cow::Borrowed("CatalogMercatVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()
@@ -563,7 +563,7 @@ impl CatalogShaderProjection for Gnomonic {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogTanVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()

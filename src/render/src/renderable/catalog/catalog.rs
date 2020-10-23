@@ -17,10 +17,11 @@ impl SourceIndices {
             let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
 
             let ordering = idx1.partial_cmp(&idx2).unwrap();
-            match ordering {
+            /*match ordering {
                 std::cmp::Ordering::Equal => s1.mag.partial_cmp(&s2.mag).unwrap(),
                 _ => ordering
-            }
+            }*/
+            ordering
         });
 
         let mut healpix_idx: Vec<Option<Range<u32>>> = vec![None; 196608];

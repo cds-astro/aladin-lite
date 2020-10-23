@@ -188,7 +188,7 @@ $( document ).ready(function() {
         init();
     });
     $.ajax({
-        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D5000000%26%26nb_rows>%3D500000&get=record&fmt=json',
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D5000000%26%26nb_rows>%3D50000&get=record&fmt=json',
     }).done(function(catalogs) {
         for (var k = 0; k < catalogs.length; k++) {
             var cat_id = catalogs[k].ID;

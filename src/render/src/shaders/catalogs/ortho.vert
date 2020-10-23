@@ -14,17 +14,15 @@ uniform vec2 ndc_to_clip;
 uniform float clip_zoom_factor;
 uniform vec2 kernel_size;
 
-const float PI = 3.1415926535897932384626433832795f;
-
 out vec2 out_uv;
 out vec3 out_p;
 
-vec2 world2clip_orthographic(vec3 p) {
-    return vec2(-p.x, p.y);
-}
+@import ../hips/projection;
 
 void main() {
     vec3 p = vec3(model * vec4(center, 1.0f));
+    p = check_inversed_longitude(p);
+
     vec2 center_pos_clip_space = world2clip_orthographic(p);
 
     vec2 pos_clip_space = center_pos_clip_space;

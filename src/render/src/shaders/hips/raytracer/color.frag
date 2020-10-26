@@ -103,7 +103,7 @@ void main() {
 
     // Get the HEALPix cell idx and the uv in the texture
 
-    TileColor current_tile = get_tile_color(frag_pos, current_depth);
+    TileColor current_tile = get_tile_color(frag_pos, 0);
     out_frag_color = vec4(current_tile.color, opacity);
 
     //if (!current_tile.found) {

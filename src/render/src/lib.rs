@@ -6,6 +6,7 @@ extern crate num;
 extern crate task_async_executor;
 extern crate console_error_panic_hook;
 extern crate fitsreader;
+extern crate rand;
 use std::panic;
 
 #[macro_use]

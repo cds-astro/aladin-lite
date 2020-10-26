@@ -237,6 +237,7 @@ pub struct Catalog {
     sources: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
     max_density: f32,
+    rng: rand::rngs::ThreadRng
 }
 
 use crate::{
@@ -251,6 +252,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 use crate::HiPSConfig;
 use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
 use crate::renderable::{HEALPixCells, HEALPixCellsInView};
+
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -260,6 +262,7 @@ impl Catalog {
         view: &HEALPixCellsInView,
         camera: &CameraViewPort,
     ) -> Catalog {
+        let mut rng = rand::thread_rng();
         let alpha = 1_f32;
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
@@ -318,7 +321,8 @@ impl Catalog {
             indices,
             sources,
             vertex_array_object_catalog,
-            max_density
+            max_density,
+            rng
         };
         catalog.set_max_density::<P>(view, camera);
         catalog
@@ -393,29 +397,31 @@ impl Catalog {
         let HEALPixCells {ref depth, ref cells} = cells;
         let mut current_sources = vec![];
 
-        let depth_kernel = 7;
+        //let depth_kernel = 7;
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-        
-        let d_kernel = depth_from_pixels_on_screen(camera, 32);
-        self.max_density = self.compute_max_density::<P>(d_kernel);
+        crate::log(&format!("num sources FOV: {:?} {:?}", depth, num_sources_in_fov));
+        let d_kernel = depth_from_pixels_on_screen(camera, 32).min(7.0);
+        crate::log(&format!("depth kernel: {:?}", d_kernel));
+
+        self.max_density = self.compute_max_density::<P>(7.0);
         //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
             let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
-            self.max_density *= d*d;
+            self.max_density *= d;
         }
         // depth < 7
         for cell in cells {
-            let delta_depth = (depth_kernel as i8 - cell.depth() as i8).max(0);
+            let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
 
             for c in cell.get_children_cells(delta_depth as u8) {
                 // Define the total number of sources being in this kernel depth tile
                 let sources_in_cell = self.indices.get_source_indices(&c);
                 let num_sources_in_kernel_cell = (sources_in_cell.end - sources_in_cell.start) as usize;
                 if num_sources_in_kernel_cell > 0 {
-                    let num_sources = ((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG;
+                    let num_sources = (((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG).max(1.0);
 
-                    let sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize);
+                    let sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize, 0);
                     current_sources.extend(sources);
                 }
             }

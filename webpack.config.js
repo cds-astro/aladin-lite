@@ -23,7 +23,7 @@ module.exports = {
         new webpack.ProvidePlugin({
           TextDecoder: ['text-encoding', 'TextDecoder'],
           TextEncoder: ['text-encoding', 'TextEncoder']
-        })
+        })  
     ],
     devServer:{
         contentBase: 'dist'
@@ -44,7 +44,7 @@ module.exports = {
             },
         ],
     },
-    mode: 'development',
-    //mode: 'production',
+    //mode: 'development',
+    mode: 'production',
     devtool: 'source-map'
 };

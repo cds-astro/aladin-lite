@@ -95,6 +95,7 @@ struct App {
     resources: Resources,
 
     move_animation: Option<MoveAnimation>,
+    zoom_animation: Option<ZoomAnimation>,
     tasks_finished: bool,
 }
 
@@ -117,6 +118,11 @@ struct MoveAnimation {
     goal_anim_rot: Rotation<f32>,
     time_start_anim: Time,
     goal_pos: Vector3<f32>,
+}
+struct ZoomAnimation {
+    time_start_anim: Time,
+    start_fov: f32,
+    goal_fov: f32,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -178,6 +184,7 @@ impl App {
 
         // Variable storing the location to move to
         let move_animation = None;
+        let zoom_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
         let start_render_time = Time::now();
@@ -204,6 +211,7 @@ impl App {
             resources,
 
             move_animation,
+            zoom_animation,
 
             tasks_finished,
         };
@@ -270,7 +278,7 @@ impl App {
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.exec.borrow_mut().run(7.0);
+        let results = self.exec.borrow_mut().run(2.0);
         self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been
@@ -317,7 +325,7 @@ impl App {
             // where: 
             // * k is the stiffness of the ressort
             // * m is its mass
-            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * ((-5_f32 * t).exp());
+            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * (-5_f32 * t).exp();
             let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
     
             self.camera.set_rotation::<P>(&p);
@@ -329,6 +337,32 @@ impl App {
             let thresh: Angle<f32> = ArcSec(2_f32).into();
             if err < thresh {
                 self.move_animation = None;
+            }
+        }
+
+        // Check if there is an zoom animation to do
+        if let Some(ZoomAnimation {time_start_anim, start_fov, goal_fov} ) = self.zoom_animation {
+            let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
+        
+            // Undamped angular frequency of the oscillator
+            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
+            //
+            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
+            // where: 
+            // * k is the stiffness of the ressort
+            // * m is its mass
+            let alpha = (1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp());
+            let alpha = alpha * alpha;
+            let fov = start_fov*(1_f32 - alpha) + goal_fov*alpha;
+    
+            self.camera.set_aperture::<P>(Angle(fov));
+            self.look_for_new_tiles();
+
+            // Animation stop criteria
+            let err = (fov - goal_fov).abs();
+            let thresh = 1e-5;
+            if err < thresh {
+                self.zoom_animation = None;
             }
         }
 
@@ -608,6 +642,11 @@ impl App {
         self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
+    pub fn hide_grid_labels(&mut self) {
+        self.grid.hide_labels(&self.camera);
+        self.request_redraw = true;
+    }
+
     pub fn disable_grid(&mut self) {
         self.grid.disable(&self.camera);
         self.request_redraw = true;
@@ -652,6 +691,19 @@ impl App {
             start_anim_rot,
             goal_anim_rot,
             goal_pos: goal_pos.truncate(),
+        });
+    }
+
+    pub fn start_zooming_to<P: Projection>(&mut self, fov: f32) {
+        // Convert these positions to rotations
+        let start_fov = self.camera.get_aperture().0;
+        let goal_fov = fov;
+
+        // Set the moving animation object
+        self.zoom_animation = Some(ZoomAnimation {
+            time_start_anim: Time::now(),
+            start_fov,
+            goal_fov
         });
     }
 
@@ -980,6 +1032,17 @@ impl ProjectionType {
         };
     }
 
+    pub fn start_zooming_to(&mut self, app: &mut App, fov: f32) {
+        match self {
+            ProjectionType::Aitoff => app.start_zooming_to::<Aitoff>(fov),
+            ProjectionType::MollWeide => app.start_zooming_to::<Mollweide>(fov),
+            ProjectionType::Ortho => app.start_zooming_to::<Orthographic>(fov),
+            ProjectionType::Arc => app.start_zooming_to::<AzimuthalEquidistant>(fov),
+            ProjectionType::Gnomonic => app.start_zooming_to::<Gnomonic>(fov),
+            ProjectionType::Mercator => app.start_zooming_to::<Mercator>(fov),
+        };
+    }
+
     pub fn set_fov(&mut self, app: &mut App, fov: Angle<f32>) {
         match self {
             ProjectionType::Aitoff => app.set_fov::<Aitoff>(&fov),
@@ -1012,7 +1075,11 @@ impl ProjectionType {
             ProjectionType::Mercator => app.enable_grid::<Mercator>(),
         };
     }
-
+    pub fn hide_grid_labels(&mut self, app: &mut App) {
+        match self {
+            _ => app.hide_grid_labels(),
+        };
+    }
     pub fn disable_grid(&mut self, app: &mut App) {
         match self {
             _ => app.disable_grid(),
@@ -1381,6 +1448,14 @@ impl WebClient {
 
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = hideGridLabels)]
+    pub fn hide_grid_labels(&mut self) -> Result<(), JsValue> {
+        self.projection.hide_grid_labels(&mut self.app);
+
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = disableGrid)]
     pub fn disable_grid(&mut self) -> Result<(), JsValue> {
         self.projection.disable_grid(&mut self.app);
@@ -1447,6 +1522,16 @@ impl WebClient {
 
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = zoomToLocation)]
+    pub fn start_zooming_to(&mut self, fov: f32) -> Result<(), JsValue> {
+        let fov: Angle<f32> = ArcDeg(fov).into();
+
+        self.projection.start_zooming_to(&mut self.app, fov.0);
+
+        Ok(())
+    }
+
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {

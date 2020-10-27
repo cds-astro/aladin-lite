@@ -195,24 +195,28 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let HEALPixCells { mut depth, cells } = view.get_cells();
-        let cells = cells.into_iter()
-            .map(|&cell| {
-                let d = cell.depth();
-                if d > 7 {
-                    depth = 7;
-                    cell.ancestor(d - 7)
-                } else {
-                    depth = d;
-                    cell
-                }
-            })
-            // This will delete the doublons if there is
-            .collect::<HashSet<_>>();
+        let cells = if camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE { 
+            HEALPixCells::allsky(0)
+        } else {
+            let HEALPixCells { mut depth, cells } = view.get_cells();
+            let cells = cells.into_iter()
+                .map(|&cell| {
+                    let d = cell.depth();
+                    if d > 7 {
+                        depth = 7;
+                        cell.ancestor(d - 7)
+                    } else {
+                        depth = d;
+                        cell
+                    }
+                })
+                // This will delete the doublons if there is
+                .collect::<HashSet<_>>();
 
-        let cells = HEALPixCells {
-            cells,
-            depth
+            HEALPixCells {
+                cells,
+                depth
+            }
         };
 
         for catalog in self.catalogs.values_mut() {
@@ -434,7 +438,7 @@ impl Catalog {
 
         // Update the vertex buffer
         self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
-        crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));
+        //crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));
 
         self.vertex_array_object_catalog.bind_for_update()
             .update_instanced_array(0, VecData(&current_sources));

@@ -888,9 +888,8 @@ impl Draw for ImageSurvey {
         let new_cells_added = self.view.is_there_new_cells_added();
         let recompute_positions = new_cells_added;
         {
-            self.gl.bind_vertex_array(Some(&self.vao));
-
             let recompute_vertices = recompute_positions | self.textures.is_there_available_tiles() | camera.has_moved();
+            self.gl.bind_vertex_array(Some(&self.vao));
             if recompute_vertices {
                 self.set_vertices::<P>(camera);
             }

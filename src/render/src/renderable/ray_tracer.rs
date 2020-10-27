@@ -11,6 +11,7 @@ pub trait RayTracingProjection {
 }
 
 use crate::renderable::Triangulation;
+use crate::math::LonLat;
 fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraViewPort) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
@@ -19,9 +20,14 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraView
         .map(|pos_clip_space| {
             let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
 
+            let lonlat = pos_world_space.lonlat();
+
             vec![
                 pos_clip_space.x,
                 pos_clip_space.y,
+
+                lonlat.lon().0,
+                lonlat.lat().0,
                 
                 pos_world_space.x,
                 pos_world_space.y,
@@ -74,13 +80,17 @@ impl RayTracer {
             WebGl2RenderingContext::STATIC_DRAW
         );
 
-        // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
+        // layout (location = 0) in vec2 pos_clip_space;
+        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, (7 * mem::size_of::<f32>()) as i32, (0 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(0);
 
-        // layout (location = 1) in vec3 position;
-        gl.vertex_attrib_pointer_with_i32(1, 3, WebGl2RenderingContext::FLOAT, false, (5 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
+        // layout (location = 1) in vec2 lonlat;
+        gl.vertex_attrib_pointer_with_i32(1, 2, WebGl2RenderingContext::FLOAT, false, (7 * mem::size_of::<f32>()) as i32, (2 * mem::size_of::<f32>()) as i32);
         gl.enable_vertex_attrib_array(1);
+
+        // layout (location = 2) in vec3 pos_world_space;
+        gl.vertex_attrib_pointer_with_i32(2, 3, WebGl2RenderingContext::FLOAT, false, (7 * mem::size_of::<f32>()) as i32, (4 * mem::size_of::<f32>()) as i32);
+        gl.enable_vertex_attrib_array(2);
 
         let ebo = gl.create_buffer()
             .ok_or("failed to create buffer")
@@ -159,6 +169,28 @@ impl RayTracer {
         }
     }
 
+    /*pub fn send_textures(surveys: &ImageSurveys, shader: &ShaderBound<'a>) {
+        if self.is_ready() {
+            // Send the textures
+            let textures = self.get_allsky_textures();
+            let mut num_textures = 0;
+            for texture in textures.iter() {
+                if texture.is_available() {
+                    let texture_uniforms = TextureUniforms::new(
+                        texture,
+                        num_textures as i32
+                    );
+
+                    shader.attach_uniforms_from(&texture_uniforms);
+                    num_textures += 1;
+                }
+            }
+            num_textures += 1;
+            //shader.attach_uniform("num_textures", &(num_textures as i32));
+            shader.attach_uniforms_from(&self.config);
+        }
+    }*/
+
     pub fn bind(&self) {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
@@ -168,9 +200,7 @@ impl RayTracer {
     }
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
-        /*shader.attach_uniform("ang2pixd[0]", &self.ang2pix[0])
-            .attach_uniform("ang2pixd[1]", &self.ang2pix[1])
-            .attach_uniform("ang2pixd[2]", &self.ang2pix[2]);*/
+        shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
 
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINE_STRIP,

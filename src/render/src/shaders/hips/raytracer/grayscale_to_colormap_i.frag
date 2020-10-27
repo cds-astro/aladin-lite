@@ -1,6 +1,4 @@
 #version 300 es
-#pragma optionNV (unroll all)
-
 precision highp float;
 precision lowp sampler2D;
 precision lowp isampler2D;
@@ -8,6 +6,7 @@ precision highp int;
 
 in vec3 out_vert_pos;
 in vec2 pos_clip;
+in vec2 out_lonlat;
 
 out vec4 out_frag_color;
 
@@ -22,9 +21,8 @@ struct Tile {
 
 uniform int current_depth;
 
-uniform Tile textures_tiles[64];
+uniform Tile textures_tiles[12];
 
-uniform int num_textures;
 uniform float opacity;
 uniform float current_time; // current time in ms
 struct TileColor {
@@ -42,23 +40,23 @@ TileColor get_tile_color(vec3 pos) {
     float dec = atan(pos.y, length(pos.xz));
     vec2 radec = vec2(ra, dec);
     HashDxDy result = hash_with_dxdy2(depth, radec);*/
-
+    //HashDxDy result = hash_with_dxdy2(out_lonlat);
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
     //int uniq = (1 << ((int(depth) + 1) << 1)) + int(idx);
-    int uniq = 16 | idx;
+    //int uniq = 16 | idx;
 
     vec2 uv = vec2(result.dy, result.dx);
 
-    char a = 0;
-    char b = 11;
+    /*int a = 0;
+    int b = 11;
 
-    char i = 5;
+    int i = 5;
 
-    char h = 4;
+    int h = 4;
     // Binary search among the tile idx
-    for(char step = 0; step < h; step++) {
+    for(int step = 0; step < h; step++) {
         if (uniq == textures_tiles[i].uniq) {
             Tile tile = textures_tiles[i];
             if (tile.empty == 1) {
@@ -84,11 +82,28 @@ TileColor get_tile_color(vec3 pos) {
             a = i + 1;
         }
         i = (a + b) >> 1;
+    }*/
+
+    Tile tile = textures_tiles[idx];
+    if (tile.empty == 1) {
+        return TileColor(tile, vec3(0.0), true);
+    } else {
+        int idx_texture = tile.texture_idx >> 6;
+        int off = tile.texture_idx & 0x3F;
+        float idx_row = float(off >> 3); // in [0; 7]
+        float idx_col = float(off & 0x7); // in [0; 7]
+
+        vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
+        vec3 UV = vec3(offset, float(idx_texture));
+
+        vec3 color = colormap_f(get_grayscale_from_texture(UV)).rgb;
+
+        return TileColor(tile, color, true);
     }
 
     // code unreachable
-    Tile empty = Tile(0, -1, current_time, 1);
-    return TileColor(empty, vec3(0.f), false);
+    //Tile empty = Tile(0, -1, current_time, 1);
+    //return TileColor(empty, vec3(0.f), false);
 }
 
 const float duration = 500.f; // 500ms

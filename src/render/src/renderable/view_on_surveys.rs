@@ -316,7 +316,7 @@ impl HEALPixCellsInView {
 
         // Compute that depth
         let num_pixels = survey_tex_size;
-        let mut depth = depth_from_pixels_on_screen(camera, num_pixels).ceil() as u8;
+        let mut depth = depth_from_pixels_on_screen(camera, num_pixels).round() as u8;
         if depth > max_depth {
             depth = max_depth;
         }

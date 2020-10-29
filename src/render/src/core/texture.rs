@@ -46,7 +46,9 @@ pub struct Texture2D {
 
     data: TextureType,
 
-    pub format: FormatImageType,
+    pub format: u32,
+    pub internal_format: i32,
+    pub type_: u32
 }
 
 static mut NUM_TEXTURE_UNIT: u32 = WebGl2RenderingContext::TEXTURE0;
@@ -81,6 +83,9 @@ impl Texture2D {
                 unsafe { crate::log(&format!("Cannot load texture located at: {:?}", name)); }
             }) as Box<dyn Fn()>)
         };
+        let internal_format = format.get_internal_format();
+        let type_ = format.get_type();
+        let format = format.get_format();
 
         let onload = {
             let image = image.clone();
@@ -95,16 +100,14 @@ impl Texture2D {
                     gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
                 }
 
-                let internal_format = format.get_internal_format();
-                let _type = format.get_type();
-                let format_tex = format.get_format();
+
 
                 gl.tex_image_2d_with_u32_and_u32_and_html_image_element(
                     WebGl2RenderingContext::TEXTURE_2D,
                     0,
                     internal_format,
-                    format_tex,
-                    _type,
+                    format,
+                    type_,
                     &image
                 ).expect("Texture 2D");
                 //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
@@ -129,7 +132,9 @@ impl Texture2D {
             gl,
 
             data,
-            format
+            format,
+            internal_format,
+            type_
         }
     }
 
@@ -143,10 +148,9 @@ impl Texture2D {
         for (pname, param) in tex_params.iter() {
             gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
         }
-
         let internal_format = format.get_internal_format();
-        let _type = format.get_type();
-        let format_tex = format.get_format();
+        let type_ = format.get_type();
+        let format = format.get_format();
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
             WebGl2RenderingContext::TEXTURE_2D,
@@ -155,8 +159,8 @@ impl Texture2D {
             width,
             height,
             0,
-            format_tex,
-            _type,
+            format,
+            type_,
             None
         ).expect("Texture 2D");
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
@@ -171,7 +175,49 @@ impl Texture2D {
             gl,
 
             data,
-            format
+            internal_format,
+            format,
+            type_
+        }
+    }
+
+    pub fn create_empty_with_format(gl: &WebGl2Context, width: i32, height: i32, tex_params: &'static [(u32, u32)], internal_format: i32, format: u32, type_: u32) -> Texture2D {
+        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
+        let texture = gl.create_texture();
+
+        gl.active_texture(idx_texture_unit);
+        gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+
+        for (pname, param) in tex_params.iter() {
+            gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+        }
+
+        gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+            WebGl2RenderingContext::TEXTURE_2D,
+            0,
+            internal_format,
+            width,
+            height,
+            0,
+            format,
+            type_,
+            None
+        ).expect("Texture 2D");
+        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
+
+        let gl = gl.clone();
+        let data = TextureType::Bytes(width as u32, height as u32);
+
+        Texture2D {
+            texture,
+            idx_texture_unit,
+
+            gl,
+
+            data,
+            format,
+            internal_format,
+            type_
         }
     }
 
@@ -255,8 +301,8 @@ impl<'a> Texture2DBound<'a> {
     }*/
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(&self, dx: i32, dy: i32, image: &HtmlImageElement) {
-        let _type = self.texture_2d.format.get_type();
-        let format = self.texture_2d.format.get_format();
+        let _type = self.texture_2d.type_;
+        let format = self.texture_2d.format;
 
         self.texture_2d.gl.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
             WebGl2RenderingContext::TEXTURE_2D,
@@ -278,8 +324,8 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         image: Option<&js_sys::Object>
     ) {
-        let _type = self.texture_2d.format.get_type();
-        let format = self.texture_2d.format.get_format();
+        let _type = self.texture_2d.type_;
+        let format = self.texture_2d.format;
         self.texture_2d.gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
             WebGl2RenderingContext::TEXTURE_2D,
             0,
@@ -302,8 +348,8 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         pixels: Option<&[u8]>
     ) {
-        let _type = self.texture_2d.format.get_type();
-        let format = self.texture_2d.format.get_format();
+        let _type = self.texture_2d.type_;
+        let format = self.texture_2d.format;
         self.texture_2d.gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
             WebGl2RenderingContext::TEXTURE_2D,
             0,

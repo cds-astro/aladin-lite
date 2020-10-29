@@ -37,7 +37,7 @@ pub struct Manager {
     kernel_size: Vector2<f32>,
 }
 
-use crate::FormatImageType;
+use crate::{FormatImageType, image_fmt::FITS};
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
@@ -57,7 +57,7 @@ impl Manager {
         );
         //let _ext = gl.get_extension("EXT_color_buffer_float");
         // Initialize texture for framebuffer
-        let fbo_texture = Texture2D::create_empty(
+        let fbo_texture = Texture2D::create_empty_with_format(
             gl,
             768,
             768,
@@ -70,7 +70,9 @@ impl Manager {
                 // Prevents t-coordinate wrapping (repeating)
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
             ],
-            FormatImageType::PNG,
+            WebGl2RenderingContext::R8 as i32, // internal format
+            WebGl2RenderingContext::RED, // format
+            WebGl2RenderingContext::UNSIGNED_BYTE // type
         );
         // Create and bind the framebuffer
         let fbo = gl.create_framebuffer();
@@ -570,7 +572,7 @@ impl CatalogShaderProjection for Orthographic {
             gl,
             &ShaderId(
                 Cow::Borrowed("CatalogOrthoVS"),
-                Cow::Borrowed("CatalogFS")
+                Cow::Borrowed("CatalogOrthoFS")
             )
         ).unwrap()
     }

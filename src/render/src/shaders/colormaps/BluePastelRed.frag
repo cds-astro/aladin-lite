@@ -1,11 +1,11 @@
 #version 300 es
 precision lowp float;
+precision lowp sampler2D;
 
 in vec2 out_uv;
 out vec4 color;
 
 uniform sampler2D texture_fbo;
-uniform sampler2D colormap;
 uniform float alpha;
 
 float colormap_red(float x) {

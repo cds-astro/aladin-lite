@@ -278,7 +278,8 @@ impl App {
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.exec.borrow_mut().run(2.0);
+        let tasks_time = (dt.0 * 0.5).min(8.3);
+        let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been

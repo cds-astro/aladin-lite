@@ -8,8 +8,9 @@ pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
 pub use crate::renderable::catalog::Source;
 pub use crate::buffer::Tile;
+pub use crate::shaders::Colormap;
 pub enum TaskResult {
-    TableParsed { name: String, sources: Vec<Source> },
+    TableParsed { name: String, sources: Vec<Source>, colormap: Colormap },
     TileSentToGPU { tile: Tile }
 }
 

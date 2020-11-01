@@ -97,7 +97,7 @@ impl Manager {
             ];
 
             let mut vao = VertexArrayObject::new(gl);
-            let colormap = Colormap::BluePastelRed;
+            let colormap = Colormap::BlackWhiteLinear;
             let shader = colormap.get_shader(gl, shaders);
             shader.bind(gl)
                 .bind_vertex_array_object(&mut vao)

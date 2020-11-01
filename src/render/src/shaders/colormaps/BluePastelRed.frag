@@ -66,10 +66,6 @@ void main() {
 
     float o = smoothstep(0.f, 0.1f, opacity);
 
-    /*if (opacity < 0.01f) {
-        discard;
-    }*/
-
     color = colormap_f(opacity);
-    color.a = alpha * o;
+    color.a = o;
 }

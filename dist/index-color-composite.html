@@ -28,7 +28,8 @@
 <table style="margin-top: 5px;border: 1px solid;" style="width: 92vw;">
 <tr>
     <td><input type="color" id="color_c1" value="#ff0000"></td><td><input type="color" id="color_c2" value="#00ff00"></td><td><input type="color" id="color_c3" value="#0000ff"></td><td><input type="color" id="color_c4" value="#ffffff"></td>
-</tr>
+</tr>    
+
 <tr>
     <td><input id="c1_hips" style="width: 95%;"></td>
     <td><input id="c2_hips" style="width: 95%;"></td>
@@ -38,6 +39,17 @@
 </tr>
 <tr>
   <td>
+    <label for="colormap_c1">Colormap</label>
+    <select id="colormap_c1">
+      <option value="BlackWhiteLinear">BlackWhiteLinear</option>
+      <option value="RedTemperature">RedTemperature</option>
+      <option value="IDLCBGnBu">IDLCBGnBu</option>
+      <option value="IDLCBYIGnBu">IDLCBYIGnBu</option>
+      <option value="IDLCBBrBG">IDLCBBrBG</option>
+      <option value="BluePastelRed">BluePastelRed</option>
+      <option value="Nothing" selected>Nothing</option>
+    </select>
+    <br>
     <label for="k_c1">k</label>
     <input id="k_c1" style="vertical-align: middle; width:10vw;" step="0.1" min="0" max="3" type="range" value="1" />
     <br>
@@ -142,7 +154,17 @@
     <br>
     <input id="max_cut_c4_tf" type="text" class="slider_tf">
   </td>
-
+  <td>
+    <label for="colormap_cat">Colormap</label>
+    <select id="colormap_cat">
+      <option value="BlackWhiteLinear">BlackWhiteLinear</option>
+      <option value="RedTemperature">RedTemperature</option>
+      <option value="IDLCBGnBu">IDLCBGnBu</option>
+      <option value="IDLCBYIGnBu">IDLCBYIGnBu</option>
+      <option value="IDLCBBrBG">IDLCBBrBG</option>
+      <option value="BluePastelRed" selected>BluePastelRed</option>
+    </select>
+  </td>
 </tr>
 </table>
 </div>
@@ -227,12 +249,12 @@ var init_catalog = function() {
         },
         onSelect: async function(e, term, item) {
             let cat_id = term;
-
-            await loadCatalog(cat_id);
+            let colormap = $('#colormap_cat').val()
+            await loadCatalog(cat_id, colormap);
         }
     });
 };
-async function loadCatalog(catalog_id) {
+async function loadCatalog(catalog_id, colormap) {
     /*let parallax_column_name = await getTableColumnName(catalog_id, "pos.parallax");
     console.log('parallax column name: ', parallax_column_name);
     let phot_mag_column_name = await getTableColumnName(catalog_id, "phot.mag");
@@ -244,7 +266,7 @@ async function loadCatalog(catalog_id) {
     let table_obs_id = catalog_id.substring(4);
     retrieveCatalog(table_obs_id, [pos_ra_column_name, pos_dec_column_name/*, phot_mag_column_name, parallax_column_name*/])
         .then(sources => {
-            aladin.webglAPI.addCatalog("Test", sources);
+            aladin.webglAPI.addCatalog("Test", sources, colormap);
         });
 }
 
@@ -453,6 +475,7 @@ function update() {
 
 
     var stretch_c1 = $('#stretch_c1').val();
+    var colormap_c1 = $('#colormap_c1').val();
     var min_cut_c1 = parseFloat($('#min_cut_c1_tf').val());
     var max_cut_c1 = parseFloat($('#max_cut_c1_tf').val());
 
@@ -477,6 +500,22 @@ function update() {
     useC1 = useC2 = useC3 = useC4 = false;
     if (c1HiPS.length>0) {
 		c1HiPS = hipsesDict[c1HiPS];
+        let color = {
+            Grayscale2Color: {
+                color: parseColor(c1Color),
+                k: parseFloat($('#k_c1').val()),
+                transfer: stretch_c1
+            }
+        };
+        if (colormap_c1 != "Nothing") {
+            color = {
+                Grayscale2Colormap: {
+                    colormap: colormap_c1,
+                    transfer: stretch_c1
+                }
+            };
+        }
+
         let hipsComponent = {
             properties: {
 		        url: c1HiPS.hips_service_url,
@@ -492,13 +531,7 @@ function update() {
 		        minCutout: parseFloat(min_cut_c1),
 		        maxCutout: parseFloat(max_cut_c1),
 	        },
-	        color: {
-		        Grayscale2Color: {
-			        color: parseColor(c1Color),
-                    k: parseFloat($('#k_c1').val()),
-			        transfer: stretch_c1
-		        }
-	        }
+	        color: color
         };
         console.log('HIPS COMPONENT', hipsComponent)
 		hipsComponents.push(hipsComponent);
@@ -600,7 +633,7 @@ function update() {
 
 }
 
-$('#k_c1, #k_c2, #k_c3, #k_c4, #color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4').on('change input', function() {
+$('#k_c1, #k_c2, #k_c3, #k_c4, #color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4, #colormap_c1').on('change input', function() {
     update();
 });
 

@@ -20,5 +20,5 @@ void main() {
 
     //color = texture(colormap, vec2(opacity, 0.5f));
     color = colormap_f(opacity);
-    color.a = alpha * o;
+    color.a = alpha;
 }

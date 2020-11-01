@@ -57,7 +57,7 @@ impl ProjetedGrid {
             .ok_or("failed to create buffer")
             .unwrap();
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-        gl.line_width(2.0);
+        gl.line_width(1.0);
         let data = vec![0.0_f32; 1000];
         let size_vertices_buf = 1000;
         let num_vertices = 0;

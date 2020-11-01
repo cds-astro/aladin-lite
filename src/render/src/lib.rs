@@ -289,12 +289,12 @@ impl App {
         let mut tiles_available = HashSet::new();
         for result in results {
             match result {
-                TaskResult::TableParsed { name, sources} => {
+                TaskResult::TableParsed { name, sources, colormap} => {
                     log("CATALOG FINISHED PARSED");
                     self.manager.add_catalog::<P>(
                         name,
                         sources,
-                        Colormap::BluePastelRed,
+                        colormap,
                         &mut self.shaders,
                         &self.camera,
                         &self.surveys.get_view().unwrap()
@@ -411,7 +411,9 @@ impl App {
             self.surveys.draw::<P>(&self.camera, &mut self.shaders);
             self.gl.enable(WebGl2RenderingContext::BLEND);
             self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
-            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+            //self.gl.disable(WebGl2RenderingContext::BLEND);
+
+            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
             // Draw the catalog
             self.manager.draw::<P>(
                 &self.gl,
@@ -563,7 +565,7 @@ impl App {
         self.request_redraw = true;
     }
 
-    fn add_catalog(&mut self, name: String, table: JsValue) {
+    fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
@@ -574,8 +576,9 @@ impl App {
                 let item: &[f32] = item.as_ref();
                 results.push(item.into());
             }
-        
-            TaskResult::TableParsed { name, sources: results }
+            let colormap: Colormap = colormap.into();
+
+            TaskResult::TableParsed { name, sources: results, colormap }
         });
     }
 
@@ -920,9 +923,9 @@ impl ProjectionType {
         Ok(())
     }
 
-    pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue) {
+    pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue, colormap: String) {
         match self {
-            _ => app.add_catalog(name, table),
+            _ => app.add_catalog(name, table, colormap),
         };
     }
 
@@ -1560,8 +1563,8 @@ impl WebClient {
     /// CATALOG INTERFACE METHODS
     /// Add new catalog
     #[wasm_bindgen(js_name = addCatalog)]
-    pub fn add_catalog(&mut self, name_catalog: String, data: JsValue) -> Result<(), JsValue> {
-        self.projection.add_catalog(&mut self.app, name_catalog, data);
+    pub fn add_catalog(&mut self, name_catalog: String, data: JsValue, colormap: String) -> Result<(), JsValue> {
+        self.projection.add_catalog(&mut self.app, name_catalog, data, colormap);
 
         Ok(())
     }

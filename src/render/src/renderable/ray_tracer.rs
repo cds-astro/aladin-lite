@@ -54,7 +54,7 @@ pub struct RayTracer {
 
     num_indices: i32, 
 
-    ang2pix: [Texture2D; 3],
+    //ang2pix: [Texture2D; 3],
 }
 
 use crate::Shader;
@@ -107,7 +107,7 @@ impl RayTracer {
         );
 
         // Load the texture of the gaussian kernel
-        let ang2pix = [
+        /*let ang2pix = [
             Texture2D::create(
                 gl,
                 "ang2pixd0",
@@ -153,7 +153,7 @@ impl RayTracer {
                 ],
                 FormatImageType::PNG
             ),
-        ];
+        ];*/
 
         let gl = gl.clone();
         RayTracer {
@@ -165,7 +165,7 @@ impl RayTracer {
             ebo,
 
             num_indices,
-            ang2pix
+            //ang2pix
         }
     }
 
@@ -200,10 +200,10 @@ impl RayTracer {
     }
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
-        shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
-
+        //shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
+        //self.gl.polygon_mode(WebGl2RenderingContext::FRONT_AND_BACK, WebGl2RenderingContext::LINES);
         self.gl.draw_elements_with_i32(
-            //WebGl2RenderingContext::LINE_STRIP,
+            //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,
             self.num_indices,
             WebGl2RenderingContext::UNSIGNED_SHORT,

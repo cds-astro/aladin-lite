@@ -96,6 +96,7 @@ TileColor get_tile_color(vec3 pos) {
         vec3 UV = vec3(offset, float(idx_texture));
 
         vec3 color = colormap_f(get_grayscale_from_texture(UV)).rgb;
+        //vec3 color = vec3(float(idx)/11.0);
 
         return TileColor(tile, color, true);
     }

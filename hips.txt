@@ -484,3 +484,54 @@ simbad = {
 		}
 	},
 }
+
+composite_hscg = {
+	properties: {
+		url: "http://alasky.u-strasbg.fr/HSC/DR2/CDS_P_HSC_DR2_wide_g",
+
+		maxOrder: 12,
+		frame: { label: "J2000", system: "J2000" },
+		tileSize: 512,
+		format: {
+			FITSImage: {
+				bitpix: -32,
+			}
+		},
+		minCutout: -0.03,
+		maxCutout: 4,
+	},
+	color: {
+		Grayscale2Color: {
+			color: [0.0, 0.0, 1.0],
+            k: 1.0,
+			transfer: "asinh"
+		}
+	},
+}
+
+xmm_eb2 = {
+	properties: {
+		url: "http://saada.unistra.fr/PNRed",
+		maxOrder: 7,
+		frame: {
+			label: "J2000",
+			system: "J2000"
+		},
+		tileSize: 512,
+		minCutout: 1e-4,
+		maxCutout: 1e-3,
+		format: {
+			FITSImage: {
+			    bitpix: -32
+		    }
+		}
+	},
+	color: {
+		Grayscale2Color: {
+		color: [1.0, 0.0, 0.0],
+		transfer: "asinh",
+		k: 1.0
+		}
+	}
+}
+

@@ -50,6 +50,7 @@ import { CooConversion } from "./CooConversion.js";
 import { Color } from "./Color.js";
 import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
+import { HiPSDefinition } from "./HiPSDefinition.js";
 
 export let Aladin = (function () {
 
@@ -1711,6 +1712,10 @@ A.catalogFromSkyBot = function (ra, dec, radius, epoch, queryOptions, options, s
     }
     var url = URLBuilder.buildSkyBotCSURL(ra, dec, radius, epoch, queryOptions);
     return A.catalogFromURL(url, options, successCallback, false);
+};
+
+A.hipsDefinitionFromURL = function(url, successCallback) {
+    HiPSDefinition.fromURL(url, successCallback);
 };
 
 

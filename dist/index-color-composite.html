@@ -486,6 +486,7 @@ function update() {
         return;
     }
 
+    console.log(hipsComponents);
     aladin.webglAPI.setCompositeHiPS({hipses: hipsComponents})
 
     // aladin.web...
@@ -504,6 +505,14 @@ $('.slider_tf').on('keyup', function(event) {
     // if key press on enter
     if(event.keyCode == 13) {
         update();
+    }
+});
+
+$('#c1_hips, #c2_hips, #c3_hips, #c4_hips').on('keyup', function(event) {
+    // if key enter pressed and text looks like a URL
+    if (event.keyCode == 13 && $(this).val().startsWith('http')) {
+
+        console.log($(this).val());
     }
 });
 

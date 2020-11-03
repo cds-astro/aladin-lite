@@ -154,7 +154,7 @@ export let Aladin = (function () {
 
 
         // Aladin logo
-        $("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
+        $("<div class='aladin-logo-container'><a href='https://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
 
 
         // we store the boxes
@@ -1513,7 +1513,7 @@ Aladin.prototype.getShareURL = function () {
     coo.lon = radec[0];
     coo.lat = radec[1];
 
-    return 'http://aladin.unistra.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
+    return 'https://aladin.unistra.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
         '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
 };
 
@@ -1531,10 +1531,10 @@ Aladin.prototype.getEmbedCode = function () {
     var survey = this.getBaseImageLayer().id;
     var fov = this.getFov()[0];
     var s = '';
-    s += '<link rel="stylesheet" href="http://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.css" />\n';
-    s += '<script type="text/javascript" src="//code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>\n';
+    s += '<link rel="stylesheet" href="https://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.css" />\n';
+    s += '<script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>\n';
     s += '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>\n';
-    s += '<script type="text/javascript" src="http://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>\n';
+    s += '<script type="text/javascript" src="https://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>\n';
     s += '<script type="text/javascript">\n';
     s += 'var aladin = A.aladin("#aladin-lite-div", {survey: "' + survey + 'P/DSS2/color", fov: ' + fov.toFixed(2) + ', target: "' + coo.format('s') + '"});\n';
     s += '</script>';

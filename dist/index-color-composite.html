@@ -12,6 +12,12 @@
 .slider_tf {
     width: 4em;
 }
+.box {
+    display: inline-block;
+    margin-top: 5px;
+    margin-left: 5px;
+    border: 1px solid;
+}
 </style>
 
 
@@ -24,8 +30,8 @@
 <div id="aladin-lite-div" style="width: 95vw; height: 70vh"></div>
 
 
-<div id="controls">
-<table style="margin-top: 5px;border: 1px solid;" style="width: 92vw;">
+<div id="controls" style="display: flex;">
+<table class="box">
 <tr>
     <td><input type="color" id="color_c1" value="#ff0000"></td><td><input type="color" id="color_c2" value="#00ff00"></td><td><input type="color" id="color_c3" value="#0000ff"></td><td><input type="color" id="color_c4" value="#ffffff"></td>
 </tr>    
@@ -35,7 +41,6 @@
     <td><input id="c2_hips" style="width: 95%;"></td>
     <td><input id="c3_hips" style="width: 95%;"></td>
     <td><input id="c4_hips" style="width: 95%;"></td>
-    <td><input id="c5_cat" style="width: 95%;"></td>
 </tr>
 <tr>
   <td>
@@ -154,7 +159,13 @@
     <br>
     <input id="max_cut_c4_tf" type="text" class="slider_tf">
   </td>
-  <td>
+</tr>
+</table>
+<div class="box" style="border: 1px solid;">
+    <label for="c5_cat">Catalog selection</label>
+
+    <input id="c5_cat" style="width: 50%;" />
+    <br />
     <label for="colormap_cat">Colormap</label>
     <select id="colormap_cat">
       <option value="BlackWhiteLinear">BlackWhiteLinear</option>
@@ -164,9 +175,9 @@
       <option value="IDLCBBrBG">IDLCBBrBG</option>
       <option value="BluePastelRed" selected>BluePastelRed</option>
     </select>
-  </td>
-</tr>
-</table>
+    <p id="loading"></p>
+</div>
+
 </div>
 
 <script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
@@ -176,11 +187,11 @@
 
 <script type="text/javascript">
 
-    let catalogArray = [];
-    let catalogMap = new Map();
-    let hipsesDict = {};
-    let hipsesArray = [];
-    let aladin;
+let catalogArray = [];
+let catalogMap = new Map();
+let hipsesDict = {};
+let hipsesArray = [];
+let aladin;
 
 $( document ).ready(function() {
     $.ajax({
@@ -210,7 +221,7 @@ $( document ).ready(function() {
         init();
     });
     $.ajax({
-        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D5000000%26%26nb_rows>%3D50000&get=record&fmt=json',
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D400000%26%26nb_rows>%3D50000&get=record&fmt=json',
     }).done(function(catalogs) {
         for (var k = 0; k < catalogs.length; k++) {
             var cat_id = catalogs[k].ID;
@@ -221,7 +232,7 @@ $( document ).ready(function() {
             catalogArray.push(cat_id);
         }
 
-		console.log(catalogs);
+		console.log("CATALOGS", catalogs);
         init_catalog();
     });
 });
@@ -250,10 +261,16 @@ var init_catalog = function() {
         onSelect: async function(e, term, item) {
             let cat_id = term;
             let colormap = $('#colormap_cat').val()
+            addLoadingInfo(cat_id);
             await loadCatalog(cat_id, colormap);
         }
     });
 };
+
+function addLoadingInfo(catalogName) {
+    document.getElementById("loading").innerHTML = catalogName + " is loading...";
+}
+
 async function loadCatalog(catalog_id, colormap) {
     /*let parallax_column_name = await getTableColumnName(catalog_id, "pos.parallax");
     console.log('parallax column name: ', parallax_column_name);

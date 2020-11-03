@@ -16,9 +16,9 @@ use rand::SeedableRng;
 impl SourceIndices {
     pub fn new(sources: &mut [Source]) -> Self {
         // Sort the sources by HEALPix indices at depth 7
-        let mut rng = StdRng::seed_from_u64(0);
+        //let mut rng = StdRng::seed_from_u64(0);
 
-        sources.sort_unstable_by(|s1, s2| {
+        /*sources.sort_unstable_by(|s1, s2| {
             let idx1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
             let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
 
@@ -31,7 +31,7 @@ impl SourceIndices {
                 _ => ordering
             }
             //ordering
-        });
+        });*/
 
         let mut healpix_idx: Vec<Option<Range<u32>>> = vec![None; 196608];
 

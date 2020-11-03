@@ -82,6 +82,138 @@ where T: DeserializeOwned + AsRef<[f32]> + Unpin {
         }
     }
 }
+use rand::rngs::StdRng;
+use rand::Rng;
+use rand::SeedableRng;
+pub struct BuildCatalogIndex {
+    pub sources: Vec<Source>,
+    num_sorted_sources: usize,
+    i: usize,
+    j: usize,
+    merging: bool,
+    new_sorted_sources: Vec<Source>,
+    ready: bool,
+    chunk_size: usize,
+    prev_num_sorted_sources: usize,
+}
+impl BuildCatalogIndex {
+    pub fn new(sources: Vec<Source>) -> Self {
+        let num_sorted_sources = 0;
+        let merging = false;
+        let new_sorted_sources = vec![];
+        let i = 0;
+        let j = 0;
+        let ready = false;
+        let prev_num_sorted_sources = 0;
+        let chunk_size = 0;
+        Self {
+            num_sorted_sources,
+            merging,
+            i,
+            j,
+            new_sorted_sources,
+            sources,
+            ready,
+            prev_num_sorted_sources,
+            chunk_size
+        }
+    }
+}
+const CHUNK_SIZE: usize = 1000;
+impl Stream for BuildCatalogIndex {
+    type Item = ();
+
+    /// Attempt to resolve the next item in the stream.
+    /// Returns `Poll::Pending` if not ready, `Poll::Ready(Some(x))` if a value
+    /// is ready, and `Poll::Ready(None)` if the stream has completed.
+    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>> {
+        // The sources are split into equal sized chunks
+        if self.sources.len() == self.num_sorted_sources {
+            self.ready = true;
+            Poll::Ready(None)
+        } else {
+            let a = self.num_sorted_sources;
+            let b = (a + 1000).min(self.sources.len());
+            // Get a new chunk and sort it
+            if !self.merging {
+                let mut rng = StdRng::seed_from_u64(0);
+                // Get the chunk to sort
+                (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
+                    let idx1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
+                    let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
+        
+                    let ordering = idx1.partial_cmp(&idx2).unwrap();
+                    match ordering {
+                        std::cmp::Ordering::Equal => {
+                            rng.gen::<f64>().partial_cmp(&0.5).unwrap()
+                            //s1.lon.partial_cmp(&s2.lon).unwrap()
+                        },
+                        _ => ordering
+                    }
+                    //ordering
+                });
+
+                self.chunk_size = b - a;
+                self.prev_num_sorted_sources = a;
+
+                self.i = 0;
+                self.j = a;
+                self.num_sorted_sources = 0;
+                self.new_sorted_sources = Vec::with_capacity(b);
+
+                self.merging = true;
+            } else {
+                // Merge the sorted chunk with the sources already sorted
+                //let (sorted_sources, chunk) = (&self.sources[..b]).split_at(a);
+
+                // Merge the sorted chunk with sources that have been
+                // already sorted
+                let final_size = self.new_sorted_sources.capacity();
+                while self.num_sorted_sources < final_size {
+                    let v = if self.j == self.prev_num_sorted_sources + self.chunk_size {
+                        let v = self.sources[self.i].clone();
+                        self.i += 1;
+                        v
+                    } else if self.i == self.prev_num_sorted_sources {
+                        let v = self.sources[self.j].clone();
+                        self.j += 1;
+                        v
+                    } else {
+                        let s1 = &self.sources[self.j];
+                        let s2 = &self.sources[self.i];
+                        let p1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
+                        let p2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
+                        if p1 <= p2 {
+                            let v = self.sources[self.j].clone();
+                            self.j += 1;
+                            v
+                        } else {
+                            let v = self.sources[self.i].clone();
+                            self.i += 1;
+                            v
+                        }
+                    };
+    
+                    self.new_sorted_sources.push(v);
+                    self.num_sorted_sources += 1;
+    
+                    // Every 10000 items sorted, we do a pending
+                    if self.num_sorted_sources % 10000 == 0 {
+                        return Poll::Pending;
+                    }
+                }
+                // replace 0 -> num_sorted_sources 
+                let end = self.num_sorted_sources;
+                let new_sorted_sources = self.new_sorted_sources.clone();
+                self.sources.splice(..end, new_sorted_sources);
+                self.merging = false;
+            }
+
+            Poll::Pending
+        }
+    }
+}
 
 use cgmath::Vector3;
 

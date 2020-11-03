@@ -299,6 +299,7 @@ impl App {
                         &self.camera,
                         &self.surveys.get_view().unwrap()
                     );
+                    removeLoadingInfo();
                 },
                 TaskResult::TileSentToGPU { tile } => {
                     tiles_available.insert(tile);
@@ -576,6 +577,12 @@ impl App {
                 let item: &[f32] = item.as_ref();
                 results.push(item.into());
             }
+
+            let mut stream_sort = async_task::BuildCatalogIndex::new(results);
+            while let Some(_) = stream_sort.next().await {}
+
+            // The stream is finished, we get the sorted sources
+            let results = stream_sort.sources;
             let colormap: Colormap = colormap.into();
 
             TaskResult::TableParsed { name, sources: results, colormap }
@@ -1159,6 +1166,11 @@ extern "C" {
     fn log(s: &str);
 }
 
+#[wasm_bindgen(module = "/catalog.js")]
+extern "C" {
+    fn removeLoadingInfo();
+}
+
 /*#[wasm_bindgen(module = "./js/View.js")]
 extern "C" {
     #[wasm_bindgen(method, js_class = "View", js_name = drawGridLabels)]
@@ -1174,7 +1186,6 @@ pub struct FileSrc {
 use crate::transfert_function::TransferFunction;
 use std::collections::HashMap;
 use crate::healpix_cell::HEALPixCell;
-
 
 #[derive(Deserialize)]
 #[derive(Debug)]

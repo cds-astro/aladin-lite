@@ -79,7 +79,7 @@ vec2 world2clip_mercator(vec3 p) {
     float theta = atan(p.x, p.z);
 
     float x = theta / PI;
-    float y = log(tan(PI * 0.25f + delta * 0.5f)) / PI;
+    float y = asinh(tan(delta / PI));
 
     return vec2(x, y);
 }

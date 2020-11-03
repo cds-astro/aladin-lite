@@ -6,6 +6,7 @@ extern crate num;
 extern crate task_async_executor;
 extern crate console_error_panic_hook;
 extern crate fitsreader;
+extern crate rand;
 use std::panic;
 
 #[macro_use]
@@ -94,6 +95,7 @@ struct App {
     resources: Resources,
 
     move_animation: Option<MoveAnimation>,
+    zoom_animation: Option<ZoomAnimation>,
     tasks_finished: bool,
 }
 
@@ -116,6 +118,11 @@ struct MoveAnimation {
     goal_anim_rot: Rotation<f32>,
     time_start_anim: Time,
     goal_pos: Vector3<f32>,
+}
+struct ZoomAnimation {
+    time_start_anim: Time,
+    start_fov: f32,
+    goal_fov: f32,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -154,7 +161,6 @@ impl App {
             color: HiPSColor::Color
         };
 
-        //panic!(format!("{:?}", aa));
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 
         // The tile buffer responsible for the tile requests
@@ -172,26 +178,13 @@ impl App {
 
         // Text 
         let font = myfont::FONT_CONFIG;
-        //let text_manager = TextManager::new(&gl, font, &mut shaders);
-        /*let _text = TextUponSphere::new(
-            String::from("Aladin-Lite"),
-            //&Vector2::new(300_f32, 100_f32),
-            &Vector4::new(0.0, 1.0, 0.0, 1.0),
-            &gl,
-            &_text_manager,
-            &shaders,
-        );*/
 
         // Grid definition
-        //let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, &text_manager);
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders);
-        // Finite State Machines definitions
-        /*let user_move_fsm = UserMoveSphere::init();
-        let user_zoom_fsm = UserZoom::init();
-        let move_fsm = MoveSphere::init();*/
 
         // Variable storing the location to move to
         let move_animation = None;
+        let zoom_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
         let start_render_time = Time::now();
@@ -213,17 +206,12 @@ impl App {
             grid,
             // The catalog renderable
             manager,
-            //text_manager,
-            
-            // Finite state machines,
-            /*user_move_fsm,
-            user_zoom_fsm,
-            move_fsm,*/
 
             exec,
             resources,
 
             move_animation,
+            zoom_animation,
 
             tasks_finished,
         };
@@ -290,7 +278,8 @@ impl App {
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         //crate::log(&format!("last frame duration (ms): {:?}", dt));
-        let results = self.exec.borrow_mut().run(dt.0 * 0.3_f32);
+        let tasks_time = (dt.0 * 0.5).min(8.3);
+        let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
 
         // Retrieve back all the tiles that have been
@@ -326,11 +315,6 @@ impl App {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
-        // Run the FSMs
-        //self.user_move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        //self.user_zoom_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-        //self.move_fsm.run::<P>(dt, &mut self.sphere, &mut self.manager, &mut self.grid, &mut self.camera, &events);
-
         // Check if there is an move animation to do
         if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim, goal_pos} ) = self.move_animation {
             let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
@@ -342,7 +326,7 @@ impl App {
             // where: 
             // * k is the stiffness of the ressort
             // * m is its mass
-            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * ((-5_f32 * t).exp());
+            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * (-5_f32 * t).exp();
             let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
     
             self.camera.set_rotation::<P>(&p);
@@ -357,9 +341,32 @@ impl App {
             }
         }
 
-        // Update the grid in consequence
-        //self.grid.update_label_positions::<P>(&self.gl, &mut self.text_manager, &self.camera, &self.shaders);
-        //self.text.update_from_camera::<P>(&self.camera);
+        // Check if there is an zoom animation to do
+        if let Some(ZoomAnimation {time_start_anim, start_fov, goal_fov} ) = self.zoom_animation {
+            let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
+        
+            // Undamped angular frequency of the oscillator
+            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
+            //
+            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
+            // where: 
+            // * k is the stiffness of the ressort
+            // * m is its mass
+            let alpha = (1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp());
+            let alpha = alpha * alpha;
+            let fov = start_fov*(1_f32 - alpha) + goal_fov*alpha;
+    
+            self.camera.set_aperture::<P>(Angle(fov));
+            self.look_for_new_tiles();
+
+            // Animation stop criteria
+            let err = (fov - goal_fov).abs();
+            let thresh = 1e-5;
+            if err < thresh {
+                self.zoom_animation = None;
+            }
+        }
+
         {
             // Newly available tiles must lead to
             if is_there_new_available_tiles {
@@ -406,28 +413,15 @@ impl App {
             self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
             //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
             // Draw the catalog
-            /*self.manager.draw::<P>(
+            self.manager.draw::<P>(
                 &self.gl,
                 &mut self.shaders,
                 &self.camera
-            );*/
+            );
 
             // Reset the flags about the user action
             self.camera.reset();
-            
-            // Draw the grid
-            /*self.grid.draw::<P>(
-                &self.gl,
-                shaders,
-                camera,
-                &self.text_manager
-            );*/
 
-            /*self.text_manager.draw(
-                &self.gl,
-                shaders,
-                camera
-            );*/
             self.gl.disable(WebGl2RenderingContext::BLEND);
         }
 
@@ -573,7 +567,7 @@ impl App {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
-            let mut stream = async_task::ParseTable::<[f32; 4]>::new(table);
+            let mut stream = async_task::ParseTable::<[f32; 2]>::new(table);
             let mut results: Vec<Source> = vec![];
         
             while let Some(item) = stream.next().await {
@@ -649,6 +643,11 @@ impl App {
         self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
+    pub fn hide_grid_labels(&mut self) {
+        self.grid.hide_labels(&self.camera);
+        self.request_redraw = true;
+    }
+
     pub fn disable_grid(&mut self) {
         self.grid.disable(&self.camera);
         self.request_redraw = true;
@@ -693,6 +692,19 @@ impl App {
             start_anim_rot,
             goal_anim_rot,
             goal_pos: goal_pos.truncate(),
+        });
+    }
+
+    pub fn start_zooming_to<P: Projection>(&mut self, fov: f32) {
+        // Convert these positions to rotations
+        let start_fov = self.camera.get_aperture().0;
+        let goal_fov = fov;
+
+        // Set the moving animation object
+        self.zoom_animation = Some(ZoomAnimation {
+            time_start_anim: Time::now(),
+            start_fov,
+            goal_fov
         });
     }
 
@@ -1021,6 +1033,17 @@ impl ProjectionType {
         };
     }
 
+    pub fn start_zooming_to(&mut self, app: &mut App, fov: f32) {
+        match self {
+            ProjectionType::Aitoff => app.start_zooming_to::<Aitoff>(fov),
+            ProjectionType::MollWeide => app.start_zooming_to::<Mollweide>(fov),
+            ProjectionType::Ortho => app.start_zooming_to::<Orthographic>(fov),
+            ProjectionType::Arc => app.start_zooming_to::<AzimuthalEquidistant>(fov),
+            ProjectionType::Gnomonic => app.start_zooming_to::<Gnomonic>(fov),
+            ProjectionType::Mercator => app.start_zooming_to::<Mercator>(fov),
+        };
+    }
+
     pub fn set_fov(&mut self, app: &mut App, fov: Angle<f32>) {
         match self {
             ProjectionType::Aitoff => app.set_fov::<Aitoff>(&fov),
@@ -1053,7 +1076,11 @@ impl ProjectionType {
             ProjectionType::Mercator => app.enable_grid::<Mercator>(),
         };
     }
-
+    pub fn hide_grid_labels(&mut self, app: &mut App) {
+        match self {
+            _ => app.hide_grid_labels(),
+        };
+    }
     pub fn disable_grid(&mut self, app: &mut App) {
         match self {
             _ => app.disable_grid(),
@@ -1422,6 +1449,14 @@ impl WebClient {
 
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = hideGridLabels)]
+    pub fn hide_grid_labels(&mut self) -> Result<(), JsValue> {
+        self.projection.hide_grid_labels(&mut self.app);
+
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = disableGrid)]
     pub fn disable_grid(&mut self) -> Result<(), JsValue> {
         self.projection.disable_grid(&mut self.app);
@@ -1488,6 +1523,16 @@ impl WebClient {
 
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = zoomToLocation)]
+    pub fn start_zooming_to(&mut self, fov: f32) -> Result<(), JsValue> {
+        let fov: Angle<f32> = ArcDeg(fov).into();
+
+        self.projection.start_zooming_to(&mut self.app, fov.0);
+
+        Ok(())
+    }
+
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
@@ -1514,6 +1559,7 @@ impl WebClient {
 
     /// CATALOG INTERFACE METHODS
     /// Add new catalog
+    #[wasm_bindgen(js_name = addCatalog)]
     pub fn add_catalog(&mut self, name_catalog: String, data: JsValue) -> Result<(), JsValue> {
         self.projection.add_catalog(&mut self.app, name_catalog, data);
 

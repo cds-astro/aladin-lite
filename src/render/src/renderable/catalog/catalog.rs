@@ -9,18 +9,28 @@ pub struct SourceIndices {
 }
 
 use super::source::Source;
+use rand::rngs::StdRng;
+use rand::Rng;
+use rand::SeedableRng;
+
 impl SourceIndices {
     pub fn new(sources: &mut [Source]) -> Self {
         // Sort the sources by HEALPix indices at depth 7
+        let mut rng = StdRng::seed_from_u64(0);
+
         sources.sort_unstable_by(|s1, s2| {
             let idx1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
             let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
 
             let ordering = idx1.partial_cmp(&idx2).unwrap();
             match ordering {
-                std::cmp::Ordering::Equal => s1.mag.partial_cmp(&s2.mag).unwrap(),
+                std::cmp::Ordering::Equal => {
+                    rng.gen::<f64>().partial_cmp(&0.5).unwrap()
+                    //s1.lon.partial_cmp(&s2.lon).unwrap()
+                },
                 _ => ordering
             }
+            //ordering
         });
 
         let mut healpix_idx: Vec<Option<Range<u32>>> = vec![None; 196608];
@@ -113,7 +123,7 @@ impl SourceIndices {
     }
 
     // Returns k sources from a cell having depth <= 7
-    pub fn get_k_sources<'a>(&self, sources: &'a [f32], cell: &HEALPixCell, k: usize) -> &'a [f32] {
+    pub fn get_k_sources<'a>(&self, sources: &'a [f32], cell: &HEALPixCell, k: usize, offset: usize) -> &'a [f32] {
         let HEALPixCell(depth , idx) = *cell;
 
         assert!(depth <= 7);
@@ -127,8 +137,8 @@ impl SourceIndices {
 
         let num_sources = idx_end_sources - idx_start_sources;
         
-        let idx_sources = if num_sources > k {
-            idx_start_sources..(idx_start_sources + k)
+        let idx_sources = if (num_sources - offset) > k {
+            (idx_start_sources + offset)..(idx_start_sources + offset + k)
         } else {
             idx_start_sources..idx_end_sources
         };

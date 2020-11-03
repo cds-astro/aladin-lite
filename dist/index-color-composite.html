@@ -34,6 +34,7 @@
     <td><input id="c2_hips" style="width: 95%;"></td>
     <td><input id="c3_hips" style="width: 95%;"></td>
     <td><input id="c4_hips" style="width: 95%;"></td>
+    <td><input id="c5_cat" style="width: 95%;"></td>
 </tr>
 <tr>
   <td>
@@ -153,6 +154,8 @@
 
 <script type="text/javascript">
 
+    let catalogArray = [];
+    let catalogMap = new Map();
     let hipsesDict = {};
     let hipsesArray = [];
     let aladin;
@@ -184,7 +187,112 @@ $( document ).ready(function() {
 		//console.log(hipsesDict);
         init();
     });
+    $.ajax({
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D5000000%26%26nb_rows>%3D50000&get=record&fmt=json',
+    }).done(function(catalogs) {
+        for (var k = 0; k < catalogs.length; k++) {
+            var cat_id = catalogs[k].ID;
+
+            catalogMap[cat_id] = {
+                'obs_id': catalogs[k].obs_id,
+            };
+            catalogArray.push(cat_id);
+        }
+
+		console.log(catalogs);
+        init_catalog();
+    });
 });
+
+var init_catalog = function() {
+    new autoComplete({
+        selector: '#c5_cat',
+        minChars: 2,
+        source: function(term, suggest) {
+            term = term.toLowerCase();
+            var choices = catalogArray;
+            var matches = [];
+            for (let i=0; i<choices.length; i++) {
+                if (choices[i].toLowerCase().indexOf(term)>=0) {
+                    matches.push(choices[i]);
+                }
+            }
+            console.log("MATCHES", matches)
+            suggest(matches);
+        },
+        renderItem: function (item, search) {
+            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+            return '<div class="autocomplete-suggestion" data-val="' + item + '">' + item.replace(re, "<b>$1</b>") + '</div>';
+        },
+        onSelect: async function(e, term, item) {
+            let cat_id = term;
+
+            await loadCatalog(cat_id);
+        }
+    });
+};
+async function loadCatalog(catalog_id) {
+    /*let parallax_column_name = await getTableColumnName(catalog_id, "pos.parallax");
+    console.log('parallax column name: ', parallax_column_name);
+    let phot_mag_column_name = await getTableColumnName(catalog_id, "phot.mag");
+    console.log('phot mag column name: ', phot_mag_column_name);*/
+
+    let pos_ra_column_name = await getTableColumnName(catalog_id, "pos.eq.ra");
+    let pos_dec_column_name = await getTableColumnName(catalog_id, "pos.eq.dec");
+
+    let table_obs_id = catalog_id.substring(4);
+    retrieveCatalog(table_obs_id, [pos_ra_column_name, pos_dec_column_name/*, phot_mag_column_name, parallax_column_name*/])
+        .then(sources => {
+            aladin.webglAPI.addCatalog("Test", sources);
+        });
+}
+
+function getTableColumnName(table_name, ucd) {
+    let table_obs_id = table_name.substring(4);
+    let url = encodeURI('https://alasky.u-strasbg.fr/cgi/JSONProxy?url=') + encodeURIComponent('http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?phase=RUN&lang=adql&format=json&request=doQuery&query=SELECT%20TOP%201%20table_name%2C%20column_name%2C%20ucd%20FROM%20TAP_SCHEMA.columns%20WHERE%20table_name%3D%27' + encodeURIComponent(table_obs_id) + '%27%20AND%20ucd%20LIKE%20%27' + encodeURIComponent(ucd) + '%25%27');
+    var request = {
+        method: 'GET',
+        headers: new Headers(),
+        mode: 'cors',
+        cache: 'default'
+    };
+    return fetch(url, request)
+        .then(response => response.json())
+        .then(table => {
+            // Return the column name of the first row corresponding to ucd
+            console.log(table_name, ucd, ": here are the data", table.data);
+            return table.data[0][1];
+        });
+}
+
+function retrieveCatalog(table_obs_id, colnames, max_rows="*") {
+    let cols = [];
+    colnames.forEach(col => {
+        console.log(col);
+        cols.push('"' + table_obs_id + '"."' + encodeURIComponent(col) + '"');
+    });
+
+    let cols_query = cols.join(", ");
+
+    let sql_query = 'SELECT ' + cols_query + ' FROM "' + table_obs_id + '"';
+    console.log(sql_query);
+    
+    let url = encodeURI('https://alasky.u-strasbg.fr/cgi/JSONProxy?url=') + encodeURIComponent('http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?phase=RUN&lang=adql&format=json&request=doQuery&query=' + encodeURIComponent(sql_query)) ;
+
+    var request = {
+        method: 'GET',
+        headers: new Headers(),
+        mode: 'cors',
+        cache: 'default'
+    };
+    return fetch(url, request)
+        .then(response => response.json())
+        .then((votable) => {
+            let sources = votable.data;
+            return sources;
+        });
+}
 
 
 var init = function() {

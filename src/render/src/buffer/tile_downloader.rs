@@ -7,18 +7,21 @@ use crate::buffer::{
 
 use crate::async_task::TaskExecutor;
 // A power of two maximum simultaneous tile requests
-const NUM_EVENT_LISTENERS: usize = 16;
+const NUM_EVENT_LISTENERS: usize = 64;
 const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
 
 struct Requests {
-    reqs: [TileRequest; NUM_EVENT_LISTENERS],
+    reqs: Vec<TileRequest>,
     start_fits_req_idx: usize,
 }
 
 type TileSentFlag = bool;
 impl Requests {
     fn new() -> Self {
-        let mut reqs: [TileRequest; NUM_EVENT_LISTENERS] = Default::default();
+        let mut reqs = Vec::with_capacity(NUM_EVENT_LISTENERS);
+        for i in 0..NUM_EVENT_LISTENERS {
+            reqs.push(TileRequest::new::<CompressedImageRequest>());
+        }
         let start_fits_req_idx = NUM_EVENT_LISTENERS >> 1;
 
         for idx in start_fits_req_idx..NUM_EVENT_LISTENERS {

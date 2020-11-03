@@ -324,7 +324,7 @@ impl HEALPixCellsInView {
         let cells = get_cells_in_camera(depth, camera);
         //self.is_new_cells = (cells.intersection(&self.cells).len() == cells.len());
         //self.is_new_cells = !cells.difference(&self.cells).is_empty();
-        self.is_new_cells = cells != self.cells;
+        self.is_new_cells = (cells.len() != self.cells.len()) || (cells != self.cells);
         self.cells = cells;
         self.new_cells.insert_new_cells(&self.cells);
 

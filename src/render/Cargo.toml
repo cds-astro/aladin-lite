@@ -21,7 +21,7 @@ serde_derive = "^1.0.59"
 num = "*"
 task-async-executor = { path = "./task-async-executor" }
 fitsreader = { path = "./fitsreader" }
-
+rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 
 [dependencies.wasm-bindgen]
 version = "0.2.65"

@@ -75,31 +75,15 @@ struct HashDxDy {
     float dy;
 };
 
-uniform sampler2D ang2pixd[3];
-HashDxDy hash_with_dxdy2(int depth, vec2 radec) {
+uniform sampler2D ang2pixd;
+HashDxDy hash_with_dxdy2(vec2 radec) {
     vec2 aa = vec2(radec.x/TWICE_PI + 1.0, (radec.y/PI) + 0.5);
-    if (depth == 0) {
-        vec3 v = texture(ang2pixd[0], aa).rgb;
-        return HashDxDy(
-            int(v.x * 255.0),
-            v.y,
-            v.z
-        );
-    } else if (depth == 1) {
-        vec3 v = texture(ang2pixd[1], aa).rgb;
-        return HashDxDy(
-            int(v.x * 255.0),
-            v.y,
-            v.z
-        );
-    } else {
-        vec3 v = texture(ang2pixd[2], aa).rgb;
-        return HashDxDy(
-            int(v.x * 255.0),
-            v.y,
-            v.z
-        );
-    }
+    vec3 v = texture(ang2pixd, aa).rgb;
+    return HashDxDy(
+        int(v.x * 255.0),
+        v.y,
+        v.z
+    );
 }
 // Returns the cell number (hash value) associated with the given position on the unit sphere, 
 // together with the offset `(dx, dy)` on the Euclidean plane of the projected position with

@@ -37,7 +37,7 @@ pub struct Manager {
     kernel_size: Vector2<f32>,
 }
 
-use crate::FormatImageType;
+use crate::{FormatImageType, image_fmt::FITS};
 use crate::image_fmt::PNG;
 use crate::Resources;
 impl Manager {
@@ -57,7 +57,7 @@ impl Manager {
         );
         //let _ext = gl.get_extension("EXT_color_buffer_float");
         // Initialize texture for framebuffer
-        let fbo_texture = Texture2D::create_empty(
+        let fbo_texture = Texture2D::create_empty_with_format(
             gl,
             768,
             768,
@@ -70,7 +70,9 @@ impl Manager {
                 // Prevents t-coordinate wrapping (repeating)
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
             ],
-            FormatImageType::PNG,
+            WebGl2RenderingContext::R8 as i32, // internal format
+            WebGl2RenderingContext::RED, // format
+            WebGl2RenderingContext::UNSIGNED_BYTE // type
         );
         // Create and bind the framebuffer
         let fbo = gl.create_framebuffer();
@@ -195,24 +197,28 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let HEALPixCells { mut depth, cells } = view.get_cells();
-        let cells = cells.into_iter()
-            .map(|&cell| {
-                let d = cell.depth();
-                if d > 7 {
-                    depth = 7;
-                    cell.ancestor(d - 7)
-                } else {
-                    depth = d;
-                    cell
-                }
-            })
-            // This will delete the doublons if there is
-            .collect::<HashSet<_>>();
+        let cells = if camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE { 
+            HEALPixCells::allsky(0)
+        } else {
+            let HEALPixCells { mut depth, cells } = view.get_cells();
+            let cells = cells.into_iter()
+                .map(|&cell| {
+                    let d = cell.depth();
+                    if d > 7 {
+                        depth = 7;
+                        cell.ancestor(d - 7)
+                    } else {
+                        depth = d;
+                        cell
+                    }
+                })
+                // This will delete the doublons if there is
+                .collect::<HashSet<_>>();
 
-        let cells = HEALPixCells {
-            cells,
-            depth
+            HEALPixCells {
+                cells,
+                depth
+            }
         };
 
         for catalog in self.catalogs.values_mut() {
@@ -237,6 +243,7 @@ pub struct Catalog {
     sources: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
     max_density: f32,
+    rng: rand::rngs::ThreadRng
 }
 
 use crate::{
@@ -251,6 +258,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 use crate::HiPSConfig;
 use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
 use crate::renderable::{HEALPixCells, HEALPixCellsInView};
+
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -260,6 +268,7 @@ impl Catalog {
         view: &HEALPixCellsInView,
         camera: &CameraViewPort,
     ) -> Catalog {
+        let mut rng = rand::thread_rng();
         let alpha = 1_f32;
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
@@ -318,7 +327,8 @@ impl Catalog {
             indices,
             sources,
             vertex_array_object_catalog,
-            max_density
+            max_density,
+            rng
         };
         catalog.set_max_density::<P>(view, camera);
         catalog
@@ -393,29 +403,36 @@ impl Catalog {
         let HEALPixCells {ref depth, ref cells} = cells;
         let mut current_sources = vec![];
 
-        let depth_kernel = (depth + 6).min(7);
+        //let depth_kernel = 7;
 
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-        
-        let d_kernel = depth_from_pixels_on_screen(camera, 32);
-        self.max_density = self.compute_max_density::<P>(d_kernel);
+        //crate::log(&format!("num sources FOV: {:?} {:?}", depth, num_sources_in_fov));
+
+        //let depth_32_px = crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, 32);
+        //self.max_density = ((self.compute_max_density::<P>(depth_32_px))/(32.0*32.0)).min(1.0);
+        /*let a = if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
+            (MAX_SOURCES_PER_CATALOG / num_sources_in_fov)*(MAX_SOURCES_PER_CATALOG / num_sources_in_fov)
+        } else {
+            1.0
+        };
+        let depth_1_px = crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, (8.0*a).max(1.0) as i32);
+        self.max_density = self.compute_max_density::<P>(depth_1_px);*/
+        self.max_density = self.compute_max_density::<P>(crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, 32));
         //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
-        if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
-            self.max_density *= d*d;
-        }
+
+        //self.max_density = ((MAX_SOURCES_PER_CATALOG / num_sources_in_fov)*(MAX_SOURCES_PER_CATALOG / num_sources_in_fov)).min(1.0);
         // depth < 7
         for cell in cells {
-            let delta_depth = (depth_kernel as i8 - cell.depth() as i8).max(0);
+            let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
 
             for c in cell.get_children_cells(delta_depth as u8) {
                 // Define the total number of sources being in this kernel depth tile
                 let sources_in_cell = self.indices.get_source_indices(&c);
                 let num_sources_in_kernel_cell = (sources_in_cell.end - sources_in_cell.start) as usize;
                 if num_sources_in_kernel_cell > 0 {
-                    let num_sources = ((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG;
+                    let num_sources = (((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG);
 
-                    let sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize);
+                    let sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize, 0);
                     current_sources.extend(sources);
                 }
             }
@@ -423,7 +440,7 @@ impl Catalog {
 
         // Update the vertex buffer
         self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
-        crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));
+        //crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));
 
         self.vertex_array_object_catalog.bind_for_update()
             .update_instanced_array(0, VecData(&current_sources));
@@ -466,8 +483,10 @@ impl Catalog {
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("kernel_size", &manager.kernel_size)
                 .attach_uniform("max_density", &self.max_density)
+                .attach_uniform("fov", &camera.get_aperture().0)
                 .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
-                    .draw_elements_instanced_with_i32(WebGl2RenderingContext::TRIANGLES,
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
                         0,
                         self.num_instances
                     );
@@ -530,7 +549,7 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogArcVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()
@@ -541,7 +560,7 @@ impl CatalogShaderProjection for Mercator {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogMercatorVS"),
+                Cow::Borrowed("CatalogMercatVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()
@@ -553,7 +572,7 @@ impl CatalogShaderProjection for Orthographic {
             gl,
             &ShaderId(
                 Cow::Borrowed("CatalogOrthoVS"),
-                Cow::Borrowed("CatalogFS")
+                Cow::Borrowed("CatalogOrthoFS")
             )
         ).unwrap()
     }
@@ -563,7 +582,7 @@ impl CatalogShaderProjection for Gnomonic {
         shaders.get(
             gl,
             &ShaderId(
-                Cow::Borrowed("CatalogOrthoVS"),
+                Cow::Borrowed("CatalogTanVS"),
                 Cow::Borrowed("CatalogFS")
             )
         ).unwrap()

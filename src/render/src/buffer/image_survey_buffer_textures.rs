@@ -477,10 +477,25 @@ impl ImageSurveyTextures {
 
     // Get the textures in the buffer
     // The resulting array is uniq sorted
-    fn get_sorted_textures(&self) -> Vec<&Texture> {
-        let mut textures = self.textures.values().collect::<Vec<_>>();
+    fn get_allsky_textures(&self) -> [&Texture; 12] {
+        assert!(self.is_ready());
+        /*let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
-        textures
+        textures*/
+        [
+            self.textures.get(&HEALPixCell(0, 0)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 1)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 2)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 3)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 4)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 5)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 6)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 7)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 8)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 9)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 10)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 11)).unwrap()
+        ]
     }
 
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
@@ -493,30 +508,25 @@ use crate::shader::ShaderBound;
 use crate::buffer::TextureUniforms;
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        // Send the textures
-        let textures = self.get_sorted_textures();
-        let mut num_textures = 0;
-        for texture in textures {
-            if texture.is_available() {
-                let texture_uniforms = TextureUniforms::new(
-                    texture,
-                    num_textures as i32
-                );
+        if self.is_ready() {
+            // Send the textures
+            let textures = self.get_allsky_textures();
+            let mut num_textures = 0;
+            for texture in textures.iter() {
+                if texture.is_available() {
+                    let texture_uniforms = TextureUniforms::new(
+                        texture,
+                        num_textures as i32
+                    );
 
-                shader.attach_uniforms_from(&texture_uniforms);
-                num_textures += 1;
-                // TODO: send more tiles to the ray tracer
-                // As it is now, it only send the 64 min uniq tiles
-                // from the texture buffer i.e. all the 0 and 1 depth tiles
-                // + 4 tiles of depth 2: 12 + 48 + 4 = 64
-                if num_textures == 63 {
-                    break;
+                    shader.attach_uniforms_from(&texture_uniforms);
+                    num_textures += 1;
                 }
             }
+            num_textures += 1;
+            //shader.attach_uniform("num_textures", &(num_textures as i32));
+            shader.attach_uniforms_from(&self.config);
         }
-        num_textures += 1;
-        shader.attach_uniform("num_textures", &(num_textures as i32));
-        shader.attach_uniforms_from(&self.config);
 
         shader
     }

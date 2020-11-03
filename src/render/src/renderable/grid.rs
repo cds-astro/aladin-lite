@@ -34,6 +34,7 @@ pub struct ProjetedGrid {
 
     gl: WebGl2Context,
     enabled: bool,
+    hide_labels: bool,
 }
 
 use crate::renderable::projection::Projection;
@@ -100,6 +101,7 @@ impl ProjetedGrid {
             .unwrap();
 
         let enabled = false;
+        let hide_labels = false;
         ProjetedGrid {
             color,
             opacity,
@@ -117,6 +119,7 @@ impl ProjetedGrid {
             ctx2d,
             gl,
             enabled,
+            hide_labels,
         }
     }
     
@@ -129,6 +132,16 @@ impl ProjetedGrid {
         let size_screen = &camera.get_screen_size();
 
         self.enabled = false;
+        self.ctx2d.clear_rect(
+            0.0, 0.0,
+            size_screen.x as f64, size_screen.y as f64
+        );
+    }
+
+    pub fn hide_labels(&mut self, camera: &CameraViewPort) {
+        let size_screen = &camera.get_screen_size();
+
+        self.hide_labels = true;
         self.ctx2d.clear_rect(
             0.0, 0.0,
             size_screen.x as f64, size_screen.y as f64
@@ -229,22 +242,24 @@ impl ProjetedGrid {
             }
 
             // Draw the labels here
-            let size_screen = &camera.get_screen_size();
-            self.ctx2d.clear_rect(
-                0.0, 0.0,
-                size_screen.x as f64, size_screen.y as f64
-            );
-            self.ctx2d.set_fill_style(&JsValue::from_str("#00ff00"));
-            self.ctx2d.set_font("15px Verdana");
-            let text_height = 15.0;
-            self.ctx2d.set_text_align("center");
-            for label in self.labels.iter() {
-                if let Some(label) = &label {
-                    self.ctx2d.save();
-                    self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
-                    self.ctx2d.rotate(label.rot as f64);
-                    self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
-                    self.ctx2d.restore();
+            if !self.hide_labels {
+                let size_screen = &camera.get_screen_size();
+                self.ctx2d.clear_rect(
+                    0.0, 0.0,
+                    size_screen.x as f64, size_screen.y as f64
+                );
+                self.ctx2d.set_fill_style(&JsValue::from_str("#00ff00"));
+                self.ctx2d.set_font("15px Verdana");
+                let text_height = 15.0;
+                self.ctx2d.set_text_align("center");
+                for label in self.labels.iter() {
+                    if let Some(label) = &label {
+                        self.ctx2d.save();
+                        self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
+                        self.ctx2d.rotate(label.rot as f64);
+                        self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
+                        self.ctx2d.restore();
+                    }
                 }
             }
         }

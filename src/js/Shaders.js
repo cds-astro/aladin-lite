@@ -2,8 +2,11 @@
 // Catalog shaders
 import CatalogAitoffVS from '../render/src/shaders/catalogs/aitoff.vert';
 import CatalogMercatVS from '../render/src/shaders/catalogs/mercator.vert';
+import CatalogArcVS from '../render/src/shaders/catalogs/arc.vert';
+import CatalogTanVS from '../render/src/shaders/catalogs/tan.vert';
 import CatalogMollVS from '../render/src/shaders/catalogs/mollweide.vert';
 import CatalogOrthoVS from '../render/src/shaders/catalogs/ortho.vert';
+import CatalogOrthoFS from '../render/src/shaders/catalogs/ortho.frag';
 import CatalogFS from '../render/src/shaders/catalogs/catalog.frag';
 
 // Colormap shaders
@@ -60,12 +63,24 @@ let shaders = [
         content: CatalogMercatVS,
     },
     {
+        id: "CatalogArcVS",
+        content: CatalogArcVS,
+    },
+    {
+        id: "CatalogTanVS",
+        content: CatalogTanVS,
+    },
+    {
         id: "CatalogMollVS",
         content: CatalogMollVS,
     },
     {
         id: "CatalogOrthoVS",
         content: CatalogOrthoVS,
+    },
+    {
+        id: "CatalogOrthoFS",
+        content: CatalogOrthoFS,
     },
     {
         id: "CatalogFS",

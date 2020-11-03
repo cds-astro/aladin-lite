@@ -6,6 +6,7 @@ layout (location = 1) in vec2 uv;
 layout (location = 2) in vec3 center;
 layout (location = 3) in vec2 center_lonlat;
 
+
 uniform float current_time;
 uniform mat4 model;
 
@@ -22,7 +23,7 @@ void main() {
     vec3 p = vec3(model * vec4(center, 1.0f));
     p = check_inversed_longitude(p);
 
-    vec2 center_pos_clip_space = world2clip_mercator(p);
+    vec2 center_pos_clip_space = world2clip_gnomonic(p);
 
     vec2 pos_clip_space = center_pos_clip_space;
     gl_Position = vec4((pos_clip_space / (ndc_to_clip * clip_zoom_factor)) + offset * kernel_size , 0.f, 1.f);

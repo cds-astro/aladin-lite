@@ -218,6 +218,7 @@ $( document ).ready(function() {
             }
             if (hips.hips_service_url) {
                 hips.hips_service_url = hips.hips_service_url.replace('http:', 'https:');
+                hips.hips_service_url = hips.hips_service_url.replace('alasky.', 'alaskybis.');
             }
             if (hips['hips_pixel_cut'] === undefined) {
                 console.log('no pixel cut for: ', hips.ID);

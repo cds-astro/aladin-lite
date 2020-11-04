@@ -168,8 +168,9 @@
     <br />
     <label for="opacity_cat">Opacity</label>
     <input id="opacity_cat" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="1.0" type="range" value="1.0" />
-
-    <input id="opacity_cat" style="width: 50%;" />
+    <br />
+    <label for="strength_cat">Kernel Strength</label>
+    <input id="strength_cat" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="10.0" type="range" value="1.0" />
     <br />
     <label for="colormap_cat">Colormap</label>
     <select id="colormap_cat">
@@ -705,6 +706,11 @@ document.querySelector('#opacity_cat').addEventListener('input', function(e) {
     let value = document.getElementById("opacity_cat").value;
     console.log(value);
     aladin.webglAPI.setCatalogOpacity("cat1", value);
+});
+document.querySelector('#strength_cat').addEventListener('input', function(e) {
+    let value = document.getElementById("strength_cat").value;
+    console.log("kernel strength", value);
+    aladin.webglAPI.setCatalogKernelStrength("cat1", value);
 });
 // catalog colormap
 // show grid

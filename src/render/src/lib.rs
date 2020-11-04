@@ -300,6 +300,7 @@ impl App {
                         &self.surveys.get_view().unwrap()
                     );
                     removeLoadingInfo();
+                    self.request_redraw = true;
                 },
                 TaskResult::TileSentToGPU { tile } => {
                     tiles_available.insert(tile);
@@ -412,20 +413,19 @@ impl App {
             self.surveys.draw::<P>(&self.camera, &mut self.shaders);
             self.gl.enable(WebGl2RenderingContext::BLEND);
             self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
-            //self.gl.disable(WebGl2RenderingContext::BLEND);
 
-            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
             // Draw the catalog
             self.manager.draw::<P>(
                 &self.gl,
                 &mut self.shaders,
                 &self.camera
             );
+            self.gl.disable(WebGl2RenderingContext::BLEND);
 
             // Reset the flags about the user action
             self.camera.reset();
 
-            self.gl.disable(WebGl2RenderingContext::BLEND);
         }
 
         Ok(())
@@ -621,10 +621,16 @@ impl App {
         Ok(())
     }
 
-    fn set_kernel_strength<P: Projection>(&mut self, name: String, strength: f32) {
-        self.manager.get_mut_catalog(&name)
-            .unwrap()
-            .set_strength(strength);
+    fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
+        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+            let err: JsValue = e.into();
+            err
+        })?;
+        catalog.set_strength(strength);
+
+        self.request_redraw = true;
+
+        Ok(())
     }
 
     pub fn set_grid_color(&mut self, _red: f32, _green: f32, _blue: f32) {
@@ -1016,15 +1022,10 @@ impl ProjectionType {
         }; 
     }
 
-    pub fn set_kernel_strength(&mut self, app: &mut App, name: String, strength: f32) {        
+    pub fn set_kernel_strength(&mut self, app: &mut App, name: String, strength: f32) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.set_kernel_strength::<Aitoff>(name, strength),
-            ProjectionType::MollWeide => app.set_kernel_strength::<Mollweide>(name, strength),
-            ProjectionType::Ortho => app.set_kernel_strength::<Orthographic>(name, strength),
-            ProjectionType::Arc => app.set_kernel_strength::<AzimuthalEquidistant>(name, strength),
-            ProjectionType::Gnomonic => app.set_kernel_strength::<Gnomonic>(name, strength),
-            ProjectionType::Mercator => app.set_kernel_strength::<Mercator>(name, strength),
-        };
+            _ => app.set_kernel_strength(name, strength),
+        }
     }
 
     pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) -> Result<(), JsValue> {       
@@ -1592,13 +1593,6 @@ impl WebClient {
         Ok(())
     }
 
-    /// Set the kernel strength
-    pub fn set_kernel_strength(&mut self, name_catalog: String, strength: f32) -> Result<(), JsValue> {
-        self.projection.set_kernel_strength(&mut self.app, name_catalog, strength);
-
-        Ok(())
-    }
-
     /// Set the heatmap global opacity
     #[wasm_bindgen(js_name = setCatalogOpacity)]
     pub fn set_heatmap_opacity(&mut self, name_catalog: String, opacity: f32) -> Result<(), JsValue> {
@@ -1611,6 +1605,13 @@ impl WebClient {
     pub fn set_catalog_colormap(&mut self, name_catalog: String, colormap: String) -> Result<(), JsValue> {
         let colormap: Colormap = colormap.into();
         self.projection.set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setCatalogKernelStrength)]
+    pub fn set_kernel_strength(&mut self, name_catalog: String, strength: f32) -> Result<(), JsValue> {
+        self.projection.set_kernel_strength(&mut self.app, name_catalog, strength)?;
 
         Ok(())
     }

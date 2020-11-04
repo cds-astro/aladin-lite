@@ -467,6 +467,7 @@ impl Catalog {
             return;
         }
         // Render to the FRAMEBUFFER
+        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         {
             // bind the FBO
             gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
@@ -503,6 +504,8 @@ impl Catalog {
             // Unbind the FBO
             gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
         }
+        //gl.disable(WebGl2RenderingContext::BLEND);
+        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         // Render to the heatmap to the screen
         {

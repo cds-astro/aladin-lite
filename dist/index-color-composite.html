@@ -29,6 +29,8 @@
 
 <div id="aladin-lite-div" style="width: 95vw; height: 70vh"></div>
 
+<input id="showGrid" type="checkbox">
+<label for="showGrid">Show grid</label>
 
 <div id="controls" style="display: flex;">
 <table class="box">
@@ -195,7 +197,7 @@ let aladin;
 
 $( document ).ready(function() {
     $.ajax({
-        url: 'http://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&get=record&hips_frame=equatorial&fmt=json',
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&get=record&hips_frame=equatorial&fmt=json',
     }).done(function(data) {
         
         for (var k=0; k<data.length; k++) {
@@ -206,9 +208,12 @@ $( document ).ready(function() {
             if (hips.hasOwnProperty('dataproduct_subtype') && hips.dataproduct_subtype=='color') {
                 continue;
             }
+            if (hips.hips_service_url) {
+                hips.hips_service_url = hips.hips_service_url.replace('http:', 'https:');
+            }
             if (hips['hips_pixel_cut'] === undefined) {
-                continue;
                 console.log('no pixel cut for: ', hips.ID);
+                continue;
             }
             var pixel_cuts = hips['hips_pixel_cut'].split(' ')
             hips.min_cut = parseFloat(pixel_cuts[0]);
@@ -221,7 +226,7 @@ $( document ).ready(function() {
         init();
     });
     $.ajax({
-        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows<%3D400000%26%26nb_rows>%3D50000&get=record&fmt=json',
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows%3C%3D5000000%26%26nb_rows%3E%3D50000&get=record&fmt=json',
     }).done(function(catalogs) {
         for (var k = 0; k < catalogs.length; k++) {
             var cat_id = catalogs[k].ID;
@@ -644,6 +649,7 @@ function update() {
         return;
     }
 
+    console.log(hipsComponents);
     aladin.webglAPI.setCompositeHiPS({hipses: hipsComponents})
 
     // aladin.web...
@@ -662,6 +668,24 @@ $('.slider_tf').on('keyup', function(event) {
     // if key press on enter
     if(event.keyCode == 13) {
         update();
+    }
+});
+
+$('#c1_hips, #c2_hips, #c3_hips, #c4_hips').on('keyup', function(event) {
+    // if key enter pressed and text looks like a URL
+    if (event.keyCode == 13 && $(this).val().startsWith('http')) {
+
+        console.log($(this).val());
+    }
+});
+
+// show grid
+document.querySelector('#showGrid').addEventListener('change', function(e) {
+    if (this.checked) {
+        aladin.webglAPI.enableGrid();
+    }
+    else {
+        aladin.webglAPI.disableGrid();
     }
 });
 

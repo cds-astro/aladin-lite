@@ -597,16 +597,28 @@ impl App {
         self.manager.set_kernel_size(&self.camera);
     }
 
-    fn set_colormap(&mut self, name: String, colormap: Colormap) {
-        self.manager.get_mut_catalog(&name)
-            .unwrap()
-            .set_colormap(colormap);
+    fn set_catalog_colormap(&mut self, name: String, colormap: Colormap) -> Result<(), JsValue> {
+        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+            let err: JsValue = e.into();
+            err
+        })?;
+        catalog.set_colormap(colormap);
+
+        self.request_redraw = true;
+
+        Ok(())
     }
 
-    fn set_heatmap_opacity(&mut self, name: String, opacity: f32) {
-        self.manager.get_mut_catalog(&name)
-            .unwrap()
-            .set_alpha(opacity);
+    fn set_heatmap_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
+        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+            let err: JsValue = e.into();
+            err
+        })?;
+        catalog.set_alpha(opacity);
+
+        self.request_redraw = true;
+
+        Ok(())
     }
 
     fn set_kernel_strength<P: Projection>(&mut self, name: String, strength: f32) {
@@ -855,10 +867,10 @@ impl ProjectionType {
         };
     }
 
-    fn set_colormap(&self, app: &mut App, name: String, colormap: Colormap) {
+    fn set_catalog_colormap(&self, app: &mut App, name: String, colormap: Colormap) -> Result<(), JsValue> {
         match self {
-            _ => app.set_colormap(name, colormap),
-        };
+            _ => app.set_catalog_colormap(name, colormap),
+        }
     }
 
     fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
@@ -1015,10 +1027,10 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) {       
+    pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) -> Result<(), JsValue> {       
         match self {
             _ => app.set_heatmap_opacity(name, opacity),
-        }; 
+        }
     }
 
     pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
@@ -1588,23 +1600,17 @@ impl WebClient {
     }
 
     /// Set the heatmap global opacity
+    #[wasm_bindgen(js_name = setCatalogOpacity)]
     pub fn set_heatmap_opacity(&mut self, name_catalog: String, opacity: f32) -> Result<(), JsValue> {
-        self.projection.set_heatmap_opacity(&mut self.app, name_catalog, opacity);
+        self.projection.set_heatmap_opacity(&mut self.app, name_catalog, opacity)?;
 
         Ok(())
     }
 
-    pub fn set_colormap(&mut self, name_catalog: String, name_colormap: String) -> Result<(), JsValue> {
-        let colormap = match name_colormap.as_str() {
-            "BluePastelRed" => Colormap::BluePastelRed,
-            "IDL_CB_BrBG" => Colormap::IDLCBBrBG,
-            "IDL_CB_YIGnBu" => Colormap::IDLCBYIGnBu,
-            "IDL_CB_GnBu" => Colormap::IDLCBGnBu,
-            "Red_Temperature" => Colormap::RedTemperature,
-            "Black_White_Linear" => Colormap::BlackWhiteLinear,
-            _ => panic!("{:?} colormap not recognized!", name_colormap)
-        };
-        self.projection.set_colormap(&mut self.app, name_catalog, colormap);
+    #[wasm_bindgen(js_name = setCatalogColormap)]
+    pub fn set_catalog_colormap(&mut self, name_catalog: String, colormap: String) -> Result<(), JsValue> {
+        let colormap: Colormap = colormap.into();
+        self.projection.set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
 
         Ok(())
     }

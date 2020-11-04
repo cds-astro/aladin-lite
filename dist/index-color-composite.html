@@ -14,9 +14,14 @@
 }
 .box {
     display: inline-block;
-    margin-top: 5px;
     margin-left: 5px;
     border: 1px solid;
+    padding: 2px;
+}
+
+.header {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 </style>
 
@@ -31,7 +36,9 @@
 
 <div id="controls" style="display: flex;">
 <!-- HiPSes control box -->
-<table class="box">
+<div class="box">
+<h3 class="header">Image Surveys</h3>
+<table>
 <tr>
     <td><input type="color" id="color_c1" value="#ff0000"></td><td><input type="color" id="color_c2" value="#00ff00"></td><td><input type="color" id="color_c3" value="#0000ff"></td><td><input type="color" id="color_c4" value="#ffffff"></td>
 </tr>    
@@ -161,10 +168,12 @@
   </td>
 </tr>
 </table>
+</div>
 <div class="box" style="border: 1px solid;">
+    <h3 class="header">Catalog</h3>
     <!-- Catalog control box -->
-    <label for="c5_cat">Catalog Search</label>
-    <input id="c5_cat" style="width: 50%;" />
+    <label for="c5_cat">Search</label>
+    <input id="c5_cat"/>
     <br />
     <label for="opacity_cat">Opacity</label>
     <input id="opacity_cat" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="1.0" type="range" value="1.0" />
@@ -184,7 +193,14 @@
     <p id="loading"></p>
 </div>
 <div class="box">
+    <h3 class="header">Grid</h3>
     <!-- Grid control box -->
+    <label for="color_grid">Color</label>
+    <input type="color" id="color_grid" value="#00ff00">
+    <br />
+    <label for="opacity_grid">Opacity</label>
+    <input id="opacity_grid" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="1.0" type="range" value="0.2" />
+    <br />
     <input id="showGrid" type="checkbox">
     <label for="showGrid">Show grid</label>
 </div>
@@ -698,18 +714,25 @@ document.querySelector('#showGrid').addEventListener('change', function(e) {
 });
 document.querySelector('#colormap_cat').addEventListener('change', function(e) {
     let value = document.getElementById("colormap_cat").value;
-    console.log(value);
     aladin.webglAPI.setCatalogColormap("cat1", value);
 });
 document.querySelector('#opacity_cat').addEventListener('input', function(e) {
     let value = document.getElementById("opacity_cat").value;
-    console.log(value);
     aladin.webglAPI.setCatalogOpacity("cat1", value);
 });
 document.querySelector('#strength_cat').addEventListener('input', function(e) {
     let value = document.getElementById("strength_cat").value;
-    console.log("kernel strength", value);
     aladin.webglAPI.setCatalogKernelStrength("cat1", value);
+});
+document.querySelector('#color_grid').addEventListener('input', function(e) {
+    let color = parseColor(document.getElementById("color_grid").value);
+    aladin.webglAPI.setGridColor(color[0], color[1], color[2], 1.0);
+});
+document.querySelector('#opacity_grid').addEventListener('input', function(e) {
+    let alpha = document.getElementById("opacity_grid").value;
+    let color = parseColor(document.getElementById("color_grid").value);
+
+    aladin.webglAPI.setGridColor(color[0], color[1], color[2], alpha);
 });
 // catalog colormap
 // show grid

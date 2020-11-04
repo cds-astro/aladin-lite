@@ -9,5 +9,5 @@ uniform float opacity;
 const float PI = 3.141592653589793f;
 
 void main() {
-    frag_color = vec4(color.rgb, opacity);
+    frag_color = color;
 }

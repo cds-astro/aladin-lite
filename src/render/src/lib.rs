@@ -408,13 +408,11 @@ impl App {
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-
             //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
             self.surveys.draw::<P>(&self.camera, &mut self.shaders);
             self.gl.enable(WebGl2RenderingContext::BLEND);
-            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
 
-            //self.gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
             // Draw the catalog
             self.manager.draw::<P>(
                 &self.gl,
@@ -425,7 +423,6 @@ impl App {
 
             // Reset the flags about the user action
             self.camera.reset();
-
         }
 
         Ok(())
@@ -633,8 +630,9 @@ impl App {
         Ok(())
     }
 
-    pub fn set_grid_color(&mut self, _red: f32, _green: f32, _blue: f32) {
-        //self.grid.set_color(red, green, blue);
+    pub fn set_grid_color(&mut self, color: Color) {
+        self.grid.set_color(color);
+        self.request_redraw = true;
     }
 
     /*pub fn set_cutouts(&mut self, survey_url: &str, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
@@ -1110,9 +1108,9 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_grid_color(&mut self, app: &mut App, red: f32, green: f32, blue: f32) {
+    pub fn set_grid_color(&mut self, app: &mut App, color: Color) {
         match self {
-            _ => app.set_grid_color(red, green, blue),
+            _ => app.set_grid_color(color),
         };
     }
     /*pub fn set_cutouts(&mut self, app: &mut App, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
@@ -1268,6 +1266,7 @@ impl IntoIterator for CompositeHiPS {
     }
 }
 
+use crate::color::Color;
 #[wasm_bindgen]
 impl WebClient {
     /// Create a new web client
@@ -1338,8 +1337,10 @@ impl WebClient {
     }
     
     /// Change grid color
-    pub fn set_grid_color(&mut self, red: f32, green: f32, blue: f32) -> Result<(), JsValue> {
-        self.projection.set_grid_color(&mut self.app, red, green, blue);
+    #[wasm_bindgen(js_name = setGridColor)]
+    pub fn set_grid_color(&mut self, red: f32, green: f32, blue: f32, alpha: f32) -> Result<(), JsValue> {
+        let color = Color::new(red, green, blue, alpha);
+        self.projection.set_grid_color(&mut self.app, color);
 
         Ok(())
     }

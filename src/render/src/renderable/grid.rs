@@ -17,7 +17,6 @@ use web_sys::{WebGlVertexArrayObject, WebGlBuffer, CanvasRenderingContext2d};
 pub struct ProjetedGrid {
     // The color of the grid
     color: Color,
-    opacity: f32,
 
     // The vertex array object of the screen in NDC
     vao: WebGlVertexArrayObject,
@@ -74,9 +73,8 @@ impl ProjetedGrid {
 
         let labels = vec![];
 
-        let color = Color::new(0_f32, 1_f32, 0_f32, 0.2_f32);
+        let color = Color::new(0_f32, 1_f32, 0_f32, 0.3_f32);
         let gl = gl.clone();
-        let opacity = 0.3;
         let sizes = vec![];
         let offsets = vec![];
 
@@ -104,7 +102,6 @@ impl ProjetedGrid {
         let hide_labels = false;
         ProjetedGrid {
             color,
-            opacity,
 
             vao,
             vbo,
@@ -121,6 +118,10 @@ impl ProjetedGrid {
             enabled,
             hide_labels,
         }
+    }
+
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
     }
     
     pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
@@ -224,10 +225,16 @@ impl ProjetedGrid {
                 )
             ).unwrap();
 
+            self.gl.blend_func_separate(
+                WebGl2RenderingContext::SRC_ALPHA,
+                WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+                WebGl2RenderingContext::ONE,
+                WebGl2RenderingContext::ONE
+            );
+
             shader.bind(&self.gl)
                 .attach_uniforms_from(camera)
-                .attach_uniform("color", &self.color)
-                .attach_uniform("opacity", &self.opacity);
+                .attach_uniform("color", &self.color);
             //crate::log("raster");
             // The raster vao is bound at the lib.rs level
             self.gl.bind_vertex_array(Some(&self.vao));
@@ -248,10 +255,11 @@ impl ProjetedGrid {
                     0.0, 0.0,
                     size_screen.x as f64, size_screen.y as f64
                 );
-                self.ctx2d.set_fill_style(&JsValue::from_str("#00ff00"));
                 self.ctx2d.set_font("15px Verdana");
-                let text_height = 15.0;
                 self.ctx2d.set_text_align("center");
+                let fill_style: String = (&self.color).into();
+                self.ctx2d.set_fill_style(&JsValue::from_str(&fill_style));
+                let text_height = 15.0;
                 for label in self.labels.iter() {
                     if let Some(label) = &label {
                         self.ctx2d.save();

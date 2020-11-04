@@ -21,6 +21,15 @@ use crate::renderable::projection::*;
 pub enum Error {
     CatalogNotPresent { message: String }
 }
+use wasm_bindgen::JsValue;
+impl From<Error> for JsValue {
+    fn from(err: Error) -> Self {
+        match err {
+            Error::CatalogNotPresent { message } => message.into(),
+            _ => unreachable!()
+        }
+    }
+}
 
 pub struct Manager {
     gl: WebGl2Context,
@@ -500,8 +509,6 @@ impl Catalog {
             // Set the camera
             let size = camera.get_screen_size();
             gl.viewport(0, 0, size.x as i32, size.y as i32);
-
-            //let fbo_tex = .bind();
 
             let shader = self.colormap.get_shader(gl, shaders);
             shader.bind(gl)

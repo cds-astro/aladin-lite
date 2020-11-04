@@ -29,10 +29,8 @@
 
 <div id="aladin-lite-div" style="width: 95vw; height: 70vh"></div>
 
-<input id="showGrid" type="checkbox">
-<label for="showGrid">Show grid</label>
-
 <div id="controls" style="display: flex;">
+<!-- HiPSes control box -->
 <table class="box">
 <tr>
     <td><input type="color" id="color_c1" value="#ff0000"></td><td><input type="color" id="color_c2" value="#00ff00"></td><td><input type="color" id="color_c3" value="#0000ff"></td><td><input type="color" id="color_c4" value="#ffffff"></td>
@@ -164,9 +162,14 @@
 </tr>
 </table>
 <div class="box" style="border: 1px solid;">
-    <label for="c5_cat">Catalog selection</label>
-
+    <!-- Catalog control box -->
+    <label for="c5_cat">Catalog Search</label>
     <input id="c5_cat" style="width: 50%;" />
+    <br />
+    <label for="opacity_cat">Opacity</label>
+    <input id="opacity_cat" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="1.0" type="range" value="1.0" />
+
+    <input id="opacity_cat" style="width: 50%;" />
     <br />
     <label for="colormap_cat">Colormap</label>
     <select id="colormap_cat">
@@ -178,6 +181,11 @@
       <option value="BluePastelRed" selected>BluePastelRed</option>
     </select>
     <p id="loading"></p>
+</div>
+<div class="box">
+    <!-- Grid control box -->
+    <input id="showGrid" type="checkbox">
+    <label for="showGrid">Show grid</label>
 </div>
 
 </div>
@@ -288,7 +296,7 @@ async function loadCatalog(catalog_id, colormap) {
     let table_obs_id = catalog_id.substring(4);
     retrieveCatalog(table_obs_id, [pos_ra_column_name, pos_dec_column_name/*, phot_mag_column_name, parallax_column_name*/])
         .then(sources => {
-            aladin.webglAPI.addCatalog("Test", sources, colormap);
+            aladin.webglAPI.addCatalog("cat1", sources, colormap);
         });
 }
 
@@ -649,7 +657,6 @@ function update() {
         return;
     }
 
-    console.log(hipsComponents);
     aladin.webglAPI.setCompositeHiPS({hipses: hipsComponents})
 
     // aladin.web...
@@ -688,18 +695,26 @@ document.querySelector('#showGrid').addEventListener('change', function(e) {
         aladin.webglAPI.disableGrid();
     }
 });
+document.querySelector('#colormap_cat').addEventListener('change', function(e) {
+    let value = document.getElementById("colormap_cat").value;
+    console.log(value);
+    aladin.webglAPI.setCatalogColormap("cat1", value);
+});
+document.querySelector('#opacity_cat').addEventListener('input', function(e) {
+    let value = document.getElementById("opacity_cat").value;
+    console.log(value);
+    aladin.webglAPI.setCatalogOpacity("cat1", value);
+});
+// catalog colormap
+// show grid
 
 
-
-    A.init.then(() => {
-        // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
-
-
-    });
+A.init.then(() => {
+    // Start up Aladin Lite
+    aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
 
 
-
+});
 
 </script>
 </body>

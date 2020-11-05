@@ -501,9 +501,9 @@ impl App {
         }
 
         let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 0);
+        self.downloader.clear_requests();
 
         if !new_survey_ids.is_empty() {
-            self.downloader.clear_requests();
             for id in new_survey_ids.iter() {
                 let config = &self.surveys.get(id).unwrap().get_textures().config;
                 self.downloader.request_base_tiles(config);

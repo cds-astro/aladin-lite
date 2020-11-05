@@ -1,10 +1,11 @@
 use crate::core::Texture2DArray;
 pub trait Image {
-    fn tex_sub_image_3d(&self,
+    fn tex_sub_image_3d(
+        &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
-        offset: &Vector3<i32>
+        offset: &Vector3<i32>,
     );
 
     // The size of the image
@@ -13,12 +14,16 @@ pub trait Image {
     //fn get_cutoff_values(&self) -> Option<(f32, f32)>;
 }
 
-impl<T> Image for Rc<T> where T: Image {
-    fn tex_sub_image_3d(&self,
+impl<T> Image for Rc<T>
+where
+    T: Image,
+{
+    fn tex_sub_image_3d(
+        &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
-        offset: &Vector3<i32>
+        offset: &Vector3<i32>,
     ) {
         let image = &**self;
         image.tex_sub_image_3d(textures, offset);
@@ -33,11 +38,13 @@ impl<T> Image for Rc<T> where T: Image {
 #[derive(Debug)]
 pub struct TileArrayBuffer<T: ArrayBuffer> {
     buf: T,
-    size: Vector2<i32>
+    size: Vector2<i32>,
 }
 
 impl<T> TileArrayBuffer<T>
-where T: ArrayBuffer {
+where
+    T: ArrayBuffer,
+{
     pub fn new(buf: &[T::Item], width: i32, num_channels: i32) -> Self {
         let size_buf = width * width * num_channels;
         assert_eq!(size_buf, buf.len() as i32);
@@ -54,7 +61,7 @@ where T: ArrayBuffer {
         let len = sorted_values.len() as f32;
         let idx1 = (0.01 * len) as usize;
         let idx2 = (0.99 * len) as usize;
-    
+
         let (v1, v2) = (sorted_values[idx1], sorted_values[idx2]);
         //crate::log(&format!("cutoff: {:?} {:?}", v1, v2));
         (v1, v2)
@@ -72,7 +79,9 @@ pub trait ArrayBuffer: AsRef<js_sys::Object> {
 #[derive(Debug)]
 pub struct ArrayU8(js_sys::Uint8Array);
 impl AsRef<js_sys::Object> for ArrayU8 {
-    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+    fn as_ref(&self) -> &js_sys::Object {
+        self.0.as_ref()
+    }
 }
 
 impl ArrayBuffer for ArrayU8 {
@@ -95,7 +104,9 @@ impl ArrayBuffer for ArrayU8 {
 #[derive(Debug)]
 pub struct ArrayI16(js_sys::Int16Array);
 impl AsRef<js_sys::Object> for ArrayI16 {
-    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+    fn as_ref(&self) -> &js_sys::Object {
+        self.0.as_ref()
+    }
 }
 
 impl ArrayBuffer for ArrayI16 {
@@ -117,7 +128,9 @@ impl ArrayBuffer for ArrayI16 {
 #[derive(Debug)]
 pub struct ArrayI32(js_sys::Int32Array);
 impl AsRef<js_sys::Object> for ArrayI32 {
-    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+    fn as_ref(&self) -> &js_sys::Object {
+        self.0.as_ref()
+    }
 }
 impl ArrayBuffer for ArrayI32 {
     type Item = i32;
@@ -139,7 +152,9 @@ impl ArrayBuffer for ArrayI32 {
 #[derive(Debug)]
 pub struct ArrayF32(js_sys::Float32Array);
 impl AsRef<js_sys::Object> for ArrayF32 {
-    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+    fn as_ref(&self) -> &js_sys::Object {
+        self.0.as_ref()
+    }
 }
 
 impl ArrayBuffer for ArrayF32 {
@@ -162,7 +177,9 @@ impl ArrayBuffer for ArrayF32 {
 #[derive(Debug)]
 pub struct ArrayF64(js_sys::Float64Array);
 impl AsRef<js_sys::Object> for ArrayF64 {
-    fn as_ref(&self) -> &js_sys::Object { self.0.as_ref() }
+    fn as_ref(&self) -> &js_sys::Object {
+        self.0.as_ref()
+    }
 }
 
 impl ArrayBuffer for ArrayF64 {
@@ -183,14 +200,16 @@ impl ArrayBuffer for ArrayF64 {
 }
 use super::TileArrayBufferImage;
 impl Image for TileArrayBufferImage {
-    fn tex_sub_image_3d(&self,
+    fn tex_sub_image_3d(
+        &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
-        offset: &Vector3<i32>
+        offset: &Vector3<i32>,
     ) {
         match &self {
-            TileArrayBufferImage::U8(b) => textures.bind_texture_slice(offset.z)
+            TileArrayBufferImage::U8(b) => textures
+                .bind_texture_slice(offset.z)
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -198,7 +217,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I16(b) => textures.bind_texture_slice(offset.z)
+            TileArrayBufferImage::I16(b) => textures
+                .bind_texture_slice(offset.z)
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -206,7 +226,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I32(b) => textures.bind_texture_slice(offset.z)
+            TileArrayBufferImage::I32(b) => textures
+                .bind_texture_slice(offset.z)
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -214,7 +235,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::F32(b) => textures.bind_texture_slice(offset.z)
+            TileArrayBufferImage::F32(b) => textures
+                .bind_texture_slice(offset.z)
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -222,7 +244,7 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
@@ -233,7 +255,7 @@ impl Image for TileArrayBufferImage {
             TileArrayBufferImage::I16(b) => &b.size,
             TileArrayBufferImage::I32(b) => &b.size,
             TileArrayBufferImage::F32(b) => &b.size,
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
@@ -345,13 +367,10 @@ impl Image for Rc<TileArrayBufferImage> {
     }*/
 }
 */
-use crate::{
-    healpix_cell::HEALPixCell,
-    time::Time
-};
+use crate::{healpix_cell::HEALPixCell, time::Time};
+use js_sys::Function;
 use std::cell::Cell;
 use std::rc::Rc;
-use js_sys::Function;
 /*
 impl Image for RetrievedImageType {
     fn tex_sub_image_3d(&self,
@@ -386,19 +405,29 @@ pub struct FITSMetaData {
 }
 
 pub enum RetrievedImageType {
-    FITSImage { image: TileArrayBufferImage, metadata: FITSMetaData },
-    CompressedImage { image: TileHTMLImage }
+    FITSImage {
+        image: TileArrayBufferImage,
+        metadata: FITSMetaData,
+    },
+    CompressedImage {
+        image: TileHTMLImage,
+    },
 }
 
 pub enum RequestType {
     File,
-    HtmlImage
+    HtmlImage,
 }
 
 use crate::image_fmt::FormatImageType;
 pub trait ImageRequest {
     fn new() -> Self;
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue>;
+    fn send(
+        &self,
+        success: Option<&Function>,
+        fail: Option<&Function>,
+        url: &str,
+    ) -> Result<(), JsValue>;
     fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType>;
 
     const REQUEST_TYPE: RequestType;
@@ -409,7 +438,12 @@ enum ImageRequestType {
     CompressedImageRequest(CompressedImageRequest),
 }
 impl ImageRequestType {
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
+    fn send(
+        &self,
+        success: Option<&Function>,
+        fail: Option<&Function>,
+        url: &str,
+    ) -> Result<(), JsValue> {
         match self {
             ImageRequestType::FITSImageRequest(r) => r.send(success, fail, url),
             ImageRequestType::CompressedImageRequest(r) => r.send(success, fail, url),
@@ -433,14 +467,13 @@ pub struct TileRequest {
     ready: bool,
     resolved: Rc<Cell<ResolvedStatus>>,
     pub tile: Option<Tile>,
-    closures: [Closure<dyn FnMut(&web_sys::Event,)>; 2],
+    closures: [Closure<dyn FnMut(&web_sys::Event)>; 2],
 }
-#[derive(Clone, Copy)]
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ResolvedStatus {
     NotResolved,
     Missing,
-    Found
+    Found,
 }
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -451,9 +484,7 @@ impl TileRequest {
         // By default, all the requests are parametrized to load
         // compressed image requests
         let req = match R::REQUEST_TYPE {
-            RequestType::File => {
-                ImageRequestType::FITSImageRequest(FITSImageRequest::new())
-            },
+            RequestType::File => ImageRequestType::FITSImageRequest(FITSImageRequest::new()),
             RequestType::HtmlImage => {
                 ImageRequestType::CompressedImageRequest(CompressedImageRequest::new())
             }
@@ -463,12 +494,23 @@ impl TileRequest {
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
         let tile = None;
         let closures = [
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
         ];
         let ready = true;
         let time_request = Time::now();
-        Self { req, resolved, ready, tile, closures, time_request }
+        Self {
+            req,
+            resolved,
+            ready,
+            tile,
+            closures,
+            time_request,
+        }
     }
 
     /*pub fn is<R: ImageRequest>(&self) -> bool {
@@ -483,7 +525,11 @@ impl TileRequest {
         assert!(self.is_ready());
 
         self.tile = Some(tile.clone());
-        let Tile { cell, root_url, format } = tile;
+        let Tile {
+            cell,
+            root_url,
+            format,
+        } = tile;
 
         self.ready = false;
 
@@ -492,30 +538,31 @@ impl TileRequest {
 
             let dir_idx = (idx / 10000) * 10000;
 
-            let url = format!("{}/Norder{}/Dir{}/Npix{}.{}",
+            let url = format!(
+                "{}/Norder{}/Dir{}/Npix{}.{}",
                 root_url,
                 depth.to_string(),
                 dir_idx.to_string(),
                 idx.to_string(),
                 format.get_ext_file()
             );
-    
+
             url
         };
-        
+
         let success = {
             let resolved = self.resolved.clone();
 
             Closure::wrap(Box::new(move |_: &web_sys::Event| {
                 resolved.set(ResolvedStatus::Found);
-            }) as Box<dyn FnMut(&web_sys::Event,)>)
+            }) as Box<dyn FnMut(&web_sys::Event)>)
         };
 
         let fail = {
             let resolved = self.resolved.clone();
             Closure::wrap(Box::new(move |_: &web_sys::Event| {
                 resolved.set(ResolvedStatus::Missing);
-            }) as Box<dyn FnMut(&web_sys::Event,)>)
+            }) as Box<dyn FnMut(&web_sys::Event)>)
         };
 
         self.resolved.set(ResolvedStatus::NotResolved);
@@ -523,7 +570,7 @@ impl TileRequest {
         self.req.send(
             Some(success.as_ref().unchecked_ref()),
             Some(fail.as_ref().unchecked_ref()),
-            &url
+            &url,
         )?;
 
         self.closures = [success, fail];
@@ -558,8 +605,12 @@ impl TileRequest {
         self.ready = true;
         self.resolved.set(ResolvedStatus::NotResolved);
         self.closures = [
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>),
-            Closure::wrap(Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event,)>)
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
         ];
         //self.tile = HEALPixCell(0, 13);
         self.time_request = Time::now();
@@ -569,7 +620,11 @@ impl TileRequest {
         self.resolved.get()
     }
 
-    pub fn get_image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
+    pub fn get_image(
+        &self,
+        tile_width: i32,
+        format: &FormatImageType,
+    ) -> Option<RetrievedImageType> {
         assert!(self.is_resolved());
         self.req.image(tile_width, format)
     }
@@ -584,12 +639,17 @@ impl ImageRequest for CompressedImageRequest {
 
     fn new() -> Self {
         let image = web_sys::HtmlImageElement::new().unwrap();
-        image.set_cross_origin(Some("")); 
+        image.set_cross_origin(Some(""));
 
         Self { image }
     }
 
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
+    fn send(
+        &self,
+        success: Option<&Function>,
+        fail: Option<&Function>,
+        url: &str,
+    ) -> Result<(), JsValue> {
         self.image.set_src(&url);
         self.image.set_onload(success);
         self.image.set_onerror(fail);
@@ -605,8 +665,8 @@ impl ImageRequest for CompressedImageRequest {
         Some(RetrievedImageType::CompressedImage {
             image: TileHTMLImage {
                 size,
-                image: self.image.clone()
-            }
+                image: self.image.clone(),
+            },
         })
     }
 }
@@ -615,10 +675,10 @@ use web_sys::XmlHttpRequest;
 pub struct FITSImageRequest {
     image: XmlHttpRequest,
 }
-use web_sys::XmlHttpRequestResponseType;
-use fitsreader::{Fits, DataType};
+use fitsreader::{DataType, Fits};
 use fitsreader::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
+use web_sys::XmlHttpRequestResponseType;
 impl ImageRequest for FITSImageRequest {
     const REQUEST_TYPE: RequestType = RequestType::File;
 
@@ -629,7 +689,12 @@ impl ImageRequest for FITSImageRequest {
         Self { image }
     }
 
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
+    fn send(
+        &self,
+        success: Option<&Function>,
+        fail: Option<&Function>,
+        url: &str,
+    ) -> Result<(), JsValue> {
         self.image.open_with_async("GET", url, true)?;
         self.image.set_onload(success);
         self.image.set_onerror(fail);
@@ -641,34 +706,38 @@ impl ImageRequest for FITSImageRequest {
 
     fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
         // We know at this point the request is resolved
-        let array_buf = js_sys::Uint8Array::new(
-            self.image.response().unwrap().as_ref()
-        );
+        let array_buf = js_sys::Uint8Array::new(self.image.response().unwrap().as_ref());
         let bytes = &array_buf.to_vec();
         if let Ok(Fits { data, header }) = Fits::from_bytes_slice(bytes) {
             let num_channels = format.get_num_channels() as i32;
 
-            let image = match data {
-                DataType::U8(data) => {
-                    TileArrayBufferImage::U8(TileArrayBuffer::<ArrayU8>::new(&data.0, tile_width, num_channels))
-                },
-                DataType::I16(data) => {
-                    TileArrayBufferImage::I16(TileArrayBuffer::<ArrayI16>::new(&data.0, tile_width, num_channels))
-                },
-                DataType::I32(data) => {
-                    TileArrayBufferImage::I32(TileArrayBuffer::<ArrayI32>::new(&data.0, tile_width, num_channels))
-                },
-                DataType::F32(data) => {
-                    TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels))
-                },
-                DataType::F64(data) => {
-                    let data = data.0.into_iter().map(|v| v as f32).collect::<Vec<_>>();
-                    TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(&data, tile_width, num_channels))
-                },
-                _ => unimplemented!()
-            };
-    
-            let bscale = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BSCALE") {
+            let image =
+                match data {
+                    DataType::U8(data) => TileArrayBufferImage::U8(
+                        TileArrayBuffer::<ArrayU8>::new(&data.0, tile_width, num_channels),
+                    ),
+                    DataType::I16(data) => TileArrayBufferImage::I16(
+                        TileArrayBuffer::<ArrayI16>::new(&data.0, tile_width, num_channels),
+                    ),
+                    DataType::I32(data) => TileArrayBufferImage::I32(
+                        TileArrayBuffer::<ArrayI32>::new(&data.0, tile_width, num_channels),
+                    ),
+                    DataType::F32(data) => TileArrayBufferImage::F32(
+                        TileArrayBuffer::<ArrayF32>::new(&data.0, tile_width, num_channels),
+                    ),
+                    DataType::F64(data) => {
+                        let data = data.0.into_iter().map(|v| v as f32).collect::<Vec<_>>();
+                        TileArrayBufferImage::F32(TileArrayBuffer::<ArrayF32>::new(
+                            &data,
+                            tile_width,
+                            num_channels,
+                        ))
+                    }
+                    _ => unimplemented!(),
+                };
+
+            let bscale = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BSCALE")
+            {
                 if let FITSKeywordValue::FloatingPoint(bscale) = value {
                     *bscale as f32
                 } else {
@@ -677,7 +746,7 @@ impl ImageRequest for FITSImageRequest {
             } else {
                 1.0
             };
-            let bzero = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BZERO") {
+            let bzero = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BZERO") {
                 if let FITSKeywordValue::FloatingPoint(bzero) = value {
                     *bzero as f32
                 } else {
@@ -686,7 +755,7 @@ impl ImageRequest for FITSImageRequest {
             } else {
                 0.0
             };
-            let blank = if let Some(FITSHeaderKeyword::Other { value, .. } ) = header.get("BLANK") {
+            let blank = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BLANK") {
                 if let FITSKeywordValue::FloatingPoint(blank) = value {
                     *blank as f32
                 } else {
@@ -695,7 +764,7 @@ impl ImageRequest for FITSImageRequest {
             } else {
                 std::f32::MIN
             };
-    
+
             let metadata = FITSMetaData {
                 blank,
                 bscale,
@@ -718,23 +787,23 @@ pub struct TileHTMLImage {
     image: web_sys::HtmlImageElement,
     size: Vector2<i32>,
 }
-use cgmath::{Vector3, Vector2};
+use cgmath::{Vector2, Vector3};
 impl Image for TileHTMLImage {
-    fn tex_sub_image_3d(&self,
+    fn tex_sub_image_3d(
+        &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
-        offset: &Vector3<i32>
+        offset: &Vector3<i32>,
     ) {
         let _size = self.get_size();
         let texture = textures.bind_texture_slice(offset.z);
 
         texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
-                offset.x,
-                offset.y,
-
-                &self.image,
-            );
+            offset.x,
+            offset.y,
+            &self.image,
+        );
     }
 
     // The size of the image
@@ -748,6 +817,5 @@ impl Image for TileHTMLImage {
 }
 
 impl Drop for TileRequest {
-    fn drop(&mut self) {
-    }
+    fn drop(&mut self) {}
 }

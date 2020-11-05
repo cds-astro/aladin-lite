@@ -9,10 +9,7 @@ pub enum Colormap {
 }
 use std::borrow::Cow;
 
-use crate::{
-    shader::ShaderId,
-    WebGl2Context
-};
+use crate::{shader::ShaderId, WebGl2Context};
 impl Colormap {
     pub fn new(id: &str) -> Self {
         if id.contains("RedTemperature") {
@@ -36,43 +33,43 @@ impl Colormap {
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapBlackWhiteFS")
-                )
+                    Cow::Borrowed("ColormapBlackWhiteFS"),
+                ),
             ),
             Colormap::RedTemperature => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapRedTemperatureFS")
-                )
+                    Cow::Borrowed("ColormapRedTemperatureFS"),
+                ),
             ),
             Colormap::IDLCBGnBu => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapIDL_CB_GnBuFS")
-                )
+                    Cow::Borrowed("ColormapIDL_CB_GnBuFS"),
+                ),
             ),
             Colormap::IDLCBYIGnBu => shaders.get(
-                gl, 
+                gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapIDL_CB_YIGnBuFS")
-                )
+                    Cow::Borrowed("ColormapIDL_CB_YIGnBuFS"),
+                ),
             ),
             Colormap::BluePastelRed => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapBluePastelRedFS")
-                )
+                    Cow::Borrowed("ColormapBluePastelRedFS"),
+                ),
             ),
             Colormap::IDLCBBrBG => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
-                    Cow::Borrowed("ColormapIDL_CB_BrBGFS")
-                )
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
             ),
         };
 
@@ -97,5 +94,5 @@ impl From<String> for Colormap {
     }
 }
 
-use crate::ShaderManager;
 use crate::Shader;
+use crate::ShaderManager;

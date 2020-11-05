@@ -20,31 +20,29 @@ pub enum TileArrayBufferImage {
 use super::TileArrayBuffer;
 use std::rc::Rc;
 
+use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
+use crate::image_fmt::{FITS, JPG, PNG};
 use crate::WebGl2Context;
-use super::{ArrayU8, ArrayF32, ArrayF64, ArrayI32, ArrayI16};
-use crate::image_fmt::{PNG, JPG, FITS};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let _num_channels = format.get_num_channels() as i32;
     match format {
         FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
         FormatImageType::PNG => TileArrayBufferImage::U8(PNG::create_black_tile(width)),
-        FormatImageType::FITS(_fits) => {
-            match format.get_type() {
-                WebGl2RenderingContext::FLOAT => {
-                    TileArrayBufferImage::F32(FITS::create_black_tile(width, value))
-                },
-                WebGl2RenderingContext::INT => {
-                    TileArrayBufferImage::I32(FITS::create_black_tile(width, value as i32))
-                },
-                WebGl2RenderingContext::SHORT => {
-                    TileArrayBufferImage::I16(FITS::create_black_tile(width, value as i16))
-                },
-                WebGl2RenderingContext::UNSIGNED_BYTE => {
-                    TileArrayBufferImage::U8(FITS::create_black_tile(width, value as u8))
-                },
-                _ => unimplemented!()
+        FormatImageType::FITS(_fits) => match format.get_type() {
+            WebGl2RenderingContext::FLOAT => {
+                TileArrayBufferImage::F32(FITS::create_black_tile(width, value))
             }
-        }
+            WebGl2RenderingContext::INT => {
+                TileArrayBufferImage::I32(FITS::create_black_tile(width, value as i32))
+            }
+            WebGl2RenderingContext::SHORT => {
+                TileArrayBufferImage::I16(FITS::create_black_tile(width, value as i16))
+            }
+            WebGl2RenderingContext::UNSIGNED_BYTE => {
+                TileArrayBufferImage::U8(FITS::create_black_tile(width, value as u8))
+            }
+            _ => unimplemented!(),
+        },
     }
 }
 
@@ -73,8 +71,6 @@ impl TileConfig {
         }
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct HiPSConfig {
@@ -106,7 +102,7 @@ pub struct HiPSConfig {
     pub blank: f32,
 
     pub tex_storing_integers: i32,
-    pub tex_storing_fits: i32
+    pub tex_storing_fits: i32,
 }
 
 #[inline]
@@ -115,9 +111,9 @@ fn is_power_of_two(x: usize) -> bool {
 }
 
 use crate::math;
-use web_sys::WebGl2RenderingContext;
+use crate::{HiPSFormat, HiPSProperties};
 use wasm_bindgen::JsValue;
-use crate::{HiPSProperties, HiPSFormat};
+use web_sys::WebGl2RenderingContext;
 impl HiPSConfig {
     pub fn new(_gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.url.clone();
@@ -135,36 +131,48 @@ impl HiPSConfig {
         let fmt = &properties.format;
         let mut tex_storing_integers = 0;
         let mut tex_storing_fits = 0;
-        let format : Result<_, JsValue> = match fmt {
+        let format: Result<_, JsValue> = match fmt {
             HiPSFormat::FITSImage { bitpix, .. } => {
                 tex_storing_fits = 1;
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
                     8 => {
                         tex_storing_integers = 1;
-                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R8UI as i32)))
-                    },
+                        Ok(FormatImageType::FITS(FITS::new(
+                            WebGl2RenderingContext::R8UI as i32,
+                        )))
+                    }
                     16 => {
                         tex_storing_integers = 1;
-                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R16I as i32)))
-                    },
+                        Ok(FormatImageType::FITS(FITS::new(
+                            WebGl2RenderingContext::R16I as i32,
+                        )))
+                    }
                     32 => {
                         tex_storing_integers = 1;
-                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32I as i32)))
-                    },
+                        Ok(FormatImageType::FITS(FITS::new(
+                            WebGl2RenderingContext::R32I as i32,
+                        )))
+                    }
                     -32 => {
                         tex_storing_integers = 0;
-                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
-                    },
+                        Ok(FormatImageType::FITS(FITS::new(
+                            WebGl2RenderingContext::R32F as i32,
+                        )))
+                    }
                     -64 => {
                         tex_storing_integers = 0;
-                        Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
-                    },
-                    _ => {
-                        Err("Fits tiles exists but the BITPIX is not correct in the property file".to_string().into())
+                        Ok(FormatImageType::FITS(FITS::new(
+                            WebGl2RenderingContext::R32F as i32,
+                        )))
                     }
+                    _ => Err(
+                        "Fits tiles exists but the BITPIX is not correct in the property file"
+                            .to_string()
+                            .into(),
+                    ),
                 }
-            },
+            }
             HiPSFormat::Image { format } => {
                 tex_storing_fits = 0;
                 tex_storing_integers = 0;
@@ -220,7 +228,7 @@ impl HiPSConfig {
             blank: 0.0,
 
             tex_storing_fits,
-            tex_storing_integers
+            tex_storing_integers,
         };
 
         Ok(hips_config)
@@ -313,7 +321,8 @@ use crate::shader::ShaderBound;
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Send max depth
-        shader.attach_uniform("max_depth", &(self.max_depth_texture as i32))
+        shader
+            .attach_uniform("max_depth", &(self.max_depth_texture as i32))
             .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
             .attach_uniform("tex_storing_integers", &(self.tex_storing_integers as f32))
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)

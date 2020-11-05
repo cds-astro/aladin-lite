@@ -9,19 +9,26 @@
 // World space
 use crate::camera::CameraViewPort;
 
-
-
-pub fn screen_to_ndc_space(pos_screen_space: &Vector2<f32>, camera: &CameraViewPort) -> Vector2<f32> {
+pub fn screen_to_ndc_space(
+    pos_screen_space: &Vector2<f32>,
+    camera: &CameraViewPort,
+) -> Vector2<f32> {
     // Screen space in pixels to homogeneous screen space (values between [-1, 1])
     let window_size = camera.get_screen_size();
     // Change of origin
-    let origin = pos_screen_space - window_size/2_f32;
+    let origin = pos_screen_space - window_size / 2_f32;
 
     // Scale to fit in [-1, 1]
-    let pos_normalized_device = Vector2::new(2_f32 * (origin.x/window_size.x), -2_f32 * (origin.y/window_size.y));
+    let pos_normalized_device = Vector2::new(
+        2_f32 * (origin.x / window_size.x),
+        -2_f32 * (origin.y / window_size.y),
+    );
     pos_normalized_device
 }
-pub fn ndc_to_screen_space(pos_normalized_device: &Vector2<f32>, camera: &CameraViewPort) -> Vector2<f32> {
+pub fn ndc_to_screen_space(
+    pos_normalized_device: &Vector2<f32>,
+    camera: &CameraViewPort,
+) -> Vector2<f32> {
     let window_size = camera.get_screen_size();
 
     let pos_screen_space = Vector2::new(
@@ -31,10 +38,13 @@ pub fn ndc_to_screen_space(pos_normalized_device: &Vector2<f32>, camera: &Camera
 
     pos_screen_space
 }
-pub fn clip_to_screen_space(pos_clip_space: &Vector2<f32>, camera: &CameraViewPort) -> Vector2<f32> {
+pub fn clip_to_screen_space(
+    pos_clip_space: &Vector2<f32>,
+    camera: &CameraViewPort,
+) -> Vector2<f32> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
-    
+
     let pos_normalized_device = Vector2::new(
         pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
         pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
@@ -49,13 +59,19 @@ pub fn clip_to_screen_space(pos_clip_space: &Vector2<f32>, camera: &CameraViewPo
     pos_screen_space
 }
 
-pub fn screen_to_clip_space(pos_screen_space: &Vector2<f32>, camera: &CameraViewPort) -> Vector2<f32> {
+pub fn screen_to_clip_space(
+    pos_screen_space: &Vector2<f32>,
+    camera: &CameraViewPort,
+) -> Vector2<f32> {
     let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
 
     ndc_to_clip_space(&pos_normalized_device, camera)
 }
 
-pub fn ndc_to_clip_space(pos_normalized_device: &Vector2<f32>, camera: &CameraViewPort) -> Vector2<f32> {
+pub fn ndc_to_clip_space(
+    pos_normalized_device: &Vector2<f32>,
+    camera: &CameraViewPort,
+) -> Vector2<f32> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
 
@@ -67,24 +83,26 @@ pub fn ndc_to_clip_space(pos_normalized_device: &Vector2<f32>, camera: &CameraVi
     pos_clip_space
 }
 
-use cgmath::Vector4;
 use cgmath::InnerSpace;
+use cgmath::Vector4;
 
-use crate::renderable::{
- catalog::CatalogShaderProjection,
- grid::GridShaderProjection,
-};
+use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjection};
 use crate::shader::GetShader;
-pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized {
+pub trait Projection:
+    GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
+{
     /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``camera`` - The camera object
-    fn screen_to_world_space(pos_screen_space: &Vector2<f32>, camera: &CameraViewPort) -> Option<Vector4<f32>> {
+    fn screen_to_world_space(
+        pos_screen_space: &Vector2<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector4<f32>> {
         let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
 
         let ndc_to_clip = camera.get_ndc_to_clip();
@@ -94,7 +112,8 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
             pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
             pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let pos_world_space = Self::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude());
+        let pos_world_space =
+            Self::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude());
         if let Some(pos_world_space) = pos_world_space {
             let pos_world_space = pos_world_space.normalize();
 
@@ -107,12 +126,15 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     /// Screen to model space deprojection
 
     /// Perform a screen to the world space deprojection
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``camera`` - The camera object
-    fn screen_to_model_space(pos_screen_space: &Vector2<f32>, camera: &CameraViewPort) -> Option<Vector4<f32>> {
+    fn screen_to_model_space(
+        pos_screen_space: &Vector2<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector4<f32>> {
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
@@ -125,22 +147,32 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
         }
     }
 
-    fn model_to_screen_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
+    fn model_to_screen_space(
+        pos_model_space: &Vector4<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector2<f32>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
 
         Self::world_to_screen_space(&pos_world_space, camera)
     }
 
-    fn model_to_ndc_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
+    fn model_to_ndc_space(
+        pos_model_space: &Vector4<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector2<f32>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         //pos_world_space.x = -pos_world_space.x;
         Self::world_to_normalized_device_space(&pos_world_space, camera)
-    } 
+    }
 
-    fn clip_to_model_space(pos_clip_space: &Vector2<f32>, camera: &CameraViewPort) -> Option<Vector4<f32>> {
-        let pos_world_space = Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
+    fn clip_to_model_space(
+        pos_clip_space: &Vector2<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector4<f32>> {
+        let pos_world_space =
+            Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_w2m();
@@ -155,16 +187,21 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     /// World to screen space projection
 
     /// World to screen space transformation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - X mouse position in homogenous screen space (between [-1, 1])
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
-    fn world_to_normalized_device_space(pos_world_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
-        if let Some(pos_clip_space) = Self::world_to_clip_space(pos_world_space, camera.is_reversed_longitude()) {
+    fn world_to_normalized_device_space(
+        pos_world_space: &Vector4<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector2<f32>> {
+        if let Some(pos_clip_space) =
+            Self::world_to_clip_space(pos_world_space, camera.is_reversed_longitude())
+        {
             let ndc_to_clip = camera.get_ndc_to_clip();
             let clip_zoom_factor = camera.get_clip_zoom_factor();
-    
+
             let pos_normalized_device = Vector2::new(
                 pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
                 pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
@@ -175,8 +212,13 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
         }
     }
 
-    fn world_to_screen_space(pos_world_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
-        if let Some(pos_normalized_device) = Self::world_to_normalized_device_space(pos_world_space, camera) {
+    fn world_to_screen_space(
+        pos_world_space: &Vector4<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector2<f32>> {
+        if let Some(pos_normalized_device) =
+            Self::world_to_normalized_device_space(pos_world_space, camera)
+        {
             Some(self::ndc_to_screen_space(&pos_normalized_device, camera))
         } else {
             None
@@ -184,17 +226,23 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
     }
 
     /// Perform a clip to the world space deprojection
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<Vector4<f32>>;
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector4<f32>>;
     /// World to the clipping space deprojection
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>>;
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>>;
 
     // Aperture angle at the start of the application (full view)
     // - 180 degrees for the 3D projections (i.e. ortho)
@@ -251,7 +299,7 @@ impl Projection for Aitoff {
         if y.abs() > 0.5_f32 {
             None
         } else {
-            let x = (1.0 - 4.0*y*y).sqrt();
+            let x = (1.0 - 4.0 * y * y).sqrt();
             Some((-x + 1e-3, x - 1e-3))
         }
     }
@@ -259,28 +307,31 @@ impl Projection for Aitoff {
         if x.abs() > 1_f32 {
             None
         } else {
-            let y = (1.0 - x*x).sqrt() * 0.5_f32;
+            let y = (1.0 - x * x).sqrt() * 0.5_f32;
             Some((-y + 1e-3, y - 1e-3))
         }
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
         if Self::is_included_inside_projection(&pos_clip_space) {
             let u = pos_clip_space.x * std::f32::consts::PI * 0.5_f32;
             let v = pos_clip_space.y * std::f32::consts::PI;
             //da uv a lat/lon
-            let c = (v*v + u*u).sqrt();
+            let c = (v * v + u * u).sqrt();
 
             let (phi, mut theta) = if c != 0_f32 {
                 let phi = (v * c.sin() / c).asin();
@@ -297,7 +348,7 @@ impl Projection for Aitoff {
                 theta.sin() * phi.cos(),
                 phi.sin(),
                 theta.cos() * phi.cos(),
-                1_f32
+                1_f32,
             );
 
             if longitude_reversed {
@@ -313,11 +364,14 @@ impl Projection for Aitoff {
     /// World to screen space transformation
     /// X is between [-1, 1]
     /// Y is between [-0.5, 0.5]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
@@ -342,7 +396,10 @@ impl Projection for Aitoff {
         let x = 2_f32 * inv_sinc_alpha * delta.0.cos() * theta_by_two.0.sin();
         let y = inv_sinc_alpha * delta.0.sin();
 
-        Some(Vector2::new(x / std::f32::consts::PI, y / std::f32::consts::PI))
+        Some(Vector2::new(
+            x / std::f32::consts::PI,
+            y / std::f32::consts::PI,
+        ))
     }
 
     fn aperture_start() -> Angle<f32> {
@@ -356,7 +413,6 @@ impl Projection for Aitoff {
 
     const RASTER_THRESHOLD_ANGLE: f32 = (150.0 / 180.0) * std::f32::consts::PI;
 }
-
 
 use crate::math;
 impl Projection for Mollweide {
@@ -384,7 +440,7 @@ impl Projection for Mollweide {
         if y.abs() > 0.5_f32 {
             None
         } else {
-            let x = (1.0 - 4.0*y*y).sqrt();
+            let x = (1.0 - 4.0 * y * y).sqrt();
             Some((-x + 1e-3, x - 1e-3))
         }
     }
@@ -392,29 +448,35 @@ impl Projection for Mollweide {
         if x.abs() > 1_f32 {
             None
         } else {
-            let y = (1.0 - x*x).sqrt() * 0.5_f32;
+            let y = (1.0 - x * x).sqrt() * 0.5_f32;
             Some((-y + 1e-3, y - 1e-3))
         }
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
         if Self::is_included_inside_projection(&pos_clip_space) {
             let y2 = pos_clip_space.y * pos_clip_space.y;
             let k = (1_f32 - 4_f32 * y2).sqrt();
 
             let theta = std::f32::consts::PI * pos_clip_space.x / k;
-            let delta = ((2_f32 * (2_f32 * pos_clip_space.y).asin() + 4_f32 * pos_clip_space.y * k) / std::f32::consts::PI).asin();
+            let delta = ((2_f32 * (2_f32 * pos_clip_space.y).asin()
+                + 4_f32 * pos_clip_space.y * k)
+                / std::f32::consts::PI)
+                .asin();
 
             // The minus is an astronomical convention.
             // longitudes are increasing from right to left
@@ -422,7 +484,7 @@ impl Projection for Mollweide {
                 theta.sin() * delta.cos(),
                 delta.sin(),
                 theta.cos() * delta.cos(),
-                1_f32
+                1_f32,
             );
 
             if longitude_reversed {
@@ -438,11 +500,14 @@ impl Projection for Mollweide {
     /// World to screen space transformation
     /// X is between [-1, 1]
     /// Y is between [-0.5, 0.5]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         let epsilon = 1e-3;
@@ -508,7 +573,7 @@ impl Projection for Orthographic {
         if y.abs() > 1.0_f32 {
             None
         } else {
-            let x = (1.0 - y*y).sqrt();
+            let x = (1.0 - y * y).sqrt();
             Some((-x + 1e-3, x - 1e-3))
         }
     }
@@ -516,26 +581,31 @@ impl Projection for Orthographic {
         if x.abs() > 1_f32 {
             None
         } else {
-            let y = (1.0 - x*x).sqrt();
+            let y = (1.0 - x * x).sqrt();
             Some((-y + 1e-3, y - 1e-3))
         }
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
-        let xw_2 = 1_f32 - pos_clip_space.x*pos_clip_space.x - pos_clip_space.y*pos_clip_space.y;
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
+        let xw_2 =
+            1_f32 - pos_clip_space.x * pos_clip_space.x - pos_clip_space.y * pos_clip_space.y;
         if xw_2 > 0_f32 {
-            let mut pos_world_space = cgmath::Vector4::new(pos_clip_space.x, pos_clip_space.y, xw_2.sqrt(), 1_f32);
+            let mut pos_world_space =
+                cgmath::Vector4::new(pos_clip_space.x, pos_clip_space.y, xw_2.sqrt(), 1_f32);
 
             if longitude_reversed {
                 pos_world_space.x = -pos_world_space.x;
@@ -549,11 +619,14 @@ impl Projection for Orthographic {
     }
 
     /// World to screen space transformation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &cgmath::Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &cgmath::Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         if pos_world_space.z < 0.0_f32 {
             None
         } else if longitude_reversed {
@@ -588,12 +661,11 @@ impl Projection for AzimuthalEquidistant {
         (px2 + py2) < 1_f32
     }
 
-    
     fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
         if y.abs() > 1.0_f32 {
             None
         } else {
-            let x = (1.0 - y*y).sqrt();
+            let x = (1.0 - y * y).sqrt();
             Some((-x + 1e-3, x - 1e-3))
         }
     }
@@ -601,23 +673,26 @@ impl Projection for AzimuthalEquidistant {
         if x.abs() > 1_f32 {
             None
         } else {
-            let y = (1.0 - x*x).sqrt();
+            let y = (1.0 - x * x).sqrt();
             Some((-y + 1e-3, y - 1e-3))
         }
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
         // r <= pi
         let x = pos_clip_space.x * std::f32::consts::PI;
         let y = pos_clip_space.y * std::f32::consts::PI;
@@ -629,19 +704,9 @@ impl Projection for AzimuthalEquidistant {
             r = math::sinc_positive(r);
 
             let pos_world_space = if longitude_reversed {
-                Vector4::new(
-                    -x * r,
-                    y * r,
-                    z,
-                    1.0
-                )
+                Vector4::new(-x * r, y * r, z, 1.0)
             } else {
-                Vector4::new(
-                    -x * r,
-                    y * r,
-                    z,
-                    1.0
-                )
+                Vector4::new(-x * r, y * r, z, 1.0)
             };
 
             Some(pos_world_space)
@@ -649,19 +714,26 @@ impl Projection for AzimuthalEquidistant {
     }
 
     /// World to screen space transformation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         if pos_world_space.z > -1.0 {
             // Distance in the Euclidean plane (xy)
             // Angular distance is acos(x), but for small separation, asin(r)
             // is more accurate.
-            let mut r = (pos_world_space.x * pos_world_space.x + pos_world_space.y * pos_world_space.y).sqrt();
-            if pos_world_space.z > 0.0 { // Angular distance < PI/2, angular distance = asin(r)
+            let mut r = (pos_world_space.x * pos_world_space.x
+                + pos_world_space.y * pos_world_space.y)
+                .sqrt();
+            if pos_world_space.z > 0.0 {
+                // Angular distance < PI/2, angular distance = asin(r)
                 r = math::asinc_positive(r);
-            } else { // Angular distance > PI/2, angular distance = acos(x)
+            } else {
+                // Angular distance > PI/2, angular distance = acos(x)
                 r = pos_world_space.z.acos() / r;
             }
             let x = if longitude_reversed {
@@ -671,7 +743,10 @@ impl Projection for AzimuthalEquidistant {
             };
             let y = pos_world_space.y * r;
 
-            Some(Vector2::new(x / std::f32::consts::PI, y / std::f32::consts::PI))
+            Some(Vector2::new(
+                x / std::f32::consts::PI,
+                y / std::f32::consts::PI,
+            ))
         } else {
             Some(Vector2::new(1.0, 0.0))
         }
@@ -730,7 +805,6 @@ impl Projection for Gnomonic {
         px > -1_f32 && px < 1_f32 && py > -1_f32 && py < 1_f32
     }
 
-
     fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
         if y.abs() > 1.0_f32 {
             None
@@ -747,58 +821,60 @@ impl Projection for Gnomonic {
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
         //if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
         //    None
         //} else {
-            let x_2d = pos_clip_space.x * std::f32::consts::PI;
-            let y_2d = pos_clip_space.y * std::f32::consts::PI;
-            let r = x_2d * x_2d + y_2d * y_2d;
+        let x_2d = pos_clip_space.x * std::f32::consts::PI;
+        let y_2d = pos_clip_space.y * std::f32::consts::PI;
+        let r = x_2d * x_2d + y_2d * y_2d;
 
-            let z = (1.0 + r).sqrt();
-            let pos_world_space = if longitude_reversed {
-                Vector4::new(
-                    -z * x_2d,
-                    z * y_2d,
-                    z,
-                    1.0
-                )
-            } else {
-                Vector4::new(
-                    z * x_2d,
-                    z * y_2d,
-                    z,
-                    1.0
-                )
-            };
+        let z = (1.0 + r).sqrt();
+        let pos_world_space = if longitude_reversed {
+            Vector4::new(-z * x_2d, z * y_2d, z, 1.0)
+        } else {
+            Vector4::new(z * x_2d, z * y_2d, z, 1.0)
+        };
 
-            Some(pos_world_space)
+        Some(pos_world_space)
         //}
     }
 
     /// World to screen space transformation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         if pos_world_space.z <= 1e-3 {
             None
         } else {
             let pos_clip_space = if longitude_reversed {
-                Vector2::new((-pos_world_space.x/pos_world_space.z) / std::f32::consts::PI, (pos_world_space.y/pos_world_space.z) / std::f32::consts::PI)
+                Vector2::new(
+                    (-pos_world_space.x / pos_world_space.z) / std::f32::consts::PI,
+                    (pos_world_space.y / pos_world_space.z) / std::f32::consts::PI,
+                )
             } else {
-                Vector2::new((pos_world_space.x/pos_world_space.z) / std::f32::consts::PI, (pos_world_space.y/pos_world_space.z) / std::f32::consts::PI)
+                Vector2::new(
+                    (pos_world_space.x / pos_world_space.z) / std::f32::consts::PI,
+                    (pos_world_space.y / pos_world_space.z) / std::f32::consts::PI,
+                )
             };
             Some(pos_clip_space)
         }
@@ -830,7 +906,6 @@ impl Projection for Mercator {
         px > -1_f32 && px < 1_f32 && py > -1_f32 && py < 1_f32
     }
 
-
     fn solve_along_abscissa(y: f32) -> Option<(f32, f32)> {
         if y.abs() > 1.0_f32 {
             None
@@ -847,17 +922,20 @@ impl Projection for Mercator {
     }
 
     /// View to world space transformation
-    /// 
+    ///
     /// This returns a normalized vector along its first 3 dimensions.
     /// Its fourth component is set to 1.
-    /// 
+    ///
     /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f32>, longitude_reversed: bool) -> Option<cgmath::Vector4<f32>> {
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f32>,
+        longitude_reversed: bool,
+    ) -> Option<cgmath::Vector4<f32>> {
         /*let xw_2 = 1_f32 - pos_clip_space.x*pos_clip_space.x - pos_clip_space.y*pos_clip_space.y;
         if xw_2 > 0_f32 {
             let (x, y) = (2_f32 * pos_clip_space.x, 2_f32 * pos_clip_space.y);
@@ -891,11 +969,14 @@ impl Projection for Mercator {
     }
 
     /// World to screen space transformation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f32>,
+        longitude_reversed: bool,
+    ) -> Option<Vector2<f32>> {
         let (mut theta, delta) = math::xyzw_to_radec(&pos_world_space);
 
         if longitude_reversed {
@@ -904,7 +985,7 @@ impl Projection for Mercator {
 
         Some(Vector2::new(
             theta.0 / std::f32::consts::PI,
-            ((delta.0 / std::f32::consts::PI).tan()).asinh() as f32
+            ((delta.0 / std::f32::consts::PI).tan()).asinh() as f32,
         ))
     }
 

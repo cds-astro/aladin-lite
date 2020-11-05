@@ -1,15 +1,12 @@
-
-
 use web_sys::WebGl2RenderingContext;
 
 use crate::color::Color;
 
-use cgmath::Vector4;
 use crate::renderable::angle;
-
+use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
-use web_sys::{WebGlVertexArrayObject, WebGlBuffer, CanvasRenderingContext2d};
+use web_sys::{CanvasRenderingContext2d, WebGlBuffer, WebGlVertexArrayObject};
 
 pub struct ProjetedGrid {
     // The color of the grid
@@ -48,9 +45,7 @@ impl ProjetedGrid {
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
 
-        let vbo = gl.create_buffer()
-            .ok_or("failed to create buffer")
-            .unwrap();
+        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
         gl.line_width(1.0);
         let data = vec![0.0_f32; 1000];
@@ -59,12 +54,19 @@ impl ProjetedGrid {
         gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             unsafe { &js_sys::Float32Array::view(&data) },
-            WebGl2RenderingContext::DYNAMIC_DRAW
+            WebGl2RenderingContext::DYNAMIC_DRAW,
         );
 
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 ndc_pos;
-        gl.vertex_attrib_pointer_with_i32(0, 2, WebGl2RenderingContext::FLOAT, false, 2 * num_bytes_per_f32, (0 * num_bytes_per_f32) as i32);
+        gl.vertex_attrib_pointer_with_i32(
+            0,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            2 * num_bytes_per_f32,
+            (0 * num_bytes_per_f32) as i32,
+        );
         gl.enable_vertex_attrib_array(0);
 
         let labels = vec![];
@@ -76,12 +78,12 @@ impl ProjetedGrid {
 
         // Get the canvas rendering context
         let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_elements_by_class_name("aladin-gridCanvas")
+        let canvas = document
+            .get_elements_by_class_name("aladin-gridCanvas")
             .get_with_index(0)
             .unwrap();
         canvas.set_attribute("style", "z-index:1; position:absolute; top:0; left:0;")?;
-        let canvas: web_sys::HtmlCanvasElement = canvas
-            .dyn_into::<web_sys::HtmlCanvasElement>()?;
+        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
         let size_screen = camera.get_screen_size();
         canvas.set_width(size_screen.x as u32);
         canvas.set_height(size_screen.y as u32);
@@ -119,7 +121,7 @@ impl ProjetedGrid {
     pub fn set_color(&mut self, color: Color) {
         self.color = color;
     }
-    
+
     pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
         self.enabled = true;
         self.force_update::<P>(camera);
@@ -129,20 +131,16 @@ impl ProjetedGrid {
         let size_screen = &camera.get_screen_size();
 
         self.enabled = false;
-        self.ctx2d.clear_rect(
-            0.0, 0.0,
-            size_screen.x as f64, size_screen.y as f64
-        );
+        self.ctx2d
+            .clear_rect(0.0, 0.0, size_screen.x as f64, size_screen.y as f64);
     }
 
     pub fn hide_labels(&mut self, camera: &CameraViewPort) {
         let size_screen = &camera.get_screen_size();
 
         self.hide_labels = true;
-        self.ctx2d.clear_rect(
-            0.0, 0.0,
-            size_screen.x as f64, size_screen.y as f64
-        );
+        self.ctx2d
+            .clear_rect(0.0, 0.0, size_screen.x as f64, size_screen.y as f64);
     }
     pub fn show_labels(&mut self) {
         self.hide_labels = false;
@@ -179,21 +177,22 @@ impl ProjetedGrid {
         let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
 
         self.gl.bind_vertex_array(Some(&self.vao));
-        self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        self.gl
+            .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
         if vertices.len() > self.size_vertices_buf {
-            self.size_vertices_buf =  vertices.len();
+            self.size_vertices_buf = vertices.len();
             //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
 
             self.gl.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,
                 &buf_vertices,
-                WebGl2RenderingContext::DYNAMIC_DRAW
+                WebGl2RenderingContext::DYNAMIC_DRAW,
             );
         } else {
             self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,
                 0,
-                &buf_vertices
+                &buf_vertices,
             );
         }
     }
@@ -215,22 +214,22 @@ impl ProjetedGrid {
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
         if self.enabled {
-            let shader = shaders.get(
-                &self.gl,
-                &ShaderId(
-                    Cow::Borrowed("GridVS_CPU"),
-                    Cow::Borrowed("GridFS_CPU"),
+            let shader = shaders
+                .get(
+                    &self.gl,
+                    &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
                 )
-            ).unwrap();
+                .unwrap();
 
             self.gl.blend_func_separate(
                 WebGl2RenderingContext::SRC_ALPHA,
                 WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
                 WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE
+                WebGl2RenderingContext::ONE,
             );
 
-            shader.bind(&self.gl)
+            shader
+                .bind(&self.gl)
                 .attach_uniforms_from(camera)
                 .attach_uniform("color", &self.color);
             //crate::log("raster");
@@ -241,7 +240,7 @@ impl ProjetedGrid {
                     self.gl.draw_arrays(
                         WebGl2RenderingContext::LINES,
                         *offset as i32,
-                        *size as i32
+                        *size as i32,
                     );
                 }
             }
@@ -249,10 +248,8 @@ impl ProjetedGrid {
             // Draw the labels here
             if !self.hide_labels {
                 let size_screen = &camera.get_screen_size();
-                self.ctx2d.clear_rect(
-                    0.0, 0.0,
-                    size_screen.x as f64, size_screen.y as f64
-                );
+                self.ctx2d
+                    .clear_rect(0.0, 0.0, size_screen.x as f64, size_screen.y as f64);
                 self.ctx2d.set_font("15px Verdana");
                 self.ctx2d.set_text_align("center");
                 let fill_style: String = (&self.color).into();
@@ -261,9 +258,12 @@ impl ProjetedGrid {
                 for label in self.labels.iter() {
                     if let Some(label) = &label {
                         self.ctx2d.save();
-                        self.ctx2d.translate(label.position.x as f64, label.position.y as f64)?;
+                        self.ctx2d
+                            .translate(label.position.x as f64, label.position.y as f64)?;
                         self.ctx2d.rotate(label.rot as f64)?;
-                        self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
+                        self.ctx2d
+                            .fill_text(&label.content, 0.0, text_height / 4.0)
+                            .unwrap();
                         self.ctx2d.restore();
                     }
                 }
@@ -274,11 +274,7 @@ impl ProjetedGrid {
     }
 }
 
-use crate::{
-    Shader,
-    renderable::projection::*,
-    shader::ShaderId
-};
+use crate::{renderable::projection::*, shader::ShaderId, Shader};
 use std::borrow::Cow;
 pub trait GridShaderProjection {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
@@ -286,76 +282,76 @@ pub trait GridShaderProjection {
 
 impl GridShaderProjection for Aitoff {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridAitoffFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridAitoffFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 impl GridShaderProjection for Mollweide {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridMollFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridMollFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 impl GridShaderProjection for AzimuthalEquidistant {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridOrthoFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridOrthoFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 impl GridShaderProjection for Gnomonic {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridOrthoFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridOrthoFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 impl GridShaderProjection for Mercator {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridMercatorFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridMercatorFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 impl GridShaderProjection for Orthographic {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders.get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("GridVS"),
-                Cow::Borrowed("GridOrthoFS"),
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridOrthoFS")),
             )
-        ).unwrap()
+            .unwrap()
     }
 }
 
-use crate::sphere_geometry::{BoundingBox};
+use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
 const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
-fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32); 3], depth: usize, min_subdivision_level: i32, camera: &CameraViewPort) {
+fn subdivide<P: Projection>(
+    vertices: &mut Vec<Vector2<f32>>,
+    lonlat: [(f32, f32); 3],
+    depth: usize,
+    min_subdivision_level: i32,
+    camera: &CameraViewPort,
+) {
     // Convert to cartesian
     let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
     let b: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
@@ -366,9 +362,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
     let b = P::model_to_ndc_space(&b, camera);
     let c = P::model_to_ndc_space(&c, camera);
     match (a, b, c) {
-        (None, None, None) => {
-            
-        },
+        (None, None, None) => {}
         (Some(a), Some(b), Some(c)) => {
             // Compute the angle between a->b and b->c
             let ab = b - a;
@@ -388,11 +382,23 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                 // Subdivide a->b and b->c
                 let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
                 let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
-                subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, min_subdivision_level - 1, camera);
+                subdivide::<P>(
+                    vertices,
+                    [lonlat[0], (lon_d, lat_d), lonlat[1]],
+                    depth - 1,
+                    min_subdivision_level - 1,
+                    camera,
+                );
 
                 let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
                 let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
-                subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, min_subdivision_level - 1, camera);
+                subdivide::<P>(
+                    vertices,
+                    [lonlat[1], (lon_e, lat_e), lonlat[2]],
+                    depth - 1,
+                    min_subdivision_level - 1,
+                    camera,
+                );
             } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
                 if ab_l == ab_l.min(bc_l) {
                     vertices.push(a);
@@ -403,93 +409,117 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                 }
                 return;
             }
-        },
+        }
         (Some(_), None, None) => {
             if depth == 0 {
                 return;
             }
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[0],
-                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
-                    lonlat[1]
+                    (
+                        (lonlat[0].0 + lonlat[1].0) * 0.5,
+                        (lonlat[0].1 + lonlat[1].1) * 0.5,
+                    ),
+                    lonlat[1],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
-        },
+        }
         (None, None, Some(_)) => {
             if depth == 0 {
                 return;
             }
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[1],
-                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
-                    lonlat[2]
+                    (
+                        (lonlat[1].0 + lonlat[2].0) * 0.5,
+                        (lonlat[1].1 + lonlat[2].1) * 0.5,
+                    ),
+                    lonlat[2],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
-        },
+        }
         (None, Some(_), None) => {
             if depth == 0 {
                 return;
             }
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[0],
-                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
-                    lonlat[1]
+                    (
+                        (lonlat[0].0 + lonlat[1].0) * 0.5,
+                        (lonlat[0].1 + lonlat[1].1) * 0.5,
+                    ),
+                    lonlat[1],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[1],
-                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
-                    lonlat[2]
+                    (
+                        (lonlat[1].0 + lonlat[2].0) * 0.5,
+                        (lonlat[1].1 + lonlat[2].1) * 0.5,
+                    ),
+                    lonlat[2],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
-        },
+        }
         _ => {
             if depth == 0 {
                 return;
             }
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[0],
-                    ((lonlat[0].0 + lonlat[1].0)*0.5, (lonlat[0].1 + lonlat[1].1)*0.5),
-                    lonlat[1]
+                    (
+                        (lonlat[0].0 + lonlat[1].0) * 0.5,
+                        (lonlat[0].1 + lonlat[1].1) * 0.5,
+                    ),
+                    lonlat[1],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
-            subdivide::<P>(vertices,
+            subdivide::<P>(
+                vertices,
                 [
                     lonlat[1],
-                    ((lonlat[1].0 + lonlat[2].0)*0.5, (lonlat[1].1 + lonlat[2].1)*0.5),
-                    lonlat[2]
+                    (
+                        (lonlat[1].0 + lonlat[2].0) * 0.5,
+                        (lonlat[1].1 + lonlat[2].1) * 0.5,
+                    ),
+                    lonlat[2],
                 ],
                 depth - 1,
                 min_subdivision_level - 1,
-                camera
+                camera,
             );
         }
     }
 }
 use crate::math::{self};
+use crate::Angle;
 use cgmath::Vector2;
 use core::ops::Range;
-use crate::Angle;
 
 #[derive(Debug)]
 struct Label {
@@ -503,12 +533,17 @@ struct GridLine {
     vertices: Vec<Vector2<f32>>,
     label: Option<Label>,
 }
-use cgmath::{Rad, Vector3};
 use super::angle::SerializeToString;
+use cgmath::{Rad, Vector3};
 const PI: f32 = std::f32::consts::PI;
-const HALF_PI: f32 = 0.5*PI;
+const HALF_PI: f32 = 0.5 * PI;
 impl GridLine {
-    fn meridian<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
+    fn meridian<P: Projection>(
+        ctx2d: &CanvasRenderingContext2d,
+        lon: f32,
+        lat: &Range<f32>,
+        camera: &CameraViewPort,
+    ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
         if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
@@ -517,7 +552,7 @@ impl GridLine {
                 &mut vertices,
                 [
                     (lon, lat.start),
-                    (lon, (lat.start + lat.end)*0.5_f32),
+                    (lon, (lat.start + lat.end) * 0.5_f32),
                     (lon, lat.end),
                 ],
                 7,
@@ -527,15 +562,11 @@ impl GridLine {
 
             let label = if let Some(p1) = P::model_to_screen_space(&p.extend(1.0), camera) {
                 let u = Vector3::new(0.0, 1.0, 0.0);
-                let t = (p + u*1e-3).normalize();
+                let t = (p + u * 1e-3).normalize();
 
                 if let Some(p2) = P::model_to_screen_space(&t.extend(1.0), camera) {
                     let r = (p2 - p1).normalize();
-                    let rot = if r.y > 0.0 {
-                        r.x.acos()
-                    } else {
-                        -r.x.acos()
-                    };
+                    let rot = if r.y > 0.0 { r.x.acos() } else { -r.x.acos() };
 
                     let content = Angle(lon).to_string::<angle::DMS>();
                     let position = if !fov.is_allsky() {
@@ -558,11 +589,11 @@ impl GridLine {
                     } else {
                         rot
                     };
-  
+
                     Some(Label {
                         position,
                         content,
-                        rot
+                        rot,
                     })
                 } else {
                     None
@@ -571,26 +602,27 @@ impl GridLine {
                 None
             };
 
-            Some(GridLine {
-                vertices,
-                label
-            })
+            Some(GridLine { vertices, label })
         } else {
             None
         }
     }
 
-    fn parallel<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: &Range<f32>, lat: f32, camera: &CameraViewPort) -> Option<Self> {
+    fn parallel<P: Projection>(
+        ctx2d: &CanvasRenderingContext2d,
+        lon: &Range<f32>,
+        lat: f32,
+        camera: &CameraViewPort,
+    ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
-
             let mut vertices = vec![];
             subdivide::<P>(
                 &mut vertices,
                 [
                     (lon.start, lat),
-                    (0.5*(lon.start + lon.end), lat),
+                    (0.5 * (lon.start + lon.end), lat),
                     (lon.end, lat),
                 ],
                 7,
@@ -602,20 +634,16 @@ impl GridLine {
                 let mut u = Vector3::new(-p.z, 0.0, p.x).normalize();
                 let center = camera.get_center().truncate();
                 if center.dot(u) < 0.0 {
-                    u=-u;
+                    u = -u;
                 }
 
-                let t = (p + u*1e-3).normalize();
+                let t = (p + u * 1e-3).normalize();
 
                 if let Some(p2) = P::model_to_screen_space(&t.extend(1.0), camera) {
                     let r = (p2 - p1).normalize();
 
                     // rot is between -PI and +PI
-                    let rot = if r.y > 0.0 {
-                        r.x.acos()
-                    } else {
-                        -r.x.acos()
-                    };
+                    let rot = if r.y > 0.0 { r.x.acos() } else { -r.x.acos() };
                     let content = Angle(lat).to_string::<angle::DMS>();
                     let position = if !fov.is_allsky() && !fov.contains_pole() {
                         let dim = ctx2d.measure_text(&content).unwrap();
@@ -640,7 +668,7 @@ impl GridLine {
                     Some(Label {
                         position,
                         content,
-                        rot
+                        rot,
                     })
                 } else {
                     None
@@ -649,10 +677,7 @@ impl GridLine {
                 None
             };
 
-            Some(GridLine {
-                vertices,
-                label
-            })
+            Some(GridLine { vertices, label })
         } else {
             None
         }
@@ -694,14 +719,21 @@ const GRID_STEPS: &[f64] = &[
     0.000000000048481368,
     0.000000000024240684,
     0.000000000009696273,
-    0.0000000000048481366
+    0.0000000000048481366,
 ];
 
 const NUM_LINES_LATITUDES: usize = 6;
-fn lines<P: Projection>(camera: &CameraViewPort, ctx2d: &CanvasRenderingContext2d) -> Vec<GridLine> {
+fn lines<P: Projection>(
+    camera: &CameraViewPort,
+    ctx2d: &CanvasRenderingContext2d,
+) -> Vec<GridLine> {
     let bbox = camera.get_bounding_box();
 
-    let step_lon = select_grid_step(&bbox, bbox.get_lon_size().0 as f64, (NUM_LINES_LATITUDES as f32 * camera.get_aspect()) as usize);
+    let step_lon = select_grid_step(
+        &bbox,
+        bbox.get_lon_size().0 as f64,
+        (NUM_LINES_LATITUDES as f32 * camera.get_aspect()) as usize,
+    );
 
     let mut lines = vec![];
     // Add meridians
@@ -741,7 +773,6 @@ fn lines<P: Projection>(camera: &CameraViewPort, ctx2d: &CanvasRenderingContext2
 }
 
 fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
-
     // Select the best meridian grid step
     let mut i = 0;
     let mut step = GRID_STEPS[0];
@@ -750,11 +781,7 @@ fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
             let num_meridians_in_fov = (fov / GRID_STEPS[i]) as usize;
 
             if num_meridians_in_fov >= max_lines - 1 {
-                let idx_grid = if i == 0 {
-                    0
-                } else {
-                    i - 1
-                };
+                let idx_grid = if i == 0 { 0 } else { i - 1 };
                 step = GRID_STEPS[idx_grid];
                 break;
             }

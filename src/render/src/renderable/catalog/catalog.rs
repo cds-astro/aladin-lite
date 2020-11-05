@@ -3,15 +3,12 @@ use crate::healpix_cell::HEALPixCell;
 use std::ops::Range;
 pub struct SourceIndices {
     // Density at depth 7
-    density: Box<[Range<u32>]>, 
+    density: Box<[Range<u32>]>,
     // Max density for each depth from 0 to 7 included
     max_density: [u32; 8],
 }
 
 use super::source::Source;
-
-
-
 
 impl SourceIndices {
     pub fn new(sources: &mut [Source]) -> Self {
@@ -58,15 +55,17 @@ impl SourceIndices {
 
         let mut max_density = [0_u32; 8];
 
-        let mut tmp = density.clone()
+        let mut tmp = density
+            .clone()
             .into_iter()
             .map(|r| r.end - r.start)
             .collect::<Vec<_>>();
         max_density[7] = *tmp.iter().max().unwrap();
         for depth in (0..7).rev() {
             let grouped_densities = unsafe { group_elements_by_4(tmp) };
-            assert_eq!(grouped_densities.len(), 12 * (1 << (2*depth)));
-            tmp = grouped_densities.iter()
+            assert_eq!(grouped_densities.len(), 12 * (1 << (2 * depth)));
+            tmp = grouped_densities
+                .iter()
                 .map(|e| {
                     let s = e.iter().sum::<u32>();
                     s
@@ -92,15 +91,15 @@ impl SourceIndices {
 
         SourceIndices {
             density: density.into_boxed_slice(),
-            max_density
+            max_density,
         }
     }
 
     pub fn get_source_indices(&self, cell: &HEALPixCell) -> Range<u32> {
-        let HEALPixCell(depth , idx) = *cell;
+        let HEALPixCell(depth, idx) = *cell;
 
         if depth <= 7 {
-            let off = 2*(7 - depth);
+            let off = 2 * (7 - depth);
 
             let healpix_idx_start = (idx << off) as usize;
             let healpix_idx_end = ((idx + 1) << off) as usize;
@@ -112,7 +111,7 @@ impl SourceIndices {
         } else {
             // depth > 7
             // Get the sources that are contained in parent cell of depth 7
-            let off = 2*(depth - 7);
+            let off = 2 * (depth - 7);
             let idx_start = (idx >> off) as usize;
 
             let idx_start_sources = self.density[idx_start].start;
@@ -123,11 +122,17 @@ impl SourceIndices {
     }
 
     // Returns k sources from a cell having depth <= 7
-    pub fn get_k_sources<'a>(&self, sources: &'a [f32], cell: &HEALPixCell, k: usize, offset: usize) -> &'a [f32] {
-        let HEALPixCell(depth , idx) = *cell;
+    pub fn get_k_sources<'a>(
+        &self,
+        sources: &'a [f32],
+        cell: &HEALPixCell,
+        k: usize,
+        offset: usize,
+    ) -> &'a [f32] {
+        let HEALPixCell(depth, idx) = *cell;
 
         assert!(depth <= 7);
-        let off = 2*(7 - depth);
+        let off = 2 * (7 - depth);
 
         let healpix_idx_start = (idx << off) as usize;
         let healpix_idx_end = ((idx + 1) << off) as usize;
@@ -136,14 +141,15 @@ impl SourceIndices {
         let idx_end_sources = self.density[healpix_idx_end - 1].end as usize;
 
         let num_sources = idx_end_sources - idx_start_sources;
-        
+
         let idx_sources = if (num_sources - offset) > k {
             (idx_start_sources + offset)..(idx_start_sources + offset + k)
         } else {
             idx_start_sources..idx_end_sources
         };
 
-        let idx_f32 = (idx_sources.start * Source::num_f32())..(idx_sources.end * Source::num_f32());
+        let idx_f32 =
+            (idx_sources.start * Source::num_f32())..(idx_sources.end * Source::num_f32());
         &sources[idx_f32]
     }
 
@@ -151,8 +157,8 @@ impl SourceIndices {
         let max_depth_granularity = self.max_density.len();
         if depth >= max_depth_granularity {
             let max_density = self.max_density[max_depth_granularity - 1];
-            std::cmp::max(max_density >> (2*(depth - max_depth_granularity + 1)), 1)
-            //self.max_density[max_depth_granularity - 1]
+            std::cmp::max(max_density >> (2 * (depth - max_depth_granularity + 1)), 1)
+        //self.max_density[max_depth_granularity - 1]
         } else {
             self.max_density[depth]
         }

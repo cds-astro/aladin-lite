@@ -1,15 +1,7 @@
-
-
-
 use web_sys::WebGl2RenderingContext;
 
-
-
-
-
-use crate::WebGl2Context;
 use crate::image_fmt::FormatImageType;
-
+use crate::WebGl2Context;
 
 pub struct Texture2DArray {
     gl: WebGl2Context,
@@ -17,9 +9,7 @@ pub struct Texture2DArray {
     pub textures: Vec<Texture2D>,
 }
 
-
 use super::{Texture2D, Texture2DBound};
-
 
 impl Texture2DArray {
     /*pub fn create_from_slice_images<P: AsRef<Path>>(
@@ -67,7 +57,7 @@ impl Texture2DArray {
             onload.forget();
             onerror.forget();
         }
-        
+
         texture_2d_array
     }*/
 
@@ -139,7 +129,7 @@ impl Texture2DArray {
 
         onload.forget();
         onerror.forget();
-        
+
         let gl = gl.clone();
         Texture2DArray {
             gl,
@@ -154,7 +144,8 @@ impl Texture2DArray {
         }
     }*/
 
-    pub fn create_empty(gl: &WebGl2Context,
+    pub fn create_empty(
+        gl: &WebGl2Context,
         // The weight of the individual textures
         width: i32,
         // Their height
@@ -200,11 +191,7 @@ impl Texture2DArray {
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);*/
 
         let gl = gl.clone();
-        Texture2DArray {
-            gl,
-
-            textures,
-        }        
+        Texture2DArray { gl, textures }
     }
 
     pub fn bind_texture_slice(&self, idx_texture: i32) -> Texture2DBound {
@@ -214,11 +201,15 @@ impl Texture2DArray {
 
     pub fn bind_all_textures<'a>(&self, shader: &ShaderBound<'a>) {
         for (tex_idx, texture) in self.textures.iter().enumerate() {
-            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
-            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.texture.as_ref());
+            self.gl
+                .active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
+            self.gl
+                .bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.texture.as_ref());
 
             let name_location = format!("tex[{}]", tex_idx);
-            let location = self.gl.get_uniform_location(&shader.shader.program, &name_location);
+            let location = self
+                .gl
+                .get_uniform_location(&shader.shader.program, &name_location);
             self.gl.uniform1i(location.as_ref(), tex_idx as i32);
         }
     }
@@ -267,7 +258,8 @@ impl SendUniforms for Texture2DArray {
 
             let name = format!("tex[{}]", texture_idx.to_string());
             let location = self.gl.get_uniform_location(&shader.shader.program, &name);
-            self.gl.uniform1i(location.as_ref(), texture.get_idx_sampler());
+            self.gl
+                .uniform1i(location.as_ref(), texture.get_idx_sampler());
         }
 
         shader.attach_uniform("num_tex", &(self.textures.len() as i32));

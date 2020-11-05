@@ -1,6 +1,4 @@
-#[derive(PartialEq, PartialOrd)]
-#[derive(Clone, Copy)]
-#[derive(Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct Time(pub f32);
 
 use crate::utils;
@@ -22,10 +20,8 @@ impl Ord for Time {
 }
 impl Eq for Time {}
 
-#[derive(Clone, Copy)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct DeltaTime(pub f32);
-
 
 impl DeltaTime {
     pub fn from_millis(millis: f32) -> Self {
@@ -50,6 +46,6 @@ impl Mul<f32> for DeltaTime {
     type Output = Self;
 
     fn mul(self, factor: f32) -> Self {
-        DeltaTime(self.0*factor)
+        DeltaTime(self.0 * factor)
     }
 }

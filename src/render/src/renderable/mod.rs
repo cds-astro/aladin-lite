@@ -1,20 +1,11 @@
-
-
-pub mod projection;
 pub mod grid;
+pub mod projection;
 
 pub mod catalog;
 
-pub mod uv;
 pub mod angle;
-pub use angle::{
-    ArcDeg,
-    ArcMin,
-    ArcSec,
-    Angle,
-    SerializeToString,
-    FormatType,
-};
+pub mod uv;
+pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 
 mod ray_tracer;
 
@@ -24,18 +15,12 @@ mod triangulation;
 use triangulation::Triangulation;
 
 pub mod view_on_surveys;
-use view_on_surveys::{HEALPixCellsInView};
 pub use view_on_surveys::HEALPixCells;
+use view_on_surveys::HEALPixCellsInView;
 
 pub mod image_survey;
 pub use image_survey::{
-    RecomputeRasterizer,
-    Zoom,
-    UnZoom,
-    Move,
-    TexturesToDraw,
-    MAX_NUM_VERTICES_TO_DRAW,
-    ImageSurvey,
+    ImageSurvey, Move, RecomputeRasterizer, TexturesToDraw, UnZoom, Zoom, MAX_NUM_VERTICES_TO_DRAW,
 };
 
 pub use catalog::Manager;

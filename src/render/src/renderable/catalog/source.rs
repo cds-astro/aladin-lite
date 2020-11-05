@@ -1,6 +1,4 @@
-
-#[derive(Debug)]
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[repr(C)]
 pub struct Source {
     x: f32,
@@ -9,7 +7,6 @@ pub struct Source {
 
     pub lon: f32,
     pub lat: f32,
-
     //pub mag: f32,
 }
 
@@ -21,10 +18,10 @@ impl Source {
 
 impl Eq for Source {}
 
-use crate::renderable::Angle;
 use crate::math;
+use crate::renderable::Angle;
 impl Source {
-    pub fn new(lon: Angle<f32>, lat: Angle<f32>/*, mag: f32*/) -> Source {
+    pub fn new(lon: Angle<f32>, lat: Angle<f32> /*, mag: f32*/) -> Source {
         let world_pos = math::radec_to_xyz(lon, lat);
 
         let x = world_pos.x;
@@ -41,7 +38,6 @@ impl Source {
 
             lon,
             lat,
-
             //mag
         }
     }
@@ -54,6 +50,6 @@ impl From<&[f32]> for Source {
         let lat = ArcDeg(data[1]).into();
         //let mag = data[3];
 
-        Source::new(lon, lat/*, mag*/)
+        Source::new(lon, lat /*, mag*/)
     }
 }

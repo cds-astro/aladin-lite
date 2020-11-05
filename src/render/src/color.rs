@@ -1,9 +1,9 @@
 #[derive(Clone)]
 pub struct Color {
-    pub red: f32, 
+    pub red: f32,
     pub green: f32,
     pub blue: f32,
-    pub alpha: f32
+    pub alpha: f32,
 }
 
 impl Color {
@@ -12,7 +12,7 @@ impl Color {
             red,
             green,
             blue,
-            alpha
+            alpha,
         }
     }
 }
@@ -26,7 +26,6 @@ fn to_hex_char(color: f32) -> String {
     } else {
         res
     }
-    
 }
 
 impl From<&Color> for String {

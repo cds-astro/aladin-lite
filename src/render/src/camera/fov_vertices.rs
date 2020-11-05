@@ -1,8 +1,5 @@
-use cgmath::{Vector2, Vector4};
 use cgmath::Matrix4;
-
-
-
+use cgmath::{Vector2, Vector4};
 
 use crate::sphere_geometry::FieldOfViewType;
 
@@ -23,7 +20,7 @@ fn ndc_to_world<P: Projection>(
     for n in ndc_coo {
         let c = Vector2::new(
             n.x * ndc_to_clip.x * clip_zoom_factor,
-            n.y * ndc_to_clip.y * clip_zoom_factor
+            n.y * ndc_to_clip.y * clip_zoom_factor,
         );
         let w = P::clip_to_world_space(&c, longitude_reversed);
         if let Some(w) = w {
@@ -49,7 +46,7 @@ fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f32>) -> Vec<ModelCoor
 
 const NUM_VERTICES_WIDTH: usize = 10;
 const NUM_VERTICES_HEIGHT: usize = 10;
-const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
+const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
     ndc_coo: Vec<NormalizedDeviceCoord>,
@@ -61,34 +58,49 @@ pub struct FieldOfViewVertices {
     great_circles: FieldOfViewType,
 }
 
-
-
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(_center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
-        let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
-            .collect::<Vec<_>>();
+    pub fn new<P: Projection>(
+        _center: &Vector4<f32>,
+        ndc_to_clip: &Vector2<f32>,
+        clip_zoom_factor: f32,
+        mat: &Matrix4<f32>,
+        longitude_reversed: bool,
+    ) -> Self {
+        let mut x_ndc =
+            itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
 
         x_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_HEIGHT));
-        x_ndc.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_WIDTH + 2));
+        x_ndc.extend(itertools_num::linspace::<f32>(
+            1.,
+            -1.,
+            NUM_VERTICES_WIDTH + 2,
+        ));
         x_ndc.extend(iter::repeat(-1_f32).take(NUM_VERTICES_HEIGHT));
 
-        let mut y_ndc = iter::repeat(-1_f32).take(NUM_VERTICES_WIDTH + 1)
+        let mut y_ndc = iter::repeat(-1_f32)
+            .take(NUM_VERTICES_WIDTH + 1)
             .collect::<Vec<_>>();
 
-        y_ndc.extend(itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_HEIGHT + 2));
+        y_ndc.extend(itertools_num::linspace::<f32>(
+            -1.,
+            1.,
+            NUM_VERTICES_HEIGHT + 2,
+        ));
         y_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_WIDTH));
-        y_ndc.extend(itertools_num::linspace::<f32>(1., -1., NUM_VERTICES_HEIGHT + 2));
+        y_ndc.extend(itertools_num::linspace::<f32>(
+            1.,
+            -1.,
+            NUM_VERTICES_HEIGHT + 2,
+        ));
         y_ndc.pop();
 
         let mut ndc_coo = Vec::with_capacity(NUM_VERTICES);
         for idx_vertex in 0..NUM_VERTICES {
-            ndc_coo.push(Vector2::new(
-                x_ndc[idx_vertex],
-                y_ndc[idx_vertex],
-            ));
+            ndc_coo.push(Vector2::new(x_ndc[idx_vertex], y_ndc[idx_vertex]));
         }
 
-        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
+        let world_coo =
+            ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
         let model_coo = if let Some(world_coo) = &world_coo {
             Some(world_to_model(world_coo, mat))
         } else {
@@ -105,19 +117,44 @@ impl FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
-            great_circles
+            great_circles,
         };
 
         fov
     }
 
     // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aperture: f32, longitude_reversed: bool) {
-        self.set_fov::<P>(ndc_to_clip, clip_zoom_factor, w2m, aperture, longitude_reversed);
+    pub fn set_projection<P: Projection>(
+        &mut self,
+        ndc_to_clip: &Vector2<f32>,
+        clip_zoom_factor: f32,
+        w2m: &Matrix4<f32>,
+        aperture: f32,
+        longitude_reversed: bool,
+    ) {
+        self.set_fov::<P>(
+            ndc_to_clip,
+            clip_zoom_factor,
+            w2m,
+            aperture,
+            longitude_reversed,
+        );
     }
 
-    pub fn set_fov<P: Projection>(&mut self, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, w2m: &Matrix4<f32>, aperture: f32, longitude_reversed: bool) {
-        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
+    pub fn set_fov<P: Projection>(
+        &mut self,
+        ndc_to_clip: &Vector2<f32>,
+        clip_zoom_factor: f32,
+        w2m: &Matrix4<f32>,
+        aperture: f32,
+        longitude_reversed: bool,
+    ) {
+        self.world_coo = ndc_to_world::<P>(
+            &self.ndc_coo,
+            ndc_to_clip,
+            clip_zoom_factor,
+            longitude_reversed,
+        );
         self.set_rotation::<P>(w2m, aperture);
     }
 
@@ -145,7 +182,7 @@ impl FieldOfViewVertices {
             }
         }
     }
-    
+
     pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
         self.model_coo.as_ref()
     }
@@ -161,13 +198,4 @@ impl FieldOfViewVertices {
 use crate::sphere_geometry::BoundingBox;
 use std::iter;
 
-
-
-
-
 use crate::renderable::projection::Projection;
-
-
-
-
-

@@ -1,4 +1,3 @@
-
 pub trait FormatImage {
     const NUM_CHANNELS: usize;
     const EXT: &'static str;
@@ -16,7 +15,8 @@ impl JPG {
         let num_channels = Self::NUM_CHANNELS as i32;
         let size_buf = (width * width * num_channels) as usize;
 
-        let pixels = [0, 0, 0].iter()
+        let pixels = [0, 0, 0]
+            .iter()
             .cloned()
             .cycle()
             .take(size_buf)
@@ -31,7 +31,7 @@ impl FormatImage for JPG {
     const EXT: &'static str = "jpg";
 }
 
-use crate::buffer::{TileArrayBuffer, ArrayU8};
+use crate::buffer::{ArrayU8, TileArrayBuffer};
 #[derive(Clone, Copy, Debug)]
 pub struct PNG;
 impl PNG {
@@ -43,7 +43,8 @@ impl PNG {
         let num_channels = Self::NUM_CHANNELS as i32;
         let size_buf = (width * width * num_channels) as usize;
 
-        let pixels = [0, 0, 0, 255].iter()
+        let pixels = [0, 0, 0, 255]
+            .iter()
             .cloned()
             .cycle()
             .take(size_buf)
@@ -53,12 +54,16 @@ impl PNG {
     }
 }
 
-impl FormatImage for PNG {    
+impl FormatImage for PNG {
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 }
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct FITS { format: u32, internal_format: i32, _type: u32 }
+pub struct FITS {
+    format: u32,
+    internal_format: i32,
+    _type: u32,
+}
 
 use crate::buffer::ArrayBuffer;
 impl FITS {
@@ -66,33 +71,37 @@ impl FITS {
         let (format, _type) = match internal_format as u32 {
             WebGl2RenderingContext::RED => {
                 (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
+            }
             WebGl2RenderingContext::R32F => {
                 (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT)
-            },
-            WebGl2RenderingContext::R8UI => {
-                (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE)
-            },
-            WebGl2RenderingContext::R16I => {
-                (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::SHORT)
-            },
-            WebGl2RenderingContext::R32I => {
-                (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT)
-            },
-            _ => unimplemented!()
+            }
+            WebGl2RenderingContext::R8UI => (
+                WebGl2RenderingContext::RED_INTEGER,
+                WebGl2RenderingContext::UNSIGNED_BYTE,
+            ),
+            WebGl2RenderingContext::R16I => (
+                WebGl2RenderingContext::RED_INTEGER,
+                WebGl2RenderingContext::SHORT,
+            ),
+            WebGl2RenderingContext::R32I => (
+                WebGl2RenderingContext::RED_INTEGER,
+                WebGl2RenderingContext::INT,
+            ),
+            _ => unimplemented!(),
         };
 
         Self {
             format,
             internal_format,
-            _type
+            _type,
         }
     }
 
     pub fn create_black_tile<T: ArrayBuffer>(width: i32, value: T::Item) -> TileArrayBuffer<T> {
         let size_buf = (width * width * 1) as usize;
 
-        let pixels = [value].iter()
+        let pixels = [value]
+            .iter()
             .cloned()
             .cycle()
             .take(size_buf)
@@ -105,7 +114,7 @@ impl FITS {
 pub trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
     fn zero() -> Self;
 }
-impl FITSDataType for f32  {
+impl FITSDataType for f32 {
     #[inline]
     fn zero() -> Self {
         0.0

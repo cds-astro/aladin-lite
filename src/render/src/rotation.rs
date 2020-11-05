@@ -1,49 +1,51 @@
+use crate::math;
 use cgmath::Quaternion;
 use cgmath::{BaseFloat, InnerSpace};
-use crate::math;
 use cgmath::{Vector3, Vector4};
 
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
-pub struct Rotation<S: BaseFloat>(
-    pub Quaternion<S>,
-);
+pub struct Rotation<S: BaseFloat>(pub Quaternion<S>);
 
-use cgmath::{Matrix4, Matrix3};
+use cgmath::{Matrix3, Matrix4};
 impl<S> From<&Matrix4<S>> for Rotation<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     fn from(m: &Matrix4<S>) -> Self {
         let m: [[S; 4]; 4] = (*m).into();
 
         let t = Matrix3::new(
-            m[0][0], m[0][1], m[0][2],
-            m[1][0], m[1][1], m[1][2],
-            m[2][0], m[2][1], m[2][2]
+            m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2],
         );
 
         Rotation(t.into())
     }
 }
 impl<S> From<&Rotation<S>> for Matrix4<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     fn from(s: &Rotation<S>) -> Self {
         s.0.into()
     }
 }
 
 use crate::renderable::Angle;
-use cgmath::Rad;
 use cgmath::Matrix;
+use cgmath::Rad;
 impl<S> Rotation<S>
-where S: BaseFloat {
-    pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {        
+where
+    S: BaseFloat,
+{
+    pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {
         // Check if the dot of the two quaternions is negative
         // If so, negative one:
         // This comes from https://www.gamedev.net/forums/topic/551663-quaternion-rotation-issue-sometimes-take-longest-path/
         let d = self.0.dot(other.0);
         let q = if d < S::zero() {
-            self.0.slerp(-other.0, alpha)  
+            self.0.slerp(-other.0, alpha)
         } else {
             self.0.slerp(other.0, alpha)
         };
@@ -104,7 +106,7 @@ where S: BaseFloat {
         mat.into()
     }
 
-    // Define a rotation from an axis and a angle 
+    // Define a rotation from an axis and a angle
     pub fn from_axis_angle(axis: &Vector3<S>, angle: Angle<S>) -> Rotation<S> {
         let angle: Rad<S> = angle.into();
         let mat4 = Matrix4::from_axis_angle(*axis, angle);
@@ -140,7 +142,9 @@ where S: BaseFloat {
 
 use std::ops::Mul;
 impl<S> Mul<Rotation<S>> for Rotation<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     type Output = Self;
 
     fn mul(self, rhs: Rotation<S>) -> Self::Output {

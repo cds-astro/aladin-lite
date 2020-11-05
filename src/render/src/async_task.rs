@@ -6,18 +6,24 @@
 use task_async_executor::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
-pub use crate::renderable::catalog::Source;
 pub use crate::buffer::Tile;
+pub use crate::renderable::catalog::Source;
 pub use crate::shaders::Colormap;
 pub enum TaskResult {
-    TableParsed { name: String, sources: Vec<Source>, colormap: Colormap },
-    TileSentToGPU { tile: Tile }
+    TableParsed {
+        name: String,
+        sources: Vec<Source>,
+        colormap: Colormap,
+    },
+    TileSentToGPU {
+        tile: Tile,
+    },
 }
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub enum TaskType {
     SendTileToGPU(Tile),
-    ParseTable
+    ParseTable,
 }
 
 use futures::stream::Stream;
@@ -26,7 +32,9 @@ use wasm_bindgen::JsValue;
 
 // Task that parse a table
 pub struct ParseTable<T>
-where T: DeserializeOwned + AsRef<[f32]> {
+where
+    T: DeserializeOwned + AsRef<[f32]>,
+{
     table: js_sys::Array,
     idx: u32,
     next_val_ready: Option<T>,
@@ -34,7 +42,9 @@ where T: DeserializeOwned + AsRef<[f32]> {
 
 use wasm_bindgen::JsCast;
 impl<T> ParseTable<T>
-where T: DeserializeOwned + AsRef<[f32]> {
+where
+    T: DeserializeOwned + AsRef<[f32]>,
+{
     pub fn new(table: JsValue) -> Self {
         let table = table.dyn_into().unwrap();
         let idx = 0;
@@ -42,23 +52,24 @@ where T: DeserializeOwned + AsRef<[f32]> {
         Self {
             table,
             idx,
-            next_val_ready
+            next_val_ready,
         }
     }
 }
 
+use serde::de::DeserializeOwned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use serde::de::DeserializeOwned;
 impl<T> Stream for ParseTable<T>
-where T: DeserializeOwned + AsRef<[f32]> + Unpin {
+where
+    T: DeserializeOwned + AsRef<[f32]> + Unpin,
+{
     type Item = T;
 
     /// Attempt to resolve the next item in the stream.
     /// Returns `Poll::Pending` if not ready, `Poll::Ready(Some(x))` if a value
     /// is ready, and `Poll::Ready(None)` if the stream has completed.
-    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         // Deserialize row by row.
         let len = self.table.length();
         if self.idx == len {
@@ -115,7 +126,7 @@ impl BuildCatalogIndex {
             sources,
             ready,
             prev_num_sorted_sources,
-            chunk_size
+            chunk_size,
         }
     }
 }
@@ -128,8 +139,7 @@ impl Stream for BuildCatalogIndex {
     /// Attempt to resolve the next item in the stream.
     /// Returns `Poll::Pending` if not ready, `Poll::Ready(Some(x))` if a value
     /// is ready, and `Poll::Ready(None)` if the stream has completed.
-    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         // The sources are split into equal sized chunks
         if self.sources.len() == self.num_sorted_sources {
             self.ready = true;
@@ -144,14 +154,14 @@ impl Stream for BuildCatalogIndex {
                 (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
                     let idx1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
                     let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
-        
+
                     let ordering = idx1.partial_cmp(&idx2).unwrap();
                     match ordering {
                         std::cmp::Ordering::Equal => {
                             rng.gen::<f64>().partial_cmp(&0.5).unwrap()
                             //s1.lon.partial_cmp(&s2.lon).unwrap()
-                        },
-                        _ => ordering
+                        }
+                        _ => ordering,
                     }
                     //ordering
                 });
@@ -196,16 +206,16 @@ impl Stream for BuildCatalogIndex {
                             v
                         }
                     };
-    
+
                     self.new_sorted_sources.push(v);
                     self.num_sorted_sources += 1;
-    
+
                     // Every 10000 items sorted, we do a pending
                     if self.num_sorted_sources % CHUNK_OF_SORTED_SOURCES_TO_MERGE == 0 {
                         return Poll::Pending;
                     }
                 }
-                // replace 0 -> num_sorted_sources 
+                // replace 0 -> num_sorted_sources
                 let end = self.num_sorted_sources;
                 let new_sorted_sources = self.new_sorted_sources.clone();
                 self.sources.splice(..end, new_sorted_sources);
@@ -223,11 +233,11 @@ use cgmath::Vector3;
 pub struct SendTileToGPU {
     offset: Vector3<i32>,
     image: Box<dyn Image>,
-    texture_array: Rc<Texture2DArray>
+    texture_array: Rc<Texture2DArray>,
 }
 
+use crate::buffer::{HiPSConfig, Image, Texture};
 use crate::core::Texture2DArray;
-use crate::buffer::{Image, Texture, HiPSConfig};
 
 use std::rc::Rc;
 impl SendTileToGPU {
@@ -236,7 +246,7 @@ impl SendTileToGPU {
         texture: &Texture,
         image: I,
         texture_array: Rc<Texture2DArray>,
-        conf: &HiPSConfig
+        conf: &HiPSConfig,
     ) -> SendTileToGPU {
         let cell = tile.cell;
         // Index of the texture in the total set of textures
@@ -263,14 +273,14 @@ impl SendTileToGPU {
         let offset = Vector3::new(
             (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size,
             (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size,
-            idx_slice
+            idx_slice,
         );
 
         let image = Box::new(image) as Box<dyn Image>;
         SendTileToGPU {
             offset,
             image,
-            texture_array
+            texture_array,
         }
     }
 }
@@ -280,7 +290,8 @@ impl Future for SendTileToGPU {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
-        self.image.tex_sub_image_3d(&self.texture_array, &self.offset);
+        self.image
+            .tex_sub_image_3d(&self.texture_array, &self.offset);
 
         Poll::Ready(())
     }

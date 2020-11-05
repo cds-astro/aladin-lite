@@ -8,7 +8,9 @@ pub trait BufferDataStorage<'a, T: VertexAttribPointerType> {
 }
 pub struct VecData<'a, T: VertexAttribPointerType>(pub &'a Vec<T>);
 impl<'a, T> BufferDataStorage<'a, T> for VecData<'a, T>
-where T: VertexAttribPointerType {
+where
+    T: VertexAttribPointerType,
+{
     fn get_slice(&self) -> &[T] {
         self.0
     }
@@ -21,7 +23,9 @@ where T: VertexAttribPointerType {
 }
 pub struct SliceData<'a, T: VertexAttribPointerType>(pub &'a [T]);
 impl<'a, T> BufferDataStorage<'a, T> for SliceData<'a, T>
-where T: VertexAttribPointerType {
+where
+    T: VertexAttribPointerType,
+{
     fn get_slice(&self) -> &[T] {
         self.0
     }

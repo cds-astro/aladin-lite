@@ -1,11 +1,11 @@
-extern crate itertools_num;
-extern crate serde_derive;
-extern crate serde_json;
-extern crate num;
-extern crate task_async_executor;
 extern crate console_error_panic_hook;
 extern crate fitsreader;
+extern crate itertools_num;
+extern crate num;
 extern crate rand;
+extern crate serde_derive;
+extern crate serde_json;
+extern crate task_async_executor;
 use std::panic;
 
 #[macro_use]
@@ -13,51 +13,46 @@ mod utils;
 
 use wasm_bindgen::{prelude::*, JsCast};
 
+mod async_task;
+mod buffer;
+pub mod camera;
+mod cdshealpix;
+mod color;
+mod core;
+mod healpix_cell;
+mod image_fmt;
+mod math;
+pub mod renderable;
+mod rotation;
 mod shader;
 mod shaders;
-pub mod renderable;
-pub mod camera;
-mod core;
-mod math;
-mod transfert_function;
-mod color;
-mod healpix_cell;
-mod buffer;
-mod rotation;
 mod sphere_geometry;
-mod cdshealpix;
-mod async_task;
 mod time;
-mod image_fmt;
+mod transfert_function;
 pub use image_fmt::FormatImageType;
 
 use crate::{
-    shader::{Shader, ShaderManager},
-    renderable::{
-        Angle, ArcDeg,
-        grid::ProjetedGrid,
-        catalog::{Source, Manager},
-        projection::{Aitoff, Orthographic, Mollweide, Gnomonic, AzimuthalEquidistant, Mercator, Projection},
-    },
-    camera::CameraViewPort,
-    math::{LonLatT, LonLat},
     async_task::{TaskResult, TaskType},
+    camera::CameraViewPort,
+    math::{LonLat, LonLatT},
+    renderable::{
+        catalog::{Manager, Source},
+        grid::ProjetedGrid,
+        projection::{
+            Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic, Projection,
+        },
+        Angle, ArcDeg,
+    },
+    shader::{Shader, ShaderManager},
 };
 
-use std::{
-    rc::Rc,
-    cell::RefCell,
-    collections::HashSet
-};
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use cgmath::Vector4;
 
+use crate::{buffer::TileDownloader, renderable::image_survey::ImageSurveys};
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
-use crate::{
-    buffer::TileDownloader,
-    renderable::image_survey::ImageSurveys
-};
 struct App {
     gl: WebGl2Context,
 
@@ -66,7 +61,7 @@ struct App {
 
     downloader: TileDownloader,
     surveys: ImageSurveys,
-    
+
     time_start_blending: Time,
     request_redraw: bool,
     rendering: bool,
@@ -82,7 +77,6 @@ struct App {
     /*user_move_fsm: UserMoveSphere,
     user_zoom_fsm: UserZoom,
     move_fsm: MoveSphere,*/
-
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
     resources: Resources,
@@ -104,8 +98,8 @@ impl Resources {
 use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
-use crate::shaders::Colormap;
 use crate::rotation::Rotation;
+use crate::shaders::Colormap;
 struct MoveAnimation {
     start_anim_rot: Rotation<f32>,
     goal_anim_rot: Rotation<f32>,
@@ -119,20 +113,29 @@ struct ZoomAnimation {
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
-use crate::time::Time;
 use crate::renderable::angle::ArcSec;
+use crate::time::Time;
 
 use crate::buffer::Tile;
-use cgmath::InnerSpace;
 use crate::renderable::image_survey::HiPS;
+use cgmath::InnerSpace;
 impl App {
-    fn new(gl: &WebGl2Context, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
+    fn new(
+        gl: &WebGl2Context,
+        mut shaders: ShaderManager,
+        resources: Resources,
+    ) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
         //gl.enable(WebGl2RenderingContext::BLEND);
         //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
-        gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+        gl.blend_func_separate(
+            WebGl2RenderingContext::SRC_ALPHA,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
+        );
         //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         gl.enable(WebGl2RenderingContext::CULL_FACE);
@@ -143,15 +146,18 @@ impl App {
                 url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
 
                 max_order: 10,
-                frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
+                frame: Frame {
+                    label: String::from("J2000"),
+                    system: String::from("J2000"),
+                },
                 tile_size: 512,
                 format: HiPSFormat::Image {
-                    format: String::from("jpeg")
+                    format: String::from("jpeg"),
                 },
                 min_cutout: None,
                 max_cutout: None,
             },
-            color: HiPSColor::Color
+            color: HiPSColor::Color,
         };
 
         let camera = CameraViewPort::new::<Orthographic>(&gl);
@@ -207,7 +213,7 @@ impl App {
         };
 
         Ok(app)
-    } 
+    }
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
@@ -220,19 +226,19 @@ impl App {
 
                 let textures = survey.get_textures();
                 let view = survey.get_view();
-    
+
                 let texture_cells_in_fov = view.get_cells();
-    
+
                 for texture_cell in texture_cells_in_fov.iter() {
                     for cell in texture_cell.get_tile_cells(&textures.config()) {
                         let already_available = textures.contains_tile(&cell);
                         let is_cell_new = view.is_new(&cell);
-        
+
                         if already_available {
                             // Remove and append the texture with an updated
                             // time_request
                             if is_cell_new {
-                                // New cells are 
+                                // New cells are
                                 self.time_start_blending = Time::now();
                             }
                             already_available_cells.insert((cell, is_cell_new));
@@ -243,9 +249,9 @@ impl App {
                             let tile = Tile {
                                 root_url,
                                 format,
-                                cell
+                                cell,
                             };
-    
+
                             self.downloader.request_tile(tile);
                         }
                     }
@@ -279,18 +285,22 @@ impl App {
         let mut tiles_available = HashSet::new();
         for result in results {
             match result {
-                TaskResult::TableParsed { name, sources, colormap} => {
+                TaskResult::TableParsed {
+                    name,
+                    sources,
+                    colormap,
+                } => {
                     self.manager.add_catalog::<P>(
                         name,
                         sources,
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        &self.surveys.get_view().unwrap()
+                        &self.surveys.get_view().unwrap(),
                     );
                     removeLoadingInfo();
                     self.request_redraw = true;
-                },
+                }
                 TaskResult::TileSentToGPU { tile } => {
                     tiles_available.insert(tile);
                 }
@@ -300,26 +310,30 @@ impl App {
         Ok(tiles_available)
     }
 
-    fn update<P: Projection>(&mut self,
-        dt: DeltaTime,
-    ) -> Result<(), JsValue> {
+    fn update<P: Projection>(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
         // Check if there is an move animation to do
-        if let Some(MoveAnimation {start_anim_rot, goal_anim_rot, time_start_anim, goal_pos} ) = self.move_animation {
-            let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
-        
+        if let Some(MoveAnimation {
+            start_anim_rot,
+            goal_anim_rot,
+            time_start_anim,
+            goal_pos,
+        }) = self.move_animation
+        {
+            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
             //
             // In a damped harmonic oscillator system: w0 = sqrt(k / m)
-            // where: 
+            // where:
             // * k is the stiffness of the ressort
             // * m is its mass
             let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * (-5_f32 * t).exp();
             let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
-    
+
             self.camera.set_rotation::<P>(&p);
             self.look_for_new_tiles();
 
@@ -333,20 +347,25 @@ impl App {
         }
 
         // Check if there is an zoom animation to do
-        if let Some(ZoomAnimation {time_start_anim, start_fov, goal_fov} ) = self.zoom_animation {
-            let t = (utils::get_current_time() - time_start_anim.as_millis())/1000_f32;
-        
+        if let Some(ZoomAnimation {
+            time_start_anim,
+            start_fov,
+            goal_fov,
+        }) = self.zoom_animation
+        {
+            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
             //
             // In a damped harmonic oscillator system: w0 = sqrt(k / m)
-            // where: 
+            // where:
             // * k is the stiffness of the ressort
             // * m is its mass
             let alpha = 1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp();
             let alpha = alpha * alpha;
-            let fov = start_fov*(1_f32 - alpha) + goal_fov*alpha;
-    
+            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;
+
             self.camera.set_aperture::<P>(Angle(fov));
             self.look_for_new_tiles();
 
@@ -367,9 +386,11 @@ impl App {
             // 1. Surveys must be aware of the new available tiles
             self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
-            let resolved_tiles = self.downloader.get_resolved_tiles(&available_tiles, &self.surveys);
+            let resolved_tiles = self
+                .downloader
+                .get_resolved_tiles(&available_tiles, &self.surveys);
             self.surveys.add_resolved_tiles(resolved_tiles);
-            // 3. Try sending new tile requests after 
+            // 3. Try sending new tile requests after
             self.downloader.try_sending_tile_requests()?;
         }
 
@@ -378,13 +399,15 @@ impl App {
         let has_camera_moved = self.camera.has_moved();
 
         // - there is at least one tile in its blending phase
-        let blending_anim_occuring = (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
+        let blending_anim_occuring =
+            (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
         self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
-            self.manager.update::<P>(&self.camera, self.surveys.get_view().unwrap());
+            self.manager
+                .update::<P>(&self.camera, self.surveys.get_view().unwrap());
         }
         self.grid.update::<P>(&self.camera);
 
@@ -402,13 +425,12 @@ impl App {
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
             // Draw the catalog
-            self.manager.draw::<P>(
-                &self.gl,
-                &mut self.shaders,
-                &self.camera
-            );
+            self.manager
+                .draw::<P>(&self.gl, &mut self.shaders, &self.camera);
 
-            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
+            self.grid
+                .draw::<P>(&self.camera, &mut self.shaders)
+                .unwrap();
 
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -420,11 +442,12 @@ impl App {
     }
 
     fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+        let (survey, color) =
+            hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
         let id = survey.get_textures().config().root_url.clone();
 
         let new_survey = self.surveys.add_simple_survey(survey, color, 0);
-        
+
         if new_survey {
             self.downloader.clear_requests();
             let config = self.surveys.get(&id).unwrap().get_textures().config();
@@ -437,11 +460,12 @@ impl App {
         Ok(())
     }
     fn set_overlay_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+        let (survey, color) =
+            hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
         let id = survey.get_textures().config().root_url.clone();
 
         let new_survey = self.surveys.add_simple_survey(survey, color, 1);
-        
+
         if new_survey {
             self.downloader.clear_requests();
             let config = self.surveys.get(&id).unwrap().get_textures().config();
@@ -466,7 +490,8 @@ impl App {
         let mut survey_formats = Vec::new();
 
         for hips in hipses.into_iter() {
-            let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+            let (survey, color) =
+                hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
 
             survey_ids.push(survey.get_id().to_string());
             survey_formats.push(survey.get_textures().config.format());
@@ -476,7 +501,7 @@ impl App {
         }
 
         let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 0);
-        
+
         if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
             for id in new_survey_ids.iter() {
@@ -491,14 +516,18 @@ impl App {
         Ok(())
     }
 
-    fn set_overlay_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
+    fn set_overlay_composite_hips<P: Projection>(
+        &mut self,
+        hipses: CompositeHiPS,
+    ) -> Result<(), JsValue> {
         let mut surveys = Vec::new();
         let mut colors = Vec::new();
         let mut survey_ids = Vec::new();
         let mut survey_formats = Vec::new();
 
         for hips in hipses.into_iter() {
-            let (survey, color) = hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
+            let (survey, color) =
+                hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
 
             survey_ids.push(survey.get_id().to_string());
             survey_formats.push(survey.get_textures().config.format());
@@ -508,7 +537,7 @@ impl App {
         }
 
         let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 1);
-        
+
         if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
             for id in new_survey_ids.iter() {
@@ -531,7 +560,8 @@ impl App {
 
     fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
-        self.surveys.set_projection::<P>(&self.camera, &mut self.shaders, &self.resources);
+        self.surveys
+            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -547,7 +577,12 @@ impl App {
         }*/
 
         self.camera.set_longitude_reversed(reversed);
-        self.surveys.set_longitude_reversed::<P>(reversed, &self.camera, &mut self.shaders, &self.resources);
+        self.surveys.set_longitude_reversed::<P>(
+            reversed,
+            &self.camera,
+            &mut self.shaders,
+            &self.resources,
+        );
 
         self.look_for_new_tiles();
 
@@ -560,7 +595,7 @@ impl App {
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
             let mut stream = async_task::ParseTable::<[f32; 2]>::new(table);
             let mut results: Vec<Source> = vec![];
-        
+
             while let Some(item) = stream.next().await {
                 let item: &[f32] = item.as_ref();
                 results.push(item.into());
@@ -573,7 +608,11 @@ impl App {
             let results = stream_sort.sources;
             let colormap: Colormap = colormap.into();
 
-            TaskResult::TableParsed { name, sources: results, colormap }
+            TaskResult::TableParsed {
+                name,
+                sources: results,
+                colormap,
+            }
         });
     }
 
@@ -676,7 +715,10 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub fn world_to_screen<P: Projection>(&self, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
+    pub fn world_to_screen<P: Projection>(
+        &self,
+        lonlat: &LonLatT<f32>,
+    ) -> Result<Option<Vector2<f32>>, String> {
         let model_pos_xyz = lonlat.vector();
         let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
@@ -727,7 +769,7 @@ impl App {
         self.zoom_animation = Some(ZoomAnimation {
             time_start_anim: Time::now(),
             start_fov,
-            goal_fov
+            goal_fov,
         });
     }
 
@@ -744,10 +786,9 @@ impl App {
         let x = r.rotate(&w1).truncate();
         let y = r.rotate(&w2).truncate();
         if x != y {
-            let axis = x.cross(y)
-                .normalize();
+            let axis = x.cross(y).normalize();
             let d = math::ang_between_vect(&x, &y);
-    
+
             self.camera.rotate::<P>(&(-axis), d);
             self.look_for_new_tiles();
         }
@@ -755,7 +796,7 @@ impl App {
         // Stop the current animation if there is one
         self.move_animation = None;
     }
-    
+
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
         // Change the camera rotation
         self.camera.set_aperture::<P>(*fov);
@@ -784,21 +825,23 @@ impl WebGl2Context {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
 
-        let canvas = document.get_elements_by_class_name("aladin-imageCanvas").get_with_index(0).unwrap();
+        let canvas = document
+            .get_elements_by_class_name("aladin-imageCanvas")
+            .get_with_index(0)
+            .unwrap();
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
         let context_options = js_sys::JSON::parse(&"{\"antialias\":false}").unwrap();
         let inner = Rc::new(
-            canvas.get_context_with_context_options("webgl2", context_options.as_ref())
+            canvas
+                .get_context_with_context_options("webgl2", context_options.as_ref())
                 .unwrap()
                 .unwrap()
                 .dyn_into::<WebGl2RenderingContext>()
-                .unwrap()
+                .unwrap(),
         );
 
-        WebGl2Context {
-            inner,
-        }
+        WebGl2Context { inner }
     }
 }
 
@@ -868,11 +911,20 @@ impl ProjectionType {
         };
     }
 
-    fn set_catalog_colormap(&self, app: &mut App, name: String, colormap: Colormap) -> Result<(), JsValue> {
+    fn set_catalog_colormap(
+        &self,
+        app: &mut App,
+        name: String,
+        colormap: Colormap,
+    ) -> Result<(), JsValue> {
         app.set_catalog_colormap(name, colormap)
     }
 
-    fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
+    fn world_to_screen(
+        &self,
+        app: &App,
+        lonlat: &LonLatT<f32>,
+    ) -> Result<Option<Vector2<f32>>, String> {
         match self {
             ProjectionType::Aitoff => app.world_to_screen::<Aitoff>(lonlat),
             ProjectionType::MollWeide => app.world_to_screen::<Mollweide>(lonlat),
@@ -882,7 +934,6 @@ impl ProjectionType {
             ProjectionType::Mercator => app.world_to_screen::<Mercator>(lonlat),
         }
     }
-
 
     fn get_max_fov(&self, app: &App) -> f32 {
         match self {
@@ -956,7 +1007,11 @@ impl ProjectionType {
         }
     }
 
-    pub fn set_composite_hips(&mut self, app: &mut App, hips: CompositeHiPS) -> Result<(), JsValue> {
+    pub fn set_composite_hips(
+        &mut self,
+        app: &mut App,
+        hips: CompositeHiPS,
+    ) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
@@ -967,7 +1022,11 @@ impl ProjectionType {
         }
     }
 
-    pub fn set_overlay_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
+    pub fn set_overlay_simple_hips(
+        &mut self,
+        app: &mut App,
+        hips: SimpleHiPS,
+    ) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_overlay_simple_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_overlay_simple_hips::<Mollweide>(hips),
@@ -984,7 +1043,11 @@ impl ProjectionType {
         Ok(())
     }
 
-    pub fn set_overlay_composite_hips(&mut self, app: &mut App, hips: CompositeHiPS) -> Result<(), JsValue> {
+    pub fn set_overlay_composite_hips(
+        &mut self,
+        app: &mut App,
+        hips: CompositeHiPS,
+    ) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_overlay_composite_hips::<Mollweide>(hips),
@@ -998,7 +1061,7 @@ impl ProjectionType {
         app.set_overlay_opacity(opacity)
     }
 
-    pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {       
+    pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {
         match self {
             ProjectionType::Aitoff => app.resize_window::<Aitoff>(width, height),
             ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height),
@@ -1006,14 +1069,24 @@ impl ProjectionType {
             ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height),
             ProjectionType::Gnomonic => app.resize_window::<Gnomonic>(width, height),
             ProjectionType::Mercator => app.resize_window::<Mercator>(width, height),
-        }; 
+        };
     }
 
-    pub fn set_kernel_strength(&mut self, app: &mut App, name: String, strength: f32) -> Result<(), JsValue> {
+    pub fn set_kernel_strength(
+        &mut self,
+        app: &mut App,
+        name: String,
+        strength: f32,
+    ) -> Result<(), JsValue> {
         app.set_kernel_strength(name, strength)
     }
 
-    pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) -> Result<(), JsValue> {       
+    pub fn set_heatmap_opacity(
+        &mut self,
+        app: &mut App,
+        name: String,
+        opacity: f32,
+    ) -> Result<(), JsValue> {
         app.set_heatmap_opacity(name, opacity)
     }
 
@@ -1130,7 +1203,6 @@ impl ProjectionType {
     }
 }
 
-
 use crate::time::DeltaTime;
 #[wasm_bindgen]
 pub struct WebClient {
@@ -1154,7 +1226,7 @@ extern "C" {
     fn removeLoadingInfo();
 }
 
-use serde::Deserialize; 
+use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct FileSrc {
     pub id: String,
@@ -1163,16 +1235,13 @@ pub struct FileSrc {
 use crate::transfert_function::TransferFunction;
 use std::collections::HashMap;
 
-
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Frame {
     pub label: String,
     pub system: String,
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct HiPSProperties {
     pub url: String,
@@ -1185,19 +1254,13 @@ pub struct HiPSProperties {
     pub format: HiPSFormat,
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub enum HiPSFormat {
-    FITSImage {
-        bitpix: i32
-    },
-    Image {
-        format: String,
-    }
+    FITSImage { bitpix: i32 },
+    Image { format: String },
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub enum HiPSColor {
     Grayscale2Colormap {
         colormap: String,
@@ -1206,22 +1269,20 @@ pub enum HiPSColor {
     Grayscale2Color {
         color: [f32; 3],
         transfer: String,
-        k: f32 // contribution of the component
+        k: f32, // contribution of the component
     },
-    Color
+    Color,
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct SimpleHiPS {
     properties: HiPSProperties,
     color: HiPSColor,
 }
 
-#[derive(Deserialize)]
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct CompositeHiPS {
-    hipses: Vec<SimpleHiPS>
+    hipses: Vec<SimpleHiPS>,
 }
 use std::iter::IntoIterator;
 impl IntoIterator for CompositeHiPS {
@@ -1239,7 +1300,6 @@ impl WebClient {
     /// Create a new web client
     #[wasm_bindgen(constructor)]
     pub fn new(shaders: &JsValue, resources: &JsValue) -> Result<WebClient, JsValue> {
-
         let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -1271,13 +1331,13 @@ impl WebClient {
         // world coordinates of the center of projection in (ra, dec)
         self.projection.update(
             &mut self.app,
-            // Time of the previous frame rendering 
+            // Time of the previous frame rendering
             self.dt,
         )?;
 
         Ok(())
     }
-    
+
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
     pub fn render(&mut self, _min_value: f32, _max_value: f32) -> Result<(), JsValue> {
@@ -1297,14 +1357,21 @@ impl WebClient {
     /// Change the current projection of the HiPS
     #[wasm_bindgen(js_name = setLongitudeReversed)]
     pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
-        self.projection.set_longitude_reversed(&mut self.app, reversed);
+        self.projection
+            .set_longitude_reversed(&mut self.app, reversed);
 
         Ok(())
     }
-    
+
     /// Change grid color
     #[wasm_bindgen(js_name = setGridColor)]
-    pub fn set_grid_color(&mut self, red: f32, green: f32, blue: f32, alpha: f32) -> Result<(), JsValue> {
+    pub fn set_grid_color(
+        &mut self,
+        red: f32,
+        green: f32,
+        blue: f32,
+        alpha: f32,
+    ) -> Result<(), JsValue> {
         let color = Color::new(red, green, blue, alpha);
         self.projection.set_grid_color(&mut self.app, color);
 
@@ -1317,7 +1384,7 @@ impl WebClient {
 
         Ok(())
     }
-    
+
     /*#[wasm_bindgen(js_name = setCutouts)]
     pub fn set_cutouts(&mut self, min_cutout: f32, max_cutout: f32) -> Result<(), JsValue> {
         self.projection.set_cutouts(&mut self.app, min_cutout, max_cutout).map_err(|e| e.into())?;
@@ -1344,7 +1411,6 @@ impl WebClient {
     // Set primary image survey
     #[wasm_bindgen(js_name = setSimpleHiPS)]
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         //crate::log(&format!("simple HiPS: {:?}", hips));
 
@@ -1369,7 +1435,8 @@ impl WebClient {
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         //crate::log(&format!("simple HiPS: {:?}", hips));
 
-        self.projection.set_overlay_simple_hips(&mut self.app, hips)?;
+        self.projection
+            .set_overlay_simple_hips(&mut self.app, hips)?;
 
         Ok(())
     }
@@ -1380,30 +1447,29 @@ impl WebClient {
 
         Ok(())
     }
-    
+
     #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
     pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
         let hipses: CompositeHiPS = hipses.into_serde().map_err(|e| e.to_string())?;
         //crate::log(&format!("Composite HiPS: {:?}", hipses));
 
-        self.projection.set_overlay_composite_hips(&mut self.app, hipses)?;
+        self.projection
+            .set_overlay_composite_hips(&mut self.app, hipses)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setOverlayOpacity)]
     pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
-        self.projection.set_overlay_opacity(&mut self.app, opacity)?;
+        self.projection
+            .set_overlay_opacity(&mut self.app, opacity)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f32, lat: f32) -> Result<Option<Box<[f32]>>, JsValue> {
-        let lonlat = LonLatT::new(
-            ArcDeg(lon).into(),
-            ArcDeg(lat).into()
-        );
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
             Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
         } else {
@@ -1413,7 +1479,10 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Option<Box<[f32]>> {
-        if let Some(lonlat) = self.projection.screen_to_world(&self.app, &Vector2::new(pos_x, pos_y)) {
+        if let Some(lonlat) = self
+            .projection
+            .screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))
+        {
             let lon_deg: ArcDeg<f32> = lonlat.lon().into();
             let lat_deg: ArcDeg<f32> = lonlat.lat().into();
 
@@ -1488,7 +1557,7 @@ impl WebClient {
 
         Ok(())
     }*/
-/*
+    /*
     /// Initiate a finite state machine that will zoom until a fov is reached
     /// while moving to a specific location
     #[wasm_bindgen(js_name = zoomToLocation)]
@@ -1509,10 +1578,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = moveToLocation)]
     pub fn start_moving_to(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
         // Enable the MouseLeftButtonReleased event
-        let location = LonLatT::new(
-            ArcDeg(lon).into(),
-            ArcDeg(lat).into()
-        );
+        let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         self.projection.start_moving_to(&mut self.app, location);
 
         /*self.events.enable::<MoveToLocation>(
@@ -1544,15 +1610,15 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = goFromTo)]
-    pub fn go_from_to(&mut self, lon1: f32, lat1: f32, lon2: f32, lat2: f32) -> Result<(), JsValue> {
-        let pos1 = LonLatT::new(
-            ArcDeg(lon1).into(),
-            ArcDeg(lat1).into()
-        );
-        let pos2 = LonLatT::new(
-            ArcDeg(lon2).into(),
-            ArcDeg(lat2).into()
-        );
+    pub fn go_from_to(
+        &mut self,
+        lon1: f32,
+        lat1: f32,
+        lon2: f32,
+        lat2: f32,
+    ) -> Result<(), JsValue> {
+        let pos1 = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into());
+        let pos2 = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into());
         self.projection.go_from_to(&mut self.app, &pos1, &pos2);
 
         Ok(())
@@ -1561,31 +1627,52 @@ impl WebClient {
     /// CATALOG INTERFACE METHODS
     /// Add new catalog
     #[wasm_bindgen(js_name = addCatalog)]
-    pub fn add_catalog(&mut self, name_catalog: String, data: JsValue, colormap: String) -> Result<(), JsValue> {
-        self.projection.add_catalog(&mut self.app, name_catalog, data, colormap);
+    pub fn add_catalog(
+        &mut self,
+        name_catalog: String,
+        data: JsValue,
+        colormap: String,
+    ) -> Result<(), JsValue> {
+        self.projection
+            .add_catalog(&mut self.app, name_catalog, data, colormap);
 
         Ok(())
     }
 
     /// Set the heatmap global opacity
     #[wasm_bindgen(js_name = setCatalogOpacity)]
-    pub fn set_heatmap_opacity(&mut self, name_catalog: String, opacity: f32) -> Result<(), JsValue> {
-        self.projection.set_heatmap_opacity(&mut self.app, name_catalog, opacity)?;
+    pub fn set_heatmap_opacity(
+        &mut self,
+        name_catalog: String,
+        opacity: f32,
+    ) -> Result<(), JsValue> {
+        self.projection
+            .set_heatmap_opacity(&mut self.app, name_catalog, opacity)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setCatalogColormap)]
-    pub fn set_catalog_colormap(&mut self, name_catalog: String, colormap: String) -> Result<(), JsValue> {
+    pub fn set_catalog_colormap(
+        &mut self,
+        name_catalog: String,
+        colormap: String,
+    ) -> Result<(), JsValue> {
         let colormap: Colormap = colormap.into();
-        self.projection.set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
+        self.projection
+            .set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setCatalogKernelStrength)]
-    pub fn set_kernel_strength(&mut self, name_catalog: String, strength: f32) -> Result<(), JsValue> {
-        self.projection.set_kernel_strength(&mut self.app, name_catalog, strength)?;
+    pub fn set_kernel_strength(
+        &mut self,
+        name_catalog: String,
+        strength: f32,
+    ) -> Result<(), JsValue> {
+        self.projection
+            .set_kernel_strength(&mut self.app, name_catalog, strength)?;
 
         Ok(())
     }

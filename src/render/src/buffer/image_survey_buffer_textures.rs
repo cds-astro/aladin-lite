@@ -41,10 +41,7 @@ impl From<Texture> for TextureCellItem {
         let time_request = texture.time_request();
         let cell = *texture.cell();
 
-        Self {
-            cell,
-            time_request,
-        }
+        Self { cell, time_request }
     }
 }
 impl From<&Texture> for TextureCellItem {
@@ -52,10 +49,7 @@ impl From<&Texture> for TextureCellItem {
         let time_request = texture.time_request();
         let cell = *texture.cell();
 
-        Self {
-            cell,
-            time_request,
-        }
+        Self { cell, time_request }
     }
 }
 impl From<&mut Texture> for TextureCellItem {
@@ -63,19 +57,12 @@ impl From<&mut Texture> for TextureCellItem {
         let time_request = texture.time_request();
         let cell = *texture.cell();
 
-        Self {
-            cell,
-            time_request,
-        }
+        Self { cell, time_request }
     }
 }
 
-
+use crate::{buffer::HiPSConfig, core::Texture2DArray};
 use std::collections::HashMap;
-use crate::{
-    core::Texture2DArray,
-    buffer::HiPSConfig
-};
 
 use crate::time::Time;
 impl From<(HEALPixCell, Time)> for TextureCellItem {
@@ -99,7 +86,9 @@ impl HEALPixCellHeap {
 
     fn update_entry<E: Into<TextureCellItem>>(&mut self, item: E) {
         let item = item.into();
-        self.0 = self.0.drain()
+        self.0 = self
+            .0
+            .drain()
             // Remove the cell
             .filter(|texture_node| texture_node.cell != item.cell)
             // Collect to a new binary heap that do not have cell anymore
@@ -148,9 +137,9 @@ pub struct ImageSurveyTextures {
     gl: WebGl2Context,
 }
 use crate::{
-    WebGl2Context,
+    async_task::{SendTileToGPU, TaskExecutor, TaskResult, TaskType},
     buffer::Image,
-    async_task::{TaskExecutor, TaskType, TaskResult, SendTileToGPU}
+    WebGl2Context,
 };
 
 use web_sys::WebGl2RenderingContext;
@@ -166,23 +155,36 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
         num_slices,
         &[
             // The HiPS tiles sampling is NEAREST
-            (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
-            (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
-            
+            (
+                WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+                WebGl2RenderingContext::NEAREST,
+            ),
+            (
+                WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+                WebGl2RenderingContext::NEAREST,
+            ),
             // Prevents s-coordinate wrapping (repeating)
-            (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_S,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
             // Prevents t-coordinate wrapping (repeating)
-            (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_T,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
         ],
         config.format(),
     )
 }
 
-
-
 use super::Tile;
 impl ImageSurveyTextures {
-    pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurveyTextures {
+    pub fn new(
+        gl: &WebGl2Context,
+        config: HiPSConfig,
+        exec: Rc<RefCell<TaskExecutor>>,
+    ) -> ImageSurveyTextures {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -190,7 +192,7 @@ impl ImageSurveyTextures {
         let heap = HEALPixCellHeap::with_capacity(size - 12);
 
         let textures = HashMap::with_capacity(size);
-        
+
         let texture_2d_array = Rc::new(create_texture_array(gl, &config));
 
         // The root textures have not been loaded
@@ -211,13 +213,19 @@ impl ImageSurveyTextures {
 
             ready,
             exec,
-            gl
+            gl,
         }
     }
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(&mut self, tile: Tile, image: I, time_request: Time, missing: bool) {
+    pub fn push<I: Image + 'static>(
+        &mut self,
+        tile: Tile,
+        image: I,
+        time_request: Time,
+        missing: bool,
+    ) {
         let tile_cell = tile.cell;
         // Assert here to prevent pushing doublons
         if self.contains_tile(&tile_cell) {
@@ -238,15 +246,19 @@ impl ImageSurveyTextures {
                 // (i.e. is not a root texture)
                 let texture = if self.is_heap_full() {
                     // Pop the oldest requested texture
-                    let oldest_texture = self.heap.pop()
-                        .unwrap();
+                    let oldest_texture = self.heap.pop().unwrap();
                     // Ensure this is not a base texture
                     assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
-                        texture.replace(&texture_cell, time_request, &self.config, &mut self.exec.borrow_mut());
+                        texture.replace(
+                            &texture_cell,
+                            time_request,
+                            &self.config,
+                            &mut self.exec.borrow_mut(),
+                        );
 
                         texture
                     } else {
@@ -260,7 +272,8 @@ impl ImageSurveyTextures {
                     let root_texture_off_idx = 12;
                     let idx = root_texture_off_idx + self.heap.len();
 
-                    let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
+                    let texture =
+                        Texture::new(&self.config, &texture_cell, idx as i32, time_request);
                     texture
                 };
                 // Push it to the buffer
@@ -281,7 +294,7 @@ impl ImageSurveyTextures {
             texture.append(
                 &tile_cell, // The tile cell
                 &self.config,
-                missing
+                missing,
             );
             // Compute the cutoff of the received tile
             //let cutoff = image.get_cutoff_values();
@@ -289,17 +302,22 @@ impl ImageSurveyTextures {
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
             let mut exec_ref = self.exec.borrow_mut();
-            let task = SendTileToGPU::new(&tile, texture, image, self.texture_2d_array.clone(), &self.config);
+            let task = SendTileToGPU::new(
+                &tile,
+                texture,
+                image,
+                self.texture_2d_array.clone(),
+                &self.config,
+            );
 
             let tile = tile;
-            exec_ref.spawner().spawn(
-                TaskType::SendTileToGPU(tile.clone()),
-                async move {
+            exec_ref
+                .spawner()
+                .spawn(TaskType::SendTileToGPU(tile.clone()), async move {
                     task.await;
 
                     TaskResult::TileSentToGPU { tile }
-                }
-            );
+                });
         } else {
             unreachable!()
         }
@@ -307,7 +325,7 @@ impl ImageSurveyTextures {
 
     // Return true if at least one task has been processed
     pub fn register_available_tile(&mut self, available_tile: &Tile) {
-        let Tile {cell, ..} = available_tile;
+        let Tile { cell, .. } = available_tile;
         let texture_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
 
@@ -482,7 +500,7 @@ impl ImageSurveyTextures {
             self.textures.get(&HEALPixCell(0, 8)).unwrap(),
             self.textures.get(&HEALPixCell(0, 9)).unwrap(),
             self.textures.get(&HEALPixCell(0, 10)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 11)).unwrap()
+            self.textures.get(&HEALPixCell(0, 11)).unwrap(),
         ]
     }
 
@@ -491,9 +509,9 @@ impl ImageSurveyTextures {
     }
 }
 
+use crate::buffer::TextureUniforms;
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-use crate::buffer::TextureUniforms;
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         if self.is_ready() {
@@ -502,10 +520,7 @@ impl SendUniforms for ImageSurveyTextures {
             let mut num_textures = 0;
             for texture in textures.iter() {
                 if texture.is_available() {
-                    let texture_uniforms = TextureUniforms::new(
-                        texture,
-                        num_textures as i32
-                    );
+                    let texture_uniforms = TextureUniforms::new(texture, num_textures as i32);
 
                     shader.attach_uniforms_from(&texture_uniforms);
                     num_textures += 1;

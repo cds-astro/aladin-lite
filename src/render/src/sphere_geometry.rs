@@ -1,5 +1,5 @@
 use cgmath::Rad;
-use cgmath::{Vector4, Vector3};
+use cgmath::{Vector3, Vector4};
 
 const PI: f32 = std::f32::consts::PI;
 const TWICE_PI: f32 = PI * 2_f32;
@@ -11,7 +11,7 @@ use cgmath::InnerSpace;
 
 pub enum FieldOfViewType {
     Allsky(Allsky),
-    Polygon(Polygon)
+    Polygon(Polygon),
 }
 
 //use cgmath::Vector2;
@@ -26,19 +26,15 @@ impl FieldOfViewType {
 
         allsky
     }
-    
-    pub fn new_polygon(vertices: &[Vector4<f32>]/*, aspect: f32*/) -> FieldOfViewType {
-        FieldOfViewType::Polygon(Polygon::new(vertices/*, aspect*/))
+
+    pub fn new_polygon(vertices: &[Vector4<f32>] /*, aspect: f32*/) -> FieldOfViewType {
+        FieldOfViewType::Polygon(Polygon::new(vertices /*, aspect*/))
     }
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
         match self {
-            FieldOfViewType::Allsky(allsky) => {
-                allsky.get_bbox()
-            },
-            FieldOfViewType::Polygon(poly) => {
-                poly.get_bbox()
-            }
+            FieldOfViewType::Allsky(allsky) => allsky.get_bbox(),
+            FieldOfViewType::Polygon(poly) => poly.get_bbox(),
         }
     }
 
@@ -53,7 +49,11 @@ impl FieldOfViewType {
         great_circles_labels
     }*/
 
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT, camera: &CameraViewPort) -> Option<Vector3<f32>> {
+    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(
+        &self,
+        lon: LonT,
+        camera: &CameraViewPort,
+    ) -> Option<Vector3<f32>> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // Allsky case
@@ -64,24 +64,24 @@ impl FieldOfViewType {
                 let lon: Rad<f32> = lon.into();
                 let pos: Vector3<f32> = LonLatT::new(lon.into(), center.lat()).vector();
                 Some(pos)
-            },
-            FieldOfViewType::Polygon(polygon) => {
-                polygon.intersect_meridian(lon)
             }
+            FieldOfViewType::Polygon(polygon) => polygon.intersect_meridian(lon),
         }
     }
 
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT, camera: &CameraViewPort) -> Option<Vector3<f32>> {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(
+        &self,
+        lat: LatT,
+        camera: &CameraViewPort,
+    ) -> Option<Vector3<f32>> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 let center = camera.get_center().lonlat();
                 let lat: Rad<f32> = lat.into();
                 let pos: Vector3<f32> = LonLatT::new(center.lon(), lat.into()).vector();
                 Some(pos)
-            },
-            FieldOfViewType::Polygon(poly) => {
-                poly.intersect_parallel(lat, camera)
             }
+            FieldOfViewType::Polygon(poly) => poly.intersect_parallel(lat, camera),
         }
     }
 
@@ -91,18 +91,14 @@ impl FieldOfViewType {
 
     pub fn contains_pole(&self) -> bool {
         match self {
-            FieldOfViewType::Allsky(_) => {
-                true
-            },
-            FieldOfViewType::Polygon(poly) => {
-                poly.contains_pole()
-            }
+            FieldOfViewType::Allsky(_) => true,
+            FieldOfViewType::Polygon(poly) => poly.contains_pole(),
         }
     }
 }
 /*
 impl SendUniforms for FieldOfViewType {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
             FieldOfViewType::Allsky(ref allsky) => {
                 shader.attach_uniforms_from(allsky);
@@ -126,7 +122,7 @@ use crate::shader::ShaderBound;
 
 use crate::renderable::angle::transmute_angles;
 impl<T> SendUniforms for T where T: ZoneFieldOfView {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {        
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         // Meridians
         let meridians = unsafe { transmute_angles(self.meridians()) };
         let name = "meridians[0]";
@@ -151,9 +147,7 @@ impl Allsky {
     fn new() -> Allsky {
         let bbox = BoundingBox::fullsky();
 
-        Allsky {
-            bbox,
-        }
+        Allsky { bbox }
     }
 
     fn get_bbox(&self) -> &BoundingBox {
@@ -247,44 +241,38 @@ impl BoundingBox {
             let lat = if pole.is_south() {
                 // All the latitudes lower than the maximum latitude
                 // of the vertices are included or intersect the polygon
-                let max_lat = lat.iter()
-                    .fold(Angle::min_value(), |a, b| a.max(*b));
-    
+                let max_lat = lat.iter().fold(Angle::min_value(), |a, b| a.max(*b));
+
                 Angle(-HALF_PI)..max_lat
             } else {
                 // All the latitudes upper than the minimum latitude
                 // of the vertices are included or intersect the polygon
-                let min_lat = lat.iter()
-                    .fold(Angle::max_value(), |a, b| a.min(*b));
-    
+                let min_lat = lat.iter().fold(Angle::max_value(), |a, b| a.min(*b));
+
                 min_lat..Angle(HALF_PI)
             };
-    
+
             let lon = Angle(0_f32)..Angle(TWICE_PI);
-            BoundingBox  { lon, lat }
+            BoundingBox { lon, lat }
         } else {
             // The polygon does not contain any pole
             // Meridian 0deg is not crossing the polygon
-            let (min_lat, max_lat) = lat.iter()
-                .fold((Angle::max_value(), Angle::min_value()),
-                    |(min, max), b| (
-                        min.min(*b),
-                        max.max(*b)
-                    )
-                );
-    
+            let (min_lat, max_lat) = lat
+                .iter()
+                .fold((Angle::max_value(), Angle::min_value()), |(min, max), b| {
+                    (min.min(*b), max.max(*b))
+                });
+
             let lat = min_lat..max_lat;
-    
-            let (min_lon, max_lon) = lon.iter()
-                .fold((Angle::max_value(), Angle::min_value()), 
-                    |(min, max), b| (
-                        min.min(*b),
-                        max.max(*b)
-                    )
-                );
-    
+
+            let (min_lon, max_lon) = lon
+                .iter()
+                .fold((Angle::max_value(), Angle::min_value()), |(min, max), b| {
+                    (min.min(*b), max.max(*b))
+                });
+
             let lon = min_lon..max_lon;
-            BoundingBox  { lon, lat }
+            BoundingBox { lon, lat }
         }
     }
 
@@ -335,7 +323,7 @@ impl BoundingBox {
     pub fn fullsky() -> Self {
         BoundingBox {
             lon: Angle(0_f32)..Angle(TWICE_PI),
-            lat: Angle(-HALF_PI)..Angle(HALF_PI)
+            lat: Angle(-HALF_PI)..Angle(HALF_PI),
         }
     }
 }
@@ -349,7 +337,9 @@ struct EdgeIterator<'a, S: BaseFloat> {
 }
 
 impl<'a, S> EdgeIterator<'a, S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     fn new(vertices: &'a [Vector4<S>]) -> EdgeIterator<'a, S> {
         let prev = vertices.len() - 1;
         let curr = 0;
@@ -368,13 +358,15 @@ where S: BaseFloat {
 use cgmath::BaseFloat;
 struct Edge<S: BaseFloat> {
     pub v1: LonLatT<S>,
-    pub v2: LonLatT<S>
+    pub v2: LonLatT<S>,
 }
 
-use crate::math::LonLat;
 use crate::math;
+use crate::math::LonLat;
 impl<S> Edge<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     // Swap the vertices of the edge
     #[inline]
     fn swap(&mut self) {
@@ -397,7 +389,9 @@ where S: BaseFloat {
 }
 
 impl<'a, S> Iterator for EdgeIterator<'a, S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     type Item = Edge<S>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -407,10 +401,7 @@ where S: BaseFloat {
             let v1 = self.vertices[prev].lonlat();
             let v2 = self.vertices[curr].lonlat();
 
-            let edge = Edge {
-                v1,
-                v2
-            };
+            let edge = Edge { v1, v2 };
 
             if self.curr == self.vertices.len() - 1 {
                 self.finished = true;
@@ -430,7 +421,9 @@ where S: BaseFloat {
 struct EdgesSortedLon<S: BaseFloat>(Vec<Edge<S>>);
 
 impl<S> EdgesSortedLon<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     fn new(vertices: &[Vector4<S>]) -> EdgesSortedLon<S> {
         let mut edges = EdgeIterator::new(&vertices).collect::<Vec<_>>();
         edges.sort_unstable_by(|e1, e2| {
@@ -441,7 +434,8 @@ where S: BaseFloat {
             e1_min_lon.partial_cmp(&e2_min_lon).unwrap()
         });
         // Swap the edges vertices in increasing longitude order
-        edges = edges.into_iter()
+        edges = edges
+            .into_iter()
             .map(|mut e| {
                 if e.v1.lon() > e.v2.lon() {
                     e.swap();
@@ -456,10 +450,12 @@ where S: BaseFloat {
 
 use core::ops::Deref;
 impl<S> Deref for EdgesSortedLon<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     type Target = Vec<Edge<S>>;
 
-    fn deref (&'_ self) -> &'_ Self::Target {
+    fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -467,7 +463,9 @@ where S: BaseFloat {
 struct EdgesSortedLat<S: BaseFloat>(Vec<Edge<S>>);
 
 impl<S> EdgesSortedLat<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     fn new(vertices: &[Vector4<S>]) -> EdgesSortedLat<S> {
         let mut edges = EdgeIterator::new(&vertices).collect::<Vec<_>>();
         edges.sort_unstable_by(|e1, e2| {
@@ -480,7 +478,8 @@ where S: BaseFloat {
             result.unwrap()
         });
         // Swap the edges vertices in increasing latitudes order
-        edges = edges.into_iter()
+        edges = edges
+            .into_iter()
             .map(|mut e| {
                 if e.v1.lat() > e.v2.lat() {
                     e.swap();
@@ -494,10 +493,12 @@ where S: BaseFloat {
 }
 
 impl<S> Deref for EdgesSortedLat<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     type Target = Vec<Edge<S>>;
 
-    fn deref (&'_ self) -> &'_ Self::Target {
+    fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -508,7 +509,7 @@ pub struct Polygon {
     edges_sorted_lon: EdgesSortedLon<f32>,
     edges_sorted_lat: EdgesSortedLat<f32>,
     // Pole contained
-    pole: Option<Pole>
+    pole: Option<Pole>,
 }
 
 // A polygon must contain at least 3 vertices
@@ -517,7 +518,8 @@ impl Polygon {
         assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
-        let (lon, lat): (Vec<_>, Vec<_>) = vertices.iter()
+        let (lon, lat): (Vec<_>, Vec<_>) = vertices
+            .iter()
             .map(|vertex| {
                 let lonlat: LonLatT<f32> = vertex.lonlat();
                 (lonlat.lon(), lonlat.lat())
@@ -531,39 +533,25 @@ impl Polygon {
         // crosses both the 0 and 180deg meridians)
         let lon = if is_intersecting_meridian(&lon, Rad(0_f32)) {
             lon.into_iter()
-                .map(|lon| {
-                    if lon > PI {
-                        lon - TWICE_PI
-                    } else {
-                        lon
-                    }
-                })
+                .map(|lon| if lon > PI { lon - TWICE_PI } else { lon })
                 .collect::<Vec<_>>()
         } else {
             lon.into_iter()
-                .map(|lon| {
-                    if lon < 0_f32 {
-                        lon + TWICE_PI
-                    } else {
-                        lon
-                    }
-                })
+                .map(|lon| if lon < 0_f32 { lon + TWICE_PI } else { lon })
                 .collect::<Vec<_>>()
         };
 
         let pole = Pole::contained_in_polygon(&lon, &lat);
         let bbox = BoundingBox::from_polygon(&pole, &lon, &lat);
 
-        let vertices = lon.into_iter().zip(lat.into_iter())
-            .map(|(lon, lat)| {
-                LonLatT::new(lon, lat).vector()
-            })
+        let vertices = lon
+            .into_iter()
+            .zip(lat.into_iter())
+            .map(|(lon, lat)| LonLatT::new(lon, lat).vector())
             .collect::<Vec<_>>();
 
         let edges_sorted_lat = EdgesSortedLat::new(&vertices);
         let edges_sorted_lon = EdgesSortedLon::new(&vertices);
-
-
 
         Polygon {
             edges_sorted_lat,
@@ -586,17 +574,22 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT, camera: &CameraViewPort) -> Option<Vector3<f32>> {
+    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(
+        &self,
+        lat: LatT,
+        camera: &CameraViewPort,
+    ) -> Option<Vector3<f32>> {
         if let Some(pole) = &self.pole {
             // A pole is contained in the polygon
-            // We know there is an intersection if lat is 
+            // We know there is an intersection if lat is
             if pole.is_north() {
                 // North pole
                 let lat_min: Rad<f32> = self.bbox.lat_min().into();
                 let lat: Rad<f32> = lat.into();
                 if lat > lat_min {
                     let center = camera.get_center().lonlat();
-                    let inter: Vector3<f32> = LonLatT::from_radians(center.lon().into(), lat).vector();
+                    let inter: Vector3<f32> =
+                        LonLatT::from_radians(center.lon().into(), lat).vector();
                     Some(inter)
                 } else {
                     None
@@ -607,7 +600,8 @@ impl Polygon {
                 let lat: Rad<f32> = lat.into();
                 if lat < lat_max {
                     let center = camera.get_center().lonlat();
-                    let inter: Vector3<f32> = LonLatT::from_radians(center.lon().into(), lat).vector();
+                    let inter: Vector3<f32> =
+                        LonLatT::from_radians(center.lon().into(), lat).vector();
                     Some(inter)
                 } else {
                     None
@@ -635,7 +629,7 @@ impl Polygon {
         if lon > PI {
             lon -= TWICE_PI;
         }
-        
+
         // Normal of a meridian
         for edge in self.edges_sorted_lat.iter() {
             // Return the first intersection found
@@ -648,7 +642,6 @@ impl Polygon {
         // no intersections have been found
         None
     }
-
 }
 
 impl Polygon {
@@ -669,7 +662,7 @@ impl Polygon {
             //      = dot(n, v2) x v1 - dot(n, v1) x v2
             let mut r = n.dot(v2) * v1 - n.dot(v1) * v2;
             r = r.normalize();
-    
+
             if edge.is_in_lon_range(&r) {
                 Some(r)
             } else if edge.is_in_lon_range(&(-r)) {
@@ -697,18 +690,18 @@ impl Polygon {
             let gc = p1.cross(p2).normalize();
 
             let a = p1.y;
-            let b = gc.z*p1.x - gc.x*p1.z;
+            let b = gc.z * p1.x - gc.x * p1.z;
             let c = lat.sin();
-            let r = (a*a+b*b).sqrt();
+            let r = (a * a + b * b).sqrt();
 
-            let e = (b/a).atan();
-            let f = (c/r).acos();
+            let e = (b / a).atan();
+            let f = (c / r).acos();
             let alpha = e - f;
 
             let ca = alpha.cos();
             let sa = alpha.sin();
             let c = gc.cross(p1);
-            let inter = p1*ca + c*sa;
+            let inter = p1 * ca + c * sa;
 
             if edge.is_in_lon_range(&inter) {
                 Some(inter)
@@ -718,7 +711,7 @@ impl Polygon {
                 let alpha = e + f;
                 let ca = alpha.cos();
                 let sa = alpha.sin();
-                let inter = p1*ca + c*sa;
+                let inter = p1 * ca + c * sa;
 
                 if edge.is_in_lon_range(&inter) {
                     Some(inter)
@@ -732,25 +725,23 @@ impl Polygon {
     }
 }
 
-
-
 #[inline]
 fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {
-    // First version of the code: 
+    // First version of the code:
     //   ((v2.lon() - v1.lon()).abs() > PI) != ((v2.lon() > coo.lon()) != (v1.lon() > coo.lon()))
-    // 
-    // Lets note 
+    //
+    // Lets note
     //   - lonA = v1.lon()
     //   - lonB = v2.lon()
     //   - lon0 = coo.lon()
-    // When (lonB - lonA).abs() <= PI 
+    // When (lonB - lonA).abs() <= PI
     //   => lonB > lon0 != lonA > lon0  like in PNPOLY
     //   A    B    lonA <= lon0 && lon0 < lonB
     // --[++++[--
     //   B    A    lonB <= lon0 && lon0 < lonA
     //
-    // But when (lonB - lonA).abs() > PI, then the test should be 
-    //  =>   lonA >= lon0 == lonB >= lon0 
+    // But when (lonB - lonA).abs() > PI, then the test should be
+    //  =>   lonA >= lon0 == lonB >= lon0
     // <=> !(lonA >= lon0 != lonB >= lon0)
     //    A  |  B    (lon0 < lonB) || (lonA <= lon0)
     //  --[++|++[--
@@ -762,21 +753,24 @@ fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {
     //  --]++|++]--
     //    B  |  A    (lon0 <= lonA) || (lonB < lon0)
     //
-    // So the previous code was bugged in this very specific case: 
+    // So the previous code was bugged in this very specific case:
     // - `lon0` has the same value as a vertex being part of:
     // - one segment that do not cross RA=0
     //   - plus one segment crossing RA=0.
-    //   - the point have an odd number of intersections with the polygon 
+    //   - the point have an odd number of intersections with the polygon
     //     (since it will be counted 0 or 2 times instead of 1).
     let dlon = l2 - l1;
     if dlon < 0.0 {
         (dlon >= -PI) == (l2 <= l && l < l1)
     } else {
-        (dlon <=  PI) == (l1 <= l && l < l2)
+        (dlon <= PI) == (l1 <= l && l < l2)
     }
 }
 
-fn is_intersecting_meridian<MeridianT: Into<Angle<f32>>>(lon: &[Angle<f32>], meridian: MeridianT) -> bool {
+fn is_intersecting_meridian<MeridianT: Into<Angle<f32>>>(
+    lon: &[Angle<f32>],
+    meridian: MeridianT,
+) -> bool {
     let meridian: Angle<f32> = meridian.into();
     let num_lon = lon.len() as usize;
     // Loop over all the edge of the polygon

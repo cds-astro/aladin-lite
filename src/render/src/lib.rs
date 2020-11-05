@@ -290,7 +290,6 @@ impl App {
         for result in results {
             match result {
                 TaskResult::TableParsed { name, sources, colormap} => {
-                    log("CATALOG FINISHED PARSED");
                     self.manager.add_catalog::<P>(
                         name,
                         sources,
@@ -412,13 +411,15 @@ impl App {
             self.surveys.draw::<P>(&self.camera, &mut self.shaders);
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
-            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
             // Draw the catalog
             self.manager.draw::<P>(
                 &self.gl,
                 &mut self.shaders,
                 &self.camera
             );
+
+            self.grid.draw::<P>(&self.camera, &mut self.shaders).unwrap();
+
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
             // Reset the flags about the user action
@@ -669,8 +670,14 @@ impl App {
         self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
+
     pub fn hide_grid_labels(&mut self) {
         self.grid.hide_labels(&self.camera);
+        self.request_redraw = true;
+    }
+
+    pub fn show_grid_labels(&mut self) {
+        self.grid.show_labels();
         self.request_redraw = true;
     }
 
@@ -1102,6 +1109,11 @@ impl ProjectionType {
             _ => app.hide_grid_labels(),
         };
     }
+    pub fn show_grid_labels(&mut self, app: &mut App) {
+        match self {
+            _ => app.show_grid_labels(),
+        };
+    }
     pub fn disable_grid(&mut self, app: &mut App) {
         match self {
             _ => app.disable_grid(),
@@ -1401,7 +1413,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setOverlaySimpleHiPS)]
     pub fn set_overlay_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
-        crate::log(&format!("simple HiPS: {:?}", hips));
+        //crate::log(&format!("simple HiPS: {:?}", hips));
 
         self.projection.set_overlay_simple_hips(&mut self.app, hips)?;
 
@@ -1418,7 +1430,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
     pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
         let hipses: CompositeHiPS = hipses.into_serde().map_err(|e| e.to_string())?;
-        crate::log(&format!("Composite HiPS: {:?}", hipses));
+        //crate::log(&format!("Composite HiPS: {:?}", hipses));
 
         self.projection.set_overlay_composite_hips(&mut self.app, hipses)?;
 
@@ -1481,6 +1493,13 @@ impl WebClient {
     #[wasm_bindgen(js_name = hideGridLabels)]
     pub fn hide_grid_labels(&mut self) -> Result<(), JsValue> {
         self.projection.hide_grid_labels(&mut self.app);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = showGridLabels)]
+    pub fn show_grid_labels(&mut self) -> Result<(), JsValue> {
+        self.projection.show_grid_labels(&mut self.app);
 
         Ok(())
     }

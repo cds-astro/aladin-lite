@@ -172,8 +172,19 @@
 <div class="box" style="border: 1px solid;">
     <h3 class="header">Catalog</h3>
     <!-- Catalog control box -->
-    <label for="c5_cat">Search</label>
-    <input id="c5_cat"/>
+    <!-- <label for="c5_cat">Search</label>
+    <input id="c5_cat">-->
+    
+    <select id="cat_selector">
+        <option value="CDS/IX/45/csc11">IX/45/csc11</option>
+        <option value="CDS/J/A+A/503/1023/meridian">J/A+A/503/1023/meridian</option>
+        <option value="CDS/J/A+A/604/A108/apogee12">J/A+A/604/A108/apogee12</option>
+        <option value="CDS/J/MNRAS/476/2117/apogeenn">J/MNRAS/476/2117/apogeenn</option>
+        <option value="CDS/II/122B/merged">II/122B/merged</option>
+        <option value="CDS/J/A+A/615/A49/members">J/A+A/615/A49/members</option>
+        <option value="CDS/I/313/lqrf">I/313/lqrf</option>
+        <option value="" selected></option>
+    </select>
     <br />
     <label for="opacity_cat">Opacity</label>
     <input id="opacity_cat" style="vertical-align: middle; width:10vw;" step="0.02" min="0" max="1.0" type="range" value="1.0" />
@@ -203,6 +214,10 @@
     <br />
     <input id="showGrid" type="checkbox">
     <label for="showGrid">Show grid</label>
+    <br />
+    <input id="hideLabels" type="checkbox">
+    <label for="hideLabels">Hide labels</label>
+    <br />
 </div>
 
 </div>
@@ -238,7 +253,7 @@ $( document ).ready(function() {
                 hips.hips_service_url = hips.hips_service_url.replace('alasky.', 'alaskybis.');
             }
             if (hips['hips_pixel_cut'] === undefined) {
-                console.log('no pixel cut for: ', hips.ID);
+                //console.log('no pixel cut for: ', hips.ID);
                 continue;
             }
             var pixel_cuts = hips['hips_pixel_cut'].split(' ')
@@ -251,7 +266,7 @@ $( document ).ready(function() {
 		//console.log(hipsesDict);
         init();
     });
-    $.ajax({
+    /*$.ajax({
         url: 'https://alasky.u-strasbg.fr/MocServer/query?expr=dataproduct_type%3Dcatalog%26%26nb_rows%3C%3D5000000%26%26nb_rows%3E%3D50000&get=record&fmt=json',
     }).done(function(catalogs) {
         for (var k = 0; k < catalogs.length; k++) {
@@ -265,9 +280,9 @@ $( document ).ready(function() {
 
 		console.log("CATALOGS", catalogs);
         init_catalog();
-    });
+    });*/
 });
-
+/*
 var init_catalog = function() {
     new autoComplete({
         selector: '#c5_cat',
@@ -291,27 +306,28 @@ var init_catalog = function() {
         },
         onSelect: async function(e, term, item) {
             let cat_id = term;
-            let colormap = $('#colormap_cat').val()
-            addLoadingInfo(cat_id);
-            await loadCatalog(cat_id, colormap);
+            await loadCatalog(cat_id);
         }
     });
 };
+*/
 
 function addLoadingInfo(catalogName) {
     document.getElementById("loading").innerHTML = catalogName + " is loading...";
 }
 
-async function loadCatalog(catalog_id, colormap) {
+async function loadCatalog(cat_id) {
+    let colormap = $('#colormap_cat').val()
+    addLoadingInfo(cat_id);
     /*let parallax_column_name = await getTableColumnName(catalog_id, "pos.parallax");
     console.log('parallax column name: ', parallax_column_name);
     let phot_mag_column_name = await getTableColumnName(catalog_id, "phot.mag");
     console.log('phot mag column name: ', phot_mag_column_name);*/
 
-    let pos_ra_column_name = await getTableColumnName(catalog_id, "pos.eq.ra");
-    let pos_dec_column_name = await getTableColumnName(catalog_id, "pos.eq.dec");
+    let pos_ra_column_name = await getTableColumnName(cat_id, "pos.eq.ra");
+    let pos_dec_column_name = await getTableColumnName(cat_id, "pos.eq.dec");
 
-    let table_obs_id = catalog_id.substring(4);
+    let table_obs_id = cat_id.substring(4);
     retrieveCatalog(table_obs_id, [pos_ra_column_name, pos_dec_column_name/*, phot_mag_column_name, parallax_column_name*/])
         .then(sources => {
             aladin.webglAPI.addCatalog("cat1", sources, colormap);
@@ -331,7 +347,7 @@ function getTableColumnName(table_name, ucd) {
         .then(response => response.json())
         .then(table => {
             // Return the column name of the first row corresponding to ucd
-            console.log(table_name, ucd, ": here are the data", table.data);
+            //console.log(table_name, ucd, ": here are the data", table.data);
             return table.data[0][1];
         });
 }
@@ -339,14 +355,14 @@ function getTableColumnName(table_name, ucd) {
 function retrieveCatalog(table_obs_id, colnames, max_rows="*") {
     let cols = [];
     colnames.forEach(col => {
-        console.log(col);
+        //console.log(col);
         cols.push('"' + table_obs_id + '"."' + encodeURIComponent(col) + '"');
     });
 
     let cols_query = cols.join(", ");
 
     let sql_query = 'SELECT ' + cols_query + ' FROM "' + table_obs_id + '"';
-    console.log(sql_query);
+    //console.log(sql_query);
     
     let url = encodeURI('https://alasky.u-strasbg.fr/cgi/JSONProxy?url=') + encodeURIComponent('http://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?phase=RUN&lang=adql&format=json&request=doQuery&query=' + encodeURIComponent(sql_query)) ;
 
@@ -581,7 +597,6 @@ function update() {
 	        },
 	        color: color
         };
-        console.log('HIPS COMPONENT', hipsComponent)
 		hipsComponents.push(hipsComponent);
 
         useC1 = true;
@@ -712,6 +727,18 @@ document.querySelector('#showGrid').addEventListener('change', function(e) {
     else {
         aladin.webglAPI.disableGrid();
     }
+});
+document.querySelector('#hideLabels').addEventListener('change', function(e) {
+    if (this.checked) {
+        aladin.webglAPI.hideGridLabels();
+    }
+    else {
+        aladin.webglAPI.showGridLabels();
+    }
+});
+document.querySelector('#cat_selector').addEventListener('change', async function(e) {
+    let cat_id = document.getElementById("cat_selector").value;
+    await loadCatalog(cat_id);
 });
 document.querySelector('#colormap_cat').addEventListener('change', function(e) {
     let value = document.getElementById("colormap_cat").value;

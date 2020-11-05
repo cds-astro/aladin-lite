@@ -96,7 +96,6 @@ use web_sys::console;
 impl Drop for VertexArrayObject {
     fn drop(&mut self) {
         //self.unbind();
-        console::log_1(&"delete VAO".to_string().into());
         self.gl.delete_vertex_array(Some(self.vao.as_ref()));
     }
 }

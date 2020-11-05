@@ -354,7 +354,7 @@ pub trait GetShader {
     fn get_raster_shader_gray2color_integer<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
 
     fn get_raytracer_shader_color<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
-        crate::log("raytracer shader color");
+        //crate::log("raytracer shader color");
         shaders.get(
             gl,
             &ShaderId(

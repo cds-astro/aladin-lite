@@ -313,7 +313,7 @@ impl TextManager {
             )
         ).unwrap();
 
-        crate::log(&format!("num letters {:?}", self.num_letters));
+        //crate::log(&format!("num letters {:?}", self.num_letters));
         //let font_textures = self.font_textures.bind();
 
         shader.bind(gl)

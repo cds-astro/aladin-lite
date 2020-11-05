@@ -565,10 +565,9 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.setProjection = function (projectionName) {
-        console.log('setProj', projectionName);
+        //console.log('setProj', projectionName);
         this.webglAPI.setProjection(projectionName);
         this.view.fov_limit = this.webglAPI.getMaxFieldOfView() * 180 / Math.PI;
-        console.log("FOV LIMITE", this.view.fov_limit);
         /*
         if (!projectionName) {
             return;

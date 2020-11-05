@@ -148,7 +148,9 @@ impl ProjetedGrid {
             size_screen.x as f64, size_screen.y as f64
         );
     }
-
+    pub fn show_labels(&mut self) {
+        self.hide_labels = false;
+    }
     fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
         let lines = lines::<P>(camera, &self.ctx2d);
 

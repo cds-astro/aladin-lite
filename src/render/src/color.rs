@@ -17,19 +17,6 @@ impl Color {
     }
 }
 
-/*impl From<Color> for String {
-    fn from(color: Color) -> Self {
-        let mut text_color = String::from("rgb(");
-        text_color += &((color.red * 255_f32) as u8).to_string();
-        text_color += &", ";
-        text_color += &((color.green * 255_f32) as u8).to_string();
-        text_color += &", ";
-        text_color += &((color.blue * 255_f32) as u8).to_string();
-        text_color += &")";
-        text_color
-    }
-}*/
-
 fn to_hex_char(color: f32) -> String {
     let r = (color * 255_f32) as u8;
 
@@ -47,11 +34,8 @@ impl From<&Color> for String {
         let red = to_hex_char(color.red);
         let green = to_hex_char(color.green);
         let blue = to_hex_char(color.blue);
-        crate::log(&format!("{}", color.red));
-        crate::log(&format!("{}", color.green));
-        crate::log(&format!("{}", color.blue));
+
         let color = format!("#{}{}{}", red, green, blue);
-        crate::log(&color);
         color
     }
 }

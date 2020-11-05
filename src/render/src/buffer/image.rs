@@ -47,7 +47,7 @@ where T: ArrayBuffer {
     }
 
     // Compute the 1- and 99- percentile of the tile pixel values
-    pub(super) fn get_cutoff_values(&self) -> (T::Item, T::Item) {
+    /*pub(super) fn get_cutoff_values(&self) -> (T::Item, T::Item) {
         let mut sorted_values: Vec<T::Item> = self.buf.to_vec();
         sorted_values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
 
@@ -58,7 +58,7 @@ where T: ArrayBuffer {
         let (v1, v2) = (sorted_values[idx1], sorted_values[idx2]);
         //crate::log(&format!("cutoff: {:?} {:?}", v1, v2));
         (v1, v2)
-    }
+    }*/
 }
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> {
@@ -347,8 +347,6 @@ impl Image for Rc<TileArrayBufferImage> {
 */
 use crate::{
     healpix_cell::HEALPixCell,
-    HiPSConfig,
-    utils,
     time::Time
 };
 use std::cell::Cell;
@@ -400,7 +398,7 @@ pub enum RequestType {
 use crate::image_fmt::FormatImageType;
 pub trait ImageRequest {
     fn new() -> Self;
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str);
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue>;
     fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType>;
 
     const REQUEST_TYPE: RequestType;
@@ -411,7 +409,7 @@ enum ImageRequestType {
     CompressedImageRequest(CompressedImageRequest),
 }
 impl ImageRequestType {
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
         match self {
             ImageRequestType::FITSImageRequest(r) => r.send(success, fail, url),
             ImageRequestType::CompressedImageRequest(r) => r.send(success, fail, url),
@@ -481,7 +479,7 @@ impl TileRequest {
         }
     }*/
 
-    pub fn send(&mut self, tile: Tile) {
+    pub fn send(&mut self, tile: Tile) -> Result<(), JsValue> {
         assert!(self.is_ready());
 
         self.tile = Some(tile.clone());
@@ -526,10 +524,12 @@ impl TileRequest {
             Some(success.as_ref().unchecked_ref()),
             Some(fail.as_ref().unchecked_ref()),
             &url
-        );
+        )?;
 
         self.closures = [success, fail];
         self.time_request = Time::now();
+
+        Ok(())
     }
 
     pub fn get_tile(&self) -> &Tile {
@@ -554,7 +554,7 @@ impl TileRequest {
     }
 
     pub fn clear(&mut self) {
-        self.req.send(None, None, "");
+        self.req.send(None, None, "").unwrap();
         self.ready = true;
         self.resolved.set(ResolvedStatus::NotResolved);
         self.closures = [
@@ -589,13 +589,15 @@ impl ImageRequest for CompressedImageRequest {
         Self { image }
     }
 
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
         self.image.set_src(&url);
         self.image.set_onload(success);
         self.image.set_onerror(fail);
+
+        Ok(())
     }
 
-    fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
+    fn image(&self, _tile_width: i32, _format: &FormatImageType) -> Option<RetrievedImageType> {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
@@ -616,6 +618,7 @@ pub struct FITSImageRequest {
 use web_sys::XmlHttpRequestResponseType;
 use fitsreader::{Fits, DataType};
 use fitsreader::{FITSHeaderKeyword, FITSKeywordValue};
+use wasm_bindgen::JsValue;
 impl ImageRequest for FITSImageRequest {
     const REQUEST_TYPE: RequestType = RequestType::File;
 
@@ -626,12 +629,14 @@ impl ImageRequest for FITSImageRequest {
         Self { image }
     }
 
-    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) {
-        self.image.open_with_async("GET", url, true);
+    fn send(&self, success: Option<&Function>, fail: Option<&Function>, url: &str) -> Result<(), JsValue> {
+        self.image.open_with_async("GET", url, true)?;
         self.image.set_onload(success);
         self.image.set_onerror(fail);
 
         self.image.send().unwrap();
+
+        Ok(())
     }
 
     fn image(&self, tile_width: i32, format: &FormatImageType) -> Option<RetrievedImageType> {
@@ -721,7 +726,7 @@ impl Image for TileHTMLImage {
         // An offset to write the image in the texture array
         offset: &Vector3<i32>
     ) {
-        let size = self.get_size();
+        let _size = self.get_size();
         let texture = textures.bind_texture_slice(offset.z);
 
         texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(

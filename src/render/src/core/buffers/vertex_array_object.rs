@@ -92,7 +92,7 @@ impl VertexArrayObject {
     }
 }
 
-use web_sys::console;
+
 impl Drop for VertexArrayObject {
     fn drop(&mut self) {
         //self.unbind();

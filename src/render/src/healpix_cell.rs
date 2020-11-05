@@ -278,7 +278,7 @@ fn compute_ratio_diag(cell: &HEALPixCell) -> Angle<f32> {
     ratio
 }
 
-use web_sys::console;
+
 impl SphereSubdivided {
     pub fn new() -> SphereSubdivided {
         let mut hpx_sub = Box::new([0; 12288]);
@@ -292,7 +292,7 @@ impl SphereSubdivided {
 
     // Get the number of subdivision necessary for the given cell
     pub fn get_num_subdivide<P: Projection>(&self, cell: &HEALPixCell) -> u8 {
-        let HEALPixCell(depth, idx) = *cell;
+        let HEALPixCell(depth, _idx) = *cell;
         let num_sub = if depth < 5 {
             // Get the 3 depth cells contained in it and add
             // each of them individually to the buffer

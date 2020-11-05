@@ -28,12 +28,12 @@ impl<'a> TexturesToDraw<'a> {
 impl<'a> core::ops::Deref for TexturesToDraw<'a> {
     type Target = HashMap<HEALPixCell, TextureToDraw<'a>>;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
 impl<'a> core::ops::DerefMut for TexturesToDraw<'a> {
-    fn deref_mut (self: &'_  mut Self) -> &'_ mut Self::Target {
+    fn deref_mut (&'_ mut self) -> &'_ mut Self::Target {
         &mut self.0
     }
 }
@@ -64,7 +64,7 @@ impl RecomputeRasterizer for Move  {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(_camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
         //crate::log(&format!("cells to draw: {:?}", cells_to_draw));
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
@@ -100,7 +100,7 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
+    fn get_textures_from_survey<'a>(_camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
@@ -137,7 +137,7 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(camera: &CameraViewPort, view: &HEALPixCellsInView, survey: &'a ImageSurveyTextures) -> TexturesToDraw<'a> {
-        let mut depth = view.get_depth();
+        let depth = view.get_depth();
         let max_depth = survey.config().get_max_depth();
 
         // We do not draw the parent cells if the depth has not decreased by at least one
@@ -199,7 +199,7 @@ use crate::renderable::projection::Projection;
 
 use crate::buffer::ImageSurveyTextures;
 use crate::renderable::RayTracer;
-use crate::renderable::Rasterizer;
+
 use crate::shaders::Colormap;
 
 trait Draw {
@@ -317,115 +317,15 @@ pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
 const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 12;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
-/*#[derive(Clone, Copy)]
-enum ImageSurveyType {
-    Simple,
-    Component
-}*/
-
-#[repr(C)]
-struct Position {
-    lon: Angle<f32>,
-    lat: Angle<f32>,
-
-    pos: Vector3<f32>,
-}
-
-impl Position {
-    fn new(lonlat: &LonLatT<f32>) -> Position {
-        let pos = lonlat.vector();
-        let lon = lonlat.lon();
-        let lat = lonlat.lat();
-        Position {
-            lon,
-            lat,
-
-            pos,
-        }
-    }
-
-    fn add_to_positions(&self, positions: &mut Vec<f32>) {
-        positions.push(self.lon.0);
-        positions.push(self.lat.0);
-
-        positions.push(self.pos.x);
-        positions.push(self.pos.y);
-        positions.push(self.pos.z);
-    }
-}
-
 use cgmath::Vector3;
-#[repr(C)]
-struct Vertex {
-    lon: Angle<f32>,
-    lat: Angle<f32>,
-
-    pos: Vector3<f32>,
-
-    uv_0: Vector3<f32>,
-    uv_1: Vector3<f32>,
-
-    time_received: f32,
-}
-
-use math::LonLatT;
-impl Vertex {
-    #[inline]
-    fn _size_of_float() -> usize {
-        std::mem::size_of::<Self>() / std::mem::size_of::<f32>()
-    }
-
-    fn new(
-        lonlat: &LonLatT<f32>,
-        uv_0: Vector3<f32>,
-        uv_1: Vector3<f32>,
-        time_received: f32
-    ) -> Vertex {
-        let pos = lonlat.vector();
-        let lon = lonlat.lon();
-        let lat = lonlat.lat();
-        Vertex {
-            lon,
-            lat,
-
-            pos,
-
-            uv_0,
-            uv_1,
-
-            time_received,
-        }
-    }
-
-    fn add_to_vertices(&self, vertices: &mut Vec<f32>) {
-        //assert!(off + 12 <= 30000);
-        vertices.push(self.lon.0);
-        vertices.push(self.lat.0);
-
-        vertices.push(self.pos.x);
-        vertices.push(self.pos.y);
-        vertices.push(self.pos.z);
-
-        vertices.push(self.uv_0.x);
-        vertices.push(self.uv_0.y);
-        vertices.push(self.uv_0.z);
-
-        vertices.push(self.uv_1.x);
-        vertices.push(self.uv_1.y);
-        vertices.push(self.uv_1.z);
-
-        vertices.push(self.time_received);
-    }
-}
 // One tile contains 2 triangles of 3 vertices each
 //#[repr(C)]
 //struct TileVertices([Vertex; 6]);
 
-use crate::math;
 use std::mem;
 
 use crate::renderable::uv::{TileUVW, TileCorner};
-use crate::time::Time;
+
 
 pub type LonLatVec = Vec<f32>;
 pub type PositionVec = Vec<f32>;
@@ -547,12 +447,12 @@ pub struct ImageSurvey {
 }
 use crate::utils;
 use crate::camera::UserAction;
-use super::view_on_surveys::HEALPixCells;
+
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     fn new(gl: &WebGl2Context,
         camera: &CameraViewPort,
-        surveys: &ImageSurveys,
+        _surveys: &ImageSurveys,
         config: HiPSConfig,
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
@@ -956,8 +856,8 @@ impl HiPS for SimpleHiPS {
                             k,
                             param: GrayscaleParameter {
                                 h: transfer.into(),
-                                min_value: properties.minCutout.unwrap_or(0.0),
-                                max_value: properties.maxCutout.unwrap_or(1.0),
+                                min_value: properties.min_cutout.unwrap_or(0.0),
+                                max_value: properties.max_cutout.unwrap_or(1.0),
                             }
                         }
                     },
@@ -966,8 +866,8 @@ impl HiPS for SimpleHiPS {
                             colormap: colormap.into(),
                             param: GrayscaleParameter {
                                 h: transfer.into(),
-                                min_value: properties.minCutout.unwrap_or(0.0),
-                                max_value: properties.maxCutout.unwrap_or(1.0),
+                                min_value: properties.min_cutout.unwrap_or(0.0),
+                                max_value: properties.max_cutout.unwrap_or(1.0),
                             }
                         }
                     }
@@ -993,7 +893,7 @@ impl ImageSurveyIdx {
     fn contains(&self, name: &str) -> bool {
         match self {
             ImageSurveyIdx::Composite { names: cur_names, .. } => {
-                cur_names.iter().position(|cur_name| cur_name == name).is_some()
+                cur_names.iter().any(|cur_name| cur_name == name)
             },
             ImageSurveyIdx::Simple { name: cur_name, .. } => {
                 //crate::log(&format!("{} {} res {}", name, cur_name, cur_name == name));
@@ -1019,8 +919,8 @@ pub struct ImageSurveys {
 use crate::buffer::Tiles;
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 use crate::buffer::{TileResolved, ResolvedTiles, RetrievedImageType};
-use cgmath::Vector2;
-use crate::buffer::FITSMetaData;
+
+
 const APERTURE_LIMIT: f32 = 110.0;
 use crate::Resources;
 impl ImageSurveys {
@@ -1053,7 +953,7 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
     }
 
-    pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager, rs: &Resources) {
+    pub fn set_longitude_reversed<P: Projection>(&mut self, _reversed: bool, camera: &CameraViewPort, shaders: &mut ShaderManager, rs: &Resources) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
     }
@@ -1065,28 +965,26 @@ impl ImageSurveys {
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
-        let limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
+        let _limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
             self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);
+        } else if camera.is_reversed_longitude() {
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
-            if camera.is_reversed_longitude() {
-                self.gl.cull_face(WebGl2RenderingContext::BACK);
-            } else {
-                self.gl.cull_face(WebGl2RenderingContext::FRONT);
-            }
+            self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
         let primary_layer = &self.layers[0];
         match &primary_layer {
             ImageSurveyIdx::Simple { name, color } => {
-                let mut survey = self.surveys.get_mut(name).unwrap();
+                let survey = self.surveys.get_mut(name).unwrap();
                 survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
             },
             ImageSurveyIdx::Composite { names, colors } => {
                 // Add the first hips on top of the background
-                let mut survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
+                let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
                 survey.draw::<P>(&self.raytracer, shaders, camera, colors.first().unwrap(), 1.0);
                 
                 // Enable the blending for the following HiPSes
@@ -1094,7 +992,7 @@ impl ImageSurveys {
                 self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
                 for (name, color) in names.iter().skip(1).zip(colors.iter().skip(1)) {
-                    let mut survey = self.surveys.get_mut(name).unwrap();
+                    let survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
                 }
             },
@@ -1108,13 +1006,13 @@ impl ImageSurveys {
             let overlay_layer = &self.layers[1];
             match &overlay_layer {
                 ImageSurveyIdx::Simple { name, color } => {
-                    let mut survey = self.surveys.get_mut(name).unwrap();
+                    let survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
                 },
                 ImageSurveyIdx::Composite { names, colors } => {
                     // All the hipses are plotted blended with the primary one
                     for (name, color) in names.iter().zip(colors.iter()) {
-                        let mut survey = self.surveys.get_mut(name).unwrap();
+                        let survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
                     }
                 },
@@ -1346,10 +1244,6 @@ impl ImageSurveys {
         self.surveys.get(root_url)
     }
 
-    fn len(&self) -> usize {
-        self.surveys.len()
-    }
-
     pub fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
         self.surveys.iter()
     }
@@ -1363,7 +1257,6 @@ use crate::{
     renderable::{Angle, ArcDeg},
     buffer::HiPSConfig,
     shader::ShaderManager,
-    time::DeltaTime,
     async_task::TaskExecutor,
 };
 

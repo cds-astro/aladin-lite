@@ -729,7 +729,6 @@ fn recursive_triangulation<P: Projection>(
                     );
                 }
             },
-            _ => ()
         }
     }
 }

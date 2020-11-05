@@ -19,29 +19,30 @@ use super::fov_vertices::{
     FieldOfViewVertices,
     ModelCoord
 };
-use cgmath::{Vector2, Vector3, Matrix4};
+use cgmath::{Vector2, Matrix4};
 
-const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
-    -0.8676661489811610,
-    -0.0548755604024359,
-    0.4941094279435681,
+/*const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
+    -0.867_666_1,
+    -0.054_875_56,
+    0.494_109_42,
     0.0,
 
-    -0.1980763734646737,
-    -0.873437090247923,
-    -0.4448296299195045,
+    -0.198_076_37,
+    -0.873_437_1,
+    -0.444_829_64,
     0.0,
 
-    0.4559837762325372,
-    -0.4838350155267381,
-    0.7469822444763707,
+    0.455_983_8,
+    -0.483_835,
+    0.746_982_2,
     0.0,
 
     0.0,
     0.0,
     0.0,
     1.0
-);
+);*/
+
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
@@ -89,8 +90,8 @@ use crate::{
     rotation::Rotation,
     sphere_geometry::FieldOfViewType,
 };
-use std::collections::{HashSet, HashMap};
-use cgmath::{Matrix3, Vector4, SquareMatrix};
+
+use cgmath::{Vector4, SquareMatrix};
 use wasm_bindgen::JsCast;
 fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     let canvas = gl.canvas().unwrap()
@@ -104,7 +105,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 }
 
 use crate::math;
-use crate::renderable::angle::ArcDeg;
+
 use crate::sphere_geometry::BoundingBox;
 
 impl CameraViewPort {
@@ -147,7 +148,7 @@ impl CameraViewPort {
 
         let is_allsky = true;
 
-        let mut camera = CameraViewPort {
+        let camera = CameraViewPort {
             // The field of view angle
             aperture,
             center,
@@ -395,7 +396,7 @@ impl CameraViewPort {
         ).unwrap();
     }
 }
-use cgmath::InnerSpace;
+
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 

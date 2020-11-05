@@ -9,9 +9,9 @@ pub struct SourceIndices {
 }
 
 use super::source::Source;
-use rand::rngs::StdRng;
-use rand::Rng;
-use rand::SeedableRng;
+
+
+
 
 impl SourceIndices {
     pub fn new(sources: &mut [Source]) -> Self {
@@ -92,7 +92,7 @@ impl SourceIndices {
 
         SourceIndices {
             density: density.into_boxed_slice(),
-            max_density: max_density
+            max_density
         }
     }
 

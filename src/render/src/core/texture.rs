@@ -6,8 +6,8 @@ use web_sys::WebGl2RenderingContext;
 use web_sys::HtmlImageElement;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::ImageData;
-use web_sys::console;
+
+
 
 use crate::WebGl2Context;
 
@@ -80,7 +80,7 @@ impl Texture2D {
         let texture = gl.create_texture();
         let onerror = {
             Closure::wrap(Box::new(move || {
-                unsafe { crate::log(&format!("Cannot load texture located at: {:?}", name)); }
+                crate::log(&format!("Cannot load texture located at: {:?}", name));
             }) as Box<dyn Fn()>)
         };
         let internal_format = format.get_internal_format();

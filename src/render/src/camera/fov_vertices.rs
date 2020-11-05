@@ -1,9 +1,9 @@
-use cgmath::{Vector2, Vector3, Vector4};
+use cgmath::{Vector2, Vector4};
 use cgmath::Matrix4;
-use cgmath::SquareMatrix;
 
 
-use std::collections::HashSet;
+
+
 use crate::sphere_geometry::FieldOfViewType;
 
 pub type NormalizedDeviceCoord = Vector2<f32>;
@@ -18,7 +18,7 @@ fn ndc_to_world<P: Projection>(
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
-    let mut out_of_fov = false;
+    let _out_of_fov = false;
 
     for n in ndc_coo {
         let c = Vector2::new(
@@ -46,7 +46,7 @@ fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f32>) -> Vec<ModelCoor
 
     model_coo
 }
-use crate::renderable::angle::Angle;
+
 const NUM_VERTICES_WIDTH: usize = 10;
 const NUM_VERTICES_HEIGHT: usize = 10;
 const NUM_VERTICES: usize = 4 + 2*NUM_VERTICES_WIDTH + 2*NUM_VERTICES_HEIGHT;
@@ -61,10 +61,10 @@ pub struct FieldOfViewVertices {
     great_circles: FieldOfViewType,
 }
 
-use super::viewport::CameraViewPort;
-use crate::Rotation;
+
+
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
+    pub fn new<P: Projection>(_center: &Vector4<f32>, ndc_to_clip: &Vector2<f32>, clip_zoom_factor: f32, mat: &Matrix4<f32>, longitude_reversed: bool) -> Self {
         let mut x_ndc = itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2)
             .collect::<Vec<_>>();
 
@@ -101,7 +101,7 @@ impl FieldOfViewVertices {
             FieldOfViewType::new_allsky()
         };
 
-        let mut fov = FieldOfViewVertices {
+        let fov = FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
@@ -135,10 +135,8 @@ impl FieldOfViewVertices {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(vertices);
-            } else {
-                if let FieldOfViewType::Polygon(_) = &self.great_circles {
-                    self.great_circles = FieldOfViewType::new_allsky();
-                }
+            } else if let FieldOfViewType::Polygon(_) = &self.great_circles {
+                self.great_circles = FieldOfViewType::new_allsky();
             }
         } else {
             // We are too unzoomed => we plot the allsky grid
@@ -162,14 +160,14 @@ impl FieldOfViewVertices {
 }
 use crate::sphere_geometry::BoundingBox;
 use std::iter;
-use crate::math;
 
-use crate::healpix_cell::HEALPixCell;
 
-use wasm_bindgen::JsCast;
+
+
+
 use crate::renderable::projection::Projection;
-use crate::WebGl2Context;
 
-use std::collections::HashMap;
-use crate::healpix_cell;
-use crate::cdshealpix;
+
+
+
+

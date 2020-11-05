@@ -103,7 +103,6 @@ use nom::bytes::complete::tag;
 use nom::sequence::preceded;
 use error::Error;
 use primary_header::BitpixValue;
-use card_value::white_space0;
 impl<'a> Fits<'a> {
     pub fn from_bytes_slice(buf: &'a [u8]) -> Result<Fits<'a>, Error<'a>> {
         let num_total_bytes = buf.len();

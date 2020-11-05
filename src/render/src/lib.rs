@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate itertools_num;
 extern crate serde_derive;
 extern crate serde_json;
@@ -17,15 +16,10 @@ use wasm_bindgen::{prelude::*, JsCast};
 mod shader;
 mod shaders;
 pub mod renderable;
-mod finite_state_machine;
 pub mod camera;
 mod core;
 mod math;
-#[path = "../img/myfont.rs"]
-mod myfont;
 mod transfert_function;
-//mod mouse_inertia;
-mod event_manager;
 mod color;
 mod healpix_cell;
 mod buffer;
@@ -40,7 +34,7 @@ pub use image_fmt::FormatImageType;
 use crate::{
     shader::{Shader, ShaderManager},
     renderable::{
-        TextManager, Angle, ArcDeg,
+        Angle, ArcDeg,
         grid::ProjetedGrid,
         catalog::{Source, Manager},
         projection::{Aitoff, Orthographic, Mollweide, Gnomonic, AzimuthalEquidistant, Mercator, Projection},
@@ -48,7 +42,6 @@ use crate::{
     camera::CameraViewPort,
     math::{LonLatT, LonLat},
     async_task::{TaskResult, TaskType},
-    buffer::HiPSConfig,
 };
 
 use std::{
@@ -128,7 +121,7 @@ struct ZoomAnimation {
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
 use crate::renderable::angle::ArcSec;
-use crate::renderable::image_survey::ImageSurvey;
+
 use crate::buffer::Tile;
 use cgmath::InnerSpace;
 use crate::renderable::image_survey::HiPS;
@@ -149,14 +142,14 @@ impl App {
             properties: HiPSProperties {
                 url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
 
-                maxOrder: 10,
+                max_order: 10,
                 frame: Frame { label: String::from("J2000"), system: String::from("J2000") },
-                tileSize: 512,
+                tile_size: 512,
                 format: HiPSFormat::Image {
                     format: String::from("jpeg")
                 },
-                minCutout: None,
-                maxCutout: None,
+                min_cutout: None,
+                max_cutout: None,
             },
             color: HiPSColor::Color
         };
@@ -176,18 +169,15 @@ impl App {
         // Catalog definition
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources);
 
-        // Text 
-        let font = myfont::FONT_CONFIG;
-
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders);
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders)?;
 
         // Variable storing the location to move to
         let move_animation = None;
         let zoom_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
-        let start_render_time = Time::now();
+        let _start_render_time = Time::now();
         let rendering = true;
         let app = App {
             gl,
@@ -353,7 +343,7 @@ impl App {
             // where: 
             // * k is the stiffness of the ressort
             // * m is its mass
-            let alpha = (1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp());
+            let alpha = 1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov*(1_f32 - alpha) + goal_fov*alpha;
     
@@ -380,7 +370,7 @@ impl App {
             let resolved_tiles = self.downloader.get_resolved_tiles(&available_tiles, &self.surveys);
             self.surveys.add_resolved_tiles(resolved_tiles);
             // 3. Try sending new tile requests after 
-            self.downloader.try_sending_tile_requests();
+            self.downloader.try_sending_tile_requests()?;
         }
 
         // The rendering is done following these different situations:
@@ -577,7 +567,7 @@ impl App {
             }
 
             let mut stream_sort = async_task::BuildCatalogIndex::new(results);
-            while let Some(_) = stream_sort.next().await {}
+            while stream_sort.next().await.is_some() {}
 
             // The stream is finished, we get the sorted sources
             let results = stream_sort.sources;
@@ -596,7 +586,7 @@ impl App {
     }
 
     fn set_catalog_colormap(&mut self, name: String, colormap: Colormap) -> Result<(), JsValue> {
-        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+        let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
         })?;
@@ -608,7 +598,7 @@ impl App {
     }
 
     fn set_heatmap_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
-        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+        let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
         })?;
@@ -620,7 +610,7 @@ impl App {
     }
 
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
-        let mut catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
+        let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
         })?;
@@ -712,7 +702,7 @@ impl App {
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
         // Get the XYZ cartesian position from the lonlat
-        let cursor_pos = self.camera.get_center();
+        let _cursor_pos = self.camera.get_center();
         let goal_pos: Vector4<f32> = lonlat.vector();
 
         // Convert these positions to rotations
@@ -879,9 +869,7 @@ impl ProjectionType {
     }
 
     fn set_catalog_colormap(&self, app: &mut App, name: String, colormap: Colormap) -> Result<(), JsValue> {
-        match self {
-            _ => app.set_catalog_colormap(name, colormap),
-        }
+        app.set_catalog_colormap(name, colormap)
     }
 
     fn world_to_screen(&self, app: &App, lonlat: &LonLatT<f32>) -> Result<Option<Vector2<f32>>, String> {
@@ -954,9 +942,7 @@ impl ProjectionType {
     }
 
     pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue, colormap: String) {
-        match self {
-            _ => app.add_catalog(name, table, colormap),
-        };
+        app.add_catalog(name, table, colormap);
     }
 
     pub fn set_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
@@ -993,9 +979,7 @@ impl ProjectionType {
     }
 
     pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
-        match self {
-            _ => app.remove_overlay(),
-        }
+        app.remove_overlay();
 
         Ok(())
     }
@@ -1011,9 +995,7 @@ impl ProjectionType {
         }
     }
     pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
-        match self {
-            _ => app.set_overlay_opacity(opacity),
-        }
+        app.set_overlay_opacity(opacity)
     }
 
     pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {       
@@ -1028,15 +1010,11 @@ impl ProjectionType {
     }
 
     pub fn set_kernel_strength(&mut self, app: &mut App, name: String, strength: f32) -> Result<(), JsValue> {
-        match self {
-            _ => app.set_kernel_strength(name, strength),
-        }
+        app.set_kernel_strength(name, strength)
     }
 
     pub fn set_heatmap_opacity(&mut self, app: &mut App, name: String, opacity: f32) -> Result<(), JsValue> {       
-        match self {
-            _ => app.set_heatmap_opacity(name, opacity),
-        }
+        app.set_heatmap_opacity(name, opacity)
     }
 
     pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
@@ -1105,25 +1083,17 @@ impl ProjectionType {
         };
     }
     pub fn hide_grid_labels(&mut self, app: &mut App) {
-        match self {
-            _ => app.hide_grid_labels(),
-        };
+        app.hide_grid_labels();
     }
     pub fn show_grid_labels(&mut self, app: &mut App) {
-        match self {
-            _ => app.show_grid_labels(),
-        };
+        app.show_grid_labels();
     }
     pub fn disable_grid(&mut self, app: &mut App) {
-        match self {
-            _ => app.disable_grid(),
-        };
+        app.disable_grid();
     }
 
     pub fn set_grid_color(&mut self, app: &mut App, color: Color) {
-        match self {
-            _ => app.set_grid_color(color),
-        };
+        app.set_grid_color(color);
     }
     /*pub fn set_cutouts(&mut self, app: &mut App, min_cutout: f32, max_cutout: f32) -> Result<(), String> {
         match self {
@@ -1156,24 +1126,14 @@ impl ProjectionType {
     }*/
 
     pub fn set_grid_opacity(&mut self, app: &mut App, alpha: f32) {
-        match self {
-            _ => app.set_grid_opacity(alpha),
-        };
+        app.set_grid_opacity(alpha);
     }
 }
 
-use crate::event_manager::{
- EventManager,
- MoveToLocation,
- SetCenterLocation,
- StartInertia,
- SetFieldOfView,
- ZoomToLocation
-};
+
 use crate::time::DeltaTime;
 #[wasm_bindgen]
 pub struct WebClient {
-    gl: WebGl2Context,
     // The app
     app: App,
     projection: ProjectionType,
@@ -1194,12 +1154,6 @@ extern "C" {
     fn removeLoadingInfo();
 }
 
-/*#[wasm_bindgen(module = "./js/View.js")]
-extern "C" {
-    #[wasm_bindgen(method, js_class = "View", js_name = drawGridLabels)]
-    fn draw_grid_labels(text: &String);
-}*/
-
 use serde::Deserialize; 
 #[derive(Debug, Deserialize)]
 pub struct FileSrc {
@@ -1208,7 +1162,7 @@ pub struct FileSrc {
 }
 use crate::transfert_function::TransferFunction;
 use std::collections::HashMap;
-use crate::healpix_cell::HEALPixCell;
+
 
 #[derive(Deserialize)]
 #[derive(Debug)]
@@ -1216,17 +1170,18 @@ pub struct Frame {
     pub label: String,
     pub system: String,
 }
-use js_sys::JsString;
+
 #[derive(Deserialize)]
 #[derive(Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct HiPSProperties {
     pub url: String,
 
-    pub maxOrder: u8,
+    pub max_order: u8,
     pub frame: Frame,
-    pub tileSize: i32,
-    pub minCutout: Option<f32>,
-    pub maxCutout: Option<f32>,
+    pub tile_size: i32,
+    pub min_cutout: Option<f32>,
+    pub max_cutout: Option<f32>,
     pub format: HiPSFormat,
 }
 
@@ -1298,7 +1253,6 @@ impl WebClient {
         let projection = ProjectionType::Ortho;
 
         let webclient = WebClient {
-            gl,
             app,
             projection,
 
@@ -1326,7 +1280,7 @@ impl WebClient {
     
     /// Update our WebGL Water application. `index.html` will call this function in order
     /// to begin rendering.
-    pub fn render(&mut self, min_value: f32, max_value: f32) -> Result<(), JsValue> {
+    pub fn render(&mut self, _min_value: f32, _max_value: f32) -> Result<(), JsValue> {
         self.projection.render(&mut self.app)?;
 
         Ok(())
@@ -1422,7 +1376,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = removeOverlayHiPS)]
     pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
-        self.projection.remove_overlay_hips(&mut self.app);
+        self.projection.remove_overlay_hips(&mut self.app)?;
 
         Ok(())
     }

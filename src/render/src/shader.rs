@@ -295,7 +295,7 @@ pub enum Error {
 use crate::FileSrc;
 use std::collections::hash_map::Entry;
 impl ShaderManager {
-    pub fn new(gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
+    pub fn new(_gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
         let src = files.into_iter()
             .map(|file| {
                 let FileSrc { id, content } = file;

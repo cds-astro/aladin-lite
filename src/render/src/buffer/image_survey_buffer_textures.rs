@@ -114,7 +114,6 @@ impl HEALPixCellHeap {
 
     fn pop(&mut self) -> Option<TextureCellItem> {
         self.0.pop()
-            .map(|res| res.into())
     }
 
     fn len(&self) -> usize {
@@ -153,7 +152,7 @@ use crate::{
     buffer::Image,
     async_task::{TaskExecutor, TaskType, TaskResult, SendTileToGPU}
 };
-use std::collections::HashSet;
+
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArray {
@@ -179,8 +178,8 @@ fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArr
     )
 }
 
-use std::cell::Cell;
-use crate::image_fmt::FormatImageType;
+
+
 use super::Tile;
 impl ImageSurveyTextures {
     pub fn new(gl: &WebGl2Context, config: HiPSConfig, exec: Rc<RefCell<TaskExecutor>>) -> ImageSurveyTextures {
@@ -227,7 +226,6 @@ impl ImageSurveyTextures {
 
         // Get the texture cell in which the tile has to be
         let texture_cell = tile_cell.get_texture_cell(&self.config);
-        let mut old_texture_cell = None;
         // Check whether the texture is a new texture
         if !self.textures.contains_key(&texture_cell) {
             let HEALPixCell(_, idx) = texture_cell;
@@ -249,7 +247,6 @@ impl ImageSurveyTextures {
                     if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
                         // Clear and assign it to texture_cell
                         texture.replace(&texture_cell, time_request, &self.config, &mut self.exec.borrow_mut());
-                        old_texture_cell = Some(oldest_texture.cell);
 
                         texture
                     } else {
@@ -294,20 +291,11 @@ impl ImageSurveyTextures {
             let mut exec_ref = self.exec.borrow_mut();
             let task = SendTileToGPU::new(&tile, texture, image, self.texture_2d_array.clone(), &self.config);
 
-            let tile = tile.clone();
+            let tile = tile;
             exec_ref.spawner().spawn(
                 TaskType::SendTileToGPU(tile.clone()),
                 async move {
                     task.await;
-
-                    /*if let Some(cutoff) = cutoff {
-                        // Remove the cutoff values of the image
-                        if let Some(oldest_tex_cell) = old_texture_cell {
-                            cutoff_values_tile.borrow_mut().remove(&oldest_tex_cell);
-                        }
-
-                        cutoff_values_tile.borrow_mut().insert(tile_cell, cutoff);
-                    }*/
 
                     TaskResult::TileSentToGPU { tile }
                 }
@@ -345,7 +333,7 @@ impl ImageSurveyTextures {
         let available_tiles_during_frame = self.available_tiles_during_frame;
         self.available_tiles_during_frame = false;
 
-        return available_tiles_during_frame;
+        available_tiles_during_frame
     }
 
     fn is_heap_full(&self) -> bool {
@@ -523,8 +511,6 @@ impl SendUniforms for ImageSurveyTextures {
                     num_textures += 1;
                 }
             }
-            num_textures += 1;
-            //shader.attach_uniform("num_textures", &(num_textures as i32));
             shader.attach_uniforms_from(&self.config);
         }
 

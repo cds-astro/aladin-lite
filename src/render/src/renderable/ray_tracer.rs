@@ -1,5 +1,5 @@
 use crate::{
-    core::{VertexArrayObject, VecData},
+    core::{VertexArrayObject},
     shader::{ShaderBound, ShaderManager},
     camera::CameraViewPort,
     WebGl2Context,
@@ -43,7 +43,7 @@ fn create_vertices_array<P: Projection>(_gl: &WebGl2Context, camera: &CameraView
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlVertexArrayObject;
 use web_sys::WebGlBuffer;
-use crate::core::Texture2D;
+
 pub struct RayTracer {
     gl: WebGl2Context,
 
@@ -57,13 +57,13 @@ pub struct RayTracer {
     //ang2pix: [Texture2D; 3],
 }
 
-use crate::Shader;
-use std::borrow::Cow;
-use crate::shader::ShaderId;
+
+
+
 use std::mem;
-use crate::{FormatImageType, Resources};
+use crate::{Resources};
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager, resources: &Resources) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGl2Context, camera: &CameraViewPort, _shaders: &mut ShaderManager, _resources: &Resources) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
         let vao = gl.create_vertex_array().unwrap();
@@ -195,11 +195,11 @@ impl RayTracer {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
 
-    pub fn unbind(&self) {
+    /*pub fn unbind(&self) {
         self.gl.bind_vertex_array(None);
-    }
+    }*/
 
-    pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
+    pub fn draw<'a>(&self, _shader: &ShaderBound<'a>) {
         //shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
         //self.gl.polygon_mode(WebGl2RenderingContext::FRONT_AND_BACK, WebGl2RenderingContext::LINES);
         self.gl.draw_elements_with_i32(

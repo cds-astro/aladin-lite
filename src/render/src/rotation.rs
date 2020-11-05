@@ -2,7 +2,7 @@ use cgmath::Quaternion;
 use cgmath::{BaseFloat, InnerSpace};
 use crate::math;
 use cgmath::{Vector3, Vector4};
-use cgmath::SquareMatrix;
+
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it

@@ -1,11 +1,11 @@
-use super::{TileRequest, TileHTMLImage, TileArrayBuffer, ResolvedStatus, FITSImageRequest, CompressedImageRequest};
-use crate::WebGl2Context;
+use super::{TileRequest, ResolvedStatus, FITSImageRequest, CompressedImageRequest};
+
 
 use crate::buffer::{
     HiPSConfig,
 };
 
-use crate::async_task::TaskExecutor;
+
 // A power of two maximum simultaneous tile requests
 const NUM_EVENT_LISTENERS: usize = 64;
 const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
@@ -15,11 +15,10 @@ struct Requests {
     start_fits_req_idx: usize,
 }
 
-type TileSentFlag = bool;
 impl Requests {
     fn new() -> Self {
         let mut reqs = Vec::with_capacity(NUM_EVENT_LISTENERS);
-        for i in 0..NUM_EVENT_LISTENERS {
+        for _i in 0..NUM_EVENT_LISTENERS {
             reqs.push(TileRequest::new::<CompressedImageRequest>());
         }
         let start_fits_req_idx = NUM_EVENT_LISTENERS >> 1;
@@ -81,27 +80,10 @@ impl Requests {
     fn iter_mut<'a>(&'a mut self) -> RequestsIterMut<'a> {
         RequestsIterMut(self.reqs.iter_mut())
     }
-
-    fn iter<'a>(&'a self) -> RequestsIter<'a> {
-        RequestsIter(self.reqs.iter())
-    }
-
-    fn get_start_fits_req_idx(&self) -> usize {
-        self.start_fits_req_idx
-    }
 }
 
-struct RequestsIter<'a>(std::slice::Iter<'a, TileRequest>);
 struct RequestsIterMut<'a>(std::slice::IterMut<'a, TileRequest>);
 
-impl<'a> Iterator for RequestsIter<'a> {
-    type Item = &'a TileRequest;
-
-    // next() is the only required method
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
 impl<'a> Iterator for RequestsIterMut<'a> {
     type Item = &'a mut TileRequest;
 
@@ -157,6 +139,7 @@ use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
 use crate::ImageSurveys;
+use wasm_bindgen::JsValue;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = Requests::new();
@@ -267,14 +250,16 @@ impl TileDownloader {
         resolved_tiles
     }
 
-    pub fn try_sending_tile_requests(&mut self) {
+    pub fn try_sending_tile_requests(&mut self) -> Result<(), JsValue> {
         // Try sending the fits tile requests
-        self.try_sending_fits_tiles();
+        self.try_sending_fits_tiles()?;
         // And then the HTML image tile requests
-        self.try_sending_html_tiles();
+        self.try_sending_html_tiles()?;
+
+        Ok(())
     }
 
-    fn try_sending_fits_tiles(&mut self) {
+    fn try_sending_fits_tiles(&mut self) -> Result<(), JsValue> {
         let mut is_remaining_req = !self.fits_tiles_to_req.is_empty();
 
         let mut downloader_overloaded = false;
@@ -286,16 +271,18 @@ impl TileDownloader {
                 let tile = self.fits_tiles_to_req.pop_back().unwrap();
                 
                 is_remaining_req = !self.fits_tiles_to_req.is_empty();
-                available_req.send(tile);
+                available_req.send(tile)?;
             } else {
                 // We have to wait for more requests
                 // to be available
                 downloader_overloaded = true;
             }
         }
+
+        Ok(())
     }
 
-    fn try_sending_html_tiles(&mut self) {
+    fn try_sending_html_tiles(&mut self) -> Result<(), JsValue> {
         let mut is_remaining_req = !self.html_img_tiles_to_req.is_empty();
 
         let mut downloader_overloaded = false;
@@ -307,7 +294,7 @@ impl TileDownloader {
                 let tile = self.html_img_tiles_to_req.pop_back().unwrap();
 
                 is_remaining_req = !self.html_img_tiles_to_req.is_empty();
-                available_req.send(tile);
+                available_req.send(tile)?;
             } else {
                 // We have to wait for more requests
                 // to be available
@@ -315,6 +302,8 @@ impl TileDownloader {
 
             }
         }
+
+        Ok(())
     }
 
     pub fn request_base_tiles(&mut self, config: &HiPSConfig) {

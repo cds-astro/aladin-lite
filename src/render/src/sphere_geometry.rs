@@ -5,7 +5,7 @@ const PI: f32 = std::f32::consts::PI;
 const TWICE_PI: f32 = PI * 2_f32;
 const HALF_PI: f32 = PI * 0.5_f32;
 
-use crate::renderable::angle::{Angle, ArcDeg, ArcMin, ArcSec, SerializeToString};
+use crate::renderable::angle::Angle;
 
 use cgmath::InnerSpace;
 
@@ -15,7 +15,7 @@ pub enum FieldOfViewType {
 }
 
 //use cgmath::Vector2;
-use std::collections::HashMap;
+
 use crate::CameraViewPort;
 //#[repr(C)]
 //pub struct ClipSpacePosition<S: BaseFloat>(Vector2<S>);
@@ -86,11 +86,7 @@ impl FieldOfViewType {
     }
 
     pub fn is_allsky(&self) -> bool {
-        if let FieldOfViewType::Allsky(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, FieldOfViewType::Allsky(_))
     }
 
     pub fn contains_pole(&self) -> bool {
@@ -148,36 +144,14 @@ impl<T> SendUniforms for T where T: ZoneFieldOfView {
 }
 */
 pub struct Allsky {
-    meridians: Vec<Angle<f32>>,
-    parallels: Vec<Angle<f32>>,
     bbox: BoundingBox,
 }
 
 impl Allsky {
     fn new() -> Allsky {
-        let meridians = vec![
-            ArcDeg(0_f32).into(),
-            ArcDeg(45_f32).into(),
-            ArcDeg(90_f32).into(),
-            ArcDeg(135_f32).into(),
-            ArcDeg(180_f32).into(),
-            ArcDeg(225_f32).into(),
-            ArcDeg(270_f32).into(),
-            ArcDeg(315_f32).into(),
-        ];
-        let parallels = vec![
-            ArcDeg(-60_f32).into(),
-            ArcDeg(-30_f32).into(),
-            ArcDeg(0_f32).into(),
-            ArcDeg(30_f32).into(),
-            ArcDeg(60_f32).into(),
-        ];
-
         let bbox = BoundingBox::fullsky();
 
         Allsky {
-            meridians,
-            parallels,
             bbox,
         }
     }
@@ -485,7 +459,7 @@ impl<S> Deref for EdgesSortedLon<S>
 where S: BaseFloat {
     type Target = Vec<Edge<S>>;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -523,17 +497,13 @@ impl<S> Deref for EdgesSortedLat<S>
 where S: BaseFloat {
     type Target = Vec<Edge<S>>;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
 
 pub struct Polygon {
     bbox: BoundingBox,
-    // Coordinates longitudes
-    lon: Vec<Angle<f32>>,
-    // Coordinates latitudes
-    lat: Vec<Angle<f32>>,
     // Edges of the polygon sorted by increasing longitudes
     edges_sorted_lon: EdgesSortedLon<f32>,
     edges_sorted_lat: EdgesSortedLat<f32>,
@@ -547,7 +517,7 @@ impl Polygon {
         assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
-        let (lon, lat): (Vec<_>, Vec<_>) = vertices.into_iter()
+        let (lon, lat): (Vec<_>, Vec<_>) = vertices.iter()
             .map(|vertex| {
                 let lonlat: LonLatT<f32> = vertex.lonlat();
                 (lonlat.lon(), lonlat.lat())
@@ -580,21 +550,22 @@ impl Polygon {
                 })
                 .collect::<Vec<_>>()
         };
-        let vertices = lon.iter().zip(lat.iter())
+
+        let pole = Pole::contained_in_polygon(&lon, &lat);
+        let bbox = BoundingBox::from_polygon(&pole, &lon, &lat);
+
+        let vertices = lon.into_iter().zip(lat.into_iter())
             .map(|(lon, lat)| {
-                LonLatT::new(*lon, *lat).vector()
+                LonLatT::new(lon, lat).vector()
             })
             .collect::<Vec<_>>();
 
         let edges_sorted_lat = EdgesSortedLat::new(&vertices);
         let edges_sorted_lon = EdgesSortedLon::new(&vertices);
 
-        let pole = Pole::contained_in_polygon(&lon, &lat);
-        let bbox = BoundingBox::from_polygon(&pole, &lon, &lat);
+
 
         Polygon {
-            lon,
-            lat,
             edges_sorted_lat,
             edges_sorted_lon,
             bbox,
@@ -730,24 +701,24 @@ impl Polygon {
             let c = lat.sin();
             let r = (a*a+b*b).sqrt();
 
-            let A = (b/a).atan();
-            let B = (c/r).acos();
-            let alpha = A - B;
+            let e = (b/a).atan();
+            let f = (c/r).acos();
+            let alpha = e - f;
 
             let ca = alpha.cos();
             let sa = alpha.sin();
-            let C = gc.cross(p1);
-            let inter = p1*ca + C*sa;
+            let c = gc.cross(p1);
+            let inter = p1*ca + c*sa;
 
             if edge.is_in_lon_range(&inter) {
                 Some(inter)
             } else if edge.is_in_lon_range(&(-inter)) {
                 Some(-inter)
             } else {
-                let alpha = A + B;
+                let alpha = e + f;
                 let ca = alpha.cos();
                 let sa = alpha.sin();
-                let inter = p1*ca + C*sa;
+                let inter = p1*ca + c*sa;
 
                 if edge.is_in_lon_range(&inter) {
                     Some(inter)
@@ -761,7 +732,7 @@ impl Polygon {
     }
 }
 
-use crate::renderable::FormatType;
+
 
 #[inline]
 fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {

@@ -24,11 +24,11 @@ use crate::WebGl2Context;
 use super::{ArrayU8, ArrayF32, ArrayF64, ArrayI32, ArrayI16};
 use crate::image_fmt::{PNG, JPG, FITS};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
-    let num_channels = format.get_num_channels() as i32;
+    let _num_channels = format.get_num_channels() as i32;
     match format {
         FormatImageType::JPG => TileArrayBufferImage::U8(JPG::create_black_tile(width)),
         FormatImageType::PNG => TileArrayBufferImage::U8(PNG::create_black_tile(width)),
-        FormatImageType::FITS(fits) => {
+        FormatImageType::FITS(_fits) => {
             match format.get_type() {
                 WebGl2RenderingContext::FLOAT => {
                     TileArrayBufferImage::F32(FITS::create_black_tile(width, value))
@@ -61,11 +61,6 @@ impl TileConfig {
     }
 
     #[inline]
-    pub fn get_tile_size(&self) -> i32 {
-        self.width
-    }
-
-    #[inline]
     pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
         self.default.clone()
     }
@@ -79,8 +74,8 @@ impl TileConfig {
     }
 }
 
-use crate::transfert_function::TransferFunction;
-use crate::shaders::Colormap;
+
+
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
@@ -124,7 +119,7 @@ use web_sys::WebGl2RenderingContext;
 use wasm_bindgen::JsValue;
 use crate::{HiPSProperties, HiPSFormat};
 impl HiPSConfig {
-    pub fn new(gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
+    pub fn new(_gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.url.clone();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
@@ -166,7 +161,7 @@ impl HiPSConfig {
                         Ok(FormatImageType::FITS(FITS::new(WebGl2RenderingContext::R32F as i32)))
                     },
                     _ => {
-                        Err(format!("Fits tiles exists but the BITPIX is not correct in the property file").into())
+                        Err("Fits tiles exists but the BITPIX is not correct in the property file".to_string().into())
                     }
                 }
             },
@@ -184,8 +179,8 @@ impl HiPSConfig {
             }
         };
         let format = format?;
-        let max_depth_tile = properties.maxOrder;
-        let tile_size = properties.tileSize;
+        let max_depth_tile = properties.max_order;
+        let tile_size = properties.tile_size;
 
         let tile_config = TileConfig::new(tile_size, format);
 
@@ -199,7 +194,7 @@ impl HiPSConfig {
 
         let max_depth_texture = max_depth_tile - delta_depth;
 
-        let mut hips_config = HiPSConfig {
+        let hips_config = HiPSConfig {
             // HiPS name
             root_url,
             format,

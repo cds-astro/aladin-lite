@@ -31,7 +31,7 @@ impl<T> Deref for UV<T>
 where T: Float + Zero {
     type Target = [Vector2<T>; 4];
 
-    fn deref(self: &'_ Self) -> &'_ Self::Target {
+    fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -78,8 +78,8 @@ impl TileUVW {
 
         let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
 
-        let texture_size = config.get_texture_size();
-        let num_textures_by_side_slice = config.num_textures_by_side_slice();
+        let _texture_size = config.get_texture_size();
+        let _num_textures_by_side_slice = config.num_textures_by_side_slice();
         //let dp = 1_f32 / ((texture_size * num_textures_by_side_slice) as f32);
 
         /*TileUVW([

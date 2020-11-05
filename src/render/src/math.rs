@@ -3,12 +3,12 @@ use cgmath::Rad;
 use cgmath::{Vector4, Vector2, Vector3};
 
 #[inline]
-pub fn angle<S: BaseFloat>(AB: &Vector2<S>, BC: &Vector2<S>) -> Angle<S> {
-    Angle((AB.dot(*BC)).acos())
+pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
+    Angle((ab.dot(*bc)).acos())
 }
 
 #[inline]
-pub fn asincP(mut x: f32) -> f32 {
+pub fn asinc_positive(mut x: f32) -> f32 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.asin() / x
@@ -21,7 +21,7 @@ pub fn asincP(mut x: f32) -> f32 {
 }
 
 #[inline]
-pub fn sincP(mut x: f32) -> f32 {
+pub fn sinc_positive(mut x: f32) -> f32 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.sin() / x

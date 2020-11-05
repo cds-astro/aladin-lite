@@ -1,7 +1,4 @@
-use crate::core::{
- VecData,
- VertexArrayObject
-};
+
 
 use web_sys::WebGl2RenderingContext;
 
@@ -9,7 +6,7 @@ use crate::color::Color;
 
 use cgmath::Vector4;
 use crate::renderable::angle;
-use crate::renderable::TextManager;
+
 
 use crate::camera::CameraViewPort;
 use web_sys::{WebGlVertexArrayObject, WebGlBuffer, CanvasRenderingContext2d};
@@ -46,9 +43,8 @@ impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
         camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
-        //_text_manager: &TextManager
-    ) -> ProjetedGrid {
+        _shaders: &mut ShaderManager,
+    ) -> Result<ProjetedGrid, JsValue> {
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
 
@@ -83,10 +79,9 @@ impl ProjetedGrid {
         let canvas = document.get_elements_by_class_name("aladin-gridCanvas")
             .get_with_index(0)
             .unwrap();
-        canvas.set_attribute("style", "z-index:1; position:absolute; top:0; left:0;");
+        canvas.set_attribute("style", "z-index:1; position:absolute; top:0; left:0;")?;
         let canvas: web_sys::HtmlCanvasElement = canvas
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
+            .dyn_into::<web_sys::HtmlCanvasElement>()?;
         let size_screen = camera.get_screen_size();
         canvas.set_width(size_screen.x as u32);
         canvas.set_height(size_screen.y as u32);
@@ -100,7 +95,7 @@ impl ProjetedGrid {
 
         let enabled = false;
         let hide_labels = false;
-        ProjetedGrid {
+        let grid = ProjetedGrid {
             color,
 
             vao,
@@ -117,7 +112,8 @@ impl ProjetedGrid {
             gl,
             enabled,
             hide_labels,
-        }
+        };
+        Ok(grid)
     }
 
     pub fn set_color(&mut self, color: Color) {
@@ -156,13 +152,13 @@ impl ProjetedGrid {
 
         self.offsets.clear();
         self.sizes.clear();
-        let (mut vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
+        let (vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
             .into_iter()
             .map(|line| {
                 if self.sizes.is_empty() {
                     self.offsets.push(0);
                 } else {
-                    let last_offset = self.offsets.last().unwrap();
+                    let last_offset = *self.offsets.last().unwrap();
                     self.offsets.push(last_offset + self.sizes.last().unwrap());
                 }
                 self.sizes.push(line.vertices.len());
@@ -265,8 +261,8 @@ impl ProjetedGrid {
                 for label in self.labels.iter() {
                     if let Some(label) = &label {
                         self.ctx2d.save();
-                        self.ctx2d.translate(label.position.x as f64, label.position.y as f64);
-                        self.ctx2d.rotate(label.rot as f64);
+                        self.ctx2d.translate(label.position.x as f64, label.position.y as f64)?;
+                        self.ctx2d.rotate(label.rot as f64)?;
                         self.ctx2d.fill_text(&label.content, 0.0, text_height / 4.0).unwrap();
                         self.ctx2d.restore();
                     }
@@ -355,7 +351,7 @@ impl GridShaderProjection for Orthographic {
     }
 }
 
-use crate::sphere_geometry::{FieldOfViewType, BoundingBox};
+use crate::sphere_geometry::{BoundingBox};
 
 use cgmath::InnerSpace;
 const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
@@ -366,53 +362,49 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
     let c: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
-    let A = P::model_to_ndc_space(&a, camera);
-    let B = P::model_to_ndc_space(&b, camera);
-    let C = P::model_to_ndc_space(&c, camera);
-    match (A, B, C) {
+    let a = P::model_to_ndc_space(&a, camera);
+    let b = P::model_to_ndc_space(&b, camera);
+    let c = P::model_to_ndc_space(&c, camera);
+    match (a, b, c) {
         (None, None, None) => {
-            return;
+            
         },
-        (Some(A), Some(B), Some(C)) => {
+        (Some(a), Some(b), Some(c)) => {
             // Compute the angle between a->b and b->c
-            let AB = (B - A);
-            let BC = (C - B);
-            let AB_l = AB.magnitude2();
-            let BC_l = BC.magnitude2();
+            let ab = b - a;
+            let bc = c - b;
+            let ab_l = ab.magnitude2();
+            let bc_l = bc.magnitude2();
 
-            let theta = math::angle(&AB.normalize(), &BC.normalize());
+            let theta = math::angle(&ab.normalize(), &bc.normalize());
 
             if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && min_subdivision_level <= 0 {
-                vertices.push(A);
-                vertices.push(B);
+                vertices.push(a);
+                vertices.push(b);
 
-                vertices.push(B);
-                vertices.push(C);
-            } else {
-                if depth > 0 {
-                    // Subdivide a->b and b->c
-                    let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
-                    let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
-                    subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, min_subdivision_level - 1, camera);
+                vertices.push(b);
+                vertices.push(c);
+            } else if depth > 0 {
+                // Subdivide a->b and b->c
+                let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
+                let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
+                subdivide::<P>(vertices, [lonlat[0], (lon_d, lat_d), lonlat[1]], depth - 1, min_subdivision_level - 1, camera);
 
-                    let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
-                    let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
-                    subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, min_subdivision_level - 1, camera);
+                let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
+                let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
+                subdivide::<P>(vertices, [lonlat[1], (lon_e, lat_e), lonlat[2]], depth - 1, min_subdivision_level - 1, camera);
+            } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
+                if ab_l == ab_l.min(bc_l) {
+                    vertices.push(a);
+                    vertices.push(b);
                 } else {
-                    if AB_l.min(BC_l) / AB_l.max(BC_l) < 0.1 {
-                        if AB_l == AB_l.min(BC_l) {
-                            vertices.push(A);
-                            vertices.push(B);
-                        } else {
-                            vertices.push(B);
-                            vertices.push(C);
-                        }
-                        return;
-                    }
+                    vertices.push(b);
+                    vertices.push(c);
                 }
+                return;
             }
         },
-        (Some(A), None, None) => {
+        (Some(_), None, None) => {
             if depth == 0 {
                 return;
             }
@@ -427,7 +419,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                 camera
             );
         },
-        (None, None, Some(C)) => {
+        (None, None, Some(_)) => {
             if depth == 0 {
                 return;
             }
@@ -442,7 +434,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
                 camera
             );
         },
-        (None, Some(B), None) => {
+        (None, Some(_), None) => {
             if depth == 0 {
                 return;
             }
@@ -494,7 +486,7 @@ fn subdivide<P: Projection>(vertices: &mut Vec<Vector2<f32>>, lonlat: [(f32, f32
         }
     }
 }
-use crate::math::{self, LonLatT};
+use crate::math::{self};
 use cgmath::Vector2;
 use core::ops::Range;
 use crate::Angle;
@@ -514,7 +506,6 @@ struct GridLine {
 use cgmath::{Rad, Vector3};
 use super::angle::SerializeToString;
 const PI: f32 = std::f32::consts::PI;
-const TWICE_PI: f32 = 2.0*PI;
 const HALF_PI: f32 = 0.5*PI;
 impl GridLine {
     fn meridian<P: Projection>(ctx2d: &CanvasRenderingContext2d, lon: f32, lat: &Range<f32>, camera: &CameraViewPort) -> Option<Self> {
@@ -562,12 +553,10 @@ impl GridLine {
                         } else {
                             rot
                         }
+                    } else if rot < -HALF_PI {
+                        PI + rot
                     } else {
-                        if rot < -HALF_PI {
-                            PI + rot
-                        } else {
-                            rot
-                        }
+                        rot
                     };
   
                     Some(Label {
@@ -642,12 +631,10 @@ impl GridLine {
                         } else {
                             rot
                         }
+                    } else if rot < -HALF_PI {
+                        PI + rot
                     } else {
-                        if rot < -HALF_PI {
-                            PI + rot
-                        } else {
-                            rot
-                        }
+                        rot
                     };
 
                     Some(Label {
@@ -672,7 +659,7 @@ impl GridLine {
     }
 }
 
-const GRID_STEPS: &'static [f64] = &[
+const GRID_STEPS: &[f64] = &[
     0.34906584,
     0.17453292,
     0.08726646,
@@ -753,7 +740,7 @@ fn lines<P: Projection>(camera: &CameraViewPort, ctx2d: &CanvasRenderingContext2
     lines
 }
 
-fn select_grid_step(bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
+fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
 
     // Select the best meridian grid step
     let mut i = 0;

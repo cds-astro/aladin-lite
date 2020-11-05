@@ -134,7 +134,7 @@ pub trait Projection: GetShader + CatalogShaderProjection + GridShaderProjection
 
     fn model_to_ndc_space(pos_model_space: &Vector4<f32>, camera: &CameraViewPort) -> Option<Vector2<f32>> {
         let m2w = camera.get_m2w();
-        let mut pos_world_space = m2w * pos_model_space;
+        let pos_world_space = m2w * pos_model_space;
         //pos_world_space.x = -pos_world_space.x;
         Self::world_to_normalized_device_space(&pos_world_space, camera)
     } 
@@ -448,7 +448,7 @@ impl Projection for Mollweide {
         let epsilon = 1e-3;
         let max_iter = 10;
 
-        let mut xyz = pos_world_space.truncate();
+        let xyz = pos_world_space.truncate();
         let (mut lon, lat) = math::xyz_to_radec(&xyz);
         if longitude_reversed {
             lon = -lon;
@@ -471,7 +471,7 @@ impl Projection for Mollweide {
 
         // The minus is an astronomical convention.
         // longitudes are increasing from right to left
-        let mut x = (lon.0 / std::f32::consts::PI) * theta.cos();
+        let x = (lon.0 / std::f32::consts::PI) * theta.cos();
         let y = 0.5_f32 * theta.sin();
 
         Some(Vector2::new(x, y))
@@ -556,12 +556,10 @@ impl Projection for Orthographic {
     fn world_to_clip_space(pos_world_space: &cgmath::Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
         if pos_world_space.z < 0.0_f32 {
             None
+        } else if longitude_reversed {
+            Some(Vector2::new(-pos_world_space.x, pos_world_space.y))
         } else {
-            if longitude_reversed {
-                Some(Vector2::new(-pos_world_space.x, pos_world_space.y))
-            } else {
-                Some(Vector2::new(pos_world_space.x, pos_world_space.y))
-            }
+            Some(Vector2::new(pos_world_space.x, pos_world_space.y))
         }
     }
 
@@ -624,11 +622,11 @@ impl Projection for AzimuthalEquidistant {
         let x = pos_clip_space.x * std::f32::consts::PI;
         let y = pos_clip_space.y * std::f32::consts::PI;
         let mut r = (x * x + y * y).sqrt();
-        if (r > std::f32::consts::PI) {
+        if r > std::f32::consts::PI {
             None
         } else {
             let z = r.cos();
-            r = math::sincP(r);
+            r = math::sinc_positive(r);
 
             let pos_world_space = if longitude_reversed {
                 Vector4::new(
@@ -661,8 +659,8 @@ impl Projection for AzimuthalEquidistant {
             // Angular distance is acos(x), but for small separation, asin(r)
             // is more accurate.
             let mut r = (pos_world_space.x * pos_world_space.x + pos_world_space.y * pos_world_space.y).sqrt();
-            if (pos_world_space.z > 0.0) { // Angular distance < PI/2, angular distance = asin(r)
-                r = math::asincP(r);
+            if pos_world_space.z > 0.0 { // Angular distance < PI/2, angular distance = asin(r)
+                r = math::asinc_positive(r);
             } else { // Angular distance > PI/2, angular distance = acos(x)
                 r = pos_world_space.z.acos() / r;
             }
@@ -794,7 +792,7 @@ impl Projection for Gnomonic {
     /// 
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(pos_world_space: &Vector4<f32>, longitude_reversed: bool) -> Option<Vector2<f32>> {
-        if (pos_world_space.z <= 1e-3) {
+        if pos_world_space.z <= 1e-3 {
             None
         } else {
             let pos_clip_space = if longitude_reversed {
@@ -881,7 +879,7 @@ impl Projection for Mercator {
             // Out of the sphere
             None
         }*/
-        let mut theta = pos_clip_space.x * std::f32::consts::PI;
+        let theta = pos_clip_space.x * std::f32::consts::PI;
         let delta = (pos_clip_space.y.sinh()).atan() * std::f32::consts::PI;
 
         let mut pos_world_space = math::radec_to_xyzw(Angle(theta), Angle(delta));

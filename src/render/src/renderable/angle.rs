@@ -44,7 +44,7 @@ impl<T> Deref for ArcDeg<T>
 where T: BaseFloat {
     type Target = T;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -70,9 +70,9 @@ where T: BaseFloat {
         ArcSec(seconds_per_minute * frac)
     }
     
-    fn truncate(&mut self) {
+    /*fn truncate(&mut self) {
         *self = Self((*self).trunc());
-    }
+    }*/
 }
 
 // Convert a Rad<T> to an ArcMin<T>
@@ -102,7 +102,7 @@ impl<T> Deref for ArcMin<T>
 where T: BaseFloat {
     type Target = T;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -159,7 +159,7 @@ impl<T> Deref for ArcSec<T>
 where T: BaseFloat {
     type Target = T;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
@@ -208,8 +208,8 @@ impl FormatType for DMS {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
         //crate::log(&format!("angle: {0}"))
-        let mut degrees: ArcDeg<S> = angle.into();
-        let mut minutes = degrees.get_frac_minutes();
+        let degrees: ArcDeg<S> = angle.into();
+        let minutes = degrees.get_frac_minutes();
         let seconds = minutes.get_frac_seconds();
 
         let num_per_sec_per_minutes = S::from(60).unwrap();

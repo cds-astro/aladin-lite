@@ -21,7 +21,7 @@ impl Ord for Time {
     }
 }
 impl Eq for Time {}
-use wasm_bindgen::prelude::*;
+
 #[derive(Clone, Copy)]
 #[derive(Debug)]
 pub struct DeltaTime(pub f32);

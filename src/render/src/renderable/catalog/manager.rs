@@ -26,7 +26,6 @@ impl From<Error> for JsValue {
     fn from(err: Error) -> Self {
         match err {
             Error::CatalogNotPresent { message } => message.into(),
-            _ => unreachable!()
         }
     }
 }
@@ -42,12 +41,11 @@ pub struct Manager {
     vertex_array_object_screen: VertexArrayObject,
 
     catalogs: HashMap<String, Catalog>,
-    num_sources: usize,
     kernel_size: Vector2<f32>,
 }
 
-use crate::{FormatImageType, image_fmt::FITS};
-use crate::image_fmt::PNG;
+use crate::{FormatImageType};
+
 use crate::Resources;
 impl Manager {
     pub fn new(gl: &WebGl2Context, shaders: &mut ShaderManager, camera: &CameraViewPort, resources: &Resources) -> Self {
@@ -129,7 +127,6 @@ impl Manager {
         };
 
         let catalogs = HashMap::new();
-        let num_sources = 0;
         let kernel_size = Vector2::new(0.0, 0.0);
 
         let gl = gl.clone();
@@ -143,7 +140,6 @@ impl Manager {
             vertex_array_object_screen,
 
             catalogs,
-            num_sources,
             kernel_size
         };
 
@@ -210,7 +206,7 @@ impl Manager {
             HEALPixCells::allsky(0)
         } else {
             let HEALPixCells { mut depth, cells } = view.get_cells();
-            let cells = cells.into_iter()
+            let cells = cells.iter()
                 .map(|&cell| {
                     let d = cell.depth();
                     if d > 7 {
@@ -252,7 +248,6 @@ pub struct Catalog {
     sources: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
     max_density: f32,
-    rng: rand::rngs::ThreadRng
 }
 
 use crate::{
@@ -262,9 +257,9 @@ use crate::{
 };
 use cgmath::Vector2;
 use std::collections::HashSet;
-use crate::healpix_cell::{HEALPixCell, HEALPixTilesIter};
+use crate::healpix_cell::{HEALPixCell};
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
-use crate::HiPSConfig;
+
 use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
 use crate::renderable::{HEALPixCells, HEALPixCellsInView};
 
@@ -277,7 +272,6 @@ impl Catalog {
         view: &HEALPixCellsInView,
         camera: &CameraViewPort,
     ) -> Catalog {
-        let mut rng = rand::thread_rng();
         let alpha = 1_f32;
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
@@ -337,16 +331,15 @@ impl Catalog {
             sources,
             vertex_array_object_catalog,
             max_density,
-            rng
         };
         catalog.set_max_density::<P>(view, camera);
         catalog
     }
 
     fn set_max_density<P: Projection>(&mut self, view: &HEALPixCellsInView, camera: &CameraViewPort) {
-        let HEALPixCells { depth, cells } = view.get_cells();
+        let HEALPixCells { depth: _, cells } = view.get_cells();
 
-        let cells = cells.into_iter()
+        let cells = cells.iter()
             .map(|&cell| {
                 let d = cell.depth();
                 if d > 7 {
@@ -364,7 +357,7 @@ impl Catalog {
         let d_kernel = depth_from_pixels_on_screen(camera, 32);
         self.max_density = self.compute_max_density::<P>(d_kernel);
         if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            let d = (MAX_SOURCES_PER_CATALOG / num_sources_in_fov);
+            let d = MAX_SOURCES_PER_CATALOG / num_sources_in_fov;
             self.max_density *= d*d;
         }
     }
@@ -409,7 +402,7 @@ impl Catalog {
 
     // Cells are of depth <= 7
     fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
-        let HEALPixCells {ref depth, ref cells} = cells;
+        let HEALPixCells {depth: _, ref cells} = cells;
         let mut current_sources = vec![];
 
         //let depth_kernel = 7;
@@ -439,7 +432,7 @@ impl Catalog {
                 let sources_in_cell = self.indices.get_source_indices(&c);
                 let num_sources_in_kernel_cell = (sources_in_cell.end - sources_in_cell.start) as usize;
                 if num_sources_in_kernel_cell > 0 {
-                    let num_sources = (((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG);
+                    let num_sources = ((num_sources_in_kernel_cell as f32)/num_sources_in_fov)*MAX_SOURCES_PER_CATALOG;
 
                     let sources = self.indices.get_k_sources(&self.sources, &c, num_sources as usize, 0);
                     current_sources.extend(sources);

@@ -103,7 +103,6 @@ impl FITS {
 }
 
 pub trait FITSDataType: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug {
-    #[inline]
     fn zero() -> Self;
 }
 impl FITSDataType for f32  {

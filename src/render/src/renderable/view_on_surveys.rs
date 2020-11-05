@@ -27,14 +27,10 @@ impl HEALPixCells {
         }
     }
 
-    fn contains(&self, cell: &HEALPixCell) -> bool {
-        self.contains(cell)
-    }
-
     pub fn allsky(depth: u8) -> HEALPixCells {
         let npix = 12 << ((depth as usize) << 1);
 
-        let mut cells = (0_u64..(npix as u64))
+        let cells = (0_u64..(npix as u64))
             .map(|pix| HEALPixCell(depth, pix))
             .collect::<HashSet<_>>();
 
@@ -144,10 +140,10 @@ impl NewHEALPixCells {
         self.is_new_cells_added = is_new_cells_added;
     }
 
-    #[inline]
+    /*#[inline]
     fn is_there_new_cells_added(&self) -> bool {
         self.is_new_cells_added
-    }
+    }*/
 
     #[inline]
     fn get_new_cells(&self) -> HEALPixCells {
@@ -222,17 +218,6 @@ pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
     } else {
         HEALPixCells::allsky(depth)
     }
-    
-    /*let center = camera.get_center();
-    if let Some(vertices) = camera.get_vertices() {
-        //crate::log(&format!("A {:?}, B {:?}", vertices, center.truncate()));
-
-        let radius = crate::math::ang_between_vect(&vertices[0].truncate(), &center.truncate());
-        crate::log(&format!("radius {:?}", radius));
-        cone_coverage(depth, radius.0, &center.truncate())
-    } else {
-        HEALPixCells::allsky(depth)
-    }*/
 }
 
 use cgmath::Vector4;
@@ -243,24 +228,6 @@ fn polygon_coverage(
     inside: &Vector3<f32>
 ) -> HEALPixCells {
     let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
-
-    let cells = coverage.flat_iter()
-        .map(|idx| {
-            HEALPixCell(depth, idx)
-        })
-        .collect();
-    
-    HEALPixCells {
-        cells,
-        depth
-    }
-}
-fn cone_coverage(
-    depth: u8,
-    radius: f32,
-    center: &Vector3<f32>,
-) -> HEALPixCells {
-    let coverage = cdshealpix::from_cone(depth, radius, center);
 
     let cells = coverage.flat_iter()
         .map(|idx| {
@@ -286,7 +253,7 @@ pub struct HEALPixCellsInView {
 }
 
 use crate::camera::{CameraViewPort, UserAction};
-use super::image_survey::ImageSurvey;
+
 impl HEALPixCellsInView {
     pub fn new(survey_tex_size: i32, max_depth: u8, camera: &CameraViewPort) -> Self {
         let cells = HEALPixCells::new();

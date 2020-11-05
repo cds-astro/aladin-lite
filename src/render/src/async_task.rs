@@ -119,7 +119,9 @@ impl BuildCatalogIndex {
         }
     }
 }
-const CHUNK_SIZE: usize = 1000;
+const CHUNK_OF_SOURCES_TO_SORT: usize = 1000;
+const CHUNK_OF_SORTED_SOURCES_TO_MERGE: usize = 20000;
+
 impl Stream for BuildCatalogIndex {
     type Item = ();
 
@@ -134,7 +136,7 @@ impl Stream for BuildCatalogIndex {
             Poll::Ready(None)
         } else {
             let a = self.num_sorted_sources;
-            let b = (a + 1000).min(self.sources.len());
+            let b = (a + CHUNK_OF_SOURCES_TO_SORT).min(self.sources.len());
             // Get a new chunk and sort it
             if !self.merging {
                 let mut rng = StdRng::seed_from_u64(0);
@@ -199,7 +201,7 @@ impl Stream for BuildCatalogIndex {
                     self.num_sorted_sources += 1;
     
                     // Every 10000 items sorted, we do a pending
-                    if self.num_sorted_sources % 10000 == 0 {
+                    if self.num_sorted_sources % CHUNK_OF_SORTED_SOURCES_TO_MERGE == 0 {
                         return Poll::Pending;
                     }
                 }
@@ -219,8 +221,6 @@ use cgmath::Vector3;
 
 /// Task that send a tile to the GPU
 pub struct SendTileToGPU {
-    tile: Tile, // The tile cell that has been written
-    //texture: HEALPixCell, // the texture cell that contains tile
     offset: Vector3<i32>,
     image: Box<dyn Image>,
     texture_array: Rc<Texture2DArray>
@@ -266,10 +266,8 @@ impl SendTileToGPU {
             idx_slice
         );
 
-        let tile = tile.clone();
         let image = Box::new(image) as Box<dyn Image>;
         SendTileToGPU {
-            tile,
             offset,
             image,
             texture_array
@@ -281,7 +279,7 @@ use futures::Future;
 impl Future for SendTileToGPU {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
         self.image.tex_sub_image_3d(&self.texture_array, &self.offset);
 
         Poll::Ready(())

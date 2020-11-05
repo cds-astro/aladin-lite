@@ -50,7 +50,7 @@ use cgmath::{Vector4, Vector3};
 use crate::math::LonLat;
 pub struct HEALPixCoverage(BMOC);
 
-use crate::renderable::view_on_surveys::HEALPixCells;
+
 pub fn from_polygon(
     // The depth of the smallest HEALPix cells contained in it
     depth: u8,
@@ -78,27 +78,11 @@ pub fn from_polygon(
     HEALPixCoverage(moc)
 }
 
-pub fn from_cone(
-    // The depth of the smallest HEALPix cells contained in it
-    depth: u8,
-    radius: f32,
-    // A vertex being inside the coverage,
-    // typically the center of projection
-    center: &Vector3<f32>
-) -> HEALPixCoverage {
-    let (lon, lat) = math::xyz_to_radec(center);
-    let (lon, lat) = (lon.0 as f64, lat.0 as f64);
-
-    let moc = healpix::nested::cone_coverage_approx(depth, lon, lat, radius as f64);
-
-    HEALPixCoverage(moc)
-}
-
 use core::ops::Deref;
 impl Deref for HEALPixCoverage {
     type Target = BMOC;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref (&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }

@@ -768,7 +768,10 @@ document.querySelector('#opacity_grid').addEventListener('input', function(e) {
 
 A.init.then(() => {
     // Start up Aladin Lite
-    aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 0.3, survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
+    aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/DSS2/red', allowFullZoomout: true});
+    aladin.setProjection('aitoff');
+    aladin.gotoRaDec(266.4168166, -29.0078249);
+    aladin.setFoV(360);
 
 
 });

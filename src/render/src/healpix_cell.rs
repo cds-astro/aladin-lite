@@ -1,12 +1,10 @@
 use std::cmp::Ordering;
 
-#[derive(Clone, Copy)]
-#[derive(Debug)]
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct HEALPixCell(pub u8, pub u64);
 
-use crate::renderable::projection::Projection;
 use crate::math;
+use crate::renderable::projection::Projection;
 
 pub enum Child {
     BottomLeft,
@@ -15,9 +13,9 @@ pub enum Child {
     TopRight,
 }
 
-use crate::utils;
 use crate::buffer::HiPSConfig;
 use crate::cdshealpix;
+use crate::utils;
 impl HEALPixCell {
     // Build the parent cell
     #[inline]
@@ -35,11 +33,8 @@ impl HEALPixCell {
     pub fn ancestor(self, delta_depth: u8) -> HEALPixCell {
         let HEALPixCell(depth, idx) = self;
         let delta_depth = std::cmp::min(delta_depth, depth);
-        
-        let ancestor = HEALPixCell(
-            depth - delta_depth,
-            idx >> (2*delta_depth)
-        );
+
+        let ancestor = HEALPixCell(depth - delta_depth, idx >> (2 * delta_depth));
         ancestor
     }
 
@@ -58,7 +53,7 @@ impl HEALPixCell {
         let HEALPixCell(depth, idx) = *self;
         let HEALPixCell(parent_depth, parent_idx) = *parent_cell;
 
-        let idx_off = parent_idx << (2*(depth - parent_depth));
+        let idx_off = parent_idx << (2 * (depth - parent_depth));
 
         assert!(idx >= idx_off);
         assert!(depth >= parent_depth);
@@ -91,7 +86,7 @@ impl HEALPixCell {
             HEALPixCell(0, 8),
             HEALPixCell(0, 9),
             HEALPixCell(0, 10),
-            HEALPixCell(0, 11)
+            HEALPixCell(0, 11),
         ]
     }
 
@@ -136,8 +131,8 @@ impl HEALPixCell {
     #[inline]
     pub fn get_children_cells(&self, delta_depth: u8) -> HEALPixTilesIter {
         let HEALPixCell(depth, idx) = *self;
-        let first_idx = idx << (2*delta_depth);
-        let last_idx = (idx + 1) << (2*delta_depth);
+        let first_idx = idx << (2 * delta_depth);
+        let last_idx = (idx + 1) << (2 * delta_depth);
 
         let depth_children = depth + delta_depth;
         HEALPixTilesIter::new(depth_children, first_idx..last_idx)
@@ -161,7 +156,7 @@ impl HEALPixTilesIter {
             depth,
             idx,
             off,
-            num_tiles
+            num_tiles,
         }
     }
 }
@@ -181,7 +176,6 @@ impl Iterator for HEALPixTilesIter {
     }
 }
 
-
 impl PartialOrd for HEALPixCell {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let n1 = self.1 << ((29 - self.0) << 1);
@@ -196,9 +190,7 @@ impl Ord for HEALPixCell {
     }
 }
 
-#[derive(Clone, Copy)]
-#[derive(Debug)]
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct HEALPixCellUniqOrd<'a> {
     cell: &'a HEALPixCell,
 }
@@ -228,7 +220,7 @@ fn subdivision(cell: &HEALPixCell) -> u8 {
 
 fn recursive_sub(cell: &HEALPixCell, num_subdivide: u8) -> u8 {
     let ratio = compute_ratio_diag(cell);
-    if ratio < 0.8 && cell.depth() < 5 {        
+    if ratio < 0.8 && cell.depth() < 5 {
         let child_bl = cell.get(Child::BottomLeft);
         let child_br = cell.get(Child::BottomRight);
         let child_tl = cell.get(Child::TopLeft);
@@ -239,13 +231,7 @@ fn recursive_sub(cell: &HEALPixCell, num_subdivide: u8) -> u8 {
         let n3 = recursive_sub(&child_tl, num_subdivide);
         let n4 = recursive_sub(&child_tr, num_subdivide);
 
-        let r = std::cmp::max(
-            n1, std::cmp::max(
-                n2, std::cmp::max(
-                    n3, n4
-                )
-            )
-        );
+        let r = std::cmp::max(n1, std::cmp::max(n2, std::cmp::max(n3, n4)));
 
         r + 1
     } else {
@@ -253,12 +239,13 @@ fn recursive_sub(cell: &HEALPixCell, num_subdivide: u8) -> u8 {
     }
 }
 
-use cgmath::Vector3;
 use crate::renderable::Angle;
+use cgmath::Vector3;
 fn compute_ratio_diag(cell: &HEALPixCell) -> Angle<f32> {
     let vertices = cdshealpix::vertices_lonlat(cell);
 
-    let vertices_world_space = vertices.iter()
+    let vertices_world_space = vertices
+        .iter()
         .map(|lonlat| {
             let vertex_world_space = lonlat.vector::<Vector3<f32>>();
             vertex_world_space
@@ -268,17 +255,12 @@ fn compute_ratio_diag(cell: &HEALPixCell) -> Angle<f32> {
     // Compute the diagonal of the cell
     let d1 = math::ang_between_vect(&vertices_world_space[0], &vertices_world_space[2]);
     let d2 = math::ang_between_vect(&vertices_world_space[1], &vertices_world_space[3]);
-    
-    let ratio = if d1 < d2 {
-        d1 / d2 
-    } else {
-        d2 / d1
-    };
+
+    let ratio = if d1 < d2 { d1 / d2 } else { d2 / d1 };
 
     ratio
 }
 
-use web_sys::console;
 impl SphereSubdivided {
     pub fn new() -> SphereSubdivided {
         let mut hpx_sub = Box::new([0; 12288]);
@@ -292,7 +274,7 @@ impl SphereSubdivided {
 
     // Get the number of subdivision necessary for the given cell
     pub fn get_num_subdivide<P: Projection>(&self, cell: &HEALPixCell) -> u8 {
-        let HEALPixCell(depth, idx) = *cell;
+        let HEALPixCell(depth, _idx) = *cell;
         let num_sub = if depth < 5 {
             // Get the 3 depth cells contained in it and add
             // each of them individually to the buffer

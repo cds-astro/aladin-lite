@@ -1,10 +1,12 @@
-use num::{Float, Zero};
 use cgmath::{Vector2, Vector3};
+use num::{Float, Zero};
 
 #[derive(Debug)]
 pub struct UV<T: Float + Zero>([Vector2<T>; 4]);
 impl<T> UV<T>
-where T: Float + Zero {
+where
+    T: Float + Zero,
+{
     pub fn empty() -> UV<T> {
         UV([Vector2::new(T::zero(), T::zero()); 4])
     }
@@ -28,32 +30,33 @@ where T: Float + Zero {
 
 use core::ops::Deref;
 impl<T> Deref for UV<T>
-where T: Float + Zero {
+where
+    T: Float + Zero,
+{
     type Target = [Vector2<T>; 4];
 
-    fn deref(self: &'_ Self) -> &'_ Self::Target {
+    fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
 
-use crate::{
-    healpix_cell::HEALPixCell,
-    buffer::Texture,
-    utils,
-    buffer::HiPSConfig,
-};
+use crate::{buffer::HiPSConfig, buffer::Texture, healpix_cell::HEALPixCell, utils};
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
     pub fn empty() -> TileUVW {
         TileUVW([Vector3::new(0_f32, 0_f32, 0_f32); 4])
-    } 
+    }
 
     // The texture cell passed must be a child of texture
-    pub fn new(child_texture_cell: &HEALPixCell, texture: &Texture, config: &HiPSConfig) -> TileUVW {
+    pub fn new(
+        child_texture_cell: &HEALPixCell,
+        texture: &Texture,
+        config: &HiPSConfig,
+    ) -> TileUVW {
         let HEALPixCell(depth, idx) = *child_texture_cell;
         let HEALPixCell(parent_depth, parent_idx) = *texture.cell();
 
-        let idx_off = parent_idx << (2*(depth - parent_depth));
+        let idx_off = parent_idx << (2 * (depth - parent_depth));
 
         assert!(idx >= idx_off);
         assert!(depth >= parent_depth);
@@ -73,13 +76,13 @@ impl TileUVW {
         let parent_idx_col = (parent_idx_in_texture % config.num_textures_by_side_slice()) as f32; // in [0; 7]
 
         let num_textures_by_side_slice_f32 = config.num_textures_by_side_slice() as f32;
-        let u = (parent_idx_col + (y/nside)) / num_textures_by_side_slice_f32;
-        let v = (parent_idx_row + (x/nside)) / num_textures_by_side_slice_f32;
+        let u = (parent_idx_col + (y / nside)) / num_textures_by_side_slice_f32;
+        let v = (parent_idx_row + (x / nside)) / num_textures_by_side_slice_f32;
 
         let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
 
-        let texture_size = config.get_texture_size();
-        let num_textures_by_side_slice = config.num_textures_by_side_slice();
+        let _texture_size = config.get_texture_size();
+        let _num_textures_by_side_slice = config.num_textures_by_side_slice();
         //let dp = 1_f32 / ((texture_size * num_textures_by_side_slice) as f32);
 
         /*TileUVW([
@@ -93,7 +96,7 @@ impl TileUVW {
             Vector3::new(u, v, idx_texture),
             Vector3::new(u + ds, v, idx_texture),
             Vector3::new(u, v + ds, idx_texture),
-            Vector3::new(u + ds, v + ds, idx_texture)
+            Vector3::new(u + ds, v + ds, idx_texture),
         ])
     }
 }
@@ -106,7 +109,9 @@ pub enum TileCorner {
 }
 use std::ops::Index;
 impl<T> Index<TileCorner> for UV<T>
-where T: Float + Zero {
+where
+    T: Float + Zero,
+{
     type Output = Vector2<T>;
 
     fn index(&self, corner: TileCorner) -> &Self::Output {

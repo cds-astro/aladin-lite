@@ -83,13 +83,13 @@ impl<'a> PrimaryHeader<'a> {
         }
     }
 
-    pub(crate) fn get_blank(&self) -> f64 {
+    /*pub(crate) fn get_blank(&self) -> f64 {
         if let Some(&FITSHeaderKeyword::Blank(blank)) = self.get("BLANK") {
             blank
         } else {
             unreachable!();
         }
-    }
+    }*/
 
     pub(crate) fn get_axis_size(&self, idx: usize) -> Option<usize> {
         // NAXIS indexes begins at 1 instead of 0
@@ -159,14 +159,12 @@ type MyResult<'a, I, O> = Result<(I, O), Error<'a>>;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
-    character::complete::{alphanumeric1, digit1, multispace0, space0, one_of},
-    character::is_space,
+    character::complete::{digit1, multispace0},
     combinator::recognize,
     sequence::{pair, preceded},
     IResult,
 };
 
-const KEYWORD_BYTES_LENGTH: usize = 8;
 pub(self) fn parse_card(header: &[u8]) -> MyResult<&[u8], FITSHeaderKeyword> {
     // First parse the keyword
     let (header, keyword) = preceded(multispace0, parse_card_keyword)(header)?;

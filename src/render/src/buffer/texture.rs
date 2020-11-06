@@ -1,7 +1,4 @@
-use crate::{
-    healpix_cell::HEALPixCell,
-    time::Time
-};
+use crate::{healpix_cell::HEALPixCell, time::Time};
 use std::collections::HashSet;
 
 pub struct Texture {
@@ -20,7 +17,7 @@ pub struct Texture {
     // of the first tile being inserted in it
     // It is then only given in the constructor of Texture
     // This is approximate, it should correspond to the minimum
-    // of the time requests of the cells currenlty contained in the 
+    // of the time requests of the cells currenlty contained in the
     // texture. But this is too expensive because at each tile inserted
     // in the buffer, one should reevalute the priority of the texture
     // in the buffer's binary heap.
@@ -37,11 +34,16 @@ pub struct Texture {
     missing: bool,
 }
 
-use crate::buffer::HiPSConfig;
-use crate::async_task::{TaskExecutor, TaskType};
 use super::Tile;
+use crate::async_task::{TaskExecutor, TaskType};
+use crate::buffer::HiPSConfig;
 impl Texture {
-    pub fn new(config: &HiPSConfig, texture_cell: &HEALPixCell, idx: i32, time_request: Time) -> Texture {
+    pub fn new(
+        config: &HiPSConfig,
+        texture_cell: &HEALPixCell,
+        idx: i32,
+        time_request: Time,
+    ) -> Texture {
         let tiles = HashSet::with_capacity(config.num_tiles_per_texture());
 
         let start_time = None;
@@ -61,18 +63,14 @@ impl Texture {
             full,
             is_available,
             num_tiles_written,
-            missing
+            missing,
         }
     }
 
     // Panic if cell is not contained in the texture
     // Do nothing if the texture is full
     // Return true if the tile is newly added
-    pub fn append(&mut self,
-        cell: &HEALPixCell,
-        config: &HiPSConfig,
-        missing: bool
-    ) {
+    pub fn append(&mut self, cell: &HEALPixCell, config: &HiPSConfig, missing: bool) {
         let texture_cell = cell.get_texture_cell(config);
         assert!(texture_cell == self.texture_cell);
         assert!(!self.full);
@@ -154,14 +152,20 @@ impl Texture {
         self.time_request = time_request;
     }
 
-    pub fn replace(&mut self, texture_cell: &HEALPixCell, time_request: Time, config: &HiPSConfig, exec: &mut TaskExecutor) {
+    pub fn replace(
+        &mut self,
+        texture_cell: &HEALPixCell,
+        time_request: Time,
+        config: &HiPSConfig,
+        exec: &mut TaskExecutor,
+    ) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.
         for tile_cell in self.texture_cell.get_tile_cells(config) {
             let tile = Tile::new(&tile_cell, config);
             exec.remove(&TaskType::SendTileToGPU(tile));
         }
-        
+
         self.texture_cell = *texture_cell;
         self.uniq = texture_cell.uniq();
         self.full = false;
@@ -208,10 +212,7 @@ pub struct TextureUniforms<'a> {
 impl<'a> TextureUniforms<'a> {
     pub fn new(texture: &Texture, idx_texture: i32) -> TextureUniforms {
         let name = format!("textures_tiles[{}].", idx_texture);
-        TextureUniforms {
-            texture,
-            name
-        }
+        TextureUniforms { texture, name }
     }
 }
 
@@ -219,10 +220,20 @@ use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
-        shader.attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
-            .attach_uniform(&format!("{}{}", self.name, "texture_idx"), &self.texture.idx)
-            .attach_uniform(&format!("{}{}", self.name, "empty"), &(self.texture.missing as i32))
-            .attach_uniform(&format!("{}{}", self.name, "start_time"), &self.texture.start_time());
+        shader
+            .attach_uniform(&format!("{}{}", self.name, "uniq"), &self.texture.uniq)
+            .attach_uniform(
+                &format!("{}{}", self.name, "texture_idx"),
+                &self.texture.idx,
+            )
+            .attach_uniform(
+                &format!("{}{}", self.name, "empty"),
+                &(self.texture.missing as i32),
+            )
+            .attach_uniform(
+                &format!("{}{}", self.name, "start_time"),
+                &self.texture.start_time(),
+            );
 
         shader
     }

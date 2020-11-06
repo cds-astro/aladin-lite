@@ -4,7 +4,7 @@ pub enum TransferFunction {
     Sqrt = 1,
     Log = 2,
     Asinh = 3,
-    Pow2 = 4
+    Pow2 = 4,
 }
 
 impl TransferFunction {

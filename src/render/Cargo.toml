@@ -75,3 +75,6 @@ opt-level = 3
 [profile.release]
 lto = true
 opt-level = 3
+
+#[package.metadata.wasm-pack.profile.release]
+#wasm-opt = false

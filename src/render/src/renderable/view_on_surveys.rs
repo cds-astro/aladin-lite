@@ -1,10 +1,9 @@
-use std::collections::{HashSet, HashMap};
 use crate::healpix_cell::HEALPixCell;
+use std::collections::{HashMap, HashSet};
 
 use std::collections::hash_set::Iter;
 
-#[derive(Debug, Clone)]
-#[derive(std::cmp::PartialEq)]
+#[derive(Debug, Clone, std::cmp::PartialEq)]
 pub struct HEALPixCells {
     pub depth: u8,
     pub cells: HashSet<HEALPixCell>,
@@ -13,7 +12,7 @@ pub struct HEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
 
 impl<'a> Iterator for HEALPixCellsIter<'a> {
     type Item = &'a HEALPixCell;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
@@ -23,25 +22,18 @@ impl HEALPixCells {
     fn new() -> Self {
         HEALPixCells {
             depth: 0,
-            cells: HashSet::new()
+            cells: HashSet::new(),
         }
-    }
-
-    fn contains(&self, cell: &HEALPixCell) -> bool {
-        self.contains(cell)
     }
 
     pub fn allsky(depth: u8) -> HEALPixCells {
         let npix = 12 << ((depth as usize) << 1);
 
-        let mut cells = (0_u64..(npix as u64))
+        let cells = (0_u64..(npix as u64))
             .map(|pix| HEALPixCell(depth, pix))
             .collect::<HashSet<_>>();
 
-        HEALPixCells {
-            depth,
-            cells
-        }
+        HEALPixCells { depth, cells }
     }
 
     pub fn degrade(self, depth: u8) -> Self {
@@ -51,33 +43,22 @@ impl HEALPixCells {
             self
         } else {
             let delta_depth = self.depth - depth;
-            let two_times_delta_depth = 2*delta_depth;
-            let cells = self.cells.into_iter()
-                .map(|HEALPixCell(_, idx)| {
-                    HEALPixCell(depth, idx >> two_times_delta_depth)
-                })
+            let two_times_delta_depth = 2 * delta_depth;
+            let cells = self
+                .cells
+                .into_iter()
+                .map(|HEALPixCell(_, idx)| HEALPixCell(depth, idx >> two_times_delta_depth))
                 .collect::<HashSet<_>>();
 
-            HEALPixCells {
-                depth,
-                cells
-            }
+            HEALPixCells { depth, cells }
         }
     }
 
-    pub fn intersection<'a>(
-        &'a self,
-        other: &'a Self
-    ) -> HashSet<&'a HEALPixCell> {
-        self.cells.intersection(&other.cells)
-            .collect()
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> HashSet<&'a HEALPixCell> {
+        self.cells.intersection(&other.cells).collect()
     }
-    pub fn difference<'a>(
-        &'a self,
-        other: &'a Self
-    ) -> HashSet<&'a HEALPixCell> {
-        self.cells.difference(&other.cells)
-            .collect()
+    pub fn difference<'a>(&'a self, other: &'a Self) -> HashSet<&'a HEALPixCell> {
+        self.cells.difference(&other.cells).collect()
     }
 
     pub fn iter(&self) -> HEALPixCellsIter {
@@ -112,7 +93,8 @@ impl NewHEALPixCells {
         let depth = cells.depth;
         let mut is_new_cells_added = false;
 
-        let flags = cells.iter()
+        let flags = cells
+            .iter()
             .cloned()
             .map(|cell| {
                 is_new_cells_added = true;
@@ -123,14 +105,15 @@ impl NewHEALPixCells {
         NewHEALPixCells {
             depth,
             flags,
-            is_new_cells_added
+            is_new_cells_added,
         }
     }
 
     fn insert_new_cells(&mut self, cells: &HEALPixCells) {
         let mut is_new_cells_added = false;
         self.depth = cells.depth;
-        self.flags = cells.iter()
+        self.flags = cells
+            .iter()
             .cloned()
             .map(|cell| {
                 let new = !self.flags.contains_key(&cell);
@@ -139,31 +122,26 @@ impl NewHEALPixCells {
                 (cell, new)
             })
             .collect::<HashMap<_, _>>();
-        
 
         self.is_new_cells_added = is_new_cells_added;
     }
 
-    #[inline]
+    /*#[inline]
     fn is_there_new_cells_added(&self) -> bool {
         self.is_new_cells_added
-    }
+    }*/
 
     #[inline]
     fn get_new_cells(&self) -> HEALPixCells {
-        let cells = self.flags.iter()
-            .filter_map(|(cell, new)| {
-                if *new {
-                    Some(*cell)
-                } else {
-                    None
-                }
-            })
+        let cells = self
+            .flags
+            .iter()
+            .filter_map(|(cell, new)| if *new { Some(*cell) } else { None })
             .collect();
 
         HEALPixCells {
             depth: self.depth,
-            cells
+            cells,
         }
     }
 
@@ -181,7 +159,7 @@ struct NewHEALPixCellsIter<'a>(Iter<'a, HEALPixCell>);
 
 impl<'a> Iterator for NewHEALPixCellsIter<'a> {
     type Item = &'a HEALPixCell;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
@@ -194,9 +172,8 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
 
     let angle_per_pixel = aperture / width;
 
-    let depth_pixel = (
-        std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel)
-    ).log2() / 2.0;
+    let depth_pixel =
+        (std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel)).log2() / 2.0;
 
     //let survey_max_depth = conf.get_max_depth();
     // The depth of the texture
@@ -218,60 +195,22 @@ pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
         let inside = camera.get_center().truncate();
         //crate::log(&format!("vertices {:?}, inside {:?}", vertices, inside));
         polygon_coverage(vertices, depth, &inside)
-
     } else {
         HEALPixCells::allsky(depth)
     }
-    
-    /*let center = camera.get_center();
-    if let Some(vertices) = camera.get_vertices() {
-        //crate::log(&format!("A {:?}, B {:?}", vertices, center.truncate()));
-
-        let radius = crate::math::ang_between_vect(&vertices[0].truncate(), &center.truncate());
-        crate::log(&format!("radius {:?}", radius));
-        cone_coverage(depth, radius.0, &center.truncate())
-    } else {
-        HEALPixCells::allsky(depth)
-    }*/
 }
 
-use cgmath::Vector4;
 use crate::cdshealpix;
-fn polygon_coverage(
-    vertices: &[Vector4<f32>],
-    depth: u8,
-    inside: &Vector3<f32>
-) -> HEALPixCells {
+use cgmath::Vector4;
+fn polygon_coverage(vertices: &[Vector4<f32>], depth: u8, inside: &Vector3<f32>) -> HEALPixCells {
     let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
 
-    let cells = coverage.flat_iter()
-        .map(|idx| {
-            HEALPixCell(depth, idx)
-        })
+    let cells = coverage
+        .flat_iter()
+        .map(|idx| HEALPixCell(depth, idx))
         .collect();
-    
-    HEALPixCells {
-        cells,
-        depth
-    }
-}
-fn cone_coverage(
-    depth: u8,
-    radius: f32,
-    center: &Vector3<f32>,
-) -> HEALPixCells {
-    let coverage = cdshealpix::from_cone(depth, radius, center);
 
-    let cells = coverage.flat_iter()
-        .map(|idx| {
-            HEALPixCell(depth, idx)
-        })
-        .collect();
-    
-    HEALPixCells {
-        cells,
-        depth
-    }
+    HEALPixCells { cells, depth }
 }
 
 // Contains the cells being in the FOV for a specific
@@ -286,7 +225,7 @@ pub struct HEALPixCellsInView {
 }
 
 use crate::camera::{CameraViewPort, UserAction};
-use super::image_survey::ImageSurvey;
+
 impl HEALPixCellsInView {
     pub fn new(survey_tex_size: i32, max_depth: u8, camera: &CameraViewPort) -> Self {
         let cells = HEALPixCells::new();

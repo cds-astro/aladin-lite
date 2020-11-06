@@ -1,14 +1,14 @@
+use crate::healpix_cell::HEALPixCell;
+use crate::math::LonLatT;
+use crate::renderable::Angle;
 /// A simple wrapper around sore core methods
 /// of cdshealpix
-/// 
+///
 /// cdshealpix is developped by F-X. Pineau.
 /// Please check its github repo: https://github.com/cds-astro/cds-healpix-rust
 
 /// Get the vertices of an HEALPix cell
 use cgmath::BaseFloat;
-use crate::math::LonLatT;
-use crate::healpix_cell::HEALPixCell;
-use crate::renderable::Angle;
 pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
     let (lon, lat): (Vec<_>, Vec<_>) = healpix::nested::vertices(cell.depth(), cell.idx())
         .iter()
@@ -25,11 +25,11 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
         LonLatT::new(Angle(lon[0]), Angle(lat[0])),
         LonLatT::new(Angle(lon[1]), Angle(lat[1])),
         LonLatT::new(Angle(lon[2]), Angle(lat[2])),
-        LonLatT::new(Angle(lon[3]), Angle(lat[3]))
+        LonLatT::new(Angle(lon[3]), Angle(lat[3])),
     ]
 }
 
-/// Get the grid 
+/// Get the grid
 pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) -> Vec<LonLatT<S>> {
     assert!(n_segments_by_side > 0);
     healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side)
@@ -44,13 +44,12 @@ pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) ->
         .collect()
 }
 
-use healpix::nested::bmoc::{BMOC, Status};
 use crate::math;
-use cgmath::{Vector4, Vector3};
 use crate::math::LonLat;
+use cgmath::{Vector3, Vector4};
+use healpix::nested::bmoc::{Status, BMOC};
 pub struct HEALPixCoverage(BMOC);
 
-use crate::renderable::view_on_surveys::HEALPixCells;
 pub fn from_polygon(
     // The depth of the smallest HEALPix cells contained in it
     depth: u8,
@@ -58,9 +57,10 @@ pub fn from_polygon(
     vertices: &[Vector4<f32>],
     // A vertex being inside the coverage,
     // typically the center of projection
-    inside: &Vector3<f32>
+    inside: &Vector3<f32>,
 ) -> HEALPixCoverage {
-    let lonlat = vertices.iter()
+    let lonlat = vertices
+        .iter()
         .map(|vertex| {
             let (lon, lat) = math::xyzw_to_radec(vertex);
             (lon.0 as f64, lat.0 as f64)
@@ -70,27 +70,9 @@ pub fn from_polygon(
     let inside_lonlat = inside.lonlat();
     let result = moc.test_coo(inside_lonlat.lon().0 as f64, inside_lonlat.lat().0 as f64);
     let moc = match result {
-        Status::OUT => {
-            moc.not()
-        },
-        _ => moc
+        Status::OUT => moc.not(),
+        _ => moc,
     };
-    HEALPixCoverage(moc)
-}
-
-pub fn from_cone(
-    // The depth of the smallest HEALPix cells contained in it
-    depth: u8,
-    radius: f32,
-    // A vertex being inside the coverage,
-    // typically the center of projection
-    center: &Vector3<f32>
-) -> HEALPixCoverage {
-    let (lon, lat) = math::xyz_to_radec(center);
-    let (lon, lat) = (lon.0 as f64, lat.0 as f64);
-
-    let moc = healpix::nested::cone_coverage_approx(depth, lon, lat, radius as f64);
-
     HEALPixCoverage(moc)
 }
 
@@ -98,9 +80,7 @@ use core::ops::Deref;
 impl Deref for HEALPixCoverage {
     type Target = BMOC;
 
-    fn deref (self: &'_ Self) -> &'_ Self::Target {
+    fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
-
-    

@@ -1,11 +1,10 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, escaped, take_till, take_while},
-    character::complete::{alphanumeric0, char, digit1, space0, alpha0, one_of},
-    combinator::{map, value, opt},
-    sequence::{delimited, preceded, tuple, pair},
+    bytes::complete::{take_till, take_while},
+    character::complete::{char, space0},
+    combinator::{map, value},
+    sequence::{delimited, preceded},
     number::complete::float,
-    combinator::recognize,
     IResult,
 };
 
@@ -53,7 +52,7 @@ pub(crate) fn parse_logical(buf: &[u8]) -> IResult<&[u8], FITSKeywordValue> {
     )(buf)
 }
 
-pub(crate) fn parse_integer(buf: &[u8]) -> IResult<&[u8], FITSKeywordValue> {
+/*pub(crate) fn parse_integer(buf: &[u8]) -> IResult<&[u8], FITSKeywordValue> {
     preceded(
         space0,
         map(
@@ -72,7 +71,7 @@ pub(crate) fn parse_integer(buf: &[u8]) -> IResult<&[u8], FITSKeywordValue> {
             }
         )
     )(buf)
-}
+}*/
 
 pub(crate) fn parse_float(buf: &[u8]) -> IResult<&[u8], FITSKeywordValue> {
     preceded(

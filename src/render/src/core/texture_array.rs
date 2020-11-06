@@ -1,30 +1,15 @@
-use std::rc::Rc;
-use std::convert::TryInto;
-
 use web_sys::WebGl2RenderingContext;
-use web_sys::HtmlImageElement;
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use web_sys::console;
 
-use crate::WebGl2Context;
 use crate::image_fmt::FormatImageType;
+use crate::WebGl2Context;
 
-use web_sys::WebGlTexture;
 pub struct Texture2DArray {
     gl: WebGl2Context,
 
     pub textures: Vec<Texture2D>,
-    format: FormatImageType,
-
-    width: i32, // Width of a texture element
-    height: i32, // Height of a texture element
-    num_slices: i32 // number of texture elements
 }
 
-use crate::core::IdxTextureUnit;
 use super::{Texture2D, Texture2DBound};
-use std::path::Path;
 
 impl Texture2DArray {
     /*pub fn create_from_slice_images<P: AsRef<Path>>(
@@ -72,7 +57,7 @@ impl Texture2DArray {
             onload.forget();
             onerror.forget();
         }
-        
+
         texture_2d_array
     }*/
 
@@ -144,7 +129,7 @@ impl Texture2DArray {
 
         onload.forget();
         onerror.forget();
-        
+
         let gl = gl.clone();
         Texture2DArray {
             gl,
@@ -159,7 +144,8 @@ impl Texture2DArray {
         }
     }*/
 
-    pub fn create_empty(gl: &WebGl2Context,
+    pub fn create_empty(
+        gl: &WebGl2Context,
         // The weight of the individual textures
         width: i32,
         // Their height
@@ -171,7 +157,7 @@ impl Texture2DArray {
         format: FormatImageType,
     ) -> Texture2DArray {
         let mut textures = vec![];
-        for slice_idx in 0..num_slices {
+        for _slice_idx in 0..num_slices {
             let texture = Texture2D::create_empty(gl, width, height, tex_params, format);
             textures.push(texture);
         }
@@ -205,16 +191,7 @@ impl Texture2DArray {
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D_ARRAY);*/
 
         let gl = gl.clone();
-        Texture2DArray {
-            gl,
-
-            textures,
-            format,
-
-            width,
-            height,
-            num_slices
-        }        
+        Texture2DArray { gl, textures }
     }
 
     pub fn bind_texture_slice(&self, idx_texture: i32) -> Texture2DBound {
@@ -222,19 +199,18 @@ impl Texture2DArray {
         texture.bind()
     }
 
-    pub fn bind_all_textures<'a>(&self, shader: &ShaderBound<'a>) -> Texture2DArrayBound {
+    pub fn bind_all_textures<'a>(&self, shader: &ShaderBound<'a>) {
         for (tex_idx, texture) in self.textures.iter().enumerate() {
-            self.gl.active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
-            self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.texture.as_ref());
+            self.gl
+                .active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
+            self.gl
+                .bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.texture.as_ref());
 
             let name_location = format!("tex[{}]", tex_idx);
-            let location = self.gl.get_uniform_location(&shader.shader.program, &name_location);
+            let location = self
+                .gl
+                .get_uniform_location(&shader.shader.program, &name_location);
             self.gl.uniform1i(location.as_ref(), tex_idx as i32);
-        }
-
-        Texture2DArrayBound {
-            gl: self.gl.clone(),
-            textures: &self.textures
         }
     }
 
@@ -260,10 +236,9 @@ impl Texture2DArray {
     }
 }*/
 
-pub struct Texture2DArrayBound<'a> {
+/*pub struct Texture2DArrayBound<'a> {
     textures: &'a Vec<Texture2D>,
-    gl: WebGl2Context,
-}
+}*/
 
 /*impl<'a> Drop for Texture2DArrayBound<'a> {
     fn drop(&mut self) {
@@ -278,12 +253,13 @@ use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 impl SendUniforms for Texture2DArray {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        for (texture_idx, texture) in self.textures.iter().enumerate() {
+        for (texture_idx, _texture) in self.textures.iter().enumerate() {
             let texture = self.bind_texture_slice(texture_idx as i32);
 
             let name = format!("tex[{}]", texture_idx.to_string());
             let location = self.gl.get_uniform_location(&shader.shader.program, &name);
-            self.gl.uniform1i(location.as_ref(), texture.get_idx_sampler());
+            self.gl
+                .uniform1i(location.as_ref(), texture.get_idx_sampler());
         }
 
         shader.attach_uniform("num_tex", &(self.textures.len() as i32));

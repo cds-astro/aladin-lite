@@ -1,14 +1,14 @@
-use cgmath::{InnerSpace, BaseFloat};
 use cgmath::Rad;
-use cgmath::{Vector4, Vector2, Vector3};
+use cgmath::{BaseFloat, InnerSpace};
+use cgmath::{Vector2, Vector3, Vector4};
 
 #[inline]
-pub fn angle<S: BaseFloat>(AB: &Vector2<S>, BC: &Vector2<S>) -> Angle<S> {
-    Angle((AB.dot(*BC)).acos())
+pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
+    Angle((ab.dot(*bc)).acos())
 }
 
 #[inline]
-pub fn asincP(mut x: f32) -> f32 {
+pub fn asinc_positive(mut x: f32) -> f32 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.asin() / x
@@ -21,7 +21,7 @@ pub fn asincP(mut x: f32) -> f32 {
 }
 
 #[inline]
-pub fn sincP(mut x: f32) -> f32 {
+pub fn sinc_positive(mut x: f32) -> f32 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.sin() / x
@@ -40,9 +40,14 @@ pub fn ang_between_vect<S: BaseFloat>(x: &Vector3<S>, y: &cgmath::Vector3<S>) ->
 }
 
 #[inline]
-pub fn _ang_between_lonlat<S: BaseFloat>(lon1: Angle<S>, lat1: Angle<S>, lon2: Angle<S>, lat2: Angle<S>) -> Angle<S> {
+pub fn _ang_between_lonlat<S: BaseFloat>(
+    lon1: Angle<S>,
+    lat1: Angle<S>,
+    lon2: Angle<S>,
+    lat2: Angle<S>,
+) -> Angle<S> {
     let abs_diff_lon = (lon1 - lon2).abs();
-    (lat1.sin()*lat2.sin() + lat1.cos()*lat2.cos()*abs_diff_lon.cos()).acos()
+    (lat1.sin() * lat2.sin() + lat1.cos() * lat2.cos() * abs_diff_lon.cos()).acos()
 }
 /*
 #[inline]
@@ -65,7 +70,7 @@ pub fn course_between_lonlat<S: BaseFloat>(lon1: Angle<S>, lat1: Angle<S>, lon2:
         if (lon2 - lon1).sin() < S::zero() {
             a
         } else {
-            S::from(2_f32 * std::f32::consts::PI).unwrap() - a 
+            S::from(2_f32 * std::f32::consts::PI).unwrap() - a
         }
     };
 
@@ -84,7 +89,9 @@ use crate::renderable::angle::Angle;
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
 impl<S> LonLatT<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     pub fn new(lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
         LonLatT(lon, lat)
     }
@@ -109,7 +116,9 @@ where S: BaseFloat {
 }
 
 impl<S> LonLat<S> for Vector3<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     #[inline]
     fn lon(&self) -> Angle<S> {
         let rad = Rad(self.x.atan2(self.z));
@@ -118,14 +127,14 @@ where S: BaseFloat {
 
     #[inline]
     fn lat(&self) -> Angle<S> {
-        let rad = Rad(self.y.atan2((self.x*self.x + self.z*self.z).sqrt()));
+        let rad = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
         Angle::new(rad)
     }
 
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
         let lon = Rad(self.x.atan2(self.z));
-        let lat = Rad(self.y.atan2((self.x*self.x + self.z*self.z).sqrt()));
+        let lat = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
 
         LonLatT(Angle::new(lon), Angle::new(lat))
     }
@@ -144,7 +153,9 @@ where S: BaseFloat {
 }
 
 impl<S> LonLat<S> for Vector4<S>
-where S: BaseFloat {
+where
+    S: BaseFloat,
+{
     #[inline]
     fn lon(&self) -> Angle<S> {
         let rad = Rad(self.x.atan2(self.z));
@@ -152,17 +163,13 @@ where S: BaseFloat {
     }
     #[inline]
     fn lat(&self) -> Angle<S> {
-        let rad = Rad(self.y.atan2(
-            (self.x*self.x + self.z*self.z).sqrt()
-        ));
+        let rad = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
         Angle::new(rad)
     }
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
         let lon = Rad(self.x.atan2(self.z));
-        let lat = Rad(self.y.atan2(
-            (self.x*self.x + self.z*self.z).sqrt()
-        ));
+        let lat = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
 
         LonLatT(Angle::new(lon), Angle::new(lat))
     }
@@ -175,7 +182,7 @@ where S: BaseFloat {
             (delta.cos() * theta.sin()).0,
             delta.sin().0,
             (delta.cos() * theta.cos()).0,
-            S::one()
+            S::one(),
         )
     }
 }
@@ -183,7 +190,7 @@ where S: BaseFloat {
 #[inline]
 pub fn xyz_to_radec<S: BaseFloat>(v: &cgmath::Vector3<S>) -> (Angle<S>, Angle<S>) {
     let lon = Angle(v.x.atan2(v.z));
-    let lat = Angle(v.y.atan2((v.x*v.x + v.z*v.z).sqrt()));
+    let lat = Angle(v.y.atan2((v.x * v.x + v.z * v.z).sqrt()));
 
     (lon, lat)
 }
@@ -191,7 +198,7 @@ pub fn xyz_to_radec<S: BaseFloat>(v: &cgmath::Vector3<S>) -> (Angle<S>, Angle<S>
 #[inline]
 pub fn xyzw_to_radec<S: BaseFloat>(v: &cgmath::Vector4<S>) -> (Angle<S>, Angle<S>) {
     let lon = Angle(v.x.atan2(v.z));
-    let lat = Angle(v.y.atan2((v.x*v.x + v.z*v.z).sqrt()));
+    let lat = Angle(v.y.atan2((v.x * v.x + v.z * v.z).sqrt()));
 
     (lon, lat)
 }
@@ -202,7 +209,7 @@ pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<
         (delta.cos() * theta.sin()).0,
         delta.sin().0,
         (delta.cos() * theta.cos()).0,
-        S::one()
+        S::one(),
     )
 }
 
@@ -245,7 +252,9 @@ pub fn is_inside_ellipse(screen_pos: &Vector2<f32>, a: f32, b: f32) -> bool {
 }
 */
 #[inline]
-const fn num_bits<T>() -> usize { std::mem::size_of::<T>() * 8 }
+const fn num_bits<T>() -> usize {
+    std::mem::size_of::<T>() * 8
+}
 
 #[inline]
 pub fn log_2(x: i32) -> i8 {

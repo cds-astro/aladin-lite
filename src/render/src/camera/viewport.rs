@@ -14,34 +14,31 @@ impl SendUniforms for UserAction {
     }
 }
 
+use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
+use cgmath::{Matrix4, Vector2};
 
-use super::fov_vertices::{
-    FieldOfViewVertices,
-    ModelCoord
-};
-use cgmath::{Vector2, Vector3, Matrix4};
-
-const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
-    -0.8676661489811610,
-    -0.0548755604024359,
-    0.4941094279435681,
+/*const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
+    -0.867_666_1,
+    -0.054_875_56,
+    0.494_109_42,
     0.0,
 
-    -0.1980763734646737,
-    -0.873437090247923,
-    -0.4448296299195045,
+    -0.198_076_37,
+    -0.873_437_1,
+    -0.444_829_64,
     0.0,
 
-    0.4559837762325372,
-    -0.4838350155267381,
-    0.7469822444763707,
+    0.455_983_8,
+    -0.483_835,
+    0.746_982_2,
     0.0,
 
     0.0,
     0.0,
     0.0,
     1.0
-);
+);*/
+
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f32>,
@@ -61,7 +58,7 @@ pub struct CameraViewPort {
     ndc_to_clip: Vector2<f32>,
     clip_zoom_factor: f32,
     // The vertices in model space of the camera
-    // This is useful for computing views according 
+    // This is useful for computing views according
     // to different image surveys
     vertices: FieldOfViewVertices,
 
@@ -82,18 +79,17 @@ pub struct CameraViewPort {
 use crate::WebGl2Context;
 
 use crate::{
-    renderable::{
-        projection::Projection,
-        Angle,
-    },
+    renderable::{projection::Projection, Angle},
     rotation::Rotation,
     sphere_geometry::FieldOfViewType,
 };
-use std::collections::{HashSet, HashMap};
-use cgmath::{Matrix3, Vector4, SquareMatrix};
+
+use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
-    let canvas = gl.canvas().unwrap()
+    let canvas = gl
+        .canvas()
+        .unwrap()
         .dyn_into::<web_sys::HtmlCanvasElement>()
         .unwrap();
 
@@ -104,7 +100,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 }
 
 use crate::math;
-use crate::renderable::angle::ArcDeg;
+
 use crate::sphere_geometry::BoundingBox;
 
 impl CameraViewPort {
@@ -142,12 +138,18 @@ impl CameraViewPort {
         let clip_zoom_factor = 1_f32;
 
         let longitude_reversed = true;
-        let vertices = FieldOfViewVertices::new::<P>(&center, &ndc_to_clip, clip_zoom_factor, &w2m, longitude_reversed);
+        let vertices = FieldOfViewVertices::new::<P>(
+            &center,
+            &ndc_to_clip,
+            clip_zoom_factor,
+            &w2m,
+            longitude_reversed,
+        );
         let gl = gl.clone();
 
         let is_allsky = true;
 
-        let mut camera = CameraViewPort {
+        let camera = CameraViewPort {
             // The field of view angle
             aperture,
             center,
@@ -167,7 +169,7 @@ impl CameraViewPort {
             ndc_to_clip,
             clip_zoom_factor,
             // The vertices in model space of the camera
-            // This is useful for computing views according 
+            // This is useful for computing views according
             // to different image surveys
             vertices,
             // A flag telling whether the camera has been moved during the frame
@@ -199,8 +201,16 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aperture.0, self.longitude_reversed);
-        self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
+        self.vertices.set_fov::<P>(
+            &self.ndc_to_clip,
+            self.clip_zoom_factor,
+            &self.w2m,
+            self.aperture.0,
+            self.longitude_reversed,
+        );
+        self.is_allsky = !P::is_included_inside_projection(
+            &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
+        );
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
@@ -243,8 +253,16 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_fov::<P>(&self.ndc_to_clip, self.clip_zoom_factor, &self.w2m, self.aperture.0, self.longitude_reversed);
-        self.is_allsky = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self));
+        self.vertices.set_fov::<P>(
+            &self.ndc_to_clip,
+            self.clip_zoom_factor,
+            &self.w2m,
+            self.aperture.0,
+            self.longitude_reversed,
+        );
+        self.is_allsky = !P::is_included_inside_projection(
+            &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
+        );
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
@@ -389,13 +407,10 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        self.center = P::clip_to_model_space(
-            &Vector2::new(0_f32, 0_f32),
-            self
-        ).unwrap();
+        self.center = P::clip_to_model_space(&Vector2::new(0_f32, 0_f32), self).unwrap();
     }
 }
-use cgmath::InnerSpace;
+
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 
@@ -407,7 +422,7 @@ impl SendUniforms for CameraViewPort {
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
-            .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32)) 
+            .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32))
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);
 

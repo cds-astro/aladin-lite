@@ -1,8 +1,8 @@
 #version 300 es
-precision highp float;
+precision mediump float;
 precision lowp sampler2D;
 precision lowp isampler2D;
-precision highp int;
+precision mediump int;
 
 layout (location = 0) in vec2 pos_clip_space;
 layout (location = 1) in vec2 lonlat;

@@ -1,8 +1,8 @@
 #version 300 es
-precision highp float;
+precision mediump float;
 precision lowp sampler2D;
 precision lowp isampler2D;
-precision highp int;
+precision mediump int;
 
 in vec3 out_vert_pos;
 in vec2 pos_clip;

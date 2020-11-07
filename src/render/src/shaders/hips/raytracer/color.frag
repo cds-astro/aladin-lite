@@ -1,10 +1,10 @@
 #version 300 es
-precision highp float;
+precision mediump float;
 //precision lowp sampler2DArray;
 //precision lowp isampler2DArray;
 precision lowp sampler2D;
 precision lowp isampler2D;
-precision highp int;
+precision mediump int;
 
 in vec3 out_vert_pos;
 
@@ -16,7 +16,7 @@ struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
     float start_time; // Absolute time that the load has been done in ms
-    int missing;
+    int empty;
 };
 
 uniform int current_depth;
@@ -44,6 +44,8 @@ TileColor get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
+    vec2 uv = vec2(result.dy, result.dx);
+
     Tile tile = textures_tiles[idx];
 
     if (tile.empty == 1) {

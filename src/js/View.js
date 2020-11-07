@@ -822,7 +822,7 @@ export let View = (function() {
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
 
-        $(view.reticleCanvas).on('mousewheel', function(event) {
+        $(view.reticleCanvas).on('wheel', function(event) {
             event.preventDefault();
             event.stopPropagation();
             var level = view.zoomLevel;

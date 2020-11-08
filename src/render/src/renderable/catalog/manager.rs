@@ -403,6 +403,7 @@ impl Catalog {
         let max_density_d1 = self.indices.max_density(d1) as f32;
 
         let max_density = (1_f32 - lambda) * max_density_d0 + lambda * max_density_d1;
+
         max_density
     }
 
@@ -424,9 +425,6 @@ impl Catalog {
             ref cells,
         } = cells;
         let mut current_sources = vec![];
-
-        //let depth_kernel = 7;
-
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
         //crate::log(&format!("num sources FOV: {:?} {:?}", depth, num_sources_in_fov));
 
@@ -465,7 +463,7 @@ impl Catalog {
                 }
             }
         }
-
+        
         // Update the vertex buffer
         self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
         //crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));

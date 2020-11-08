@@ -157,7 +157,12 @@ impl SourceIndices {
         let max_depth_granularity = self.max_density.len();
         if depth >= max_depth_granularity {
             let max_density = self.max_density[max_depth_granularity - 1];
-            std::cmp::max(max_density >> (2 * (depth - max_depth_granularity + 1)), 1)
+            let shift = 2 * (depth - max_depth_granularity + 1);
+            if shift >= 32 {
+                1
+            } else {
+                std::cmp::max(max_density >> shift, 1)
+            }
         //self.max_density[max_depth_granularity - 1]
         } else {
             self.max_density[depth]

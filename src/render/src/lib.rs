@@ -1500,7 +1500,8 @@ impl WebClient {
 
     /// Set directly the field of view (for pinch zooming)
     #[wasm_bindgen(js_name = setFieldOfView)]
-    pub fn set_fov(&mut self, fov: f32) -> Result<(), JsValue> {
+    pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
+        let fov = fov as f32;
         self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())

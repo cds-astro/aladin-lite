@@ -1,7 +1,5 @@
 #version 300 es
 precision mediump float;
-precision lowp sampler2D;
-precision lowp isampler2D;
 precision mediump int;
 
 layout (location = 0) in vec2 lonlat;

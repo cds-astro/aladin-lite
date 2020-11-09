@@ -1,7 +1,7 @@
 #version 300 es
 precision mediump float;
-precision lowp sampler2D;
-precision lowp isampler2D;
+precision highp sampler2D;
+precision highp isampler2D;
 precision mediump int;
 
 in vec3 frag_uv_start;

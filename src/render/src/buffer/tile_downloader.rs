@@ -3,8 +3,7 @@ use super::{CompressedImageRequest, FITSImageRequest, ResolvedStatus, TileReques
 use crate::buffer::HiPSConfig;
 
 // A power of two maximum simultaneous tile requests
-const NUM_EVENT_LISTENERS: usize = 64;
-const MAX_NUM_CELLS_MEMORY_REQUEST: usize = 100;
+const NUM_EVENT_LISTENERS: usize = 16;
 
 struct Requests {
     reqs: Vec<TileRequest>,
@@ -107,6 +106,10 @@ impl Tile {
             format: config.format(),
         }
     }
+
+    fn is_root(&self) -> bool {
+        self.cell.is_root()
+    }
 }
 
 pub type Tiles = HashSet<Tile>;
@@ -114,8 +117,8 @@ pub type Tiles = HashSet<Tile>;
 use std::collections::{HashSet, VecDeque};
 pub struct TileDownloader {
     // Waiting cells to be loaded
-    fits_tiles_to_req: VecDeque<Tile>,
-    html_img_tiles_to_req: VecDeque<Tile>,
+    tiles_to_req: VecDeque<Tile>,
+    base_tiles_to_req: Vec<Tile>,
 
     requests: Requests,
 
@@ -143,13 +146,13 @@ use wasm_bindgen::JsValue;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = Requests::new();
-        let html_img_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
-        let fits_tiles_to_req = VecDeque::with_capacity(MAX_NUM_CELLS_MEMORY_REQUEST);
+        let tiles_to_req = VecDeque::new();
         let requested_tiles = HashSet::with_capacity(64);
+        let base_tiles_to_req = vec![];
 
         Self {
-            fits_tiles_to_req,
-            html_img_tiles_to_req,
+            tiles_to_req,
+            base_tiles_to_req,
 
             requests,
             requested_tiles,
@@ -157,8 +160,7 @@ impl TileDownloader {
     }
 
     pub fn clear_requests(&mut self) {
-        //self.html_img_tiles_to_req.clear();
-        //self.fits_tiles_to_req.clear();
+        self.tiles_to_req.clear();
 
         for req in self.requests.iter_mut() {
             req.clear();
@@ -166,35 +168,74 @@ impl TileDownloader {
         self.requested_tiles.clear();
     }
 
-    pub fn request_tile(&mut self, tile: Tile) {
-        let already_requested = self.requested_tiles.contains(&tile);
-        // The cell is not already requested
-        if !already_requested {
-            // Add to the tiles requested
-            self.requested_tiles.insert(tile.clone());
-            self.add_tile_request(tile);
+    // Register further tile requests to launch
+    pub fn request_tiles(&mut self, tiles: Vec<Tile>) {
+        //crate::log(&format!("tiles to req:{}, requested tiles: {}", self.tiles_to_req.len(), self.requested_tiles.len()));
+        // Remove the ancient requests
+        self.tiles_to_req.clear();
+
+        for tile in tiles.into_iter() {
+            self.request_tile(tile);
         }
     }
 
-    // Register further tile requests to launch
-    fn add_tile_request(&mut self, tile: Tile) {
+    fn request_tile(&mut self, tile: Tile/*, max_num_requested_tiles: usize*/) {
+        // Resize the requested tiles
+        /*while self.requested_tiles.len() > max_num_requested_tiles {
+            
+        }*/
+
+        let already_requested = self.requested_tiles.contains(&tile);
+        // The cell is not already requested
+        if !already_requested && !tile.is_root(){
+            // Add to the tiles requested
+            //self.add_tile_request(tile.clone());
+            self.tiles_to_req.push_back(tile);
+            //self.requested_tiles.remove(&old);
+            //self.requested_tiles.insert(tile);
+        }
+    }
+    /*fn add_tile_request(&mut self, tile: Tile) {
         match tile.format {
             FormatImageType::JPG | FormatImageType::PNG => {
                 self.html_img_tiles_to_req.push_back(tile);
 
-                /*if self.html_img_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
-                    self.html_img_tiles_to_req.pop_front();
+                /*if self.html_img_tiles_to_req.len() > MAX_NUM_CELLS_REQUEST {
+                    self.html_img_tiles_to_req.pop_front()
+                } else {
+                    None
                 }*/
             }
             FormatImageType::FITS(_) => {
                 self.fits_tiles_to_req.push_back(tile);
 
-                /*if self.fits_tiles_to_req.len() > MAX_NUM_CELLS_MEMORY_REQUEST {
-                    self.fits_tiles_to_req.pop_front();
+                /*if self.fits_tiles_to_req.len() > MAX_NUM_CELLS_REQUEST {
+                    self.fits_tiles_to_req.pop_front()
+                } else {
+                    None
                 }*/
             }
         }
+    }*/
+    /*pub fn request_tile(&mut self, tile: Tile) {
+        let already_requested = self.requested_tiles.contains(&tile);
+        // The cell is not already requested
+        if !already_requested {
+            // Add to the tiles requested
+            self.add_tile_request(tile.clone());
+            self.requested_tiles.insert(tile);
+        }
     }
+    fn add_tile_request(&mut self, tile: Tile) {
+        match tile.format {
+            FormatImageType::JPG | FormatImageType::PNG => {
+                self.html_img_tiles_to_req.push_back(tile);
+            }
+            FormatImageType::FITS(_) => {
+                self.fits_tiles_to_req.push_back(tile);
+            }
+        }
+    }*/
 
     // Retrieve the tiles that have been resolved:
     // Two possibilities:
@@ -206,6 +247,7 @@ impl TileDownloader {
         surveys: &ImageSurveys,
     ) -> ResolvedTiles {
         let mut resolved_tiles = HashMap::new();
+        //crate::log(&format!("tiles to req:"));
 
         for req in self.requests.iter_mut() {
             // First, tag the tile requests as ready if they just have been
@@ -255,25 +297,37 @@ impl TileDownloader {
 
     pub fn try_sending_tile_requests(&mut self) -> Result<(), JsValue> {
         // Try sending the fits tile requests
-        self.try_sending_fits_tiles()?;
+        self.try_sending_tiles()?;
         // And then the HTML image tile requests
-        self.try_sending_html_tiles()?;
+        //self.try_sending_html_tiles()?;
 
         Ok(())
     }
 
-    fn try_sending_fits_tiles(&mut self) -> Result<(), JsValue> {
-        let mut is_remaining_req = !self.fits_tiles_to_req.is_empty();
+    fn try_sending_tiles(&mut self) -> Result<(), JsValue> {
+        let mut is_remaining_req = !self.tiles_to_req.is_empty() || !self.base_tiles_to_req.is_empty();
 
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
-            let tile = self.fits_tiles_to_req.back().unwrap();
+            let mut base_tile_requested = false;
+            let tile = if let Some(base_tile) = self.base_tiles_to_req.last() {
+                base_tile_requested = true;
+                base_tile
+            } else {
+                self.tiles_to_req.back().unwrap()
+            };
 
             if let Some(available_req) = self.requests.check_send(tile.format) {
-                let tile = self.fits_tiles_to_req.pop_back().unwrap();
+                let tile = if base_tile_requested {
+                    self.base_tiles_to_req.pop().unwrap()
+                } else {
+                    self.tiles_to_req.pop_back().unwrap()
+                };
 
-                is_remaining_req = !self.fits_tiles_to_req.is_empty();
+                is_remaining_req = !self.tiles_to_req.is_empty() || !self.base_tiles_to_req.is_empty();
+                self.requested_tiles.insert(tile.clone());
+
                 available_req.send(tile)?;
             } else {
                 // We have to wait for more requests
@@ -285,7 +339,7 @@ impl TileDownloader {
         Ok(())
     }
 
-    fn try_sending_html_tiles(&mut self) -> Result<(), JsValue> {
+    /*fn try_sending_html_tiles(&mut self) -> Result<(), JsValue> {
         let mut is_remaining_req = !self.html_img_tiles_to_req.is_empty();
 
         let mut downloader_overloaded = false;
@@ -297,6 +351,8 @@ impl TileDownloader {
                 let tile = self.html_img_tiles_to_req.pop_back().unwrap();
 
                 is_remaining_req = !self.html_img_tiles_to_req.is_empty();
+                self.requested_tiles.insert(tile.clone());
+
                 available_req.send(tile)?;
             } else {
                 // We have to wait for more requests
@@ -306,7 +362,7 @@ impl TileDownloader {
         }
 
         Ok(())
-    }
+    }*/
 
     pub fn request_base_tiles(&mut self, config: &HiPSConfig) {
         // Request base tiles
@@ -319,8 +375,25 @@ impl TileDownloader {
                     cell,
                 };
 
-                self.request_tile(tile);
+                self.request_base_tile(tile);
             }
+        }
+    }
+
+    fn request_base_tile(&mut self, tile: Tile/*, max_num_requested_tiles: usize*/) {
+        // Resize the requested tiles
+        /*while self.requested_tiles.len() > max_num_requested_tiles {
+            
+        }*/
+
+        let already_requested = self.requested_tiles.contains(&tile);
+        // The cell is not already requested
+        if !already_requested {
+            // Add to the tiles requested
+            //self.add_tile_request(tile.clone());
+            self.base_tiles_to_req.push(tile);
+            //self.requested_tiles.remove(&old);
+            //self.requested_tiles.insert(tile);
         }
     }
 }

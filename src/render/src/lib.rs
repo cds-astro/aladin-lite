@@ -218,8 +218,8 @@ impl App {
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
         self.surveys.refresh_views(&self.camera);
-
         // Loop over the surveys
+        let mut tiles = Vec::new();
         for (survey_id, survey) in self.surveys.iter_mut() {
             let already_available_cells = {
                 let mut already_available_cells = HashSet::new();
@@ -252,7 +252,7 @@ impl App {
                                 cell,
                             };
 
-                            self.downloader.request_tile(tile);
+                            tiles.push(tile);
                         }
                     }
                 }
@@ -265,6 +265,8 @@ impl App {
                 textures.update_priority(&cell, is_new_cell);
             }
         }
+        // Launch the new tile requests
+        self.downloader.request_tiles(tiles);
     }
 
     // Run async tasks:

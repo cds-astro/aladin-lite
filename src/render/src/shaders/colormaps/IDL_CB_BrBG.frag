@@ -7,6 +7,7 @@ out vec4 color;
 uniform sampler2D texture_fbo;
 uniform sampler2D colormap;
 uniform float alpha;
+uniform float strength;
 
 float colormap_red(float x) {
     if (x < 0.4128910005092621) {

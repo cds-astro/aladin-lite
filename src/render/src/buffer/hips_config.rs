@@ -193,12 +193,10 @@ impl HiPSConfig {
         let tile_config = TileConfig::new(tile_size, format);
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
-        let num_tile_per_side_texture = texture_size / tile_size;
+        let num_tile_per_side_texture = (texture_size / tile_size) as usize;
 
         let delta_depth = math::log_2(num_tile_per_side_texture as i32) as u8;
-
-        let num_tiles_per_texture_side = 1 << delta_depth;
-        let num_tiles_per_texture = num_tiles_per_texture_side * num_tiles_per_texture_side;
+        let num_tiles_per_texture = num_tile_per_side_texture * num_tile_per_side_texture;
 
         let max_depth_texture = max_depth_tile - delta_depth;
 

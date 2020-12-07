@@ -213,6 +213,10 @@ impl CameraViewPort {
         );
     }
 
+    /*pub fn set_clip_zoom_factor<P: Projection>(&mut self, aperture) {
+
+    }*/
+
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
@@ -240,14 +244,15 @@ impl CameraViewPort {
             aperture
         } else {
             if !P::ALLOW_UNZOOM_MORE {
+                // Some projections have a limit of unzooming
+                // like Mercator
                 self.set_aperture::<P>(P::aperture_start());
                 return;
             }
 
             self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
-            // The start aperture of the new projection is < to the current aperture
-            // We reset the wheel idx too
-            P::aperture_start()
+
+            aperture
         };
         // Project this vertex into the screen
 

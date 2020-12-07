@@ -131,10 +131,11 @@ export let View = (function() {
             this.projectionMethod = ProjectionEnum.SIN;
             this.projection = new Projection(lon, lat);
             this.projection.setProjection(this.projectionMethod);
-            this.zoomLevel = 0;
+            //this.zoomLevel = 0;
             // Prev time of the last frame
             this.prev = 0;
-            this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
+            //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
+            this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
     
             this.viewCenter = {lon: lon, lat: lat}; // position of center of view
             
@@ -224,7 +225,10 @@ export let View = (function() {
 
                 if (self.width!==computedWidth || self.height===computedHeight) {
                     self.fixLayoutDimensions();
-                    self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
+                    // As the WebGL backend has been resized correctly by
+                    // the previous call, we can get the zoom factor from it
+                    
+                    self.updateZoomState(); // needed to force recomputation of displayed FoV
                 }
            }, 1000);
 
@@ -266,6 +270,7 @@ export let View = (function() {
     };
     
     // called at startup and when window is resized
+    // The WebGL backend is resized
     View.prototype.fixLayoutDimensions = function() {
         Utils.cssScale = undefined;
         
@@ -390,7 +395,7 @@ export let View = (function() {
      * @param view
      * @returns FoV (array of 2 elements : width and height) in degrees
      */
-   function computeFov(view) {
+/*   function computeFov(view) {
         var fov = doComputeFov(view, view.zoomFactor);
         
         
@@ -398,7 +403,7 @@ export let View = (function() {
             
         return fov;
     }
-    
+
     function doComputeFov(view, zoomFactor) {
         // if zoom factor < 1, we view 180°
         var fov;
@@ -423,7 +428,7 @@ export let View = (function() {
         
         return fov;
     }
-    
+    */
     function updateFovDiv(view) {
         if (isNaN(view.fov)) {
             view.fovDiv.html("FoV:");
@@ -833,15 +838,19 @@ export let View = (function() {
             if (event.hasOwnProperty('originalEvent')) {
                 delta = -event.originalEvent.deltaY;
             } 
-            if (delta>0) {
+            /*if (delta>0) {
                 level += 1;
                 //zoom
             }
             else {
                 level -= 1;
                 //unzoom
-            }
-            view.setZoomLevel(level);
+            }*/
+            // The value of the field of view is determined
+            // inside the backend
+            view.aladin.webglAPI.registerWheelEvent(delta);
+            view.updateZoomState();
+            //view.setZoomLevel(level);
             
             return false;
         });
@@ -896,10 +905,10 @@ export let View = (function() {
         view.displaySurvey = true;
         view.displayCatalog = false;
         view.displayReticle = true;
-        
+
         // initial draw
-        view.fov = computeFov(view);
-        updateFovDiv(view);
+        //view.fov = computeFov(view);
+        //updateFovDiv(view);
         //view.redraw();
     };
 
@@ -969,14 +978,21 @@ export let View = (function() {
         var now = Date.now();
         var dt = now - this.prev;
 
-        let updateView = this.aladin.webglAPI.update(dt);
+        this.aladin.webglAPI.update(dt);
+        this.updateZoomState();
+        // This is called at each frame
+        // Better way is to give this function
+        // to Rust so that the backend executes it
+        // only when necessary, i.e. during the zoom
+        // animation
+        updateFovDiv(this);
         this.aladin.webglAPI.render();
 
         if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
         } 
         else if (! this.needRedraw) {
-            if (!this.flagForceRedraw && !updateView) {
+            if (!this.flagForceRedraw) {
                 return;
             }
             else {
@@ -1561,14 +1577,14 @@ export let View = (function() {
     };
     
     
-    View.prototype.computeZoomFactor = function(level) {
+    /*View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(180.0/Math.pow(1.15, level), this.projectionMethod);
+            return AladinUtils.getZoomFactorForAngle(180.0/Math.pow(1.35, level), this.projectionMethod);
         }
         else {
             return 1 + 0.1*level;
         }
-    };
+    };*/
     /*View.prototype.computeZoomLevelFromFOV = function() {
         if (level>0) {
             return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
@@ -1578,12 +1594,16 @@ export let View = (function() {
         }
     };*/
     
+    // Called for touchmove events
     View.prototype.setZoom = function(fovDegrees) {
         if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
             return;
         }
-        var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
-        this.setZoomLevel(zoomLevel);
+        // Erase the field of view state of the backend by
+        this.aladin.webglAPI.setFieldOfView(fovDegrees);
+        //var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
+        //this.setZoomLevel(zoomLevel);
+        this.updateZoomState();
     };
     
     View.prototype.setShowGrid = function(showGrid) {
@@ -1591,8 +1611,8 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    
-    View.prototype.setZoomLevel = function(level) {
+    //View.prototype.setZoom = function(level) {
+    View.prototype.updateZoomState = function() {
         /*let zoom = {"action": undefined};
 
         if (this.zoomLevel > level) {
@@ -1615,13 +1635,11 @@ export let View = (function() {
         } else {
             this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
         }*/
-        this.zoomLevel = Math.max(-7, level);
+        //this.zoomLevel = Math.max(-7, level);
         
-        this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
-        
-        var oldFov = this.fov;
+        /// Old
+        /*this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
         this.fov = computeFov(this);
-        //console.log(this.zoomLevel, this.fov);
 
         if (this.zoomFactor >= 1.0) {
             this.aladin.webglAPI.setFieldOfView(this.fov);
@@ -1630,10 +1648,12 @@ export let View = (function() {
 
             // zoom factor
             this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
-        }
+        }*/
+        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
+        this.fov = this.aladin.webglAPI.getFieldOfView();
 
         // TODO: event/listener should be better
-        updateFovDiv(this);
+        //updateFovDiv(this);
         
         this.computeNorder();
         

@@ -83,6 +83,8 @@ struct App {
 
     move_animation: Option<MoveAnimation>,
     zoom_animation: Option<ZoomAnimation>,
+    inertial_move_animation: Option<MoveInertiaAnimation>,
+    prev_cam_position: Vector4<f32>,
     tasks_finished: bool,
 }
 
@@ -106,10 +108,15 @@ struct MoveAnimation {
     time_start_anim: Time,
     goal_pos: Vector3<f32>,
 }
+struct MoveInertiaAnimation {
+    d0: f32,
+    axis: Vector3<f32>,
+    time_start: Time,
+}
 struct ZoomAnimation {
     time_start_anim: Time,
-    start_fov: f32,
-    goal_fov: f32,
+    start_fov: Angle<f32>,
+    goal_fov: Angle<f32>,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -181,10 +188,12 @@ impl App {
         // Variable storing the location to move to
         let move_animation = None;
         let zoom_animation = None;
+        let inertial_move_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
         let _start_render_time = Time::now();
         let rendering = true;
+        let prev_cam_position = *camera.get_center();
         let app = App {
             gl,
 
@@ -208,6 +217,8 @@ impl App {
 
             move_animation,
             zoom_animation,
+            inertial_move_animation,
+            prev_cam_position,
 
             tasks_finished,
         };
@@ -364,11 +375,13 @@ impl App {
             // where:
             // * k is the stiffness of the ressort
             // * m is its mass
-            let alpha = 1_f32 + (0_f32 - 1_f32) * (2_f32 * t + 1_f32) * (-2_f32 * t).exp();
+            let w0 = 25.0;
+            let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1_f32) * ((-w0 * t).exp());
+            /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
-            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;
+            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
 
-            self.camera.set_aperture::<P>(Angle(fov));
+            self.camera.set_aperture::<P>(fov);
             self.look_for_new_tiles();
 
             // Animation stop criteria
@@ -737,11 +750,36 @@ impl App {
     pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
         let xyz: Vector4<f32> = lonlat.vector();
         let rot = Rotation::from_sky_position(&xyz);
+        self.prev_cam_position = self.camera.get_center().clone();
+
         self.camera.set_rotation::<P>(&rot);
         self.look_for_new_tiles();
 
         // Stop the current animation if there is one
         self.move_animation = None;
+    }
+
+    pub fn release_left_button_mouse(&mut self) {
+        let (axis, d0) = {
+            let x = self.prev_cam_position.truncate();
+            let y = self.camera.get_center().truncate();
+            if x == y {
+                (Vector3::new(1.0, 0.0, 0.0), 0.0)
+            } else {
+                let axis = x.cross(y)
+                    .normalize();
+                let d = math::ang_between_vect(&x, &y).0;
+
+                (axis, d)
+            }
+        };
+        self.inertial_move_animation = Some(
+            MoveInertiaAnimation {
+                d0,
+                axis,
+                time_start: Time::now()
+            }
+        );
     }
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
@@ -762,17 +800,21 @@ impl App {
         });
     }
 
-    pub fn start_zooming_to<P: Projection>(&mut self, fov: f32) {
-        // Convert these positions to rotations
-        let start_fov = self.camera.get_aperture().0;
-        let goal_fov = fov;
+    pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f32>) {
+        /*if let Some(zoom) = &mut self.zoom_animation {
+            zoom.goal_fov = fov;
+        } else {*/
+            // Convert these positions to rotations
+            let start_fov = self.camera.get_aperture();
+            let goal_fov = fov;
 
-        // Set the moving animation object
-        self.zoom_animation = Some(ZoomAnimation {
-            time_start_anim: Time::now(),
-            start_fov,
-            goal_fov,
-        });
+            // Set the moving animation object
+            self.zoom_animation = Some(ZoomAnimation {
+                time_start_anim: Time::now(),
+                start_fov,
+                goal_fov,
+            });
+        //}
     }
 
     pub fn go_from_to<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
@@ -809,6 +851,10 @@ impl App {
     fn get_center<P: Projection>(&self) -> LonLatT<f32> {
         //let center_pos = self.camera.compute_center_model_pos::<P>();
         self.camera.get_center().lonlat()
+    }
+
+    fn get_clip_zoom_factor(&self) -> f32 {
+        self.camera.get_clip_zoom_factor()
     }
 
     fn get_fov(&self) -> f32 {
@@ -1114,7 +1160,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn start_zooming_to(&mut self, app: &mut App, fov: f32) {
+    pub fn start_zooming_to(&mut self, app: &mut App, fov: Angle<f32>) {
         match self {
             ProjectionType::Aitoff => app.start_zooming_to::<Aitoff>(fov),
             ProjectionType::MollWeide => app.start_zooming_to::<Mollweide>(fov),
@@ -1503,8 +1549,29 @@ impl WebClient {
     /// Set directly the field of view (for pinch zooming)
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
-        let fov = fov as f32;
-        self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
+        //let fov = fov as f32;
+        let fov = ArcDeg(fov as f32).into();
+
+        self.projection.start_zooming_to(&mut self.app, fov);
+        //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = registerWheelEvent)]
+    pub fn wheel_event_callback(&mut self, delta: f64) -> Result<(), JsValue> {
+        let zooming = delta > 0.0;
+        let cur_fov = self.app.get_fov();
+        let target_fov = if zooming {
+            cur_fov / 1.80
+        } else {
+            cur_fov * 1.80
+        };
+
+        //log(&format!("{:?}", target_fov));
+        let target_fov = ArcDeg(target_fov).into();
+        self.projection.start_zooming_to(&mut self.app, target_fov);
+        //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
     }
@@ -1552,6 +1619,11 @@ impl WebClient {
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
+    #[wasm_bindgen(js_name = getClipZoomFactor)]
+    pub fn get_clip_zoom_factor(&self) -> Result<f32, JsValue> {
+        Ok(self.app.get_clip_zoom_factor())
+    }
+
     /*#[wasm_bindgen(js_name = startInertia)]
     pub fn start_inertia(&mut self) -> Result<(), JsValue> {
         //self.projection.set_center(&mut self.app, ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -1594,20 +1666,27 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = zoomToLocation)]
+    /*#[wasm_bindgen(js_name = zoomToLocation)]
     pub fn start_zooming_to(&mut self, fov: f32) -> Result<(), JsValue> {
         let fov: Angle<f32> = ArcDeg(fov).into();
 
         self.projection.start_zooming_to(&mut self.app, fov.0);
 
         Ok(())
-    }
+    }*/
 
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         self.projection.set_center(&mut self.app, lonlat);
+
+        Ok(())
+    }
+    /// Set directly the center position
+    #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
+    pub fn release_left_button_mouse(&mut self) -> Result<(), JsValue> {
+        self.app.release_left_button_mouse();
 
         Ok(())
     }

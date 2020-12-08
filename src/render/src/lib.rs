@@ -83,8 +83,10 @@ struct App {
 
     move_animation: Option<MoveAnimation>,
     zoom_animation: Option<ZoomAnimation>,
-    inertial_move_animation: Option<MoveInertiaAnimation>,
-    prev_cam_position: Vector4<f32>,
+    inertial_move_animation: Option<InertiaAnimation>,
+    prev_cam_position: Vector3<f32>,
+    prev_center: Vector3<f32>,
+    out_of_fov: bool,
     tasks_finished: bool,
 }
 
@@ -108,11 +110,17 @@ struct MoveAnimation {
     time_start_anim: Time,
     goal_pos: Vector3<f32>,
 }
-struct MoveInertiaAnimation {
-    d0: f32,
+
+/// State for inertia
+struct InertiaAnimation {
+    // Initial angular distance
+    d0: Angle<f32>,
+    // Vector of rotation
     axis: Vector3<f32>,
-    time_start: Time,
+    // The time when the inertia begins
+    time_start_anim: Time,
 }
+
 struct ZoomAnimation {
     time_start_anim: Time,
     start_fov: Angle<f32>,
@@ -193,7 +201,9 @@ impl App {
         let request_redraw = false;
         let _start_render_time = Time::now();
         let rendering = true;
-        let prev_cam_position = *camera.get_center();
+        let prev_cam_position = camera.get_center().truncate();
+        let prev_center = Vector3::new(0.0, 1.0, 0.0);
+        let out_of_fov = false;
         let app = App {
             gl,
 
@@ -214,11 +224,13 @@ impl App {
 
             exec,
             resources,
+            prev_center,
 
             move_animation,
             zoom_animation,
             inertial_move_animation,
             prev_cam_position,
+            out_of_fov,
 
             tasks_finished,
         };
@@ -389,6 +401,39 @@ impl App {
             let thresh = 1e-5;
             if err < thresh {
                 self.zoom_animation = None;
+            }
+        }
+
+        if let Some(InertiaAnimation {
+            time_start_anim,
+            d0,
+            axis,
+        }) = self.inertial_move_animation {
+            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+
+            // Undamped angular frequency of the oscillator
+            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
+            //
+            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
+            // where:
+            // * k is the stiffness of the ressort
+            // * m is its mass
+            let w0 = 5.0;
+            let d1 = Angle(0.0);
+            // The angular distance goes from d0 to 0.0
+            let d = d1 + (d0 - d1) * (w0 * t + 1_f32) * ((-w0 * t).exp());
+            /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
+            let alpha = alpha * alpha;
+            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
+
+            self.camera.rotate::<P>(&axis, d);
+            self.look_for_new_tiles();
+
+            // Inertia stops when the angular distance
+            // is too small
+            let thresh: Angle<f32> = ArcSec(2_f32).into();
+            if d < thresh {
+                self.inertial_move_animation = None;
             }
         }
 
@@ -748,36 +793,60 @@ impl App {
     }
 
     pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
+        self.prev_cam_position = self.camera.get_center().truncate();
+
         let xyz: Vector4<f32> = lonlat.vector();
         let rot = Rotation::from_sky_position(&xyz);
-        self.prev_cam_position = self.camera.get_center().clone();
 
+        // Apply the rotation to the camera to go
+        // to the next lonlat
         self.camera.set_rotation::<P>(&rot);
         self.look_for_new_tiles();
 
         // Stop the current animation if there is one
         self.move_animation = None;
+        // And stop the current inertia as well if there is one
+        self.inertial_move_animation = None;
+    }
+
+    pub fn press_left_button_mouse(&mut self) {
+        self.prev_center = self.camera.get_center().truncate();
+        self.inertial_move_animation = None;
+        self.move_animation = None;
+        self.out_of_fov = false;
     }
 
     pub fn release_left_button_mouse(&mut self) {
-        let (axis, d0) = {
-            let x = self.prev_cam_position.truncate();
-            let y = self.camera.get_center().truncate();
-            if x == y {
-                (Vector3::new(1.0, 0.0, 0.0), 0.0)
-            } else {
-                let axis = x.cross(y)
-                    .normalize();
-                let d = math::ang_between_vect(&x, &y).0;
+        // Check whether the center has moved
+        // between the pressing and releasing
+        // of the left button.
+        //
+        // Do not start inerting if the mouse has not
+        // moved
+        let center = self.camera.get_center().truncate();
+        debug!("kjskd");
+        debug!(self.prev_center);
+        debug!(center);
+        if self.out_of_fov || self.prev_center == center {
+            return;
+        }
+        // Start inertia here
 
-                (axis, d)
-            }
-        };
+        // Angular distance between the previous and current
+        // center position
+        let x = self.prev_cam_position;
+        let axis = x.cross(center)
+            .normalize();
+        let d0 = math::ang_between_vect(&x, &center);
+        debug!(d0);
+        debug!(x);
+        debug!(center);
+
         self.inertial_move_animation = Some(
-            MoveInertiaAnimation {
+            InertiaAnimation {
                 d0,
                 axis,
-                time_start: Time::now()
+                time_start_anim: Time::now()
             }
         );
     }
@@ -817,28 +886,47 @@ impl App {
         //}
     }
 
-    pub fn go_from_to<P: Projection>(&mut self, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
-        let model2world = self.camera.get_m2w();
-
-        let m1: Vector4<f32> = pos1.vector();
-        let w1 = model2world * m1;
-        let m2: Vector4<f32> = pos2.vector();
-        let w2 = model2world * m2;
-
-        let r = self.camera.get_rotation();
-
-        let x = r.rotate(&w1).truncate();
-        let y = r.rotate(&w2).truncate();
-        if x != y {
-            let axis = x.cross(y).normalize();
-            let d = math::ang_between_vect(&x, &y);
-
-            self.camera.rotate::<P>(&(-axis), d);
-            self.look_for_new_tiles();
+    pub fn go_from_to<P: Projection>(&mut self, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
+        if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
+            if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
+                let model2world = self.camera.get_m2w();
+                let m1: Vector4<f32> = pos1.vector();
+                let w1 = model2world * m1;
+                let m2: Vector4<f32> = pos2.vector();
+                let w2 = model2world * m2;
+        
+                let r = self.camera.get_rotation();
+        
+                let cur_pos = r.rotate(&w1).truncate();
+                //let cur_pos = w1.truncate();
+                let next_pos = r.rotate(&w2).truncate();
+                //let next_pos = w2.truncate();
+                if cur_pos != next_pos {
+                    let axis = cur_pos.cross(next_pos).normalize();
+                    let d = math::ang_between_vect(&cur_pos, &next_pos);
+        
+                    self.prev_cam_position = self.camera.get_center().truncate();
+        
+                    // Apply the rotation to the camera to
+                    // go from the current pos to the next position
+                    self.camera.rotate::<P>(&(-axis), d);
+                    self.look_for_new_tiles();
+        
+                }
+                return;
+            }
         }
 
-        // Stop the current animation if there is one
+
+        self.out_of_fov = true;
+
+        /*// Stop the current animation if there is one
         self.move_animation = None;
+        // And stop the current inertia as well if there is one
+        self.inertial_move_animation = None;*/
+        
+
+        
     }
 
     pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
@@ -1005,14 +1093,14 @@ impl ProjectionType {
         }
     }
 
-    fn go_from_to(&self, app: &mut App, pos1: &LonLatT<f32>, pos2: &LonLatT<f32>) {
+    fn go_from_to(&self, app: &mut App, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
         match self {
-            ProjectionType::Aitoff => app.go_from_to::<Aitoff>(pos1, pos2),
-            ProjectionType::MollWeide => app.go_from_to::<Mollweide>(pos1, pos2),
-            ProjectionType::Ortho => app.go_from_to::<Orthographic>(pos1, pos2),
-            ProjectionType::Arc => app.go_from_to::<AzimuthalEquidistant>(pos1, pos2),
-            ProjectionType::Gnomonic => app.go_from_to::<Gnomonic>(pos1, pos2),
-            ProjectionType::Mercator => app.go_from_to::<Mercator>(pos1, pos2),
+            ProjectionType::Aitoff => app.go_from_to::<Aitoff>(s1x, s1y, s2x, s2y),
+            ProjectionType::MollWeide => app.go_from_to::<Mollweide>(s1x, s1y, s2x, s2y),
+            ProjectionType::Ortho => app.go_from_to::<Orthographic>(s1x, s1y, s2x, s2y),
+            ProjectionType::Arc => app.go_from_to::<AzimuthalEquidistant>(s1x, s1y, s2x, s2y),
+            ProjectionType::Gnomonic => app.go_from_to::<Gnomonic>(s1x, s1y, s2x, s2y),
+            ProjectionType::Mercator => app.go_from_to::<Mercator>(s1x, s1y, s2x, s2y),
         }
     }
 
@@ -1683,10 +1771,18 @@ impl WebClient {
 
         Ok(())
     }
-    /// Set directly the center position
+    /// Tell the backend when the left mouse button has been
+    /// released. This is useful for beginning inerting
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
     pub fn release_left_button_mouse(&mut self) -> Result<(), JsValue> {
         self.app.release_left_button_mouse();
+
+        Ok(())
+    }
+    /// Tell the backend when the left mouse button has been pressed
+    #[wasm_bindgen(js_name = pressLeftMouseButton)]
+    pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {
+        self.app.press_left_button_mouse();
 
         Ok(())
     }
@@ -1694,14 +1790,12 @@ impl WebClient {
     #[wasm_bindgen(js_name = goFromTo)]
     pub fn go_from_to(
         &mut self,
-        lon1: f32,
-        lat1: f32,
-        lon2: f32,
-        lat2: f32,
+        s1x: f32,
+        s1y: f32,
+        s2x: f32,
+        s2y: f32,
     ) -> Result<(), JsValue> {
-        let pos1 = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into());
-        let pos2 = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into());
-        self.projection.go_from_to(&mut self.app, &pos1, &pos2);
+        self.projection.go_from_to(&mut self.app, s1x, s1y, s2x, s2y);
 
         Ok(())
     }

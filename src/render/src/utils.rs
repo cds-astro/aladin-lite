@@ -1,3 +1,5 @@
+#![macro_use]
+
 pub fn get_current_time() -> f32 {
     let window = web_sys::window().expect("should have a window in this context");
     let performance = window
@@ -38,4 +40,10 @@ pub unsafe fn flatten_vec<I, O>(mut v: Vec<I>) -> Vec<O> {
     let new_len = v.len() * std::mem::size_of::<I>() / std::mem::size_of::<O>();
     v.set_len(new_len);
     std::mem::transmute(v)
+}
+
+macro_rules! debug {
+    ($x:expr) => {
+        crate::log(&format!("dbg: {:?}", $x));
+    };
 }

@@ -517,6 +517,7 @@ export let View = (function() {
             else if (view.mode==View.SELECT) {
                 view.selectStartCoo = {x: view.dragx, y: view.dragy};
             }
+            view.aladin.webglAPI.pressLeftMouseButton();
             return false; // to disable text selection
         });
 
@@ -659,6 +660,7 @@ export let View = (function() {
             view.refreshProgressiveCats();
 
             view.requestRedraw(true);
+            view.aladin.webglAPI.releaseLeftButtonMouse();
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
@@ -723,42 +725,42 @@ export let View = (function() {
                 return;
             }
 
-            var xoffset, yoffset;
-            var pos1, pos2;
+            //var xoffset, yoffset;
+            var s1, s2;
             if (e.originalEvent && e.originalEvent.targetTouches) {
-                // ???
-                xoffset = e.originalEvent.targetTouches[0].clientX-view.dragx;
+                /*xoffset = e.originalEvent.targetTouches[0].clientX-view.dragx;
                 yoffset = e.originalEvent.targetTouches[0].clientY-view.dragy;
                 var xy1 = AladinUtils.viewToXy(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY, view.width, view.height, view.largestDim, view.zoomFactor);
                 var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
 
-                //pos1 = view.projection.unproject(xy1.x, xy1.y);
-                //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
-                pos2 = webglAPI.screenToWorld(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY);
-                if (pos2 == undefined)  {
-                    return;
-                }
+                pos1 = view.projection.unproject(xy1.x, xy1.y);
+                pos2 = view.projection.unproject(xy2.x, xy2.y);*/
+                s1 = {x: view.dragx, y: view.dragy};
+                s2 = {x: e.originalEvent.targetTouches[0].clientX, y: e.originalEvent.targetTouches[0].clientY};
             }
             else {
                 /*
                 xoffset = e.clientX-view.dragx;
                 yoffset = e.clientY-view.dragy;
-                */
+
                 xoffset = xymouse.x-view.dragx;
                 yoffset = xymouse.y-view.dragy;
                 var xy1 = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
                 var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
-
+                */
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
+                //console.log(view.dragx, view.dragy)
+                //console.log(xymouse)
 
-                pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
+                /*pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
 
                 if (pos2 == undefined)  {
                     return;
-                }
+                }*/
+                s1 = {x: view.dragx, y: view.dragy};
+                s2 = {x: xymouse.x, y: xymouse.y};
             }
             
             // TODO : faut il faire ce test ??
@@ -813,10 +815,12 @@ export let View = (function() {
             }
             view.realDragging = true;
 
-            webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
+            //webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
+            webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
             //webglAPI.setCenter(pos2[0], pos2[1]);
-            view.viewCenter.lon = pos2[0];
-            view.viewCenter.lat = pos2[1];
+            let viewCenter = webglAPI.getCenter();
+            view.viewCenter.lon = viewCenter[0];
+            view.viewCenter.lat = viewCenter[1];
 
 
             //console.log(view.viewCenter);

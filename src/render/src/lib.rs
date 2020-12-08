@@ -821,13 +821,17 @@ impl App {
         // between the pressing and releasing
         // of the left button.
         //
-        // Do not start inerting if the mouse has not
-        // moved
+        // Do not start inerting if:
+        // * the mouse has not moved
+        // * the mouse is out of the projection
+        // * the mouse has not been moved since a certain
+        //   amount of time
         let center = self.camera.get_center().truncate();
-        debug!("kjskd");
-        debug!(self.prev_center);
-        debug!(center);
-        if self.out_of_fov || self.prev_center == center {
+        let now = Time::now();
+        let time_of_last_move = self.camera.get_time_of_last_move();
+        //debug!(now);
+        //debug!(time_of_last_move);
+        if self.out_of_fov || self.prev_center == center || (now - time_of_last_move) >= DeltaTime::from_millis(30.0) {
             return;
         }
         // Start inertia here
@@ -838,9 +842,6 @@ impl App {
         let axis = x.cross(center)
             .normalize();
         let d0 = math::ang_between_vect(&x, &center);
-        debug!(d0);
-        debug!(x);
-        debug!(center);
 
         self.inertial_move_animation = Some(
             InertiaAnimation {

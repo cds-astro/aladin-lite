@@ -20,7 +20,16 @@ impl Ord for Time {
 }
 impl Eq for Time {}
 
+use core::ops::Sub;
+impl Sub for Time {
+    type Output = DeltaTime;
+    fn sub(self, other: Self) -> Self::Output {
+        DeltaTime(self.0 - other.0)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
+#[derive(PartialOrd, PartialEq)]
 pub struct DeltaTime(pub f32);
 
 impl DeltaTime {

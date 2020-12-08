@@ -72,6 +72,9 @@ pub struct CameraViewPort {
     longitude_reversed: bool,
     is_allsky: bool,
 
+    // Time when the camera has moved
+    time_last_move: Time,
+
     // A reference to the WebGL2 context
     gl: WebGl2Context,
 }
@@ -102,7 +105,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
 use crate::math;
 
 use crate::sphere_geometry::BoundingBox;
-
+use crate::time::Time;
 impl CameraViewPort {
     pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
@@ -148,6 +151,7 @@ impl CameraViewPort {
         let gl = gl.clone();
 
         let is_allsky = true;
+        let time_last_move = Time::now();
 
         let camera = CameraViewPort {
             // The field of view angle
@@ -179,6 +183,9 @@ impl CameraViewPort {
             last_user_action,
             // longitude reversed flag
             longitude_reversed,
+            // Time when the camera has moved
+            // for the last time
+            time_last_move,
 
             // A reference to the WebGL2 context
             gl,
@@ -393,6 +400,10 @@ impl CameraViewPort {
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
+
+    pub fn get_time_of_last_move(&self) -> Time {
+        self.time_last_move
+    }
 }
 use cgmath::Matrix;
 impl CameraViewPort {
@@ -408,6 +419,7 @@ impl CameraViewPort {
 
         self.vertices.set_rotation::<P>(&self.w2m, self.aperture.0);
         self.update_center::<P>();
+        self.time_last_move = Time::now();
     }
 
     fn update_center<P: Projection>(&mut self) {

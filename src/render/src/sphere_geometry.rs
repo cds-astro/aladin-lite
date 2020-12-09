@@ -1,9 +1,8 @@
 use cgmath::Rad;
 use cgmath::{Vector3, Vector4};
-
-const PI: f32 = std::f32::consts::PI;
-const TWICE_PI: f32 = PI * 2_f32;
-const HALF_PI: f32 = PI * 0.5_f32;
+const PI: Angle<f64> = Angle(std::f64::consts::PI);
+const TWICE_PI: Angle<f64> = Angle(std::f64::consts::PI * 2.0);
+const HALF_PI: Angle<f64> = Angle(std::f64::consts::PI * 0.5);
 
 use crate::renderable::angle::Angle;
 
@@ -27,7 +26,7 @@ impl FieldOfViewType {
         allsky
     }
 
-    pub fn new_polygon(vertices: &[Vector4<f32>] /*, aspect: f32*/) -> FieldOfViewType {
+    pub fn new_polygon(vertices: &[Vector4<f64>] /*, aspect: f32*/) -> FieldOfViewType {
         FieldOfViewType::Polygon(Polygon::new(vertices /*, aspect*/))
     }
 
@@ -49,11 +48,11 @@ impl FieldOfViewType {
         great_circles_labels
     }*/
 
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(
+    pub fn intersect_meridian<LonT: Into<Rad<f64>>>(
         &self,
         lon: LonT,
         camera: &CameraViewPort,
-    ) -> Option<Vector3<f32>> {
+    ) -> Option<Vector3<f64>> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 // Allsky case
@@ -61,24 +60,24 @@ impl FieldOfViewType {
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
                 let center = camera.get_center().lonlat();
-                let lon: Rad<f32> = lon.into();
-                let pos: Vector3<f32> = LonLatT::new(lon.into(), center.lat()).vector();
+                let lon: Rad<f64> = lon.into();
+                let pos: Vector3<f64> = LonLatT::new(lon.into(), center.lat()).vector();
                 Some(pos)
             }
             FieldOfViewType::Polygon(polygon) => polygon.intersect_meridian(lon),
         }
     }
 
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(
+    pub fn intersect_parallel<LatT: Into<Rad<f64>>>(
         &self,
         lat: LatT,
         camera: &CameraViewPort,
-    ) -> Option<Vector3<f32>> {
+    ) -> Option<Vector3<f64>> {
         match self {
             FieldOfViewType::Allsky(_) => {
                 let center = camera.get_center().lonlat();
-                let lat: Rad<f32> = lat.into();
-                let pos: Vector3<f32> = LonLatT::new(center.lon(), lat.into()).vector();
+                let lat: Rad<f64> = lat.into();
+                let pos: Vector3<f64> = LonLatT::new(center.lon(), lat.into()).vector();
                 Some(pos)
             }
             FieldOfViewType::Polygon(poly) => poly.intersect_parallel(lat, camera),
@@ -174,10 +173,10 @@ impl Pole {
     // This checks whether the polygon contains a pole
     // The code is inspired by the formula given here:
     // https://www.edwilliams.org/avform.htm#Crs
-    fn contained_in_polygon(lon: &[Angle<f32>], lat: &[Angle<f32>]) -> Option<Self> {
+    fn contained_in_polygon(lon: &[Angle<f64>], lat: &[Angle<f64>]) -> Option<Self> {
         // For each edge of the polygon, we compute the heading angle (i.e. course)
         // from the starting vertex of the edge to the ending one.
-        let mut sum_delta_lon = Angle::new(Rad(0_f32));
+        let mut sum_delta_lon = Angle::new(Rad(0.0));
 
         let mut num_vertices_in_south = 0 as usize;
 
@@ -190,13 +189,13 @@ impl Pole {
 
             if abs_delta_lon <= PI {
                 sum_delta_lon += delta_lon;
-            } else if delta_lon > 0_f32 {
+            } else if delta_lon > Angle(0.0) {
                 sum_delta_lon -= -abs_delta_lon + TWICE_PI;
             } else {
                 sum_delta_lon += -abs_delta_lon + TWICE_PI;
             }
 
-            if lat[cur] < 0_f32 {
+            if lat[cur] < Angle(0.0) {
                 num_vertices_in_south += 1;
             }
 
@@ -231,28 +230,28 @@ impl Pole {
 use std::ops::Range;
 #[derive(Clone)]
 pub struct BoundingBox {
-    pub lon: Range<Angle<f32>>,
-    pub lat: Range<Angle<f32>>,
+    pub lon: Range<Angle<f64>>,
+    pub lat: Range<Angle<f64>>,
 }
 
 impl BoundingBox {
-    fn from_polygon(pole_contained: &Option<Pole>, lon: &[Angle<f32>], lat: &[Angle<f32>]) -> Self {
+    fn from_polygon(pole_contained: &Option<Pole>, lon: &[Angle<f64>], lat: &[Angle<f64>]) -> Self {
         if let Some(pole) = pole_contained {
             let lat = if pole.is_south() {
                 // All the latitudes lower than the maximum latitude
                 // of the vertices are included or intersect the polygon
                 let max_lat = lat.iter().fold(Angle::min_value(), |a, b| a.max(*b));
 
-                Angle(-HALF_PI)..max_lat
+                -HALF_PI..max_lat
             } else {
                 // All the latitudes upper than the minimum latitude
                 // of the vertices are included or intersect the polygon
                 let min_lat = lat.iter().fold(Angle::max_value(), |a, b| a.min(*b));
 
-                min_lat..Angle(HALF_PI)
+                min_lat..HALF_PI
             };
 
-            let lon = Angle(0_f32)..Angle(TWICE_PI);
+            let lon = Angle(0.0)..TWICE_PI;
             BoundingBox { lon, lat }
         } else {
             // The polygon does not contain any pole
@@ -277,53 +276,53 @@ impl BoundingBox {
     }
 
     #[inline]
-    pub fn get_lon_size(&self) -> Angle<f32> {
+    pub fn get_lon_size(&self) -> Angle<f64> {
         self.lon.end - self.lon.start
     }
 
     #[inline]
     pub fn all_lon(&self) -> bool {
-        (self.lon.end.0 - self.lon.start.0) == TWICE_PI
+        (self.lon.end - self.lon.start) == TWICE_PI
     }
 
     #[inline]
     pub fn all_lat(&self) -> bool {
-        (self.lat.end.0 - self.lat.start.0) == PI
+        (self.lat.end - self.lat.start) == PI
     }
 
     #[inline]
-    pub fn get_lat_size(&self) -> Angle<f32> {
+    pub fn get_lat_size(&self) -> Angle<f64> {
         self.lat.end - self.lat.start
     }
     #[inline]
-    pub fn lon_min(&self) -> Angle<f32> {
+    pub fn lon_min(&self) -> Angle<f64> {
         self.lon.start
     }
     #[inline]
-    pub fn lon_max(&self) -> Angle<f32> {
+    pub fn lon_max(&self) -> Angle<f64> {
         self.lon.end
     }
     #[inline]
-    pub fn lat_min(&self) -> Angle<f32> {
+    pub fn lat_min(&self) -> Angle<f64> {
         self.lat.start
     }
     #[inline]
-    pub fn lat_max(&self) -> Angle<f32> {
+    pub fn lat_max(&self) -> Angle<f64> {
         self.lat.end
     }
     #[inline]
-    pub fn get_lon(&self) -> Range<f32> {
+    pub fn get_lon(&self) -> Range<f64> {
         self.lon.start.0..self.lon.end.0
     }
     #[inline]
-    pub fn get_lat(&self) -> Range<f32> {
+    pub fn get_lat(&self) -> Range<f64> {
         self.lat.start.0..self.lat.end.0
     }
 
     pub fn fullsky() -> Self {
         BoundingBox {
-            lon: Angle(0_f32)..Angle(TWICE_PI),
-            lat: Angle(-HALF_PI)..Angle(HALF_PI),
+            lon: Angle(0.0)..TWICE_PI,
+            lat: -HALF_PI..HALF_PI,
         }
     }
 }
@@ -464,7 +463,7 @@ struct EdgesSortedLat<S: BaseFloat>(Vec<Edge<S>>);
 
 impl<S> EdgesSortedLat<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + std::cmp::PartialOrd,
 {
     fn new(vertices: &[Vector4<S>]) -> EdgesSortedLat<S> {
         let mut edges = EdgeIterator::new(&vertices).collect::<Vec<_>>();
@@ -506,22 +505,22 @@ where
 pub struct Polygon {
     bbox: BoundingBox,
     // Edges of the polygon sorted by increasing longitudes
-    edges_sorted_lon: EdgesSortedLon<f32>,
-    edges_sorted_lat: EdgesSortedLat<f32>,
+    edges_sorted_lon: EdgesSortedLon<f64>,
+    edges_sorted_lat: EdgesSortedLat<f64>,
     // Pole contained
     pole: Option<Pole>,
 }
 
 // A polygon must contain at least 3 vertices
 impl Polygon {
-    fn new(vertices: &[Vector4<f32>]) -> Polygon {
+    fn new(vertices: &[Vector4<f64>]) -> Polygon {
         assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
         let (lon, lat): (Vec<_>, Vec<_>) = vertices
             .iter()
             .map(|vertex| {
-                let lonlat: LonLatT<f32> = vertex.lonlat();
+                let lonlat: LonLatT<f64> = vertex.lonlat();
                 (lonlat.lon(), lonlat.lat())
             })
             .unzip();
@@ -531,13 +530,13 @@ impl Polygon {
         // We make the assumption the polygon is not too big
         // (i.e. < PI length on the longitude so that it does not
         // crosses both the 0 and 180deg meridians)
-        let lon = if is_intersecting_meridian(&lon, Rad(0_f32)) {
+        let lon = if is_intersecting_meridian(&lon, Rad(0.0)) {
             lon.into_iter()
                 .map(|lon| if lon > PI { lon - TWICE_PI } else { lon })
                 .collect::<Vec<_>>()
         } else {
             lon.into_iter()
-                .map(|lon| if lon < 0_f32 { lon + TWICE_PI } else { lon })
+                .map(|lon| if lon < Angle(0.0) { lon + TWICE_PI } else { lon })
                 .collect::<Vec<_>>()
         };
 
@@ -574,21 +573,21 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min longitude
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(
+    pub fn intersect_parallel<LatT: Into<Rad<f64>>>(
         &self,
         lat: LatT,
         camera: &CameraViewPort,
-    ) -> Option<Vector3<f32>> {
+    ) -> Option<Vector3<f64>> {
         if let Some(pole) = &self.pole {
             // A pole is contained in the polygon
             // We know there is an intersection if lat is
             if pole.is_north() {
                 // North pole
-                let lat_min: Rad<f32> = self.bbox.lat_min().into();
-                let lat: Rad<f32> = lat.into();
+                let lat_min: Rad<f64> = self.bbox.lat_min().into();
+                let lat: Rad<f64> = lat.into();
                 if lat > lat_min {
                     let center = camera.get_center().lonlat();
-                    let inter: Vector3<f32> =
+                    let inter: Vector3<f64> =
                         LonLatT::from_radians(center.lon().into(), lat).vector();
                     Some(inter)
                 } else {
@@ -596,11 +595,11 @@ impl Polygon {
                 }
             } else {
                 // South pole
-                let lat_max: Rad<f32> = self.bbox.lat_max().into();
-                let lat: Rad<f32> = lat.into();
+                let lat_max: Rad<f64> = self.bbox.lat_max().into();
+                let lat: Rad<f64> = lat.into();
                 if lat < lat_max {
                     let center = camera.get_center().lonlat();
-                    let inter: Vector3<f32> =
+                    let inter: Vector3<f64> =
                         LonLatT::from_radians(center.lon().into(), lat).vector();
                     Some(inter)
                 } else {
@@ -608,7 +607,7 @@ impl Polygon {
                 }
             }
         } else {
-            let lat = (lat.into() as Rad<f32>).0;
+            let lat = (lat.into() as Rad<f64>).0;
             for edge in self.edges_sorted_lon.iter() {
                 // Return the first intersection found
                 if let Some(vertex) = Self::get_parallel_intersect(lat, edge) {
@@ -624,8 +623,9 @@ impl Polygon {
     //
     // There can be many intersections. The intersection returned is the one
     // having the min latitude
-    pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> Option<Vector3<f32>> {
-        let mut lon = (lon.into() as Rad<f32>).0;
+    pub fn intersect_meridian<LonT: Into<Rad<f64>>>(&self, lon: LonT) -> Option<Vector3<f64>> {
+        let lon_rad: Rad<f64> = lon.into();
+        let mut lon: Angle<f64> = lon_rad.into();
         if lon > PI {
             lon -= TWICE_PI;
         }
@@ -650,13 +650,13 @@ impl Polygon {
     // Precondition:
     // - ``n`` is a normal vector that has to be normalized
     // - ``a`` and ``b`` are positions on the sphere, they are normalized too
-    fn get_meridian_intersect(lon: f32, edge: &Edge<f32>) -> Option<Vector3<f32>> {
-        if !is_in_lon_range(Angle(lon), edge.v1.lon(), edge.v2.lon()) {
+    fn get_meridian_intersect(lon: Angle<f64>, edge: &Edge<f64>) -> Option<Vector3<f64>> {
+        if !is_in_lon_range(lon, edge.v1.lon(), edge.v2.lon()) {
             None
         } else {
             let v1 = edge.v1.vector();
             let v2 = edge.v2.vector();
-            let n = Vector3::new(lon.cos(), 0_f32, -lon.sin());
+            let n = Vector3::new(lon.cos(), 0.0, -lon.sin());
             // The intersection between the two great-circles is given
             // by r = n x (v1 x v2)
             //      = dot(n, v2) x v1 - dot(n, v1) x v2
@@ -673,7 +673,7 @@ impl Polygon {
         }
     }
 
-    fn get_parallel_intersect(lat: f32, edge: &Edge<f32>) -> Option<Vector3<f32>> {
+    fn get_parallel_intersect(lat: f64, edge: &Edge<f64>) -> Option<Vector3<f64>> {
         let lat_max = edge.v1.lat().0.max(edge.v2.lat().0);
         let lat_min = edge.v1.lat().0.min(edge.v2.lat().0);
 
@@ -684,8 +684,8 @@ impl Polygon {
             // Code from https://math.stackexchange.com/questions/1157278/find-the-intersection-point-of-a-great-circle-arc-and-latitude-line
             // that computes the intersection between an arc that lies in a great circle
             // and a parallel
-            let p1: Vector3<f32> = edge.v1.vector();
-            let p2: Vector3<f32> = edge.v2.vector();
+            let p1: Vector3<f64> = edge.v1.vector();
+            let p2: Vector3<f64> = edge.v2.vector();
 
             let gc = p1.cross(p2).normalize();
 
@@ -726,7 +726,7 @@ impl Polygon {
 }
 
 #[inline]
-fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {
+fn is_in_lon_range(l: Angle<f64>, l1: Angle<f64>, l2: Angle<f64>) -> bool {
     // First version of the code:
     //   ((v2.lon() - v1.lon()).abs() > PI) != ((v2.lon() > coo.lon()) != (v1.lon() > coo.lon()))
     //
@@ -760,18 +760,18 @@ fn is_in_lon_range(l: Angle<f32>, l1: Angle<f32>, l2: Angle<f32>) -> bool {
     //   - the point have an odd number of intersections with the polygon
     //     (since it will be counted 0 or 2 times instead of 1).
     let dlon = l2 - l1;
-    if dlon < 0.0 {
+    if dlon < Angle(0.0) {
         (dlon >= -PI) == (l2 <= l && l < l1)
     } else {
         (dlon <= PI) == (l1 <= l && l < l2)
     }
 }
 
-fn is_intersecting_meridian<MeridianT: Into<Angle<f32>>>(
-    lon: &[Angle<f32>],
+fn is_intersecting_meridian<MeridianT: Into<Angle<f64>>>(
+    lon: &[Angle<f64>],
     meridian: MeridianT,
 ) -> bool {
-    let meridian: Angle<f32> = meridian.into();
+    let meridian: Angle<f64> = meridian.into();
     let num_lon = lon.len() as usize;
     // Loop over all the edge of the polygon
     let mut last = num_lon - 1;

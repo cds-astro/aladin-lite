@@ -6,6 +6,7 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate task_async_executor;
+extern crate num_traits;
 use std::panic;
 
 #[macro_use]
@@ -84,8 +85,8 @@ struct App {
     move_animation: Option<MoveAnimation>,
     zoom_animation: Option<ZoomAnimation>,
     inertial_move_animation: Option<InertiaAnimation>,
-    prev_cam_position: Vector3<f32>,
-    prev_center: Vector3<f32>,
+    prev_cam_position: Vector3<f64>,
+    prev_center: Vector3<f64>,
     out_of_fov: bool,
     tasks_finished: bool,
 }
@@ -105,26 +106,26 @@ use futures::stream::StreamExt; // for `next`
 use crate::rotation::Rotation;
 use crate::shaders::Colormap;
 struct MoveAnimation {
-    start_anim_rot: Rotation<f32>,
-    goal_anim_rot: Rotation<f32>,
+    start_anim_rot: Rotation<f64>,
+    goal_anim_rot: Rotation<f64>,
     time_start_anim: Time,
-    goal_pos: Vector3<f32>,
+    goal_pos: Vector3<f64>,
 }
 
 /// State for inertia
 struct InertiaAnimation {
     // Initial angular distance
-    d0: Angle<f32>,
+    d0: Angle<f64>,
     // Vector of rotation
-    axis: Vector3<f32>,
+    axis: Vector3<f64>,
     // The time when the inertia begins
     time_start_anim: Time,
 }
 
 struct ZoomAnimation {
     time_start_anim: Time,
-    start_fov: Angle<f32>,
-    goal_fov: Angle<f32>,
+    start_fov: Angle<f64>,
+    goal_fov: Angle<f64>,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -347,7 +348,7 @@ impl App {
             goal_pos,
         }) = self.move_animation
         {
-            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000.0;
 
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -356,8 +357,8 @@ impl App {
             // where:
             // * k is the stiffness of the ressort
             // * m is its mass
-            let alpha = 1_f32 + (0_f32 - 1_f32) * (5_f32 * t + 1_f32) * (-5_f32 * t).exp();
-            let p = start_anim_rot.slerp(&goal_anim_rot, alpha);
+            let alpha = 1.0 + (0.0 - 1.0) * (5.0 * t + 1.0) * (-5.0 * t).exp();
+            let p = start_anim_rot.slerp(&goal_anim_rot, alpha as f64);
 
             self.camera.set_rotation::<P>(&p);
             self.look_for_new_tiles();
@@ -365,7 +366,7 @@ impl App {
             // Animation stop criteria
             let cursor_pos = self.camera.get_center().truncate();
             let err = math::ang_between_vect(&goal_pos, &cursor_pos);
-            let thresh: Angle<f32> = ArcSec(2_f32).into();
+            let thresh: Angle<f64> = ArcSec(2.0).into();
             if err < thresh {
                 self.move_animation = None;
             }
@@ -378,7 +379,7 @@ impl App {
             goal_fov,
         }) = self.zoom_animation
         {
-            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+            let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -388,7 +389,7 @@ impl App {
             // * k is the stiffness of the ressort
             // * m is its mass
             let w0 = 25.0;
-            let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1_f32) * ((-w0 * t).exp());
+            let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1.0) * ((-w0 * t).exp());
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
@@ -398,7 +399,7 @@ impl App {
 
             // Animation stop criteria
             let err = (fov - goal_fov).abs();
-            let thresh = 1e-5;
+            let thresh = Angle(1e-5);
             if err < thresh {
                 self.zoom_animation = None;
             }
@@ -409,7 +410,7 @@ impl App {
             d0,
             axis,
         }) = self.inertial_move_animation {
-            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000_f32;
+            let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -421,7 +422,7 @@ impl App {
             let w0 = 5.0;
             let d1 = Angle(0.0);
             // The angular distance goes from d0 to 0.0
-            let d = d1 + (d0 - d1) * (w0 * t + 1_f32) * ((-w0 * t).exp());
+            let d = d1 + (d0 - d1) * (w0 * t + 1.0) * ((-w0 * t).exp());
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
@@ -431,7 +432,7 @@ impl App {
 
             // Inertia stops when the angular distance
             // is too small
-            let thresh: Angle<f32> = ArcSec(2_f32).into();
+            let thresh: Angle<f64> = ArcSec(2.0).into();
             if d < thresh {
                 self.inertial_move_animation = None;
             }
@@ -626,7 +627,7 @@ impl App {
         self.look_for_new_tiles();
         self.request_redraw = true;
     }
-    fn get_max_fov<P: Projection>(&self) -> f32 {
+    fn get_max_fov<P: Projection>(&self) -> f64 {
         P::aperture_start().0
     }
     fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
@@ -777,14 +778,14 @@ impl App {
 
     pub fn world_to_screen<P: Projection>(
         &self,
-        lonlat: &LonLatT<f32>,
-    ) -> Result<Option<Vector2<f32>>, String> {
+        lonlat: &LonLatT<f64>,
+    ) -> Result<Option<Vector2<f64>>, String> {
         let model_pos_xyz = lonlat.vector();
         let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
     }
 
-    pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f32>) -> Option<LonLatT<f32>> {
+    pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
             Some(model_pos.lonlat())
         } else {
@@ -792,10 +793,10 @@ impl App {
         }
     }
 
-    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
+    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
 
-        let xyz: Vector4<f32> = lonlat.vector();
+        let xyz: Vector4<_> = lonlat.vector();
         let rot = Rotation::from_sky_position(&xyz);
 
         // Apply the rotation to the camera to go
@@ -852,10 +853,10 @@ impl App {
         );
     }
 
-    pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f32>) {
+    pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
         let _cursor_pos = self.camera.get_center();
-        let goal_pos: Vector4<f32> = lonlat.vector();
+        let goal_pos: Vector4<f64> = lonlat.vector();
 
         // Convert these positions to rotations
         let start_anim_rot = *self.camera.get_rotation();
@@ -870,7 +871,7 @@ impl App {
         });
     }
 
-    pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f32>) {
+    pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
         /*if let Some(zoom) = &mut self.zoom_animation {
             zoom.goal_fov = fov;
         } else {*/
@@ -887,13 +888,13 @@ impl App {
         //}
     }
 
-    pub fn go_from_to<P: Projection>(&mut self, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
+    pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
             if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
                 let model2world = self.camera.get_m2w();
-                let m1: Vector4<f32> = pos1.vector();
+                let m1: Vector4<f64> = pos1.vector();
                 let w1 = model2world * m1;
-                let m2: Vector4<f32> = pos2.vector();
+                let m2: Vector4<f64> = pos2.vector();
                 let w2 = model2world * m2;
         
                 let r = self.camera.get_rotation();
@@ -930,24 +931,24 @@ impl App {
         
     }
 
-    pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f32>) {
+    pub fn set_fov<P: Projection>(&mut self, fov: &Angle<f64>) {
         // Change the camera rotation
         self.camera.set_aperture::<P>(*fov);
         self.look_for_new_tiles();
     }
 
     // Accessors
-    fn get_center<P: Projection>(&self) -> LonLatT<f32> {
+    fn get_center<P: Projection>(&self) -> LonLatT<f64> {
         //let center_pos = self.camera.compute_center_model_pos::<P>();
         self.camera.get_center().lonlat()
     }
-
-    fn get_clip_zoom_factor(&self) -> f32 {
+    
+    fn get_clip_zoom_factor(&self) -> f64 {
         self.camera.get_clip_zoom_factor()
     }
 
-    fn get_fov(&self) -> f32 {
-        let deg: ArcDeg<f32> = self.camera.get_aperture().into();
+    fn get_fov(&self) -> f64 {
+        let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
     }
 }
@@ -1060,8 +1061,8 @@ impl ProjectionType {
     fn world_to_screen(
         &self,
         app: &App,
-        lonlat: &LonLatT<f32>,
-    ) -> Result<Option<Vector2<f32>>, String> {
+        lonlat: &LonLatT<f64>,
+    ) -> Result<Option<Vector2<f64>>, String> {
         match self {
             ProjectionType::Aitoff => app.world_to_screen::<Aitoff>(lonlat),
             ProjectionType::MollWeide => app.world_to_screen::<Mollweide>(lonlat),
@@ -1072,7 +1073,7 @@ impl ProjectionType {
         }
     }
 
-    fn get_max_fov(&self, app: &App) -> f32 {
+    fn get_max_fov(&self, app: &App) -> f64 {
         match self {
             ProjectionType::Aitoff => app.get_max_fov::<Aitoff>(),
             ProjectionType::MollWeide => app.get_max_fov::<Mollweide>(),
@@ -1083,7 +1084,7 @@ impl ProjectionType {
         }
     }
 
-    fn screen_to_world(&self, app: &App, pos: &Vector2<f32>) -> Option<LonLatT<f32>> {
+    fn screen_to_world(&self, app: &App, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         match self {
             ProjectionType::Aitoff => app.screen_to_world::<Aitoff>(pos),
             ProjectionType::MollWeide => app.screen_to_world::<Mollweide>(pos),
@@ -1094,7 +1095,7 @@ impl ProjectionType {
         }
     }
 
-    fn go_from_to(&self, app: &mut App, s1x: f32, s1y: f32, s2x: f32, s2y: f32) {
+    fn go_from_to(&self, app: &mut App, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         match self {
             ProjectionType::Aitoff => app.go_from_to::<Aitoff>(s1x, s1y, s2x, s2y),
             ProjectionType::MollWeide => app.go_from_to::<Mollweide>(s1x, s1y, s2x, s2y),
@@ -1227,7 +1228,7 @@ impl ProjectionType {
         app.set_heatmap_opacity(name, opacity)
     }
 
-    pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
+    pub fn set_center(&mut self, app: &mut App, lonlat: LonLatT<f64>) {
         match self {
             ProjectionType::Aitoff => app.set_center::<Aitoff>(&lonlat),
             ProjectionType::MollWeide => app.set_center::<Mollweide>(&lonlat),
@@ -1238,7 +1239,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn start_moving_to(&mut self, app: &mut App, lonlat: LonLatT<f32>) {
+    pub fn start_moving_to(&mut self, app: &mut App, lonlat: LonLatT<f64>) {
         match self {
             ProjectionType::Aitoff => app.start_moving_to::<Aitoff>(&lonlat),
             ProjectionType::MollWeide => app.start_moving_to::<Mollweide>(&lonlat),
@@ -1249,7 +1250,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn start_zooming_to(&mut self, app: &mut App, fov: Angle<f32>) {
+    pub fn start_zooming_to(&mut self, app: &mut App, fov: Angle<f64>) {
         match self {
             ProjectionType::Aitoff => app.start_zooming_to::<Aitoff>(fov),
             ProjectionType::MollWeide => app.start_zooming_to::<Mollweide>(fov),
@@ -1260,7 +1261,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn set_fov(&mut self, app: &mut App, fov: Angle<f32>) {
+    pub fn set_fov(&mut self, app: &mut App, fov: Angle<f64>) {
         match self {
             ProjectionType::Aitoff => app.set_fov::<Aitoff>(&fov),
             ProjectionType::MollWeide => app.set_fov::<Mollweide>(&fov),
@@ -1271,7 +1272,7 @@ impl ProjectionType {
         };
     }
 
-    pub fn get_center(&self, app: &App) -> LonLatT<f32> {
+    pub fn get_center(&self, app: &App) -> LonLatT<f64> {
         match self {
             ProjectionType::Aitoff => app.get_center::<Aitoff>(),
             ProjectionType::MollWeide => app.get_center::<Mollweide>(),
@@ -1475,9 +1476,8 @@ impl WebClient {
         Ok(())
     }
 
-    /// Update our WebGL Water application. `index.html` will call this function in order
-    /// to begin rendering.
-    pub fn render(&mut self, _min_value: f32, _max_value: f32) -> Result<(), JsValue> {
+    /// Update our WebGL Water application.
+    pub fn render(&mut self) -> Result<(), JsValue> {
         self.projection.render(&mut self.app)?;
 
         Ok(())
@@ -1605,7 +1605,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f32, lat: f32) -> Result<Option<Box<[f32]>>, JsValue> {
+    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
             Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
@@ -1615,13 +1615,13 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = screenToWorld)]
-    pub fn screen_to_world(&self, pos_x: f32, pos_y: f32) -> Option<Box<[f32]>> {
+    pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
         if let Some(lonlat) = self
             .projection
             .screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))
         {
-            let lon_deg: ArcDeg<f32> = lonlat.lon().into();
-            let lat_deg: ArcDeg<f32> = lonlat.lat().into();
+            let lon_deg: ArcDeg<f64> = lonlat.lon().into();
+            let lat_deg: ArcDeg<f64> = lonlat.lat().into();
 
             Some(Box::new([lon_deg.0, lat_deg.0]))
         } else {
@@ -1630,7 +1630,7 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getFieldOfView)]
-    pub fn get_fov(&self) -> Result<f32, JsValue> {
+    pub fn get_fov(&self) -> Result<f64, JsValue> {
         let fov = self.app.get_fov();
         Ok(fov)
     }
@@ -1639,7 +1639,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
         //let fov = fov as f32;
-        let fov = ArcDeg(fov as f32).into();
+        let fov = ArcDeg(fov).into();
 
         self.projection.start_zooming_to(&mut self.app, fov);
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
@@ -1694,22 +1694,22 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getMaxFieldOfView)]
-    pub fn get_max_fov(&mut self) -> f32 {
+    pub fn get_max_fov(&mut self) -> f64 {
         self.projection.get_max_fov(&mut self.app)
     }
     /// Set directly the center position
     #[wasm_bindgen(js_name = getCenter)]
-    pub fn get_center(&self) -> Result<Box<[f32]>, JsValue> {
+    pub fn get_center(&self) -> Result<Box<[f64]>, JsValue> {
         let center = self.projection.get_center(&self.app);
 
-        let lon_deg: ArcDeg<f32> = center.lon().into();
-        let lat_deg: ArcDeg<f32> = center.lat().into();
+        let lon_deg: ArcDeg<f64> = center.lon().into();
+        let lat_deg: ArcDeg<f64> = center.lat().into();
 
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
     #[wasm_bindgen(js_name = getClipZoomFactor)]
-    pub fn get_clip_zoom_factor(&self) -> Result<f32, JsValue> {
+    pub fn get_clip_zoom_factor(&self) -> Result<f64, JsValue> {
         Ok(self.app.get_clip_zoom_factor())
     }
 
@@ -1740,7 +1740,7 @@ impl WebClient {
     }*/
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveToLocation)]
-    pub fn start_moving_to(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
+    pub fn start_moving_to(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
         // Enable the MouseLeftButtonReleased event
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         self.projection.start_moving_to(&mut self.app, location);
@@ -1766,7 +1766,7 @@ impl WebClient {
 
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
-    pub fn set_center(&mut self, lon: f32, lat: f32) -> Result<(), JsValue> {
+    pub fn set_center(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
         self.projection.set_center(&mut self.app, lonlat);
 
@@ -1791,10 +1791,10 @@ impl WebClient {
     #[wasm_bindgen(js_name = goFromTo)]
     pub fn go_from_to(
         &mut self,
-        s1x: f32,
-        s1y: f32,
-        s2x: f32,
-        s2y: f32,
+        s1x: f64,
+        s1y: f64,
+        s2x: f64,
+        s2y: f64,
     ) -> Result<(), JsValue> {
         self.projection.go_from_to(&mut self.app, s1x, s1y, s2x, s2y);
 

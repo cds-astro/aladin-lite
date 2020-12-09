@@ -26,14 +26,17 @@ fn create_vertices_array<P: Projection>(
 
             let lonlat = pos_world_space.lonlat();
 
+            // Cast all the double into float
+            // simple precision because this buffer
+            // is sent to the GPU
             vec![
-                pos_clip_space.x,
-                pos_clip_space.y,
-                lonlat.lon().0,
-                lonlat.lat().0,
-                pos_world_space.x,
-                pos_world_space.y,
-                pos_world_space.z,
+                pos_clip_space.x as f32,
+                pos_clip_space.y as f32,
+                lonlat.lon().0 as f32,
+                lonlat.lat().0 as f32,
+                pos_world_space.x as f32,
+                pos_world_space.y as f32,
+                pos_world_space.z as f32,
             ]
         })
         .flatten()

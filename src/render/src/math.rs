@@ -7,8 +7,9 @@ pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
     Angle((ab.dot(*bc)).acos())
 }
 
+use num_traits::Float;
 #[inline]
-pub fn asinc_positive(mut x: f32) -> f32 {
+pub fn asinc_positive<T: Float>(mut x: f64) -> f64 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.asin() / x
@@ -21,7 +22,7 @@ pub fn asinc_positive(mut x: f32) -> f32 {
 }
 
 #[inline]
-pub fn sinc_positive(mut x: f32) -> f32 {
+pub fn sinc_positive(mut x: f64) -> f64 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.sin() / x
@@ -47,7 +48,7 @@ pub fn _ang_between_lonlat<S: BaseFloat>(
     lat2: Angle<S>,
 ) -> Angle<S> {
     let abs_diff_lon = (lon1 - lon2).abs();
-    (lat1.sin() * lat2.sin() + lat1.cos() * lat2.cos() * abs_diff_lon.cos()).acos()
+    Angle((lat1.sin() * lat2.sin() + lat1.cos() * lat2.cos() * abs_diff_lon.cos()).acos())
 }
 /*
 #[inline]
@@ -145,9 +146,9 @@ where
         let delta = lonlat.lat();
 
         Vector3::<S>::new(
-            (delta.cos() * theta.sin()).0,
-            delta.sin().0,
-            (delta.cos() * theta.cos()).0,
+            delta.cos() * theta.sin(),
+            delta.sin(),
+            delta.cos() * theta.cos(),
         )
     }
 }
@@ -179,9 +180,9 @@ where
         let theta = lonlat.lon();
         let delta = lonlat.lat();
         Vector4::<S>::new(
-            (delta.cos() * theta.sin()).0,
-            delta.sin().0,
-            (delta.cos() * theta.cos()).0,
+            delta.cos() * theta.sin(),
+            delta.sin(),
+            delta.cos() * theta.cos(),
             S::one(),
         )
     }
@@ -206,9 +207,9 @@ pub fn xyzw_to_radec<S: BaseFloat>(v: &cgmath::Vector4<S>) -> (Angle<S>, Angle<S
 #[inline]
 pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<S> {
     Vector4::<S>::new(
-        (delta.cos() * theta.sin()).0,
-        delta.sin().0,
-        (delta.cos() * theta.cos()).0,
+        delta.cos() * theta.sin(),
+        delta.sin(),
+        delta.cos() * theta.cos(),
         S::one(),
     )
 }
@@ -216,9 +217,9 @@ pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<
 #[inline]
 pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
     Vector3::<S>::new(
-        (delta.cos() * theta.sin()).0,
-        delta.sin().0,
-        (delta.cos() * theta.cos()).0,
+        delta.cos() * theta.sin(),
+        delta.sin(),
+        delta.cos() * theta.cos(),
     )
 }
 

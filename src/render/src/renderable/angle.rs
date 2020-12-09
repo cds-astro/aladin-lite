@@ -260,7 +260,7 @@ impl FormatType for DMS {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash)]
 #[repr(C)]
 pub struct Angle<S: BaseFloat>(pub S);
 impl<S> Angle<S>
@@ -272,32 +272,32 @@ where
         Angle(radians.0)
     }
 
-    pub fn cos(&self) -> Self {
-        Angle(self.0.cos())
+    pub fn cos(&self) -> S {
+        self.0.cos()
     }
 
-    pub fn sin(&self) -> Self {
-        Angle(self.0.sin())
+    pub fn sin(&self) -> S {
+        self.0.sin()
     }
 
-    pub fn tan(&self) -> Self {
-        Angle(self.0.tan())
+    pub fn tan(&self) -> S {
+        self.0.tan()
     }
 
-    pub fn asin(self) -> Self {
-        Angle(self.0.asin())
+    pub fn asin(self) -> S {
+        self.0.asin()
     }
 
-    pub fn acos(self) -> Self {
-        Angle(self.0.acos())
+    pub fn acos(self) -> S {
+        self.0.acos()
     }
 
-    pub fn atan(self) -> Self {
-        Angle(self.0.atan())
+    pub fn atan(self) -> S {
+        self.0.atan()
     }
 
-    pub fn atan2(self, other: Self) -> Self {
-        Angle(self.0.atan2(other.0))
+    pub fn atan2(self, other: Self) -> S {
+        self.0.atan2(other.0)
     }
 
     pub fn floor(self) -> Self {
@@ -316,8 +316,8 @@ where
         Angle(self.0.trunc())
     }
 
-    pub fn fract(self) -> Self {
-        Angle(self.0.fract())
+    pub fn fract(self) -> S {
+        self.0.fract()
     }
 
     pub fn abs(self) -> Self {
@@ -359,6 +359,36 @@ where
 {
     fn from(angle: Angle<S>) -> Self {
         Rad(angle.0)
+    }
+}
+/*
+trait AngleUnit<S>: Into<Angle<S>>
+where
+    S: BaseFloat
+{}
+
+impl<S> AngleUnit<S> for ArcSec<S> {}
+*/
+impl<S, T> PartialEq<T> for Angle<S>
+where
+    S: BaseFloat,
+    T: Into<Angle<S>> + Clone + Copy
+{
+    fn eq(&self, other: &T) -> bool {
+        let angle: Angle<S> = (*other).into();
+        angle.0 == self.0
+    }
+}
+
+use std::cmp::PartialOrd;
+impl<S, T> PartialOrd<T> for Angle<S>
+where
+    S: BaseFloat,
+    T: Into<Angle<S>> + Clone + Copy
+{
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+        let angle: Angle<S> = (*other).into();
+        self.0.partial_cmp(&angle.0)
     }
 }
 
@@ -403,25 +433,25 @@ where
         Angle(rad.0)
     }
 }
-
+/*
 impl<S> PartialEq<S> for Angle<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + !AngleUnit<S>,
 {
     fn eq(&self, other: &S) -> bool {
         self.0 == *other
     }
 }
-
+*/
 use std::cmp::Ordering;
-impl<S> PartialOrd<S> for Angle<S>
+/*impl<S> PartialOrd<S> for Angle<S>
 where
     S: BaseFloat,
 {
     fn partial_cmp(&self, other: &S) -> Option<Ordering> {
         self.0.partial_cmp(other)
     }
-}
+}*/
 
 use std::ops::Div;
 impl<S> Div for Angle<S>

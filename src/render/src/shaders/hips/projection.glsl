@@ -27,10 +27,11 @@ vec2 world2clip_aitoff(vec3 p) {
     float theta_by_two = theta * 0.5f;
 
     float alpha = acos(cos(delta)*cos(theta_by_two));
-    float inv_sinc_alpha = 1.f;
+    /*float inv_sinc_alpha = 1.f;
     if (alpha > 1e-3f) {
         inv_sinc_alpha = alpha / sin(alpha);
-    }
+    }*/
+    float inv_sinc_alpha = alpha / sin(alpha);
 
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left

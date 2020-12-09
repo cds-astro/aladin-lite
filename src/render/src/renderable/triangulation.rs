@@ -1,13 +1,13 @@
 use cgmath::Vector2;
 
 pub struct Triangulation {
-    vertices: Vec<Vector2<f32>>,
+    vertices: Vec<Vector2<f64>>,
     idx: Vec<u16>,
 }
 
 struct Face {
-    min: Vector2<f32>,
-    max: Vector2<f32>,
+    min: Vector2<f64>,
+    max: Vector2<f64>,
 }
 
 #[derive(Clone, Copy)]
@@ -18,7 +18,7 @@ pub enum Direction {
     TopRight,
 }
 impl Face {
-    fn new(min: Vector2<f32>, max: Vector2<f32>) -> Face {
+    fn new(min: Vector2<f64>, max: Vector2<f64>) -> Face {
         Face { min, max }
     }
 
@@ -31,9 +31,9 @@ impl Face {
         [bl, br, tr, tl]
     }
 
-    fn get_farthest_vertex(&self) -> (Vector2<f32>, Direction) {
-        let x_neg = self.min.x < 0_f32;
-        let y_neg = self.min.y < 0_f32;
+    fn get_farthest_vertex(&self) -> (Vector2<f64>, Direction) {
+        let x_neg = self.min.x < 0_f64;
+        let y_neg = self.min.y < 0_f64;
 
         if x_neg && y_neg {
             // bottom-left
@@ -51,8 +51,8 @@ impl Face {
     }
 
     fn get_nearest_dir(&self) -> Direction {
-        let x_neg = self.min.x < 0_f32;
-        let y_neg = self.min.y < 0_f32;
+        let x_neg = self.min.x < 0_f64;
+        let y_neg = self.min.y < 0_f64;
 
         if x_neg && y_neg {
             // bottom-left
@@ -69,9 +69,9 @@ impl Face {
         }
     }
 
-    fn get_nearest_vertex(&self) -> Vector2<f32> {
-        let x_neg = self.min.x < 0_f32;
-        let y_neg = self.min.y < 0_f32;
+    fn get_nearest_vertex(&self) -> Vector2<f64> {
+        let x_neg = self.min.x < 0_f64;
+        let y_neg = self.min.y < 0_f64;
 
         if x_neg && y_neg {
             // bottom-left
@@ -88,7 +88,7 @@ impl Face {
         }
     }
 
-    fn get_vertex(&self, d: Direction) -> Vector2<f32> {
+    fn get_vertex(&self, d: Direction) -> Vector2<f64> {
         match d {
             Direction::BottomLeft => self.min,
             Direction::BottomRight => Vector2::new(self.max.x, self.min.y),
@@ -99,7 +99,7 @@ impl Face {
 
     pub fn add(
         &self,
-        vertices: &mut Vec<Vector2<f32>>,
+        vertices: &mut Vec<Vector2<f64>>,
         idx: &mut Vec<u16>,
         dir_farthest_vertex: Direction,
     ) {
@@ -182,8 +182,8 @@ impl Face {
 
     fn add_triangle(
         &self,
-        p: &[Vector2<f32>; 3],
-        vertices: &mut Vec<Vector2<f32>>,
+        p: &[Vector2<f64>; 3],
+        vertices: &mut Vec<Vector2<f64>>,
         idx: &mut Vec<u16>,
     ) {
         let off_idx = vertices.len() as u16;
@@ -207,7 +207,7 @@ impl Face {
     }
 
     pub fn get_child(&self, d: Direction) -> Self {
-        let center = (self.min + self.max) * 0.5_f32;
+        let center = (self.min + self.max) * 0.5_f64;
         let (min, max) = match d {
             Direction::BottomLeft => {
                 let min = self.min;
@@ -237,7 +237,7 @@ impl Face {
 
 fn recursive_triangulation<P: Projection>(
     face: &Face,
-    vertices: &mut Vec<Vector2<f32>>,
+    vertices: &mut Vec<Vector2<f64>>,
     idx: &mut Vec<u16>,
     depth: u8,
     first: &mut bool,
@@ -522,7 +522,7 @@ impl Triangulation {
     pub fn new<P: Projection>() -> Triangulation {
         let (mut vertices, mut idx) = (Vec::new(), Vec::new());
 
-        let root = Face::new(Vector2::new(-1_f32, -1_f32), Vector2::new(1_f32, 1_f32));
+        let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
         let children = root.split();
 
         let depth = 4;
@@ -535,7 +535,7 @@ impl Triangulation {
         Triangulation { vertices, idx }
     }
 
-    pub fn vertices(&self) -> &Vec<Vector2<f32>> {
+    pub fn vertices(&self) -> &Vec<Vector2<f64>> {
         &self.vertices
     }
 
@@ -544,7 +544,7 @@ impl Triangulation {
     }
 }
 
-impl From<Triangulation> for (Vec<Vector2<f32>>, Vec<u16>) {
+impl From<Triangulation> for (Vec<Vector2<f64>>, Vec<u16>) {
     fn from(t: Triangulation) -> Self {
         (t.vertices, t.idx)
     }

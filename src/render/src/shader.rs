@@ -133,7 +133,11 @@ impl UniformType for f32 {
         gl.uniform1f(location, *value);
     }
 }
-
+impl UniformType for f64 {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1f(location, *value as f32);
+    }
+}
 use crate::time::Time;
 impl UniformType for Time {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
@@ -146,10 +150,21 @@ impl UniformType for &[f32] {
         gl.uniform1fv_with_f32_array(location, value);
     }
 }
+impl UniformType for &[f64] {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        let values_f32 = value.iter().map(|i| *i as f32).collect::<Vec<_>>();
+        gl.uniform1fv_with_f32_array(location, values_f32.as_slice());
+    }
+}
 use crate::Angle;
 impl UniformType for Angle<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, value.0);
+    }
+}
+impl UniformType for Angle<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1f(location, value.0 as f32);
     }
 }
 
@@ -159,12 +174,24 @@ impl UniformType for Vector2<f32> {
         gl.uniform2f(location, value.x, value.y);
     }
 }
+impl UniformType for Vector2<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform2f(location, value.x as f32, value.y as f32);
+    }
+}
+
 use cgmath::Vector3;
 impl UniformType for Vector3<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value.x, value.y, value.z);
     }
 }
+impl UniformType for Vector3<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform3f(location, value.x as f32, value.y as f32, value.z as f32);
+    }
+}
+
 impl UniformType for [f32; 3] {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value[0], value[1], value[2]);
@@ -175,6 +202,11 @@ use cgmath::Vector4;
 impl UniformType for Vector4<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform4f(location, value.x, value.y, value.z, value.w);
+    }
+}
+impl UniformType for Vector4<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.x as f32, value.y as f32, value.z as f32, value.w as f32);
     }
 }
 
@@ -189,6 +221,13 @@ use cgmath::Matrix4;
 impl UniformType for Matrix4<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform_matrix4fv_with_f32_array(location, false, value.as_ref() as &[f32; 16]);
+    }
+}
+impl UniformType for Matrix4<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        // Cast the matrix 
+        let mat_f32 = value.cast::<f32>().unwrap();
+        gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
     }
 }
 

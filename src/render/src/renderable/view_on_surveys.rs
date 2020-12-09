@@ -168,7 +168,7 @@ use crate::math::log_2;
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> f32 {
     let width = camera.get_screen_size().x;
-    let aperture = camera.get_aperture().0;
+    let aperture = camera.get_aperture().0 as f32;
 
     let angle_per_pixel = aperture / width;
 
@@ -202,7 +202,7 @@ pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
 
 use crate::cdshealpix;
 use cgmath::Vector4;
-fn polygon_coverage(vertices: &[Vector4<f32>], depth: u8, inside: &Vector3<f32>) -> HEALPixCells {
+fn polygon_coverage(vertices: &[Vector4<f64>], depth: u8, inside: &Vector3<f64>) -> HEALPixCells {
     let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
 
     let cells = coverage

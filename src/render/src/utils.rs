@@ -47,3 +47,27 @@ macro_rules! debug {
         crate::log(&format!("dbg: {:?}", $x));
     };
 }
+
+
+// Method for splitting a double precision into
+// a float simple precision hipart and lowparts
+// This aims at giving to the vertex shader
+// more precision than just casting a f64 to a f32
+pub fn split_f64(x: f64) -> (f32, f32) {
+    let hipart = x as f32;
+    let delta = x - (hipart as f64);
+    let lowpart = delta as f32;
+
+    (hipart, lowpart)
+}
+
+pub fn split_f64_slice(x: &[f64]) -> (Vec<f32>, Vec<f32>) {
+    x.iter()
+    .map(|&f| {
+        let hipart = f as f32;
+        let delta = f - (hipart as f64);
+        let lowpart = delta as f32;
+        (hipart, lowpart)
+    })
+    .unzip()
+}

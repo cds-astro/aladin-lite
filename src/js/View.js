@@ -475,7 +475,7 @@ export let View = (function() {
                 radec = lonlat;
             }
 
-            view.pointTo(radec[0], radec[1], {forceAnimation: true});
+            view.pointTo(radec[0], radec[1]);
         };
         if (! hasTouchEvents) {
             $(view.reticleCanvas).dblclick(onDblClick);
@@ -1654,6 +1654,7 @@ export let View = (function() {
             this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
         }*/
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
+        console.log(this.zoomFactor);
         this.fov = this.aladin.webglAPI.getFieldOfView();
 
         // TODO: event/listener should be better

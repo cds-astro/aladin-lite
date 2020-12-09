@@ -22,6 +22,7 @@ num = "*"
 task-async-executor = { path = "./task-async-executor" }
 fitsreader = { path = "./fitsreader" }
 rand = { version = "0.7.3", features = ["wasm-bindgen"] }
+num-traits = "0.2.14"
 
 [dependencies.wasm-bindgen]
 version = "0.2.65"

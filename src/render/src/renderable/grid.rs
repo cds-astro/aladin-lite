@@ -150,7 +150,7 @@ impl ProjetedGrid {
 
         self.offsets.clear();
         self.sizes.clear();
-        let (vertices, labels): (Vec<Vec<Vector2<f32>>>, Vec<Option<Label>>) = lines
+        let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
             .into_iter()
             .map(|line| {
                 if self.sizes.is_empty() {
@@ -165,7 +165,7 @@ impl ProjetedGrid {
             })
             .unzip();
         self.labels = labels;
-        let mut vertices = vertices.into_iter().flatten().collect::<Vec<_>>();
+        let mut vertices = vertices.into_iter().flatten().map(|v| Vector2::new(v.x as f32, v.y as f32)).collect::<Vec<_>>();
         //self.lines = lines;
         self.num_vertices = vertices.len();
 
@@ -344,18 +344,18 @@ impl GridShaderProjection for Orthographic {
 use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
-const MAX_ANGLE_BEFORE_SUBDIVISION: f32 = 5.0 * std::f32::consts::PI / 180.0;
+const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
 fn subdivide<P: Projection>(
-    vertices: &mut Vec<Vector2<f32>>,
-    lonlat: [(f32, f32); 3],
+    vertices: &mut Vec<Vector2<f64>>,
+    lonlat: [(f64, f64); 3],
     depth: usize,
     min_subdivision_level: i32,
     camera: &CameraViewPort,
 ) {
     // Convert to cartesian
-    let a: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
-    let b: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
-    let c: Vector4<f32> = math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
+    let a: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
+    let b: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
+    let c: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
     let a = P::model_to_ndc_space(&a, camera);
@@ -380,8 +380,8 @@ fn subdivide<P: Projection>(
                 vertices.push(c);
             } else if depth > 0 {
                 // Subdivide a->b and b->c
-                let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5_f32;
-                let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5_f32;
+                let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5;
+                let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5;
                 subdivide::<P>(
                     vertices,
                     [lonlat[0], (lon_d, lat_d), lonlat[1]],
@@ -390,8 +390,8 @@ fn subdivide<P: Projection>(
                     camera,
                 );
 
-                let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5_f32;
-                let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5_f32;
+                let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5;
+                let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5;
                 subdivide::<P>(
                     vertices,
                     [lonlat[1], (lon_e, lat_e), lonlat[2]],
@@ -523,25 +523,25 @@ use core::ops::Range;
 
 #[derive(Debug)]
 struct Label {
-    position: Vector2<f32>,
+    position: Vector2<f64>,
     content: String,
-    rot: f32,
+    rot: f64,
 }
 
 #[derive(Debug)]
 struct GridLine {
-    vertices: Vec<Vector2<f32>>,
+    vertices: Vec<Vector2<f64>>,
     label: Option<Label>,
 }
 use super::angle::SerializeToString;
 use cgmath::{Rad, Vector3};
-const PI: f32 = std::f32::consts::PI;
-const HALF_PI: f32 = 0.5 * PI;
+const PI: f64 = std::f64::consts::PI;
+const HALF_PI: f64 = 0.5 * PI;
 impl GridLine {
     fn meridian<P: Projection>(
         ctx2d: &CanvasRenderingContext2d,
-        lon: f32,
-        lat: &Range<f32>,
+        lon: f64,
+        lat: &Range<f64>,
         camera: &CameraViewPort,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
@@ -552,7 +552,7 @@ impl GridLine {
                 &mut vertices,
                 [
                     (lon, lat.start),
-                    (lon, (lat.start + lat.end) * 0.5_f32),
+                    (lon, (lat.start + lat.end) * 0.5),
                     (lon, lat.end),
                 ],
                 7,
@@ -571,7 +571,7 @@ impl GridLine {
                     let content = Angle(lon).to_string::<angle::DMS>();
                     let position = if !fov.is_allsky() {
                         let dim = ctx2d.measure_text(&content).unwrap();
-                        let k = r * (dim.width() as f32 * 0.5 + 10.0);
+                        let k = r * (dim.width() * 0.5 + 10.0);
                         p1 + k
                     } else {
                         p1
@@ -610,8 +610,8 @@ impl GridLine {
 
     fn parallel<P: Projection>(
         ctx2d: &CanvasRenderingContext2d,
-        lon: &Range<f32>,
-        lat: f32,
+        lon: &Range<f64>,
+        lat: f64,
         camera: &CameraViewPort,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
@@ -647,7 +647,7 @@ impl GridLine {
                     let content = Angle(lat).to_string::<angle::DMS>();
                     let position = if !fov.is_allsky() && !fov.contains_pole() {
                         let dim = ctx2d.measure_text(&content).unwrap();
-                        let k = r * (dim.width() as f32 * 0.5 + 10.0);
+                        let k = r * (dim.width() * 0.5 + 10.0);
 
                         p1 + k
                     } else {
@@ -732,7 +732,7 @@ fn lines<P: Projection>(
     let step_lon = select_grid_step(
         &bbox,
         bbox.get_lon_size().0 as f64,
-        (NUM_LINES_LATITUDES as f32 * camera.get_aspect()) as usize,
+        (NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
     );
 
     let mut lines = vec![];
@@ -772,7 +772,7 @@ fn lines<P: Projection>(
     lines
 }
 
-fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
+fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f64 {
     // Select the best meridian grid step
     let mut i = 0;
     let mut step = GRID_STEPS[0];
@@ -791,5 +791,5 @@ fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f32 {
         i += 1;
     }
 
-    step as f32
+    step
 }

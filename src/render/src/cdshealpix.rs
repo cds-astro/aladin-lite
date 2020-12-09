@@ -54,21 +54,21 @@ pub fn from_polygon(
     // The depth of the smallest HEALPix cells contained in it
     depth: u8,
     // The vertices of the polygon delimiting the coverage
-    vertices: &[Vector4<f32>],
+    vertices: &[Vector4<f64>],
     // A vertex being inside the coverage,
     // typically the center of projection
-    inside: &Vector3<f32>,
+    inside: &Vector3<f64>,
 ) -> HEALPixCoverage {
     let lonlat = vertices
         .iter()
         .map(|vertex| {
             let (lon, lat) = math::xyzw_to_radec(vertex);
-            (lon.0 as f64, lat.0 as f64)
+            (lon.0, lat.0)
         })
         .collect::<Vec<_>>();
     let moc = healpix::nested::polygon_coverage(depth, &lonlat[..], false);
     let inside_lonlat = inside.lonlat();
-    let result = moc.test_coo(inside_lonlat.lon().0 as f64, inside_lonlat.lat().0 as f64);
+    let result = moc.test_coo(inside_lonlat.lon().0, inside_lonlat.lat().0);
     let moc = match result {
         Status::OUT => moc.not(),
         _ => moc,

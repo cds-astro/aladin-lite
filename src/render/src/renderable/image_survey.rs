@@ -365,7 +365,7 @@ pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
 const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 12;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
-use cgmath::Vector3;
+use cgmath::{Vector3, Vector4};
 // One tile contains 2 triangles of 3 vertices each
 //#[repr(C)]
 //struct TileVertices([Vertex; 6]);
@@ -395,15 +395,17 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
     uv_0: &TileUVW,
     uv_1: &TileUVW,
     alpha: f32,
+
+    camera: &CameraViewPort,
 ) {
     let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
 
     let n_segments_by_side: u16 = 1_u16 << num_subdivision;
-    let lonlat = cdshealpix::grid_lonlat::<f32>(cell, n_segments_by_side);
+    let lonlat = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side);
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (vertices.len() / 12) as u16;
+    let off_idx_vertices = (vertices.len() / 11) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -429,14 +431,18 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
             );
 
             let (lon, lat) = (lonlat[id_vertex_0].lon().0, lonlat[id_vertex_0].lat().0);
-            let position: Vector3<f32> = lonlat[id_vertex_0].vector();
+            let model_pos: Vector4<f64> = lonlat[id_vertex_0].vector();
+            // The projection is defined whatever the projection is
+            // because this code is executed for small fovs (~<100deg depending
+            // of the projection).
+            let ndc_pos = P::model_to_ndc_space(&model_pos, camera).unwrap();
 
-            vertices.push(lon);
-            vertices.push(lat);
+            /*vertices.push(lon as f32);
+            vertices.push(lat as f32);
 
-            vertices.push(position.x);
-            vertices.push(position.y);
-            vertices.push(position.z);
+            vertices.push(model_pos.x);
+            vertices.push(model_pos.y);
+            vertices.push(model_pos.z);
 
             vertices.push(uv_s_vertex_0.x);
             vertices.push(uv_s_vertex_0.y);
@@ -446,7 +452,20 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
             vertices.push(uv_e_vertex_0.y);
             vertices.push(uv_e_vertex_0.z);
 
-            vertices.push(alpha);
+            vertices.push(alpha);*/
+            vertices.extend([
+                lon as f32,
+                lat as f32,
+                ndc_pos.x as f32,
+                ndc_pos.y as f32,
+                uv_s_vertex_0.x,
+                uv_s_vertex_0.y,
+                uv_s_vertex_0.z,
+                uv_e_vertex_0.x,
+                uv_e_vertex_0.y,
+                uv_e_vertex_0.z,
+                alpha
+            ].iter());
         }
     }
 
@@ -478,6 +497,10 @@ pub struct ImageSurvey {
     textures: ImageSurveyTextures,
     // Keep track of the cells in the FOV
     view: HEALPixCellsInView,
+
+    // The projected vertices data
+    vertices: Vec<f32>,
+    idx_vertices: Vec<u16>,
 
     num_idx: usize,
 
@@ -527,18 +550,18 @@ impl ImageSurvey {
             2,
             WebGl2RenderingContext::FLOAT,
             false,
-            12 * num_bytes_per_f32,
+            11 * num_bytes_per_f32,
             (0 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(0);
 
-        // layout (location = 1) in vec3 position;
+        // layout (location = 1) in vec2 position;
         gl.vertex_attrib_pointer_with_i32(
             1,
             3,
             WebGl2RenderingContext::FLOAT,
             false,
-            12 * num_bytes_per_f32,
+            11 * num_bytes_per_f32,
             (2 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(1);
@@ -549,8 +572,8 @@ impl ImageSurvey {
             3,
             WebGl2RenderingContext::FLOAT,
             false,
-            12 * num_bytes_per_f32,
-            (5 * num_bytes_per_f32) as i32,
+            11 * num_bytes_per_f32,
+            (4 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(2);
 
@@ -560,8 +583,8 @@ impl ImageSurvey {
             3,
             WebGl2RenderingContext::FLOAT,
             false,
-            12 * num_bytes_per_f32,
-            (8 * num_bytes_per_f32) as i32,
+            11 * num_bytes_per_f32,
+            (7 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(3);
 
@@ -571,8 +594,8 @@ impl ImageSurvey {
             1,
             WebGl2RenderingContext::FLOAT,
             false,
-            12 * num_bytes_per_f32,
-            (11 * num_bytes_per_f32) as i32,
+            11 * num_bytes_per_f32,
+            (10 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(4);
 
@@ -589,13 +612,16 @@ impl ImageSurvey {
         gl.bind_vertex_array(None);
 
         let num_idx = 0;
-        let sphere_sub = SphereSubdivided::new();
+        let sphere_sub = SphereSubdivided {};
 
         let textures = ImageSurveyTextures::new(gl, config, exec);
         let conf = textures.config();
         let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
 
         let gl = gl.clone();
+
+        let vertices = vec![];
+        let idx_vertices = vec![];
 
         ImageSurvey {
             //color,
@@ -612,6 +638,8 @@ impl ImageSurvey {
             ebo,
 
             gl,
+            vertices,
+            idx_vertices,
 
             //_type,
             size_vertices_buf,
@@ -696,8 +724,8 @@ impl ImageSurvey {
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
-        let mut vertices = vec![];
-        let mut idx_vertices = vec![];
+        self.vertices.clear();
+        self.idx_vertices.clear();
 
         let survey_config = self.textures.config();
 
@@ -707,13 +735,14 @@ impl ImageSurvey {
             let start_time = state.ending_texture.start_time();
 
             add_vertices_grid::<P, T>(
-                &mut vertices,
-                &mut idx_vertices,
+                &mut self.vertices,
+                &mut self.idx_vertices,
                 &cell,
                 &self.sphere_sub,
                 &uv_0,
                 &uv_1,
                 start_time.as_millis(),
+                camera,
             );
         }
 
@@ -725,9 +754,9 @@ impl ImageSurvey {
         );
 
         //crate::log(&format!(": {} {}", vertices.len(), self.size_vertices_buf));
-        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-        if vertices.len() > self.size_vertices_buf as usize {
-            self.size_vertices_buf = vertices.len() as u32;
+        let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
+        if self.vertices.len() > self.size_vertices_buf as usize {
+            self.size_vertices_buf = self.vertices.len() as u32;
             //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
 
             self.gl.buffer_data_with_array_buffer_view(
@@ -743,10 +772,10 @@ impl ImageSurvey {
             );
         }
 
-        self.num_idx = idx_vertices.len();
-        let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
-        if idx_vertices.len() > self.size_idx_vertices_buf as usize {
-            self.size_idx_vertices_buf = idx_vertices.len() as u32;
+        self.num_idx = self.idx_vertices.len();
+        let buf_idx = unsafe { js_sys::Uint16Array::view(&self.idx_vertices) };
+        if self.idx_vertices.len() > self.size_idx_vertices_buf as usize {
+            self.size_idx_vertices_buf = self.idx_vertices.len() as u32;
             self.gl.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
                 &buf_idx,

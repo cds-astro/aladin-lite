@@ -3,14 +3,14 @@ use cgmath::{Vector2, Vector4};
 
 use crate::sphere_geometry::FieldOfViewType;
 
-pub type NormalizedDeviceCoord = Vector2<f32>;
-pub type WorldCoord = Vector4<f32>;
-pub type ModelCoord = Vector4<f32>;
+pub type NormalizedDeviceCoord = Vector2<f64>;
+pub type WorldCoord = Vector4<f64>;
+pub type ModelCoord = Vector4<f64>;
 
 fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
-    ndc_to_clip: &Vector2<f32>,
-    clip_zoom_factor: f32,
+    ndc_to_clip: &Vector2<f64>,
+    clip_zoom_factor: f64,
     longitude_reversed: bool,
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
@@ -33,7 +33,7 @@ fn ndc_to_world<P: Projection>(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f32>) -> Vec<ModelCoord> {
+fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f64>) -> Vec<ModelCoord> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
@@ -60,34 +60,33 @@ pub struct FieldOfViewVertices {
 
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
-        _center: &Vector4<f32>,
-        ndc_to_clip: &Vector2<f32>,
-        clip_zoom_factor: f32,
-        mat: &Matrix4<f32>,
+        ndc_to_clip: &Vector2<f64>,
+        clip_zoom_factor: f64,
+        mat: &Matrix4<f64>,
         longitude_reversed: bool,
     ) -> Self {
         let mut x_ndc =
-            itertools_num::linspace::<f32>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
+            itertools_num::linspace::<f64>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
 
-        x_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_HEIGHT));
-        x_ndc.extend(itertools_num::linspace::<f32>(
+        x_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(itertools_num::linspace::<f64>(
             1.,
             -1.,
             NUM_VERTICES_WIDTH + 2,
         ));
-        x_ndc.extend(iter::repeat(-1_f32).take(NUM_VERTICES_HEIGHT));
+        x_ndc.extend(iter::repeat(-1.0).take(NUM_VERTICES_HEIGHT));
 
-        let mut y_ndc = iter::repeat(-1_f32)
+        let mut y_ndc = iter::repeat(-1.0)
             .take(NUM_VERTICES_WIDTH + 1)
             .collect::<Vec<_>>();
 
-        y_ndc.extend(itertools_num::linspace::<f32>(
+        y_ndc.extend(itertools_num::linspace::<f64>(
             -1.,
             1.,
             NUM_VERTICES_HEIGHT + 2,
         ));
-        y_ndc.extend(iter::repeat(1_f32).take(NUM_VERTICES_WIDTH));
-        y_ndc.extend(itertools_num::linspace::<f32>(
+        y_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_WIDTH));
+        y_ndc.extend(itertools_num::linspace::<f64>(
             1.,
             -1.,
             NUM_VERTICES_HEIGHT + 2,
@@ -126,10 +125,10 @@ impl FieldOfViewVertices {
     // Recompute the camera fov vertices when the projection is changing
     pub fn set_projection<P: Projection>(
         &mut self,
-        ndc_to_clip: &Vector2<f32>,
-        clip_zoom_factor: f32,
-        w2m: &Matrix4<f32>,
-        aperture: f32,
+        ndc_to_clip: &Vector2<f64>,
+        clip_zoom_factor: f64,
+        w2m: &Matrix4<f64>,
+        aperture: f64,
         longitude_reversed: bool,
     ) {
         self.set_fov::<P>(
@@ -143,10 +142,10 @@ impl FieldOfViewVertices {
 
     pub fn set_fov<P: Projection>(
         &mut self,
-        ndc_to_clip: &Vector2<f32>,
-        clip_zoom_factor: f32,
-        w2m: &Matrix4<f32>,
-        aperture: f32,
+        ndc_to_clip: &Vector2<f64>,
+        clip_zoom_factor: f64,
+        w2m: &Matrix4<f64>,
+        aperture: f64,
         longitude_reversed: bool,
     ) {
         self.world_coo = ndc_to_world::<P>(
@@ -158,7 +157,7 @@ impl FieldOfViewVertices {
         self.set_rotation::<P>(w2m, aperture);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f32>, aperture: f32) {
+    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: f64) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
@@ -168,7 +167,7 @@ impl FieldOfViewVertices {
         self.set_great_circles::<P>(aperture);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aperture: f32) {
+    fn set_great_circles<P: Projection>(&mut self, aperture: f64) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(vertices);

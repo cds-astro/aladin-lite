@@ -208,7 +208,8 @@ impl<'a> Ord for HEALPixCellUniqOrd<'a> {
         self.partial_cmp(&other).unwrap()
     }
 }
-
+pub struct SphereSubdivided;
+/*
 pub struct SphereSubdivided(Box<[u8; 12288]>);
 
 fn subdivision(cell: &HEALPixCell) -> u8 {
@@ -259,10 +260,10 @@ fn compute_ratio_diag(cell: &HEALPixCell) -> Angle<f32> {
     let ratio = if d1 < d2 { d1 / d2 } else { d2 / d1 };
 
     ratio
-}
+}*/
 
 impl SphereSubdivided {
-    pub fn new() -> SphereSubdivided {
+    /*pub fn new() -> SphereSubdivided {
         let mut hpx_sub = Box::new([0; 12288]);
 
         for idx in 0..hpx_sub.len() {
@@ -270,7 +271,7 @@ impl SphereSubdivided {
         }
 
         SphereSubdivided(hpx_sub)
-    }
+    }*/
 
     // Get the number of subdivision necessary for the given cell
     pub fn get_num_subdivide<P: Projection>(&self, cell: &HEALPixCell) -> u8 {
@@ -301,11 +302,11 @@ impl SphereSubdivided {
     }
 }
 
-use std::ops::Index;
+/*use std::ops::Index;
 impl Index<usize> for SphereSubdivided {
     type Output = u8;
 
     fn index(&self, idx_d3: usize) -> &Self::Output {
         &self.0[idx_d3]
     }
-}
+}*/

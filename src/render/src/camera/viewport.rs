@@ -41,12 +41,12 @@ use cgmath::{Matrix4, Vector2};
 
 pub struct CameraViewPort {
     // The field of view angle
-    aperture: Angle<f32>,
-    center: Vector4<f32>,
+    aperture: Angle<f64>,
+    center: Vector4<f64>,
     // The rotation of the camera
-    w2m_rot: Rotation<f32>,
-    w2m: Matrix4<f32>,
-    m2w: Matrix4<f32>,
+    w2m_rot: Rotation<f64>,
+    w2m: Matrix4<f64>,
+    m2w: Matrix4<f64>,
     // The width over height ratio
     aspect: f32,
     // The width of the screen in pixels
@@ -55,8 +55,8 @@ pub struct CameraViewPort {
     height: f32,
 
     // Internal variable used for projection purposes
-    ndc_to_clip: Vector2<f32>,
-    clip_zoom_factor: f32,
+    ndc_to_clip: Vector2<f64>,
+    clip_zoom_factor: f64,
     // The vertices in model space of the camera
     // This is useful for computing views according
     // to different image surveys
@@ -137,12 +137,11 @@ impl CameraViewPort {
         set_canvas_size(&gl, width as u32, height as u32);
 
         let aspect = width / height;
-        let ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
-        let clip_zoom_factor = 1_f32;
+        let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
+        let clip_zoom_factor = 1.0;
 
         let longitude_reversed = true;
         let vertices = FieldOfViewVertices::new::<P>(
-            &center,
             &ndc_to_clip,
             clip_zoom_factor,
             &w2m,
@@ -203,7 +202,7 @@ impl CameraViewPort {
         set_canvas_size(&self.gl, width as u32, height as u32);
 
         // Compute the new clip zoom factor
-        self.ndc_to_clip = P::compute_ndc_to_clip_factor(width, height);
+        self.ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
 
         self.moved = true;
         self.last_user_action = UserAction::Starting;
@@ -224,7 +223,7 @@ impl CameraViewPort {
 
     }*/
 
-    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f32>) {
+    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
@@ -238,10 +237,10 @@ impl CameraViewPort {
 
         self.aperture = if aperture <= P::aperture_start() {
             // Compute the new clip zoom factor
-            let lon = aperture.abs() / 2_f32;
+            let lon = aperture.abs() / 2.0;
 
             // Vertex in the WCS of the FOV
-            let v0 = math::radec_to_xyzw(lon, Angle(0_f32));
+            let v0 = math::radec_to_xyzw(lon, Angle(0.0));
             if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
                 self.clip_zoom_factor = p0.x.abs().min(1.0);
             } else {
@@ -277,7 +276,7 @@ impl CameraViewPort {
         );
     }
 
-    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f32>, angle: Angle<f32>) {
+    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         //let j2000_to_gal: Rotation<f32> = (&J2000_TO_GALACTIC).into();
 
         // Rotate the axis:
@@ -288,7 +287,7 @@ impl CameraViewPort {
         self.update_rot_matrices::<P>();
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f32>) {
+    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices::<P>();
@@ -309,15 +308,15 @@ impl CameraViewPort {
     }
 
     // Accessors
-    pub fn get_rotation(&self) -> &Rotation<f32> {
+    pub fn get_rotation(&self) -> &Rotation<f64> {
         &self.w2m_rot
     }
 
-    pub fn get_w2m(&self) -> &cgmath::Matrix4<f32> {
+    pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
         &self.w2m
     }
 
-    pub fn get_m2w(&self) -> &cgmath::Matrix4<f32> {
+    pub fn get_m2w(&self) -> &cgmath::Matrix4<f64> {
         &self.m2w
     }
 
@@ -325,11 +324,11 @@ impl CameraViewPort {
         self.aspect
     }
 
-    pub fn get_ndc_to_clip(&self) -> &Vector2<f32> {
+    pub fn get_ndc_to_clip(&self) -> &Vector2<f64> {
         &self.ndc_to_clip
     }
 
-    pub fn get_clip_zoom_factor(&self) -> f32 {
+    pub fn get_clip_zoom_factor(&self) -> f64 {
         self.clip_zoom_factor
     }
 
@@ -365,11 +364,11 @@ impl CameraViewPort {
         ).unwrap()
     }*/
 
-    pub fn get_aperture(&self) -> Angle<f32> {
+    pub fn get_aperture(&self) -> Angle<f64> {
         self.aperture
     }
 
-    pub fn get_center(&self) -> &Vector4<f32> {
+    pub fn get_center(&self) -> &Vector4<f64> {
         &self.center
     }
     pub fn is_reversed_longitude(&self) -> bool {
@@ -424,21 +423,32 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        self.center = P::clip_to_model_space(&Vector2::new(0_f32, 0_f32), self).unwrap();
+        self.center = P::clip_to_model_space(&Vector2::new(0.0, 0.0), self).unwrap();
     }
 }
 
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-
+use crate::renderable::angle::ArcMin;
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        let (czf_hi, czf_low) = crate::utils::split_f64(self.clip_zoom_factor);
+        let d_inertia_ndc_to_clip = if self.aperture < ArcMin(10.0) {
+            Vector2::new(0.6, 0.6)
+        } else {
+            Vector2::new(0.0, 0.)
+        };
+
+        //debug!(czf_hi);
+        //debug!(czf_low);
         shader
             .attach_uniforms_from(&self.last_user_action)
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
-            .attach_uniform("clip_zoom_factor", &self.clip_zoom_factor) // Send clip zoom factor
+            .attach_uniform("d_inertia_ndc_to_clip", &d_inertia_ndc_to_clip) // Send ndc to clip
+            .attach_uniform("czf_hi", &czf_hi) // Send clip zoom factor high part
+            .attach_uniform("czf_low", &czf_low) // Send clip zoom factor low part
             .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32))
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);

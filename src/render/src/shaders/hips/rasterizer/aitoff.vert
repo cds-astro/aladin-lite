@@ -1,5 +1,5 @@
 #version 300 es
-precision highp float;
+precision mediump float;
 precision mediump int;
 
 layout (location = 0) in vec2 lonlat;
@@ -15,7 +15,6 @@ out float frag_blending_factor;
 
 uniform mat4 inv_model;
 uniform vec2 ndc_to_clip;
-uniform vec2 d_inertia_ndc_to_clip;
 uniform float czf_hi;
 uniform float czf_low;
 // current time in ms
@@ -30,7 +29,7 @@ void main() {
 
     gl_Position = vec4(world2clip_aitoff(world_pos) / (ndc_to_clip * (czf_hi + czf_low) / 10000.0), 0.0, 1.0);
     */
-    gl_Position = vec4(ndc_pos + d_inertia_ndc_to_clip, 0.0, 1.0);
+    gl_Position = vec4(ndc_pos, 0.0, 1.0);
 
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;

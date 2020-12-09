@@ -365,9 +365,10 @@ impl App {
 
             // Animation stop criteria
             let cursor_pos = self.camera.get_center().truncate();
-            let err = math::ang_between_vect(&goal_pos, &cursor_pos);
-            let thresh: Angle<f64> = ArcSec(2.0).into();
-            if err < thresh {
+            //let err = math::ang_between_vect(&goal_pos, &cursor_pos);
+
+            //let thresh: Angle<f64> = ArcSec(2.0).into();
+            if 1.0 - alpha < 1e-5 {
                 self.move_animation = None;
             }
         }
@@ -388,7 +389,7 @@ impl App {
             // where:
             // * k is the stiffness of the ressort
             // * m is its mass
-            let w0 = 25.0;
+            let w0 = 35.0;
             let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1.0) * ((-w0 * t).exp());
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
@@ -397,9 +398,11 @@ impl App {
             self.camera.set_aperture::<P>(fov);
             self.look_for_new_tiles();
 
-            // Animation stop criteria
+            // The threshold stopping criteria must be dependant
+            // of the zoom level, in this case we stop when we get
+            // to 1% before the goal fov
             let err = (fov - goal_fov).abs();
-            let thresh = Angle(1e-5);
+            let thresh = (start_fov - goal_fov).abs()*1e-2;
             if err < thresh {
                 self.zoom_animation = None;
             }
@@ -430,9 +433,10 @@ impl App {
             self.camera.rotate::<P>(&axis, d);
             self.look_for_new_tiles();
 
-            // Inertia stops when the angular distance
-            // is too small
-            let thresh: Angle<f64> = ArcSec(2.0).into();
+            // The threshold stopping criteria must be dependant
+            // of the zoom level, in this case the initial angular distance
+            // speed
+            let thresh: Angle<f64> = d0*1e-3;
             if d < thresh {
                 self.inertial_move_animation = None;
             }

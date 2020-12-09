@@ -434,7 +434,7 @@ impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let (czf_hi, czf_low) = crate::utils::split_f64(self.clip_zoom_factor);
         let d_inertia_ndc_to_clip = if self.aperture < ArcMin(10.0) {
-            Vector2::new(0.6, 0.6)
+            Vector2::new(0.0, 0.)
         } else {
             Vector2::new(0.0, 0.)
         };

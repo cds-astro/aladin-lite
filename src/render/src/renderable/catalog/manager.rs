@@ -513,11 +513,9 @@ impl Catalog {
                 // Attach catalog specialized uniforms
                 .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
                 .attach_uniform("strength", &self.strength) // Strengh of the kernel
-                .attach_uniform("model", camera.get_m2w())
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("kernel_size", &manager.kernel_size)
                 .attach_uniform("max_density", &self.max_density)
-                .attach_uniform("fov", &camera.get_aperture().0)
                 .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
                 .draw_elements_instanced_with_i32(
                     WebGl2RenderingContext::TRIANGLES,

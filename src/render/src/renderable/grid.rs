@@ -253,7 +253,7 @@ impl ProjetedGrid {
         }
     }
 
-    pub fn draw_lines_GPU<P: Projection>(
+    fn draw_lines_GPU<P: Projection>(
         &self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
@@ -293,7 +293,7 @@ impl ProjetedGrid {
         Ok(())
     }
 
-    pub fn draw_lines_CPU<P: Projection>(
+    fn draw_lines_CPU<P: Projection>(
         &self,camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {

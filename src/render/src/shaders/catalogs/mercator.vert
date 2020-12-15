@@ -7,7 +7,7 @@ layout (location = 2) in vec3 center;
 layout (location = 3) in vec2 center_lonlat;
 
 uniform float current_time;
-uniform mat4 model;
+uniform mat4 inv_model;
 
 uniform vec2 ndc_to_clip;
 uniform float czf;
@@ -19,7 +19,7 @@ out vec3 out_p;
 @import ../hips/projection;
 
 void main() {
-    vec3 p = vec3(model * vec4(center, 1.0f));
+    vec3 p = vec3(inv_model * vec4(center, 1.0f));
     p = check_inversed_longitude(p);
 
     vec2 center_pos_clip_space = world2clip_mercator(p);

@@ -211,7 +211,7 @@ impl CameraViewPort {
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            self.aperture.0,
+            self.aperture,
             self.longitude_reversed,
         );
         self.is_allsky = !P::is_included_inside_projection(
@@ -268,7 +268,7 @@ impl CameraViewPort {
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            self.aperture.0,
+            self.aperture,
             self.longitude_reversed,
         );
         self.is_allsky = !P::is_included_inside_projection(
@@ -416,7 +416,7 @@ impl CameraViewPort {
 
         self.moved = true;
 
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture.0);
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture);
         self.update_center::<P>();
         self.time_last_move = Time::now();
     }

@@ -24,6 +24,8 @@ import GridAitoffFS from '../render/src/shaders/grid/aitoff.frag'
 import GridMollFS from '../render/src/shaders/grid/mollweide.frag'
 import GridOrthoFS from '../render/src/shaders/grid/ortho.frag'
 import GridMercatorFS from '../render/src/shaders/grid/mercator.frag'
+import GridArcFS from '../render/src/shaders/grid/arc.frag'
+import GridTanFS from '../render/src/shaders/grid/tan.frag'
 import GridVS_CPU from '../render/src/shaders/grid/grid_cpu.vert'
 import GridFS_CPU from '../render/src/shaders/grid/grid_cpu.frag'
 
@@ -135,6 +137,14 @@ let shaders = [
     {
         id: "GridMercatorFS",
         content: GridMercatorFS,
+    },
+    {
+        id: "GridArcFS",
+        content: GridArcFS,
+    },
+    {
+        id: "GridTanFS",
+        content: GridTanFS,
     },
     {
         id: "GridFS_CPU",

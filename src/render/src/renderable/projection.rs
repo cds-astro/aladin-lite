@@ -47,17 +47,24 @@ pub fn ndc_to_screen_space(
 
     pos_screen_space
 }
-pub fn clip_to_screen_space(
+pub fn clip_to_ndc_space(
     pos_clip_space: &Vector2<f64>,
     camera: &CameraViewPort,
 ) -> Vector2<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
 
-    let pos_normalized_device = Vector2::new(
+    Vector2::new(
         pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
         pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
-    );
+    )
+}
+
+pub fn clip_to_screen_space(
+    pos_clip_space: &Vector2<f64>,
+    camera: &CameraViewPort,
+) -> Vector2<f64> {
+    let pos_normalized_device = clip_to_ndc_space(pos_clip_space, camera);
 
     let window_size = camera.get_screen_size();
     let pos_screen_space = Vector2::new(
@@ -268,7 +275,7 @@ pub trait Projection:
 
     const ALLOW_UNZOOM_MORE: bool;
 
-    const RASTER_THRESHOLD_ANGLE: f64;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64>;
 }
 
 pub struct Aitoff;
@@ -419,7 +426,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (150.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((150.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::math;
@@ -518,7 +525,7 @@ impl Projection for Mollweide {
     ) -> Option<Vector2<f64>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-        let epsilon = 1e-3;
+        let epsilon = 1e-5;
         let max_iter = 10;
 
         let xyz = pos_world_space.truncate();
@@ -527,25 +534,25 @@ impl Projection for Mollweide {
             lon = -lon;
         }
 
-        let cst = std::f64::consts::PI * lat.0.sin();
+        let cst = std::f64::consts::PI * lat.sin();
 
         let mut theta = lat.0;
         let mut f = theta + theta.sin() - cst;
 
         let mut k = 0;
         while f.abs() > epsilon && k < max_iter {
-            theta -= f / (1_f64 + theta.cos());
+            theta -= f / (1.0 + theta.cos());
             f = theta + theta.sin() - cst;
 
             k += 1;
         }
 
-        theta /= 2_f64;
+        theta = theta / 2.0;
 
         // The minus is an astronomical convention.
         // longitudes are increasing from right to left
         let x = (lon.0 / std::f64::consts::PI) * theta.cos();
-        let y = 0.5_f64 * theta.sin();
+        let y = 0.5 * theta.sin();
 
         Some(Vector2::new(x, y))
     }
@@ -559,7 +566,7 @@ impl Projection for Mollweide {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (180.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((180.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::renderable::Angle;
@@ -652,7 +659,7 @@ impl Projection for Orthographic {
         pos_world_space.z > 0_f64
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (180.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((110.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for AzimuthalEquidistant {
@@ -769,7 +776,7 @@ impl Projection for AzimuthalEquidistant {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (160.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((160.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Gnomonic {
@@ -870,8 +877,9 @@ impl Projection for Gnomonic {
         pos_world_space: &Vector4<f64>,
         longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
-        if pos_world_space.z <= 1e-3 {
-            None
+        if pos_world_space.z <= 1e-2 {
+            // Back hemisphere (z < 0) + diverges near z=0
+            Some(Vector2::new(1.0, 0.0))
         } else {
             let pos_clip_space = if longitude_reversed {
                 Vector2::new(
@@ -894,10 +902,10 @@ impl Projection for Gnomonic {
 
     fn is_front_of_camera(pos_world_space: &Vector4<f64>) -> bool {
         // 2D projections always faces the camera
-        pos_world_space.z >= 1e-3
+        pos_world_space.z >= 1e-2
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (90.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((90.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Mercator {
@@ -1006,5 +1014,5 @@ impl Projection for Mercator {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: f64 = (180.0 / 180.0) * std::f64::consts::PI;
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((180.0 / 180.0) * std::f64::consts::PI);
 }

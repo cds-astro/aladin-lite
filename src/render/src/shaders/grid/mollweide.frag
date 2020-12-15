@@ -1,60 +1,22 @@
 #version 300 es
 precision lowp float;
 
-out vec4 color;
+out vec4 c;
 in vec2 pos_clip;
 
-uniform vec4 grid_color;
-uniform mat4 world2model;
-uniform mat4 model2world;
-uniform float clip_zoom_factor;
+uniform vec4 color;
+uniform mat4 model;
+uniform mat4 inv_model;
+uniform float czf;
 
 uniform float meridians[20];
 uniform int num_meridians;
 uniform float parallels[10];
 uniform int num_parallels;
+
 uniform vec2 window_size;
 
-const float PI = 3.141592653589793f;
-
-
-/// World to screen space transformation
-/// X is between [-1, 1]
-/// Y is between [-0.5, 0.5]
-/// 
-/// # Arguments
-/// 
-/// * `pos_world_space` - Position in the world space. Must be a normalized vector
-vec2 world2clip_mollweide(vec3 p) {
-    float lat = asin(p.y);
-    float lon = atan(p.x, p.z);
-    // X in [-1, 1]
-    // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-    const float eps = 1e-3;
-    const int max_iter = 10;
-
-    float cst = PI * sin(lat);
-
-    float theta = lat;
-    float f = theta + sin(theta) - cst;
-
-    int k = 0;
-    while (abs(f) > eps && k < max_iter) {
-        theta = theta - f / (1.0 + cos(theta));
-        f = theta + sin(theta) - cst;
-
-        k += 1;
-    }
-
-    theta = theta * 0.5;
-
-    // The minus is an astronomical convention.
-    // longitudes are increasing from right to left
-    return vec2(
-        -(lon / PI) * cos(theta),
-        0.5 * sin(theta)
-    );
-}
+@import ../hips/projection;
 
 bool is_included_inside_projection(vec2 pos_clip_space) {
     float px2 = pos_clip_space.x * pos_clip_space.x;
@@ -87,7 +49,7 @@ vec3 clip2world_mollweide(vec2 pos_clip_space) {
     
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left
-    return vec3(-sin(theta) * cos(delta), sin(delta), cos(theta) * cos(delta));
+    return vec3(sin(theta) * cos(delta), sin(delta), cos(theta) * cos(delta));
 }
 
 float d_isolon(vec3 pos_model, float theta) {
@@ -101,7 +63,8 @@ float d_isolon(vec3 pos_model, float theta) {
     float d = abs(dot(n, pos_model));
 
     vec3 h_model = normalize(pos_model - n*d);
-    vec3 h_world = vec3(model2world * vec4(h_model, 1.f));
+    vec3 h_world = vec3(inv_model * vec4(h_model, 1.f));
+    h_world = check_inversed_longitude(h_world);
 
     // Project to screen x and h and compute the distance
     // between the two
@@ -115,22 +78,46 @@ float d_isolat(vec3 pos_model, float delta) {
     return d;
 }
 
-float grid_alpha(vec3 pos_model) {
+float grid_alpha(vec3 p) {
     float v = 1e10;
-    
+    float delta = asin(p.y);
+    float theta = atan(p.x, p.z);
+
+    float m = 0.0;
+    float mdist = 10.0;
     for (int i = 0; i < num_meridians; i++) {
-        float a = d_isolon(pos_model, meridians[i]);
-
-        v = min(a, v);
+        float tmp = meridians[i];
+        if (tmp > PI) {
+            tmp -= 2.0 * PI;
+        }
+        float d = abs(theta - tmp);
+        if (d < mdist) {
+            mdist = d;
+            m = tmp;
+        }
     }
-    
+
+    float par = 0.0;
+    float pdist = 10.0;
     for (int i = 0; i < num_parallels; i++) {
-        float a = d_isolat(pos_model, parallels[i]);
-
-        v = min(a, v);
+        float d = abs(delta - parallels[i]);
+        if (d < pdist) {
+            pdist = d;
+            par = parallels[i];
+        }
     }
 
-    float eps = 3.0 * clip_zoom_factor / window_size.x;
+    /*float a = 0.0;
+    if (mdist < pdist) {
+        a = d_isolon(p, m);
+    } else {
+        a = d_isolat(p, par);
+    }
+    v = min(a, v);*/
+    v = min(d_isolon(p, m), v);
+    v = min(d_isolat(p, par), v);
+
+    float eps = 3.0 * czf / window_size.x;
     return smoothstep(eps, 2.0*eps, v);
 }
 
@@ -138,8 +125,10 @@ void main() {
     vec4 transparency = vec4(0.f, 0.f, 0.f, 0.f);
 
     vec3 pos_world = clip2world_mollweide(pos_clip);
-    vec3 pos_model = vec3(world2model * vec4(pos_world, 1.f));
+    pos_world = check_inversed_longitude(pos_world);
+
+    vec3 pos_model = vec3(model * vec4(pos_world, 1.f));
 
     float alpha = grid_alpha(pos_model);
-    color = mix(grid_color, transparency, alpha);
+    c = mix(color, transparency, alpha);
 }

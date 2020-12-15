@@ -18,42 +18,29 @@ uniform vec2 window_size;
 
 @import ../hips/projection;
 
-
-bool is_included_inside_projection(vec2 pos_clip_space) {
-    float px2 = pos_clip_space.x * pos_clip_space.x;
-    float py2 = pos_clip_space.y * pos_clip_space.y;
-
-    return (px2 * 0.25 + py2) <= 0.25;
+float sinc_positive(float x) {
+    if (x > 1.0e-4) {
+        return sin(x) / x;
+    } else {
+        // If a is mall, use Taylor expension of asin(a) / a
+        // a = 1e-4 => a^4 = 1.e-16
+        x = x*x;
+        return 1.0 - x * (1.0 - x / 20.0) / 6.0;
+    }
 }
 
-/// View to world space transformation
-/// 
-/// This returns a normalized vector along its first 3 dimensions.
-/// Its fourth component is set to 1.
-/// 
-/// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-/// 
-/// # Arguments
-/// 
-/// * `x` - in normalized device coordinates between [-1; 1]
-/// * `y` - in normalized device coordinates between [-1; 1]
-vec3 clip2world_aitoff(vec2 pos_clip_space) {
-    if(!is_included_inside_projection(pos_clip_space)) {
-        discard;
+vec3 clip2world_arc(vec2 pos_clip_space) {
+    // r <= pi
+    float x = pos_clip_space.x * PI;
+    float y = pos_clip_space.y * PI;
+    float r = length(vec2(x, y));
+    if (r <= PI) {
+        float z = cos(r);
+        r = sinc_positive(r);
+
+        return vec3(x * r, y * r, z);
     }
-
-    vec2 uv = vec2(pos_clip_space.x * PI * 0.5, pos_clip_space.y * PI);
-    //da uv a lat/lon
-    float c = length(uv);
-
-    float phi = asin(uv.y * sin(c) / c);
-    float theta = atan(uv.x * sin(c), c * cos(c)) * 2.0;
-
-    return vec3(
-        sin(theta) * cos(phi),
-        sin(phi),
-        cos(theta) * cos(phi)
-    );
+    discard;
 }
 
 float d_isolon(vec3 pos_model, float theta) {
@@ -68,11 +55,11 @@ float d_isolon(vec3 pos_model, float theta) {
 
     vec3 h_model = normalize(pos_model - n*d);
     vec3 h_world = vec3(inv_model * vec4(h_model, 1.f));
-    h_world = check_inversed_longitude(h_world);
 
     // Project to screen x and h and compute the distance
     // between the two
-    vec2 h_clip = world2clip_aitoff(h_world);
+    h_world = check_inversed_longitude(h_world);
+    vec2 h_clip = world2clip_arc(h_world);
     
     return length(pos_clip - h_clip) * 2.0;
 }
@@ -128,11 +115,10 @@ float grid_alpha(vec3 p) {
 void main() {
     vec4 transparency = vec4(0.f, 0.f, 0.f, 0.f);
 
-    vec3 pos_world = clip2world_aitoff(pos_clip);
+    vec3 pos_world = clip2world_arc(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = vec3(model * vec4(pos_world, 1.f));
-
+    vec3 pos_model = normalize(vec3(model * vec4(pos_world, 1.f)));
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);
 }

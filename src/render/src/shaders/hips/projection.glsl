@@ -108,9 +108,6 @@ vec2 world2clip_arc(vec3 p) {
             r = acos(p.z) / r;
         }
         float x = p.x * r;
-        /*if (inversed_longitude == 1) {
-            x = -x;
-        }*/
         float y = p.y * r;
 
         return vec2(x / PI, y / PI);

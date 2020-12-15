@@ -219,7 +219,7 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let cells = if camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE {
+        let cells = if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
             HEALPixCells::allsky(0)
         } else {
             let HEALPixCells { mut depth, cells } = view.get_cells();

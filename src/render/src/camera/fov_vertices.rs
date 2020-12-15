@@ -57,7 +57,7 @@ pub struct FieldOfViewVertices {
     // in the field of view
     great_circles: FieldOfViewType,
 }
-
+use crate::Angle;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
         ndc_to_clip: &Vector2<f64>,
@@ -128,7 +128,7 @@ impl FieldOfViewVertices {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
-        aperture: f64,
+        aperture: Angle<f64>,
         longitude_reversed: bool,
     ) {
         self.set_fov::<P>(
@@ -145,7 +145,7 @@ impl FieldOfViewVertices {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
-        aperture: f64,
+        aperture: Angle<f64>,
         longitude_reversed: bool,
     ) {
         self.world_coo = ndc_to_world::<P>(
@@ -157,7 +157,7 @@ impl FieldOfViewVertices {
         self.set_rotation::<P>(w2m, aperture);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: f64) {
+    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: Angle<f64>) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
@@ -167,7 +167,7 @@ impl FieldOfViewVertices {
         self.set_great_circles::<P>(aperture);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aperture: f64) {
+    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(vertices);

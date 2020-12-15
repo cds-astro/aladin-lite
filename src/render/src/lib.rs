@@ -493,10 +493,7 @@ impl App {
             self.manager
                 .draw::<P>(&self.gl, &mut self.shaders, &self.camera);
 
-            self.grid
-                .draw::<P>(&self.camera, &mut self.shaders)
-                .unwrap();
-
+            self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
             // Reset the flags about the user action
@@ -1656,9 +1653,12 @@ impl WebClient {
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
-            cur_fov / 1.80
+            let fov = cur_fov / 1.80;
+            // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
+            fov.max(2e-10 as f64)
         } else {
-            cur_fov * 1.80
+            let fov = cur_fov * 1.80;
+            fov.min(1000.0)
         };
 
         //log(&format!("{:?}", target_fov));

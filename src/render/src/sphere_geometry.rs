@@ -18,7 +18,7 @@ pub enum FieldOfViewType {
 use crate::CameraViewPort;
 //#[repr(C)]
 //pub struct ClipSpacePosition<S: BaseFloat>(Vector2<S>);
-
+use crate::ArcDeg;
 impl FieldOfViewType {
     pub fn new_allsky() -> FieldOfViewType {
         let allsky = FieldOfViewType::Allsky(Allsky::new());
@@ -26,8 +26,8 @@ impl FieldOfViewType {
         allsky
     }
 
-    pub fn new_polygon(vertices: &[Vector4<f64>] /*, aspect: f32*/) -> FieldOfViewType {
-        FieldOfViewType::Polygon(Polygon::new(vertices /*, aspect*/))
+    pub fn new_polygon(vertices: &[Vector4<f64>]) -> FieldOfViewType {
+        FieldOfViewType::Polygon(Polygon::new(vertices))
     }
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
@@ -92,6 +92,26 @@ impl FieldOfViewType {
         match self {
             FieldOfViewType::Allsky(_) => true,
             FieldOfViewType::Polygon(poly) => poly.contains_pole(),
+        }
+    }
+
+    pub fn contains_north_pole(&self, camera: &CameraViewPort) -> bool {
+        match self {
+            FieldOfViewType::Allsky(_) => {
+                let center = camera.get_center();
+                center.y >= 0.0
+            },
+            FieldOfViewType::Polygon(poly) => poly.contains_north_pole(),
+        }
+    }
+
+    pub fn contains_south_pole(&self, camera: &CameraViewPort) -> bool {
+        match self {
+            FieldOfViewType::Allsky(_) => {
+                let center = camera.get_center();
+                center.y < 0.0
+            },
+            FieldOfViewType::Polygon(poly) => poly.contains_south_pole(),
         }
     }
 }
@@ -163,6 +183,7 @@ impl ZoneFieldOfView for Allsky {
     }
 }
 */
+// Pole contained in polygon fov mode
 #[derive(PartialEq, Eq)]
 enum Pole {
     North,
@@ -369,9 +390,7 @@ where
     // Swap the vertices of the edge
     #[inline]
     fn swap(&mut self) {
-        let tmp = self.v1;
-        self.v1 = self.v2;
-        self.v2 = tmp;
+        std::mem::swap(&mut self.v1, &mut self.v2);
     }
 
     #[inline]
@@ -400,17 +419,29 @@ where
             let v1 = self.vertices[prev].lonlat();
             let v2 = self.vertices[curr].lonlat();
 
-            let edge = Edge { v1, v2 };
+            if v1.lon().0.is_nan() || v1.lat().0.is_nan() || v2.lon().0.is_nan() || v2.lat().0.is_nan() {
+                if self.curr == self.vertices.len() - 1 {
+                    self.finished = true;
+                } else {
+                    // There are still edges, we increment self.curr
+                    self.prev = curr;
+                    self.curr += 1;
+                }
 
-            if self.curr == self.vertices.len() - 1 {
-                self.finished = true;
+                self.next()
             } else {
-                // There are still edges, we increment self.curr
-                self.prev = curr;
-                self.curr += 1;
-            }
+                let edge = Edge { v1, v2 };
 
-            Some(edge)
+                if self.curr == self.vertices.len() - 1 {
+                    self.finished = true;
+                } else {
+                    // There are still edges, we increment self.curr
+                    self.prev = curr;
+                    self.curr += 1;
+                }
+    
+                Some(edge)
+            }
         } else {
             None
         }
@@ -510,7 +541,7 @@ pub struct Polygon {
     // Pole contained
     pole: Option<Pole>,
 }
-
+use crate::Projection;
 // A polygon must contain at least 3 vertices
 impl Polygon {
     fn new(vertices: &[Vector4<f64>]) -> Polygon {
@@ -562,6 +593,24 @@ impl Polygon {
     #[inline]
     fn contains_pole(&self) -> bool {
         self.pole.is_some()
+    }
+
+    #[inline]
+    fn contains_north_pole(&self) -> bool {
+        if let Some(p) = &self.pole {
+            p.is_north()
+        } else {
+            false
+        }
+    }
+
+    #[inline]
+    fn contains_south_pole(&self) -> bool {
+        if let Some(p) = &self.pole {
+            p.is_south()
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -718,7 +767,7 @@ impl Polygon {
                 } else if edge.is_in_lon_range(&(-inter)) {
                     Some(-inter)
                 } else {
-                    unreachable!();
+                    None
                 }
             }
         }

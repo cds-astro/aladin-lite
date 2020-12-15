@@ -400,12 +400,13 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 ) {
     let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
 
-    let n_segments_by_side: u16 = 1_u16 << num_subdivision;
-    let lonlat = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side);
+    let n_segments_by_side: usize = 1 << num_subdivision;
+    let lonlat = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
     let off_idx_vertices = (vertices.len() / 11) as u16;
+    //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -435,37 +436,36 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
             // The projection is defined whatever the projection is
             // because this code is executed for small fovs (~<100deg depending
             // of the projection).
-            let ndc_pos = P::model_to_ndc_space(&model_pos, camera).unwrap();
-
-            /*vertices.push(lon as f32);
-            vertices.push(lat as f32);
-
-            vertices.push(model_pos.x);
-            vertices.push(model_pos.y);
-            vertices.push(model_pos.z);
-
-            vertices.push(uv_s_vertex_0.x);
-            vertices.push(uv_s_vertex_0.y);
-            vertices.push(uv_s_vertex_0.z);
-
-            vertices.push(uv_e_vertex_0.x);
-            vertices.push(uv_e_vertex_0.y);
-            vertices.push(uv_e_vertex_0.z);
-
-            vertices.push(alpha);*/
-            vertices.extend([
-                lon as f32,
-                lat as f32,
-                ndc_pos.x as f32,
-                ndc_pos.y as f32,
-                uv_s_vertex_0.x,
-                uv_s_vertex_0.y,
-                uv_s_vertex_0.z,
-                uv_e_vertex_0.x,
-                uv_e_vertex_0.y,
-                uv_e_vertex_0.z,
-                alpha
-            ].iter());
+            if let Some(ndc_pos) = P::model_to_ndc_space(&model_pos, camera) {
+                vertices.extend([
+                    lon as f32,
+                    lat as f32,
+                    ndc_pos.x as f32,
+                    ndc_pos.y as f32,
+                    uv_s_vertex_0.x,
+                    uv_s_vertex_0.y,
+                    uv_s_vertex_0.z,
+                    uv_e_vertex_0.x,
+                    uv_e_vertex_0.y,
+                    uv_e_vertex_0.z,
+                    alpha
+                ].iter());
+            } else {
+                //valid[i][j] = false;
+                vertices.extend([
+                    lon as f32,
+                    lat as f32,
+                    1.0,
+                    0.0,
+                    uv_s_vertex_0.x,
+                    uv_s_vertex_0.y,
+                    uv_s_vertex_0.z,
+                    uv_e_vertex_0.x,
+                    uv_e_vertex_0.y,
+                    uv_e_vertex_0.z,
+                    alpha
+                ].iter());
+            }
         }
     }
 
@@ -862,7 +862,8 @@ impl Draw for ImageSurvey {
         let textures_array = self.textures.get_texture_array();
         let survey_storing_integers = self.textures.config.tex_storing_integers == 1;
 
-        let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
+        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        //let raytracing = camera.is_allsky();
         if raytracing {
             //raytracer.bind();
             let shader = color
@@ -1103,7 +1104,8 @@ impl ImageSurveys {
         //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
         //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
         let _limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
-        let raytracing = camera.get_aperture().0 > P::RASTER_THRESHOLD_ANGLE;
+        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        //let raytracing = camera.is_allsky();
         if raytracing {
             self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);

@@ -18,14 +18,6 @@ uniform vec2 window_size;
 
 @import ../hips/projection;
 
-
-bool is_included_inside_projection(vec2 pos_clip_space) {
-    float px2 = pos_clip_space.x * pos_clip_space.x;
-    float py2 = pos_clip_space.y * pos_clip_space.y;
-
-    return (px2 * 0.25 + py2) <= 0.25;
-}
-
 /// View to world space transformation
 /// 
 /// This returns a normalized vector along its first 3 dimensions.
@@ -37,23 +29,13 @@ bool is_included_inside_projection(vec2 pos_clip_space) {
 /// 
 /// * `x` - in normalized device coordinates between [-1; 1]
 /// * `y` - in normalized device coordinates between [-1; 1]
-vec3 clip2world_aitoff(vec2 pos_clip_space) {
-    if(!is_included_inside_projection(pos_clip_space)) {
-        discard;
-    }
+vec3 clip2world_gnomonic(vec2 pos_clip_space) {
+    float x_2d = pos_clip_space.x * PI;
+    float y_2d = pos_clip_space.y * PI;
+    float r = x_2d * x_2d + y_2d * y_2d;
 
-    vec2 uv = vec2(pos_clip_space.x * PI * 0.5, pos_clip_space.y * PI);
-    //da uv a lat/lon
-    float c = length(uv);
-
-    float phi = asin(uv.y * sin(c) / c);
-    float theta = atan(uv.x * sin(c), c * cos(c)) * 2.0;
-
-    return vec3(
-        sin(theta) * cos(phi),
-        sin(phi),
-        cos(theta) * cos(phi)
-    );
+    float z = sqrt(1.0 + r);
+    return vec3(z * x_2d, z * y_2d, z);
 }
 
 float d_isolon(vec3 pos_model, float theta) {
@@ -72,7 +54,7 @@ float d_isolon(vec3 pos_model, float theta) {
 
     // Project to screen x and h and compute the distance
     // between the two
-    vec2 h_clip = world2clip_aitoff(h_world);
+    vec2 h_clip = world2clip_gnomonic(h_world);
     
     return length(pos_clip - h_clip) * 2.0;
 }
@@ -128,11 +110,10 @@ float grid_alpha(vec3 p) {
 void main() {
     vec4 transparency = vec4(0.f, 0.f, 0.f, 0.f);
 
-    vec3 pos_world = clip2world_aitoff(pos_clip);
+    vec3 pos_world = clip2world_gnomonic(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = vec3(model * vec4(pos_world, 1.f));
-
+    vec3 pos_model = normalize(vec3(model * vec4(pos_world, 1.f)));
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);
 }

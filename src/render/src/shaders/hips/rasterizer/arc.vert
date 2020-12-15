@@ -15,8 +15,8 @@ out float frag_blending_factor;
 
 uniform mat4 inv_model;
 uniform vec2 ndc_to_clip;
-uniform float czf_hi;
-uniform float czf_low;
+//uniform float czf;
+
 // current time in ms
 uniform float current_time;
 
@@ -27,7 +27,7 @@ void main() {
     vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
     world_pos = check_inversed_longitude(world_pos);
 
-    gl_Position = vec4(world2clip_arc(world_pos) / (ndc_to_clip * (czf_hi + czf_low)), 0.0, 1.0);
+    gl_Position = vec4(world2clip_arc(world_pos) / (ndc_to_clip * czf), 0.0, 1.0);
     */
     gl_Position = vec4(ndc_pos, 0.0, 1.0);
 

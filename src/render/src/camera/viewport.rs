@@ -432,23 +432,12 @@ use crate::shader::ShaderBound;
 use crate::renderable::angle::ArcMin;
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        let (czf_hi, czf_low) = crate::utils::split_f64(self.clip_zoom_factor);
-        let d_inertia_ndc_to_clip = if self.aperture < ArcMin(10.0) {
-            Vector2::new(0.0, 0.)
-        } else {
-            Vector2::new(0.0, 0.)
-        };
-
-        //debug!(czf_hi);
-        //debug!(czf_low);
         shader
             .attach_uniforms_from(&self.last_user_action)
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
-            .attach_uniform("d_inertia_ndc_to_clip", &d_inertia_ndc_to_clip) // Send ndc to clip
-            .attach_uniform("czf_hi", &czf_hi) // Send clip zoom factor high part
-            .attach_uniform("czf_low", &czf_low) // Send clip zoom factor low part
+            .attach_uniform("czf", &self.clip_zoom_factor) // Send clip zoom factor
             .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32))
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);

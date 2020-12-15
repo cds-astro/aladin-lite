@@ -10,7 +10,7 @@ uniform float current_time;
 uniform mat4 model;
 
 uniform vec2 ndc_to_clip;
-uniform float clip_zoom_factor;
+uniform float czf;
 uniform vec2 kernel_size;
 
 out vec2 out_uv;
@@ -25,7 +25,7 @@ void main() {
     vec2 center_pos_clip_space = world2clip_aitoff(p);
 
     vec2 pos_clip_space = center_pos_clip_space;
-    gl_Position = vec4((pos_clip_space / (ndc_to_clip * clip_zoom_factor)) + offset * kernel_size , 0.f, 1.f);
+    gl_Position = vec4((pos_clip_space / (ndc_to_clip * czf)) + offset * kernel_size , 0.f, 1.f);
 
     out_uv = uv;
     out_p = p;

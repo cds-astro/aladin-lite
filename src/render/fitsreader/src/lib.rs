@@ -304,7 +304,9 @@ mod tests {
         let  f  = File::open("misc/Npix44108.fits").unwrap();
         let  bytes: Result<Vec<_>, _> =  f.bytes().collect();
         let  buf  =  bytes.unwrap();
-        let  Fits { data, .. } =  Fits::from_bytes_slice(&buf).unwrap();
+        let  Fits { data, header } =  Fits::from_bytes_slice(&buf).unwrap();
+
+        let header = dbg!(header);
         
         match data {
             DataType::F32(v) => {

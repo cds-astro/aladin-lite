@@ -37,7 +37,11 @@ vec3 reverse_uv(vec3 uv) {
     return uv;
 }
 
-float get_grayscale_from_texture(vec3 UV) {
+float get_grayscale_from_texture(vec3 UV, float m) {
+    if (m == 1.0) {
+        return 0.0;
+    }
+
     vec3 uv = UV;
     // FITS data pixels are reversed along the y axis
     if (tex_storing_fits == 1) {

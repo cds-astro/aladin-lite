@@ -85,26 +85,18 @@ TileColor get_tile_color(vec3 pos) {
     }*/
 
     Tile tile = textures_tiles[idx];
-    if (tile.empty == 1) {
-        return TileColor(tile, vec3(0.0), true);
-    } else {
-        int idx_texture = tile.texture_idx >> 6;
-        int off = tile.texture_idx & 0x3F;
-        float idx_row = float(off >> 3); // in [0; 7]
-        float idx_col = float(off & 0x7); // in [0; 7]
 
-        vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
-        vec3 UV = vec3(offset, float(idx_texture));
+    int idx_texture = tile.texture_idx >> 6;
+    int off = tile.texture_idx & 0x3F;
+    float idx_row = float(off >> 3); // in [0; 7]
+    float idx_col = float(off & 0x7); // in [0; 7]
 
-        vec3 color = colormap_f(get_grayscale_from_texture(UV)).rgb;
-        //vec3 color = vec3(float(idx)/11.0);
+    vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
+    vec3 UV = vec3(offset, float(idx_texture));
 
-        return TileColor(tile, color, true);
-    }
+    vec3 color = colormap_f(get_grayscale_from_texture(UV, float(tile.empty))).rgb;
 
-    // code unreachable
-    //Tile empty = Tile(0, -1, current_time, 1);
-    //return TileColor(empty, vec3(0.f), false);
+    return TileColor(tile, color, true);
 }
 
 const float duration = 500.f; // 500ms

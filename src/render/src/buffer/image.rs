@@ -266,7 +266,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 pub struct FITSMetaData {
-    pub blank: f32,
+    pub blank: Option<f32>,
     pub bzero: f32,
     pub bscale: f32,
 }
@@ -624,12 +624,12 @@ impl ImageRequest for FITSImageRequest {
             };
             let blank = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BLANK") {
                 if let FITSKeywordValue::FloatingPoint(blank) = value {
-                    *blank as f32
+                    Some(*blank as f32)
                 } else {
-                    std::f32::MIN
+                    Some(-100.0)
                 }
             } else {
-                std::f32::MIN
+                Some(-100.0)
             };
 
             let metadata = FITSMetaData {

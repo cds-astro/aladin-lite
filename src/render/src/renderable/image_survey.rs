@@ -361,8 +361,8 @@ impl SendUniforms for Color {
 const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 // Each cell has 4 vertices
 pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
-// There is 12 floats per vertices (lonlat, pos, uv_start, uv_end, time_start) = 2 + 3 + 3 + 3 + 1 = 12
-const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 12;
+// There is 13 floats per vertices (lonlat, pos, uv_start, uv_end, time_start, m0, m1) = 2 + 2 + 3 + 3 + 1 + 1 + 1 = 13
+const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 13;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
 use cgmath::{Vector3, Vector4};
@@ -394,6 +394,9 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     uv_0: &TileUVW,
     uv_1: &TileUVW,
+    miss_0: f32,
+    miss_1: f32,
+
     alpha: f32,
 
     camera: &CameraViewPort,
@@ -405,7 +408,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (vertices.len() / 11) as u16;
+    let off_idx_vertices = (vertices.len() / 13) as u16;
     //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
@@ -448,7 +451,9 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                     uv_e_vertex_0.x,
                     uv_e_vertex_0.y,
                     uv_e_vertex_0.z,
-                    alpha
+                    alpha,
+                    miss_0,
+                    miss_1
                 ].iter());
             } else {
                 //valid[i][j] = false;
@@ -463,7 +468,9 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                     uv_e_vertex_0.x,
                     uv_e_vertex_0.y,
                     uv_e_vertex_0.z,
-                    alpha
+                    alpha,
+                    miss_0,
+                    miss_1
                 ].iter());
             }
         }
@@ -550,7 +557,7 @@ impl ImageSurvey {
             2,
             WebGl2RenderingContext::FLOAT,
             false,
-            11 * num_bytes_per_f32,
+            13 * num_bytes_per_f32,
             (0 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(0);
@@ -558,10 +565,10 @@ impl ImageSurvey {
         // layout (location = 1) in vec2 position;
         gl.vertex_attrib_pointer_with_i32(
             1,
-            3,
+            2,
             WebGl2RenderingContext::FLOAT,
             false,
-            11 * num_bytes_per_f32,
+            13 * num_bytes_per_f32,
             (2 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(1);
@@ -572,7 +579,7 @@ impl ImageSurvey {
             3,
             WebGl2RenderingContext::FLOAT,
             false,
-            11 * num_bytes_per_f32,
+            13 * num_bytes_per_f32,
             (4 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(2);
@@ -583,7 +590,7 @@ impl ImageSurvey {
             3,
             WebGl2RenderingContext::FLOAT,
             false,
-            11 * num_bytes_per_f32,
+            13 * num_bytes_per_f32,
             (7 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(3);
@@ -594,10 +601,32 @@ impl ImageSurvey {
             1,
             WebGl2RenderingContext::FLOAT,
             false,
-            11 * num_bytes_per_f32,
+            13 * num_bytes_per_f32,
             (10 * num_bytes_per_f32) as i32,
         );
         gl.enable_vertex_attrib_array(4);
+
+        // layout (location = 5) in float m0;
+        gl.vertex_attrib_pointer_with_i32(
+            5,
+            1,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            13 * num_bytes_per_f32,
+            (11 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(5);
+
+        // layout (location = 6) in float m1;
+        gl.vertex_attrib_pointer_with_i32(
+            6,
+            1,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            13 * num_bytes_per_f32,
+            (12 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(6);
 
         let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer
@@ -733,6 +762,8 @@ impl ImageSurvey {
             let uv_0 = TileUVW::new(cell, &state.starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
             let start_time = state.ending_texture.start_time();
+            let miss_0 = state.starting_texture.is_missing() as f32;
+            let miss_1 = state.ending_texture.is_missing() as f32;
 
             add_vertices_grid::<P, T>(
                 &mut self.vertices,
@@ -741,6 +772,8 @@ impl ImageSurvey {
                 &self.sphere_sub,
                 &uv_0,
                 &uv_1,
+                miss_0,
+                miss_1,
                 start_time.as_millis(),
                 camera,
             );
@@ -1407,15 +1440,15 @@ impl ImageSurveys {
                             RetrievedImageType::FITSImage { image, metadata } => {
                                 // Update the metadata found in the header of the
                                 // FITS tile received
-                                let blank = metadata.blank;
-                                //self.set_metadata_fits_surveys(&tile.root_url, metadata);
-
-                                textures.config.blank = metadata.blank;
+                                if let Some(blank) = metadata.blank {
+                                    textures.config.blank = blank;
+                                    textures.config.set_black_tile_value(blank);
+                                }
                                 textures.config.scale = metadata.bscale;
                                 textures.config.offset = metadata.bzero;
+                                //self.set_metadata_fits_surveys(&tile.root_url, metadata);
                                 // Update the blank textures
-                                textures.config.set_black_tile_value(blank);
-
+                                //textures.config.set_black_tile_value(0.0);
                                 textures
                                     .push::<TileArrayBufferImage>(tile, image, time_req, missing);
                             }

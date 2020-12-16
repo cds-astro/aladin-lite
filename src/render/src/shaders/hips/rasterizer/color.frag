@@ -7,6 +7,8 @@ precision mediump int;
 in vec3 frag_uv_start;
 in vec3 frag_uv_end;
 in float frag_blending_factor;
+in float m_start;
+in float m_end;
 
 out vec4 out_frag_color;
 uniform float opacity;

@@ -141,6 +141,10 @@ impl Texture {
         self.idx
     }
 
+    pub fn is_missing(&self) -> i32 {
+        self.missing as i32
+    }
+
     // Setter
     pub fn update_start_time(&mut self, start_time: Time) {
         // Asserts the texture is full

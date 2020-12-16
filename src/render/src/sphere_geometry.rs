@@ -115,7 +115,10 @@ impl FieldOfViewType {
         }
     }
 }
+
 /*
+use crate::shader::SendUniforms;
+use crate::shader::ShaderBound;
 impl SendUniforms for FieldOfViewType {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
@@ -136,9 +139,6 @@ pub trait ZoneFieldOfView {
     fn parallels(&self) -> &[Angle<f32>];
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
-
 use crate::renderable::angle::transmute_angles;
 impl<T> SendUniforms for T where T: ZoneFieldOfView {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
@@ -156,8 +156,8 @@ impl<T> SendUniforms for T where T: ZoneFieldOfView {
 
         shader
     }
-}
-*/
+}*/
+
 pub struct Allsky {
     bbox: BoundingBox,
 }

@@ -262,3 +262,21 @@ pub fn log_2(x: i32) -> i8 {
     assert!(x > 0);
     (num_bits::<i32>() as u32 - x.leading_zeros() - 1) as i8
 }
+
+/// Compute the negative branch of the lambert fonction (W_{-1})
+/// defined for x in [-1/e; 0[
+/// This paper: https://doi.org/10.1016/S0378-4754(00)00172-5
+/// gives an analytical approximation with a relative error of 0.025%
+#[inline]
+pub fn lambert_wm1(x: f32) -> f32 {
+    assert!(x < 0.0 && x >= -1.0/std::f32::consts::E);
+    let m1 = 0.3361;
+    let m2 = -0.0042;
+    let m3 = -0.0201;
+
+    let s = -1.0 - (-x).ln();
+    let s_root = s.sqrt();
+    let s_div_2_root = (s*0.5).sqrt();
+    
+    -1.0 - s - (2.0/m1)*(1.0 - 1.0/(1.0 + ((m1*s_div_2_root)/(1.0 + m2*s*(m3*s_root).exp()))))
+}

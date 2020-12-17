@@ -337,7 +337,7 @@ impl ProjetedGrid {
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
         if self.enabled {
-            if camera.get_aperture() < ArcDeg(1.0) {
+            if camera.get_aperture() < ArcDeg(10.0) {
                 self.draw_lines_CPU::<P>(camera, shaders);
             } else {
                 self.draw_lines_GPU::<P>(camera, shaders);

@@ -126,6 +126,8 @@ struct ZoomAnimation {
     time_start_anim: Time,
     start_fov: Angle<f64>,
     goal_fov: Angle<f64>,
+    w0: f64,
+    zooming: bool,
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
@@ -378,6 +380,8 @@ impl App {
             time_start_anim,
             start_fov,
             goal_fov,
+            w0,
+            zooming
         }) = self.zoom_animation
         {
             let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
@@ -389,7 +393,6 @@ impl App {
             // where:
             // * k is the stiffness of the ressort
             // * m is its mass
-            let w0 = 35.0;
             let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1.0) * ((-w0 * t).exp());
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
@@ -873,20 +876,48 @@ impl App {
     }
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
-        /*if let Some(zoom) = &mut self.zoom_animation {
-            zoom.goal_fov = fov;
-        } else {*/
+        if let Some(zoom) = &mut self.zoom_animation {
+            let zooming = fov < self.camera.get_aperture();
+            if zooming != zoom.zooming {
+                let start_fov = self.camera.get_aperture();
+                let goal_fov = fov;
+                let zooming = goal_fov < start_fov;
+                // Set the moving animation object
+                self.zoom_animation = Some(ZoomAnimation {
+                    time_start_anim: Time::now(),
+                    start_fov,
+                    goal_fov,
+                    w0: 35.0,
+                    zooming
+                });
+            } else {
+                //crate::log("sdfsdf");
+                zoom.goal_fov = fov;
+                // Change de time start anim so that the current time
+                // matches the current fov after changing the goal fov
+                let d = (self.camera.get_aperture() - zoom.goal_fov)/(zoom.start_fov - zoom.goal_fov); // in (0, 1)
+                if d.0 > 0.0 && d.0 <= 1.0 {
+                    crate::log("sdfsd");
+                    let u = -math::lambert_wm1(-(d.0 as f32)/std::f32::consts::E) - 1.0;
+                    let t = u / (zoom.w0 as f32); // sec
+                    let st = Time::now() - Time(t*1000.0);
+                    zoom.time_start_anim = Time(st.0);
+                }
+            }
+        } else {
             // Convert these positions to rotations
             let start_fov = self.camera.get_aperture();
             let goal_fov = fov;
-
+            let zooming = goal_fov < start_fov;
             // Set the moving animation object
             self.zoom_animation = Some(ZoomAnimation {
                 time_start_anim: Time::now(),
                 start_fov,
                 goal_fov,
+                w0: 35.0,
+                zooming
             });
-        //}
+        }
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
@@ -1863,5 +1894,37 @@ impl WebClient {
         self.projection.resize(&mut self.app, width, height);
 
         Ok(())
+    }
+}
+
+
+mod tests {
+    /*#[test]
+    fn lambert_w() {
+        let d = -10.0;
+        let x = -d/std::f32::consts::E;
+        //let x = 1.0_f32;
+        let mut wn = 1.0_f32;
+        let mut k = 0;
+        loop {
+            //let tmp = wn1;
+            let wn1 = wn - (wn*wn.exp() - x)/((1.0 + wn)*wn.exp());
+            if (wn1 - wn).abs() <= 1e-3 {
+                break;
+            }
+            wn = wn1;
+            k += 1;
+        }
+
+        println!("{} {}", k, wn);
+    }*/
+    #[test]
+    fn lambert_wm1() {
+        let d = 0.1;
+        let x = -d/std::f32::consts::E;
+
+        let w = super::math::lambert_wm1(x);
+
+        println!("{}", w);
     }
 }

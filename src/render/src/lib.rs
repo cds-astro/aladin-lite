@@ -876,9 +876,11 @@ impl App {
     }
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
-        if let Some(zoom) = &mut self.zoom_animation {
-            self.camera.set_aperture::<P>(zoom.goal_fov);
-            /*let zooming = fov < self.camera.get_aperture();
+        // Code handling the update of the animation
+        // when a wheel event is detected AND current
+        // zooming is not achieved!
+        /*if let Some(zoom) = &mut self.zoom_animation {
+            let zooming = fov < self.camera.get_aperture();
             if zooming != zoom.zooming {
                 let start_fov = self.camera.get_aperture();
                 let goal_fov = fov;
@@ -904,10 +906,11 @@ impl App {
                     let st = Time::now() - Time(t*1000.0);
                     zoom.time_start_anim = Time(st.0);
                 }
-            }*/
-        } 
+            }
+        }*/
+
         // Convert these positions to rotations
-        let start_fov = self.camera.get_aperture();
+        /*let start_fov = self.camera.get_aperture();
         let goal_fov = fov;
         let zooming = goal_fov < start_fov;
         // Set the moving animation object
@@ -917,7 +920,12 @@ impl App {
             goal_fov,
             w0: 35.0,
             zooming
-        });
+        });*/
+
+        // For the moment, no animation is triggered.
+        // The fov is directly set
+        self.camera.set_aperture::<P>(fov);
+        self.look_for_new_tiles();
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
@@ -1684,11 +1692,11 @@ impl WebClient {
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
-            let fov = cur_fov / 1.35;
+            let fov = cur_fov / 1.20;
             // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
             fov.max(2e-10 as f64)
         } else {
-            let fov = cur_fov * 1.35;
+            let fov = cur_fov * 1.20;
             fov.min(1000.0)
         };
 

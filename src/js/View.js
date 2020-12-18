@@ -834,7 +834,7 @@ export let View = (function() {
         $(view.reticleCanvas).on('wheel', function(event) {
             event.preventDefault();
             event.stopPropagation();
-            var level = view.zoomLevel;
+            //var level = view.zoomLevel;
 
             var delta = event.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll

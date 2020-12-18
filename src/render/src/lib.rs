@@ -877,7 +877,8 @@ impl App {
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
         if let Some(zoom) = &mut self.zoom_animation {
-            let zooming = fov < self.camera.get_aperture();
+            self.camera.set_aperture::<P>(zoom.goal_fov);
+            /*let zooming = fov < self.camera.get_aperture();
             if zooming != zoom.zooming {
                 let start_fov = self.camera.get_aperture();
                 let goal_fov = fov;
@@ -903,21 +904,20 @@ impl App {
                     let st = Time::now() - Time(t*1000.0);
                     zoom.time_start_anim = Time(st.0);
                 }
-            }
-        } else {
-            // Convert these positions to rotations
-            let start_fov = self.camera.get_aperture();
-            let goal_fov = fov;
-            let zooming = goal_fov < start_fov;
-            // Set the moving animation object
-            self.zoom_animation = Some(ZoomAnimation {
-                time_start_anim: Time::now(),
-                start_fov,
-                goal_fov,
-                w0: 35.0,
-                zooming
-            });
-        }
+            }*/
+        } 
+        // Convert these positions to rotations
+        let start_fov = self.camera.get_aperture();
+        let goal_fov = fov;
+        let zooming = goal_fov < start_fov;
+        // Set the moving animation object
+        self.zoom_animation = Some(ZoomAnimation {
+            time_start_anim: Time::now(),
+            start_fov,
+            goal_fov,
+            w0: 35.0,
+            zooming
+        });
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
@@ -1684,11 +1684,11 @@ impl WebClient {
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
-            let fov = cur_fov / 1.80;
+            let fov = cur_fov / 1.35;
             // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
             fov.max(2e-10 as f64)
         } else {
-            let fov = cur_fov * 1.80;
+            let fov = cur_fov * 1.35;
             fov.min(1000.0)
         };
 

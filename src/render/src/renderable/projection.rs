@@ -879,7 +879,7 @@ impl Projection for Gnomonic {
     ) -> Option<Vector2<f64>> {
         if pos_world_space.z <= 1e-2 {
             // Back hemisphere (z < 0) + diverges near z=0
-            Some(Vector2::new(1.0, 0.0))
+            None
         } else {
             let pos_clip_space = if longitude_reversed {
                 Vector2::new(

@@ -92,7 +92,7 @@ export let Polyline= (function() {
         }
     };
     
-    Polyline.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Polyline.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor, view) {
         if (! this.isShowing) {
             return;
         }
@@ -104,7 +104,7 @@ export let Polyline= (function() {
         if (this.color) {
             ctx.strokeStyle= this.color;
         }
-        var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
+        /*var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
         if (! start) {
             return;
         }
@@ -121,6 +121,19 @@ export let Polyline= (function() {
         }
         
         
+        ctx.stroke();*/
+        ctx.beginPath();
+        for(var l=0; l<this.radecArray.length-1; l++) {
+            let pts = view.aladin.webglAPI.projectLine(this.radecArray[l][0], this.radecArray[l][1], this.radecArray[l+1][0], this.radecArray[l+1][1]);
+
+            for(var k=0; k<pts.length; k+=4) {
+                if (AladinUtils.isInsideViewXy(pts[k], pts[k+1], width, height) || AladinUtils.isInsideViewXy(pts[k+2], pts[k+3], width, height)) {
+                    ctx.moveTo(pts[k], pts[k+1]);
+                    ctx.lineTo(pts[k+2], pts[k+3]);
+                }    
+            }
+        }
+
         ctx.stroke();
     };
     

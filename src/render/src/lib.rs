@@ -30,6 +30,7 @@ mod shaders;
 mod sphere_geometry;
 mod time;
 mod transfert_function;
+mod line;
 pub use image_fmt::FormatImageType;
 
 use crate::{
@@ -928,6 +929,13 @@ impl App {
         self.look_for_new_tiles();
     }
 
+    pub fn project_line<P: Projection>(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
+        let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
+        let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
+
+        line::project::<P>(&v1, &v2, &self.camera)
+    }
+
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
             if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
@@ -1299,6 +1307,17 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.start_zooming_to::<Gnomonic>(fov),
             ProjectionType::Mercator => app.start_zooming_to::<Mercator>(fov),
         };
+    }
+
+    pub fn project_line(&self, app: &App, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
+        match self {
+            ProjectionType::Aitoff => app.project_line::<Aitoff>(lon1, lat1, lon2, lat2),
+            ProjectionType::MollWeide => app.project_line::<Mollweide>(lon1, lat1, lon2, lat2),
+            ProjectionType::Ortho => app.project_line::<Orthographic>(lon1, lat1, lon2, lat2),
+            ProjectionType::Arc => app.project_line::<AzimuthalEquidistant>(lon1, lat1, lon2, lat2),
+            ProjectionType::Gnomonic => app.project_line::<Gnomonic>(lon1, lat1, lon2, lat2),
+            ProjectionType::Mercator => app.project_line::<Mercator>(lon1, lat1, lon2, lat2),
+        }
     }
 
     pub fn set_fov(&mut self, app: &mut App, fov: Angle<f64>) {
@@ -1692,11 +1711,11 @@ impl WebClient {
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
-            let fov = cur_fov / 1.20;
+            let fov = cur_fov / 1.10;
             // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
             fov.max(2e-10 as f64)
         } else {
-            let fov = cur_fov * 1.20;
+            let fov = cur_fov * 1.10;
             fov.min(1000.0)
         };
 
@@ -1706,6 +1725,18 @@ impl WebClient {
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = projectLine)]
+    pub fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Result<Box<[f64]>, JsValue> {
+        let vertices = self.projection.project_line(&self.app, lon1, lat1, lon2, lat2);
+
+        let vertices = vertices.into_iter()
+            .map(|v| vec![v.x, v.y])
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Ok(vertices.into_boxed_slice())
     }
 
     #[wasm_bindgen(js_name = enableGrid)]

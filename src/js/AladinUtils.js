@@ -103,7 +103,17 @@ export let AladinUtils = (function() {
     		}
     	},
     	
-    	
+    	/**
+    	 * Test whether a xy position is the view
+    	 * @param vx
+    	 * @param vy
+    	 * @param width
+    	 * @param height
+    	 * @returns a boolean whether (vx, vy) is in the screen
+    	 */
+    	isInsideViewXy: function(vx, vy, width, height) {
+    		return vx >= 0 && vx < width && vy >= 0 && vy < height
+    	},
     	
     	/**
     	 * tests whether a healpix pixel is visible or not

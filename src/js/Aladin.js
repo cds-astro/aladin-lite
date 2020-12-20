@@ -565,23 +565,13 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.setProjection = function (projectionName) {
-        //console.log('setProj', projectionName);
-        this.webglAPI.setProjection(projectionName);
-        this.view.fov_limit = this.webglAPI.getMaxFieldOfView() * 180 / Math.PI;
-        /*
         if (!projectionName) {
             return;
         }
         projectionName = projectionName.toLowerCase();
-        switch (projectionName) {
-            case "aitoff":
-                this.view.changeProjection(ProjectionEnum.AITOFF);
-                break;
-            case "sinus":
-            default:
-                this.view.changeProjection(ProjectionEnum.SIN);
-        }
-        */
+        console.log('setProj', projectionName);
+        this.view.changeProjection(projectionName);
+        //this.view.fov_limit = this.webglAPI.getMaxFieldOfView() * 180 / Math.PI;
     };
 
     /** point view to a given object (resolved by Sesame) or position
@@ -1095,7 +1085,7 @@ export let Aladin = (function () {
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Projection</div>' +
-            '<select id="projectionChoice"><option value="orthographic">SINUS</option><option value="aitoff">AITOFF</option><option value="mollweide">MOLLWEIDE</option><option value="mercator">MERCATOR</option><option value="arc">ARC</option><option value="gnomonic">TAN</option></select><br/>');
+            '<select id="projectionChoice"><option value="sinus">SINUS</option><option value="aitoff">AITOFF</option><option value="mollweide">MOLLWEIDE</option><option value="mercator">MERCATOR</option><option value="arc">ARC</option><option value="tan">TAN</option></select><br/>');
 
         $('#projectionChoice').change(function () {
             aladin.setProjection($(this).val());

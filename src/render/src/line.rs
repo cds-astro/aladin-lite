@@ -41,14 +41,23 @@ fn subdivide<P: Projection>(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            let theta = math::angle(&ab.normalize(), &bc.normalize());
+            let ab = ab.normalize();
+            let bc = bc.normalize();
+            let theta = math::angle(&ab, &bc);
 
             if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION {
-                vertices.push(a);
-                vertices.push(b);
+                // Check if ab and bc are colinear
+                let colinear = (ab.x*bc.y - bc.x*ab.y).abs() < 1e-2;
+                if colinear {
+                    vertices.push(a);
+                    vertices.push(c);
+                } else {
+                    vertices.push(a);
+                    vertices.push(b);
 
-                vertices.push(b);
-                vertices.push(c);
+                    vertices.push(b);
+                    vertices.push(c);
+                }
             } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
                 if ab_l == ab_l.min(bc_l) {
                     vertices.push(a);

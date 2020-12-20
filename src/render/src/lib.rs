@@ -1057,7 +1057,7 @@ impl ProjectionType {
                 *self = ProjectionType::Aitoff;
                 Ok(())
             },
-            "orthographic" => {
+            "sinus" => {
                 app.set_projection::<Orthographic>();
                 *self = ProjectionType::Ortho;
                 Ok(())
@@ -1072,7 +1072,7 @@ impl ProjectionType {
                 *self = ProjectionType::Arc;
                 Ok(())
             },
-            "gnomonic" => {
+            "tan" => {
                 app.set_projection::<Gnomonic>();
                 *self = ProjectionType::Gnomonic;
                 Ok(())
@@ -1082,7 +1082,7 @@ impl ProjectionType {
                 *self = ProjectionType::Mercator;
                 Ok(())
             },
-            _ => Err(format!("{} is not a valid projection name. aitoff, arc, orthographic, gnomonic, mollweide and mercator are accepted", name).into())
+            _ => Err(format!("{} is not a valid projection name. aitoff, arc, sinus, tan, mollweide and mercator are accepted", name).into())
         }
     }
 

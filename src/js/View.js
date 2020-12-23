@@ -1334,8 +1334,13 @@ export let View = (function() {
             hpxIdx.init();
             var spatialVector = new SpatialVector();
             // if frame != frame image survey, we need to convert to survey frame system
-            var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
-            var radec = this.projection.unproject(xy.x, xy.y);
+            //var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
+            //var radec = this.projection.unproject(xy.x, xy.y);
+            let pos_world = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
+            let radec = {
+                ra: pos_world[0],
+                dec: pos_world[1]
+            };
             var lonlat = [];
             if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
                 if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
@@ -1518,7 +1523,7 @@ export let View = (function() {
 //                    continue;
 //                }
 //            }
-            // check if we have a pixel at the edge of the view in AITOFF
+            // check if we have a pixel at the edge of the view in allsky projections
             if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
                /* console.log(this.largestDim);
                 var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
@@ -1582,18 +1587,23 @@ export let View = (function() {
                 lon = spVec.ra();
                 lat = spVec.dec();
             }
-                
-            cornersXY[k] = this.projection.project(lon, lat);
+            //cornersXY[k] = this.projection.project(lon, lat);
+            let xy = this.aladin.webglAPI.worldToScreen(lon, lat);
+            cornersXYView[k] = {
+                vx: xy.x,
+                vy: xy.y
+            };
         }
         
-        if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
+        if (cornersXYView[0] == null ||  cornersXYView[1] == null  ||  cornersXYView[2] == null ||  cornersXYView[3] == null ) {
             return null;
         }
-
-
-        for (var k=0; k<4; k++) {
+        /*if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
+            return null;
+        }*/
+        /*for (var k=0; k<4; k++) {
             cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
-        }
+        }*/
 
         return cornersXYView;
     };

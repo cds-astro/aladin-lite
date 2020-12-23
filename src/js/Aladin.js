@@ -1709,12 +1709,12 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 
 
 //A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
-A.init = Promise.all([import('../render/pkg/')]).then(async (values) => {
-    //let [hpxAPI, webglAPI] = values;
-    let [webglAPI] = values;
+A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
+    let [hpxAPI, webglAPI] = values;
+    //let [webglAPI] = values;
 
     // HEALPix library
-    //Aladin.wasmLibs.hpx = hpxAPI;
+    Aladin.wasmLibs.hpx = hpxAPI;
     // WebGL library
     Aladin.wasmLibs.webgl = webglAPI;
 });

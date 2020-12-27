@@ -1,4 +1,3 @@
-
 const float TWICE_PI = 6.28318530718f;
 const float PI = 3.141592653589793f;
 const float FOUR_OVER_PI = 1.27323954474f;

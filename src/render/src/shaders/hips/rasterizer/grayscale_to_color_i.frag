@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 precision highp sampler2D;
 precision highp isampler2D;
 precision mediump int;

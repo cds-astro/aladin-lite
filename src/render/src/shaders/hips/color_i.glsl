@@ -1,5 +1,5 @@
-const int MAX_NUM_TEX = 10;
-uniform isampler2D tex[MAX_NUM_TEX];
+//const int MAX_NUM_TEX = 3;
+uniform isampler2D tex[3];
 uniform int num_tex;
 
 uniform float scale;
@@ -27,7 +27,7 @@ float get_pixels(vec3 uv) {
     } else if (idx_texture == 2) {
         return float(texture(tex[2], uv.xy).r);
     } else {
-        return 0.1;
+        return 0.0;
     }
 }
 

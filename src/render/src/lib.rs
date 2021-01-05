@@ -486,7 +486,7 @@ impl App {
     fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
         if self.rendering {
             // Render the scene
-            self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+            self.gl.clear_color(0.08, 0.08, 0.38, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);

@@ -200,7 +200,7 @@ impl Texture2DArray {
     }
 
     pub fn bind_all_textures<'a>(&self, shader: &ShaderBound<'a>) {
-        for (tex_idx, texture) in self.textures.iter().enumerate() {
+        /*for (tex_idx, texture) in self.textures.iter().enumerate() {
             self.gl
                 .active_texture(WebGl2RenderingContext::TEXTURE0 + tex_idx as u32);
             self.gl
@@ -211,7 +211,33 @@ impl Texture2DArray {
                 .gl
                 .get_uniform_location(&shader.shader.program, &name_location);
             self.gl.uniform1i(location.as_ref(), tex_idx as i32);
+        }*/
+        let num_tex = self.textures.len();
+        //let mut textures_bound = Vec::with_capacity(num_tex);
+        /*for (texture_idx, texture) in textures_array.textures.iter().enumerate() {
+            let texture_bound = textures_array.bind_texture_slice(texture_idx as i32);
+
+            let name = format!("tex[{}]", texture_idx.to_string());
+            let location = self.gl.get_uniform_location(&shader.shader.program, &name);
+            self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
+
+            //textures_bound.push(texture_bound);
+        }*/
+        let mut textures_bound = Vec::with_capacity(num_tex);
+        for texture_idx in 0..num_tex {
+            let texture_bound = self.bind_texture_slice(texture_idx as i32);
+
+            //let name = format!("tex[{}]", texture_idx.to_string());
+            //let location = self.gl.get_uniform_location(&shader.shader.program, &name);
+            //self.gl.uniform1i(location.as_ref(), texture_bound.get_idx_sampler());
+
+            textures_bound.push(texture_bound.get_idx_sampler());
         }
+
+        let location = self.gl.get_uniform_location(&shader.shader.program, "tex[0]");
+        self.gl.uniform1iv_with_i32_array(location.as_ref(), &textures_bound.as_slice());
+
+        shader.attach_uniform("num_tex", &(num_tex as i32));
     }
 
     /*pub fn bind(&self) -> Texture2DArrayBound {
@@ -251,7 +277,7 @@ impl Texture2DArray {
 
 use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
-impl SendUniforms for Texture2DArray {
+/*impl SendUniforms for Texture2DArray {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         for (texture_idx, _texture) in self.textures.iter().enumerate() {
             let texture = self.bind_texture_slice(texture_idx as i32);
@@ -265,4 +291,4 @@ impl SendUniforms for Texture2DArray {
         shader.attach_uniform("num_tex", &(self.textures.len() as i32));
         shader
     }
-}
+}*/

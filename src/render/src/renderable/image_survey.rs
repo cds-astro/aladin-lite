@@ -905,15 +905,13 @@ impl Draw for ImageSurvey {
 
             textures_array.bind_all_textures(&shader);
 
-            let num_tex = textures_array.textures.len();
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniform("num_tex", &(num_tex as i32));
+                .attach_uniform("opacity", &opacity);
 
             raytracer.draw(&shader);
 
@@ -951,15 +949,13 @@ impl Draw for ImageSurvey {
                 .bind(&self.gl);
             textures_array.bind_all_textures(&shader);
 
-            let num_tex = textures_array.textures.len();
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniform("num_tex", &(num_tex as i32));
+                .attach_uniform("opacity", &opacity);
             //crate::log("raster");
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(

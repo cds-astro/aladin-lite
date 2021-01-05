@@ -903,11 +903,10 @@ impl Draw for ImageSurvey {
                 .get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);
 
-            textures_array.bind_all_textures(&shader);
-
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
@@ -947,11 +946,11 @@ impl Draw for ImageSurvey {
             let shader = color
                 .get_raster_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);
-            textures_array.bind_all_textures(&shader);
 
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())

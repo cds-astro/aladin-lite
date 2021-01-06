@@ -525,7 +525,7 @@ impl Projection for Mollweide {
     ) -> Option<Vector2<f64>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
-        let epsilon = 1e-5;
+        let epsilon = 1e-12;
         let max_iter = 10;
 
         let xyz = pos_world_space.truncate();

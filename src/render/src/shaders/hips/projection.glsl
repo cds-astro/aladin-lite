@@ -55,7 +55,7 @@ vec2 world2clip_mollweide(vec3 p) {
     float f = phi + sin(phi) - cst;
 
     int k = 0;
-    while (abs(f) > 1e-4 && k < max_iter) {
+    while (abs(f) > 1e-6 && k < max_iter) {
         phi = phi - f / (1.f + cos(phi));
         f = phi + sin(phi) - cst;
 

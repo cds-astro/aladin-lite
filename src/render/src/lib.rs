@@ -186,9 +186,9 @@ impl App {
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources);
 
-        let color = sdss.color();
-        let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        surveys.add_simple_survey(survey, color, 0);
+        //let color = sdss.color();
+        //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
+        surveys.add_composite_surveys(vec![sdss], &gl, &camera, exec.clone(), 0);
 
         let time_start_blending = Time::now();
 

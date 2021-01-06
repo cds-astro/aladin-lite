@@ -1034,10 +1034,6 @@ enum ImageSurveyIdx {
         names: Vec<String>,
         colors: Vec<Color>,
     },
-    Simple {
-        name: String,
-        color: Color,
-    },
     None,
 }
 
@@ -1047,10 +1043,6 @@ impl ImageSurveyIdx {
             ImageSurveyIdx::Composite {
                 names: cur_names, ..
             } => cur_names.iter().any(|cur_name| cur_name == name),
-            ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                //crate::log(&format!("{} {} res {}", name, cur_name, cur_name == name));
-                cur_name == name
-            }
             ImageSurveyIdx::None => false,
         }
     }
@@ -1146,10 +1138,6 @@ impl ImageSurveys {
 
         let primary_layer = &self.layers[0];
         match &primary_layer {
-            ImageSurveyIdx::Simple { name, color } => {
-                let survey = self.surveys.get_mut(name).unwrap();
-                survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-            }
             ImageSurveyIdx::Composite { names, colors } => {
                 // Add the first hips on top of the background
                 let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
@@ -1171,7 +1159,7 @@ impl ImageSurveys {
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
                 }
             }
-            _ => unreachable!(),
+            _ => (),
         }
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
@@ -1185,17 +1173,13 @@ impl ImageSurveys {
             // Overlay
             let overlay_layer = &self.layers[1];
             match &overlay_layer {
-                ImageSurveyIdx::Simple { name, color } => {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
-                }
                 ImageSurveyIdx::Composite { names, colors } => {
                     // All the hipses are plotted blended with the primary one
                     for (name, color) in names.iter().zip(colors.iter()) {
                         let survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
                     }
-                }
+                },
                 // If no HiPS are overlaying we do nothing
                 _ => (),
             }
@@ -1227,7 +1211,6 @@ impl ImageSurveys {
         exec: Rc<RefCell<TaskExecutor>>,
         layer_idx: usize,
     ) -> Result<Vec<String>, JsValue> {
-        let layer = &mut self.layers[layer_idx];
 
         let (surveys_url, colors): (Vec<_>, Vec<_>) = hipses.iter()
             .map(|hips| {
@@ -1235,40 +1218,38 @@ impl ImageSurveys {
             })
             .unzip();
 
-        let replaced_survey_names: Vec<String> = match layer {
+        let layer = &self.layers[layer_idx];
+        match layer {
             ImageSurveyIdx::None => {
-                *layer = ImageSurveyIdx::Composite {
-                    names: surveys_url.clone(),
+                self.layers[layer_idx] = ImageSurveyIdx::Composite {
+                    names: surveys_url,
                     colors,
                 };
-                vec![]
-            },
-            ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                let cur_name = cur_name.clone();
-                *layer = ImageSurveyIdx::Composite {
-                    names: surveys_url.clone(),
-                    colors,
-                };
-
-                vec![cur_name]
             },
             ImageSurveyIdx::Composite {
-                names: cur_names, ..
+                names: cur_names,
+                ..
             } => {
-                let cur_names = cur_names.clone();
-                *layer = ImageSurveyIdx::Composite {
-                    names: surveys_url.clone(),
+                for replaced_survey_name in cur_names.iter() {
+                    // ensure cur_idx is not contained in any other layers
+                    if let Some(idx) = self.contained_in_any_layer(replaced_survey_name) {
+                        // if the survey was only contained in the current layer
+                        if idx.len() == 1 && idx.contains(&layer_idx) {
+                            // do not remove it we still need it
+                            if !surveys_url.contains(replaced_survey_name) {
+                                self.surveys.remove(replaced_survey_name);
+                            }
+                        }
+                    } else {
+                        // if so we can remove it from the surveys hashmap
+                        self.surveys.remove(replaced_survey_name);
+                    }
+                }
+
+                self.layers[layer_idx] = ImageSurveyIdx::Composite {
+                    names: surveys_url,
                     colors,
                 };
-                cur_names
-            }
-        };
-
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
             }
         }
 
@@ -1286,70 +1267,6 @@ impl ImageSurveys {
         }
 
         Ok(new_survey_ids)
-        /*for survey in surveys {
-            let (url, color) = survey;
-            
-        }*/
-
-
-        /*let names = surveys
-            .iter()
-            .map(|s| s.get_id().to_string())
-            .collect::<Vec<String>>();
-
-        let replaced_survey_names: Vec<String> = {
-            let layer = &mut self.layers[layer_idx];
-            match layer {
-                ImageSurveyIdx::None => {
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
-                    vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
-
-                    vec![cur_name]
-                }
-                ImageSurveyIdx::Composite {
-                    names: cur_names, ..
-                } => {
-                    let cur_names = cur_names.clone();
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
-                    cur_names
-                }
-            }
-        };
-
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
-            }
-        }
-
-        //crate::log("END ADD");
-        // If it is a new survey, insert it
-        let mut new_survey_ids = Vec::new();
-        for (name, survey) in names.iter().zip(surveys.into_iter()) {
-            if !self.surveys.contains_key(name) {
-                let id = name.to_string();
-                self.surveys.insert(id.clone(), survey);
-                new_survey_ids.push(id);
-            }
-        }
-
-        new_survey_ids*/
-
     }
 
     pub fn remove_overlay(&mut self) {
@@ -1359,13 +1276,7 @@ impl ImageSurveys {
                 ImageSurveyIdx::None => {
                     *layer = ImageSurveyIdx::None;
                     vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::None;
-
-                    vec![cur_name]
-                }
+                },
                 ImageSurveyIdx::Composite {
                     names: cur_names, ..
                 } => {
@@ -1382,65 +1293,6 @@ impl ImageSurveys {
                 // if so we can remove it from the surveys hashmap
                 self.surveys.remove(replaced_survey_name);
             }
-        }
-    }
-
-    pub fn add_simple_survey(
-        &mut self,
-        survey: ImageSurvey,
-        color: Color,
-        layer_idx: usize,
-    ) -> bool {
-        let name = survey.get_id();
-
-        let replaced_survey_names: Vec<String> = {
-            let layer = &mut self.layers[layer_idx];
-            match layer {
-                ImageSurveyIdx::None => {
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-                    vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-
-                    vec![cur_name]
-                }
-                ImageSurveyIdx::Composite {
-                    names: cur_names, ..
-                } => {
-                    let cur_names = cur_names.clone();
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-                    cur_names
-                }
-            }
-        };
-
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
-            }
-        }
-
-        //crate::log("END ADD");
-        // If it is a new survey, insert it
-        if !self.surveys.contains_key(name) {
-            self.surveys.insert(name.to_string(), survey);
-            true
-        } else {
-            //crate::log("no new");
-            false
         }
     }
     
@@ -1455,9 +1307,6 @@ impl ImageSurveys {
             let primary_layer = &self.layers[0];
 
             match primary_layer {
-                ImageSurveyIdx::Simple { name, .. } => {
-                    Some(self.surveys.get(name).unwrap().get_view())
-                }
                 ImageSurveyIdx::Composite { names, .. } => {
                     let name = names.first().unwrap();
                     Some(self.surveys.get(name).unwrap().get_view())
@@ -1538,6 +1387,7 @@ impl ImageSurveys {
     pub fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
         self.surveys.iter()
     }
+
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, String, ImageSurvey> {
         self.surveys.iter_mut()
     }

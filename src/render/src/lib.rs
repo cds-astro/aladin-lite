@@ -30,6 +30,7 @@ mod shaders;
 mod sphere_geometry;
 mod time;
 mod transfert_function;
+mod line;
 pub use image_fmt::FormatImageType;
 
 use crate::{
@@ -185,13 +186,14 @@ impl App {
         // The surveys storing the textures of the resolved tiles
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources);
 
-        let (survey, color) = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        surveys.add_simple_survey(survey, color, 0);
+        //let color = sdss.color();
+        //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
+        surveys.add_composite_surveys(vec![sdss], &gl, &camera, exec.clone(), 0);
 
         let time_start_blending = Time::now();
 
         // Catalog definition
-        let manager = Manager::new(&gl, &mut shaders, &camera, &resources);
+        let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders)?;
@@ -506,8 +508,8 @@ impl App {
         Ok(())
     }
 
-    fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let (survey, color) =
+    /*fn set_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
+        /*let (survey, color) =
             hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
         let id = survey.get_textures().config().root_url.clone();
 
@@ -520,12 +522,12 @@ impl App {
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
-        self.request_redraw = true;
+        self.request_redraw = true;*/
 
         Ok(())
     }
     fn set_overlay_simple_hips<P: Projection>(&mut self, hips: SimpleHiPS) -> Result<(), JsValue> {
-        let (survey, color) =
+        /*let (survey, color) =
             hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
         let id = survey.get_textures().config().root_url.clone();
 
@@ -538,34 +540,18 @@ impl App {
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
-        self.request_redraw = true;
+        self.request_redraw = true;*/
 
         Ok(())
-    }
+    }*/
 
     fn remove_overlay(&mut self) {
         self.surveys.remove_overlay();
         self.request_redraw = true;
     }
 
-    fn set_composite_hips<P: Projection>(&mut self, hipses: CompositeHiPS) -> Result<(), JsValue> {
-        let mut surveys = Vec::new();
-        let mut colors = Vec::new();
-        let mut survey_ids = Vec::new();
-        let mut survey_formats = Vec::new();
-
-        for hips in hipses.into_iter() {
-            let (survey, color) =
-                hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
-
-            survey_ids.push(survey.get_id().to_string());
-            survey_formats.push(survey.get_textures().config.format());
-
-            surveys.push(survey);
-            colors.push(color);
-        }
-
-        let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 0);
+    fn set_composite_hips<P: Projection>(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
+        let new_survey_ids = self.surveys.add_composite_surveys(hipses, &self.gl, &self.camera, self.exec.clone(), 0)?;
         self.downloader.clear_requests();
 
         if !new_survey_ids.is_empty() {
@@ -583,25 +569,9 @@ impl App {
 
     fn set_overlay_composite_hips<P: Projection>(
         &mut self,
-        hipses: CompositeHiPS,
+        hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
-        let mut surveys = Vec::new();
-        let mut colors = Vec::new();
-        let mut survey_ids = Vec::new();
-        let mut survey_formats = Vec::new();
-
-        for hips in hipses.into_iter() {
-            let (survey, color) =
-                hips.create(&self.gl, &self.camera, &self.surveys, self.exec.clone())?;
-
-            survey_ids.push(survey.get_id().to_string());
-            survey_formats.push(survey.get_textures().config.format());
-
-            surveys.push(survey);
-            colors.push(color);
-        }
-
-        let new_survey_ids = self.surveys.add_composite_surveys(surveys, colors, 1);
+        let new_survey_ids = self.surveys.add_composite_surveys(hipses, &self.gl, &self.camera, self.exec.clone(), 1)?;
 
         if !new_survey_ids.is_empty() {
             self.downloader.clear_requests();
@@ -928,6 +898,13 @@ impl App {
         self.look_for_new_tiles();
     }
 
+    pub fn project_line<P: Projection>(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
+        let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
+        let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
+
+        line::project::<P>(&v1, &v2, &self.camera)
+    }
+
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
             if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
@@ -1049,7 +1026,7 @@ impl ProjectionType {
                 *self = ProjectionType::Aitoff;
                 Ok(())
             },
-            "orthographic" => {
+            "sinus" => {
                 app.set_projection::<Orthographic>();
                 *self = ProjectionType::Ortho;
                 Ok(())
@@ -1064,7 +1041,7 @@ impl ProjectionType {
                 *self = ProjectionType::Arc;
                 Ok(())
             },
-            "gnomonic" => {
+            "tan" => {
                 app.set_projection::<Gnomonic>();
                 *self = ProjectionType::Gnomonic;
                 Ok(())
@@ -1074,7 +1051,7 @@ impl ProjectionType {
                 *self = ProjectionType::Mercator;
                 Ok(())
             },
-            _ => Err(format!("{} is not a valid projection name. aitoff, arc, orthographic, gnomonic, mollweide and mercator are accepted", name).into())
+            _ => Err(format!("{} is not a valid projection name. aitoff, arc, sinus, tan, mollweide and mercator are accepted", name).into())
         }
     }
 
@@ -1174,7 +1151,7 @@ impl ProjectionType {
         app.add_catalog(name, table, colormap);
     }
 
-    pub fn set_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
+    /*pub fn set_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_simple_hips::<Aitoff>(hips),
             ProjectionType::MollWeide => app.set_simple_hips::<Mollweide>(hips),
@@ -1183,12 +1160,12 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.set_simple_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_simple_hips::<Mercator>(hips),
         }
-    }
+    }*/
 
     pub fn set_composite_hips(
         &mut self,
         app: &mut App,
-        hips: CompositeHiPS,
+        hips: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
@@ -1200,7 +1177,7 @@ impl ProjectionType {
         }
     }
 
-    pub fn set_overlay_simple_hips(
+    /*pub fn set_overlay_simple_hips(
         &mut self,
         app: &mut App,
         hips: SimpleHiPS,
@@ -1213,7 +1190,7 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.set_overlay_simple_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_overlay_simple_hips::<Mercator>(hips),
         }
-    }
+    }*/
 
     pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
         app.remove_overlay();
@@ -1224,7 +1201,7 @@ impl ProjectionType {
     pub fn set_overlay_composite_hips(
         &mut self,
         app: &mut App,
-        hips: CompositeHiPS,
+        hips: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
         match self {
             ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
@@ -1299,6 +1276,17 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.start_zooming_to::<Gnomonic>(fov),
             ProjectionType::Mercator => app.start_zooming_to::<Mercator>(fov),
         };
+    }
+
+    pub fn project_line(&self, app: &App, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
+        match self {
+            ProjectionType::Aitoff => app.project_line::<Aitoff>(lon1, lat1, lon2, lat2),
+            ProjectionType::MollWeide => app.project_line::<Mollweide>(lon1, lat1, lon2, lat2),
+            ProjectionType::Ortho => app.project_line::<Orthographic>(lon1, lat1, lon2, lat2),
+            ProjectionType::Arc => app.project_line::<AzimuthalEquidistant>(lon1, lat1, lon2, lat2),
+            ProjectionType::Gnomonic => app.project_line::<Gnomonic>(lon1, lat1, lon2, lat2),
+            ProjectionType::Mercator => app.project_line::<Mercator>(lon1, lat1, lon2, lat2),
+        }
     }
 
     pub fn set_fov(&mut self, app: &mut App, fov: Angle<f64>) {
@@ -1438,7 +1426,7 @@ pub enum HiPSFormat {
     Image { format: String },
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum HiPSColor {
     Grayscale2Colormap {
         colormap: String,
@@ -1586,7 +1574,7 @@ impl WebClient {
     }*/
 
     // Set primary image survey
-    #[wasm_bindgen(js_name = setSimpleHiPS)]
+    /*#[wasm_bindgen(js_name = setSimpleHiPS)]
     pub fn set_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         //crate::log(&format!("simple HiPS: {:?}", hips));
@@ -1594,11 +1582,14 @@ impl WebClient {
         self.projection.set_simple_hips(&mut self.app, hips)?;
 
         Ok(())
-    }
+    }*/
 
-    #[wasm_bindgen(js_name = setCompositeHiPS)]
-    pub fn set_composite_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
-        let hips: CompositeHiPS = hips.into_serde().map_err(|e| e.to_string())?;
+    #[wasm_bindgen(js_name = setHiPS)]
+    pub fn set_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
+        let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses.into_iter()
+            .map(|h| h.into_serde().map_err(|e| JsValue::from_str(&e.to_string())))
+            .collect::<Result<Vec<_>, _>>();
+        let hips = hips?;
         //crate::log(&format!("Composite HiPS: {:?}", hips));
 
         self.projection.set_composite_hips(&mut self.app, hips)?;
@@ -1607,7 +1598,7 @@ impl WebClient {
     }
 
     // Set an overlay HiPS
-    #[wasm_bindgen(js_name = setOverlaySimpleHiPS)]
+    /*#[wasm_bindgen(js_name = setOverlaySimpleHiPS)]
     pub fn set_overlay_simple_hips(&mut self, hips: JsValue) -> Result<(), JsValue> {
         let hips: SimpleHiPS = hips.into_serde().map_err(|e| e.to_string())?;
         //crate::log(&format!("simple HiPS: {:?}", hips));
@@ -1616,22 +1607,25 @@ impl WebClient {
             .set_overlay_simple_hips(&mut self.app, hips)?;
 
         Ok(())
+    }*/
+
+    #[wasm_bindgen(js_name = setOverlayHiPS)]
+    pub fn set_overlay_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
+        let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses.into_iter()
+            .map(|h| h.into_serde().map_err(|e| JsValue::from_str(&e.to_string())))
+            .collect::<Result<Vec<_>, _>>();
+        let hips = hips?;
+        //crate::log(&format!("Composite HiPS: {:?}", hipses));
+
+        self.projection
+            .set_overlay_composite_hips(&mut self.app, hips)?;
+
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = removeOverlayHiPS)]
     pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
         self.projection.remove_overlay_hips(&mut self.app)?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = setOverlayCompositeHiPS)]
-    pub fn set_overlay_composite_hips(&mut self, hipses: JsValue) -> Result<(), JsValue> {
-        let hipses: CompositeHiPS = hipses.into_serde().map_err(|e| e.to_string())?;
-        //crate::log(&format!("Composite HiPS: {:?}", hipses));
-
-        self.projection
-            .set_overlay_composite_hips(&mut self.app, hipses)?;
 
         Ok(())
     }
@@ -1692,11 +1686,11 @@ impl WebClient {
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
-            let fov = cur_fov / 1.20;
+            let fov = cur_fov / 1.10;
             // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
             fov.max(2e-10 as f64)
         } else {
-            let fov = cur_fov * 1.20;
+            let fov = cur_fov * 1.10;
             fov.min(1000.0)
         };
 
@@ -1706,6 +1700,18 @@ impl WebClient {
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = projectLine)]
+    pub fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Result<Box<[f64]>, JsValue> {
+        let vertices = self.projection.project_line(&self.app, lon1, lat1, lon2, lat2);
+
+        let vertices = vertices.into_iter()
+            .map(|v| vec![v.x, v.y])
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Ok(vertices.into_boxed_slice())
     }
 
     #[wasm_bindgen(js_name = enableGrid)]

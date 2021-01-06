@@ -35,4 +35,6 @@
     AITOFF:  Projection.PROJ_AITOFF,
     MERCATOR:  Projection.PROJ_MERCATOR,
     ARC:  Projection.PROJ_ARC,
+    TAN:  Projection.PROJ_TAN,
+    MOL: Projection.PROJ_MOLLWEIDE,
  };

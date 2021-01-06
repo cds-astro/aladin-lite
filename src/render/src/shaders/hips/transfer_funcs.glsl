@@ -1,4 +1,3 @@
-
 float linear_f(float x, float min_value, float max_value) {
     return clamp((x - min_value)/(max_value - min_value), 0.0, 1.0);
 }

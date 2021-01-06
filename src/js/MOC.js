@@ -12,8 +12,9 @@
 import { SpatialVector }   from "./libs/healpix.js";
 import { astro }   from "./libs/fits.js";
 import { CooFrameEnum }   from "./CooFrameEnum.js";
-//import { HealpixCache }   from "./HealpixCache.js";
+import { HealpixCache }   from "./HealpixCache.js";
 import { Aladin }   from "./Aladin.js";
+import { ProjectionEnum } from "./ProjectionEnum.js";
 import { AladinUtils }   from "./AladinUtils.js";
 import { CooConversion }   from "./CooConversion.js";
 
@@ -255,7 +256,6 @@ export let MOC = (function() {
         if (! this.isShowing || ! this.ready) {
             return;
         }
-
         var mocCells = fov > MOC.PIVOT_FOV && this.adaptativeDisplay ? this._lowResIndexOrder3 : this._highResIndexOrder3;
 
         this._drawCells(ctx, mocCells, fov, projection, viewFrame, CooFrameEnum.J2000, width, height, largestDim, zoomFactor);
@@ -291,7 +291,7 @@ export let MOC = (function() {
         // let's test first all potential visible cells and keep only the one with a projection inside the view
         for (var k=0; k<potentialVisibleHpxCellsOrder3.length; k++) {
             var ipix = potentialVisibleHpxCellsOrder3[k];
-            xyCorners = getXYCorners(8, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection); 
+            xyCorners = getXYCorners(8, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection, this.view);
             if (xyCorners) {
                 visibleHpxCellsOrder3.push(ipix);
             }
@@ -317,7 +317,7 @@ export let MOC = (function() {
                         var startIpix = ipix * factor;
                         for (var k=0; k<factor; k++) {
                             norder3Ipix = startIpix + k;
-                            xyCorners = getXYCorners(8, norder3Ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
+                            xyCorners = getXYCorners(8, norder3Ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection, this.view);
                             if (xyCorners) {
                                 drawCorners(ctx, xyCorners);
                             }
@@ -328,7 +328,7 @@ export let MOC = (function() {
                     for (var j=0; j<mocCells[norder].length; j++) {
                         ipix = mocCells[norder][j];
                         var parentIpixOrder3 = Math.floor(ipix/Math.pow(4, norder-3));
-                        xyCorners = getXYCorners(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection);
+                        xyCorners = getXYCorners(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection, this.view);
                         if (xyCorners) {
                             drawCorners(ctx, xyCorners);
                         }
@@ -348,6 +348,7 @@ export let MOC = (function() {
     };
 
     var drawCorners = function(ctx, xyCorners) {
+        //console.log(xyCorners);
         ctx.moveTo(xyCorners[0].vx, xyCorners[0].vy);
         ctx.lineTo(xyCorners[1].vx, xyCorners[1].vy);
         ctx.lineTo(xyCorners[2].vx, xyCorners[2].vy);
@@ -375,7 +376,7 @@ export let MOC = (function() {
 
     // TODO: merge with what is done in View.getVisibleCells
     //var _spVec = new SpatialVector();
-    var getXYCorners = function(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection) {
+    var getXYCorners = function(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection, view) {
         var cornersXYView = [];
         var cornersXY = [];
 
@@ -409,19 +410,31 @@ export let MOC = (function() {
                 lat = dec;
             }
 
-            cornersXY[k] = projection.project(lon, lat);
+            //cornersXY[k] = projection.project(lon, lat);
+            cornersXYView[k] = view.aladin.webglAPI.worldToScreen(lon, lat);
+            if (!cornersXYView[k]) {
+                return null;
+            } else {
+                //console.log(lon, lat);
+                cornersXYView[k] = {
+                    vx: cornersXYView[k][0],
+                    vy: cornersXYView[k][1],
+                };
+            }
+            //console.log(cornersXYView[k]);
         }
 
-
-        if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
+        /*if (cornersXYView[0] == null ||  cornersXYView[1] == null  ||  cornersXYView[2] == null ||  cornersXYView[3] == null ) {
+            return null;
+        }*/
+        /*if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
             return null;
         }
 
         for (var k=0; k<4; k++) {
             cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, width, height, largestDim, zoomFactor);
-        }
-
-        var indulge = 10;
+        }*/
+        
         // detect pixels outside view. Could be improved !
         // we minimize here the number of cells returned
         if( cornersXYView[0].vx<0 && cornersXYView[1].vx<0 && cornersXYView[2].vx<0 &&cornersXYView[3].vx<0) {
@@ -437,7 +450,19 @@ export let MOC = (function() {
             return null;
         }
 
-        cornersXYView = AladinUtils.grow2(cornersXYView, 1);
+        // check if we have a pixel at the edge of the view in allsky projections
+        if (projection.PROJECTION!=ProjectionEnum.SIN && projection.PROJECTION!=ProjectionEnum.TAN) {
+            // Faster approach: when a vertex from a cell gets to the other side of the projection
+            // its vertices order change from counter-clockwise to clockwise!
+            // So if the vertices describing a cell are given in clockwise order
+            // we know it crosses the projection, so we do not plot them!
+            if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
+                !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
+                return null;
+            }
+        }
+
+        //cornersXYView = AladinUtils.grow2(cornersXYView, 1);
         return cornersXYView;
     };
 

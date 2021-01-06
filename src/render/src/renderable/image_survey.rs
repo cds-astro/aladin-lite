@@ -535,7 +535,7 @@ impl ImageSurvey {
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
         //_type: ImageSurveyType
-    ) -> Self {
+    ) -> Result<Self, JsValue> {
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
 
@@ -643,7 +643,7 @@ impl ImageSurvey {
         let num_idx = 0;
         let sphere_sub = SphereSubdivided {};
 
-        let textures = ImageSurveyTextures::new(gl, config, exec);
+        let textures = ImageSurveyTextures::new(gl, config, exec)?;
         let conf = textures.config();
         let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
 
@@ -652,7 +652,7 @@ impl ImageSurvey {
         let vertices = vec![];
         let idx_vertices = vec![];
 
-        ImageSurvey {
+        Ok(ImageSurvey {
             //color,
             // The image survey texture buffer
             textures,
@@ -673,7 +673,7 @@ impl ImageSurvey {
             //_type,
             size_vertices_buf,
             size_idx_vertices_buf,
-        }
+        })
     }
 
     /*pub fn from<T: HiPS>(gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, hips: T, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
@@ -903,17 +903,14 @@ impl Draw for ImageSurvey {
                 .get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);
 
-            textures_array.bind_all_textures(&shader);
-
-            let num_tex = textures_array.textures.len();
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniform("num_tex", &(num_tex as i32));
+                .attach_uniform("opacity", &opacity);
 
             raytracer.draw(&shader);
 
@@ -949,17 +946,15 @@ impl Draw for ImageSurvey {
             let shader = color
                 .get_raster_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);
-            textures_array.bind_all_textures(&shader);
 
-            let num_tex = textures_array.textures.len();
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniform("num_tex", &(num_tex as i32));
+                .attach_uniform("opacity", &opacity);
             //crate::log("raster");
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
@@ -981,8 +976,8 @@ pub trait HiPS {
         camera: &CameraViewPort,
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
-    ) -> Result<(ImageSurvey, Color), JsValue>;
-    fn get_color(&self) -> &HiPSColor;
+    ) -> Result<ImageSurvey, JsValue>;
+    fn color(&self) -> Color;
 }
 
 use crate::{HiPSColor, SimpleHiPS};
@@ -990,8 +985,29 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 impl HiPS for SimpleHiPS {
-    fn get_color(&self) -> &HiPSColor {
-        &self.color
+    fn color(&self) -> Color {
+        let color = match self.color.clone() {
+            HiPSColor::Color => Color::Colored,
+            HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
+                color,
+                k,
+                param: GrayscaleParameter {
+                    h: transfer.into(),
+                    min_value: self.properties.min_cutout.unwrap_or(0.0),
+                    max_value: self.properties.max_cutout.unwrap_or(1.0),
+                },
+            },
+            HiPSColor::Grayscale2Colormap { colormap, transfer } => Color::Grayscale2Colormap {
+                colormap: colormap.into(),
+                param: GrayscaleParameter {
+                    h: transfer.into(),
+                    min_value: self.properties.min_cutout.unwrap_or(0.0),
+                    max_value: self.properties.max_cutout.unwrap_or(1.0),
+                },
+            },
+        };
+
+        color
     }
 
     fn create(
@@ -1000,36 +1016,16 @@ impl HiPS for SimpleHiPS {
         camera: &CameraViewPort,
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
-    ) -> Result<(ImageSurvey, Color), JsValue> {
+    ) -> Result<ImageSurvey, JsValue> {
         let SimpleHiPS { properties, color } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
-        Ok((
-            ImageSurvey::new(
-                gl, camera, surveys, config, exec,
-                //ImageSurveyType::Simple
-            ),
-            match color {
-                HiPSColor::Color => Color::Colored,
-                HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
-                    color,
-                    k,
-                    param: GrayscaleParameter {
-                        h: transfer.into(),
-                        min_value: properties.min_cutout.unwrap_or(0.0),
-                        max_value: properties.max_cutout.unwrap_or(1.0),
-                    },
-                },
-                HiPSColor::Grayscale2Colormap { colormap, transfer } => Color::Grayscale2Colormap {
-                    colormap: colormap.into(),
-                    param: GrayscaleParameter {
-                        h: transfer.into(),
-                        min_value: properties.min_cutout.unwrap_or(0.0),
-                        max_value: properties.max_cutout.unwrap_or(1.0),
-                    },
-                },
-            },
-        ))
+        let survey = ImageSurvey::new(
+            gl, camera, surveys, config, exec,
+            //ImageSurveyType::Simple
+        )?;
+
+        Ok(survey)
     }
 }
 
@@ -1037,10 +1033,6 @@ enum ImageSurveyIdx {
     Composite {
         names: Vec<String>,
         colors: Vec<Color>,
-    },
-    Simple {
-        name: String,
-        color: Color,
     },
     None,
 }
@@ -1051,10 +1043,6 @@ impl ImageSurveyIdx {
             ImageSurveyIdx::Composite {
                 names: cur_names, ..
             } => cur_names.iter().any(|cur_name| cur_name == name),
-            ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                //crate::log(&format!("{} {} res {}", name, cur_name, cur_name == name));
-                cur_name == name
-            }
             ImageSurveyIdx::None => false,
         }
     }
@@ -1075,7 +1063,7 @@ pub struct ImageSurveys {
 use crate::buffer::Tiles;
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
-
+use crate::CompositeHiPS;
 const APERTURE_LIMIT: f32 = 110.0;
 use crate::Resources;
 impl ImageSurveys {
@@ -1150,10 +1138,6 @@ impl ImageSurveys {
 
         let primary_layer = &self.layers[0];
         match &primary_layer {
-            ImageSurveyIdx::Simple { name, color } => {
-                let survey = self.surveys.get_mut(name).unwrap();
-                survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-            }
             ImageSurveyIdx::Composite { names, colors } => {
                 // Add the first hips on top of the background
                 let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
@@ -1175,7 +1159,7 @@ impl ImageSurveys {
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
                 }
             }
-            _ => unreachable!(),
+            _ => (),
         }
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
@@ -1189,17 +1173,13 @@ impl ImageSurveys {
             // Overlay
             let overlay_layer = &self.layers[1];
             match &overlay_layer {
-                ImageSurveyIdx::Simple { name, color } => {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
-                }
                 ImageSurveyIdx::Composite { names, colors } => {
                     // All the hipses are plotted blended with the primary one
                     for (name, color) in names.iter().zip(colors.iter()) {
                         let survey = self.surveys.get_mut(name).unwrap();
                         survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
                     }
-                }
+                },
                 // If no HiPS are overlaying we do nothing
                 _ => (),
             }
@@ -1225,67 +1205,68 @@ impl ImageSurveys {
 
     pub fn add_composite_surveys(
         &mut self,
-        surveys: Vec<ImageSurvey>,
-        colors: Vec<Color>,
+        hipses: Vec<SimpleHiPS>,
+        gl: &WebGl2Context,
+        camera: &CameraViewPort,
+        exec: Rc<RefCell<TaskExecutor>>,
         layer_idx: usize,
-    ) -> Vec<String> {
-        let names = surveys
-            .iter()
-            .map(|s| s.get_id().to_string())
-            .collect::<Vec<String>>();
+    ) -> Result<Vec<String>, JsValue> {
 
-        let replaced_survey_names: Vec<String> = {
-            let layer = &mut self.layers[layer_idx];
-            match layer {
-                ImageSurveyIdx::None => {
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
-                    vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
+        let (surveys_url, colors): (Vec<_>, Vec<_>) = hipses.iter()
+            .map(|hips| {
+                (hips.properties.url.clone(), hips.color())
+            })
+            .unzip();
 
-                    vec![cur_name]
+        let layer = &self.layers[layer_idx];
+        match layer {
+            ImageSurveyIdx::None => {
+                self.layers[layer_idx] = ImageSurveyIdx::Composite {
+                    names: surveys_url,
+                    colors,
+                };
+            },
+            ImageSurveyIdx::Composite {
+                names: cur_names,
+                ..
+            } => {
+                for replaced_survey_name in cur_names.iter() {
+                    // ensure cur_idx is not contained in any other layers
+                    if let Some(idx) = self.contained_in_any_layer(replaced_survey_name) {
+                        // if the survey was only contained in the current layer
+                        if idx.len() == 1 && idx.contains(&layer_idx) {
+                            // do not remove it we still need it
+                            if !surveys_url.contains(replaced_survey_name) {
+                                self.surveys.remove(replaced_survey_name);
+                            }
+                        }
+                    } else {
+                        // if so we can remove it from the surveys hashmap
+                        self.surveys.remove(replaced_survey_name);
+                    }
                 }
-                ImageSurveyIdx::Composite {
-                    names: cur_names, ..
-                } => {
-                    let cur_names = cur_names.clone();
-                    *layer = ImageSurveyIdx::Composite {
-                        names: names.clone(),
-                        colors,
-                    };
-                    cur_names
-                }
-            }
-        };
 
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
+                self.layers[layer_idx] = ImageSurveyIdx::Composite {
+                    names: surveys_url,
+                    colors,
+                };
             }
         }
 
-        //crate::log("END ADD");
         // If it is a new survey, insert it
         let mut new_survey_ids = Vec::new();
-        for (name, survey) in names.iter().zip(surveys.into_iter()) {
-            if !self.surveys.contains_key(name) {
-                let id = name.to_string();
-                self.surveys.insert(id.clone(), survey);
-                new_survey_ids.push(id);
+        for hips in hipses.into_iter() {
+            let url = hips.properties.url.clone();
+            if !self.surveys.contains_key(&url) {
+                // create the survey
+                let survey = hips.create(gl, camera, self, exec.clone())?;
+
+                self.surveys.insert(url.clone(), survey);
+                new_survey_ids.push(url);
             }
         }
 
-        new_survey_ids
+        Ok(new_survey_ids)
     }
 
     pub fn remove_overlay(&mut self) {
@@ -1295,13 +1276,7 @@ impl ImageSurveys {
                 ImageSurveyIdx::None => {
                     *layer = ImageSurveyIdx::None;
                     vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::None;
-
-                    vec![cur_name]
-                }
+                },
                 ImageSurveyIdx::Composite {
                     names: cur_names, ..
                 } => {
@@ -1320,64 +1295,9 @@ impl ImageSurveys {
             }
         }
     }
-
-    pub fn add_simple_survey(
-        &mut self,
-        survey: ImageSurvey,
-        color: Color,
-        layer_idx: usize,
-    ) -> bool {
-        let name = survey.get_id();
-
-        let replaced_survey_names: Vec<String> = {
-            let layer = &mut self.layers[layer_idx];
-            match layer {
-                ImageSurveyIdx::None => {
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-                    vec![]
-                }
-                ImageSurveyIdx::Simple { name: cur_name, .. } => {
-                    let cur_name = cur_name.clone();
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-
-                    vec![cur_name]
-                }
-                ImageSurveyIdx::Composite {
-                    names: cur_names, ..
-                } => {
-                    let cur_names = cur_names.clone();
-                    *layer = ImageSurveyIdx::Simple {
-                        name: name.to_string(),
-                        color,
-                    };
-                    cur_names
-                }
-            }
-        };
-
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
-            }
-        }
-
-        //crate::log("END ADD");
-        // If it is a new survey, insert it
-        if !self.surveys.contains_key(name) {
-            self.surveys.insert(name.to_string(), survey);
-            true
-        } else {
-            //crate::log("no new");
-            false
-        }
+    
+    pub fn contains(&self, url: &str) -> bool {
+        self.surveys.contains_key(url)
     }
 
     pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
@@ -1387,9 +1307,6 @@ impl ImageSurveys {
             let primary_layer = &self.layers[0];
 
             match primary_layer {
-                ImageSurveyIdx::Simple { name, .. } => {
-                    Some(self.surveys.get(name).unwrap().get_view())
-                }
                 ImageSurveyIdx::Composite { names, .. } => {
                     let name = names.first().unwrap();
                     Some(self.surveys.get(name).unwrap().get_view())
@@ -1470,6 +1387,7 @@ impl ImageSurveys {
     pub fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
         self.surveys.iter()
     }
+
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, String, ImageSurvey> {
         self.surveys.iter_mut()
     }

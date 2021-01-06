@@ -201,7 +201,7 @@ export let Overlay = (function() {
     	
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
-    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
+    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor, this.view);
     	}
     };
 

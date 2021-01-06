@@ -445,10 +445,10 @@ impl GridShaderProjection for AzimuthalEquidistant {
 use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
-const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
+pub const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
 fn subdivide<P: Projection>(
     vertices: &mut Vec<Vector2<f64>>,
-    lonlat: [(f64, f64); 3],
+    lonlat: [(f64, f64); 3],    
     depth: usize,
     min_subdivision_level: i32,
     camera: &CameraViewPort,
@@ -979,12 +979,18 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            let snp = P::model_to_screen_space(&Vector4::new(0.0, 1.0, 0.0, 1.0), camera).unwrap();
-            Some(snp)
+            if let Some(snp) = P::model_to_screen_space(&Vector4::new(0.0, 1.0, 0.0, 1.0), camera) {
+                Some(snp)
+            } else {
+                None
+            }
         } else {
             // screen south pole
-            let ssp = P::model_to_screen_space(&Vector4::new(0.0, -1.0, 0.0, 1.0), camera).unwrap();
-            Some(ssp)
+            if let Some(ssp) = P::model_to_screen_space(&Vector4::new(0.0, -1.0, 0.0, 1.0), camera) {
+                Some(ssp)
+            } else {
+                None
+            }
         }
     } else {
         None

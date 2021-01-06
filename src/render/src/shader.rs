@@ -156,6 +156,11 @@ impl UniformType for &[f64] {
         gl.uniform1fv_with_f32_array(location, values_f32.as_slice());
     }
 }
+impl UniformType for &[i32] {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1iv_with_i32_array(location, value);
+    }
+}
 use crate::Angle;
 impl UniformType for Angle<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {

@@ -84,28 +84,30 @@ export let View = (function() {
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
             this.aladin.webglAPI.resize(500, 400);
-            this.aladin.webglAPI.setSimpleHiPS({
-                properties: {
-                    url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
-            
-                    maxOrder: 9,
-                    frame: { label: "J2000", system: "J2000" },
-                    tileSize: 512,
-                    format: {
-                        FITSImage: {
-                            bitpix: 16,
+            this.aladin.webglAPI.setHiPS([
+                {
+                    properties: {
+                        url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
+                
+                        maxOrder: 9,
+                        frame: { label: "J2000", system: "J2000" },
+                        tileSize: 512,
+                        format: {
+                            FITSImage: {
+                                bitpix: 16,
+                            }
+                        },
+                        minCutout: 500,
+                        maxCutout: 25000,
+                    },
+                    color: {
+                        Grayscale2Colormap: {
+                            colormap: "RedTemperature",
+                            transfer: "sqrt"
                         }
                     },
-                    minCutout: 500,
-                    maxCutout: 25000,
-                },
-                color: {
-                    Grayscale2Colormap: {
-                        colormap: "RedTemperature",
-                        transfer: "sqrt"
-                    }
-                },
-            });
+                }
+            ]);
 
             this.location = location;
             this.fovDiv = fovDiv;
@@ -488,8 +490,10 @@ export let View = (function() {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
-                var fov = view.aladin.getFov();
-                view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
+                //var fov = view.aladin.getFov();
+                //view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
+                var fov = view.aladin.webglAPI.getFieldOfView();
+                view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
 
                 return;
@@ -1049,7 +1053,7 @@ export let View = (function() {
         this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         // do we have to redo that every time? Probably not
         //this.projection.setProjection(this.projectionMethod);
-    
+
 
         // ************* Draw allsky tiles (low resolution) *****************
 
@@ -1121,7 +1125,6 @@ export let View = (function() {
 
         }
         
-        /*
         // redraw HEALPix grid
         if( this.displayHpxGrid) {
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
@@ -1134,11 +1137,12 @@ export let View = (function() {
                     cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
                 }
             }
+            this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
             if (cornersXYViewMapHighres && this.curNorder>3) {
-                this.healpixGrid.redraw(imageCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
             }
             else {
-                this.healpixGrid.redraw(imageCtx, cornersXYViewMapAllsky, this.fov, 3);
+                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapAllsky, this.fov, 3);
             }
         }
         
@@ -1148,9 +1152,9 @@ export let View = (function() {
                 this.cooGrid = new CooGrid();
             }
             
-            this.cooGrid.redraw(imageCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+            this.cooGrid.redraw(this.gridCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
         }
-         */
+         
 
 
         ///*
@@ -1334,8 +1338,13 @@ export let View = (function() {
             hpxIdx.init();
             var spatialVector = new SpatialVector();
             // if frame != frame image survey, we need to convert to survey frame system
-            var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
-            var radec = this.projection.unproject(xy.x, xy.y);
+            //var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
+            //var radec = this.projection.unproject(xy.x, xy.y);
+            let pos_world = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
+            let radec = {
+                ra: pos_world[0],
+                dec: pos_world[1]
+            };
             var lonlat = [];
             if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
                 if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
@@ -1402,7 +1411,12 @@ export let View = (function() {
             var spatialVector = new SpatialVector();
             // if frame != frame image survey, we need to convert to survey frame system
             var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
-            var radec = this.projection.unproject(xy.x, xy.y);
+            //var radec = this.projection.unproject(xy.x, xy.y);
+            var radec = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
+            var radec = {
+                ra: radec[0],
+                dec: radec[1],
+            };
             var lonlat = [];
             if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
                 if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
@@ -1471,7 +1485,8 @@ export let View = (function() {
                     lat = spVec.dec();
                 }
                 
-                cornersXY[k] = this.projection.project(lon, lat);
+                //cornersXY[k] = this.projection.project(lon, lat);
+                cornersXY[k] = this.aladin.webglAPI.worldToScreen(lon, lat);
             }
 
 
@@ -1482,7 +1497,11 @@ export let View = (function() {
 
 
             for (var k=0; k<4; k++) {
-                cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
+                //cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
+                cornersXYView[k] = {
+                    vx: cornersXY[k][0],
+                    vy: cornersXY[k][1],
+                };
             }
 
             var indulge = 10;
@@ -1508,8 +1527,9 @@ export let View = (function() {
 //                    continue;
 //                }
 //            }
-            // check if we have a pixel at the edge of the view in AITOFF --> TO BE MODIFIED
-            if (this.projection.PROJECTION==ProjectionEnum.AITOFF) {
+            // check if we have a pixel at the edge of the view in allsky projections
+            if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
+               /* console.log(this.largestDim);
                 var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
                 var ydiff = cornersXYView[0].vy-cornersXYView[2].vy;
                 var distDiag = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
@@ -1521,6 +1541,15 @@ export let View = (function() {
                 distDiag = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
                 if (distDiag>this.largestDim/5) {
                     continue;
+                }*/
+
+                // New faster approach: when a vertex from a cell gets to the other side of the projection
+                // its vertices order change from counter-clockwise to clockwise!
+                // So if the vertices describing a cell are given in clockwise order
+                // we know it crosses the projection, so we do not plot them!
+                if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
+                    !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
+                    continue;
                 }
             }
             
@@ -1530,9 +1559,7 @@ export let View = (function() {
         
         return cells;
     };
-    
-    
-    
+
     // get position in view for a given HEALPix cell
     View.prototype.getPositionsInView = function(ipix, norder) {
         var cornersXY = [];
@@ -1564,18 +1591,23 @@ export let View = (function() {
                 lon = spVec.ra();
                 lat = spVec.dec();
             }
-                
-            cornersXY[k] = this.projection.project(lon, lat);
+            //cornersXY[k] = this.projection.project(lon, lat);
+            let xy = this.aladin.webglAPI.worldToScreen(lon, lat);
+            cornersXYView[k] = {
+                vx: xy.x,
+                vy: xy.y
+            };
         }
         
-        if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
+        if (cornersXYView[0] == null ||  cornersXYView[1] == null  ||  cornersXYView[2] == null ||  cornersXYView[3] == null ) {
             return null;
         }
-
-
-        for (var k=0; k<4; k++) {
+        /*if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
+            return null;
+        }*/
+        /*for (var k=0; k<4; k++) {
             cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
-        }
+        }*/
 
         return cornersXYView;
     };
@@ -1600,7 +1632,7 @@ export let View = (function() {
     
     // Called for touchmove events
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0 || (fovDegrees>180 && ! this.aladin.options.allowFullZoomout)) {
+        if (fovDegrees<0) {
             return;
         }
         // Erase the field of view state of the backend by
@@ -1829,8 +1861,32 @@ export let View = (function() {
         this.needRedraw = true;
     };
     
-    View.prototype.changeProjection = function(projectionMethod) {
-        this.projectionMethod = projectionMethod;
+    View.prototype.changeProjection = function(projectionName) {
+        switch (projectionName) {
+            case "aitoff":
+                this.projectionMethod = ProjectionEnum.AITOFF;
+                break;
+            case "tan":
+                this.projectionMethod = ProjectionEnum.TAN;
+                break;
+            case "arc":
+                this.projectionMethod = ProjectionEnum.ARC;
+                break;
+            case "mercator":
+                this.projectionMethod = ProjectionEnum.MERCATOR;
+                break;
+            case "mollweide":
+                this.projectionMethod = ProjectionEnum.MOL;
+                break;
+            case "sinus":
+            default:
+                this.projectionMethod = ProjectionEnum.SIN;
+        }
+        // Change the projection here
+        this.projection.setProjection(this.projectionMethod);
+        console.log(this.projectionMethod);
+        this.aladin.webglAPI.setProjection(projectionName);
+
         this.requestRedraw();
     };
 
@@ -1855,6 +1911,10 @@ export let View = (function() {
     };
 
     View.prototype.showHealpixGrid = function(show) {
+        // Clear the grid ctx when not showing it
+        if (!show) {
+            this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+        }
         this.displayHpxGrid = show;
         this.requestRedraw();
     };

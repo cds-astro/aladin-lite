@@ -23,7 +23,7 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 100, survey: 'P/DSS2/red'});
+        aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10, survey: 'CDS/P/DSS2/red'});
         var moc = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#84f', lineWidth: 1});
         aladin.addMOC(moc);
     });

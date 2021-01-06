@@ -1,5 +1,5 @@
-const int MAX_NUM_TEX = 10;
-uniform sampler2D tex[MAX_NUM_TEX];
+//const int MAX_NUM_TEX = 3;
+uniform sampler2D tex[3];
 uniform int num_tex;
 
 uniform float scale;

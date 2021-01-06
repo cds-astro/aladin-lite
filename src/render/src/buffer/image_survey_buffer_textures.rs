@@ -141,10 +141,10 @@ use crate::{
     buffer::Image,
     WebGl2Context,
 };
-
+use crate::JsValue;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
-fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Texture2DArray {
+fn create_texture_array(gl: &WebGl2Context, config: &HiPSConfig) -> Result<Texture2DArray, JsValue> {
     let texture_size = config.get_texture_size();
     let num_textures_by_side_slice = config.num_textures_by_side_slice();
     let num_slices = config.num_slices();
@@ -184,7 +184,7 @@ impl ImageSurveyTextures {
         gl: &WebGl2Context,
         config: HiPSConfig,
         exec: Rc<RefCell<TaskExecutor>>,
-    ) -> ImageSurveyTextures {
+    ) -> Result<ImageSurveyTextures, JsValue> {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
@@ -193,14 +193,14 @@ impl ImageSurveyTextures {
 
         let textures = HashMap::with_capacity(size);
 
-        let texture_2d_array = Rc::new(create_texture_array(gl, &config));
+        let texture_2d_array = Rc::new(create_texture_array(gl, &config)?);
 
         // The root textures have not been loaded
         let ready = false;
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
         let gl = gl.clone();
-        ImageSurveyTextures {
+        Ok(ImageSurveyTextures {
             config,
             heap,
 
@@ -214,7 +214,7 @@ impl ImageSurveyTextures {
             ready,
             exec,
             gl,
-        }
+        })
     }
 
     // This method pushes a new downloaded tile into the buffer
@@ -429,7 +429,7 @@ impl ImageSurveyTextures {
     }
 
     // This is called when the HiPS changes
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<(), JsValue> {
         // Size i.e. the num of textures is the same
         // no matter the HiPS config
         self.heap.clear();
@@ -442,7 +442,10 @@ impl ImageSurveyTextures {
         self.ready = false;
         self.num_root_textures_available = 0;
 
-        self.texture_2d_array = Rc::new(create_texture_array(&self.gl, &self.config));
+        let texture_2d_array = create_texture_array(&self.gl, &self.config)?;
+        self.texture_2d_array = Rc::new(texture_2d_array);
+
+        Ok(())
     }
 
     /// Accessors

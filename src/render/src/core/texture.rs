@@ -47,11 +47,30 @@ pub struct Texture2D {
 }
 
 static mut NUM_TEXTURE_UNIT: u32 = WebGl2RenderingContext::TEXTURE0;
+static mut AVAILABLE_TEX_UNITS: [Option<u32>; 16] = [
+    Some(WebGl2RenderingContext::TEXTURE0),
+    Some(WebGl2RenderingContext::TEXTURE1),
+    Some(WebGl2RenderingContext::TEXTURE2),
+    Some(WebGl2RenderingContext::TEXTURE3),
+    Some(WebGl2RenderingContext::TEXTURE4),
+    Some(WebGl2RenderingContext::TEXTURE5),
+    Some(WebGl2RenderingContext::TEXTURE6),
+    Some(WebGl2RenderingContext::TEXTURE7),
+    Some(WebGl2RenderingContext::TEXTURE8),
+    Some(WebGl2RenderingContext::TEXTURE9),
+    Some(WebGl2RenderingContext::TEXTURE10),
+    Some(WebGl2RenderingContext::TEXTURE11),
+    Some(WebGl2RenderingContext::TEXTURE12),
+    Some(WebGl2RenderingContext::TEXTURE13),
+    Some(WebGl2RenderingContext::TEXTURE14),
+    Some(WebGl2RenderingContext::TEXTURE15),
+];
 pub struct IdxTextureUnit;
+use wasm_bindgen::JsValue;
 impl IdxTextureUnit {
-    pub unsafe fn new(gl: &WebGl2Context) -> u32 {
-        let max_combined_texture_image_units = Self::max_combined_texture_image_units(gl);
-        if max_combined_texture_image_units == NUM_TEXTURE_UNIT {
+    pub unsafe fn new(gl: &WebGl2Context) -> Result<u32, JsValue> {
+        /*let max_combined_texture_image_units = Self::max_combined_texture_image_units(gl);
+        if max_combined_texture_image_units == NUM_TEXTURE_UNIT - WebGl2RenderingContext::TEXTURE0 {
             panic!(format!(
                 "Number of texture image units excedeed. The limit is {:?}",
                 max_combined_texture_image_units
@@ -60,7 +79,15 @@ impl IdxTextureUnit {
         let idx_texture_unit = NUM_TEXTURE_UNIT;
         NUM_TEXTURE_UNIT += 1;
 
-        idx_texture_unit
+        idx_texture_unit*/
+        if let Some(idx_texture_unit) = AVAILABLE_TEX_UNITS.iter().find(|idx| idx.is_some()) {
+            let idx_texture_unit = idx_texture_unit.unwrap();
+            let i = (idx_texture_unit - WebGl2RenderingContext::TEXTURE0) as usize;
+            AVAILABLE_TEX_UNITS[i] = None;
+            Ok(idx_texture_unit)
+        } else {
+            Err(JsValue::from_str("No available tex units found"))
+        }
     }
 
     fn max_combined_texture_image_units(gl: &WebGl2Context) -> u32 {
@@ -80,9 +107,9 @@ impl Texture2D {
         src: &P,
         tex_params: &'static [(u32, u32)],
         format: FormatImageType,
-    ) -> Texture2D {
+    ) -> Result<Texture2D, JsValue> {
         let image = HtmlImageElement::new().unwrap();
-        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
+        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl)? };
 
         let texture = gl.create_texture();
         let onerror = {
@@ -131,7 +158,7 @@ impl Texture2D {
 
         let data = TextureType::ImageElement(image);
         let gl = gl.clone();
-        Texture2D {
+        Ok(Texture2D {
             texture,
             idx_texture_unit,
 
@@ -141,7 +168,7 @@ impl Texture2D {
             format,
             internal_format,
             type_,
-        }
+        })
     }
 
     pub fn create_empty(
@@ -150,8 +177,8 @@ impl Texture2D {
         height: i32,
         tex_params: &'static [(u32, u32)],
         format: FormatImageType,
-    ) -> Texture2D {
-        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
+    ) -> Result<Texture2D, JsValue> {
+        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl)? };
         let texture = gl.create_texture();
 
         gl.active_texture(idx_texture_unit);
@@ -181,7 +208,7 @@ impl Texture2D {
         let gl = gl.clone();
         let data = TextureType::Bytes(width as u32, height as u32);
 
-        Texture2D {
+        Ok(Texture2D {
             texture,
             idx_texture_unit,
 
@@ -191,7 +218,7 @@ impl Texture2D {
             internal_format,
             format,
             type_,
-        }
+        })
     }
 
     pub fn create_empty_with_format(
@@ -202,8 +229,8 @@ impl Texture2D {
         internal_format: i32,
         format: u32,
         type_: u32,
-    ) -> Texture2D {
-        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl) };
+    ) -> Result<Texture2D, JsValue> {
+        let idx_texture_unit = unsafe { IdxTextureUnit::new(gl)? };
         let texture = gl.create_texture();
 
         gl.active_texture(idx_texture_unit);
@@ -230,7 +257,7 @@ impl Texture2D {
         let gl = gl.clone();
         let data = TextureType::Bytes(width as u32, height as u32);
 
-        Texture2D {
+        Ok(Texture2D {
             texture,
             idx_texture_unit,
 
@@ -240,7 +267,7 @@ impl Texture2D {
             format,
             internal_format,
             type_,
-        }
+        })
     }
 
     pub fn attach_to_framebuffer(&self) {
@@ -259,7 +286,6 @@ impl Texture2D {
 
     pub fn bind(&self) -> Texture2DBound {
         let texture_unit = self.idx_texture_unit;
-
         self.gl.active_texture(texture_unit);
         self.gl
             .bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
@@ -271,6 +297,12 @@ impl Texture2D {
 impl Drop for Texture2D {
     fn drop(&mut self) {
         self.gl.delete_texture(self.texture.as_ref());
+
+        // free the texture unit
+        let i = (self.idx_texture_unit - WebGl2RenderingContext::TEXTURE0) as usize;
+        unsafe {
+            AVAILABLE_TEX_UNITS[i] = Some(self.idx_texture_unit);
+        }
     }
 }
 
@@ -278,22 +310,7 @@ pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
 }
 
-/*impl<'a> Drop for Texture2DBound<'a> {
-    fn drop(&mut self) {
-        self.texture_2d.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-    }
-}*/
-
 impl<'a> Texture2DBound<'a> {
-    pub fn unbind(&self) {
-        let texture_unit = self.texture_2d.idx_texture_unit;
-
-        self.texture_2d.gl.active_texture(texture_unit);
-        self.texture_2d
-            .gl
-            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
-    }
-
     pub fn get_idx_sampler(&self) -> i32 {
         let idx_sampler: i32 = (self.texture_2d.idx_texture_unit
             - WebGl2RenderingContext::TEXTURE0)
@@ -302,26 +319,6 @@ impl<'a> Texture2DBound<'a> {
 
         idx_sampler
     }
-
-    /*pub fn _clear(&self) {
-        let (width, height) = (self.texture_2d.data.get_width(), self.texture_2d.data.get_height());
-
-        let data = vec![0 as u8; 3 * (height as usize) * (width as usize)];
-        self.texture_2d.gl.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-            WebGl2RenderingContext::TEXTURE_2D,
-            0,
-            0,
-            0,
-
-            width as i32,
-            height as i32,
-
-            WebGl2RenderingContext::RGB,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
-            Some(&data),
-        )
-        .expect("Sub texture 2d");
-    }*/
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         &self,

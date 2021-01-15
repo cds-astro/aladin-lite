@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html>
 <head>
@@ -23,7 +24,35 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10, survey: 'CDS/P/DSS2/red'});
+        aladin = A.aladin(
+            '#aladin-lite-div', 
+            {
+                target: 'Gamma Cas',
+                fov: 10,
+                survey: [{
+                    properties: {
+                        url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
+                
+                        maxOrder: 9,
+                        frame: { label: "J2000", system: "J2000" },
+                        tileSize: 512,
+                        format: {
+                            FITSImage: {
+                                bitpix: 16,
+                            }
+                        },
+                        minCutout: 500,
+                        maxCutout: 25000,
+                    },
+                    color: {
+                        Grayscale2Colormap: {
+                            colormap: "RedTemperature",
+                            transfer: "sqrt"
+                        }
+                    },
+                }]
+            }
+        );
         var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 2});
         aladin.addOverlay(overlay);
         overlay.add(A.polyline([

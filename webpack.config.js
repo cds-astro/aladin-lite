@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 var ROOT_PATH = path.resolve(__dirname);
 var SHADER_PATH = path.resolve(ROOT_PATH, 'src/render/src/shaders');
@@ -23,7 +24,8 @@ module.exports = {
         new webpack.ProvidePlugin({
           TextDecoder: ['text-encoding', 'TextDecoder'],
           TextEncoder: ['text-encoding', 'TextEncoder']
-        })  
+        }),
+        new VueLoaderPlugin()
     ],
     devServer:{
         contentBase: 'dist'
@@ -42,6 +44,10 @@ module.exports = {
                     'file-loader',
                 ],
             },
+            {
+                test: /\.vue$/,
+                loader: 'vue-loader'
+            }
         ],
     },
     mode: 'development',

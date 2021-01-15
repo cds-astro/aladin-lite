@@ -27,8 +27,8 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
-
-
+import { Coo } from './libs/astro/coo.js';
+import { Utils } from './Utils.js';
 export let URLBuilder = (function() {    
 
     let URLBuilder = {
@@ -51,13 +51,15 @@ export let URLBuilder = (function() {
         },
 
         buildVizieRCSURL: function(vizCatId, target, radiusDegrees, options) {
+            console.log(target)
             if (target && (typeof target  === "object")) {
                 if ('ra' in target && 'dec' in target) {
                     var coo = new Coo(target.ra, target.dec, 7);
+
                     target = coo.format('s');
                 }
             }
-            
+
             var maxNbSources = 1e5;
             if (options && options.hasOwnProperty('limit') && Utils.isNumber(options.limit)) {
                 maxNbSources = parseInt(options.limit);

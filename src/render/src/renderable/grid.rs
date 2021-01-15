@@ -909,7 +909,7 @@ fn lines_GPU<P: Projection>(
     let bbox = camera.get_bounding_box();
     let fov = camera.get_field_of_view();
 
-    let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
+    /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
 
     let c1 = camera.get_center().truncate();
     let c2 = (c1 + Vector3::new(0.0, 0.0, 1e-3)).normalize();
@@ -920,14 +920,14 @@ fn lines_GPU<P: Projection>(
     let a2 = d.y.abs() as f32;
 
     let num_lines_lon = (a1 * (num_max_lines as f32)  + (1.0 - a1) * (NUM_MIN_LINES as f32)) as usize;
-    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;
+    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
 
     let step_lon = select_grid_step(
         &bbox,
         bbox.get_lon_size().0 as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
-        num_lines_lon
+        NUM_LINES
     );
 
     // Add meridians
@@ -945,9 +945,9 @@ fn lines_GPU<P: Projection>(
 
     // Add parallels
     let step_lat = if fov.contains_pole() {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, num_lines_lat)
+        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
     } else {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, num_lines_lat)
+        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
     };
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
@@ -966,7 +966,7 @@ fn lines_GPU<P: Projection>(
     (meridians, parallels)
 }
 
-const NUM_MIN_LINES: usize = 6;
+const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
     ctx2d: &CanvasRenderingContext2d,
@@ -999,7 +999,7 @@ fn lines<P: Projection>(
     let bbox = camera.get_bounding_box();
     let fov = camera.get_field_of_view();
 
-    let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
+    /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
 
     let c1 = camera.get_center().truncate();
     let c2 = (c1 + Vector3::new(0.0, 0.0, 1e-3)).normalize();
@@ -1010,14 +1010,17 @@ fn lines<P: Projection>(
     let a2 = d.y.abs() as f32;
 
     let num_lines_lon = (a1 * (num_max_lines as f32)  + (1.0 - a1) * (NUM_MIN_LINES as f32)) as usize;
-    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;
+    debug!(a1);
+    debug!(num_max_lines);
+    debug!(NUM_MIN_LINES);
+    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
 
     let step_lon = select_grid_step(
         &bbox,
         bbox.get_lon_size().0 as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
-        num_lines_lon
+        NUM_LINES
     );
 
     let mut lines = vec![];
@@ -1037,9 +1040,9 @@ fn lines<P: Projection>(
 
     // Add parallels
     let step_lat = if fov.contains_pole() {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, num_lines_lat)
+        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
     } else {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, num_lines_lat)
+        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
     };
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
@@ -1067,10 +1070,10 @@ fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f64 {
     while i < GRID_STEPS.len() {
         if fov >= GRID_STEPS[i] {
             let num_meridians_in_fov = (fov / GRID_STEPS[i]) as usize;
-
             if num_meridians_in_fov >= max_lines - 1 {
-                let idx_grid = if i == 0 { 0 } else { i - 1 };
-                step = GRID_STEPS[idx_grid];
+                //let idx_grid = if i == 0 { 0 } else { i - 1 };
+                //step = GRID_STEPS[idx_grid];
+                step = GRID_STEPS[i];
                 break;
             }
         }

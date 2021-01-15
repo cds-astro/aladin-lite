@@ -518,7 +518,7 @@ export let ProgressiveCat = (function() {
                             //dataType: 'jsonp',
                             success: function(tsv) {
                                 self.sourcesCache.set(key, getSources(self, tsv, self.fields));
-                                self.view.requestRedraw();
+                                //self.view.requestRedraw();
                             },
                             error: function() {
                                 // on suppose qu'il s'agit d'une erreur 404

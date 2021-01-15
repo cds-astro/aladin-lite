@@ -84,30 +84,7 @@ export let View = (function() {
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
             this.aladin.webglAPI.resize(500, 400);
-            this.aladin.webglAPI.setHiPS([
-                {
-                    properties: {
-                        url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
-                
-                        maxOrder: 9,
-                        frame: { label: "J2000", system: "J2000" },
-                        tileSize: 512,
-                        format: {
-                            FITSImage: {
-                                bitpix: 16,
-                            }
-                        },
-                        minCutout: 500,
-                        maxCutout: 25000,
-                    },
-                    color: {
-                        Grayscale2Colormap: {
-                            colormap: "RedTemperature",
-                            transfer: "sqrt"
-                        }
-                    },
-                }
-            ]);
+            //this.aladin.webglAPI.setHiPS(aladin.survey);
 
             this.location = location;
             this.fovDiv = fovDiv;
@@ -858,8 +835,14 @@ export let View = (function() {
             // inside the backend
             view.aladin.webglAPI.registerWheelEvent(delta);
             view.updateZoomState();
+
+            if (! view.debounceProgCatOnZoom) {
+                var self = view;
+                view.debounceProgCatOnZoom = Utils.debounce(function() {self.refreshProgressiveCats();}, 300);
+            }
+            view.debounceProgCatOnZoom();
             //view.setZoomLevel(level);
-            
+            //view.refreshProgressiveCats();
             return false;
         });
 
@@ -987,7 +970,7 @@ export let View = (function() {
         var dt = now - this.prev;
 
         this.aladin.webglAPI.update(dt);
-        this.updateZoomState();
+        //this.updateZoomState();
         // This is called at each frame
         // Better way is to give this function
         // to Rust so that the backend executes it
@@ -996,7 +979,7 @@ export let View = (function() {
         updateFovDiv(this);
         this.aladin.webglAPI.render();
 
-        if (this.dateRequestDraw && now>this.dateRequestDraw) {
+        /*if (this.dateRequestDraw && now>this.dateRequestDraw) {
             this.dateRequestDraw = null;
         } 
         else if (! this.needRedraw) {
@@ -1006,7 +989,7 @@ export let View = (function() {
             else {
                 this.flagForceRedraw = false;
             }
-        }
+        }*/
 
         //this.stats.update();
 
@@ -1147,13 +1130,13 @@ export let View = (function() {
         }
         
         // redraw coordinates grid
-        if (this.showGrid) {
+        /*if (this.showGrid) {
             if (this.cooGrid==null) {
                 this.cooGrid = new CooGrid();
             }
             
             this.cooGrid.redraw(this.gridCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-        }
+        }*/
          
 
 
@@ -1176,7 +1159,7 @@ export let View = (function() {
             }
             for (var i=0; i<this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                //console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
                 cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
@@ -1315,6 +1298,7 @@ export let View = (function() {
         if (! this.catalogs) {
             return;
         }
+
         for (var i=0; i<this.catalogs.length; i++) {
             if (this.catalogs[i].type=='progressivecat') {
                 this.catalogs[i].loadNeededTiles();
@@ -1641,9 +1625,24 @@ export let View = (function() {
         //this.setZoomLevel(zoomLevel);
         this.updateZoomState();
     };
-    
+
+    View.prototype.increaseZoom = function() {
+        for (let i = 0; i < 5; i++) {
+            this.aladin.webglAPI.registerWheelEvent(0.01);
+        }
+    }
+    View.prototype.decreaseZoom = function() {
+        for (let i = 0; i < 5; i++) {
+            this.aladin.webglAPI.registerWheelEvent(-0.01);
+        }
+    }
     View.prototype.setShowGrid = function(showGrid) {
         this.showGrid = showGrid;
+        if (showGrid) {
+            this.aladin.webglAPI.enableGrid();
+        } else {
+            this.aladin.webglAPI.disableGrid();
+        }
         this.requestRedraw();
     };
 
@@ -1694,15 +1693,9 @@ export let View = (function() {
         this.computeNorder();
         
         this.forceRedraw();
-        this.requestRedraw();
-        
+        //this.requestRedraw();
         // on avertit les catalogues progressifs
-        if (! this.debounceProgCatOnZoom) {
-            var self = this;
-            this.debounceProgCatOnZoom = Utils.debounce(function() {self.refreshProgressiveCats();}, 300);
-        }
-        this.debounceProgCatOnZoom();
-        
+
     };
     
     /**
@@ -1806,7 +1799,9 @@ export let View = (function() {
         if (! imageSurvey) {
             return;
         }
-        
+        //this.imageSurvey = imageSurvey;
+        //this.aladin.webglAPI.setHiPS(imageSurvey);
+
         // reset canvas to "untaint" canvas if needed
         // we test if the previous base image layer was using CORS or not
         if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
@@ -1815,21 +1810,59 @@ export let View = (function() {
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
             // imageSurvey is an ID
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyProperties) => {
+            /*newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyP) => {
+                console.log(imageSurveyP)
                 //this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
+                this.aladin.webglAPI.setHiPS(imageSurveyP);
             });
+            console.log(newImageSurvey);
             if (newImageSurvey) {
                 this.imageSurvey = newImageSurvey;
             } else {
                 throw imageSurvey + ' id not a valid image survey ID';
+            }*/
+            let newImageSurveyInfo = HpxImageSurvey.getSurveyInfoFromId(imageSurvey);
+            //console.log("ddd", newImageSurveyInfo)
+
+            if (newImageSurveyInfo != undefined) {
+                //console.log("dddd", newImageSurveyInfo)
+
+                if (newImageSurveyInfo.properties) {
+                    newImageSurvey = new HpxImageSurvey(newImageSurveyInfo.properties.url, {}, (aa) => {
+                        //console.log(newImageSurvey);
+                        //console.log("bb", aa);
+                        this.aladin.webglAPI.setHiPS([newImageSurveyInfo]);
+                    });
+                } else {
+                    newImageSurvey = new HpxImageSurvey(newImageSurveyInfo.url, {}, (aa) => {
+                        //console.log(newImageSurvey);
+                        //console.log("cc", aa);
+
+                        this.aladin.webglAPI.setHiPS([newlyImageSurveyCreatedInfo]);
+                    });
+                }
+            } else {
+                throw imageSurvey + ' id not a valid image survey ID';
             }
+
         }
         else {
+            //let imageSurveyP = imageSurvey[0];
+            //newImageSurvey = new HpxImageSurvey(imageSurveyP.properties.url);
+            //newImageSurvey = imageSurvey;
+            //console.log("image survey", imageSurvey)
+            this.aladin.webglAPI.setHiPS([imageSurvey]);
+
             // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
-            newImageSurvey = imageSurvey;
-            console.log("exist already", newImageSurvey.getSurveyInfo());
+            //newImageSurvey = imageSurvey;
+            //console.log(newImageSurvey)
+            //console.log("exist already", newImageSurvey.getSurveyInfo());
             //this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
         }
+        // else {
+        // newImageSurvey = imageSurvey;
+        // console.log("exist already", newImageSurvey.getSurveyInfo());
+        // }
 
         // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
         // ideally, instead of creating a new TileBuffer object,
@@ -1838,23 +1871,23 @@ export let View = (function() {
 
         //this.downloader.emptyQueue();
         
-        newImageSurvey.isReady = false;
-        this.imageSurvey = newImageSurvey;
+        //newImageSurvey.isReady = false;
+        //this.imageSurvey = newImageSurvey;
 
-        this.projection.reverseLongitude(this.imageSurvey.longitudeReversed); 
+        //this.projection.reverseLongitude(this.imageSurvey.longitudeReversed); 
         
-        var self = this;
+        /*var self = this;
         newImageSurvey.init(this, function() {
             //self.imageSurvey = newImageSurvey;
-            self.computeNorder();
+            //self.computeNorder();
             newImageSurvey.isReady = true;
-            self.requestRedraw();
-            self.updateObjectsLookup();
+            //self.requestRedraw();
+            //self.updateObjectsLookup();
             
-            /*if (callback) {
-                callback();
-            }*/
-        });
+            //if (callback) {
+            //    callback();
+            //}
+        });*/
     };
     
     View.prototype.requestRedraw = function() {
@@ -1884,7 +1917,6 @@ export let View = (function() {
         }
         // Change the projection here
         this.projection.setProjection(this.projectionMethod);
-        console.log(this.projectionMethod);
         this.aladin.webglAPI.setProjection(projectionName);
 
         this.requestRedraw();

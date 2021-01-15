@@ -96,7 +96,8 @@ export let HiPSDefinition = (function() {
 
     // cache (at the source code level) of the list of HiPS
     // this is the result to a query to http://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&client_application=AladinLite&fmt=json&fields=ID,obs_title,client_sort_key,client_application,hips_service_url*,hips_order,hips_tile_format,hips_frame
-    var AL_CACHE_CLASS_LEVEL = [{
+    var AL_CACHE_CLASS_LEVEL = [
+    /*{
     "ID": "CDS/P/2MASS/color",
     "obs_title": "2MASS color J (1.23 microns), H (1.66 microns), K (2.16 microns)",
     "client_sort_key": "04-001-00",
@@ -262,7 +263,7 @@ export let HiPSDefinition = (function() {
     "hips_service_url": "http://alasky.unistra.fr/AllWISE/RGB-W4-W2-W1",
     "hips_service_url_1": "http://alaskybis.unistra.fr/AllWISE/RGB-W4-W2-W1",
     "hips_service_url_2": "https://alaskybis.unistra.fr/AllWISE/RGB-W4-W2-W1"
-},/* {
+}, {
     "ID": "IPAC/P/GLIMPSE360",
     "obs_title": "GLIMPSE360: Spitzer's Infrared Milky Way",
     "client_sort_key": "04-03-0",
@@ -271,7 +272,7 @@ export let HiPSDefinition = (function() {
     "hips_frame": "equatorial",
     "hips_tile_format": "jpeg",
     "hips_service_url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data"
-},*/ {
+}, {
     "ID": "JAXA/P/MAXI_SSC_SUM",
     "hips_tile_format": "png",
     "hips_frame": "equatorial",
@@ -323,7 +324,9 @@ export let HiPSDefinition = (function() {
     "hips_service_url_1": "http://alasky.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color",
     "hips_service_url_2": "http://alaskybis.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color",
     "hips_service_url_3": "https://alaskybis.u-strasbg.fr/SSC/xcatdb_P_XMM_PN_color"
-}];
+}
+*/
+];
 
     var listHipsProperties = []; // this variable stores our current knowledge
 

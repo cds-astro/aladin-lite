@@ -491,7 +491,6 @@ export let Catalog = (function() {
     };
     
     Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
-        console.log(projection.ROT);
         if (! this.isShowing) {
             return;
         }

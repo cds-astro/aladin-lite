@@ -51,6 +51,7 @@ import { Color } from "./Color.js";
 import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
+import { DiscoveryTree } from "./DiscoveryTree.js";
 
 export let Aladin = (function () {
 
@@ -356,10 +357,16 @@ export let Aladin = (function () {
 
         // go to full screen ?
         if (options.fullScreen) {
+                // strange behaviour to wait for a sec
             window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 1000);
         }
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
+
+        // initialize the moctree
+        if (typeof Vue != "undefined") {
+            this.discoverytree = new DiscoveryTree(this);
+        }
 
         this.view.redraw();
     };
@@ -445,7 +452,6 @@ export let Aladin = (function () {
             }
         }
 
-        console.log("sdsss", this.view);
         this.view.fixLayoutDimensions();
 
         // force call to zoomChanged callback
@@ -569,7 +575,17 @@ export let Aladin = (function () {
             return;
         }
         projectionName = projectionName.toLowerCase();
-        console.log('setProj', projectionName);
+        /*console.log('setProj', projectionName);
+
+        let projectionOptionElt = document.getElementById(projectionName);
+        console.log("jKJHKSDJHF")
+
+        console.log(projectionOptionElt);
+        if (projectionOptionElt) {
+            console.log("jKJHKSDJHF")
+            projectionOptionElt.selected = 'selected';
+        }*/
+        
         this.view.changeProjection(projectionName);
         //this.view.fov_limit = this.webglAPI.getMaxFieldOfView() * 180 / Math.PI;
     };
@@ -832,14 +848,16 @@ export let Aladin = (function () {
      * @API
      */
     Aladin.prototype.getRaDec = function () {
-        if (this.view.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
+        /*if (this.view.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
             return [this.view.viewCenter.lon, this.view.viewCenter.lat];
         }
         else {
             var radec = CooConversion.GalacticToJ2000([this.view.viewCenter.lon, this.view.viewCenter.lat]);
             return radec;
 
-        }
+        }*/
+        let radec = this.webglAPI.getCenter();
+        return radec;
     };
 
 
@@ -896,7 +914,7 @@ export let Aladin = (function () {
     // @old
     Aladin.prototype.setImageSurvey = function (imageSurvey) {
         this.view.setImageSurvey(imageSurvey);
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;
             if (typeof imageSurvey !== "string") {
@@ -904,7 +922,7 @@ export let Aladin = (function () {
             }
 
             Logger.log("changeImageSurvey", id);
-        }
+        }*/
     };
     // @api
     Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
@@ -920,17 +938,19 @@ export let Aladin = (function () {
 
 
     Aladin.prototype.increaseZoom = function (step) {
-        if (!step) {
-            step = 5;
-        }
-        this.view.setZoomLevel(this.view.zoomLevel + step);
+        //if (!step) {
+        //    step = 5;
+        //}
+        //this.view.setZoomLevel(this.view.zoomLevel + step);
+        this.view.increaseZoom();
     };
 
     Aladin.prototype.decreaseZoom = function (step) {
-        if (!step) {
-            step = 5;
-        }
-        this.view.setZoomLevel(this.view.zoomLevel - step);
+        //if (!step) {
+        //    step = 5;
+        //}
+        //this.view.setZoomLevel(this.view.zoomLevel - step);
+        this.view.decreaseZoom();
     };
 
 
@@ -994,21 +1014,29 @@ export let Aladin = (function () {
         layerBox.empty();
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
             '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>' +
-            '<select class="aladin-surveySelection"></select>' +
-            '<div class="aladin-cmap">Color map:' +
-            '<div><select class="aladin-cmSelection"></select><button class="aladin-btn aladin-btn-small aladin-reverseCm" type="button">Reverse</button></div></div>' +
-            '<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Overlay layers</div>');
+            '</div>');
 
-        var cmDiv = layerBox.find('.aladin-cmap');
+        layerBox.append('<div class="aladin-label">Projection</div>' +
+        '<select id="projectionChoice"><option id="sinus" value="sinus">SINUS</option><option id="aitoff" value="aitoff">AITOFF</option><option id="mollweide" value="mollweide">MOLLWEIDE</option><option id="mercator" value="mercator">MERCATOR</option><option id="arc" value="arc">ARC</option><option id="tan" value="tan">TAN</option></select><br/>');
+
+        $('#projectionChoice').change(function () {
+            //$(this).selected = $(this).val();
+            aladin.setProjection($(this).val());
+        });
+        
+        layerBox.append('<div class="aladin-box-separator"></div>' +
+        '<div class="aladin-label">Overlay layers</div>');
+
+        //var cmDiv = layerBox.find('.aladin-cmap');
 
         // fill color maps options
-        var cmSelect = layerBox.find('.aladin-cmSelection');
+        /*var cmSelect = layerBox.find('.aladin-cmSelection');
         for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
             cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
         }
-        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
+        console.log(self.getBaseImageLayer())
+        console.log(self.getBaseImageLayer().getColorMap())
+        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);*/
 
 
         // loop over all overlay layers
@@ -1074,6 +1102,18 @@ export let Aladin = (function () {
             self.showHealpixGrid($(this).is(':checked'));
         });
 
+        // Equatorial grid plot
+        checked = '';
+        if (this.view.showGrid) {
+            checked = 'checked="checked"';
+        }
+        var equatorialGridCb = $('<input type="checkbox" ' + checked + ' id="displayEquatorialGrid"/>');
+        layerBox.append(equatorialGridCb).append('<label for="displayEquatorialGrid">Equatorial grid</label><br/>');
+        equatorialGridCb.change(function () {
+            let isChecked = $(this).is(':checked');
+            self.view.setShowGrid(isChecked);
+        });
+
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Tools</div>');
@@ -1083,18 +1123,10 @@ export let Aladin = (function () {
             self.exportAsPNG();
         });
 
-        layerBox.append('<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Projection</div>' +
-            '<select id="projectionChoice"><option value="sinus">SINUS</option><option value="aitoff">AITOFF</option><option value="mollweide">MOLLWEIDE</option><option value="mercator">MERCATOR</option><option value="arc">ARC</option><option value="tan">TAN</option></select><br/>');
-
-        $('#projectionChoice').change(function () {
-            aladin.setProjection($(this).val());
-        });
-
         layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
 
         // update list of surveys
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
             var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
@@ -1139,6 +1171,7 @@ export let Aladin = (function () {
             exportBtn.hide();
         }
         layerBox.find('.aladin-reverseCm').parent().attr('disabled', true);
+        */
         //////////////////////////////////////////////////////////////////////
 
 
@@ -1341,7 +1374,8 @@ export let Aladin = (function () {
             y2 = (k == 1 || k == 2) ? this.view.height - 1 : 0;
 
             for (var step = 0; step < nbSteps; step++) {
-                points.push(this.pix2world(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1)));
+                let radec = this.webglAPI.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
+                points.push(radec);
             }
         }
 
@@ -1688,7 +1722,7 @@ A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallba
         options['name'] = 'VizieR:' + vizCatId;
     }
     var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
-
+    console.log(url);
     return A.catalogFromURL(url, options, successCallback, false);
 };
 
@@ -1720,5 +1754,5 @@ A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).th
 });
 
 // this is ugly for sure and there must be a better way using Webpack magic
-window.A  = A;
+window.A = A;
 

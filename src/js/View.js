@@ -123,7 +123,7 @@ export let View = (function() {
             }
             
             // current reference image survey displayed
-            this.imageSurvey = null;
+            this.imageSurvey = new Map();
             // current catalogs displayed
             this.catalogs = [];
             // a dedicated catalog for the popup
@@ -1795,101 +1795,28 @@ export let View = (function() {
     
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.setImageSurvey = function(imageSurvey) {
-        if (! imageSurvey) {
+    View.prototype.addImageSurvey = async function(idOrUrl) {
+        if (!idOrUrl) {
             return;
         }
-        //this.imageSurvey = imageSurvey;
-        //this.aladin.webglAPI.setHiPS(imageSurvey);
-
-        // reset canvas to "untaint" canvas if needed
-        // we test if the previous base image layer was using CORS or not
-        if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
-            this.untaintCanvases();
-        }
-        var newImageSurvey;
-        if (typeof imageSurvey == "string") {
-            // imageSurvey is an ID
-            /*newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, (imageSurveyP) => {
-                console.log(imageSurveyP)
-                //this.aladin.webglAPI.setImageSurvey(imageSurveyProperties);
-                this.aladin.webglAPI.setHiPS(imageSurveyP);
-            });
-            console.log(newImageSurvey);
-            if (newImageSurvey) {
-                this.imageSurvey = newImageSurvey;
-            } else {
-                throw imageSurvey + ' id not a valid image survey ID';
-            }*/
-            let newImageSurveyInfo = HpxImageSurvey.getSurveyInfoFromId(imageSurvey);
-            //console.log("ddd", newImageSurveyInfo)
-
-            if (newImageSurveyInfo != undefined) {
-                //console.log("dddd", newImageSurveyInfo)
-
-                if (newImageSurveyInfo.properties) {
-                    newImageSurvey = new HpxImageSurvey(newImageSurveyInfo.properties.url, {}, (aa) => {
-                        //console.log(newImageSurvey);
-                        //console.log("bb", aa);
-                        this.aladin.webglAPI.setHiPS([newImageSurveyInfo]);
-                    });
-                } else {
-                    newImageSurvey = new HpxImageSurvey(newImageSurveyInfo.url, {}, (aa) => {
-                        //console.log(newImageSurvey);
-                        //console.log("cc", aa);
-
-                        this.aladin.webglAPI.setHiPS([newlyImageSurveyCreatedInfo]);
-                    });
-                }
-            } else {
-                throw imageSurvey + ' id not a valid image survey ID';
-            }
-
-        }
-        else {
-            //let imageSurveyP = imageSurvey[0];
-            //newImageSurvey = new HpxImageSurvey(imageSurveyP.properties.url);
-            //newImageSurvey = imageSurvey;
-            //console.log("image survey", imageSurvey)
-            this.aladin.webglAPI.setHiPS([imageSurvey]);
-
-            // image survey is an HpxImageSurvey so it is in HpxImageSurvey.SURVEYS list
-            //newImageSurvey = imageSurvey;
-            //console.log(newImageSurvey)
-            //console.log("exist already", newImageSurvey.getSurveyInfo());
-            //this.aladin.webglAPI.setImageSurvey(newImageSurvey.getSurveyInfo());
-        }
-        // else {
-        // newImageSurvey = imageSurvey;
-        // console.log("exist already", newImageSurvey.getSurveyInfo());
-        // }
-
-        // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
-        // ideally, instead of creating a new TileBuffer object,
-        //  one should remove from TileBuffer all Tile objects still in the download queue qui sont encore dans la download queue
-        //this.tileBuffer = new TileBuffer();
-
-        //this.downloader.emptyQueue();
         
-        //newImageSurvey.isReady = false;
-        //this.imageSurvey = newImageSurvey;
-
-        //this.projection.reverseLongitude(this.imageSurvey.longitudeReversed); 
-        
-        /*var self = this;
-        newImageSurvey.init(this, function() {
-            //self.imageSurvey = newImageSurvey;
-            //self.computeNorder();
-            newImageSurvey.isReady = true;
-            //self.requestRedraw();
-            //self.updateObjectsLookup();
-            
-            //if (callback) {
-            //    callback();
-            //}
-        });*/
+        let survey = await new HpxImageSurvey(idOrUrl);
+        // We wait for the HpxImageSurvey to complete
+        // Register to the view
+        this.imageSurvey.set(idOrUrl, survey);
+        // Then we send the current surveys to the backend
+        this.setHiPS();
     };
-    
+
+    View.prototype.setHiPS = function() {
+        let surveys = [];
+        for (let survey of this.imageSurvey.values()) {
+            surveys.push(survey);
+        }
+        console.log(surveys);
+        this.aladin.webglAPI.setHiPS(surveys);
+    };
+
     View.prototype.requestRedraw = function() {
         this.needRedraw = true;
     };

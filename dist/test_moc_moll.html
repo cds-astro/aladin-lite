@@ -89,7 +89,7 @@
         var aladin;
         A.init.then(() => {
             // Start up Aladin Lite
-            aladin = A.aladin('#aladin-lite-div', {fov: 360, survey: surveys["P/DSS2/color"], showCooGrid: true});
+            aladin = A.aladin('#aladin-lite-div', {fov: 360, survey: "P/DSS2/color", showCooGrid: true});
             aladin.setProjection('mollweide');
 
             var moc = A.MOCFromJSON(json, {color: 'magenta', lineWidth: 1, opacity: 0.6});
@@ -97,17 +97,16 @@
 
             var self = aladin;
             document.getElementById("DSS").onclick = function() {
-                console.log(surveys["P/DSS2/color"]);
-                self.setImageSurvey(surveys["P/DSS2/color"]);
+                self.setImageSurvey("P/DSS2/color");
             };
             document.getElementById("DSS-blue").onclick = function() {
-                self.setImageSurvey(surveys["P/DSS2/blue"]);
+                self.setImageSurvey("P/DSS2/blue");
             };
             document.getElementById("2MASS").onclick = function() {
-                self.setImageSurvey(surveys["P/2MASS/color"]);
+                self.setImageSurvey("P/2MASS/color");
             };
             document.getElementById("allwise").onclick = function() {
-                self.setImageSurvey(surveys["P/allWISE/color"]);
+                self.setImageSurvey("P/allWISE/color");
             };
         });
 

@@ -1,20 +1,8 @@
 export let DiscoveryTree = (function () {
     // Constructor
     var DiscoveryTree = function (aladin) {
-        // Create a component called <editable-text>
-        Vue.component('editable-text', {
-            data: function () {
-                return {
-                message: "Change me"
-                }
-            },
-            template: `<div><p>Message: {{ message }}</p>
-            <input v-model="message" placeholder="edit me" /></div>`
-        })
-
-
         // activate Vue on the <div> that contains the component
-        let vue = new Vue({
+        new Vue({
             el: '#ui',
             data: {
               view: aladin,

@@ -52,6 +52,7 @@ import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
+import Layers from './components/layers.vue'
 
 export let Aladin = (function () {
 
@@ -174,7 +175,7 @@ export let Aladin = (function () {
 
         // retrieve available surveys
         // TODO: replace call with MocServer
-        $.ajax({
+        /*$.ajax({
             url: "//aladin.unistra.fr/java/nph-aladin.pl",
             data: { "frame": "aladinLiteDic" },
             method: 'GET',
@@ -195,7 +196,7 @@ export let Aladin = (function () {
             },
             error: function () {
             }
-        });
+        });*/
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
@@ -319,8 +320,19 @@ export let Aladin = (function () {
         /*let imageSurveyInfo = HpxImageSurvey.getSurveyInfoFromId(options.survey);
         console.log('image survey, ', imageSurveyInfo)
         webgl.setImageSurvey(imageSurveyInfo);*/
-
-        this.setImageSurvey(options.survey);
+        // Add the image layers
+        // For that we check the survey key of options
+        // It can be given as a single string or an array of strings
+        // for multiple blending surveys
+        if (options.survey) {
+            if (typeof options.survey === Array) {
+                options.survey.forEach((survey) => {
+                    this.addImageSurvey(survey);
+                });
+            } else {
+                this.addImageSurvey(options.survey);
+            }
+        }
         this.view.showCatalog(options.showCatalog);
 
 
@@ -363,8 +375,10 @@ export let Aladin = (function () {
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
-        // initialize the moctree
+        // initialize the Vue components
         if (typeof Vue != "undefined") {
+            Vue.component("layers", Layers)
+
             this.discoverytree = new DiscoveryTree(this);
         }
 
@@ -912,8 +926,8 @@ export let Aladin = (function () {
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function (imageSurvey) {
-        this.view.setImageSurvey(imageSurvey);
+    Aladin.prototype.addImageSurvey = function (rootURLOrId) {
+        this.view.addImageSurvey(rootURLOrId);
         /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;
@@ -925,7 +939,7 @@ export let Aladin = (function () {
         }*/
     };
     // @api
-    Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
+    Aladin.prototype.setBaseImageLayer = Aladin.prototype.addImageSurvey;
 
     // @api
     Aladin.prototype.getOverlayImageLayer = function () {

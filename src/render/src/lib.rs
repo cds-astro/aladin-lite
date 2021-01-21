@@ -759,6 +759,30 @@ impl App {
         Ok(screen_pos)
     }
 
+    pub fn world_to_screen_vec<P: Projection>(
+        &self,
+        sources: &Vec<JsValue>,
+    ) -> Result<Vec<f64>, JsValue> {
+        let res: Vec<f64> = sources.into_iter()
+            .filter_map(|s| {
+                let source: S = s.into_serde()
+                 .map_err(|e|
+                    JsValue::from_str(&e.to_string())
+                 ).unwrap();
+                let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
+                let xyz = lonlat.vector();
+
+                if let Some(s_xy) = P::model_to_screen_space(&xyz, &self.camera) {
+                    Some(vec![s_xy.x, s_xy.y])
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+        Ok(res)
+    }
+
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
             Some(model_pos.lonlat())
@@ -1087,6 +1111,21 @@ impl ProjectionType {
             ProjectionType::Arc => app.world_to_screen::<AzimuthalEquidistant>(lonlat),
             ProjectionType::Gnomonic => app.world_to_screen::<Gnomonic>(lonlat),
             ProjectionType::Mercator => app.world_to_screen::<Mercator>(lonlat),
+        }
+    }
+
+    fn world_to_screen_vec(
+        &self,
+        app: &App,
+        sources: &Vec<JsValue>,
+    ) -> Result<Vec<f64>, JsValue> {
+        match self {
+            ProjectionType::Aitoff => app.world_to_screen_vec::<Aitoff>(sources),
+            ProjectionType::MollWeide => app.world_to_screen_vec::<Mollweide>(sources),
+            ProjectionType::Ortho => app.world_to_screen_vec::<Orthographic>(sources),
+            ProjectionType::Arc => app.world_to_screen_vec::<AzimuthalEquidistant>(sources),
+            ProjectionType::Gnomonic => app.world_to_screen_vec::<Gnomonic>(sources),
+            ProjectionType::Mercator => app.world_to_screen_vec::<Mercator>(sources),
         }
     }
 
@@ -1450,6 +1489,13 @@ pub struct SimpleHiPS {
 pub struct CompositeHiPS {
     hipses: Vec<SimpleHiPS>,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct S {
+    ra: f64,
+    dec: f64
+}
+
 use std::iter::IntoIterator;
 impl IntoIterator for CompositeHiPS {
     type Item = SimpleHiPS;
@@ -1646,6 +1692,12 @@ impl WebClient {
         } else {
             Ok(None)
         }
+    }
+
+    #[wasm_bindgen(js_name = worldToScreenVec)]
+    pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
+        let screen_positions = self.projection.world_to_screen_vec(&self.app, &sources)?;
+        Ok(screen_positions.into_boxed_slice())
     }
 
     #[wasm_bindgen(js_name = screenToWorld)]

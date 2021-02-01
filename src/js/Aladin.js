@@ -918,7 +918,7 @@ export let Aladin = (function () {
 
 
     // @api
-    Aladin.prototype.getBaseImageLayer = function () {
+    Aladin.prototype.getBaseImageLayers = function () {
         return this.view.imageSurvey;
     };
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
@@ -936,8 +936,16 @@ export let Aladin = (function () {
             Logger.log("changeImageSurvey", id);
         }*/
     };
+
+    // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
-    Aladin.prototype.setBaseImageLayer = Aladin.prototype.addImageSurvey;
+    // @old
+    Aladin.prototype.setImageSurvey = function (rootURLOrId) {
+        this.view.setImageSurvey(rootURLOrId);
+    };
+
+    // @api
+    Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
 
     // @api
     Aladin.prototype.getOverlayImageLayer = function () {

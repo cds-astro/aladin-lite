@@ -1793,12 +1793,26 @@ export let View = (function() {
         this.setHiPS();
     };
 
+    View.prototype.setImageSurvey = async function(idOrUrl) {
+        if (!idOrUrl) {
+            return;
+        }
+        
+        let survey = await new HpxImageSurvey(idOrUrl);
+        // We wait for the HpxImageSurvey to complete
+        // Register to the view
+        this.imageSurvey = new Map();
+        this.imageSurvey.set(idOrUrl, survey);
+        // Then we send the current surveys to the backend
+        this.setHiPS();
+    };
+
     View.prototype.setHiPS = function() {
         let surveys = [];
         for (let survey of this.imageSurvey.values()) {
             surveys.push(survey);
         }
-        console.log(surveys);
+        //console.log(surveys);
         this.aladin.webglAPI.setHiPS(surveys);
     };
 

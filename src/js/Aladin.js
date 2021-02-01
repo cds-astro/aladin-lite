@@ -52,7 +52,6 @@ import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
-import Layers from './components/layers.vue'
 
 export let Aladin = (function () {
 
@@ -377,8 +376,7 @@ export let Aladin = (function () {
 
         // initialize the Vue components
         if (typeof Vue != "undefined") {
-            Vue.component("layers", Layers)
-
+            //Vue.component("layers", Layers)
             this.discoverytree = new DiscoveryTree(this);
         }
 
@@ -979,7 +977,7 @@ export let Aladin = (function () {
 
 
 
-    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled'];
+    Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady'];
     // API
     //
     // setting callbacks
@@ -1756,10 +1754,8 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 
-//A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
-A.init = Promise.all([import('@fxpineau/healpix'), import('../render/pkg/')]).then(async (values) => {
+A.init = Promise.all([import('@fxpineau/healpix'), import('../core/pkg')]).then(async (values) => {
     let [hpxAPI, webglAPI] = values;
-    //let [webglAPI] = values;
 
     // HEALPix library
     Aladin.wasmLibs.hpx = hpxAPI;

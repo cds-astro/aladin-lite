@@ -772,7 +772,9 @@ A.init.then(() => {
     aladin.setProjection('aitoff');
     aladin.gotoRaDec(266.4168166, -29.0078249);
     aladin.setFoV(360);
-
+    aladin.on('catalogReady', () => {
+        document.getElementById("loading").innerHTML = "Catalog loaded!";
+    })
 
 });
 

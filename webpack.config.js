@@ -5,8 +5,8 @@ const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 var ROOT_PATH = path.resolve(__dirname);
-var SHADER_PATH = path.resolve(ROOT_PATH, 'src/render/src/shaders');
-var IMAGES_PATH = path.resolve(ROOT_PATH, 'src/render/img');
+var SHADER_PATH = path.resolve(ROOT_PATH, 'src/core/src/shaders');
+var IMAGES_PATH = path.resolve(ROOT_PATH, 'src/core/img');
 
 module.exports = {
     entry: './src/js/Aladin.js',
@@ -17,7 +17,7 @@ module.exports = {
     plugins: [
         //new HtmlWebpackPlugin(),
         new WasmPackPlugin({
-            crateDirectory: path.resolve(__dirname, "src/render")
+            crateDirectory: path.resolve(__dirname, "src/core")
         }),
         // Have this example work in Edge which doesn't ship `TextEncoder` or
         // `TextDecoder` at this time.

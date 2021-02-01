@@ -53,10 +53,7 @@ import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { loadShaders } from './Shaders.js';
 // Import kernel image
-import kernel from './../render/img/kernel.png';
-import ang2pixd0 from './../render/img/ang2pix_depth0.png';
-import ang2pixd1 from './../render/img/ang2pix_depth1.png';
-import ang2pixd2 from './../render/img/ang2pix_depth2.png';
+import kernel from '../core/img/kernel.png';
 
 export let View = (function() {
 
@@ -78,9 +75,6 @@ export let View = (function() {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             let resources = {
                 'kernel': kernel,
-                'ang2pixd0': ang2pixd0,
-                'ang2pixd1': ang2pixd1,
-                'ang2pixd2': ang2pixd2,
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
             this.aladin.webglAPI.resize(500, 400);
@@ -970,29 +964,20 @@ export let View = (function() {
         var dt = now - this.prev;
 
         this.aladin.webglAPI.update(dt);
-        //this.updateZoomState();
         // This is called at each frame
         // Better way is to give this function
         // to Rust so that the backend executes it
         // only when necessary, i.e. during the zoom
         // animation
         updateFovDiv(this);
+        // check whether a catalog has been parsed and
+        // is ready to be plot
+        let catReady = this.aladin.webglAPI.isCatalogLoaded();
+        if (catReady) {
+            var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
+            (typeof callbackFn === 'function') && callbackFn();
+        }
         this.aladin.webglAPI.render();
-
-        /*if (this.dateRequestDraw && now>this.dateRequestDraw) {
-            this.dateRequestDraw = null;
-        } 
-        else if (! this.needRedraw) {
-            if (!this.flagForceRedraw) {
-                return;
-            }
-            else {
-                this.flagForceRedraw = false;
-            }
-        }*/
-
-        //this.stats.update();
-
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////

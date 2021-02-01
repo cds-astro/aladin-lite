@@ -1,43 +1,5 @@
-# aladin-lite-v3
+# Aladin Lite v3
 
-Work repo for Aladin Lite v3
-
-## Goals
-
-- intégration code Rust WebGL
-
-- suppression de jQuery
-
-- intégration component VueJS (arbre)
-
-- amélioration UI, meilleur support mobile
-
--  nouveau packager (webpack)
-
-- module npm
-
-- support tuiles FITS et images FITS ?
-
-- easy sharing of current « view » 
-
-- support of all VOTable serializations (using votable.js?)
-
-- support of FITS  tables?
-
-- création instance  HiPS depuis une URL
-
-- gestion miroirs  HiPS
-
-## Installation steps
-
-npm install
-
-npm run build
-
-npm run serve
-
-
-# Aladin Lite
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
 Aladin Lite is a Web application which enables HiPS visualization from the browser. It is developed at [CDS, Strasbourg astronomical data center](http://cds.unistra.fr/).
@@ -48,24 +10,54 @@ Aladin Lite is built to be easily embeddable in any web page. It powers astronom
 
 More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
 
+This repo contains the Aladin Lite v3 source code and specifically the code of its new WebGL core written in Rust.
+
+## How to test it ?
+
+You can test it [here](https://bmatthieu3.github.io/hips_webgl_renderer/test_moc_moll.html)!
+
+For Safari users only: make sure to enable WebGL2 experimental feature and refresh the page once it is done. You can find it in the Developer Menu > Experimental Features > WebGL2.
+Safari will soon [enable WebGL2 by default](https://developer.apple.com/safari/technology-preview/release-notes/).
+
+Do not hesitate to give a feedback either by sending a mail to:
+
+- baumannmatthieu0@gmail.com
+- thomas.boch@astro.unistra.fr
+
+or simply by posting an issue in this repo.
+
+## Goals of v3
+
+- Rust/WebGL new core integration
+
+- Remove jQuery dep
+
+- UI dev, using VueJS, better support for smartphones
+
+- package the core and its API as a WASM npm package
+
+- FITS images support
+
+- easy sharing of current « view »
+
+- support of all VOTable serializations (using votable.js?)
+
+- support of FITS tables?
+
+- creating HiPS instance from an URL
+
+- multiple mirrors handling for HiPS tile retrival
+
 ## Source code
 
 Source code is available in the ``src`` directory.
+Precisely, the core is implemented in Rust and can be found in ``src/core``.
 
 ## Licence
 
 Aladin Lite is currently licensed under GPL v3.0
 
 If you think this license might prevent you from using Aladin Lite in your pages/application/portal, please open an issue or [contact us](mailto:cds-question@unistra.fr)
-
-## Building the application
-
-1. Clone the repository
-2. Go to the ``scripts``directory
-3. Open the `build.sh` file and adapt paths to ``uglifyjs`` and ``lessc``
-4. Launch ``./build.sh``
-5. Go to directory ``../distrib/latest/`` , type ``python3 -m http.server 42195`` and open your browser at [http://0.0.0.0:42195/](http://0.0.0.0:42195/) to launch the built application
-
 
 ## Contributing
 
@@ -77,3 +69,31 @@ There are several ways to contribute to Aladin Lite:
 
 - **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time only take into consideration code contribution (_i.e._ Pull Requests) from our close partners.
 In any case, please get in touch before starting a major update or rewrite.
+
+### Building the application steps
+
+```bash
+npm install
+```
+
+```bash
+npm run build
+```
+
+```bash
+npm run serve
+```
+
+If you just want to compile the core, from the root location:
+
+```bash
+cd src/core
+cargo check
+```
+
+and run the tests
+
+```bash
+cd src/core
+cargo test
+```

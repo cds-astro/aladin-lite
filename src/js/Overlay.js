@@ -33,6 +33,7 @@
 import { AladinUtils } from "./AladinUtils.js";
 import { Footprint } from "./Footprint.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
+import { Line } from './Line.js';
 
 export let Overlay = (function() {
    let Overlay = function(options) {
@@ -201,7 +202,7 @@ export let Overlay = (function() {
     	
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
-    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor, this.view);
+    	    this.overlay_items[k].draw(ctx, this.view, projection, frame, width, height, largestDim, zoomFactor);
     	}
     };
 
@@ -230,10 +231,20 @@ export let Overlay = (function() {
             return null;
         }
         var xyviewArray = [];
-        var show = false;
+        //var show = false;
         var radecArray = f.polygons;
+        for(var l=0; l<radecArray.length-1; l++) {
+            let pts = this.view.aladin.webglAPI.projectLine(radecArray[l][0], radecArray[l][1], radecArray[l+1][0], radecArray[l+1][1]);
+            for(var k=0; k<pts.length; k+=4) {
+                let line = new Line(pts[k], pts[k+1], pts[k+2], pts[k+3]);
+                if (line.isInsideView(width, height)) {
+                    line.draw(ctx);
+                }    
+            }
+        }
+
         // for
-            for (var k=0, len=radecArray.length; k<len; k++) {
+            /*for (var k=0, len=radecArray.length; k<len; k++) {
                 var xy;
                 if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
                     var lonlat = CooConversion.J2000ToGalactic([radecArray[k][0], radecArray[k][1]]);
@@ -261,7 +272,7 @@ export let Overlay = (function() {
             else {
                 //return null;
             }
-        // end for
+        // end for*/
 
         return xyviewArray;
 

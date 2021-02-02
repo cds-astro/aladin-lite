@@ -77,7 +77,7 @@ export let AladinUtils = (function() {
     	 * convert a 
     	 * @returns position x,y in the view. Null if projection is impossible
     	 */
-        radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
+        /*radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
             var xy;
             if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
                 var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
@@ -89,23 +89,22 @@ export let AladinUtils = (function() {
             if (!xy) {
                 return null;
             }
-            console.log(xy);
 
             return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
-        },
-        radecToViewXy2: function(ra, dec, currentFrame, view) {
-            var xy;
-            if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
-                var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-                xy = view.aladin.webglAPI.worldToScreen(lonlat[0], lonlat[1]);
-            }
-            else {
-                xy = view.aladin.webglAPI.worldToScreen(lonlat[0], lonlat[1]);
-            }
-            if (!xy) {
-                return null;
-            }
-            console.log(xy);
+        },*/
+        radecToViewXy: function(ra, dec, view) {
+            //var xy;
+            //if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
+            //    var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
+            //    xy = view.aladin.webglAPI.worldToScreen(lonlat[0], lonlat[1]);
+            //}
+            //else {
+            //var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
+            let xy = view.aladin.webglAPI.worldToScreen(ra, dec);
+            //}
+            //if (!xy) {
+            //    return null;
+            //}
 
             return xy;
         },

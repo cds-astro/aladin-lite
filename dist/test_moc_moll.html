@@ -20,12 +20,17 @@
         left: 4px;
         z-index: 20;
       }
+
+      #aladin-lite-div {
+        width: 1024px;
+        height: 768px;
+      }
     </style>
-    
-    <div id="aladin-lite-div" style="width: 1024px; height: 768px">
-      <div id="ui" class="ui">
-        <discovery-tree ref="dt" id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>
-      </div>
+
+    <div id="aladin-lite-div">
+        <div id="ui">
+            <discovery-tree ref="dt" id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>
+        </div>
     </div>
 
     <input id="DSS" type="radio" name="survey" value='P/DSS2/Color' checked><label for="DSS">DSS color<label>
@@ -109,10 +114,4 @@
                 self.setImageSurvey("P/allWISE/color");
             };
         });
-
-
-
-
-
-
     </script>

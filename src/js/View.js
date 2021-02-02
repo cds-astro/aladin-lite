@@ -2068,18 +2068,19 @@ export let View = (function() {
                     var pointXY = [];
                     for(var j=0;j<footprint.polygons.length;j++){
 
-                        var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
+                        /*var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
                                 this.projection,
                                 this.cooFrame,
                                 this.width, this.height,
                                 this.largestDim,
-                                this.zoomFactor);
+                                this.zoomFactor);*/
+                        var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1], this);
                         if (! xy) {
                             continue;
                         }
                         pointXY.push({
-                            x: xy.vx,
-                            y: xy.vy
+                            x: xy[0],
+                            y: xy[1]
                         });
                     }
                     for(var l=0; l<pointXY.length-1;l++){
@@ -2097,7 +2098,7 @@ export let View = (function() {
                 // test Circles
                 for (var i=0; i<overlay.overlay_items.length; i++) {
                     if (overlay.overlay_items[i] instanceof Circle) {
-                        overlay.overlay_items[i].draw(ctx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
+                        overlay.overlay_items[i].draw(ctx, this, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
 
                         if (ctx.isPointInStroke(x, y)) {
                             closest = overlay.overlay_items[i];

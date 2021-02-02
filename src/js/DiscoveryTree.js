@@ -4,9 +4,6 @@ export let DiscoveryTree = (function () {
         // activate Vue on the <div> that contains the component
         new Vue({
             el: '#ui',
-            data: {
-              view: aladin,
-            },
             methods: {
                 // Define the methods for the discovery-tree component
                 // to interact with the aladin viewer

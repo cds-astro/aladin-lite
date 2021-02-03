@@ -62,7 +62,6 @@ fn subdivide<P: Projection>(
                     vertices.push(b);
                     vertices.push(c);
                 }
-            //return;
             } else {
                 // Subdivide a->b and b->c
                 subdivide::<P>(
@@ -78,13 +77,43 @@ fn subdivide<P: Projection>(
                 );
             }
         }
-        (Some(a), Some(b), None) => {
-            vertices.push(a);
-            vertices.push(b);
+        (Some(_), Some(_), None) => {
+            // relay the subdivision to the first half
+            subdivide::<P>(
+                vertices,
+                [mp[0], &((mp[0] + mp[1]) * 0.5).normalize(), mp[1]],
+                camera,
+            );
+
+            // and try subdividing a little further 
+            // hoping that the projection is defined for e
+            let e = (mp[1] + mp[2]) * 0.5;
+            subdivide::<P>(
+                vertices,
+                [mp[1], &((mp[1] + e) * 0.5).normalize(), &e],
+                camera,
+            );
+            //vertices.push(a);
+            //vertices.push(b);
         }
-        (None, Some(b), Some(c)) => {
-            vertices.push(b);
-            vertices.push(c);
+        (None, Some(_), Some(_)) => {
+            // relay the subdivision to the second half
+            subdivide::<P>(
+                vertices,
+                [mp[1], &((mp[1] + mp[2]) * 0.5).normalize(), mp[2]],
+                camera,
+            );
+
+            // and try subdividing a little further 
+            // hoping that the projection is defined for e
+            let e = (mp[0] + mp[1]) * 0.5;
+            subdivide::<P>(
+                vertices,
+                [&e, &((mp[1] + e) * 0.5).normalize(), &mp[1]],
+                camera,
+            );
+            //vertices.push(b);
+            //vertices.push(c);
         }
         _ => (),
     }

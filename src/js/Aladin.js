@@ -34,6 +34,7 @@ import { Utils } from "./Utils.js";
 import { Overlay } from "./Overlay.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
+import { Ellipse } from "./Ellipse.js";
 import { Polyline } from "./Polyline.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Logger } from "./Logger.js";
@@ -1493,6 +1494,21 @@ A.polyline = function (raDecArray, options) {
 // @API
 A.circle = function (ra, dec, radiusDeg, options) {
     return new Circle([ra, dec], radiusDeg, options);
+};
+
+/**
+ * 
+ * @API
+ * 
+ * @param ra 
+ * @param dec
+ * @param radiusRaDeg the radius along the ra axis in degrees
+ * @param radiusDecDeg the radius along the dec axis in degrees
+ * @param rotationDeg the rotation angle in degrees
+ *   
+ */
+A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) {
+    return new Ellipse([ra, dec], radiusRaDeg, radiusDecDeg, rotationDeg, options);
 };
 
 // @API

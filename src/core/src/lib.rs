@@ -151,9 +151,10 @@ impl App {
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
+        /*let url = String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color");
         let sdss = SimpleHiPS {
             properties: HiPSProperties {
-                url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
+                url: url.clone(),
 
                 max_order: 10,
                 frame: Frame {
@@ -168,7 +169,7 @@ impl App {
                 max_cutout: None,
             },
             color: HiPSColor::Color,
-        };
+        };*/
 
         let camera = CameraViewPort::new::<Orthographic>(&gl);
 
@@ -179,7 +180,7 @@ impl App {
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        surveys.add_composite_surveys(vec![sdss], &gl, &camera, exec.clone(), 0)?;
+        //surveys.add_image_survey_layer(vec![sdss], &gl, &camera, exec.clone(), url)?;
 
         let time_start_blending = Time::now();
 
@@ -476,8 +477,10 @@ impl App {
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
-            self.manager
-                .update::<P>(&self.camera, self.surveys.get_view().unwrap());
+            if let Some(view) = self.surveys.get_view() {
+                self.manager
+                .update::<P>(&self.camera, view);
+            }
         }
         self.grid.update::<P>(&self.camera);
 
@@ -508,21 +511,22 @@ impl App {
         Ok(())
     }
 
-    fn remove_overlay(&mut self) {
+    /*fn remove_overlay(&mut self) {
         self.surveys.remove_overlay();
         self.request_redraw = true;
-    }
+    }*/
 
-    fn set_composite_hips<P: Projection>(
+    fn add_image_survey_layer<P: Projection>(
         &mut self,
+        name: String,
         hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.add_composite_surveys(
+        let new_survey_ids = self.surveys.add_image_survey_layer(
             hipses,
             &self.gl,
             &self.camera,
             self.exec.clone(),
-            0,
+            name,
         )?;
         self.downloader.clear_requests();
 
@@ -539,7 +543,7 @@ impl App {
         Ok(())
     }
 
-    fn set_overlay_composite_hips<P: Projection>(
+    /*fn set_overlay_composite_hips<P: Projection>(
         &mut self,
         hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
@@ -563,7 +567,7 @@ impl App {
         self.request_redraw = true;
 
         Ok(())
-    }
+    }*/
 
     fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
         self.surveys.set_overlay_opacity(opacity);
@@ -1094,18 +1098,19 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn set_composite_hips(
+    pub fn add_image_survey_layer(
         &mut self,
         app: &mut App,
-        hips: Vec<SimpleHiPS>,
+        name: String,
+        surveys: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
-            ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
-            ProjectionType::Ortho => app.set_composite_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_composite_hips::<AzimuthalEquidistant>(hips),
-            ProjectionType::Gnomonic => app.set_composite_hips::<Gnomonic>(hips),
-            ProjectionType::Mercator => app.set_composite_hips::<Mercator>(hips),
+            ProjectionType::Aitoff => app.add_image_survey_layer::<Aitoff>(name, surveys),
+            ProjectionType::MollWeide => app.add_image_survey_layer::<Mollweide>(name, surveys),
+            ProjectionType::Ortho => app.add_image_survey_layer::<Orthographic>(name, surveys),
+            ProjectionType::Arc => app.add_image_survey_layer::<AzimuthalEquidistant>(name, surveys),
+            ProjectionType::Gnomonic => app.add_image_survey_layer::<Gnomonic>(name, surveys),
+            ProjectionType::Mercator => app.add_image_survey_layer::<Mercator>(name, surveys),
         }
     }
 
@@ -1124,7 +1129,7 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
+    /*pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
         app.remove_overlay();
 
         Ok(())
@@ -1143,7 +1148,7 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.set_overlay_composite_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
         }
-    }
+    }*/
     pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
         app.set_overlay_opacity(opacity)
     }
@@ -1440,31 +1445,25 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = setHiPS)]
-    pub fn set_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
-        let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses
+    #[wasm_bindgen(js_name = addImageSurveyLayer)]
+    pub fn add_image_survey_layer(&mut self, layer_name: String, surveys: Vec<JsValue>) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        let surveys: Result<Vec<SimpleHiPS>, JsValue> = surveys
             .into_iter()
             .map(|h| {
                 h.into_serde()
                     .map_err(|e| JsValue::from_str(&e.to_string()))
             })
             .collect::<Result<Vec<_>, _>>();
-        let hips = hips?;
-        //crate::log(&format!("Composite HiPS: {:?}", hips));
-
-        self.projection.set_composite_hips(&mut self.app, hips)?;
+        let surveys = surveys?;
+        self.projection.add_image_survey_layer(&mut self.app, layer_name, surveys)?;
 
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = isCatalogLoaded)]
-    pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
-        let cat_loaded = self.app.is_catalog_loaded();
-        Ok(cat_loaded)
-    }
-
-    #[wasm_bindgen(js_name = setOverlayHiPS)]
-    pub fn set_overlay_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
+    /// Add an overlay HiPS on top of the current HiPS
+    /*#[wasm_bindgen(js_name = setOverlayHiPS)]
+    pub fn set_overlay_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
         let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses
             .into_iter()
             .map(|h| {
@@ -1479,15 +1478,14 @@ impl WebClient {
             .set_overlay_composite_hips(&mut self.app, hips)?;
 
         Ok(())
-    }
+    }*/
 
-    #[wasm_bindgen(js_name = removeOverlayHiPS)]
-    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
-        self.projection.remove_overlay_hips(&mut self.app)?;
-
-        Ok(())
-    }
-
+    /// Set the opacity of the overlaid HiPS
+    ///
+    /// # Arguments
+    ///
+    /// * `opacity` - A float number between 0 and 1. 0 means totally transparent
+    /// 1 means fully visible
     #[wasm_bindgen(js_name = setOverlayOpacity)]
     pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
         self.projection
@@ -1495,6 +1493,22 @@ impl WebClient {
 
         Ok(())
     }
+    
+    /*#[wasm_bindgen(js_name = removeOverlayHiPS)]
+    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
+        self.projection.remove_overlay_hips(&mut self.app)?;
+
+        Ok(())
+    }*/
+
+
+    #[wasm_bindgen(js_name = isCatalogLoaded)]
+    pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
+        let cat_loaded = self.app.is_catalog_loaded();
+        Ok(cat_loaded)
+    }
+
+
 
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {

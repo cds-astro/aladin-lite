@@ -53,6 +53,7 @@ import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
+import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 
 export let Aladin = (function () {
 
@@ -325,13 +326,20 @@ export let Aladin = (function () {
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
         if (options.survey) {
-            if (typeof options.survey === Array) {
-                options.survey.forEach((survey) => {
-                    this.addImageSurvey(survey);
-                });
-            } else {
-                this.addImageSurvey(options.survey);
-            }
+            let layer = A.imageSurveyLayer("base");
+            (async () => {
+                if (typeof options.survey === Array) {
+                    options.survey.forEach(async (rootUrlOrId) => {
+                        await layer.addImageSurvey(rootUrlOrId);
+                    });
+                } else {
+                    console.log("my first survey");
+                    await layer.addImageSurvey(options.survey);
+                }
+
+                this.addImageSurveyLayer(layer);
+            })();
+
         }
         this.view.showCatalog(options.showCatalog);
 
@@ -911,38 +919,28 @@ export let Aladin = (function () {
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
     };
-
-    // @oldAPI
-    Aladin.prototype.createImageSurvey = function(rootURLOrHiPSDefinition, options) {
-        return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
+    Aladin.prototype.addImageSurveyLayer = function (layer) {
+        console.log("add layer", layer)
+        this.view.addImageSurveyLayer(layer)
     };
 
-
     // @api
-    Aladin.prototype.getBaseImageLayers = function () {
+    /*Aladin.prototype.getBaseImageLayers = function () {
         return this.view.imageSurvey;
-    };
+    };*/
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.addImageSurvey = function (rootURLOrId) {
-        this.view.addImageSurvey(rootURLOrId);
-        /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        if (this.options.log) {
-            var id = imageSurvey;
-            if (typeof imageSurvey !== "string") {
-                id = imageSurvey.rootUrl;
-            }
-
-            Logger.log("changeImageSurvey", id);
-        }*/
+    /*Aladin.prototype.addImageSurvey = async function (rootUrlOrId) {
+        this.view.addImageSurvey(survey);
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function (rootURLOrId) {
-        this.view.setImageSurvey(rootURLOrId);
+    Aladin.prototype.setImageSurvey = async function (rootUrlOrId) {
+        const survey = await Aladin.createImageSurvey(rootUrlOrId);
+        this.view.setImageSurvey(survey);
     };
 
     // @api
@@ -956,7 +954,7 @@ export let Aladin = (function () {
     Aladin.prototype.setOverlayImageLayer = function (imageSurvey, callback) {
         this.view.setOverlayImageSurvey(imageSurvey, callback);
     };
-
+    */
 
     Aladin.prototype.increaseZoom = function (step) {
         //if (!step) {
@@ -1455,11 +1453,11 @@ A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
 
-//@API
+/*//@API
 // TODO : lecture de properties
 A.imageLayer = function (rootURLOrHiPSDefinition, options) {
     return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-};
+};*/
 
 // @API
 A.source = function (ra, dec, data, options) {
@@ -1515,6 +1513,15 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
 A.graphicOverlay = function (options) {
     return new Overlay(options);
 };
+
+// Create a new image survey layer
+//
+// One can attach multiple surveys to 1 layer.
+// Those survey colors are blended together.
+// Layers are overlaid to each other
+A.imageSurveyLayer = function(name) {
+    return new ImageSurveyLayer(name);
+}
 
 // @API
 A.catalog = function (options) {
@@ -1635,7 +1642,12 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             }
             var label = options.label || "FITS image";
             var meta = response.data.meta;
-            self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, { imgFormat: 'png' }));
+            console.log(response.data.url);
+            (async () => {
+                let survey = await Aladin.createImageSurvey(response.data.url);
+                console.log("sdfsdf", survey);
+            })();
+            /*self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, { imgFormat: 'png' }));
             var transparency = (options && options.transparency) || 1.0;
             self.getOverlayImageLayer().setAlpha(transparency);
 
@@ -1647,7 +1659,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
                 self.gotoRaDec(meta.ra, meta.dec);
                 self.setFoV(meta.fov);
             }
-
+            */
         }
     });
 

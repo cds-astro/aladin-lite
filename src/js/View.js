@@ -54,6 +54,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { loadShaders } from './Shaders.js';
 // Import kernel image
 import kernel from '../core/img/kernel.png';
+import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 
 export let View = (function() {
 
@@ -1731,8 +1732,8 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback) {
-        if (! overlayImageSurvey) {
+    View.prototype.setOverlayImageSurvey = async function(idOrUrl) {
+        /*if (! overlayImageSurvey) {
             this.overlayImageSurvey = null;
             this.requestRedraw();
             return;
@@ -1768,7 +1769,13 @@ export let View = (function() {
             if (callback) {
                 callback();
             }
-        });
+        });*/
+        if (!idOrUrl) {
+            return;
+        }
+
+        let overlaySurvey = await new HpxImageSurvey(idOrUrl);
+        this.aladin.webglAPI.setOverlayHiPS(overlaySurvey);
     };
 
     View.prototype.setUnknownSurveyIfNeeded = function() {
@@ -1777,32 +1784,40 @@ export let View = (function() {
             unknownSurveyId = undefined;
         }
     }
-    
+
+    View.prototype.addImageSurveyLayer = function(layer) {
+        if (!(layer instanceof ImageSurveyLayer)) {
+            throw "Except an ImageSurveyLayer object";
+        }
+
+        let surveys = [];
+        for (let survey of layer.getSurveys()) {
+            surveys.push(survey);
+        }
+        console.log("set layer: ", layer);
+        this.aladin.webglAPI.addImageSurveyLayer(layer.name, surveys);
+    };
+
+    /*View.prototype.removeImageSurveyLayer = function(layer) {
+        
+    };*/
+
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.addImageSurvey = async function(idOrUrl) {
-        if (!idOrUrl) {
-            return;
-        }
-        
-        let survey = await new HpxImageSurvey(idOrUrl);
+    /*View.prototype.addImageSurvey = function(survey) {
         // We wait for the HpxImageSurvey to complete
         // Register to the view
-        this.imageSurvey.set(idOrUrl, survey);
+        const url = survey.properties.url;
+        this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
-    View.prototype.setImageSurvey = async function(idOrUrl) {
-        if (!idOrUrl) {
-            return;
-        }
-        
-        let survey = await new HpxImageSurvey(idOrUrl);
-        // We wait for the HpxImageSurvey to complete
-        // Register to the view
+    View.prototype.setImageSurvey = function(survey) {
         this.imageSurvey = new Map();
-        this.imageSurvey.set(idOrUrl, survey);
+
+        const url = survey.properties.url;
+        this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
@@ -1812,9 +1827,8 @@ export let View = (function() {
         for (let survey of this.imageSurvey.values()) {
             surveys.push(survey);
         }
-        //console.log(surveys);
         this.aladin.webglAPI.setHiPS(surveys);
-    };
+    };*/
 
     View.prototype.requestRedraw = function() {
         this.needRedraw = true;

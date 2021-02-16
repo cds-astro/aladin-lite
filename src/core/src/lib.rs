@@ -809,6 +809,8 @@ impl App {
         let _cursor_pos = self.camera.get_center();
         let goal_pos: Vector4<f64> = lonlat.vector();
 
+        let goal_pos: cgmath::Vector4<f64> = (crate::camera::GALACTIC_TO_J2000) * cgmath::Vector4::new(goal_pos.x, goal_pos.y, goal_pos.z, goal_pos.w);
+
         // Convert these positions to rotations
         let start_anim_rot = *self.camera.get_rotation();
         let goal_anim_rot = Rotation::from_sky_position(&goal_pos);

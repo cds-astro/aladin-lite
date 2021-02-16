@@ -7,11 +7,12 @@
 // * y_h in [-1, 1]
 
 // World space
-use crate::camera::CameraViewPort;
+use crate::camera::{CameraViewPort, J2000_TO_GALACTIC, GALACTIC_TO_J2000};
 use num_traits::FloatConst;
 trait MyFloat: cgmath::BaseFloat + FloatConst {}
 impl MyFloat for f32 {}
 impl MyFloat for f64 {}
+
 
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
@@ -358,10 +359,10 @@ impl Projection for Aitoff {
                 theta.cos() * phi.cos(),
                 1.0,
             );
-
-            if longitude_reversed {
+            /*if longitude_reversed {
                 pos_world_space.x = -pos_world_space.x;
-            }
+            }*/
+            pos_world_space = J2000_TO_GALACTIC * pos_world_space;
 
             Some(pos_world_space)
         } else {
@@ -383,12 +384,18 @@ impl Projection for Aitoff {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
+        let mut pos_world_space = *pos_world_space;
+        pos_world_space = J2000_TO_GALACTIC * pos_world_space;
+
+        /*if longitude_reversed {
+            pos_world_space.x = -pos_world_space.x;
+        }*/
 
         let xyz = pos_world_space.truncate();
         let (mut theta, delta) = math::xyz_to_radec(&xyz);
-        if longitude_reversed {
-            theta.0 = -theta.0;
-        }
+        //if longitude_reversed {
+        //    theta.0 = -theta.0;
+        //}
 
         let theta_by_two = theta / 2.0;
 

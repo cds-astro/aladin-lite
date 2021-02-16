@@ -765,7 +765,7 @@ document.querySelector('#opacity_grid').addEventListener('input', function(e) {
 
 A.init.then(() => {
     // Start up Aladin Lite
-    aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/DSS2/color'});
+    aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/DSS2/color', target: 'm51'});
     aladin.setProjection('aitoff');
     aladin.gotoRaDec(266.4168166, -29.0078249);
     aladin.setFoV(360);

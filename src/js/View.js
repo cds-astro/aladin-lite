@@ -442,12 +442,12 @@ export let View = (function() {
             }
             var radec = [];
             // convert to J2000 if needed
-            if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
+            /*if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
             }
-            else {
+            else {*/
                 radec = lonlat;
-            }
+            //}
 
             view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
@@ -1920,15 +1920,15 @@ export let View = (function() {
         if (isNaN(ra) || isNaN(dec)) {
             return;
         }
-        if (this.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
+        //if (this.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
             this.viewCenter.lon = ra;
             this.viewCenter.lat = dec;
-        }
-        else if (this.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
+        //}
+        /*else if (this.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
             var lb = CooConversion.J2000ToGalactic([ra, dec]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1];
-        }
+        }*/
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         if (this.fov > 30.0 || options.forceAnimation) {
             this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);

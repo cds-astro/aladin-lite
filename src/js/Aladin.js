@@ -643,9 +643,9 @@ export let Aladin = (function () {
 
             coo.parse(targetName);
             var lonlat = [coo.lon, coo.lat];
-            if (this.view.cooFrame == CooFrameEnum.GAL) {
+            /*if (this.view.cooFrame == CooFrameEnum.GAL) {
                 lonlat = CooConversion.GalacticToJ2000(lonlat);
-            }
+            }*/
             this.view.pointTo(lonlat[0], lonlat[1]);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());

@@ -13,31 +13,10 @@ impl SendUniforms for UserAction {
         shader
     }
 }
-
+use crate::camera::{GALACTIC_TO_J2000, J2000_TO_GALACTIC};
+use cgmath::InnerSpace;
 use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
-
-/*const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
-    -0.867_666_1,
-    -0.054_875_56,
-    0.494_109_42,
-    0.0,
-
-    -0.198_076_37,
-    -0.873_437_1,
-    -0.444_829_64,
-    0.0,
-
-    0.455_983_8,
-    -0.483_835,
-    0.746_982_2,
-    0.0,
-
-    0.0,
-    0.0,
-    0.0,
-    1.0
-);*/
 
 pub struct CameraViewPort {
     // The field of view angle
@@ -276,7 +255,7 @@ impl CameraViewPort {
         //let j2000_to_gal: Rotation<f32> = (&J2000_TO_GALACTIC).into();
 
         // Rotate the axis:
-        //let axis = (J2000_TO_GALACTIC.invert().unwrap() * Vector4::new(axis.x, axis.y, axis.z, 1.0)).truncate().normalize();
+        //let axis = (GALACTIC_TO_J2000 * Vector4::new(axis.x, axis.y, axis.z, 1.0)).truncate().normalize();
         let drot = Rotation::from_axis_angle(&(axis), angle);
         self.w2m_rot = drot * self.w2m_rot;
 
@@ -405,7 +384,7 @@ impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
-        //self.w2m = self.w2m * J2000_TO_GALACTIC;
+        //self.w2m = super::J2000_TO_GALACTIC * self.w2m;
         self.m2w = self.w2m.transpose();
 
         self.last_user_action = UserAction::Moving;

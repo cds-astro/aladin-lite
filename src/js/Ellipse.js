@@ -50,7 +50,7 @@ export let Ellipse = (function() {
     	this.overlay = null;
     	
     	this.isShowing = true;
-    	this.isSelected = false;
+        this.isSelected = false;
     };
 
     Ellipse.prototype.setOverlay = function(overlay) {
@@ -129,8 +129,12 @@ export let Ellipse = (function() {
     };
 
     Ellipse.prototype.setRotation = function(rotationDegrees) {
-        // Rotation expressed in radians
-        this.rotation = rotationDegrees * Math.PI / 180;
+        // radians
+        let theta = rotationDegrees * Math.PI / 180;
+        this.rotation = theta;
+        // rotation in clockwise in the 2d canvas
+        // we must transform it so that it is a north to east rotation
+        //this.rotation = -theta - Math.PI/2;
 
         if (this.overlay) {
             this.overlay.reportChange();
@@ -192,8 +196,33 @@ export let Ellipse = (function() {
             ctx.strokeStyle= baseColor;
         }
 
+        // 1. Find the spherical tangent vector going to the north
+        let origin = this.centerRaDec;
+        let toNorth = [this.centerRaDec[0], this.centerRaDec[1] + 1e-3];
+
+        // 2. Project it to the screen
+        let originScreen = this.overlay.view.aladin.webglAPI.worldToScreen(origin[0], origin[1]);
+        let toNorthScreen = this.overlay.view.aladin.webglAPI.worldToScreen(toNorth[0], toNorth[1]);
+
+        // 3. normalize this vector
+        let toNorthVec = [toNorthScreen[0] - originScreen[0], toNorthScreen[1] - originScreen[1]];
+        let norm = Math.sqrt(toNorthVec[0]*toNorthVec[0] + toNorthVec[1]*toNorthVec[1]);
+        
+        toNorthVec = [toNorthVec[0] / norm, toNorthVec[1] / norm];
+        let toWestVec = [1.0, 0.0];
+
+        let x1 = toWestVec[0];
+        let y1 = toWestVec[1];
+        let x2 = toNorthVec[0];
+        let y2 = toNorthVec[1];
+        // 4. Compute the west to north angle
+        let westToNorthAngle = Math.atan2(x1*y2-y1*x2, x1*x2+y1*y2);
+
+        // 5. Get the correct ellipse angle
+        let theta = -this.rotation + westToNorthAngle;
+
         ctx.beginPath();
-        ctx.ellipse(centerXyview[0], centerXyview[1], radiusInPixX, radiusInPixY, this.rotation, 0, 2*Math.PI, false);
+        ctx.ellipse(centerXyview[0], centerXyview[1], radiusInPixX, radiusInPixY, theta, 0, 2*Math.PI, false);
         if (!noStroke) {
             ctx.stroke();
         }

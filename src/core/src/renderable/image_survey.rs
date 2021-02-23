@@ -1067,7 +1067,7 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 const APERTURE_LIMIT: f32 = 110.0;
 use crate::Resources;
-use crate::coo_conversion::System;
+use crate::coo_conversion::CooSystem;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,

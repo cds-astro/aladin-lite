@@ -55,8 +55,9 @@ pub struct CameraViewPort {
 
     // A reference to the WebGL2 context
     gl: WebGl2Context,
+    pub system: CooSystem,
 }
-
+use crate::coo_conversion::CooSystem;
 use crate::WebGl2Context;
 
 use crate::{
@@ -85,7 +86,7 @@ use crate::math;
 use crate::sphere_geometry::BoundingBox;
 use crate::time::Time;
 impl CameraViewPort {
-    pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
+    pub fn new<P: Projection>(gl: &WebGl2Context, system: CooSystem) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
         //let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);
@@ -162,6 +163,8 @@ impl CameraViewPort {
 
             // A reference to the WebGL2 context
             gl,
+            // coo system
+            system
         };
 
         camera
@@ -251,10 +254,7 @@ impl CameraViewPort {
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
-        //let j2000_to_gal: Rotation<f32> = (&J2000_TO_GALACTIC).into();
-
         // Rotate the axis:
-        //let axis = (GALACTIC_TO_J2000 * Vector4::new(axis.x, axis.y, axis.z, 1.0)).truncate().normalize();
         let drot = Rotation::from_axis_angle(&(axis), angle);
         self.w2m_rot = drot * self.w2m_rot;
 
@@ -384,7 +384,6 @@ impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
-        self.w2m = self.w2m * f64::GALACTIC_TO_J2000;
         self.m2w = self.w2m.transpose();
 
         self.last_user_action = UserAction::Moving;
@@ -400,7 +399,6 @@ impl CameraViewPort {
         // update the center position
         let mut center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
         // Change from galactic to icrs if necessary
-        //center_world_space = f64::GALACTIC_TO_J2000 * center_world_space;
 
         // Change to model space
         self.center = self.w2m * center_world_space;
@@ -411,9 +409,14 @@ use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        let coosystem_to_icrs = if self.system == CooSystem::GAL {
+            f32::GALACTIC_TO_J2000
+        } else {
+            Matrix4::<f32>::identity()
+        };
         shader
             .attach_uniforms_from(&self.last_user_action)
-            .attach_uniform("to_icrs", &f32::GALACTIC_TO_J2000)
+            .attach_uniform("to_icrs", &coosystem_to_icrs)
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip

@@ -56,7 +56,7 @@ use cgmath::Vector4;
 use crate::{buffer::TileDownloader, renderable::image_survey::ImageSurveys};
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
-use coo_conversion::System;
+use coo_conversion::CooSystem;
 struct App {
     gl: WebGl2Context,
 
@@ -88,7 +88,7 @@ struct App {
     tasks_finished: bool,
     catalog_loaded: bool,
 
-    system: System,
+    system: CooSystem,
 }
 
 #[derive(Debug, Deserialize)]
@@ -174,13 +174,12 @@ impl App {
             },
             color: HiPSColor::Color,
         };*/
-
-        let camera = CameraViewPort::new::<Orthographic>(&gl);
+        let system = CooSystem::GAL;
+        let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let system = System::GAL;
         let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
@@ -711,6 +710,11 @@ impl App {
         self.request_redraw = true;
     }
 
+    pub fn set_coo_system(&mut self, coo_system: CooSystem) {
+        self.system = coo_system;
+        self.camera.system = coo_system;
+    }
+
     pub fn world_to_screen<P: Projection>(
         &self,
         lonlat: &LonLatT<f64>,
@@ -824,12 +828,10 @@ impl App {
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
         let goal_pos: Vector4<f64> = lonlat.vector();
-        let goal_pos = f64::J2000_TO_GALACTIC * goal_pos;
-        crate::log(&format!("{:?} goal pos", &goal_pos));
 
         // Convert these positions to rotations
         let start_anim_rot = *self.camera.get_rotation();
-        let goal_anim_rot = Rotation::from_sky_position(&Vector4::new(0.0, 0.5, 1.0, 1.0));
+        let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
 
         // Set the moving animation object
         self.move_animation = Some(MoveAnimation {
@@ -862,9 +864,6 @@ impl App {
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
             if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
-                let w1 = f64::GALACTIC_TO_J2000 * w1;
-                let w2 = f64::GALACTIC_TO_J2000 * w2;
-
                 let r = self.camera.get_rotation();
 
                 let cur_pos = r.rotate(&w1).truncate();
@@ -1519,6 +1518,17 @@ impl WebClient {
     pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
         let cat_loaded = self.app.is_catalog_loaded();
         Ok(cat_loaded)
+    }
+
+    #[wasm_bindgen(js_name = cooSystem)]
+    pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
+        Ok(self.app.system)
+    }
+    #[wasm_bindgen(js_name = setCooSystem)]
+    pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
+        self.app.set_coo_system(coo_system);
+
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = J20002Gal)]

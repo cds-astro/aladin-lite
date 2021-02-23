@@ -120,120 +120,37 @@ where
     let j2000_coo = S::GALACTIC_TO_J2000 * gal_coo;
     j2000_coo.lonlat()
 }
+use wasm_bindgen::{prelude::*, JsCast};
 
-pub enum System {
-    ICRS { frame: &'static str },
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq)]
+pub enum CooSystem {
+    ICRSJ2000,
     GAL,
 }
 
-impl System {
-    pub fn to_icrs_j2000<S>(&self, lonlat: LonLatT<S>) -> LonLatT<S>
-    where
-        S: BaseFloat + CooBaseFloat {
+impl CooSystem {
+    pub fn icrs_to_system(&self, icrs_lonlat: LonLatT<f64>) -> LonLatT<f64> {
         match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    // no transformations have to be done
-                    lonlat
-                } else {
-                    // Other icrs frames not implemented
-                    unimplemented!();
-                }
+            ICRSJ2000 => {
+                // no transformations have to be done
+                icrs_lonlat
             },
-            System::GAL => {
-                // We are in galactic so we must convert it
-                // to icrs
-                to_icrs_j2000(lonlat)
-            }
+            GAL => {
+                to_galactic::<f64>(icrs_lonlat)
+            },
+            _ => unimplemented!()
         }
     }
 
-    pub fn to_galactic<S>(&self, lonlat: LonLatT<S>) -> LonLatT<S>
-    where
-        S: BaseFloat + CooBaseFloat {
+    pub fn gal_to_system(&self, gal_lonlat: LonLatT<f64>) -> LonLatT<f64> {
         match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    // no transformations have to be done
-                    to_galactic(lonlat)
-                } else {
-                    // Other icrs frames not implemented
-                    unimplemented!();
-                }
+            ICRS2000 => {
+                to_icrs_j2000::<f64>(gal_lonlat)
             },
-            System::GAL => {
-                lonlat
-            }
-        }
-    }
-
-    pub fn icrs_to_system<S>(&self, lonlat: LonLatT<S>) -> LonLatT<S>
-    where
-        S: BaseFloat + CooBaseFloat {
-        match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    // no transformations have to be done
-                    lonlat
-                } else {
-                    // Other icrs frames not implemented
-                    unimplemented!();
-                }
-            },
-            System::GAL => {
-                to_galactic(lonlat)
-            }
-        }
-    }
-
-    pub fn gal_to_system<S>(&self, lonlat: LonLatT<S>) -> LonLatT<S>
-    where
-        S: BaseFloat + CooBaseFloat {
-        match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    to_icrs_j2000(lonlat)
-                } else {
-                    unimplemented!();
-                }
-            },
-            System::GAL => {
-                lonlat
-            }
-        }
-    }
-
-
-    pub fn system_to_icrs_coo<S>(&self, coo: Vector4<S>) -> Vector4<S>
-    where
-        S: BaseFloat + CooBaseFloat {
-        match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    coo
-                } else {
-                    unimplemented!();
-                }
-            },
-            System::GAL => {
-                S::GALACTIC_TO_J2000 * coo
-            }
-        }
-    }
-
-    pub fn system_to_gal_coo<S>(&self, coo: Vector4<S>) -> Vector4<S>
-    where
-        S: BaseFloat + CooBaseFloat {
-        match self {
-            System::ICRS { frame } => {
-                if frame == &"j2000" {
-                    S::J2000_TO_GALACTIC * coo
-                } else {
-                    unimplemented!();
-                }
-            },
-            System::GAL => {
-                coo
+            GAL => {
+                gal_lonlat
             }
         }
     }
@@ -275,10 +192,9 @@ mod tests {
 
     #[test]
     fn j2000_gal_roundtrip() {
-        let lonlat = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
-        let gal_coo: Vector4<f64> = lonlat.vector();
+        let gal_lonlat = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
-        let gal_lonlat = super::to_galactic(super::to_icrs_j2000(gal_coo));
+        let gal_lonlat = super::to_galactic(super::to_icrs_j2000(gal_lonlat));
 
         let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
         let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);

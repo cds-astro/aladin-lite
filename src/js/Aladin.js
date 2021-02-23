@@ -289,7 +289,7 @@ export let Aladin = (function () {
         }
 
 
-        this.gotoObject("m51");
+        this.gotoObject(options.target);
 
         if (options.log) {
             var params = requestedOptions;
@@ -643,9 +643,10 @@ export let Aladin = (function () {
 
             coo.parse(targetName);
             var lonlat = [coo.lon, coo.lat];
-            /*if (this.view.cooFrame == CooFrameEnum.GAL) {
-                lonlat = CooConversion.GalacticToJ2000(lonlat);
-            }*/
+            // Convert it to icrs if the coo system is galactic
+            if (this.view.aladin.webglAPI.cooSystem() === 1) {
+                lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
+            }
             this.view.pointTo(lonlat[0], lonlat[1]);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -655,9 +656,10 @@ export let Aladin = (function () {
             var self = this;
             Sesame.resolve(targetName,
                 function (data) { // success callback
+                    // Location given in icrs at J2000
                     var ra = data.Target.Resolver.jradeg;
                     var dec = data.Target.Resolver.jdedeg;
-                    //let lonlat = self.view.aladin.webglAPI.J20002CooFrame(ra, dec);
+
                     self.view.pointTo(ra, dec);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());

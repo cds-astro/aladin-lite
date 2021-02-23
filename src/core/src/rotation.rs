@@ -6,12 +6,12 @@ use cgmath::{Vector3, Vector4};
 #[derive(Clone, Copy, Debug)]
 // Internal structure of a rotation, a quaternion
 // All operations are done on it
-pub struct Rotation<S: BaseFloat>(pub Quaternion<S>);
+pub struct Rotation<S: BaseFloat + CooBaseFloat>(pub Quaternion<S>);
 
 use cgmath::{Matrix3, Matrix4};
 impl<S> From<&Matrix4<S>> for Rotation<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + CooBaseFloat,
 {
     fn from(m: &Matrix4<S>) -> Self {
         let m: [[S; 4]; 4] = (*m).into();
@@ -25,19 +25,19 @@ where
 }
 impl<S> From<&Rotation<S>> for Matrix4<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + CooBaseFloat,
 {
     fn from(s: &Rotation<S>) -> Self {
         s.0.into()
     }
 }
-
+use crate::coo_conversion::CooBaseFloat;
 use crate::renderable::Angle;
 use cgmath::Matrix;
 use cgmath::Rad;
 impl<S> Rotation<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + CooBaseFloat,
 {
     pub fn slerp(&self, other: &Rotation<S>, alpha: S) -> Rotation<S> {
         // Check if the dot of the two quaternions is negative
@@ -115,27 +115,28 @@ where
 
     // Define a rotation from a normalized vector
     pub fn from_sky_position(pos: &Vector4<S>) -> Rotation<S> {
+        let pos = pos;
         let (lon, lat) = math::xyzw_to_radec(&pos.normalize());
 
         let rot_y = Matrix4::from_angle_y(lon);
         let rot_x = Matrix4::from_angle_x(-lat);
 
         let mat4 = rot_y * rot_x;
-        (&mat4).into()
+        (&(mat4)).into()
     }
 
     // Apply a rotation to a position
     pub fn rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
 
-        let pos_model_space = w2m * f64::GALACTIC_TO_J2000 * pos_world_space;
+        let pos_model_space = w2m * pos_world_space;
         pos_model_space
     }
     pub fn inv_rotate(&self, pos_model_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
         let m2w = w2m.transpose();
 
-        let pos_world_space = f64::J2000_TO_GALACTIC * m2w * pos_model_space;
+        let pos_world_space = m2w * pos_model_space;
         pos_world_space
     }
 }
@@ -143,7 +144,7 @@ where
 use std::ops::Mul;
 impl<S> Mul<Rotation<S>> for Rotation<S>
 where
-    S: BaseFloat,
+    S: BaseFloat + CooBaseFloat,
 {
     type Output = Self;
 

@@ -2019,7 +2019,7 @@ export let View = (function() {
     View.prototype.updateObjectsLookup = function() {
         this.objLookup = [];
 
-        var cat, sources, s, x, y;
+        var cat, sources, s, xRounded, yRounded;
         if (this.catalogs) {
             for (var k=0; k<this.catalogs.length; k++) {
                 cat = this.catalogs[k];
@@ -2033,16 +2033,16 @@ export let View = (function() {
                         continue;
                     }
 
-                    x = s.x;
-                    y = s.y;
+                    xRounded = Math.round(s.x);
+                    yRounded = Math.round(s.y);
 
-                    if (typeof this.objLookup[x] === 'undefined') {
-                        this.objLookup[x] = [];
+                    if (typeof this.objLookup[xRounded] === 'undefined') {
+                        this.objLookup[xRounded] = [];
                     }
-                    if (typeof this.objLookup[x][y] === 'undefined') {
-                        this.objLookup[x][y] = [];
+                    if (typeof this.objLookup[xRounded][yRounded] === 'undefined') {
+                        this.objLookup[xRounded][yRounded] = [];
                     }
-                    this.objLookup[x][y].push(s);
+                    this.objLookup[xRounded][yRounded].push(s);
                 }       
             }           
         }     

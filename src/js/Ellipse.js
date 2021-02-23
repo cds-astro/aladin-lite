@@ -180,6 +180,12 @@ export let Ellipse = (function() {
         var dxDec = circlePtXyViewDec[0] - centerXyview[0];
         var dyDec = circlePtXyViewDec[1] - centerXyview[1];
         var radiusInPixY = Math.sqrt(dxDec*dxDec + dyDec*dyDec);
+
+        // Ellipse crossing the projection
+        if ((dxRa*dyDec - dxDec*dyRa) <= 0.0) {
+            // We do not draw it
+            return;
+        }
         // TODO : check each 4 point until show
         var baseColor = this.color;
         if (! baseColor && this.overlay) {

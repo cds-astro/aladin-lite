@@ -7,7 +7,8 @@
 // * y_h in [-1, 1]
 
 // World space
-use crate::camera::{CameraViewPort, J2000_TO_GALACTIC, GALACTIC_TO_J2000};
+use crate::camera::CameraViewPort;
+
 use num_traits::FloatConst;
 trait MyFloat: cgmath::BaseFloat + FloatConst {}
 impl MyFloat for f32 {}
@@ -97,6 +98,7 @@ use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjec
 use crate::shader::GetShader;
 use cgmath::InnerSpace;
 use cgmath::Vector4;
+use crate::coo_conversion::CooBaseFloat;
 pub trait Projection:
     GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
 {
@@ -147,6 +149,7 @@ pub trait Projection:
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
+            //let coo_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
             let r = camera.get_rotation();
             let pos_model_space = r.rotate(&pos_world_space);
 
@@ -162,6 +165,7 @@ pub trait Projection:
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
+        //let pos_world_space = f64::J2000_TO_GALACTIC * m2w * pos_model_space;
 
         Self::world_to_screen_space(&pos_world_space, camera)
     }
@@ -184,8 +188,9 @@ pub trait Projection:
             Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 
         if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_w2m();
-            let pos_model_space = r * pos_world_space;
+            //let pos_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
+            let w2m = camera.get_w2m();
+            let pos_model_space = w2m * pos_world_space;
 
             Some(pos_model_space)
         } else {
@@ -359,11 +364,11 @@ impl Projection for Aitoff {
                 theta.cos() * phi.cos(),
                 1.0,
             );
-            /*if longitude_reversed {
-                pos_world_space.x = -pos_world_space.x;
-            }*/
-            pos_world_space = J2000_TO_GALACTIC * pos_world_space;
+            //let mut pos_world_space = /*f64::J2000_TO_GALACTIC **/ pos_world_space;
 
+            if longitude_reversed {
+                pos_world_space.x = -pos_world_space.x;
+            }
             Some(pos_world_space)
         } else {
             None
@@ -384,18 +389,14 @@ impl Projection for Aitoff {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
-        let mut pos_world_space = *pos_world_space;
-        pos_world_space = J2000_TO_GALACTIC * pos_world_space;
 
-        /*if longitude_reversed {
-            pos_world_space.x = -pos_world_space.x;
-        }*/
+        //let pos_world_space = pos_world_space;
 
         let xyz = pos_world_space.truncate();
         let (mut theta, delta) = math::xyz_to_radec(&xyz);
-        //if longitude_reversed {
-        //    theta.0 = -theta.0;
-        //}
+        if longitude_reversed {
+            theta.0 = -theta.0;
+        }
 
         let theta_by_two = theta / 2.0;
 

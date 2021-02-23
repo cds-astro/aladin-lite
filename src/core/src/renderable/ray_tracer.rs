@@ -12,18 +12,24 @@ pub trait RayTracingProjection {
 
 use crate::math::LonLat;
 use crate::renderable::Triangulation;
+use crate::coo_conversion::System;
+use crate::coo_conversion::CooBaseFloat;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
     camera: &CameraViewPort,
+    system: &System,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
     let vertices = vertices
         .into_iter()
         .map(|pos_clip_space| {
-            let pos_world_space =
-                P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
-
+            
+            /*let pos_world_space = system.system_to_icrs_coo(
+                P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
+            );*/
+            let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
+            //let pos_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
             let lonlat = pos_world_space.lonlat();
 
             // Cast all the double into float
@@ -69,8 +75,9 @@ impl RayTracer {
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
         _resources: &Resources,
+        system: &System,
     ) -> RayTracer {
-        let (vertices, idx) = create_vertices_array::<P>(gl, camera);
+        let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
 
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));

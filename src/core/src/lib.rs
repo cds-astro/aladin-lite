@@ -14,6 +14,7 @@ mod utils;
 
 use wasm_bindgen::{prelude::*, JsCast};
 
+mod coo_conversion;
 mod async_task;
 mod buffer;
 pub mod camera;
@@ -55,6 +56,7 @@ use cgmath::Vector4;
 use crate::{buffer::TileDownloader, renderable::image_survey::ImageSurveys};
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
+use coo_conversion::System;
 struct App {
     gl: WebGl2Context,
 
@@ -85,6 +87,8 @@ struct App {
     out_of_fov: bool,
     tasks_finished: bool,
     catalog_loaded: bool,
+
+    system: System,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,7 +130,7 @@ struct ZoomAnimation {
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
-
+use crate::coo_conversion::CooBaseFloat;
 use crate::buffer::Tile;
 use cgmath::InnerSpace;
 impl App {
@@ -176,7 +180,8 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources);
+        let system = System::GAL;
+        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
@@ -202,6 +207,8 @@ impl App {
         let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
         let catalog_loaded = false;
+
+
         let app = App {
             gl,
 
@@ -232,6 +239,7 @@ impl App {
 
             tasks_finished,
             catalog_loaded,
+            system,
         };
 
         Ok(app)
@@ -578,7 +586,7 @@ impl App {
     fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
         self.surveys
-            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources);
+            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources, &self.system);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -599,6 +607,7 @@ impl App {
             &self.camera,
             &mut self.shaders,
             &self.resources,
+            &self.system,
         );
 
         self.look_for_new_tiles();
@@ -706,11 +715,16 @@ impl App {
         &self,
         lonlat: &LonLatT<f64>,
     ) -> Result<Option<Vector2<f64>>, String> {
+        //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
         let model_pos_xyz = lonlat.vector();
+
         let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
     }
 
+    /// World to screen projection
+    ///
+    /// sources coordinates are given in ICRS j2000
     pub fn world_to_screen_vec<P: Projection>(
         &self,
         sources: &Vec<JsValue>,
@@ -723,6 +737,8 @@ impl App {
                     .map_err(|e| JsValue::from_str(&e.to_string()))
                     .unwrap();
                 let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
+                //let lonlat = self.app.system.icrs_to_system(lonlat);
+
                 let xyz = lonlat.vector();
 
                 if let Some(s_xy) = P::model_to_screen_space(&xyz, &self.camera) {
@@ -738,6 +754,7 @@ impl App {
 
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
+            //let model_pos = self.system.system_to_icrs_coo(model_pos);
             Some(model_pos.lonlat())
         } else {
             None
@@ -806,14 +823,13 @@ impl App {
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
-        let _cursor_pos = self.camera.get_center();
         let goal_pos: Vector4<f64> = lonlat.vector();
-
-        let goal_pos: cgmath::Vector4<f64> = (crate::camera::GALACTIC_TO_J2000) * cgmath::Vector4::new(goal_pos.x, goal_pos.y, goal_pos.z, goal_pos.w);
+        let goal_pos = f64::J2000_TO_GALACTIC * goal_pos;
+        crate::log(&format!("{:?} goal pos", &goal_pos));
 
         // Convert these positions to rotations
         let start_anim_rot = *self.camera.get_rotation();
-        let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
+        let goal_anim_rot = Rotation::from_sky_position(&Vector4::new(0.0, 0.5, 1.0, 1.0));
 
         // Set the moving animation object
         self.move_animation = Some(MoveAnimation {
@@ -844,13 +860,10 @@ impl App {
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
-        if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
-            if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
-                let model2world = self.camera.get_m2w();
-                let m1: Vector4<f64> = pos1.vector();
-                let w1 = model2world * m1;
-                let m2: Vector4<f64> = pos2.vector();
-                let w2 = model2world * m2;
+        if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
+            if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
+                let w1 = f64::GALACTIC_TO_J2000 * w1;
+                let w2 = f64::GALACTIC_TO_J2000 * w2;
 
                 let r = self.camera.get_rotation();
 
@@ -861,8 +874,6 @@ impl App {
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();
                     let d = math::ang_between_vect(&cur_pos, &next_pos);
-
-                    self.prev_cam_position = self.camera.get_center().truncate();
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
@@ -1510,11 +1521,55 @@ impl WebClient {
         Ok(cat_loaded)
     }
 
+    #[wasm_bindgen(js_name = J20002Gal)]
+    pub fn j2000_to_gal(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
+        let gal_lonlat = coo_conversion::to_galactic(lonlat);
 
+        Ok(Some(
+            Box::new([
+                gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+                gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
+            ])
+        ))
+    }
+
+    #[wasm_bindgen(js_name = Gal2J2000)]
+    pub fn gal_to_j2000(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let icrsj2000_lonlat = coo_conversion::to_icrs_j2000(lonlat);
+
+        Ok(Some(
+            Box::new([
+                icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+                icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
+            ])
+        ))
+    }
+
+    #[wasm_bindgen(js_name = J20002CooFrame)]
+    pub fn j2000_to_cooframe(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        let coo = self.app.system.icrs_to_system(lonlat);
+
+        Ok(Some(
+            Box::new([
+                coo.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+                coo.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
+            ])
+        ))
+    }
+
+    /// World to screen projection
+    /// 
+    /// Coordinates must be given in ICRS J2000
+    /// They will be converted accordingly to the current frame of Aladin Lite
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
         if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
             Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
         } else {
@@ -1654,8 +1709,12 @@ impl WebClient {
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveToLocation)]
     pub fn start_moving_to(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
-        // Enable the MouseLeftButtonReleased event
+        // The core works in ICRS_J2000 coordinates
+        // Check if the user is giving galactic coordinates
+        // so that we can convert them to icrs
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        //let location = self.app.system.to_icrs_j2000(location);
+
         self.projection.start_moving_to(&mut self.app, location);
 
         Ok(())
@@ -1664,8 +1723,10 @@ impl WebClient {
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.projection.set_center(&mut self.app, lonlat);
+        let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        //let location = self.app.system.to_icrs_j2000(lonlat);
+
+        self.projection.set_center(&mut self.app, location);
 
         Ok(())
     }

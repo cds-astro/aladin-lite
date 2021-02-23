@@ -13,7 +13,6 @@ impl SendUniforms for UserAction {
         shader
     }
 }
-use crate::camera::{GALACTIC_TO_J2000, J2000_TO_GALACTIC};
 use cgmath::InnerSpace;
 use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
@@ -380,11 +379,12 @@ impl CameraViewPort {
     }
 }
 use cgmath::Matrix;
+use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
-        //self.w2m = super::J2000_TO_GALACTIC * self.w2m;
+        self.w2m = self.w2m * f64::GALACTIC_TO_J2000;
         self.m2w = self.w2m.transpose();
 
         self.last_user_action = UserAction::Moving;
@@ -398,7 +398,12 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        self.center = P::clip_to_model_space(&Vector2::new(0.0, 0.0), self).unwrap();
+        let mut center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
+        // Change from galactic to icrs if necessary
+        //center_world_space = f64::GALACTIC_TO_J2000 * center_world_space;
+
+        // Change to model space
+        self.center = self.w2m * center_world_space;
     }
 }
 
@@ -408,6 +413,7 @@ impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniforms_from(&self.last_user_action)
+            .attach_uniform("to_icrs", &f32::GALACTIC_TO_J2000)
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip

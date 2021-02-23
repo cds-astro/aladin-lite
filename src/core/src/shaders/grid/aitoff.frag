@@ -6,6 +6,7 @@ in vec2 pos_clip;
 
 uniform vec4 color;
 uniform mat4 model;
+uniform mat4 to_icrs;
 uniform mat4 inv_model;
 uniform float czf;
 
@@ -49,25 +50,27 @@ vec3 clip2world_aitoff(vec2 pos_clip_space) {
     float phi = asin(uv.y * sin(c) / c);
     float theta = atan(uv.x * sin(c), c * cos(c)) * 2.0;
 
-    return vec3(
+    vec3 world = vec3(
         sin(theta) * cos(phi),
         sin(phi),
         cos(theta) * cos(phi)
     );
+    return world;
 }
 
 float d_isolon(vec3 pos_model, float theta) {
+    vec3 posmodel = pos_model;
     vec3 n = vec3(cos(theta), 0.0, -sin(theta));
     // Discard the (theta + PI) meridian
     vec3 e_xz = vec3(-n.z, 0.0, n.x);
-    if (dot(pos_model, e_xz) < 0.0) {
+    if (dot(posmodel, e_xz) < 0.0) {
         return 1e3;
     }
 
-    float d = abs(dot(n, pos_model));
+    float d = abs(dot(n, posmodel));
 
-    vec3 h_model = normalize(pos_model - n*d);
-    vec3 h_world = vec3(inv_model * vec4(h_model, 1.f));
+    vec3 h_model = normalize(posmodel - n*d);
+    vec3 h_world = vec3(inv_model * to_icrs * vec4(h_model, 1.f));
     h_world = check_inversed_longitude(h_world);
 
     // Project to screen x and h and compute the distance
@@ -77,7 +80,8 @@ float d_isolon(vec3 pos_model, float theta) {
     return length(pos_clip - h_clip) * 2.0;
 }
 float d_isolat(vec3 pos_model, float delta) {
-    float y = atan(pos_model.y, length(pos_model.xz));
+    vec3 posmodel = pos_model;
+    float y = atan(posmodel.y, length(pos_model.xz));
     float d = abs(y - delta);
     return d;
 }
@@ -131,7 +135,7 @@ void main() {
     vec3 pos_world = clip2world_aitoff(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = vec3(model * vec4(pos_world, 1.f));
+    vec3 pos_model = vec3(transpose(to_icrs) * model * vec4(pos_world, 1.f));
 
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);

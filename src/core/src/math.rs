@@ -89,10 +89,17 @@ use crate::renderable::angle::Angle;
 #[derive(Clone, Copy, Debug)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
+use crate::coo_conversion::System;
 impl<S> LonLatT<S>
 where
     S: BaseFloat,
 {
+    /// LonLat constructor
+    ///
+    /// # Arguments
+    ///
+    /// * ``lon`` - Longitude
+    /// * ``lat`` - Latitude
     pub fn new(lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
         LonLatT(lon, lat)
     }
@@ -153,6 +160,24 @@ where
     }
 }
 
+pub fn swap_vec4<S: BaseFloat>(v: Vector4<S>) -> Vector4<S> {
+    Vector4::<S>::new(
+        v.z,
+        v.x,
+        v.y,
+        S::one(),
+    )
+}
+
+pub fn unswap_vec4<S: BaseFloat>(v: Vector4<S>) -> Vector4<S> {
+    Vector4::<S>::new(
+        v.y,
+        v.z,
+        v.x,
+        S::one(),
+    )
+}
+
 impl<S> LonLat<S> for Vector4<S>
 where
     S: BaseFloat,
@@ -162,11 +187,13 @@ where
         let rad = Rad(self.x.atan2(self.z));
         Angle::new(rad)
     }
+
     #[inline]
     fn lat(&self) -> Angle<S> {
         let rad = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
         Angle::new(rad)
     }
+
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
         let lon = Rad(self.x.atan2(self.z));

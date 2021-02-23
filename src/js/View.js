@@ -440,7 +440,7 @@ export let View = (function() {
             catch(err) {
                 return;
             }
-            var radec = [];
+            //var radec = view.aladin.webglAPI.;
             // convert to J2000 if needed
             /*if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
@@ -1917,6 +1917,7 @@ export let View = (function() {
         options = options || {};
         ra = parseFloat(ra);
         dec = parseFloat(dec);
+
         if (isNaN(ra) || isNaN(dec)) {
             return;
         }
@@ -1930,6 +1931,8 @@ export let View = (function() {
             this.viewCenter.lat = lb[1];
         }*/
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        console.log(this.viewCenter)
+
         if (this.fov > 30.0 || options.forceAnimation) {
             this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
         } else {
@@ -1938,9 +1941,9 @@ export let View = (function() {
         
         this.forceRedraw();
         this.requestRedraw();
+
         var self = this;
         setTimeout(function() {self.refreshProgressiveCats();}, 1000);
-
     };
     View.prototype.makeUniqLayerName = function(name) {
         if (! this.layerNameExists(name)) {

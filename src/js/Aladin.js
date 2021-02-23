@@ -289,7 +289,7 @@ export let Aladin = (function () {
         }
 
 
-        this.gotoObject(options.target);
+        this.gotoObject("m51");
 
         if (options.log) {
             var params = requestedOptions;
@@ -657,6 +657,7 @@ export let Aladin = (function () {
                 function (data) { // success callback
                     var ra = data.Target.Resolver.jradeg;
                     var dec = data.Target.Resolver.jdedeg;
+                    //let lonlat = self.view.aladin.webglAPI.J20002CooFrame(ra, dec);
                     self.view.pointTo(ra, dec);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());

@@ -7,6 +7,8 @@ pub type NormalizedDeviceCoord = Vector2<f64>;
 pub type WorldCoord = Vector4<f64>;
 pub type ModelCoord = Vector4<f64>;
 
+use crate::coo_conversion::CooBaseFloat;
+
 fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f64>,
@@ -38,6 +40,7 @@ fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f64>) -> Vec<ModelCoor
 
     for w in world_coo.iter() {
         //let m = r.rotate(w);
+        //model_coo.push(f64::J2000_TO_GALACTIC * mat * w);
         model_coo.push(mat * w);
     }
 
@@ -170,7 +173,11 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
-                self.great_circles = FieldOfViewType::new_polygon(vertices);
+                let vertices = vertices.iter()
+                    .cloned()
+                    .map(|v| f64::J2000_TO_GALACTIC * v)
+                    .collect::<Vec<_>>();
+                self.great_circles = FieldOfViewType::new_polygon(&vertices);
             } else if let FieldOfViewType::Polygon(_) = &self.great_circles {
                 self.great_circles = FieldOfViewType::new_allsky();
             }

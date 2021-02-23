@@ -9,6 +9,7 @@ use crate::renderable::Angle;
 
 /// Get the vertices of an HEALPix cell
 use cgmath::BaseFloat;
+use crate::coo_conversion::System;
 #[allow(dead_code)]
 pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
     let (lon, lat): (Vec<_>, Vec<_>) = healpix::nested::vertices(cell.depth(), cell.idx())

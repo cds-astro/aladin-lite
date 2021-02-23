@@ -428,9 +428,9 @@ fn subdivide<P: Projection>(
     camera: &CameraViewPort,
 ) {
     // Convert to cartesian
-    let a: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
-    let b: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
-    let c: Vector4<f64> = math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
+    let a: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
+    let b: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
+    let c: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
     let a = P::model_to_ndc_space(&a, camera);
@@ -603,17 +603,17 @@ struct Label {
     content: String,
     rot: f64,
 }
-
+use crate::coo_conversion::CooBaseFloat;
 impl Label {
     fn meridian<P: Projection>(
         fov: &FieldOfViewType,
         lon: f64,
-        m1: &Vector3<f64>,
+        m1: &Vector4<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
-        let LonLatT(_, lat) = &camera.get_center().lonlat();
+        let LonLatT(_, lat) = &(f64::J2000_TO_GALACTIC * camera.get_center()).lonlat();
         // Do not plot meridian labels when the center of fov
         // is above 80deg
         if fov.is_allsky() {
@@ -625,7 +625,7 @@ impl Label {
                 return None;
             }
         }
-
+        
         let d = if fov.contains_north_pole(camera) {
             Vector3::new(0.0, 1.0, 0.0)
         } else if fov.contains_south_pole(camera) {
@@ -633,9 +633,11 @@ impl Label {
         } else {
             Vector3::new(0.0, 1.0, 0.0)
         };
-        let m2 = (m1 + d * 1e-3).normalize();
 
-        let s1 = P::model_to_screen_space(&m1.extend(1.0), camera)?;
+        let m2 = ((m1.truncate() + d * 1e-3).normalize())
+            .extend(1.0);
+
+        let s1 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m1), camera)?;
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
             // we will have its screen projected position
@@ -654,7 +656,7 @@ impl Label {
                 return None;
             }
         }
-        let s2 = P::model_to_screen_space(&m2.extend(1.0), camera)?;
+        let s2 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m2), camera)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -701,15 +703,15 @@ impl Label {
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let center = camera.get_center().truncate();
+        let center = (f64::J2000_TO_GALACTIC * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
             d = -d;
         }
         let m2 = (m1 + d * 1e-3).normalize();
 
-        let s1 = P::model_to_screen_space(&m1.extend(1.0), camera)?;
+        let s1 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m1.extend(1.0)), camera)?;
         //crate::log("sdfsd");
-        let s2 = P::model_to_screen_space(&m2.extend(1.0), camera)?;
+        let s2 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m2.extend(1.0)), camera)?;
         //crate::log("sdfsd2");
 
         let ds = (s2 - s1).normalize();
@@ -792,7 +794,6 @@ impl GridLine {
         camera: &CameraViewPort,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
-        let p = fov.intersect_meridian(Rad(lon), camera)?;
         let mut vertices = vec![];
         subdivide::<P>(
             &mut vertices,
@@ -812,6 +813,7 @@ impl GridLine {
         } else {
             None
         };*/
+        let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
         let label = Label::meridian::<P>(fov, lon, &p, camera, sp, ctx2d);
 
         Some(GridLine { vertices, label })
@@ -967,14 +969,14 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            if let Some(snp) = P::model_to_screen_space(&Vector4::new(0.0, 1.0, 0.0, 1.0), camera) {
+            if let Some(snp) = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * Vector4::new(0.0, 1.0, 0.0, 1.0)), camera) {
                 Some(snp)
             } else {
                 None
             }
         } else {
             // screen south pole
-            if let Some(ssp) = P::model_to_screen_space(&Vector4::new(0.0, -1.0, 0.0, 1.0), camera)
+            if let Some(ssp) = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * Vector4::new(0.0, -1.0, 0.0, 1.0)), camera)
             {
                 Some(ssp)
             } else {

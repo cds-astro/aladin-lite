@@ -1479,6 +1479,19 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = getAvailableColormapList)]
+    pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
+        let colormaps = Colormap::get_list_available_colormaps()
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        
+        JsValue::from_serde(&colormaps)
+            .map_err(
+                |e| JsValue::from_str(&e.to_string())
+            )
+    }
+
     /// Add an overlay HiPS on top of the current HiPS
     /*#[wasm_bindgen(js_name = setOverlayHiPS)]
     pub fn set_overlay_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {

@@ -235,12 +235,12 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
         if !self.enabled {
             return;
         }
 
-        if camera.has_moved() {
+        if camera.has_moved() || force {
             self.force_update::<P>(camera);
         }
     }
@@ -323,6 +323,7 @@ impl ProjetedGrid {
                 let size_screen = &camera.get_screen_size();
                 self.ctx2d
                     .clear_rect(0.0, 0.0, size_screen.x as f64, size_screen.y as f64);
+                crate::log("redraw grid labels");
 
                 let text_height = Label::size(camera);
                 self.ctx2d
@@ -428,9 +429,10 @@ fn subdivide<P: Projection>(
     camera: &CameraViewPort,
 ) {
     // Convert to cartesian
-    let a: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
-    let b: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
-    let c: Vector4<f64> = f64::GALACTIC_TO_J2000 * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
+    let system = &camera.system;
+    let a: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
+    let b: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
+    let c: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
     let a = P::model_to_ndc_space(&a, camera);
@@ -613,7 +615,9 @@ impl Label {
         sp: Option<&Vector2<f64>>,
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
-        let LonLatT(_, lat) = &(f64::J2000_TO_GALACTIC * camera.get_center()).lonlat();
+        let system = &camera.system;
+
+        let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
         // Do not plot meridian labels when the center of fov
         // is above 80deg
         if fov.is_allsky() {
@@ -637,7 +641,7 @@ impl Label {
         let m2 = ((m1.truncate() + d * 1e-3).normalize())
             .extend(1.0);
 
-        let s1 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m1), camera)?;
+        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera)?;
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
             // we will have its screen projected position
@@ -656,7 +660,7 @@ impl Label {
                 return None;
             }
         }
-        let s2 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m2), camera)?;
+        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -703,15 +707,16 @@ impl Label {
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let center = (f64::J2000_TO_GALACTIC * camera.get_center()).truncate();
+        let system = &camera.system;
+        let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
             d = -d;
         }
         let m2 = (m1 + d * 1e-3).normalize();
 
-        let s1 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m1.extend(1.0)), camera)?;
+        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera)?;
         //crate::log("sdfsd");
-        let s2 = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * m2.extend(1.0)), camera)?;
+        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera)?;
         //crate::log("sdfsd2");
 
         let ds = (s2 - s1).normalize();
@@ -962,6 +967,7 @@ fn lines<P: Projection>(
     ctx2d: &CanvasRenderingContext2d,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
+    let system = &camera.system;
     let fov = camera.get_field_of_view();
     let sp = if fov.contains_pole() {
         if fov.contains_north_pole(camera) {
@@ -969,14 +975,14 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            if let Some(snp) = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * Vector4::new(0.0, 1.0, 0.0, 1.0)), camera) {
+            if let Some(snp) = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)), camera) {
                 Some(snp)
             } else {
                 None
             }
         } else {
             // screen south pole
-            if let Some(ssp) = P::model_to_screen_space(&(f64::GALACTIC_TO_J2000 * Vector4::new(0.0, -1.0, 0.0, 1.0)), camera)
+            if let Some(ssp) = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)), camera)
             {
                 Some(ssp)
             } else {

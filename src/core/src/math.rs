@@ -89,7 +89,6 @@ use crate::renderable::angle::Angle;
 #[derive(Clone, Copy, Debug)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 
-use crate::coo_conversion::System;
 impl<S> LonLatT<S>
 where
     S: BaseFloat,

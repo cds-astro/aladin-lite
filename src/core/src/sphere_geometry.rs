@@ -56,7 +56,8 @@ impl FieldOfViewType {
                 // We do an approx saying allsky fovs intersect all meridian
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
-                let center = (f64::J2000_TO_GALACTIC * camera.get_center()).lonlat();
+                let system = &camera.system;
+                let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
                 let lon: Rad<f64> = lon.into();
                 let pos: Vector3<f64> = LonLatT::new(lon.into(), center.lat()).vector();
                 Some(pos)
@@ -72,7 +73,9 @@ impl FieldOfViewType {
     ) -> Option<Vector3<f64>> {
         match self {
             FieldOfViewType::Allsky(_) => {
-                let center = (f64::J2000_TO_GALACTIC * camera.get_center()).lonlat();
+                let system = &camera.system;
+
+                let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
                 let lat: Rad<f64> = lat.into();
                 let pos: Vector3<f64> = LonLatT::new(center.lon(), lat.into()).vector();
                 Some(pos)

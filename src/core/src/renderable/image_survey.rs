@@ -1074,7 +1074,7 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
-        system: &System,
+        system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
         let layers = HashMap::new();
@@ -1104,7 +1104,7 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
-        system: &System,
+        system: &CooSystem,
     ) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
@@ -1116,7 +1116,7 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
-        system: &System,
+        system: &CooSystem,
     ) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);

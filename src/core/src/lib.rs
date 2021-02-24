@@ -174,7 +174,7 @@ impl App {
             },
             color: HiPSColor::Color,
         };*/
-        let system = CooSystem::GAL;
+        let system = CooSystem::ICRSJ2000;
         let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
         // The tile buffer responsible for the tile requests
@@ -351,7 +351,7 @@ impl App {
         Ok(tiles_available)
     }
 
-    fn update<P: Projection>(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
@@ -489,13 +489,13 @@ impl App {
                 .update::<P>(&self.camera, view);
             }
         }
-        self.grid.update::<P>(&self.camera);
+        self.grid.update::<P>(&self.camera, force);
 
         Ok(())
     }
 
-    fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
-        if self.rendering {
+    fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+        if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -873,6 +873,7 @@ impl App {
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();
                     let d = math::ang_between_vect(&cur_pos, &next_pos);
+                    self.prev_cam_position = self.camera.get_center().truncate();
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
@@ -1071,25 +1072,25 @@ impl ProjectionType {
         }
     }
 
-    fn update(&mut self, app: &mut App, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update(&mut self, app: &mut App, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.update::<Aitoff>(dt),
-            ProjectionType::MollWeide => app.update::<Mollweide>(dt),
-            ProjectionType::Ortho => app.update::<Orthographic>(dt),
-            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt),
-            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt),
-            ProjectionType::Mercator => app.update::<Mercator>(dt),
+            ProjectionType::Aitoff => app.update::<Aitoff>(dt, force),
+            ProjectionType::MollWeide => app.update::<Mollweide>(dt, force),
+            ProjectionType::Ortho => app.update::<Orthographic>(dt, force),
+            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt, force),
+            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt, force),
+            ProjectionType::Mercator => app.update::<Mercator>(dt, force),
         }
     }
 
-    fn render(&mut self, app: &mut App) -> Result<(), JsValue> {
+    fn render(&mut self, app: &mut App, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.render::<Aitoff>()?,
-            ProjectionType::MollWeide => app.render::<Mollweide>()?,
-            ProjectionType::Ortho => app.render::<Orthographic>()?,
-            ProjectionType::Arc => app.render::<AzimuthalEquidistant>()?,
-            ProjectionType::Gnomonic => app.render::<Gnomonic>()?,
-            ProjectionType::Mercator => app.render::<Mercator>()?,
+            ProjectionType::Aitoff => app.render::<Aitoff>(force)?,
+            ProjectionType::MollWeide => app.render::<Mollweide>(force)?,
+            ProjectionType::Ortho => app.render::<Orthographic>(force)?,
+            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(force)?,
+            ProjectionType::Gnomonic => app.render::<Gnomonic>(force)?,
+            ProjectionType::Mercator => app.render::<Mercator>(force)?,
         };
 
         Ok(())
@@ -1403,7 +1404,9 @@ impl WebClient {
     }
 
     /// Main update method
-    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
+    /// The force parameter ensures to force the update of some elements
+    /// even if the camera has not moved
+    pub fn update(&mut self, dt: f32, force: bool) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
@@ -1413,14 +1416,17 @@ impl WebClient {
             &mut self.app,
             // Time of the previous frame rendering
             self.dt,
+            // Force the update of some elements:
+            // i.e. the grid
+            force
         )?;
 
         Ok(())
     }
 
     /// Update our WebGL Water application.
-    pub fn render(&mut self) -> Result<(), JsValue> {
-        self.projection.render(&mut self.app)?;
+    pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
+        self.projection.render(&mut self.app, force)?;
 
         Ok(())
     }
@@ -1555,19 +1561,6 @@ impl WebClient {
             Box::new([
                 icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
                 icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
-            ])
-        ))
-    }
-
-    #[wasm_bindgen(js_name = J20002CooFrame)]
-    pub fn j2000_to_cooframe(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        let coo = self.app.system.icrs_to_system(lonlat);
-
-        Ok(Some(
-            Box::new([
-                coo.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
-                coo.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
             ])
         ))
     }

@@ -12,12 +12,12 @@ pub trait RayTracingProjection {
 
 use crate::math::LonLat;
 use crate::renderable::Triangulation;
-use crate::coo_conversion::System;
+use crate::coo_conversion::CooSystem;
 use crate::coo_conversion::CooBaseFloat;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
     camera: &CameraViewPort,
-    system: &System,
+    system: &CooSystem,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
@@ -29,7 +29,6 @@ fn create_vertices_array<P: Projection>(
                 P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
             );*/
             let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
-            //let pos_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
             let lonlat = pos_world_space.lonlat();
 
             // Cast all the double into float
@@ -75,7 +74,7 @@ impl RayTracer {
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
         _resources: &Resources,
-        system: &System,
+        system: &CooSystem,
     ) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
 

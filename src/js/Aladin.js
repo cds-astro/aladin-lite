@@ -644,7 +644,7 @@ export let Aladin = (function () {
             coo.parse(targetName);
             var lonlat = [coo.lon, coo.lat];
             // Convert it to icrs if the coo system is galactic
-            if (this.view.aladin.webglAPI.cooSystem() === 1) {
+            if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
                 lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
             }
             this.view.pointTo(lonlat[0], lonlat[1]);
@@ -1316,22 +1316,21 @@ export let Aladin = (function () {
             return undefined;
         }
 
-        var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
+        //var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
 
         var radec;
         try {
-            radec = this.view.projection.unproject(xy.x, xy.y);
+            //radec = this.view.projection.unproject(xy.x, xy.y);
+            radec = this.view.aladin.webglAPI.screenToWorld(x, y);
         }
         catch (e) {
             return undefined;
         }
 
         var res;
-        if (this.view.cooFrame == CooFrameEnum.GAL) {
-            res = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
-        }
-        else {
-            res = [radec.ra, radec.dec];
+        // Convert it to icrs j2000
+        if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+            res = this.view.aladin.webglAPI.Gal2J2000(radec[0], radec[1]);
         }
 
         return res;

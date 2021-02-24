@@ -440,14 +440,20 @@ export let View = (function() {
             catch(err) {
                 return;
             }
+            var radec;
+            /*if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+                radec = view.aladin.webglAPI.Gal2J2000(lonlat[0], lonlat[1]);
+            } else {*/
+                radec = lonlat;
+            //}
             //var radec = view.aladin.webglAPI.;
             // convert to J2000 if needed
             /*if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
             }
-            else {*/
+            else {
                 radec = lonlat;
-            //}
+            }*/
 
             view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
@@ -902,15 +908,22 @@ export let View = (function() {
         if (!view.projection) {
             return;
         }
-        var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
+        //var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
+
         var lonlat;
         try {
-            lonlat = view.projection.unproject(xy.x, xy.y);
+            lonlat = view.aladin.webglAPI.screenToWorld(x, y);
+            //lonlat = view.projection.unproject(xy.x, xy.y);
+        } catch(err) {
         }
-        catch(err) {
-        }
+        
         if (lonlat) {
-            view.location.update(lonlat.ra, lonlat.dec, view.cooFrame, isViewCenterPosition);
+            // Convert it to galactic
+            if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+                lonlat = view.aladin.webglAPI.J20002Gal(lonlat[0], lonlat[1]);
+            }
+
+            view.location.update(lonlat[0], lonlat[1], view.cooFrame, isViewCenterPosition);
         }
     }
     
@@ -964,7 +977,7 @@ export let View = (function() {
         var now = Date.now();
         var dt = now - this.prev;
 
-        this.aladin.webglAPI.update(dt);
+        this.aladin.webglAPI.update(dt, this.needRedraw);
         // This is called at each frame
         // Better way is to give this function
         // to Rust so that the backend executes it
@@ -978,7 +991,7 @@ export let View = (function() {
             var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
             (typeof callbackFn === 'function') && callbackFn();
         }
-        this.aladin.webglAPI.render();
+        this.aladin.webglAPI.render(this.needRedraw);
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -1866,15 +1879,22 @@ export let View = (function() {
         var oldCooFrame = this.cooFrame;
         this.cooFrame = cooFrame;
         // recompute viewCenter
+        console.log("change frame")
         if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL && this.cooFrame.system != oldCooFrame.system) {
             var lb = CooConversion.J2000ToGalactic([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1]; 
+
+            const GAL = Aladin.wasmLibs.webgl.GALCooSys();
+            this.aladin.webglAPI.setCooSystem(GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000 && this.cooFrame.system != oldCooFrame.system) {
             var radec = CooConversion.GalacticToJ2000([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = radec[0];
-            this.viewCenter.lat = radec[1]; 
+            this.viewCenter.lat = radec[1];
+
+            const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
+            this.aladin.webglAPI.setCooSystem(ICRSJ2000);
         }
 
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);

@@ -190,6 +190,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -247,6 +248,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -310,10 +312,6 @@ impl CameraViewPort {
         self.vertices.get_vertices()
     }
 
-    /*pub fn get_radius(&self) -> Option<&Angle<f32>> {
-        self.vertices.get_radius()
-    }
-    */
     pub fn get_screen_size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)
     }
@@ -331,13 +329,6 @@ impl CameraViewPort {
         self.moved = false;
     }
 
-    /*pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {
-        P::clip_to_model_space(
-            &Vector2::new(0_f32, 0_f32),
-            self
-        ).unwrap()
-    }*/
-
     pub fn get_aperture(&self) -> Angle<f64> {
         self.aperture
     }
@@ -353,23 +344,6 @@ impl CameraViewPort {
         self.vertices.get_bounding_box()
     }
 
-    // Useful methods for the grid purpose
-    /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
-        self.fov.intersect_meridian(lon)
-    }
-
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> bool {
-        self.fov.intersect_parallel(lat)
-    }*/
-
-    // Get the grid containing the meridians and parallels
-    // that are inside the grid
-    // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
-    // The only thing to do is to recompute the grid whenever the field of view changes
-    /*pub fn get_great_circles_inside(&self) -> &FieldOfViewType {
-        self.fov.get_great_circles_intersecting()
-    }*/
-
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
@@ -384,15 +358,27 @@ impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&self.w2m_rot).into();
+        //self.w2m = self.w2m;
         self.m2w = self.w2m.transpose();
 
         self.last_user_action = UserAction::Moving;
 
         self.moved = true;
 
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture);
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
         self.update_center::<P>();
         self.time_last_move = Time::now();
+
+        // 2. rotate the matrix on his axis
+        /*let w2m_rot = Rotation::from_axis_angle(
+            &self.get_center().truncate(),
+            crate::renderable::angle::ArcDeg(45.0).into()
+        ) * self.w2m_rot;
+
+        self.w2m = (&w2m_rot).into();
+        self.m2w = self.w2m.transpose();
+        self.update_center::<P>();
+        self.time_last_move = Time::now();*/
     }
 
     fn update_center<P: Projection>(&mut self) {
@@ -409,14 +395,9 @@ use crate::shader::SendUniforms;
 use crate::shader::ShaderBound;
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        let coosystem_to_icrs = if self.system == CooSystem::GAL {
-            f32::GALACTIC_TO_J2000
-        } else {
-            Matrix4::<f32>::identity()
-        };
         shader
             .attach_uniforms_from(&self.last_user_action)
-            .attach_uniform("to_icrs", &coosystem_to_icrs)
+            .attach_uniform("to_icrs", &self.system.to_icrs_j2000::<f32>())
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip

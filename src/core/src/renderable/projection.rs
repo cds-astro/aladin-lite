@@ -149,7 +149,6 @@ pub trait Projection:
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
-            //let coo_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
             let r = camera.get_rotation();
             let pos_model_space = r.rotate(&pos_world_space);
 
@@ -165,8 +164,6 @@ pub trait Projection:
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-        //let pos_world_space = f64::J2000_TO_GALACTIC * m2w * pos_model_space;
-
         Self::world_to_screen_space(&pos_world_space, camera)
     }
 
@@ -188,7 +185,6 @@ pub trait Projection:
             Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 
         if let Some(pos_world_space) = pos_world_space {
-            //let pos_world_space = f64::GALACTIC_TO_J2000 * pos_world_space;
             let w2m = camera.get_w2m();
             let pos_model_space = w2m * pos_world_space;
 
@@ -364,7 +360,6 @@ impl Projection for Aitoff {
                 theta.cos() * phi.cos(),
                 1.0,
             );
-            //let mut pos_world_space = /*f64::J2000_TO_GALACTIC **/ pos_world_space;
 
             if longitude_reversed {
                 pos_world_space.x = -pos_world_space.x;

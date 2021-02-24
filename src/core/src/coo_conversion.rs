@@ -130,28 +130,46 @@ pub enum CooSystem {
     GAL,
 }
 
+#[wasm_bindgen]
+pub fn GALCooSys() -> Result<CooSystem, JsValue> {
+    Ok(CooSystem::GAL)
+}
+
+#[wasm_bindgen]
+pub fn ICRSJ2000CooSys() -> Result<CooSystem, JsValue> {
+    Ok(CooSystem::ICRSJ2000)
+}
+
+use cgmath::SquareMatrix;
 impl CooSystem {
-    pub fn icrs_to_system(&self, icrs_lonlat: LonLatT<f64>) -> LonLatT<f64> {
-        match self {
-            ICRSJ2000 => {
-                // no transformations have to be done
-                icrs_lonlat
-            },
-            GAL => {
-                to_galactic::<f64>(icrs_lonlat)
-            },
-            _ => unimplemented!()
+    /// This is conversion method returning a transformation
+    /// matrix when the system requested by the user is not
+    /// icrs j2000.
+    /// The core projections are always performed in icrs j2000
+    /// so one must call these methods to convert them to icrs before.
+    #[inline]
+    pub fn to_icrs_j2000<'a, S>(&self) -> Matrix4<S>
+    where
+        S: BaseFloat + CooBaseFloat
+    {
+        if *self == CooSystem::GAL {
+            S::GALACTIC_TO_J2000
+        } else {
+            Matrix4::<S>::identity()
         }
     }
 
-    pub fn gal_to_system(&self, gal_lonlat: LonLatT<f64>) -> LonLatT<f64> {
-        match self {
-            ICRS2000 => {
-                to_icrs_j2000::<f64>(gal_lonlat)
-            },
-            GAL => {
-                gal_lonlat
-            }
+    /// This method is called by the grid to convert it
+    /// from icrs to galactic coo system
+    #[inline]
+    pub fn to_gal<'a, S>(&self) -> Matrix4<S>
+    where
+        S: BaseFloat + CooBaseFloat
+    {
+        if *self == CooSystem::GAL {
+            S::J2000_TO_GALACTIC
+        } else {
+            Matrix4::<S>::identity()
         }
     }
 }

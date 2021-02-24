@@ -39,8 +39,6 @@ fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f64>) -> Vec<ModelCoor
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
-        //let m = r.rotate(w);
-        //model_coo.push(f64::J2000_TO_GALACTIC * mat * w);
         model_coo.push(mat * w);
     }
 
@@ -60,6 +58,7 @@ pub struct FieldOfViewVertices {
     // in the field of view
     great_circles: FieldOfViewType,
 }
+use crate::CooSystem;
 use crate::Angle;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
@@ -133,6 +132,7 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         longitude_reversed: bool,
+        system: &CooSystem
     ) {
         self.set_fov::<P>(
             ndc_to_clip,
@@ -140,6 +140,7 @@ impl FieldOfViewVertices {
             w2m,
             aperture,
             longitude_reversed,
+            system
         );
     }
 
@@ -150,6 +151,7 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         longitude_reversed: bool,
+        system: &CooSystem,
     ) {
         self.world_coo = ndc_to_world::<P>(
             &self.ndc_coo,
@@ -157,25 +159,25 @@ impl FieldOfViewVertices {
             clip_zoom_factor,
             longitude_reversed,
         );
-        self.set_rotation::<P>(w2m, aperture);
+        self.set_rotation::<P>(w2m, aperture, system);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: Angle<f64>) {
+    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: Angle<f64>, system: &CooSystem) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
             self.model_coo = None;
         }
 
-        self.set_great_circles::<P>(aperture);
+        self.set_great_circles::<P>(aperture, system);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>) {
+    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 let vertices = vertices.iter()
                     .cloned()
-                    .map(|v| f64::J2000_TO_GALACTIC * v)
+                    .map(|v| system.to_gal::<f64>() * v)
                     .collect::<Vec<_>>();
                 self.great_circles = FieldOfViewType::new_polygon(&vertices);
             } else if let FieldOfViewType::Polygon(_) = &self.great_circles {

@@ -1368,6 +1368,10 @@ export let View = (function() {
         return pixList;
     };
     
+    View.prototype.setAngleRotation = function(theta) {
+        
+    }
+
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function(norder, frameSurvey) {
         if (! frameSurvey && this.imageSurvey) {

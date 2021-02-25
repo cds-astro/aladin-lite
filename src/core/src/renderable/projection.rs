@@ -149,7 +149,7 @@ pub trait Projection:
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_rotation();
+            let r = camera.get_final_rotation();
             let pos_model_space = r.rotate(&pos_world_space);
 
             Some(pos_model_space)

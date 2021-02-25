@@ -831,7 +831,7 @@ impl App {
         let goal_pos: Vector4<f64> = lonlat.vector();
 
         // Convert these positions to rotations
-        let start_anim_rot = self.camera.w2m_icrs_rot.clone();
+        let start_anim_rot = *self.camera.get_rotation();
         let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
 
         // Set the moving animation object
@@ -843,15 +843,11 @@ impl App {
     }
 
     pub fn rotate_around_center<P: Projection>(&mut self, theta: ArcDeg<f64>) {
-        let axis = &self.camera.get_center().truncate();
-        let angle: Angle<f64> = theta.into();
-        let front_rotation = Rotation::from_axis_angle(
-            axis, angle
-        );
+        self.camera.set_rotation_around_center::<P>(theta.into());
+        // New tiles can be needed and some tiles can be removed
+        self.look_for_new_tiles();
 
-        let r = self.camera.get_rotation();
-        let final_rot = front_rotation * (*r);
-        self.camera.set_rotation::<P>(&final_rot);
+        self.request_redraw = true;
     }
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
@@ -877,7 +873,7 @@ impl App {
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
             if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
-                let r = self.camera.get_rotation();
+                let r = self.camera.get_final_rotation();
 
                 let cur_pos = r.rotate(&w1).truncate();
                 //let cur_pos = w1.truncate();
@@ -1586,7 +1582,7 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = rotateAroundCenter)]
+    #[wasm_bindgen(js_name = setRotationAroundCenter)]
     pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
         self.projection.rotate_around_center(&mut self.app, theta);

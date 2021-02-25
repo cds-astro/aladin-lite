@@ -22,9 +22,10 @@ pub struct CameraViewPort {
     aperture: Angle<f64>,
     center: Vector4<f64>,
     // The rotation of the camera
-    pub w2m_icrs_rot: Rotation<f64>,
-    w2m_rot_offset: Rotation<f64>,
+    rotation_center_angle: Angle<f64>,
     w2m_rot: Rotation<f64>,
+    final_rot: Rotation<f64>,
+
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
     // The width over height ratio
@@ -100,14 +101,8 @@ impl CameraViewPort {
 
         let moved = false;
 
-        let w2m_icrs_rot = Rotation::zero();
-        let w2m_rot_offset = if system == CooSystem::GAL {
-            //Rotation::from_axis_angle(&center.truncate(), ArcDeg(60.0).into())
-            Rotation::zero()
-        } else {
-            Rotation::zero()
-        };
-        let w2m_rot = w2m_rot_offset * w2m_icrs_rot;
+        let w2m_rot = Rotation::zero();
+        let final_rot = Rotation::zero();
 
         // Get the initial size of the window
         let width = web_sys::window()
@@ -135,17 +130,19 @@ impl CameraViewPort {
 
         let is_allsky = true;
         let time_last_move = Time::now();
+        let rotation_center_angle = Angle(0.0);
 
         let camera = CameraViewPort {
             // The field of view angle
             aperture,
             center,
             // The rotation of the camera
-            w2m_icrs_rot,
-            w2m_rot_offset,
             w2m_rot,
             w2m,
             m2w,
+
+            final_rot,
+            rotation_center_angle,
             // The width over height ratio
             aspect,
             // The width of the screen in pixels
@@ -269,13 +266,13 @@ impl CameraViewPort {
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(&(axis), angle);
-        self.w2m_icrs_rot = drot * self.w2m_icrs_rot;
+        self.w2m_rot = drot * self.w2m_rot;
 
         self.update_rot_matrices::<P>();
     }
 
     pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
-        self.w2m_icrs_rot = *rot;
+        self.w2m_rot = *rot;
 
         self.update_rot_matrices::<P>();
     }
@@ -302,6 +299,14 @@ impl CameraViewPort {
     // Accessors
     pub fn get_rotation(&self) -> &Rotation<f64> {
         &self.w2m_rot
+    }
+
+    // This rotation is the final rotation, i.e. a composite of
+    // two rotations:
+    // - The current rotation of the sphere
+    // - The rotation around the center axis of a specific angle
+    pub fn get_final_rotation(&self) -> &Rotation<f64> {
+        &self.final_rot
     }
 
     pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
@@ -371,6 +376,11 @@ impl CameraViewPort {
     pub fn get_system(&self) -> &CooSystem {
         &self.system
     }
+
+    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>) {
+        self.rotation_center_angle = theta;
+        self.update_rot_matrices::<P>();
+    }
 }
 use crate::ArcDeg;
 use cgmath::Matrix;
@@ -378,17 +388,18 @@ use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
-        self.w2m = (&self.w2m_icrs_rot).into();
-        //self.w2m = self.w2m;
+        self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
-        self.last_user_action = UserAction::Moving;
-
-        self.moved = true;
-
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+        // Update the center with the new rotation
         self.update_center::<P>();
+
+        // Rotate the fov vertices
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+
         self.time_last_move = Time::now();
+        self.last_user_action = UserAction::Moving;
+        self.moved = true;
     }
 
     fn update_center<P: Projection>(&mut self) {
@@ -398,13 +409,17 @@ impl CameraViewPort {
 
         // Change to model space
         self.center = self.w2m * center_world_space;
-        self.w2m_rot_offset = if self.system == CooSystem::GAL {
-            //Rotation::from_axis_angle(&self.center.truncate(), ArcDeg(60.0).into())
-            Rotation::zero()
-        } else {
-            Rotation::zero()
-        };
-        self.w2m_rot = self.w2m_rot_offset * self.w2m_icrs_rot;
+        
+        let axis = &self.center.truncate();
+        let center_rot = Rotation::from_axis_angle(
+            axis, self.rotation_center_angle
+        );
+
+        // Re-update the model matrix to take into account the rotation
+        // by theta around the center axis
+        self.final_rot = center_rot * self.w2m_rot;
+        self.w2m = (&self.final_rot).into();
+        self.m2w = self.w2m.transpose();
     }
 }
 

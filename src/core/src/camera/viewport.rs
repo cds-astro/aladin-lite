@@ -55,7 +55,7 @@ pub struct CameraViewPort {
 
     // A reference to the WebGL2 context
     gl: WebGl2Context,
-    pub system: CooSystem,
+    system: CooSystem,
 }
 use crate::coo_conversion::CooSystem;
 use crate::WebGl2Context;
@@ -283,6 +283,11 @@ impl CameraViewPort {
         self.vertices._type()
     }
 
+    pub fn set_coo_system<P: Projection>(&mut self, system: CooSystem) {
+        self.system = system;
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+    }
+
     // Accessors
     pub fn get_rotation(&self) -> &Rotation<f64> {
         &self.w2m_rot
@@ -351,6 +356,10 @@ impl CameraViewPort {
     pub fn get_time_of_last_move(&self) -> Time {
         self.time_last_move
     }
+
+    pub fn get_system(&self) -> &CooSystem {
+        &self.system
+    }
 }
 use cgmath::Matrix;
 use crate::coo_conversion::CooBaseFloat;
@@ -371,14 +380,14 @@ impl CameraViewPort {
 
         // 2. rotate the matrix on his axis
         /*let w2m_rot = Rotation::from_axis_angle(
-            &self.get_center().truncate(),
-            crate::renderable::angle::ArcDeg(45.0).into()
+            &self.get_center().truncate().normalize(),
+            crate::renderable::angle::ArcDeg(48.0).into()
         ) * self.w2m_rot;
 
         self.w2m = (&w2m_rot).into();
-        self.m2w = self.w2m.transpose();
-        self.update_center::<P>();
-        self.time_last_move = Time::now();*/
+        self.m2w = self.w2m.transpose();*/
+        //self.update_center::<P>();
+        //self.time_last_move = Time::now();
     }
 
     fn update_center<P: Projection>(&mut self) {

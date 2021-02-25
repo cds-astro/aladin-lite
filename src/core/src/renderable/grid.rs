@@ -323,7 +323,6 @@ impl ProjetedGrid {
                 let size_screen = &camera.get_screen_size();
                 self.ctx2d
                     .clear_rect(0.0, 0.0, size_screen.x as f64, size_screen.y as f64);
-                crate::log("redraw grid labels");
 
                 let text_height = Label::size(camera);
                 self.ctx2d
@@ -429,7 +428,7 @@ fn subdivide<P: Projection>(
     camera: &CameraViewPort,
 ) {
     // Convert to cartesian
-    let system = &camera.system;
+    let system = camera.get_system();
     let a: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
     let b: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
     let c: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
@@ -615,7 +614,7 @@ impl Label {
         sp: Option<&Vector2<f64>>,
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
-        let system = &camera.system;
+        let system = camera.get_system();
 
         let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
         // Do not plot meridian labels when the center of fov
@@ -707,7 +706,7 @@ impl Label {
         ctx2d: &CanvasRenderingContext2d,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let system = &camera.system;
+        let system = camera.get_system();
         let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
             d = -d;
@@ -768,11 +767,11 @@ impl Label {
         let allsky = dx < 2.0;
 
         let ss = camera.get_screen_size();
-        let size_not_allsky = ((ss.y.max(ss.x) as f64) * 0.02).min(13.0);
+        let size_not_allsky = ((ss.y.max(ss.x) as f64) * 0.1).min(13.0);
 
         if allsky {
             let dw = dx / 2.0; // [0..1]
-            dw * size_not_allsky
+            (dw * size_not_allsky).max(10.0)
         } else {
             size_not_allsky
         }
@@ -967,7 +966,7 @@ fn lines<P: Projection>(
     ctx2d: &CanvasRenderingContext2d,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
-    let system = &camera.system;
+    let system = camera.get_system();
     let fov = camera.get_field_of_view();
     let sp = if fov.contains_pole() {
         if fov.contains_north_pole(camera) {

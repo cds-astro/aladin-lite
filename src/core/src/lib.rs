@@ -710,9 +710,10 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub fn set_coo_system(&mut self, coo_system: CooSystem) {
+    pub fn set_coo_system<P: Projection>(&mut self, coo_system: CooSystem) {
         self.system = coo_system;
-        self.camera.system = coo_system;
+        self.camera.set_coo_system::<P>(coo_system);
+        self.surveys.set_coo_system::<P>(false, &self.camera, &mut self.shaders, &self.resources, &self.system);
     }
 
     pub fn world_to_screen<P: Projection>(
@@ -1267,6 +1268,18 @@ impl ProjectionType {
             ProjectionType::Mercator => app.enable_grid::<Mercator>(),
         };
     }
+
+    pub fn set_coo_system(&mut self, app: &mut App, system: CooSystem) {
+        match self {
+            ProjectionType::Aitoff => app.set_coo_system::<Aitoff>(system),
+            ProjectionType::MollWeide => app.set_coo_system::<Mollweide>(system),
+            ProjectionType::Ortho => app.set_coo_system::<Orthographic>(system),
+            ProjectionType::Arc => app.set_coo_system::<AzimuthalEquidistant>(system),
+            ProjectionType::Gnomonic => app.set_coo_system::<Gnomonic>(system),
+            ProjectionType::Mercator => app.set_coo_system::<Mercator>(system),
+        };
+    }
+
     pub fn hide_grid_labels(&mut self, app: &mut App) {
         app.hide_grid_labels();
     }
@@ -1545,7 +1558,7 @@ impl WebClient {
     }
     #[wasm_bindgen(js_name = setCooSystem)]
     pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
-        self.app.set_coo_system(coo_system);
+        self.projection.set_coo_system(&mut self.app, coo_system);
 
         Ok(())
     }

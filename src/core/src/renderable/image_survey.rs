@@ -1122,6 +1122,18 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
     }
 
+    pub fn set_coo_system<P: Projection>(
+        &mut self,
+        _reversed: bool,
+        camera: &CameraViewPort,
+        shaders: &mut ShaderManager,
+        rs: &Resources,
+        system: &CooSystem,
+    ) {
+        // Recompute the raytracer
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
+    }
+
     pub fn set_overlay_opacity(&mut self, opacity: f32) {
         self.opacity = opacity;
     }
@@ -1311,7 +1323,6 @@ impl ImageSurveys {
         } else {
             let (_, layer) = &self.layers.iter().next().unwrap();
             let name = &layer.name_most_precised_survey;
-            crate::log(name);
             Some(
                 self.surveys.get(name)
                     .unwrap()

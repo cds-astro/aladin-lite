@@ -1329,7 +1329,7 @@ export let View = (function() {
                 dec: pos_world[1]
             };
             var lonlat = [];
-            if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
+            /*if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
                 if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
                     lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
                 }
@@ -1339,7 +1339,8 @@ export let View = (function() {
             }
             else {
                 lonlat = [radec.ra, radec.dec];
-            }
+            }*/
+            lonlat = [radec.ra, radec.dec];
             spatialVector.set(lonlat[0], lonlat[1]);
 
             var radius = this.fov*0.5*this.ratio;

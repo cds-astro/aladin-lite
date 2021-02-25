@@ -29,6 +29,7 @@ fn create_vertices_array<P: Projection>(
                 P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
             );*/
             let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
+            //let pos_world_space = system.to_icrs_j2000() * pos_world_space;
             let lonlat = pos_world_space.lonlat();
 
             // Cast all the double into float

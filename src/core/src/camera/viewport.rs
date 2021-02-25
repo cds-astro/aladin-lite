@@ -22,6 +22,8 @@ pub struct CameraViewPort {
     aperture: Angle<f64>,
     center: Vector4<f64>,
     // The rotation of the camera
+    pub w2m_icrs_rot: Rotation<f64>,
+    w2m_rot_offset: Rotation<f64>,
     w2m_rot: Rotation<f64>,
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
@@ -98,7 +100,14 @@ impl CameraViewPort {
 
         let moved = false;
 
-        let w2m_rot = Rotation::zero();
+        let w2m_icrs_rot = Rotation::zero();
+        let w2m_rot_offset = if system == CooSystem::GAL {
+            //Rotation::from_axis_angle(&center.truncate(), ArcDeg(60.0).into())
+            Rotation::zero()
+        } else {
+            Rotation::zero()
+        };
+        let w2m_rot = w2m_rot_offset * w2m_icrs_rot;
 
         // Get the initial size of the window
         let width = web_sys::window()
@@ -132,6 +141,8 @@ impl CameraViewPort {
             aperture,
             center,
             // The rotation of the camera
+            w2m_icrs_rot,
+            w2m_rot_offset,
             w2m_rot,
             w2m,
             m2w,
@@ -258,13 +269,13 @@ impl CameraViewPort {
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(&(axis), angle);
-        self.w2m_rot = drot * self.w2m_rot;
+        self.w2m_icrs_rot = drot * self.w2m_icrs_rot;
 
         self.update_rot_matrices::<P>();
     }
 
     pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
-        self.w2m_rot = *rot;
+        self.w2m_icrs_rot = *rot;
 
         self.update_rot_matrices::<P>();
     }
@@ -361,12 +372,13 @@ impl CameraViewPort {
         &self.system
     }
 }
+use crate::ArcDeg;
 use cgmath::Matrix;
 use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
-        self.w2m = (&self.w2m_rot).into();
+        self.w2m = (&self.w2m_icrs_rot).into();
         //self.w2m = self.w2m;
         self.m2w = self.w2m.transpose();
 
@@ -377,17 +389,6 @@ impl CameraViewPort {
         self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
         self.update_center::<P>();
         self.time_last_move = Time::now();
-
-        // 2. rotate the matrix on his axis
-        /*let w2m_rot = Rotation::from_axis_angle(
-            &self.get_center().truncate().normalize(),
-            crate::renderable::angle::ArcDeg(48.0).into()
-        ) * self.w2m_rot;
-
-        self.w2m = (&w2m_rot).into();
-        self.m2w = self.w2m.transpose();*/
-        //self.update_center::<P>();
-        //self.time_last_move = Time::now();
     }
 
     fn update_center<P: Projection>(&mut self) {
@@ -397,6 +398,13 @@ impl CameraViewPort {
 
         // Change to model space
         self.center = self.w2m * center_world_space;
+        self.w2m_rot_offset = if self.system == CooSystem::GAL {
+            //Rotation::from_axis_angle(&self.center.truncate(), ArcDeg(60.0).into())
+            Rotation::zero()
+        } else {
+            Rotation::zero()
+        };
+        self.w2m_rot = self.w2m_rot_offset * self.w2m_icrs_rot;
     }
 }
 

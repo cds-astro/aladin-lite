@@ -831,7 +831,7 @@ impl App {
         let goal_pos: Vector4<f64> = lonlat.vector();
 
         // Convert these positions to rotations
-        let start_anim_rot = *self.camera.get_rotation();
+        let start_anim_rot = self.camera.w2m_icrs_rot.clone();
         let goal_anim_rot = Rotation::from_sky_position(&goal_pos);
 
         // Set the moving animation object
@@ -840,6 +840,18 @@ impl App {
             start_anim_rot,
             goal_anim_rot,
         });
+    }
+
+    pub fn rotate_around_center<P: Projection>(&mut self, theta: ArcDeg<f64>) {
+        let axis = &self.camera.get_center().truncate();
+        let angle: Angle<f64> = theta.into();
+        let front_rotation = Rotation::from_axis_angle(
+            axis, angle
+        );
+
+        let r = self.camera.get_rotation();
+        let final_rot = front_rotation * (*r);
+        self.camera.set_rotation::<P>(&final_rot);
     }
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
@@ -1280,6 +1292,17 @@ impl ProjectionType {
         };
     }
 
+    pub fn rotate_around_center(&mut self, app: &mut App, theta: ArcDeg<f64>) {
+        match self {
+            ProjectionType::Aitoff => app.rotate_around_center::<Aitoff>(theta),
+            ProjectionType::MollWeide => app.rotate_around_center::<Mollweide>(theta),
+            ProjectionType::Ortho => app.rotate_around_center::<Orthographic>(theta),
+            ProjectionType::Arc => app.rotate_around_center::<AzimuthalEquidistant>(theta),
+            ProjectionType::Gnomonic => app.rotate_around_center::<Gnomonic>(theta),
+            ProjectionType::Mercator => app.rotate_around_center::<Mercator>(theta),
+        };
+    }
+
     pub fn hide_grid_labels(&mut self, app: &mut App) {
         app.hide_grid_labels();
     }
@@ -1559,6 +1582,14 @@ impl WebClient {
     #[wasm_bindgen(js_name = setCooSystem)]
     pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
         self.projection.set_coo_system(&mut self.app, coo_system);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = rotateAroundCenter)]
+    pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
+        let theta = ArcDeg(theta);
+        self.projection.rotate_around_center(&mut self.app, theta);
 
         Ok(())
     }

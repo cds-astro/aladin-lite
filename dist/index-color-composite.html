@@ -595,7 +595,8 @@ function update() {
 		        minCutout: parseFloat(min_cut_c1),
 		        maxCutout: parseFloat(max_cut_c1),
 	        },
-	        color: color
+	        color: color,
+            layer: "base"
         };
 		hipsComponents.push(hipsComponent);
 
@@ -624,7 +625,8 @@ function update() {
                     k: parseFloat($('#k_c2').val()),
 			        transfer: stretch_c2
 		        }
-	        }
+	        },
+            layer: "base"
         });
 
         useC2 = true;
@@ -652,7 +654,8 @@ function update() {
                     k: parseFloat($('#k_c3').val()),
 			        transfer: stretch_c3
 		        }
-	        }
+	        },
+            layer: "base"
         });
 
         useC3 = true;
@@ -680,7 +683,8 @@ function update() {
                     k: parseFloat($('#k_c4').val()),
 			        transfer: stretch_c4
 		        }
-	        }
+	        },
+            layer: "base"
         });
 
         useC4 = true;
@@ -690,7 +694,7 @@ function update() {
         return;
     }
 
-    aladin.webglAPI.addImageSurveyLayer("base", hipsComponents);
+    aladin.webglAPI.setImageSurveys(hipsComponents);
 }
 
 $('#k_c1, #k_c2, #k_c3, #k_c4, #color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4, #colormap_c1').on('change input', function() {

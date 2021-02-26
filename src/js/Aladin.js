@@ -326,18 +326,16 @@ export let Aladin = (function () {
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
         if (options.survey) {
-            let layer = A.imageSurveyLayer("base");
             (async () => {
                 if (typeof options.survey === Array) {
                     options.survey.forEach(async (rootUrlOrId) => {
-                        await layer.addImageSurvey(rootUrlOrId);
+                        const survey = await Aladin.createImageSurvey(rootUrlOrId);
+                        this.addImageSurvey(survey, "base");
                     });
                 } else {
-                    console.log("my first survey");
-                    await layer.addImageSurvey(options.survey);
+                    const survey = await Aladin.createImageSurvey(options.survey, "base");
+                    this.addImageSurvey(survey, "base");
                 }
-
-                this.addImageSurveyLayer(layer);
             })();
 
         }
@@ -497,6 +495,10 @@ export let Aladin = (function () {
             select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].id).text(surveys[i].name));
         };
     };
+
+    Aladin.prototype.setAngleRotation = function (theta) {
+        this.view.setAngleRotation(theta)
+    }
 
     Aladin.prototype.getOptionsFromQueryString = function () {
         var options = {};
@@ -922,10 +924,10 @@ export let Aladin = (function () {
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
     };
-    Aladin.prototype.addImageSurveyLayer = function (layer) {
+    /*Aladin.prototype.addImageSurveyLayer = function (layer) {
         console.log("add layer", layer)
         this.view.addImageSurveyLayer(layer)
-    };
+    };*/
 
     // @api
     /*Aladin.prototype.getBaseImageLayers = function () {
@@ -934,21 +936,39 @@ export let Aladin = (function () {
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    /*Aladin.prototype.addImageSurvey = async function (rootUrlOrId) {
-        this.view.addImageSurvey(survey);
+
+    Aladin.createImageSurvey = async function(rootUrlOrId) {
+        const survey = await HpxImageSurvey.create(rootUrlOrId);
+        return survey;
+    }
+
+    Aladin.prototype.setImageSurvey = function (survey, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+
+        this.view.setImageSurvey(survey, layerName);
     };
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    // @api
-    // @old
-    Aladin.prototype.setImageSurvey = async function (rootUrlOrId) {
-        const survey = await Aladin.createImageSurvey(rootUrlOrId);
-        this.view.setImageSurvey(survey);
+    Aladin.prototype.addImageSurvey = function (survey, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+        this.view.addImageSurvey(survey, layerName);
     };
 
-    // @api
-    Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
 
+    // @api
+    Aladin.prototype.setBaseImageLayer = function (survey) {
+        this.view.setImageSurvey(survey, 'base');
+    };
+    /*
     // @api
     Aladin.prototype.getOverlayImageLayer = function () {
         return this.view.overlayImageSurvey;

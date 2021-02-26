@@ -7,8 +7,6 @@ pub type NormalizedDeviceCoord = Vector2<f64>;
 pub type WorldCoord = Vector4<f64>;
 pub type ModelCoord = Vector4<f64>;
 
-use crate::coo_conversion::CooBaseFloat;
-
 fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f64>,

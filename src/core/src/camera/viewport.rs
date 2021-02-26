@@ -13,7 +13,6 @@ impl SendUniforms for UserAction {
         shader
     }
 }
-use cgmath::InnerSpace;
 use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
 
@@ -382,9 +381,7 @@ impl CameraViewPort {
         self.update_rot_matrices::<P>();
     }
 }
-use crate::ArcDeg;
 use cgmath::Matrix;
-use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
@@ -404,7 +401,7 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        let mut center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
+        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space

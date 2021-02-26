@@ -607,7 +607,6 @@ struct Label {
     content: String,
     rot: f64,
 }
-use crate::coo_conversion::CooBaseFloat;
 impl Label {
     fn meridian<P: Projection>(
         fov: &FieldOfViewType,
@@ -728,14 +727,16 @@ impl Label {
         let m2 = (m1 + d * 1e-3).normalize();
 
         let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera)?;
-        //crate::log("sdfsd");
         let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera)?;
-        //crate::log("sdfsd2");
 
         let ds = (s2 - s1).normalize();
 
-        let dv = if ds.y < 0.0 {
+        let dv = if ds.x >= 0.0 && ds.y <= 0.0 {
             Vector2::new(ds.y, -ds.x)
+        } else if ds.x >= 0.0 && ds.y >= 0.0 {
+            Vector2::new(ds.y, -ds.x)
+        } else if ds.x <= 0.0 && ds.y <= 0.0 {
+            Vector2::new(-ds.y, ds.x)
         } else {
             Vector2::new(-ds.y, ds.x)
         };

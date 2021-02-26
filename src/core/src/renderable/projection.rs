@@ -98,7 +98,6 @@ use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjec
 use crate::shader::GetShader;
 use cgmath::InnerSpace;
 use cgmath::Vector4;
-use crate::coo_conversion::CooBaseFloat;
 pub trait Projection:
     GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
 {

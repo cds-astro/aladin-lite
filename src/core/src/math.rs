@@ -159,24 +159,6 @@ where
     }
 }
 
-pub fn swap_vec4<S: BaseFloat>(v: Vector4<S>) -> Vector4<S> {
-    Vector4::<S>::new(
-        v.z,
-        v.x,
-        v.y,
-        S::one(),
-    )
-}
-
-pub fn unswap_vec4<S: BaseFloat>(v: Vector4<S>) -> Vector4<S> {
-    Vector4::<S>::new(
-        v.y,
-        v.z,
-        v.x,
-        S::one(),
-    )
-}
-
 impl<S> LonLat<S> for Vector4<S>
 where
     S: BaseFloat,

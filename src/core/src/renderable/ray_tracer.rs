@@ -13,11 +13,10 @@ pub trait RayTracingProjection {
 use crate::math::LonLat;
 use crate::renderable::Triangulation;
 use crate::coo_conversion::CooSystem;
-use crate::coo_conversion::CooBaseFloat;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
     camera: &CameraViewPort,
-    system: &CooSystem,
+    _system: &CooSystem,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 

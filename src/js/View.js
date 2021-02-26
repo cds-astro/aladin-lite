@@ -1369,7 +1369,7 @@ export let View = (function() {
     };
     
     View.prototype.setAngleRotation = function(theta) {
-        
+
     }
 
     // TODO: optimize this method !!
@@ -1803,7 +1803,7 @@ export let View = (function() {
         }
     }
 
-    View.prototype.addImageSurveyLayer = function(layer) {
+    /*View.prototype.addImageSurveyLayer = function(layer) {
         if (!(layer instanceof ImageSurveyLayer)) {
             throw "Except an ImageSurveyLayer object";
         }
@@ -1814,27 +1814,27 @@ export let View = (function() {
         }
         console.log("set layer: ", layer);
         this.aladin.webglAPI.addImageSurveyLayer(layer.name, surveys);
-    };
-
-    /*View.prototype.removeImageSurveyLayer = function(layer) {
-        
     };*/
 
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    /*View.prototype.addImageSurvey = function(survey) {
+    View.prototype.addImageSurvey = function(survey, layer) {
         // We wait for the HpxImageSurvey to complete
         // Register to the view
         const url = survey.properties.url;
+        survey.layer = layer;
+
         this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
-    View.prototype.setImageSurvey = function(survey) {
+    View.prototype.setImageSurvey = function(survey, layer) {
         this.imageSurvey = new Map();
 
         const url = survey.properties.url;
+        survey.layer = layer;
+
         this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
@@ -1845,8 +1845,9 @@ export let View = (function() {
         for (let survey of this.imageSurvey.values()) {
             surveys.push(survey);
         }
-        this.aladin.webglAPI.setHiPS(surveys);
-    };*/
+
+        this.aladin.webglAPI.setImageSurveys(surveys);
+    };
 
     View.prototype.requestRedraw = function() {
         this.needRedraw = true;

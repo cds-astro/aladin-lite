@@ -52,7 +52,6 @@ use crate::{
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use cgmath::Vector4;
-
 use crate::{buffer::TileDownloader, renderable::image_survey::ImageSurveys};
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
@@ -130,7 +129,6 @@ struct ZoomAnimation {
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
-use crate::coo_conversion::CooBaseFloat;
 use crate::buffer::Tile;
 use cgmath::InnerSpace;
 impl App {
@@ -180,7 +178,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
+        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
@@ -523,17 +521,15 @@ impl App {
         self.request_redraw = true;
     }*/
 
-    fn add_image_survey_layer<P: Projection>(
+    fn set_image_surveys(
         &mut self,
-        name: String,
         hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.add_image_survey_layer(
+        let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
             &self.camera,
             self.exec.clone(),
-            name,
         )?;
         self.downloader.clear_requests();
 
@@ -711,9 +707,21 @@ impl App {
     }
 
     pub fn set_coo_system<P: Projection>(&mut self, coo_system: CooSystem) {
+        let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
+        let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
+
         self.system = coo_system;
         self.camera.set_coo_system::<P>(coo_system);
-        self.surveys.set_coo_system::<P>(false, &self.camera, &mut self.shaders, &self.resources, &self.system);
+        
+        if icrs2gal {
+            // rotate the camera around the center axis
+            // to move the galactic plane straight to the center
+            self.camera.set_rotation_around_center::<P>(ArcDeg(58.6).into());
+        } else if gal2icrs {
+            self.camera.set_rotation_around_center::<P>(ArcDeg(0.0).into());
+        }
+
+        self.request_redraw = true;
     }
 
     pub fn world_to_screen<P: Projection>(
@@ -1120,22 +1128,6 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn add_image_survey_layer(
-        &mut self,
-        app: &mut App,
-        name: String,
-        surveys: Vec<SimpleHiPS>,
-    ) -> Result<(), JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.add_image_survey_layer::<Aitoff>(name, surveys),
-            ProjectionType::MollWeide => app.add_image_survey_layer::<Mollweide>(name, surveys),
-            ProjectionType::Ortho => app.add_image_survey_layer::<Orthographic>(name, surveys),
-            ProjectionType::Arc => app.add_image_survey_layer::<AzimuthalEquidistant>(name, surveys),
-            ProjectionType::Gnomonic => app.add_image_survey_layer::<Gnomonic>(name, surveys),
-            ProjectionType::Mercator => app.add_image_survey_layer::<Mercator>(name, surveys),
-        }
-    }
-
     /*pub fn set_overlay_simple_hips(
         &mut self,
         app: &mut App,
@@ -1384,6 +1376,8 @@ pub enum HiPSColor {
 pub struct SimpleHiPS {
     properties: HiPSProperties,
     color: HiPSColor,
+    // Name of the layer
+    layer: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -1495,8 +1489,8 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addImageSurveyLayer)]
-    pub fn add_image_survey_layer(&mut self, layer_name: String, surveys: Vec<JsValue>) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = setImageSurveys)]
+    pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
         let surveys: Result<Vec<SimpleHiPS>, JsValue> = surveys
             .into_iter()
@@ -1506,7 +1500,7 @@ impl WebClient {
             })
             .collect::<Result<Vec<_>, _>>();
         let surveys = surveys?;
-        self.projection.add_image_survey_layer(&mut self.app, layer_name, surveys)?;
+        self.app.set_image_surveys(surveys)?;
 
         Ok(())
     }

@@ -1043,11 +1043,11 @@ struct ImageSurveyLayer {
     name_most_precised_survey: String,
 }
 
-impl ImageSurveyLayer {
+/*impl ImageSurveyLayer {
     fn contains(&self, name: &str) -> bool {
         self.names.iter().any(|cur_name| cur_name == name)
     }
-}
+}*/
 
 type LayerName = String;
 //const MAX_NUM_LAYERS: usize = 2;
@@ -1111,18 +1111,6 @@ impl ImageSurveys {
     }
 
     pub fn set_longitude_reversed<P: Projection>(
-        &mut self,
-        _reversed: bool,
-        camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
-        rs: &Resources,
-        system: &CooSystem,
-    ) {
-        // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
-    }
-
-    pub fn set_coo_system<P: Projection>(
         &mut self,
         _reversed: bool,
         camera: &CameraViewPort,
@@ -1199,7 +1187,7 @@ impl ImageSurveys {
     }
 
     // Return the layer idx in which the survey is contained
-    fn contained_in_any_layer(&self, id: &str) -> Option<HashSet<String>> {
+    /*fn contained_in_any_layer(&self, id: &str) -> Option<HashSet<String>> {
         let mut layer_names = HashSet::new();
         for (name, layer) in self.layers.iter() {
             if layer.contains(id) {
@@ -1212,19 +1200,19 @@ impl ImageSurveys {
         } else {
             Some(layer_names)
         }
-    }
+    }*/
 
-    pub fn add_image_survey_layer(
+    pub fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
-        layer_name: String,
     ) -> Result<Vec<String>, JsValue> {
         // retrieve the max depth of the surveys composing
         // the layer
-        let mut max_depth = 0;
+
+        /*let mut max_depth = 0;
         let mut name_most_precised_survey = String::new();
         let (surveys_url, colors): (Vec<_>, Vec<_>) = hipses
             .iter()
@@ -1239,24 +1227,92 @@ impl ImageSurveys {
                 (name, hips.color())
             })
             .unzip();
+        */
 
-        if let Some(layer) = self.layers.get(&layer_name) {
-            for replaced_survey_name in layer.names.iter() {
-                // ensure cur_idx is not contained in any other layers
-                if let Some(layer_names) = self.contained_in_any_layer(replaced_survey_name) {
-                    // if the survey was only contained in the current layer
-                    if layer_names.len() == 1 && layer_names.contains(&layer_name.clone()) {
-                        // do not remove it we still need it
-                        if !surveys_url.contains(replaced_survey_name) {
-                            self.surveys.remove(replaced_survey_name);
-                        }
+        let mut layers = HashMap::new();
+        let mut new_survey_ids = Vec::new();
+
+        let mut current_needed_surveys = HashSet::new();
+        for hips in hipses.into_iter() {
+            let layer_name = &hips.layer;
+            let url = hips.properties.url.clone();
+
+            if !layers.contains_key(layer_name) {
+                layers.insert(
+                    layer_name.clone(),
+                    ImageSurveyLayer {
+                        names: vec![url.clone()],
+                        colors: vec![hips.color()],
+                        opacity: 1.0,
+                        name_most_precised_survey: url.clone()
                     }
+                );
+            } else {
+                let layer = layers.get_mut(layer_name).unwrap();
+
+                if layer.names.contains(&url) {
+                    continue;
                 } else {
-                    // if so we can remove it from the surveys hashmap
-                    self.surveys.remove(replaced_survey_name);
+                    layer.names.push(url.clone());
+                    layer.colors.push(hips.color());
+
+                    // TODO update most precised survey name
                 }
             }
+
+            // Add the new surveys
+            if !self.surveys.contains_key(&url) {
+                // create the survey
+                let survey = hips.create(gl, camera, self, exec.clone())?;
+                crate::log(&format!("new survey {:?}", survey.textures.config));
+                self.surveys.insert(url.clone(), survey);
+                new_survey_ids.push(url.clone());
+            }
+
+            current_needed_surveys.insert(url);
         }
+        self.layers = layers;
+
+        // loop over the surveys to remove the one that are not needed anymore
+        let mut surveys_to_remove = vec![];
+        for (name, _) in self.surveys.iter() {
+            if !current_needed_surveys.contains(name) {
+                surveys_to_remove.push(name.clone());
+            }
+        }
+
+        for survey_to_remove in &surveys_to_remove {
+            self.surveys.remove(survey_to_remove);
+        }
+        /*self.surveys = self.surveys.iter()
+            .filter(|(name,_)| {
+                if current_needed_surveys.contains(name) {
+                    true
+                } else {
+                    false
+                }
+            })
+            .collect();*/
+
+
+            /*if let Some(layer) = self.layers.get(layer_name) {
+                for replaced_survey_name in layer.names.iter() {
+                    if let Some(layer_names) = self.contained_in_any_layer(replaced_survey_name) {
+                        // if the survey was only contained in the current layer
+                        if layer_names.len() == 1 && layer_names.contains(&layer_name.clone()) {
+                            // do not remove it we still need it
+                            if !surveys_url.contains(replaced_survey_name) {
+                                self.surveys.remove(replaced_survey_name);
+                            }
+                        }
+                    } else {
+                        // if so we can remove it from the surveys hashmap
+                        self.surveys.remove(replaced_survey_name);
+                    }
+                }
+            }
+        
+
         let opacity = 1.0;
         self.layers.insert(
             layer_name,
@@ -1266,20 +1322,8 @@ impl ImageSurveys {
                 opacity,
                 name_most_precised_survey
             }
-        );
+        );*/
 
-        // If it is a new survey, insert it
-        let mut new_survey_ids = Vec::new();
-        for hips in hipses.into_iter() {
-            let url = hips.properties.url.clone();
-            if !self.surveys.contains_key(&url) {
-                // create the survey
-                let survey = hips.create(gl, camera, self, exec.clone())?;
-                crate::log(&format!("new survey {:?}", survey.textures.config));
-                self.surveys.insert(url.clone(), survey);
-                new_survey_ids.push(url);
-            }
-        }
         crate::log(&format!("layers {:?}", self.layers));
         crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
 

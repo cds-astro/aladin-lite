@@ -120,7 +120,7 @@ where
     let j2000_coo = S::GALACTIC_TO_J2000 * gal_coo;
     j2000_coo.lonlat()
 }
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
@@ -130,13 +130,13 @@ pub enum CooSystem {
     GAL,
 }
 
-#[wasm_bindgen]
-pub fn GALCooSys() -> Result<CooSystem, JsValue> {
+#[wasm_bindgen(js_name = "GALCooSys")]
+pub fn galcoo_sys() -> Result<CooSystem, JsValue> {
     Ok(CooSystem::GAL)
 }
 
-#[wasm_bindgen]
-pub fn ICRSJ2000CooSys() -> Result<CooSystem, JsValue> {
+#[wasm_bindgen(js_name = "ICRSJ2000CooSys")]
+pub fn icrsj2000_coo_sys() -> Result<CooSystem, JsValue> {
     Ok(CooSystem::ICRSJ2000)
 }
 
@@ -174,11 +174,10 @@ impl CooSystem {
     }
 }
 
-mod tests {
-    use crate::{ArcDeg, LonLatT};
-    use crate::math::LonLat;
-    use crate::Vector4;
 
+
+mod tests {
+    #[allow(unused_macros)]
     macro_rules! assert_delta {
         ($x:expr, $y:expr, $d:expr) => {
             if !($x - $y < $d || $y - $x < $d) { panic!(); }
@@ -187,6 +186,7 @@ mod tests {
 
     #[test]
     fn j2000_to_gal() {
+        use crate::{LonLatT, ArcDeg};
         let lonlat = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let gal_lonlat = super::to_galactic(lonlat);
         
@@ -199,6 +199,8 @@ mod tests {
 
     #[test]
     fn gal_to_j2000() {
+        use crate::{LonLatT, ArcDeg};
+
         let lonlat = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat = super::to_icrs_j2000(lonlat);
         let j2000_lon_deg = j2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
@@ -210,6 +212,7 @@ mod tests {
 
     #[test]
     fn j2000_gal_roundtrip() {
+        use crate::{LonLatT, ArcDeg};
         let gal_lonlat = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
         let gal_lonlat = super::to_galactic(super::to_icrs_j2000(gal_lonlat));

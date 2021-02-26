@@ -14,7 +14,6 @@ pub enum FieldOfViewType {
 }
 
 //use cgmath::Vector2;
-use crate::coo_conversion::CooBaseFloat;
 use crate::CameraViewPort;
 impl FieldOfViewType {
     pub fn new_allsky() -> FieldOfViewType {

@@ -14,6 +14,7 @@ mod utils;
 
 use wasm_bindgen::{prelude::*, JsCast};
 
+mod coo_conversion;
 mod async_task;
 mod buffer;
 pub mod camera;
@@ -51,10 +52,10 @@ use crate::{
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use cgmath::Vector4;
-
 use crate::{buffer::TileDownloader, renderable::image_survey::ImageSurveys};
 use async_task::TaskExecutor;
 use web_sys::WebGl2RenderingContext;
+use coo_conversion::CooSystem;
 struct App {
     gl: WebGl2Context,
 
@@ -85,6 +86,8 @@ struct App {
     out_of_fov: bool,
     tasks_finished: bool,
     catalog_loaded: bool,
+
+    system: CooSystem,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,7 +129,6 @@ struct ZoomAnimation {
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
-
 use crate::buffer::Tile;
 use cgmath::InnerSpace;
 impl App {
@@ -151,9 +153,10 @@ impl App {
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
+        /*let url = String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color");
         let sdss = SimpleHiPS {
             properties: HiPSProperties {
-                url: String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color"),
+                url: url.clone(),
 
                 max_order: 10,
                 frame: Frame {
@@ -168,18 +171,18 @@ impl App {
                 max_cutout: None,
             },
             color: HiPSColor::Color,
-        };
-
-        let camera = CameraViewPort::new::<Orthographic>(&gl);
+        };*/
+        let system = CooSystem::ICRSJ2000;
+        let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources);
+        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        surveys.add_composite_surveys(vec![sdss], &gl, &camera, exec.clone(), 0)?;
+        //surveys.add_image_survey_layer(vec![sdss], &gl, &camera, exec.clone(), url)?;
 
         let time_start_blending = Time::now();
 
@@ -201,6 +204,8 @@ impl App {
         let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
         let catalog_loaded = false;
+
+
         let app = App {
             gl,
 
@@ -231,6 +236,7 @@ impl App {
 
             tasks_finished,
             catalog_loaded,
+            system,
         };
 
         Ok(app)
@@ -343,7 +349,7 @@ impl App {
         Ok(tiles_available)
     }
 
-    fn update<P: Projection>(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
@@ -476,16 +482,18 @@ impl App {
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
-            self.manager
-                .update::<P>(&self.camera, self.surveys.get_view().unwrap());
+            if let Some(view) = self.surveys.get_view() {
+                self.manager
+                .update::<P>(&self.camera, view);
+            }
         }
-        self.grid.update::<P>(&self.camera);
+        self.grid.update::<P>(&self.camera, force);
 
         Ok(())
     }
 
-    fn render<P: Projection>(&mut self) -> Result<(), JsValue> {
-        if self.rendering {
+    fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+        if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -508,21 +516,20 @@ impl App {
         Ok(())
     }
 
-    fn remove_overlay(&mut self) {
+    /*fn remove_overlay(&mut self) {
         self.surveys.remove_overlay();
         self.request_redraw = true;
-    }
+    }*/
 
-    fn set_composite_hips<P: Projection>(
+    fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.add_composite_surveys(
+        let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
             &self.camera,
             self.exec.clone(),
-            0,
         )?;
         self.downloader.clear_requests();
 
@@ -539,7 +546,7 @@ impl App {
         Ok(())
     }
 
-    fn set_overlay_composite_hips<P: Projection>(
+    /*fn set_overlay_composite_hips<P: Projection>(
         &mut self,
         hipses: Vec<SimpleHiPS>,
     ) -> Result<(), JsValue> {
@@ -563,7 +570,7 @@ impl App {
         self.request_redraw = true;
 
         Ok(())
-    }
+    }*/
 
     fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
         self.surveys.set_overlay_opacity(opacity);
@@ -574,7 +581,7 @@ impl App {
     fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
         self.surveys
-            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources);
+            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources, &self.system);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -595,6 +602,7 @@ impl App {
             &self.camera,
             &mut self.shaders,
             &self.resources,
+            &self.system,
         );
 
         self.look_for_new_tiles();
@@ -698,15 +706,38 @@ impl App {
         self.request_redraw = true;
     }
 
+    pub fn set_coo_system<P: Projection>(&mut self, coo_system: CooSystem) {
+        let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
+        let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
+
+        self.system = coo_system;
+        self.camera.set_coo_system::<P>(coo_system);
+        
+        if icrs2gal {
+            // rotate the camera around the center axis
+            // to move the galactic plane straight to the center
+            self.camera.set_rotation_around_center::<P>(ArcDeg(58.6).into());
+        } else if gal2icrs {
+            self.camera.set_rotation_around_center::<P>(ArcDeg(0.0).into());
+        }
+
+        self.request_redraw = true;
+    }
+
     pub fn world_to_screen<P: Projection>(
         &self,
         lonlat: &LonLatT<f64>,
     ) -> Result<Option<Vector2<f64>>, String> {
+        //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
         let model_pos_xyz = lonlat.vector();
+
         let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
     }
 
+    /// World to screen projection
+    ///
+    /// sources coordinates are given in ICRS j2000
     pub fn world_to_screen_vec<P: Projection>(
         &self,
         sources: &Vec<JsValue>,
@@ -719,6 +750,8 @@ impl App {
                     .map_err(|e| JsValue::from_str(&e.to_string()))
                     .unwrap();
                 let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
+                //let lonlat = self.app.system.icrs_to_system(lonlat);
+
                 let xyz = lonlat.vector();
 
                 if let Some(s_xy) = P::model_to_screen_space(&xyz, &self.camera) {
@@ -734,6 +767,7 @@ impl App {
 
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
+            //let model_pos = self.system.system_to_icrs_coo(model_pos);
             Some(model_pos.lonlat())
         } else {
             None
@@ -802,7 +836,6 @@ impl App {
 
     pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
-        let _cursor_pos = self.camera.get_center();
         let goal_pos: Vector4<f64> = lonlat.vector();
 
         // Convert these positions to rotations
@@ -815,6 +848,14 @@ impl App {
             start_anim_rot,
             goal_anim_rot,
         });
+    }
+
+    pub fn rotate_around_center<P: Projection>(&mut self, theta: ArcDeg<f64>) {
+        self.camera.set_rotation_around_center::<P>(theta.into());
+        // New tiles can be needed and some tiles can be removed
+        self.look_for_new_tiles();
+
+        self.request_redraw = true;
     }
 
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
@@ -838,15 +879,9 @@ impl App {
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
-        if let Some(pos1) = self.screen_to_world::<P>(&Vector2::new(s1x, s1y)) {
-            if let Some(pos2) = self.screen_to_world::<P>(&Vector2::new(s2x, s2y)) {
-                let model2world = self.camera.get_m2w();
-                let m1: Vector4<f64> = pos1.vector();
-                let w1 = model2world * m1;
-                let m2: Vector4<f64> = pos2.vector();
-                let w2 = model2world * m2;
-
-                let r = self.camera.get_rotation();
+        if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
+            if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
+                let r = self.camera.get_final_rotation();
 
                 let cur_pos = r.rotate(&w1).truncate();
                 //let cur_pos = w1.truncate();
@@ -855,7 +890,6 @@ impl App {
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();
                     let d = math::ang_between_vect(&cur_pos, &next_pos);
-
                     self.prev_cam_position = self.camera.get_center().truncate();
 
                     // Apply the rotation to the camera to
@@ -1055,25 +1089,25 @@ impl ProjectionType {
         }
     }
 
-    fn update(&mut self, app: &mut App, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update(&mut self, app: &mut App, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.update::<Aitoff>(dt),
-            ProjectionType::MollWeide => app.update::<Mollweide>(dt),
-            ProjectionType::Ortho => app.update::<Orthographic>(dt),
-            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt),
-            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt),
-            ProjectionType::Mercator => app.update::<Mercator>(dt),
+            ProjectionType::Aitoff => app.update::<Aitoff>(dt, force),
+            ProjectionType::MollWeide => app.update::<Mollweide>(dt, force),
+            ProjectionType::Ortho => app.update::<Orthographic>(dt, force),
+            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt, force),
+            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt, force),
+            ProjectionType::Mercator => app.update::<Mercator>(dt, force),
         }
     }
 
-    fn render(&mut self, app: &mut App) -> Result<(), JsValue> {
+    fn render(&mut self, app: &mut App, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.render::<Aitoff>()?,
-            ProjectionType::MollWeide => app.render::<Mollweide>()?,
-            ProjectionType::Ortho => app.render::<Orthographic>()?,
-            ProjectionType::Arc => app.render::<AzimuthalEquidistant>()?,
-            ProjectionType::Gnomonic => app.render::<Gnomonic>()?,
-            ProjectionType::Mercator => app.render::<Mercator>()?,
+            ProjectionType::Aitoff => app.render::<Aitoff>(force)?,
+            ProjectionType::MollWeide => app.render::<Mollweide>(force)?,
+            ProjectionType::Ortho => app.render::<Orthographic>(force)?,
+            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(force)?,
+            ProjectionType::Gnomonic => app.render::<Gnomonic>(force)?,
+            ProjectionType::Mercator => app.render::<Mercator>(force)?,
         };
 
         Ok(())
@@ -1094,21 +1128,6 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn set_composite_hips(
-        &mut self,
-        app: &mut App,
-        hips: Vec<SimpleHiPS>,
-    ) -> Result<(), JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.set_composite_hips::<Aitoff>(hips),
-            ProjectionType::MollWeide => app.set_composite_hips::<Mollweide>(hips),
-            ProjectionType::Ortho => app.set_composite_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_composite_hips::<AzimuthalEquidistant>(hips),
-            ProjectionType::Gnomonic => app.set_composite_hips::<Gnomonic>(hips),
-            ProjectionType::Mercator => app.set_composite_hips::<Mercator>(hips),
-        }
-    }
-
     /*pub fn set_overlay_simple_hips(
         &mut self,
         app: &mut App,
@@ -1124,7 +1143,7 @@ impl ProjectionType {
         }
     }*/
 
-    pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
+    /*pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
         app.remove_overlay();
 
         Ok(())
@@ -1143,7 +1162,7 @@ impl ProjectionType {
             ProjectionType::Gnomonic => app.set_overlay_composite_hips::<Gnomonic>(hips),
             ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
         }
-    }
+    }*/
     pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
         app.set_overlay_opacity(opacity)
     }
@@ -1249,6 +1268,29 @@ impl ProjectionType {
             ProjectionType::Mercator => app.enable_grid::<Mercator>(),
         };
     }
+
+    pub fn set_coo_system(&mut self, app: &mut App, system: CooSystem) {
+        match self {
+            ProjectionType::Aitoff => app.set_coo_system::<Aitoff>(system),
+            ProjectionType::MollWeide => app.set_coo_system::<Mollweide>(system),
+            ProjectionType::Ortho => app.set_coo_system::<Orthographic>(system),
+            ProjectionType::Arc => app.set_coo_system::<AzimuthalEquidistant>(system),
+            ProjectionType::Gnomonic => app.set_coo_system::<Gnomonic>(system),
+            ProjectionType::Mercator => app.set_coo_system::<Mercator>(system),
+        };
+    }
+
+    pub fn rotate_around_center(&mut self, app: &mut App, theta: ArcDeg<f64>) {
+        match self {
+            ProjectionType::Aitoff => app.rotate_around_center::<Aitoff>(theta),
+            ProjectionType::MollWeide => app.rotate_around_center::<Mollweide>(theta),
+            ProjectionType::Ortho => app.rotate_around_center::<Orthographic>(theta),
+            ProjectionType::Arc => app.rotate_around_center::<AzimuthalEquidistant>(theta),
+            ProjectionType::Gnomonic => app.rotate_around_center::<Gnomonic>(theta),
+            ProjectionType::Mercator => app.rotate_around_center::<Mercator>(theta),
+        };
+    }
+
     pub fn hide_grid_labels(&mut self, app: &mut App) {
         app.hide_grid_labels();
     }
@@ -1334,6 +1376,8 @@ pub enum HiPSColor {
 pub struct SimpleHiPS {
     properties: HiPSProperties,
     color: HiPSColor,
+    // Name of the layer
+    layer: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -1386,7 +1430,9 @@ impl WebClient {
     }
 
     /// Main update method
-    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
+    /// The force parameter ensures to force the update of some elements
+    /// even if the camera has not moved
+    pub fn update(&mut self, dt: f32, force: bool) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
@@ -1396,14 +1442,17 @@ impl WebClient {
             &mut self.app,
             // Time of the previous frame rendering
             self.dt,
+            // Force the update of some elements:
+            // i.e. the grid
+            force
         )?;
 
         Ok(())
     }
 
     /// Update our WebGL Water application.
-    pub fn render(&mut self) -> Result<(), JsValue> {
-        self.projection.render(&mut self.app)?;
+    pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
+        self.projection.render(&mut self.app, force)?;
 
         Ok(())
     }
@@ -1440,31 +1489,38 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = setHiPS)]
-    pub fn set_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
-        let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses
+    #[wasm_bindgen(js_name = setImageSurveys)]
+    pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        let surveys: Result<Vec<SimpleHiPS>, JsValue> = surveys
             .into_iter()
             .map(|h| {
                 h.into_serde()
                     .map_err(|e| JsValue::from_str(&e.to_string()))
             })
             .collect::<Result<Vec<_>, _>>();
-        let hips = hips?;
-        //crate::log(&format!("Composite HiPS: {:?}", hips));
-
-        self.projection.set_composite_hips(&mut self.app, hips)?;
+        let surveys = surveys?;
+        self.app.set_image_surveys(surveys)?;
 
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = isCatalogLoaded)]
-    pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
-        let cat_loaded = self.app.is_catalog_loaded();
-        Ok(cat_loaded)
+    #[wasm_bindgen(js_name = getAvailableColormapList)]
+    pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
+        let colormaps = Colormap::get_list_available_colormaps()
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        
+        JsValue::from_serde(&colormaps)
+            .map_err(
+                |e| JsValue::from_str(&e.to_string())
+            )
     }
 
-    #[wasm_bindgen(js_name = setOverlayHiPS)]
-    pub fn set_overlay_composite_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
+    /// Add an overlay HiPS on top of the current HiPS
+    /*#[wasm_bindgen(js_name = setOverlayHiPS)]
+    pub fn set_overlay_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
         let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses
             .into_iter()
             .map(|h| {
@@ -1479,15 +1535,14 @@ impl WebClient {
             .set_overlay_composite_hips(&mut self.app, hips)?;
 
         Ok(())
-    }
+    }*/
 
-    #[wasm_bindgen(js_name = removeOverlayHiPS)]
-    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
-        self.projection.remove_overlay_hips(&mut self.app)?;
-
-        Ok(())
-    }
-
+    /// Set the opacity of the overlaid HiPS
+    ///
+    /// # Arguments
+    ///
+    /// * `opacity` - A float number between 0 and 1. 0 means totally transparent
+    /// 1 means fully visible
     #[wasm_bindgen(js_name = setOverlayOpacity)]
     pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
         self.projection
@@ -1495,10 +1550,76 @@ impl WebClient {
 
         Ok(())
     }
+    
+    /*#[wasm_bindgen(js_name = removeOverlayHiPS)]
+    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
+        self.projection.remove_overlay_hips(&mut self.app)?;
 
+        Ok(())
+    }*/
+
+
+    #[wasm_bindgen(js_name = isCatalogLoaded)]
+    pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
+        let cat_loaded = self.app.is_catalog_loaded();
+        Ok(cat_loaded)
+    }
+
+    #[wasm_bindgen(js_name = cooSystem)]
+    pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
+        Ok(self.app.system)
+    }
+    #[wasm_bindgen(js_name = setCooSystem)]
+    pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
+        self.projection.set_coo_system(&mut self.app, coo_system);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setRotationAroundCenter)]
+    pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
+        let theta = ArcDeg(theta);
+        self.projection.rotate_around_center(&mut self.app, theta);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = J20002Gal)]
+    pub fn j2000_to_gal(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let gal_lonlat = coo_conversion::to_galactic(lonlat);
+
+        Ok(Some(
+            Box::new([
+                gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+                gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
+            ])
+        ))
+    }
+
+    #[wasm_bindgen(js_name = Gal2J2000)]
+    pub fn gal_to_j2000(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let icrsj2000_lonlat = coo_conversion::to_icrs_j2000(lonlat);
+
+        Ok(Some(
+            Box::new([
+                icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+                icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
+            ])
+        ))
+    }
+
+    /// World to screen projection
+    /// 
+    /// Coordinates must be given in ICRS J2000
+    /// They will be converted accordingly to the current frame of Aladin Lite
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
         if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
             Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
         } else {
@@ -1638,8 +1759,12 @@ impl WebClient {
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveToLocation)]
     pub fn start_moving_to(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
-        // Enable the MouseLeftButtonReleased event
+        // The core works in ICRS_J2000 coordinates
+        // Check if the user is giving galactic coordinates
+        // so that we can convert them to icrs
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        //let location = self.app.system.to_icrs_j2000(location);
+
         self.projection.start_moving_to(&mut self.app, location);
 
         Ok(())
@@ -1648,8 +1773,10 @@ impl WebClient {
     /// Set directly the center position
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.projection.set_center(&mut self.app, lonlat);
+        let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+        //let location = self.app.system.to_icrs_j2000(lonlat);
+
+        self.projection.set_center(&mut self.app, location);
 
         Ok(())
     }

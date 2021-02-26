@@ -299,8 +299,6 @@ impl ImageSurveyTextures {
                 &self.config,
                 missing,
             );
-            // Compute the cutoff of the received tile
-            //let cutoff = image.get_cutoff_values();
 
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
@@ -312,6 +310,7 @@ impl ImageSurveyTextures {
                 self.texture_2d_array.clone(),
                 &self.config,
             );
+            //task.tex_sub();
 
             let tile = tile;
             exec_ref
@@ -321,6 +320,7 @@ impl ImageSurveyTextures {
 
                     TaskResult::TileSentToGPU { tile }
                 });
+            
         } else {
             unreachable!()
         }

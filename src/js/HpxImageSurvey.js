@@ -42,6 +42,7 @@ export let HpxImageSurvey = (function() {
         }
 
         let isUrl = false;
+        console.log("root url", rootURLOrId)
         if (rootURLOrId.includes("http")) {
             isUrl = true;
         }
@@ -107,13 +108,14 @@ export let HpxImageSurvey = (function() {
             console.log("ROOT URL", rootURL);
             url = rootURL + '/properties';
 
+
             return (async () => {
-                console.log(url);
+                console.log("properties url", url);
                 let metadata = await fetch(url)
                     .then((response) => response.text());
                 // We get the property here
                 metadata = HiPSDefinition.parseHiPSProperties(metadata);
-                console.log(metadata);
+                console.log("metadata", metadata);
 
                 // 1. Ensure there is exactly one survey matching
                 if (!metadata) {
@@ -121,6 +123,8 @@ export let HpxImageSurvey = (function() {
                 }
                 // Let is build the survey object
                 const survey = HpxImageSurvey.parseSurveyProperties(metadata);
+                console.log("survey ", survey);
+
                 return survey
             })();
         }
@@ -162,6 +166,7 @@ export let HpxImageSurvey = (function() {
                 };
             }
         }
+
 
         let cuts = [undefined, undefined];
         if (metadata.hips_pixel_cut) {
@@ -206,5 +211,15 @@ export let HpxImageSurvey = (function() {
         };
     }
 
+    HpxImageSurvey.create = async function(idOrRootUrl, options) {
+        if (!idOrRootUrl) {
+            return;
+        }
+    
+        let survey = await new HpxImageSurvey(idOrRootUrl);
+        return survey;
+    };
+
     return HpxImageSurvey;
 })();
+

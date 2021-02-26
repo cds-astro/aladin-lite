@@ -8,10 +8,12 @@
 
 // World space
 use crate::camera::CameraViewPort;
+
 use num_traits::FloatConst;
 trait MyFloat: cgmath::BaseFloat + FloatConst {}
 impl MyFloat for f32 {}
 impl MyFloat for f64 {}
+
 
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
@@ -146,7 +148,7 @@ pub trait Projection:
         let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_rotation();
+            let r = camera.get_final_rotation();
             let pos_model_space = r.rotate(&pos_world_space);
 
             Some(pos_model_space)
@@ -161,7 +163,6 @@ pub trait Projection:
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-
         Self::world_to_screen_space(&pos_world_space, camera)
     }
 
@@ -183,8 +184,8 @@ pub trait Projection:
             Self::clip_to_world_space(pos_clip_space, camera.is_reversed_longitude());
 
         if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_w2m();
-            let pos_model_space = r * pos_world_space;
+            let w2m = camera.get_w2m();
+            let pos_model_space = w2m * pos_world_space;
 
             Some(pos_model_space)
         } else {
@@ -362,7 +363,6 @@ impl Projection for Aitoff {
             if longitude_reversed {
                 pos_world_space.x = -pos_world_space.x;
             }
-
             Some(pos_world_space)
         } else {
             None
@@ -383,6 +383,8 @@ impl Projection for Aitoff {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
+
+        //let pos_world_space = pos_world_space;
 
         let xyz = pos_world_space.truncate();
         let (mut theta, delta) = math::xyz_to_radec(&xyz);

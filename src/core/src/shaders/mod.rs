@@ -27,6 +27,18 @@ impl Colormap {
         }
     }
 
+    #[inline]
+    pub const fn get_list_available_colormaps() -> &'static [&'static str] {
+        &[
+            "RedTemperature",
+            "BluePastelRed",
+            "IDLCBGnBu",
+            "IDLCBYIGnBu",
+            "IDLCBBrBG",
+            "BlackWhiteLinear"
+        ]
+    }
+
     pub fn get_shader<'a>(&self, gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         let shader = match self {
             Colormap::BlackWhiteLinear => shaders.get(

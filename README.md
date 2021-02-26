@@ -72,19 +72,29 @@ In any case, please get in touch before starting a major update or rewrite.
 
 ### Building the application steps
 
+First you need to install the dependencies from the package.json
+Please run:
+
 ```bash
 npm install
 ```
 
+After that you are supposed to have the Rust toolchain installed
+to compile the core project into WebAssembly.
+Follow the steps from the Rust official website [here](https://www.rust-lang.org/learn/get-started)
+
+
+Once it's installed you can only build the project:
 ```bash
 npm run build
 ```
 
+Or build it and launch a localhost server (usually starting on port 8080 but it can be another one if 8080 is occupied):
 ```bash
 npm run serve
 ```
 
-If you just want to compile the core, from the root location:
+If you just want to check the Rust code without compiling, from the root location:
 
 ```bash
 cd src/core

@@ -102,16 +102,16 @@
 
             var self = aladin;
             document.getElementById("DSS").onclick = function() {
-                self.setImageSurvey("P/DSS2/color");
+                self.setBaseImageLayer(surveys["P/DSS2/color"]);
             };
             document.getElementById("DSS-blue").onclick = function() {
-                self.setImageSurvey("P/DSS2/blue");
+                self.setBaseImageLayer(surveys["P/DSS2/blue"]);
             };
             document.getElementById("2MASS").onclick = function() {
-                self.setImageSurvey("P/2MASS/color");
+                self.setBaseImageLayer(surveys["P/2MASS/color"]);
             };
             document.getElementById("allwise").onclick = function() {
-                self.setImageSurvey("P/allWISE/color");
+                self.setBaseImageLayer(surveys["P/allWISE/color"]);
             };
         });
     </script>

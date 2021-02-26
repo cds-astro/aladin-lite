@@ -283,6 +283,11 @@ impl SendTileToGPU {
             texture_array,
         }
     }
+
+    pub fn tex_sub(&self) {
+        self.image
+            .tex_sub_image_3d(&self.texture_array, &self.offset);
+    }
 }
 
 use futures::Future;
@@ -290,8 +295,7 @@ impl Future for SendTileToGPU {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
-        self.image
-            .tex_sub_image_3d(&self.texture_array, &self.offset);
+        self.tex_sub();
 
         Poll::Ready(())
     }

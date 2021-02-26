@@ -13,38 +13,18 @@ impl SendUniforms for UserAction {
         shader
     }
 }
-
 use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
-
-/*const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
-    -0.867_666_1,
-    -0.054_875_56,
-    0.494_109_42,
-    0.0,
-
-    -0.198_076_37,
-    -0.873_437_1,
-    -0.444_829_64,
-    0.0,
-
-    0.455_983_8,
-    -0.483_835,
-    0.746_982_2,
-    0.0,
-
-    0.0,
-    0.0,
-    0.0,
-    1.0
-);*/
 
 pub struct CameraViewPort {
     // The field of view angle
     aperture: Angle<f64>,
     center: Vector4<f64>,
     // The rotation of the camera
+    rotation_center_angle: Angle<f64>,
     w2m_rot: Rotation<f64>,
+    final_rot: Rotation<f64>,
+
     w2m: Matrix4<f64>,
     m2w: Matrix4<f64>,
     // The width over height ratio
@@ -77,8 +57,9 @@ pub struct CameraViewPort {
 
     // A reference to the WebGL2 context
     gl: WebGl2Context,
+    system: CooSystem,
 }
-
+use crate::coo_conversion::CooSystem;
 use crate::WebGl2Context;
 
 use crate::{
@@ -107,7 +88,7 @@ use crate::math;
 use crate::sphere_geometry::BoundingBox;
 use crate::time::Time;
 impl CameraViewPort {
-    pub fn new<P: Projection>(gl: &WebGl2Context) -> CameraViewPort {
+    pub fn new<P: Projection>(gl: &WebGl2Context, system: CooSystem) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
         //let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);
@@ -120,6 +101,7 @@ impl CameraViewPort {
         let moved = false;
 
         let w2m_rot = Rotation::zero();
+        let final_rot = Rotation::zero();
 
         // Get the initial size of the window
         let width = web_sys::window()
@@ -147,6 +129,7 @@ impl CameraViewPort {
 
         let is_allsky = true;
         let time_last_move = Time::now();
+        let rotation_center_angle = Angle(0.0);
 
         let camera = CameraViewPort {
             // The field of view angle
@@ -156,6 +139,9 @@ impl CameraViewPort {
             w2m_rot,
             w2m,
             m2w,
+
+            final_rot,
+            rotation_center_angle,
             // The width over height ratio
             aspect,
             // The width of the screen in pixels
@@ -184,6 +170,8 @@ impl CameraViewPort {
 
             // A reference to the WebGL2 context
             gl,
+            // coo system
+            system
         };
 
         camera
@@ -209,6 +197,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -266,6 +255,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -273,10 +263,7 @@ impl CameraViewPort {
     }
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
-        //let j2000_to_gal: Rotation<f32> = (&J2000_TO_GALACTIC).into();
-
         // Rotate the axis:
-        //let axis = (J2000_TO_GALACTIC.invert().unwrap() * Vector4::new(axis.x, axis.y, axis.z, 1.0)).truncate().normalize();
         let drot = Rotation::from_axis_angle(&(axis), angle);
         self.w2m_rot = drot * self.w2m_rot;
 
@@ -303,9 +290,22 @@ impl CameraViewPort {
         self.vertices._type()
     }
 
+    pub fn set_coo_system<P: Projection>(&mut self, system: CooSystem) {
+        self.system = system;
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+    }
+
     // Accessors
     pub fn get_rotation(&self) -> &Rotation<f64> {
         &self.w2m_rot
+    }
+
+    // This rotation is the final rotation, i.e. a composite of
+    // two rotations:
+    // - The current rotation of the sphere
+    // - The rotation around the center axis of a specific angle
+    pub fn get_final_rotation(&self) -> &Rotation<f64> {
+        &self.final_rot
     }
 
     pub fn get_w2m(&self) -> &cgmath::Matrix4<f64> {
@@ -332,10 +332,6 @@ impl CameraViewPort {
         self.vertices.get_vertices()
     }
 
-    /*pub fn get_radius(&self) -> Option<&Angle<f32>> {
-        self.vertices.get_radius()
-    }
-    */
     pub fn get_screen_size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)
     }
@@ -353,13 +349,6 @@ impl CameraViewPort {
         self.moved = false;
     }
 
-    /*pub fn center_model_pos<P: Projection>(&self) -> Vector4<f32> {
-        P::clip_to_model_space(
-            &Vector2::new(0_f32, 0_f32),
-            self
-        ).unwrap()
-    }*/
-
     pub fn get_aperture(&self) -> Angle<f64> {
         self.aperture
     }
@@ -375,23 +364,6 @@ impl CameraViewPort {
         self.vertices.get_bounding_box()
     }
 
-    // Useful methods for the grid purpose
-    /*pub fn intersect_meridian<LonT: Into<Rad<f32>>>(&self, lon: LonT) -> bool {
-        self.fov.intersect_meridian(lon)
-    }
-
-    pub fn intersect_parallel<LatT: Into<Rad<f32>>>(&self, lat: LatT) -> bool {
-        self.fov.intersect_parallel(lat)
-    }*/
-
-    // Get the grid containing the meridians and parallels
-    // that are inside the grid
-    // TODO: move FieldOfViewType out of the FieldOfView, make it intern to the grid
-    // The only thing to do is to recompute the grid whenever the field of view changes
-    /*pub fn get_great_circles_inside(&self) -> &FieldOfViewType {
-        self.fov.get_great_circles_intersecting()
-    }*/
-
     pub fn is_allsky(&self) -> bool {
         self.is_allsky
     }
@@ -399,27 +371,52 @@ impl CameraViewPort {
     pub fn get_time_of_last_move(&self) -> Time {
         self.time_last_move
     }
+
+    pub fn get_system(&self) -> &CooSystem {
+        &self.system
+    }
+
+    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>) {
+        self.rotation_center_angle = theta;
+        self.update_rot_matrices::<P>();
+    }
 }
 use cgmath::Matrix;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {
-        self.w2m = (&self.w2m_rot).into();
-        //self.w2m = self.w2m * J2000_TO_GALACTIC;
+        self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
-        self.last_user_action = UserAction::Moving;
-
-        self.moved = true;
-
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture);
+        // Update the center with the new rotation
         self.update_center::<P>();
+
+        // Rotate the fov vertices
+        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+
         self.time_last_move = Time::now();
+        self.last_user_action = UserAction::Moving;
+        self.moved = true;
     }
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        self.center = P::clip_to_model_space(&Vector2::new(0.0, 0.0), self).unwrap();
+        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
+        // Change from galactic to icrs if necessary
+
+        // Change to model space
+        self.center = self.w2m * center_world_space;
+        
+        let axis = &self.center.truncate();
+        let center_rot = Rotation::from_axis_angle(
+            axis, self.rotation_center_angle
+        );
+
+        // Re-update the model matrix to take into account the rotation
+        // by theta around the center axis
+        self.final_rot = center_rot * self.w2m_rot;
+        self.w2m = (&self.final_rot).into();
+        self.m2w = self.w2m.transpose();
     }
 }
 
@@ -429,6 +426,7 @@ impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniforms_from(&self.last_user_action)
+            .attach_uniform("to_icrs", &self.system.to_icrs_j2000::<f32>())
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip

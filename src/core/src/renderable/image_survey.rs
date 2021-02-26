@@ -1035,58 +1035,56 @@ impl HiPS for SimpleHiPS {
     }
 }
 
-enum ImageSurveyIdx {
-    Composite {
-        names: Vec<String>,
-        colors: Vec<Color>,
-    },
-    None,
+#[derive(Debug)]
+struct ImageSurveyLayer {
+    opacity: f32,
+    names: Vec<String>,
+    colors: Vec<Color>,
+    name_most_precised_survey: String,
 }
 
-impl ImageSurveyIdx {
+/*impl ImageSurveyLayer {
     fn contains(&self, name: &str) -> bool {
-        match self {
-            ImageSurveyIdx::Composite {
-                names: cur_names, ..
-            } => cur_names.iter().any(|cur_name| cur_name == name),
-            ImageSurveyIdx::None => false,
-        }
+        self.names.iter().any(|cur_name| cur_name == name)
     }
-}
+}*/
 
-const MAX_NUM_LAYERS: usize = 2;
+type LayerName = String;
+//const MAX_NUM_LAYERS: usize = 2;
 use crate::renderable::view_on_surveys::HEALPixCellsInView;
 pub struct ImageSurveys {
     surveys: HashMap<String, ImageSurvey>,
-    layers: [ImageSurveyIdx; MAX_NUM_LAYERS],
+    layers: HashMap<LayerName, ImageSurveyLayer>,
     // opacity of the primary layer
     opacity: f32,
 
     raytracer: RayTracer,
-
     gl: WebGl2Context,
 }
+
 use crate::buffer::Tiles;
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 const APERTURE_LIMIT: f32 = 110.0;
 use crate::Resources;
+use crate::coo_conversion::CooSystem;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
+        system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
-        let layers = [ImageSurveyIdx::None, ImageSurveyIdx::None];
+        let layers = HashMap::new();
 
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs);
+        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs, system);
 
         let opacity = 0.5;
         let gl = gl.clone();
@@ -1106,9 +1104,10 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
+        system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
     }
 
     pub fn set_longitude_reversed<P: Projection>(
@@ -1117,9 +1116,10 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         rs: &Resources,
+        system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
     }
 
     pub fn set_overlay_opacity(&mut self, opacity: f32) {
@@ -1141,11 +1141,11 @@ impl ImageSurveys {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
-        let primary_layer = &self.layers[0];
-        match &primary_layer {
-            ImageSurveyIdx::Composite { names, colors } => {
+        for (_, ImageSurveyLayer { names, colors, opacity, .. }) in self.layers.iter() {
+            if opacity > &0.0 {
+                self.gl.disable(WebGl2RenderingContext::BLEND);
                 // Add the first hips on top of the background
-                let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
+                /*let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
                 survey.draw::<P>(
                     &self.raytracer,
                     shaders,
@@ -1162,11 +1162,20 @@ impl ImageSurveys {
                 for (name, color) in names.iter().skip(1).zip(colors.iter().skip(1)) {
                     let survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
+                }*/
+                for (name, color) in names.iter().zip(colors.iter()) {
+                    let survey = self.surveys.get_mut(name).unwrap();
+                    survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
+
+                    // Enable the blending for the following HiPSes
+                    self.gl.enable(WebGl2RenderingContext::BLEND);
+                    self.gl
+                        .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
                 }
             }
-            _ => (),
         }
-        self.gl.enable(WebGl2RenderingContext::BLEND);
+
+        //self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
@@ -1174,69 +1183,123 @@ impl ImageSurveys {
             WebGl2RenderingContext::ONE,
         );
 
-        if self.opacity > 0.0 {
-            // Overlay
-            let overlay_layer = &self.layers[1];
-            match &overlay_layer {
-                ImageSurveyIdx::Composite { names, colors } => {
-                    // All the hipses are plotted blended with the primary one
-                    for (name, color) in names.iter().zip(colors.iter()) {
-                        let survey = self.surveys.get_mut(name).unwrap();
-                        survey.draw::<P>(&self.raytracer, shaders, camera, color, self.opacity);
-                    }
-                }
-                // If no HiPS are overlaying we do nothing
-                _ => (),
-            }
-        }
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
 
     // Return the layer idx in which the survey is contained
-    fn contained_in_any_layer(&self, id: &str) -> Option<HashSet<usize>> {
-        let mut layer_indices = HashSet::new();
-        for (layer_idx, layer) in self.layers.iter().enumerate() {
+    /*fn contained_in_any_layer(&self, id: &str) -> Option<HashSet<String>> {
+        let mut layer_names = HashSet::new();
+        for (name, layer) in self.layers.iter() {
             if layer.contains(id) {
-                layer_indices.insert(layer_idx);
+                layer_names.insert(name.clone());
             }
         }
 
-        if layer_indices.is_empty() {
+        if layer_names.is_empty() {
             None
         } else {
-            Some(layer_indices)
+            Some(layer_names)
         }
-    }
+    }*/
 
-    pub fn add_composite_surveys(
+    pub fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
-        layer_idx: usize,
     ) -> Result<Vec<String>, JsValue> {
+        // retrieve the max depth of the surveys composing
+        // the layer
+
+        /*let mut max_depth = 0;
+        let mut name_most_precised_survey = String::new();
         let (surveys_url, colors): (Vec<_>, Vec<_>) = hipses
             .iter()
-            .map(|hips| (hips.properties.url.clone(), hips.color()))
-            .unzip();
+            .map(|hips| {
+                let cur_depth = hips.properties.max_order;
+                let name = hips.properties.url.clone();
+                if max_depth < cur_depth {
+                    max_depth = cur_depth;
+                    name_most_precised_survey = name.clone();
+                }
 
-        let layer = &self.layers[layer_idx];
-        match layer {
-            ImageSurveyIdx::None => {
-                self.layers[layer_idx] = ImageSurveyIdx::Composite {
-                    names: surveys_url,
-                    colors,
-                };
+                (name, hips.color())
+            })
+            .unzip();
+        */
+
+        let mut layers = HashMap::new();
+        let mut new_survey_ids = Vec::new();
+
+        let mut current_needed_surveys = HashSet::new();
+        for hips in hipses.into_iter() {
+            let layer_name = &hips.layer;
+            let url = hips.properties.url.clone();
+
+            if !layers.contains_key(layer_name) {
+                layers.insert(
+                    layer_name.clone(),
+                    ImageSurveyLayer {
+                        names: vec![url.clone()],
+                        colors: vec![hips.color()],
+                        opacity: 1.0,
+                        name_most_precised_survey: url.clone()
+                    }
+                );
+            } else {
+                let layer = layers.get_mut(layer_name).unwrap();
+
+                if layer.names.contains(&url) {
+                    continue;
+                } else {
+                    layer.names.push(url.clone());
+                    layer.colors.push(hips.color());
+
+                    // TODO update most precised survey name
+                }
             }
-            ImageSurveyIdx::Composite {
-                names: cur_names, ..
-            } => {
-                for replaced_survey_name in cur_names.iter() {
-                    // ensure cur_idx is not contained in any other layers
-                    if let Some(idx) = self.contained_in_any_layer(replaced_survey_name) {
+
+            // Add the new surveys
+            if !self.surveys.contains_key(&url) {
+                // create the survey
+                let survey = hips.create(gl, camera, self, exec.clone())?;
+                crate::log(&format!("new survey {:?}", survey.textures.config));
+                self.surveys.insert(url.clone(), survey);
+                new_survey_ids.push(url.clone());
+            }
+
+            current_needed_surveys.insert(url);
+        }
+        self.layers = layers;
+
+        // loop over the surveys to remove the one that are not needed anymore
+        let mut surveys_to_remove = vec![];
+        for (name, _) in self.surveys.iter() {
+            if !current_needed_surveys.contains(name) {
+                surveys_to_remove.push(name.clone());
+            }
+        }
+
+        for survey_to_remove in &surveys_to_remove {
+            self.surveys.remove(survey_to_remove);
+        }
+        /*self.surveys = self.surveys.iter()
+            .filter(|(name,_)| {
+                if current_needed_surveys.contains(name) {
+                    true
+                } else {
+                    false
+                }
+            })
+            .collect();*/
+
+
+            /*if let Some(layer) = self.layers.get(layer_name) {
+                for replaced_survey_name in layer.names.iter() {
+                    if let Some(layer_names) = self.contained_in_any_layer(replaced_survey_name) {
                         // if the survey was only contained in the current layer
-                        if idx.len() == 1 && idx.contains(&layer_idx) {
+                        if layer_names.len() == 1 && layer_names.contains(&layer_name.clone()) {
                             // do not remove it we still need it
                             if !surveys_url.contains(replaced_survey_name) {
                                 self.surveys.remove(replaced_survey_name);
@@ -1247,43 +1310,39 @@ impl ImageSurveys {
                         self.surveys.remove(replaced_survey_name);
                     }
                 }
-
-                self.layers[layer_idx] = ImageSurveyIdx::Composite {
-                    names: surveys_url,
-                    colors,
-                };
             }
-        }
+        
 
-        // If it is a new survey, insert it
-        let mut new_survey_ids = Vec::new();
-        for hips in hipses.into_iter() {
-            let url = hips.properties.url.clone();
-            if !self.surveys.contains_key(&url) {
-                // create the survey
-                let survey = hips.create(gl, camera, self, exec.clone())?;
-
-                self.surveys.insert(url.clone(), survey);
-                new_survey_ids.push(url);
+        let opacity = 1.0;
+        self.layers.insert(
+            layer_name,
+            ImageSurveyLayer {
+                names: surveys_url,
+                colors,
+                opacity,
+                name_most_precised_survey
             }
-        }
+        );*/
+
+        crate::log(&format!("layers {:?}", self.layers));
+        crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
 
         Ok(new_survey_ids)
     }
 
-    pub fn remove_overlay(&mut self) {
+    /*pub fn remove_overlay(&mut self) {
         let replaced_survey_names: Vec<String> = {
             let layer = &mut self.layers[1];
             match layer {
-                ImageSurveyIdx::None => {
-                    *layer = ImageSurveyIdx::None;
+                ImageSurveyLayer::None => {
+                    *layer = ImageSurveyLayer::None;
                     vec![]
                 }
-                ImageSurveyIdx::Composite {
+                ImageSurveyLayer::Composite {
                     names: cur_names, ..
                 } => {
                     let cur_names = cur_names.clone();
-                    *layer = ImageSurveyIdx::None;
+                    *layer = ImageSurveyLayer::None;
                     cur_names
                 }
             }
@@ -1296,7 +1355,7 @@ impl ImageSurveys {
                 self.surveys.remove(replaced_survey_name);
             }
         }
-    }
+    }*/
 
     pub fn contains(&self, url: &str) -> bool {
         self.surveys.contains_key(url)
@@ -1306,15 +1365,13 @@ impl ImageSurveys {
         if self.surveys.is_empty() {
             None
         } else {
-            let primary_layer = &self.layers[0];
-
-            match primary_layer {
-                ImageSurveyIdx::Composite { names, .. } => {
-                    let name = names.first().unwrap();
-                    Some(self.surveys.get(name).unwrap().get_view())
-                }
-                ImageSurveyIdx::None => None,
-            }
+            let (_, layer) = &self.layers.iter().next().unwrap();
+            let name = &layer.name_most_precised_survey;
+            Some(
+                self.surveys.get(name)
+                    .unwrap()
+                    .get_view()
+            )
         }
     }
 

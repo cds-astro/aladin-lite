@@ -93,6 +93,12 @@ impl<S> LonLatT<S>
 where
     S: BaseFloat,
 {
+    /// LonLat constructor
+    ///
+    /// # Arguments
+    ///
+    /// * ``lon`` - Longitude
+    /// * ``lat`` - Latitude
     pub fn new(lon: Angle<S>, lat: Angle<S>) -> LonLatT<S> {
         LonLatT(lon, lat)
     }
@@ -162,11 +168,13 @@ where
         let rad = Rad(self.x.atan2(self.z));
         Angle::new(rad)
     }
+
     #[inline]
     fn lat(&self) -> Angle<S> {
         let rad = Rad(self.y.atan2((self.x * self.x + self.z * self.z).sqrt()));
         Angle::new(rad)
     }
+
     #[inline]
     fn lonlat(&self) -> LonLatT<S> {
         let lon = Rad(self.x.atan2(self.z));

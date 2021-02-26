@@ -7,6 +7,7 @@ in vec2 pos_clip;
 uniform vec4 color;
 uniform mat4 model;
 uniform mat4 inv_model;
+uniform mat4 to_icrs;
 uniform float czf;
 
 uniform float meridians[20];
@@ -49,7 +50,7 @@ float d_isolon(vec3 pos_model, float theta) {
     float d = abs(dot(n, pos_model));
 
     vec3 h_model = normalize(pos_model - n*d);
-    vec3 h_world = vec3(inv_model * vec4(h_model, 1.f));
+    vec3 h_world = vec3(inv_model * to_icrs * vec4(h_model, 1.f));
     h_world = check_inversed_longitude(h_world);
 
     // Project to screen x and h and compute the distance
@@ -113,7 +114,7 @@ void main() {
     vec3 pos_world = clip2world_gnomonic(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = normalize(vec3(model * vec4(pos_world, 1.f)));
+    vec3 pos_model = normalize(vec3(transpose(to_icrs) * model * vec4(pos_world, 1.f)));
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);
 }

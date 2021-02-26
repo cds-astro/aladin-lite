@@ -54,6 +54,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { loadShaders } from './Shaders.js';
 // Import kernel image
 import kernel from '../core/img/kernel.png';
+import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 
 export let View = (function() {
 
@@ -439,14 +440,20 @@ export let View = (function() {
             catch(err) {
                 return;
             }
-            var radec = [];
+            var radec;
+            /*if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+                radec = view.aladin.webglAPI.Gal2J2000(lonlat[0], lonlat[1]);
+            } else {*/
+                radec = lonlat;
+            //}
+            //var radec = view.aladin.webglAPI.;
             // convert to J2000 if needed
-            if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
+            /*if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
                 radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
             }
             else {
                 radec = lonlat;
-            }
+            }*/
 
             view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
@@ -901,15 +908,22 @@ export let View = (function() {
         if (!view.projection) {
             return;
         }
-        var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
+        //var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
+
         var lonlat;
         try {
-            lonlat = view.projection.unproject(xy.x, xy.y);
+            lonlat = view.aladin.webglAPI.screenToWorld(x, y);
+            //lonlat = view.projection.unproject(xy.x, xy.y);
+        } catch(err) {
         }
-        catch(err) {
-        }
+        
         if (lonlat) {
-            view.location.update(lonlat.ra, lonlat.dec, view.cooFrame, isViewCenterPosition);
+            // Convert it to galactic
+            if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+                lonlat = view.aladin.webglAPI.J20002Gal(lonlat[0], lonlat[1]);
+            }
+
+            view.location.update(lonlat[0], lonlat[1], view.cooFrame, isViewCenterPosition);
         }
     }
     
@@ -963,7 +977,7 @@ export let View = (function() {
         var now = Date.now();
         var dt = now - this.prev;
 
-        this.aladin.webglAPI.update(dt);
+        this.aladin.webglAPI.update(dt, this.needRedraw);
         // This is called at each frame
         // Better way is to give this function
         // to Rust so that the backend executes it
@@ -977,7 +991,7 @@ export let View = (function() {
             var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
             (typeof callbackFn === 'function') && callbackFn();
         }
-        this.aladin.webglAPI.render();
+        this.aladin.webglAPI.render(this.needRedraw);
 
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
@@ -1315,7 +1329,7 @@ export let View = (function() {
                 dec: pos_world[1]
             };
             var lonlat = [];
-            if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
+            /*if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
                 if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
                     lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
                 }
@@ -1325,7 +1339,8 @@ export let View = (function() {
             }
             else {
                 lonlat = [radec.ra, radec.dec];
-            }
+            }*/
+            lonlat = [radec.ra, radec.dec];
             spatialVector.set(lonlat[0], lonlat[1]);
 
             var radius = this.fov*0.5*this.ratio;
@@ -1353,6 +1368,10 @@ export let View = (function() {
         return pixList;
     };
     
+    View.prototype.setAngleRotation = function(theta) {
+
+    }
+
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function(norder, frameSurvey) {
         if (! frameSurvey && this.imageSurvey) {
@@ -1731,8 +1750,8 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback) {
-        if (! overlayImageSurvey) {
+    View.prototype.setOverlayImageSurvey = async function(idOrUrl) {
+        /*if (! overlayImageSurvey) {
             this.overlayImageSurvey = null;
             this.requestRedraw();
             return;
@@ -1768,7 +1787,13 @@ export let View = (function() {
             if (callback) {
                 callback();
             }
-        });
+        });*/
+        if (!idOrUrl) {
+            return;
+        }
+
+        let overlaySurvey = await new HpxImageSurvey(idOrUrl);
+        this.aladin.webglAPI.setOverlayHiPS(overlaySurvey);
     };
 
     View.prototype.setUnknownSurveyIfNeeded = function() {
@@ -1777,32 +1802,40 @@ export let View = (function() {
             unknownSurveyId = undefined;
         }
     }
-    
+
+    /*View.prototype.addImageSurveyLayer = function(layer) {
+        if (!(layer instanceof ImageSurveyLayer)) {
+            throw "Except an ImageSurveyLayer object";
+        }
+
+        let surveys = [];
+        for (let survey of layer.getSurveys()) {
+            surveys.push(survey);
+        }
+        console.log("set layer: ", layer);
+        this.aladin.webglAPI.addImageSurveyLayer(layer.name, surveys);
+    };*/
+
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.addImageSurvey = async function(idOrUrl) {
-        if (!idOrUrl) {
-            return;
-        }
-        
-        let survey = await new HpxImageSurvey(idOrUrl);
+    View.prototype.addImageSurvey = function(survey, layer) {
         // We wait for the HpxImageSurvey to complete
         // Register to the view
-        this.imageSurvey.set(idOrUrl, survey);
+        const url = survey.properties.url;
+        survey.layer = layer;
+
+        this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
-    View.prototype.setImageSurvey = async function(idOrUrl) {
-        if (!idOrUrl) {
-            return;
-        }
-        
-        let survey = await new HpxImageSurvey(idOrUrl);
-        // We wait for the HpxImageSurvey to complete
-        // Register to the view
+    View.prototype.setImageSurvey = function(survey, layer) {
         this.imageSurvey = new Map();
-        this.imageSurvey.set(idOrUrl, survey);
+
+        const url = survey.properties.url;
+        survey.layer = layer;
+
+        this.imageSurvey.set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
@@ -1812,8 +1845,8 @@ export let View = (function() {
         for (let survey of this.imageSurvey.values()) {
             surveys.push(survey);
         }
-        //console.log(surveys);
-        this.aladin.webglAPI.setHiPS(surveys);
+
+        this.aladin.webglAPI.setImageSurveys(surveys);
     };
 
     View.prototype.requestRedraw = function() {
@@ -1852,15 +1885,22 @@ export let View = (function() {
         var oldCooFrame = this.cooFrame;
         this.cooFrame = cooFrame;
         // recompute viewCenter
+        console.log("change frame")
         if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL && this.cooFrame.system != oldCooFrame.system) {
             var lb = CooConversion.J2000ToGalactic([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1]; 
+
+            const GAL = Aladin.wasmLibs.webgl.GALCooSys();
+            this.aladin.webglAPI.setCooSystem(GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000 && this.cooFrame.system != oldCooFrame.system) {
             var radec = CooConversion.GalacticToJ2000([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = radec[0];
-            this.viewCenter.lat = radec[1]; 
+            this.viewCenter.lat = radec[1];
+
+            const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
+            this.aladin.webglAPI.setCooSystem(ICRSJ2000);
         }
 
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
@@ -1903,19 +1943,22 @@ export let View = (function() {
         options = options || {};
         ra = parseFloat(ra);
         dec = parseFloat(dec);
+
         if (isNaN(ra) || isNaN(dec)) {
             return;
         }
-        if (this.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
+        //if (this.cooFrame.system==CooFrameEnum.SYSTEMS.J2000) {
             this.viewCenter.lon = ra;
             this.viewCenter.lat = dec;
-        }
-        else if (this.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
+        //}
+        /*else if (this.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
             var lb = CooConversion.J2000ToGalactic([ra, dec]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1];
-        }
+        }*/
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        console.log(this.viewCenter)
+
         if (this.fov > 30.0 || options.forceAnimation) {
             this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
         } else {
@@ -1924,9 +1967,9 @@ export let View = (function() {
         
         this.forceRedraw();
         this.requestRedraw();
+
         var self = this;
         setTimeout(function() {self.refreshProgressiveCats();}, 1000);
-
     };
     View.prototype.makeUniqLayerName = function(name) {
         if (! this.layerNameExists(name)) {

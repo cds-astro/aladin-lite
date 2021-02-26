@@ -53,6 +53,7 @@ import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
+import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 
 export let Aladin = (function () {
 
@@ -325,13 +326,18 @@ export let Aladin = (function () {
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
         if (options.survey) {
-            if (typeof options.survey === Array) {
-                options.survey.forEach((survey) => {
-                    this.addImageSurvey(survey);
-                });
-            } else {
-                this.addImageSurvey(options.survey);
-            }
+            (async () => {
+                if (typeof options.survey === Array) {
+                    options.survey.forEach(async (rootUrlOrId) => {
+                        const survey = await Aladin.createImageSurvey(rootUrlOrId);
+                        this.addImageSurvey(survey, "base");
+                    });
+                } else {
+                    const survey = await Aladin.createImageSurvey(options.survey, "base");
+                    this.addImageSurvey(survey, "base");
+                }
+            })();
+
         }
         this.view.showCatalog(options.showCatalog);
 
@@ -490,6 +496,10 @@ export let Aladin = (function () {
         };
     };
 
+    Aladin.prototype.setAngleRotation = function (theta) {
+        this.view.setAngleRotation(theta)
+    }
+
     Aladin.prototype.getOptionsFromQueryString = function () {
         var options = {};
         var requestedTarget = $.urlParam('target');
@@ -635,8 +645,9 @@ export let Aladin = (function () {
 
             coo.parse(targetName);
             var lonlat = [coo.lon, coo.lat];
-            if (this.view.cooFrame == CooFrameEnum.GAL) {
-                lonlat = CooConversion.GalacticToJ2000(lonlat);
+            // Convert it to icrs if the coo system is galactic
+            if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+                lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
             }
             this.view.pointTo(lonlat[0], lonlat[1]);
 
@@ -647,8 +658,10 @@ export let Aladin = (function () {
             var self = this;
             Sesame.resolve(targetName,
                 function (data) { // success callback
+                    // Location given in icrs at J2000
                     var ra = data.Target.Resolver.jradeg;
                     var dec = data.Target.Resolver.jdedeg;
+
                     self.view.pointTo(ra, dec);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());
@@ -911,43 +924,51 @@ export let Aladin = (function () {
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
     };
-
-    // @oldAPI
-    Aladin.prototype.createImageSurvey = function(rootURLOrHiPSDefinition, options) {
-        return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-    };
-
+    /*Aladin.prototype.addImageSurveyLayer = function (layer) {
+        console.log("add layer", layer)
+        this.view.addImageSurveyLayer(layer)
+    };*/
 
     // @api
-    Aladin.prototype.getBaseImageLayers = function () {
+    /*Aladin.prototype.getBaseImageLayers = function () {
         return this.view.imageSurvey;
-    };
+    };*/
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.addImageSurvey = function (rootURLOrId) {
-        this.view.addImageSurvey(rootURLOrId);
-        /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        if (this.options.log) {
-            var id = imageSurvey;
-            if (typeof imageSurvey !== "string") {
-                id = imageSurvey.rootUrl;
-            }
 
-            Logger.log("changeImageSurvey", id);
-        }*/
+    Aladin.createImageSurvey = async function(rootUrlOrId) {
+        const survey = await HpxImageSurvey.create(rootUrlOrId);
+        return survey;
+    }
+
+    Aladin.prototype.setImageSurvey = function (survey, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+
+        this.view.setImageSurvey(survey, layerName);
     };
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    // @api
-    // @old
-    Aladin.prototype.setImageSurvey = function (rootURLOrId) {
-        this.view.setImageSurvey(rootURLOrId);
+    Aladin.prototype.addImageSurvey = function (survey, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+        this.view.addImageSurvey(survey, layerName);
     };
 
-    // @api
-    Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
 
+    // @api
+    Aladin.prototype.setBaseImageLayer = function (survey) {
+        this.view.setImageSurvey(survey, 'base');
+    };
+    /*
     // @api
     Aladin.prototype.getOverlayImageLayer = function () {
         return this.view.overlayImageSurvey;
@@ -956,7 +977,7 @@ export let Aladin = (function () {
     Aladin.prototype.setOverlayImageLayer = function (imageSurvey, callback) {
         this.view.setOverlayImageSurvey(imageSurvey, callback);
     };
-
+    */
 
     Aladin.prototype.increaseZoom = function (step) {
         //if (!step) {
@@ -1315,22 +1336,21 @@ export let Aladin = (function () {
             return undefined;
         }
 
-        var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
+        //var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
 
         var radec;
         try {
-            radec = this.view.projection.unproject(xy.x, xy.y);
+            //radec = this.view.projection.unproject(xy.x, xy.y);
+            radec = this.view.aladin.webglAPI.screenToWorld(x, y);
         }
         catch (e) {
             return undefined;
         }
 
         var res;
-        if (this.view.cooFrame == CooFrameEnum.GAL) {
-            res = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
-        }
-        else {
-            res = [radec.ra, radec.dec];
+        // Convert it to icrs j2000
+        if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+            res = this.view.aladin.webglAPI.Gal2J2000(radec[0], radec[1]);
         }
 
         return res;
@@ -1455,11 +1475,11 @@ A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
 
-//@API
+/*//@API
 // TODO : lecture de properties
 A.imageLayer = function (rootURLOrHiPSDefinition, options) {
     return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-};
+};*/
 
 // @API
 A.source = function (ra, dec, data, options) {
@@ -1515,6 +1535,15 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
 A.graphicOverlay = function (options) {
     return new Overlay(options);
 };
+
+// Create a new image survey layer
+//
+// One can attach multiple surveys to 1 layer.
+// Those survey colors are blended together.
+// Layers are overlaid to each other
+A.imageSurveyLayer = function(name) {
+    return new ImageSurveyLayer(name);
+}
 
 // @API
 A.catalog = function (options) {
@@ -1635,7 +1664,12 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             }
             var label = options.label || "FITS image";
             var meta = response.data.meta;
-            self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, { imgFormat: 'png' }));
+            console.log(response.data.url);
+            (async () => {
+                let survey = await Aladin.createImageSurvey(response.data.url);
+                console.log("sdfsdf", survey);
+            })();
+            /*self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, { imgFormat: 'png' }));
             var transparency = (options && options.transparency) || 1.0;
             self.getOverlayImageLayer().setAlpha(transparency);
 
@@ -1647,7 +1681,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
                 self.gotoRaDec(meta.ra, meta.dec);
                 self.setFoV(meta.fov);
             }
-
+            */
         }
     });
 

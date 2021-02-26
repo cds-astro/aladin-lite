@@ -393,7 +393,7 @@ export let MOC = (function() {
             ra = corners[2*k];
             dec = corners[2*k + 1];
             // need for frame transformation ?
-            if (surveyFrame && surveyFrame.system != viewFrame.system) {
+            /*if (surveyFrame && surveyFrame.system != viewFrame.system) {
                 if (surveyFrame.system == CooFrameEnum.SYSTEMS.J2000) {
                     var radec = CooConversion.J2000ToGalactic([ra, dec]);
                     lon = radec[0];
@@ -408,7 +408,9 @@ export let MOC = (function() {
             else {
                 lon = ra;
                 lat = dec;
-            }
+            }*/
+            lon = ra;
+            lat = dec;
 
             //cornersXY[k] = projection.project(lon, lat);
             cornersXYView[k] = view.aladin.webglAPI.worldToScreen(lon, lat);

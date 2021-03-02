@@ -172,17 +172,38 @@ impl App {
             },
             color: HiPSColor::Color,
         };*/
+        let panstarrs = SimpleHiPS {
+            layer: String::from("base"),
+            properties: HiPSProperties {
+                url: String::from("http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
+        
+                max_order: 11,
+                frame: Frame { label: "J2000".to_string(), system: "J2000".to_string() },
+                tile_size: 512,
+                format: {
+                    HiPSFormat::FITSImage {
+                        bitpix: 16,
+                    }
+                },
+                min_cutout: Some(-0.15),
+                max_cutout: Some(5.0),
+            },
+            color: HiPSColor::Grayscale2Colormap {
+                colormap: String::from("RedTemperature"),
+                transfer: String::from("asinh")
+            },
+        };
         let system = CooSystem::ICRSJ2000;
         let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
+        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        //surveys.add_image_survey_layer(vec![sdss], &gl, &camera, exec.clone(), url)?;
+        surveys.set_image_surveys(vec![panstarrs], &gl, &camera, exec.clone())?;
 
         let time_start_blending = Time::now();
 

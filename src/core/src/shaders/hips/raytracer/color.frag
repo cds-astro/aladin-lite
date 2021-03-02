@@ -23,7 +23,7 @@ uniform Tile textures_tiles[12];
 uniform float current_time; // current time in ms
 struct TileColor {
     Tile tile;
-    vec3 color;
+    vec4 color;
     bool found;
 };
 
@@ -47,7 +47,7 @@ TileColor get_tile_color(vec3 pos) {
     Tile tile = textures_tiles[idx];
 
     if (tile.empty == 1) {
-        return TileColor(tile, vec3(0.0), true);
+        return TileColor(tile, vec4(0.0), true);
     } else {
         int idx_texture = tile.texture_idx >> 6;
         int off = tile.texture_idx & 0x3F;
@@ -57,7 +57,7 @@ TileColor get_tile_color(vec3 pos) {
         vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
         vec3 UV = vec3(offset, float(idx_texture));
 
-        vec3 color = get_color_from_texture(UV).rgb;
+        vec4 color = get_color_from_texture(UV);
         return TileColor(tile, color, true);
     }
 }
@@ -70,5 +70,6 @@ void main() {
 
     // Get the HEALPix cell idx and the uv in the texture
     TileColor current_tile = get_tile_color(frag_pos);
-    out_frag_color = vec4(current_tile.color, opacity);
+    float pixel_transparency = current_tile.color.a;
+    out_frag_color = vec4(current_tile.color.rgb, opacity * pixel_transparency);
 }

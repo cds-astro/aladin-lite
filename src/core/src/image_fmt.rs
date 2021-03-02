@@ -79,10 +79,13 @@ impl FITS {
                 WebGl2RenderingContext::RED_INTEGER,
                 WebGl2RenderingContext::UNSIGNED_BYTE,
             ),
-            WebGl2RenderingContext::R16I => (
-                WebGl2RenderingContext::RED_INTEGER,
-                WebGl2RenderingContext::SHORT,
-            ),
+            WebGl2RenderingContext::R16I => {
+                crate::log("inazer");
+                (
+                    WebGl2RenderingContext::RED_INTEGER,
+                    WebGl2RenderingContext::SHORT,
+                )
+            },
             WebGl2RenderingContext::R32I => (
                 WebGl2RenderingContext::RED_INTEGER,
                 WebGl2RenderingContext::INT,

@@ -325,6 +325,7 @@ impl Color {
             }
             Color::Grayscale2Color { .. } => {
                 if integer_tex {
+                    crate::log("OK panstarrs");
                     P::get_raytracer_shader_gray2color_integer(gl, shaders)
                 } else {
                     P::get_raytracer_shader_gray2color(gl, shaders)
@@ -961,7 +962,7 @@ impl Draw for ImageSurvey {
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity);
-            //crate::log("raster");
+
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
                 //WebGl2RenderingContext::LINES,
@@ -1088,7 +1089,7 @@ impl ImageSurveys {
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs, system);
 
-        let opacity = 0.5;
+        let opacity = 1.0;
         let gl = gl.clone();
 
         let mut ordered_layer_names = vec![];
@@ -1145,27 +1146,35 @@ impl ImageSurveys {
         }
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
-        self.gl.blend_func(
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE
-        );
 
         let mut idx_survey = 0;
         for (layer_idx, layer_name) in self.ordered_layer_names.iter().enumerate() {
             let ImageSurveyLayer { names, colors, opacity, .. } = &self.layers[layer_name];
 
+            if layer_idx == 0 {
+                // The base layer
+                self.gl.blend_func(
+                    WebGl2RenderingContext::ONE,
+                    WebGl2RenderingContext::ONE
+                );
+            } else {
+                // The following layers
+                self.gl.blend_func_separate(
+                    WebGl2RenderingContext::SRC_ALPHA,
+                    WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+                    WebGl2RenderingContext::ONE,
+                    WebGl2RenderingContext::ONE,
+                );
+            }
+
             if opacity > &0.0 {
-                for (name, color)) in names.iter().zip(colors.iter()) {
+                for (name, color) in names.iter().zip(colors.iter()) {
                     // Enable the blending for the following HiPSes
-                    if layer_idx == 1 {
+                    if idx_survey == 0 {
+                        // The very first survey has the blending disabled
+                        self.gl.disable(WebGl2RenderingContext::BLEND);
+                    } else if idx_survey == 1 {
                         self.gl.enable(WebGl2RenderingContext::BLEND);
-                    } else {
-                        self.gl.blend_func_separate(
-                            WebGl2RenderingContext::SRC_ALPHA,
-                            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-                            WebGl2RenderingContext::ONE,
-                            WebGl2RenderingContext::ONE,
-                        );
                     }
 
                     let survey = self.surveys.get_mut(name).unwrap();
@@ -1173,46 +1182,15 @@ impl ImageSurveys {
 
                     idx_survey += 1;
                 }
-                // Add the first hips on top of the background
-                /*let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
-                survey.draw::<P>(
-                    &self.raytracer,
-                    shaders,
-                    camera,
-                    colors.first().unwrap(),
-                    1.0,
-                );
-
-                // Enable the blending for the following HiPSes
-                self.gl.enable(WebGl2RenderingContext::BLEND);
-                self.gl
-                    .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-
-                for (name, color) in names.iter().skip(1).zip(colors.iter().skip(1)) {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-                }*/
-                if layer_name == "base" {
-
-                } else {
-
-
-                    for (name, color) in names.iter().zip(colors.iter()) {
-                        let survey = self.surveys.get_mut(name).unwrap();
-                        survey.draw::<P>(&self.raytracer, shaders, camera, color, *opacity);
-                    }
-                }
             }
         }
 
-        //self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
         );
-
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
 
@@ -1278,7 +1256,7 @@ impl ImageSurveys {
                 let opacity = if layer_name == "base" {
                     1.0
                 } else {
-                    0.5
+                    1.0
                 };
                 layers.insert(
                     layer_name.clone(),
@@ -1306,7 +1284,7 @@ impl ImageSurveys {
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
-                crate::log(&format!("new survey {:?}", survey.textures.config));
+                crate::log(&format!("new survey {:?} ", survey.textures.config));
                 self.surveys.insert(url.clone(), survey);
                 new_survey_ids.push(url.clone());
             }

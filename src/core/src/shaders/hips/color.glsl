@@ -18,16 +18,16 @@ uniform int tex_storing_fits;
 @import ../colormaps/colormap;
 @import ./transfer_funcs;
 
-vec3 get_pixels(vec3 uv) {
+vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return texture(tex[0], uv.xy).rgb;
+        return texture(tex[0], uv.xy);
     } else if (idx_texture == 1) {
-        return texture(tex[1], uv.xy).rgb;
+        return texture(tex[1], uv.xy);
     } else if (idx_texture == 2) {
-        return texture(tex[2], uv.xy).rgb;
+        return texture(tex[2], uv.xy);
     } else {
-        return vec3(0.0, 1.0, 1.0);
+        return vec4(0.0, 1.0, 1.0, 1.0);
     }
 }
 
@@ -61,5 +61,5 @@ float get_grayscale_from_texture(vec3 UV, float m) {
 }
 
 vec4 get_color_from_texture(vec3 UV) {
-    return vec4(get_pixels(UV).rgb, 1.0);
+    return get_pixels(UV);
 }

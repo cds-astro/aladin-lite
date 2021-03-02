@@ -858,6 +858,10 @@ impl App {
         self.request_redraw = true;
     }
 
+    pub fn get_rotation_around_center(&self) -> &Angle<f64> {
+        self.camera.get_rotation_around_center()
+    }
+
     pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
         // For the moment, no animation is triggered.
         // The fov is directly set
@@ -1582,6 +1586,13 @@ impl WebClient {
         self.projection.rotate_around_center(&mut self.app, theta);
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = getRotationAroundCenter)]
+    pub fn get_rotation_around_center(&mut self) -> Result<f64, JsValue> {
+        let theta = self.app.get_rotation_around_center();
+
+        Ok(theta.0 * 360.0 / (2.0 * std::f64::consts::PI))
     }
 
     #[wasm_bindgen(js_name = J20002Gal)]

@@ -1054,6 +1054,8 @@ type LayerName = String;
 use crate::renderable::view_on_surveys::HEALPixCellsInView;
 pub struct ImageSurveys {
     surveys: HashMap<String, ImageSurvey>,
+
+    ordered_layer_names: Vec<LayerName>,
     layers: HashMap<LayerName, ImageSurveyLayer>,
     // opacity of the primary layer
     opacity: f32,
@@ -1088,8 +1090,12 @@ impl ImageSurveys {
 
         let opacity = 0.5;
         let gl = gl.clone();
+
+        let mut ordered_layer_names = vec![];
         ImageSurveys {
             surveys,
+            ordered_layer_names,
+
             layers,
             opacity,
 
@@ -1127,11 +1133,8 @@ impl ImageSurveys {
     }
 
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
-        //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
-        let _limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        //let raytracing = camera.is_allsky();
+
         if raytracing {
             self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -1141,9 +1144,35 @@ impl ImageSurveys {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
-        for (_, ImageSurveyLayer { names, colors, opacity, .. }) in self.layers.iter() {
+        self.gl.disable(WebGl2RenderingContext::BLEND);
+        self.gl.blend_func(
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE
+        );
+
+        let mut idx_survey = 0;
+        for (layer_idx, layer_name) in self.ordered_layer_names.iter().enumerate() {
+            let ImageSurveyLayer { names, colors, opacity, .. } = &self.layers[layer_name];
+
             if opacity > &0.0 {
-                self.gl.disable(WebGl2RenderingContext::BLEND);
+                for (name, color)) in names.iter().zip(colors.iter()) {
+                    // Enable the blending for the following HiPSes
+                    if layer_idx == 1 {
+                        self.gl.enable(WebGl2RenderingContext::BLEND);
+                    } else {
+                        self.gl.blend_func_separate(
+                            WebGl2RenderingContext::SRC_ALPHA,
+                            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+                            WebGl2RenderingContext::ONE,
+                            WebGl2RenderingContext::ONE,
+                        );
+                    }
+
+                    let survey = self.surveys.get_mut(name).unwrap();
+                    survey.draw::<P>(&self.raytracer, shaders, camera, color, *opacity);
+
+                    idx_survey += 1;
+                }
                 // Add the first hips on top of the background
                 /*let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
                 survey.draw::<P>(
@@ -1163,14 +1192,15 @@ impl ImageSurveys {
                     let survey = self.surveys.get_mut(name).unwrap();
                     survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
                 }*/
-                for (name, color) in names.iter().zip(colors.iter()) {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
+                if layer_name == "base" {
 
-                    // Enable the blending for the following HiPSes
-                    self.gl.enable(WebGl2RenderingContext::BLEND);
-                    self.gl
-                        .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+                } else {
+
+
+                    for (name, color) in names.iter().zip(colors.iter()) {
+                        let survey = self.surveys.get_mut(name).unwrap();
+                        survey.draw::<P>(&self.raytracer, shaders, camera, color, *opacity);
+                    }
                 }
             }
         }
@@ -1233,17 +1263,29 @@ impl ImageSurveys {
         let mut new_survey_ids = Vec::new();
 
         let mut current_needed_surveys = HashSet::new();
+        self.ordered_layer_names.clear();
         for hips in hipses.into_iter() {
             let layer_name = &hips.layer;
+            if layer_name == "base" {
+                self.ordered_layer_names.insert(0, layer_name.to_string());
+            } else {
+                self.ordered_layer_names.push(layer_name.to_string());
+            }
+
             let url = hips.properties.url.clone();
 
             if !layers.contains_key(layer_name) {
+                let opacity = if layer_name == "base" {
+                    1.0
+                } else {
+                    0.5
+                };
                 layers.insert(
                     layer_name.clone(),
                     ImageSurveyLayer {
                         names: vec![url.clone()],
                         colors: vec![hips.color()],
-                        opacity: 1.0,
+                        opacity,
                         name_most_precised_survey: url.clone()
                     }
                 );

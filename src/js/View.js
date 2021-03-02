@@ -118,7 +118,7 @@ export let View = (function() {
             }
             
             // current reference image survey displayed
-            this.imageSurvey = new Map();
+            this.imageSurveys = new Map();
             // current catalogs displayed
             this.catalogs = [];
             // a dedicated catalog for the popup
@@ -1824,26 +1824,27 @@ export let View = (function() {
         const url = survey.properties.url;
         survey.layer = layer;
 
-        this.imageSurvey.set(url, survey);
+        this.imageSurveys.get(layer).set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
     View.prototype.setImageSurvey = function(survey, layer) {
-        this.imageSurvey = new Map();
-
         const url = survey.properties.url;
         survey.layer = layer;
-
-        this.imageSurvey.set(url, survey);
+        
+        this.imageSurveys.set(layer, new Map());
+        this.imageSurveys.get(layer).set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
     View.prototype.setHiPS = function() {
         let surveys = [];
-        for (let survey of this.imageSurvey.values()) {
-            surveys.push(survey);
+        for (let layer of this.imageSurveys.values()) {
+            for (let survey of layer.values()) {
+                surveys.push(survey);
+            }
         }
 
         this.aladin.webglAPI.setImageSurveys(surveys);

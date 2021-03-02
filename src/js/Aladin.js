@@ -328,13 +328,19 @@ export let Aladin = (function () {
         if (options.survey) {
             (async () => {
                 if (typeof options.survey === Array) {
+                    let i = 0;
                     options.survey.forEach(async (rootUrlOrId) => {
                         const survey = await Aladin.createImageSurvey(rootUrlOrId);
-                        this.addImageSurvey(survey, "base");
+                        if (i == 0) {
+                            this.setImageSurvey(survey, "base");
+                        } else {
+                            this.addImageSurvey(survey, "base");
+                        }
+                        i++;
                     });
                 } else {
                     const survey = await Aladin.createImageSurvey(options.survey, "base");
-                    this.addImageSurvey(survey, "base");
+                    this.setImageSurvey(survey, "base");
                 }
             })();
 

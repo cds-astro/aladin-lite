@@ -380,6 +380,10 @@ impl CameraViewPort {
         self.rotation_center_angle = theta;
         self.update_rot_matrices::<P>();
     }
+
+    pub fn get_rotation_around_center(&self) -> &Angle<f64> {
+        &self.rotation_center_angle
+    }
 }
 use cgmath::Matrix;
 impl CameraViewPort {

@@ -547,7 +547,7 @@ export let Catalog = (function() {
         }
         var sourceSize = catalogInstance.sourceSize;
         //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
-        var xy = aladin.webglAPI.worldToScreen(s.ra, s.dec);
+        var xy = catalogInstance.view.aladin.webglAPI.worldToScreen(s.ra, s.dec);
 
         /*
         // TODO : we could factorize this code with Aladin.world2pix

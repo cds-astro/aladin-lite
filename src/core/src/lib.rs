@@ -333,7 +333,6 @@ impl App {
     // Return true when a task is complete. This always lead
     // to a redraw of aladin lite
     fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
-        //crate::log(&format!("last frame duration (ms): {:?}", dt));
         let tasks_time = (dt.0 * 0.5).min(8.3);
         let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
@@ -370,6 +369,11 @@ impl App {
         Ok(tiles_available)
     }
 
+    fn is_ready(&self) -> Result<bool, JsValue> {
+        let res = self.surveys.is_ready();
+        Ok(res)
+    }
+
     fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
@@ -380,8 +384,7 @@ impl App {
             goal_anim_rot,
             time_start_anim,
             ..
-        }) = self.move_animation
-        {
+        }) = self.move_animation {
             let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000.0;
 
             // Undamped angular frequency of the oscillator
@@ -410,8 +413,7 @@ impl App {
             goal_fov,
             w0,
             ..
-        }) = self.zoom_animation
-        {
+        }) = self.zoom_animation {
             let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
@@ -443,8 +445,7 @@ impl App {
             time_start_anim,
             d0,
             axis,
-        }) = self.inertial_move_animation
-        {
+        }) = self.inertial_move_animation {
             let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
@@ -537,11 +538,6 @@ impl App {
         Ok(())
     }
 
-    /*fn remove_overlay(&mut self) {
-        self.surveys.remove_overlay();
-        self.request_redraw = true;
-    }*/
-
     fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
@@ -567,35 +563,10 @@ impl App {
         Ok(())
     }
 
-    /*fn set_overlay_composite_hips<P: Projection>(
-        &mut self,
-        hipses: Vec<SimpleHiPS>,
-    ) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.add_composite_surveys(
-            hipses,
-            &self.gl,
-            &self.camera,
-            self.exec.clone(),
-            1,
-        )?;
-
-        if !new_survey_ids.is_empty() {
-            self.downloader.clear_requests();
-            for id in new_survey_ids.iter() {
-                let config = &self.surveys.get(id).unwrap().get_textures().config;
-                self.downloader.request_base_tiles(config);
-            }
-            // Once its added, request its tiles
-            self.look_for_new_tiles();
-        }
+    fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
+        self.surveys.move_image_surveys_layer_forward(layer_name)?;
         self.request_redraw = true;
 
-        Ok(())
-    }*/
-
-    fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
-        self.surveys.set_overlay_opacity(opacity);
-        self.request_redraw = true;
         Ok(())
     }
 
@@ -607,16 +578,12 @@ impl App {
         self.look_for_new_tiles();
         self.request_redraw = true;
     }
+
     fn get_max_fov<P: Projection>(&self) -> f64 {
         P::aperture_start().0
     }
-    fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
-        /*if reversed {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        } else {
-            self.gl.cull_face(WebGl2RenderingContext::FRONT);
-        }*/
 
+    fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
         self.camera.set_longitude_reversed(reversed);
         self.surveys.set_longitude_reversed::<P>(
             reversed,
@@ -629,6 +596,13 @@ impl App {
         self.look_for_new_tiles();
 
         self.request_redraw = true;
+    }
+
+    fn set_opacity_layer(&mut self, layer_name: &str, opacity: f32) -> Result<(), JsValue> {
+        self.surveys.set_opacity_layer(layer_name, opacity)?;
+        self.request_redraw = true;
+
+        Ok(())
     }
 
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
@@ -927,16 +901,10 @@ impl App {
         }
 
         self.out_of_fov = true;
-
-        /*// Stop the current animation if there is one
-        self.move_animation = None;
-        // And stop the current inertia as well if there is one
-        self.inertial_move_animation = None;*/
     }
 
     // Accessors
     fn get_center<P: Projection>(&self) -> LonLatT<f64> {
-        //let center_pos = self.camera.compute_center_model_pos::<P>();
         self.camera.get_center().lonlat()
     }
 
@@ -1140,56 +1108,6 @@ impl ProjectionType {
 
     pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue, colormap: String) {
         app.add_catalog(name, table, colormap);
-    }
-
-    /*pub fn set_simple_hips(&mut self, app: &mut App, hips: SimpleHiPS) -> Result<(), JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.set_simple_hips::<Aitoff>(hips),
-            ProjectionType::MollWeide => app.set_simple_hips::<Mollweide>(hips),
-            ProjectionType::Ortho => app.set_simple_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_simple_hips::<AzimuthalEquidistant>(hips),
-            ProjectionType::Gnomonic => app.set_simple_hips::<Gnomonic>(hips),
-            ProjectionType::Mercator => app.set_simple_hips::<Mercator>(hips),
-        }
-    }*/
-
-    /*pub fn set_overlay_simple_hips(
-        &mut self,
-        app: &mut App,
-        hips: SimpleHiPS,
-    ) -> Result<(), JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.set_overlay_simple_hips::<Aitoff>(hips),
-            ProjectionType::MollWeide => app.set_overlay_simple_hips::<Mollweide>(hips),
-            ProjectionType::Ortho => app.set_overlay_simple_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_overlay_simple_hips::<AzimuthalEquidistant>(hips),
-            ProjectionType::Gnomonic => app.set_overlay_simple_hips::<Gnomonic>(hips),
-            ProjectionType::Mercator => app.set_overlay_simple_hips::<Mercator>(hips),
-        }
-    }*/
-
-    /*pub fn remove_overlay_hips(&mut self, app: &mut App) -> Result<(), JsValue> {
-        app.remove_overlay();
-
-        Ok(())
-    }
-
-    pub fn set_overlay_composite_hips(
-        &mut self,
-        app: &mut App,
-        hips: Vec<SimpleHiPS>,
-    ) -> Result<(), JsValue> {
-        match self {
-            ProjectionType::Aitoff => app.set_overlay_composite_hips::<Aitoff>(hips),
-            ProjectionType::MollWeide => app.set_overlay_composite_hips::<Mollweide>(hips),
-            ProjectionType::Ortho => app.set_overlay_composite_hips::<Orthographic>(hips),
-            ProjectionType::Arc => app.set_overlay_composite_hips::<AzimuthalEquidistant>(hips),
-            ProjectionType::Gnomonic => app.set_overlay_composite_hips::<Gnomonic>(hips),
-            ProjectionType::Mercator => app.set_overlay_composite_hips::<Mercator>(hips),
-        }
-    }*/
-    pub fn set_overlay_opacity(&mut self, app: &mut App, opacity: f32) -> Result<(), JsValue> {
-        app.set_overlay_opacity(opacity)
     }
 
     pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {
@@ -1475,6 +1393,14 @@ impl WebClient {
         Ok(())
     }
 
+    /// Main update method
+    /// The force parameter ensures to force the update of some elements
+    /// even if the camera has not moved
+    #[wasm_bindgen(js_name = isReady)]
+    pub fn is_ready(&mut self) -> Result<bool, JsValue> {
+        self.app.is_ready()
+    }
+
     /// Update our WebGL Water application.
     pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
         self.projection.render(&mut self.app, force)?;
@@ -1530,6 +1456,11 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = moveImageSurveysLayerForward)]
+    pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
+        self.app.move_image_surveys_layer_forward(layer_name)
+    }
+
     #[wasm_bindgen(js_name = getAvailableColormapList)]
     pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
         let colormaps = Colormap::get_list_available_colormaps()
@@ -1543,47 +1474,6 @@ impl WebClient {
             )
     }
 
-    /// Add an overlay HiPS on top of the current HiPS
-    /*#[wasm_bindgen(js_name = setOverlayHiPS)]
-    pub fn set_overlay_hips(&mut self, hipses: Vec<JsValue>) -> Result<(), JsValue> {
-        let hips: Result<Vec<SimpleHiPS>, JsValue> = hipses
-            .into_iter()
-            .map(|h| {
-                h.into_serde()
-                    .map_err(|e| JsValue::from_str(&e.to_string()))
-            })
-            .collect::<Result<Vec<_>, _>>();
-        let hips = hips?;
-        //crate::log(&format!("Composite HiPS: {:?}", hipses));
-
-        self.projection
-            .set_overlay_composite_hips(&mut self.app, hips)?;
-
-        Ok(())
-    }*/
-
-    /// Set the opacity of the overlaid HiPS
-    ///
-    /// # Arguments
-    ///
-    /// * `opacity` - A float number between 0 and 1. 0 means totally transparent
-    /// 1 means fully visible
-    #[wasm_bindgen(js_name = setOverlayOpacity)]
-    pub fn set_overlay_opacity(&mut self, opacity: f32) -> Result<(), JsValue> {
-        self.projection
-            .set_overlay_opacity(&mut self.app, opacity)?;
-
-        Ok(())
-    }
-    
-    /*#[wasm_bindgen(js_name = removeOverlayHiPS)]
-    pub fn remove_overlay_hips(&mut self) -> Result<(), JsValue> {
-        self.projection.remove_overlay_hips(&mut self.app)?;
-
-        Ok(())
-    }*/
-
-
     #[wasm_bindgen(js_name = isCatalogLoaded)]
     pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
         let cat_loaded = self.app.is_catalog_loaded();
@@ -1594,6 +1484,7 @@ impl WebClient {
     pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
         Ok(self.app.system)
     }
+
     #[wasm_bindgen(js_name = setCooSystem)]
     pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
         self.projection.set_coo_system(&mut self.app, coo_system);
@@ -1747,6 +1638,13 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = setOpacityLayer)]
+    pub fn set_opacity_layer(&mut self, opacity: f32, layer_name: &str) -> Result<(), JsValue> {
+        self.app.set_opacity_layer(layer_name, opacity)?;
+
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = hideGridLabels)]
     pub fn hide_grid_labels(&mut self) -> Result<(), JsValue> {
         self.projection.hide_grid_labels(&mut self.app);
@@ -1772,6 +1670,7 @@ impl WebClient {
     pub fn get_max_fov(&mut self) -> f64 {
         self.projection.get_max_fov(&mut self.app)
     }
+
     /// Set directly the center position
     #[wasm_bindgen(js_name = getCenter)]
     pub fn get_center(&self) -> Result<Box<[f64]>, JsValue> {
@@ -1812,6 +1711,7 @@ impl WebClient {
 
         Ok(())
     }
+
     /// Tell the backend when the left mouse button has been
     /// released. This is useful for beginning inerting
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
@@ -1820,6 +1720,7 @@ impl WebClient {
 
         Ok(())
     }
+
     /// Tell the backend when the left mouse button has been pressed
     #[wasm_bindgen(js_name = pressLeftMouseButton)]
     pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {

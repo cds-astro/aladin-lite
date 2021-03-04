@@ -193,7 +193,6 @@ use cgmath::Vector3;
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> HEALPixCells {
     if let Some(vertices) = camera.get_vertices() {
         let inside = camera.get_center().truncate();
-        //crate::log(&format!("vertices {:?}, inside {:?}", vertices, inside));
         polygon_coverage(vertices, depth, &inside)
     } else {
         HEALPixCells::allsky(depth)

@@ -239,7 +239,6 @@ impl FormatType for DMM {
 impl FormatType for DMS {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
-        //crate::log(&format!("angle: {0}"))
         let degrees: ArcDeg<S> = angle.into();
         let minutes = degrees.get_frac_minutes();
         let seconds = minutes.get_frac_seconds();

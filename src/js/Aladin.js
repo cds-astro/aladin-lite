@@ -289,7 +289,7 @@ export let Aladin = (function () {
         }
 
 
-        this.gotoObject(options.target);
+        this.gotoObject(options.target, undefined, {forceAnimation: false});
 
         if (options.log) {
             var params = requestedOptions;
@@ -626,7 +626,7 @@ export let Aladin = (function () {
      * @callbackOptions: (optional) the object with key 'success' and/or 'error' containing the success and error callback functions.
      *
      */
-    Aladin.prototype.gotoObject = function (targetName, callbackOptions) {
+    Aladin.prototype.gotoObject = function (targetName, callbackOptions, options) {
         let successCallback = undefined;
         let errorCallback   = undefined;
         if (typeof callbackOptions === 'object') {
@@ -655,7 +655,7 @@ export let Aladin = (function () {
             if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
                 lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
             }
-            this.view.pointTo(lonlat[0], lonlat[1]);
+            this.view.pointTo(lonlat[0], lonlat[1], options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
         }
@@ -668,7 +668,7 @@ export let Aladin = (function () {
                     var ra = data.Target.Resolver.jradeg;
                     var dec = data.Target.Resolver.jdedeg;
 
-                    self.view.pointTo(ra, dec);
+                    self.view.pointTo(ra, dec, options);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());
                 },
@@ -959,6 +959,32 @@ export let Aladin = (function () {
         this.view.setImageSurvey(survey, layerName);
     };
 
+    Aladin.prototype.setImageSurveysLayer = function (surveys, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+
+        this.view.setImageSurveysLayer(surveys, layerName);
+    };
+
+    Aladin.prototype.removeImageSurveysLayer = function (layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+
+        this.view.removeImageSurveysLayer(layerName);
+    };
+
+    Aladin.prototype.moveImageSurveysLayerForward = function (layer) {
+        this.view.moveImageSurveysLayerForward(surveys, layerName);
+    };
+
     Aladin.prototype.addImageSurvey = function (survey, layer) {
         let layerName;
         if (layer) {
@@ -969,9 +995,21 @@ export let Aladin = (function () {
         this.view.addImageSurvey(survey, layerName);
     };
 
+    Aladin.prototype.setOpacityLayer = function(opacity, layer) {
+        let layerName;
+        if (layer) {
+            layerName = layer;
+        } else {
+            layerName = "base";
+        }
+        this.webglAPI.setOpacityLayer(opacity, layer)
+    }
 
     // @api
-    Aladin.prototype.setBaseImageLayer = function (survey) {
+    Aladin.prototype.setBaseImageSurveysLayer = function (surveys) {
+        this.view.setImageSurveysLayer(surveys, 'base');
+    };
+    Aladin.prototype.setBaseImageSurvey = function (survey) {
         this.view.setImageSurvey(survey, 'base');
     };
     /*
@@ -1499,6 +1537,11 @@ A.marker = function (ra, dec, options, data) {
     return A.source(ra, dec, data, options);
 };
 
+A.createImageSurvey = async function(rootUrlOrId) {
+    const survey = await HpxImageSurvey.create(rootUrlOrId);
+    return survey;
+}
+
 // @API
 A.polygon = function (raDecArray) {
     var l = raDecArray.length;
@@ -1639,7 +1682,7 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback) {
+Aladin.prototype.displayFITS = function (url, layerName, options, successCallback, errorCallback) {
     options = options || {};
     var data = { url: url };
     if (options.color) {
@@ -1654,7 +1697,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
     if (options.nocache) {
         data.nocache = options.nocache;
     }
-    var self = this;
+    let self = this;
     $.ajax({
         url: 'https://alasky.unistra.fr/cgi/fits2HiPS',
         data: data,
@@ -1670,24 +1713,30 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             }
             var label = options.label || "FITS image";
             var meta = response.data.meta;
-            console.log(response.data.url);
+
             (async () => {
                 let survey = await Aladin.createImageSurvey(response.data.url);
-                console.log("sdfsdf", survey);
-            })();
-            /*self.setOverlayImageLayer(self.createImageSurvey(label, label, response.data.url, "equatorial", meta.max_norder, { imgFormat: 'png' }));
-            var transparency = (options && options.transparency) || 1.0;
-            self.getOverlayImageLayer().setAlpha(transparency);
+                var transparency = (options && options.transparency) || 1.0;
+    
+                var executeDefaultSuccessAction = true;
+                if (successCallback) {
+                    executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+                }
+                if (executeDefaultSuccessAction === true) {
+                    self.webglAPI.setCenter(meta.ra, meta.dec);
+                    self.setFoV(meta.fov);
+                }
+                // TODO! set an image survey once the already loaded surveys
+                // are READY! Otherwise it can lead to some congestion and avoid
+                // downloading the base tiles of the other surveys loading!
+                // This has to be fixed in the backend but a fast fix is just to wait
+                // before setting a new image survey
+                
+                    self.setImageSurvey(survey, layerName)
+                    // set transparency
+                    self.setOpacityLayer(transparency, layerName)
 
-            var executeDefaultSuccessAction = true;
-            if (successCallback) {
-                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
-            }
-            if (executeDefaultSuccessAction === true) {
-                self.gotoRaDec(meta.ra, meta.dec);
-                self.setFoV(meta.fov);
-            }
-            */
+            })();
         }
     });
 
@@ -1698,12 +1747,12 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
  * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
  * and display it
  */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, layerName, options, successCallback, errorCallback) {
     options = options || {};
     options.color = true;
     options.label = "JPG/PNG image";
     options.outputFormat = 'png';
-    this.displayFITS(url, options, successCallback, errorCallback);
+    this.displayFITS(url, layerName, options, successCallback, errorCallback);
 };
 
 Aladin.prototype.setReduceDeformations = function (reduce) {

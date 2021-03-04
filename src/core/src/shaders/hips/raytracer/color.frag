@@ -33,12 +33,6 @@ struct TileColor {
 uniform float opacity;
 
 TileColor get_tile_color(vec3 pos) {
-    // Get the radec
-    /*float ra = atan(pos.x, pos.z);
-    float dec = atan(pos.y, length(pos.xz));
-    vec2 radec = vec2(ra, dec);
-    HashDxDy result = hash_with_dxdy2(depth, radec);*/
-
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
@@ -46,20 +40,18 @@ TileColor get_tile_color(vec3 pos) {
 
     Tile tile = textures_tiles[idx];
 
-    if (tile.empty == 1) {
-        return TileColor(tile, vec4(0.0), true);
-    } else {
-        int idx_texture = tile.texture_idx >> 6;
-        int off = tile.texture_idx & 0x3F;
-        float idx_row = float(off >> 3); // in [0; 7]
-        float idx_col = float(off & 0x7); // in [0; 7]
+    int idx_texture = tile.texture_idx >> 6;
+    int off = tile.texture_idx & 0x3F;
+    float idx_row = float(off >> 3); // in [0; 7]
+    float idx_col = float(off & 0x7); // in [0; 7]
 
-        vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
-        vec3 UV = vec3(offset, float(idx_texture));
+    vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
+    vec3 UV = vec3(offset, float(idx_texture));
 
-        vec4 color = get_color_from_texture(UV);
-        return TileColor(tile, color, true);
-    }
+    vec4 color = get_color_from_texture(UV);
+    color.a = mix(color.a, blank_color.a, float(tile.empty));
+    
+    return TileColor(tile, color, true);
 }
 
 const float duration = 500.f; // 500ms

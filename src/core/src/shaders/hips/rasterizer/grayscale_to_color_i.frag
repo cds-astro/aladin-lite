@@ -14,14 +14,17 @@ out vec4 out_frag_color;
 
 @import ../color_i;
 
-uniform vec3 C;
-uniform float K;
 uniform float opacity;
 
+vec4 get_color(vec3 uv, float empty) {
+    vec4 color = get_color_from_grayscale_texture(uv);
+    return color;
+}
+
 void main() {
-    vec3 color_start = K * C * get_grayscale_from_texture(frag_uv_start, m_start);
-    vec3 color_end = K * C * get_grayscale_from_texture(frag_uv_end, m_end);
-    //vec4 color_end = vec4(1.0, 0.0, 0.0, 1.0);
-    out_frag_color = vec4(mix(color_start, color_end, frag_blending_factor), 1.0);
-    out_frag_color.a = opacity;
+    vec4 color_start = get_color(frag_uv_start, m_start);
+    vec4 color_end = get_color(frag_uv_end, m_end);
+
+    out_frag_color = mix(color_start, color_end, frag_blending_factor);
+    out_frag_color.a = out_frag_color.a * opacity;
 }

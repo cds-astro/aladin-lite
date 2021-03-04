@@ -52,20 +52,6 @@ where
         let size = Vector2::new(width, width);
         Self { buf, size }
     }
-
-    // Compute the 1- and 99- percentile of the tile pixel values
-    /*pub(super) fn get_cutoff_values(&self) -> (T::Item, T::Item) {
-        let mut sorted_values: Vec<T::Item> = self.buf.to_vec();
-        sorted_values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-
-        let len = sorted_values.len() as f32;
-        let idx1 = (0.01 * len) as usize;
-        let idx2 = (0.99 * len) as usize;
-
-        let (v1, v2) = (sorted_values[idx1], sorted_values[idx2]);
-        //crate::log(&format!("cutoff: {:?} {:?}", v1, v2));
-        (v1, v2)
-    }*/
 }
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> {
@@ -622,12 +608,8 @@ impl ImageRequest for FITSImageRequest {
             } else {
                 0.0
             };
-            let blank = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BLANK") {
-                if let FITSKeywordValue::FloatingPoint(blank) = value {
-                    Some(*blank as f32)
-                } else {
-                    Some(-100.0)
-                }
+            let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
+                Some(*blank as f32)
             } else {
                 Some(-100.0)
             };

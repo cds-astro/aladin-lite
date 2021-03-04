@@ -426,23 +426,11 @@ impl Catalog {
         } = cells;
         let mut current_sources = vec![];
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-        //crate::log(&format!("num sources FOV: {:?} {:?}", depth, num_sources_in_fov));
 
-        //let depth_32_px = crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, 32);
-        //self.max_density = ((self.compute_max_density::<P>(depth_32_px))/(32.0*32.0)).min(1.0);
-        /*let a = if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            (MAX_SOURCES_PER_CATALOG / num_sources_in_fov)*(MAX_SOURCES_PER_CATALOG / num_sources_in_fov)
-        } else {
-            1.0
-        };
-        let depth_1_px = crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, (8.0*a).max(1.0) as i32);
-        self.max_density = self.compute_max_density::<P>(depth_1_px);*/
         self.max_density = self.compute_max_density::<P>(
             crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
         );
-        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
 
-        //self.max_density = ((MAX_SOURCES_PER_CATALOG / num_sources_in_fov)*(MAX_SOURCES_PER_CATALOG / num_sources_in_fov)).min(1.0);
         // depth < 7
         for cell in cells {
             let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
@@ -466,7 +454,6 @@ impl Catalog {
 
         // Update the vertex buffer
         self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
-        //crate::log(&format!("NUM SOURCES CURRENT: {:?}", self.num_instances));
 
         self.vertex_array_object_catalog
             .bind_for_update()
@@ -502,12 +489,9 @@ impl Catalog {
             gl.clear_color(0.0, 0.0, 0.0, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            //crate::log(&format!("offset: {}, num instances: {}", self.base_instance, self.num_instances));
             let shader = P::get_catalog_shader(gl, shaders);
             let shader_bound = shader.bind(gl);
-            //let kernel_tex = manager.kernel_texture.bind();
-            // Uniforms associated to the camera
-            //crate::log(&format!("max density: {:?}", self.max_density));
+
             shader_bound
                 .attach_uniforms_from(camera)
                 // Attach catalog specialized uniforms

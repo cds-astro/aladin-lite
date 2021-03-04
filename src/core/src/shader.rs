@@ -55,7 +55,6 @@ fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> U
         .get_program_parameter(program, WebGl2RenderingContext::ACTIVE_UNIFORMS)
         .as_f64()
         .unwrap();
-    //crate::log(&format!("{}", num_uniforms));
 
     let uniforms = (0..num_uniforms as u32)
         .map(|idx_uniform| {
@@ -63,7 +62,6 @@ fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> U
             let name_uniform = active_uniform.name();
             // Get the location by the name of the active uniform
             let location_uniform = gl.get_uniform_location(&program, &name_uniform);
-            //crate::log(&format!("{:?}", name_uniform));
             (name_uniform, location_uniform)
         })
         .collect::<HashMap<_, _>>();
@@ -227,6 +225,11 @@ impl UniformType for Color {
         gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
     }
 }
+impl<'a> UniformType for &'a Color {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+    }
+}
 
 use cgmath::Matrix4;
 impl UniformType for Matrix4<f32> {
@@ -351,15 +354,6 @@ impl ShaderManager {
             })
             .collect::<HashMap<_, _>>();
 
-        //crate::log(&format!("src {:?}", src));
-        /*let mut manager = ShaderManager(HashMap::new());
-        for shader_src in shaders_src {
-            let name = shader_src.name;
-            crate::log(&name);
-            manager.insert(name, &shader_src.vert, &shader_src.frag, gl)?;
-        }
-
-        Ok(manager)*/
         Ok(ShaderManager {
             shaders: HashMap::new(),
             src,
@@ -416,7 +410,6 @@ pub trait GetShader {
         gl: &WebGl2Context,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
-        //crate::log("raytracer shader color");
         shaders
             .get(
                 gl,

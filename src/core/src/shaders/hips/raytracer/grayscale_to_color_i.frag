@@ -26,27 +26,17 @@ uniform Tile textures_tiles[12];
 uniform float current_time; // current time in ms
 struct TileColor {
     Tile tile;
-    vec3 color;
+    vec4 color;
     bool found;
 };
 
 @import ../color_i;
 @import ./healpix;
 
-uniform vec3 C;
-uniform float K;
-
 uniform float opacity;
 
 TileColor get_tile_color(vec3 pos) {
-    // Get the radec
-    /*float ra = atan(pos.x, pos.z);
-    float dec = atan(pos.y, length(pos.xz));
-    vec2 radec = vec2(ra, dec);
-    HashDxDy result = hash_with_dxdy2(depth, radec);*/
-
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
-    //HashDxDy result = hash_with_dxdy2(out_lonlat);
     int idx = result.idx;
     vec2 uv = vec2(result.dy, result.dx);
 
@@ -60,8 +50,7 @@ TileColor get_tile_color(vec3 pos) {
     vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
     vec3 UV = vec3(offset, float(idx_texture));
 
-    vec3 color = K * C * get_grayscale_from_texture(UV, float(tile.empty));
-
+    vec4 color = mix(get_color_from_grayscale_texture(UV), blank_color, float(tile.empty));
     return TileColor(tile, color, true);
 }
 
@@ -73,5 +62,6 @@ void main() {
     // Get the HEALPix cell idx and the uv in the texture
 
     TileColor current_tile = get_tile_color(frag_pos);
-    out_frag_color = vec4(current_tile.color, opacity);
+    out_frag_color = current_tile.color;
+    out_frag_color.a = out_frag_color.a * opacity;
 }

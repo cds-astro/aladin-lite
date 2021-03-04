@@ -87,8 +87,6 @@ impl SourceIndices {
             max_density[depth] = *tmp.iter().max().unwrap() as u32;
         }
 
-        //crate::log(&format!("max densities {:?}", max_density));
-
         SourceIndices {
             density: density.into_boxed_slice(),
             max_density,

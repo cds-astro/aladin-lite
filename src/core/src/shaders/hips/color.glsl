@@ -18,16 +18,16 @@ uniform int tex_storing_fits;
 @import ../colormaps/colormap;
 @import ./transfer_funcs;
 
-vec3 get_pixels(vec3 uv) {
+vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return texture(tex[0], uv.xy).rgb;
+        return texture(tex[0], uv.xy);
     } else if (idx_texture == 1) {
-        return texture(tex[1], uv.xy).rgb;
+        return texture(tex[1], uv.xy);
     } else if (idx_texture == 2) {
-        return texture(tex[2], uv.xy).rgb;
+        return texture(tex[2], uv.xy);
     } else {
-        return vec3(0.0, 1.0, 1.0);
+        return vec4(0.0, 1.0, 1.0, 1.0);
     }
 }
 
@@ -37,29 +37,46 @@ vec3 reverse_uv(vec3 uv) {
     return uv;
 }
 
-float get_grayscale_from_texture(vec3 UV, float m) {
-    if (m == 1.0) {
-        return 0.0;
-    }
+vec4 get_color_from_texture(vec3 UV) {
+    return get_pixels(UV);
+}
 
+uniform vec4 blank_color;
+
+vec4 get_colormap_from_grayscale_texture(vec3 UV) {
     vec3 uv = UV;
     // FITS data pixels are reversed along the y axis
     if (tex_storing_fits == 1) {
-        uv = reverse_uv(UV);
+        uv = reverse_uv(uv);
     }
-    
+
     float x = get_pixels(uv).r;
+    if (x == blank) {
+        return blank_color;
+    } else {
+        float alpha = x * scale + offset;
+        float h = transfer_func(H, alpha, min_value, max_value);
 
-    /*if (x == blank) {
-        return transparent;
-    }*/
-
-    float alpha = x * scale + offset;
-    float h = transfer_func(H, alpha, min_value, max_value);
-
-    return h;
+        return colormap_f(h);
+    }
 }
 
-vec4 get_color_from_texture(vec3 UV) {
-    return vec4(get_pixels(UV).rgb, 1.0);
+uniform vec3 C;
+uniform float K;
+vec4 get_color_from_grayscale_texture(vec3 UV) {
+    vec3 uv = UV;
+    // FITS data pixels are reversed along the y axis
+    if (tex_storing_fits == 1) {
+        uv = reverse_uv(uv);
+    }
+
+    float x = get_pixels(uv).r;
+    if (x == blank) {
+        return blank_color;
+    } else {
+        float alpha = x * scale + offset;
+        float h = transfer_func(H, alpha, min_value, max_value);
+
+        return vec4(C * K * h, 1.0);
+    }
 }

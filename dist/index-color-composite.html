@@ -694,7 +694,7 @@ function update() {
         return;
     }
 
-    aladin.webglAPI.setImageSurveys(hipsComponents);
+    aladin.setImageSurveysLayer(hipsComponents);
 }
 
 $('#k_c1, #k_c2, #k_c3, #k_c4, #color_c1, #stretch_c1, #min_cut_c1, #max_cut_c1, #color_c2, #stretch_c2, #min_cut_c2, #max_cut_c2, #color_c3, #stretch_c3, #min_cut_c3, #max_cut_c3, #color_c4, #stretch_c4, #min_cut_c4, #max_cut_c4, #colormap_c1').on('change input', function() {
@@ -769,7 +769,7 @@ document.querySelector('#opacity_grid').addEventListener('input', function(e) {
 
 A.init.then(() => {
     // Start up Aladin Lite
-    aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/DSS2/color'});
+    aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/DSS2/color', cooFrame: "gal"});
     aladin.setProjection('aitoff');
     //aladin.gotoRaDec(0, 0);
     aladin.setFoV(360);

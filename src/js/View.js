@@ -85,19 +85,14 @@ export let View = (function() {
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
             this.mustRedrawReticle = true;
-            
+            this.imageSurveysToSet = [];
             this.mode = View.PAN;
             
             this.minFOV = this.maxFOV = null; // by default, no restriction
             this.fov_limit = 180.0;
             
             this.healpixGrid = new HealpixGrid(this.imageCanvas);
-            if (cooFrame) {
-                this.cooFrame = cooFrame;
-            }
-            else {
-                this.cooFrame = CooFrameEnum.GAL;
-            }
+
             
             var lon, lat;
             lon = lat = 0;
@@ -112,13 +107,27 @@ export let View = (function() {
             this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
     
             this.viewCenter = {lon: lon, lat: lat}; // position of center of view
-            
+
+            if (cooFrame) {
+                this.cooFrame = cooFrame;
+            } else {
+                this.cooFrame = CooFrameEnum.GAL;
+            }
+            if (cooFrame.system === CooFrameEnum.SYSTEMS.GAL) {
+                console.log()
+                const GAL = Aladin.wasmLibs.webgl.GALCooSys();
+                this.aladin.webglAPI.setCooSystem(GAL);
+            } else {
+                const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
+                this.aladin.webglAPI.setCooSystem(ICRSJ2000);
+            }
+
             if (zoom) {
                 this.setZoom(zoom);
             }
             
             // current reference image survey displayed
-            this.imageSurvey = new Map();
+            this.imageSurveys = new Map();
             // current catalogs displayed
             this.catalogs = [];
             // a dedicated catalog for the popup
@@ -151,7 +160,7 @@ export let View = (function() {
             this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
             this.fixLayoutDimensions();
             
-    
+            this.firstHiPS = true;
             this.curNorder = 1;
             this.realNorder = 1;
             this.curOverlayNorder = 1;
@@ -976,6 +985,15 @@ export let View = (function() {
         requestAnimFrame(this.redraw.bind(this));
         var now = Date.now();
         var dt = now - this.prev;
+
+        this.ready = this.aladin.webglAPI.isReady();
+        if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
+            console.log("surveyes", this.imageSurveysToSet)
+            this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
+
+            this.imageSurveysToSet = null;
+            this.firstHiPS = false;
+        }
 
         this.aladin.webglAPI.update(dt, this.needRedraw);
         // This is called at each frame
@@ -1824,29 +1842,56 @@ export let View = (function() {
         const url = survey.properties.url;
         survey.layer = layer;
 
-        this.imageSurvey.set(url, survey);
+        this.imageSurveys.get(layer).set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
     View.prototype.setImageSurvey = function(survey, layer) {
-        this.imageSurvey = new Map();
-
         const url = survey.properties.url;
         survey.layer = layer;
-
-        this.imageSurvey.set(url, survey);
+        
+        this.imageSurveys.set(layer, new Map());
+        this.imageSurveys.get(layer).set(url, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
     };
 
+    View.prototype.setImageSurveysLayer = function(surveys, layer) {
+        this.imageSurveys.set(layer, new Map());
+
+        surveys.forEach(survey => {
+            const url = survey.properties.url;
+            survey.layer = layer;
+            
+            this.imageSurveys.get(layer).set(url, survey);
+        });
+
+        // Then we send the current surveys to the backend
+        this.setHiPS();
+    };
+
+    View.prototype.removeImageSurveysLayer = function (layer) {
+        this.imageSurveys.delete(layer);
+
+        this.setHiPS();
+    };
+
+    View.prototype.moveImageSurveysLayerForward = function(layer) {
+        this.aladin.webglAPI.moveImageSurveysLayerForward(layer);
+    }
+
     View.prototype.setHiPS = function() {
         let surveys = [];
-        for (let survey of this.imageSurvey.values()) {
-            surveys.push(survey);
+        for (let layer of this.imageSurveys.values()) {
+            for (let survey of layer.values()) {
+                surveys.push(survey);
+            }
         }
 
-        this.aladin.webglAPI.setImageSurveys(surveys);
+        this.imageSurveysToSet = surveys;
+
+        //this.aladin.webglAPI.setImageSurveys(surveys);
     };
 
     View.prototype.requestRedraw = function() {
@@ -1957,12 +2002,17 @@ export let View = (function() {
             this.viewCenter.lat = lb[1];
         }*/
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
-        console.log(this.viewCenter)
 
-        if (this.fov > 30.0 || options.forceAnimation) {
-            this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
-        } else {
+        if (options && options.forceAnimation === false) {
             this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        } else if (options && options.forceAnimation === true) {
+            this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat)
+        } else {
+            if (this.fov > 30.0) {
+                this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat);
+            } else {
+                this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+            }
         }
         
         this.forceRedraw();

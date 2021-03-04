@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {survey: 'P/Mellinger/color', fov: 110, target: '0 0', showCooGrid: true});
+        (async () => {
+            let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
+            vtss.properties.format = {
+                Image: { format: 'png' }
+            };
+            vtss.color = "Color";
+            aladin.setImageSurvey(vtss, "overlay");
+            aladin.setOpacityLayer(1.0, "overlay");
+
+        })();
+
+        //aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', '', 'galactic', 3, {imgFormat: 'png'}));
+    });
+</script>
+</body>
+</html>

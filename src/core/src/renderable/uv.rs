@@ -81,17 +81,6 @@ impl TileUVW {
 
         let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
 
-        let _texture_size = config.get_texture_size();
-        let _num_textures_by_side_slice = config.num_textures_by_side_slice();
-        //let dp = 1_f32 / ((texture_size * num_textures_by_side_slice) as f32);
-
-        /*TileUVW([
-            Vector3::new(u + dp, v + dp, idx_texture),
-            Vector3::new(u + ds - dp, v + dp, idx_texture),
-            Vector3::new(u + dp, v + ds - dp, idx_texture),
-            Vector3::new(u + ds - dp, v + ds - dp, idx_texture)
-        ])*/
-        //crate::log(&format!("idx texture {:?}", idx_texture));
         TileUVW([
             Vector3::new(u, v, idx_texture),
             Vector3::new(u + ds, v, idx_texture),

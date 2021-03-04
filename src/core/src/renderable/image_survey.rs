@@ -70,7 +70,6 @@ impl RecomputeRasterizer for Move {
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
-        //crate::log(&format!("cells to draw: {:?}", cells_to_draw));
         let mut textures = TexturesToDraw::new(cells_to_draw.len());
 
         for cell in cells_to_draw.iter() {
@@ -171,7 +170,6 @@ impl RecomputeRasterizer for UnZoom {
                 depth + 1,
                 camera,
             ))
-        //Cow::Borrowed(view.get_cells())
         } else {
             Cow::Borrowed(view.get_cells())
         };
@@ -244,6 +242,7 @@ trait Draw {
         camera: &CameraViewPort,
         color: &Color,
         opacity: f32,
+        blank_pixel_color: &color::Color
     );
 }
 
@@ -366,10 +365,6 @@ const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 13;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
 use cgmath::{Vector3, Vector4};
-// One tile contains 2 triangles of 3 vertices each
-//#[repr(C)]
-//struct TileVertices([Vertex; 6]);
-
 use std::mem;
 
 use crate::renderable::uv::{TileCorner, TileUVW};
@@ -682,62 +677,6 @@ impl ImageSurvey {
         })
     }
 
-    /*pub fn from<T: HiPS>(gl: &WebGl2Context, camera: &CameraViewPort, surveys: &ImageSurveys, hips: T, exec: Rc<RefCell<TaskExecutor>>) -> Result<Self, JsValue> {
-        hips.create(gl, camera, surveys, exec)
-    }*/
-
-    /*pub fn set_color(&mut self, color: &Color) {
-        self.color = color.clone();
-    }*/
-    /*
-    fn update_positions<P: Projection, T: RecomputeRasterizer>(&mut self) {
-        let cells_to_draw = self.view.get_cells();
-
-        let mut lonlats = vec![];
-        let mut positions = vec![];
-        let mut idx_vertices = vec![];
-
-        for cell in cells_to_draw.iter() {
-            add_positions_grid::<P, T>(
-                &mut lonlats,
-                &mut positions,
-                &mut idx_vertices,
-                &cell,
-                &self.sphere_sub,
-            );
-        }
-
-        let mut coo = lonlats;
-        crate::log(&format!("{:?} cells to draw", cells_to_draw));
-        crate::log(&format!("num coo {:?} ", coo.len()));
-        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 2 - coo.len();
-        coo.extend(vec![0.0; num_filling_floats]);
-        coo.extend(positions);
-        let num_filling_floats = MAX_NUM_VERTICES_TO_DRAW * 5 - coo.len();
-        coo.extend(vec![0.0; num_filling_floats]);
-        crate::log(&format!("coo {:?} ", coo));
-        crate::log(&format!("num coo {:?} ", coo.len()));
-
-        let buf_positions = unsafe { js_sys::Float32Array::view(&coo) };
-        crate::log(&format!("buf_positions coo {:?} ", buf_positions.length()));
-
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            0 as i32,
-            &buf_positions
-        );
-
-        self.num_idx = idx_vertices.len();
-        let buf_idx = unsafe { js_sys::Uint16Array::view(&idx_vertices) };
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            0 as i32,
-            &buf_idx
-        );
-        crate::log(&format!("buf_positions coo2 {:?} ", buf_positions.length()));
-
-    }*/
-
     pub fn set_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
@@ -792,11 +731,9 @@ impl ImageSurvey {
             Some(&self.ebo),
         );
 
-        //crate::log(&format!(": {} {}", vertices.len(), self.size_vertices_buf));
         let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
         if self.vertices.len() > self.size_vertices_buf as usize {
             self.size_vertices_buf = self.vertices.len() as u32;
-            //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
 
             self.gl.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,
@@ -854,16 +791,6 @@ impl ImageSurvey {
     pub fn get_id(&self) -> &str {
         &self.get_textures().config.root_url
     }
-
-    /*#[inline]
-    fn get_color(&self) -> &Color {
-        &self.color
-    }
-
-    #[inline]
-    fn get_color_mut(&mut self) -> &mut Color {
-        &mut self.color
-    }*/
 }
 
 impl Drop for ImageSurvey {
@@ -871,18 +798,15 @@ impl Drop for ImageSurvey {
         drop(&mut self.textures);
 
         // Drop the vertex arrays
-        //self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
-        //self.gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
-
         self.gl.delete_buffer(Some(&self.vbo));
         self.gl.delete_buffer(Some(&self.ebo));
 
-        //self.gl.bind_vertex_array(None);
         self.gl.delete_vertex_array(Some(&self.vao));
     }
 }
 
 use std::borrow::Cow;
+use crate::color;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
@@ -891,6 +815,7 @@ impl Draw for ImageSurvey {
         camera: &CameraViewPort,
         color: &Color,
         opacity: f32,
+        blank_pixel_color: &color::Color,
     ) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
@@ -914,6 +839,7 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
+                .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity);
@@ -958,10 +884,11 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
+                .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity);
-            //crate::log("raster");
+
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
                 //WebGl2RenderingContext::LINES,
@@ -1028,7 +955,6 @@ impl HiPS for SimpleHiPS {
         let config = HiPSConfig::new(gl, &properties)?;
         let survey = ImageSurvey::new(
             gl, camera, surveys, config, exec,
-            //ImageSurveyType::Simple
         )?;
 
         Ok(survey)
@@ -1043,20 +969,13 @@ struct ImageSurveyLayer {
     name_most_precised_survey: String,
 }
 
-/*impl ImageSurveyLayer {
-    fn contains(&self, name: &str) -> bool {
-        self.names.iter().any(|cur_name| cur_name == name)
-    }
-}*/
-
 type LayerName = String;
-//const MAX_NUM_LAYERS: usize = 2;
 use crate::renderable::view_on_surveys::HEALPixCellsInView;
 pub struct ImageSurveys {
     surveys: HashMap<String, ImageSurvey>,
+
+    ordered_layer_names: Vec<LayerName>,
     layers: HashMap<LayerName, ImageSurveyLayer>,
-    // opacity of the primary layer
-    opacity: f32,
 
     raytracer: RayTracer,
     gl: WebGl2Context,
@@ -1065,7 +984,7 @@ pub struct ImageSurveys {
 use crate::buffer::Tiles;
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
-const APERTURE_LIMIT: f32 = 110.0;
+
 use crate::Resources;
 use crate::coo_conversion::CooSystem;
 impl ImageSurveys {
@@ -1086,12 +1005,14 @@ impl ImageSurveys {
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs, system);
 
-        let opacity = 0.5;
         let gl = gl.clone();
+
+        let ordered_layer_names = vec![];
         ImageSurveys {
             surveys,
+            ordered_layer_names,
+
             layers,
-            opacity,
 
             raytracer,
 
@@ -1122,16 +1043,32 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
     }
 
-    pub fn set_overlay_opacity(&mut self, opacity: f32) {
-        self.opacity = opacity;
+    pub fn set_opacity_layer(&mut self, layer: &str, opacity: f32) -> Result<(), JsValue> {
+        if let Some(layer) = self.layers.get_mut(layer) {
+            layer.opacity = opacity;
+            Ok(())
+        } else {
+            Err(JsValue::from_str(&format!("layer {} not found", layer)))
+        }
+    }
+
+    pub fn move_image_surveys_layer_forward(&mut self, layer: &str) -> Result<(), JsValue> {
+        let pos = self.ordered_layer_names.iter()
+            .position(|l| l == layer);
+
+        if let Some(pos) = pos {
+            let forward_pos = self.ordered_layer_names.len() - 1;
+            self.ordered_layer_names.swap(pos, forward_pos);
+
+            Ok(())
+        } else {
+            Err(JsValue::from_str(&format!("layer {} not found", layer)))
+        }
     }
 
     pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        //let raytracing = camera.get_aperture() > APERTURE_LIMIT;
-        //let raytracing = !P::is_included_inside_projection(&crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), camera));
-        let _limit_aperture: Angle<f32> = ArcDeg(APERTURE_LIMIT).into();
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        //let raytracing = camera.is_allsky();
+
         if raytracing {
             self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -1141,66 +1078,53 @@ impl ImageSurveys {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
-        for (_, ImageSurveyLayer { names, colors, opacity, .. }) in self.layers.iter() {
-            if opacity > &0.0 {
-                self.gl.disable(WebGl2RenderingContext::BLEND);
-                // Add the first hips on top of the background
-                /*let survey = self.surveys.get_mut(names.first().unwrap()).unwrap();
-                survey.draw::<P>(
-                    &self.raytracer,
-                    shaders,
-                    camera,
-                    colors.first().unwrap(),
-                    1.0,
+        let mut idx_survey = 0;
+        for (layer_idx, layer_name) in self.ordered_layer_names.iter().enumerate() {
+            let ImageSurveyLayer { names, colors, opacity, .. } = &self.layers[layer_name];
+            if layer_idx == 0 {
+                // The base layer
+                self.gl.blend_func(
+                    WebGl2RenderingContext::ONE,
+                    WebGl2RenderingContext::ONE
                 );
+            } else {
+                // The following layers
+                self.gl.blend_func_separate(
+                    WebGl2RenderingContext::SRC_ALPHA,
+                    WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+                    WebGl2RenderingContext::ONE,
+                    WebGl2RenderingContext::ONE,
+                );
+            }
 
-                // Enable the blending for the following HiPSes
-                self.gl.enable(WebGl2RenderingContext::BLEND);
-                self.gl
-                    .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-
-                for (name, color) in names.iter().skip(1).zip(colors.iter().skip(1)) {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-                }*/
+            if opacity > &0.0 {
                 for (name, color) in names.iter().zip(colors.iter()) {
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, 1.0);
-
                     // Enable the blending for the following HiPSes
-                    self.gl.enable(WebGl2RenderingContext::BLEND);
-                    self.gl
-                        .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+                    let blank_pixel_color = if idx_survey == 0 {
+                        // The very first survey has the blending disabled
+                        self.gl.disable(WebGl2RenderingContext::BLEND);
+                        color::Color::new(0.0, 0.0, 0.0, 1.0)
+                    } else {
+                        self.gl.enable(WebGl2RenderingContext::BLEND);
+                        color::Color::new(0.0, 0.0, 0.0, 0.0)
+                    };
+
+                    let survey = self.surveys.get_mut(name).unwrap();
+                    survey.draw::<P>(&self.raytracer, shaders, camera, color, *opacity, &blank_pixel_color);
+
+                    idx_survey += 1;
                 }
             }
         }
 
-        //self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
         );
-
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }
-
-    // Return the layer idx in which the survey is contained
-    /*fn contained_in_any_layer(&self, id: &str) -> Option<HashSet<String>> {
-        let mut layer_names = HashSet::new();
-        for (name, layer) in self.layers.iter() {
-            if layer.contains(id) {
-                layer_names.insert(name.clone());
-            }
-        }
-
-        if layer_names.is_empty() {
-            None
-        } else {
-            Some(layer_names)
-        }
-    }*/
 
     pub fn set_image_surveys(
         &mut self,
@@ -1209,41 +1133,33 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<Vec<String>, JsValue> {
-        // retrieve the max depth of the surveys composing
-        // the layer
-
-        /*let mut max_depth = 0;
-        let mut name_most_precised_survey = String::new();
-        let (surveys_url, colors): (Vec<_>, Vec<_>) = hipses
-            .iter()
-            .map(|hips| {
-                let cur_depth = hips.properties.max_order;
-                let name = hips.properties.url.clone();
-                if max_depth < cur_depth {
-                    max_depth = cur_depth;
-                    name_most_precised_survey = name.clone();
-                }
-
-                (name, hips.color())
-            })
-            .unzip();
-        */
+        // retrieve the max depth of the surveys composing the layer
 
         let mut layers = HashMap::new();
         let mut new_survey_ids = Vec::new();
 
         let mut current_needed_surveys = HashSet::new();
+        self.ordered_layer_names.clear();
         for hips in hipses.into_iter() {
             let layer_name = &hips.layer;
+            if !self.ordered_layer_names.contains(layer_name) {
+                if layer_name == "base" {
+                    self.ordered_layer_names.insert(0, layer_name.to_string());
+                } else {
+                    self.ordered_layer_names.push(layer_name.to_string());
+                }
+            }
+
             let url = hips.properties.url.clone();
 
             if !layers.contains_key(layer_name) {
+                let opacity = 1.0;
                 layers.insert(
                     layer_name.clone(),
                     ImageSurveyLayer {
                         names: vec![url.clone()],
                         colors: vec![hips.color()],
-                        opacity: 1.0,
+                        opacity,
                         name_most_precised_survey: url.clone()
                     }
                 );
@@ -1255,8 +1171,6 @@ impl ImageSurveys {
                 } else {
                     layer.names.push(url.clone());
                     layer.colors.push(hips.color());
-
-                    // TODO update most precised survey name
                 }
             }
 
@@ -1264,7 +1178,6 @@ impl ImageSurveys {
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
-                crate::log(&format!("new survey {:?}", survey.textures.config));
                 self.surveys.insert(url.clone(), survey);
                 new_survey_ids.push(url.clone());
             }
@@ -1284,45 +1197,6 @@ impl ImageSurveys {
         for survey_to_remove in &surveys_to_remove {
             self.surveys.remove(survey_to_remove);
         }
-        /*self.surveys = self.surveys.iter()
-            .filter(|(name,_)| {
-                if current_needed_surveys.contains(name) {
-                    true
-                } else {
-                    false
-                }
-            })
-            .collect();*/
-
-
-            /*if let Some(layer) = self.layers.get(layer_name) {
-                for replaced_survey_name in layer.names.iter() {
-                    if let Some(layer_names) = self.contained_in_any_layer(replaced_survey_name) {
-                        // if the survey was only contained in the current layer
-                        if layer_names.len() == 1 && layer_names.contains(&layer_name.clone()) {
-                            // do not remove it we still need it
-                            if !surveys_url.contains(replaced_survey_name) {
-                                self.surveys.remove(replaced_survey_name);
-                            }
-                        }
-                    } else {
-                        // if so we can remove it from the surveys hashmap
-                        self.surveys.remove(replaced_survey_name);
-                    }
-                }
-            }
-        
-
-        let opacity = 1.0;
-        self.layers.insert(
-            layer_name,
-            ImageSurveyLayer {
-                names: surveys_url,
-                colors,
-                opacity,
-                name_most_precised_survey
-            }
-        );*/
 
         crate::log(&format!("layers {:?}", self.layers));
         crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
@@ -1330,32 +1204,16 @@ impl ImageSurveys {
         Ok(new_survey_ids)
     }
 
-    /*pub fn remove_overlay(&mut self) {
-        let replaced_survey_names: Vec<String> = {
-            let layer = &mut self.layers[1];
-            match layer {
-                ImageSurveyLayer::None => {
-                    *layer = ImageSurveyLayer::None;
-                    vec![]
-                }
-                ImageSurveyLayer::Composite {
-                    names: cur_names, ..
-                } => {
-                    let cur_names = cur_names.clone();
-                    *layer = ImageSurveyLayer::None;
-                    cur_names
-                }
-            }
-        };
-
-        for replaced_survey_name in replaced_survey_names.iter() {
-            // ensure cur_idx is not contained in any other layers
-            if self.contained_in_any_layer(replaced_survey_name).is_none() {
-                // if so we can remove it from the surveys hashmap
-                self.surveys.remove(replaced_survey_name);
-            }
-        }
-    }*/
+    pub fn is_ready(&self) -> bool {
+        let ready = self.surveys
+            .iter()
+            .map(|(_, survey)| {
+                survey.textures.is_ready()
+            })
+            .fold(true, |acc, x| acc & x);
+        
+        ready
+    }
 
     pub fn contains(&self, url: &str) -> bool {
         self.surveys.contains_key(url)
@@ -1455,120 +1313,8 @@ impl ImageSurveys {
 use crate::{
     async_task::TaskExecutor,
     buffer::HiPSConfig,
-    renderable::{Angle, ArcDeg},
     shader::ShaderManager,
 };
 use std::collections::hash_map::{Iter, IterMut};
 
 use crate::TransferFunction;
-
-// This is specific to the rasterizer method of rendering
-/*impl HEALPixSphere {
-pub fn new(gl: &WebGl2Context, camera: &CameraViewPort, shaders: &mut ShaderManager) -> Self {
-
-    crate::log(&format!("raytracer"));
-    HEALPixSphere {
-        buffer,
-        surveys,
-
-        gl,
-    }
-}
-
-pub fn set_image_survey<P: Projection>(&mut self, hips_definition: HiPSDefinition, camera: &mut CameraViewPort, task_executor: &mut TaskExecutor) -> Result<(), JsValue> {
-    self.config.set_HiPS_definition(hips_definition)?;
-    // Tell the camera the config has changed
-    camera.set_image_survey::<P>(&self.config);
-
-    // Clear the buffer
-    self.buffer.reset(&self.gl, &self.config, camera, task_executor);
-
-    Ok(())
-}*/
-
-/*pub fn ask_for_tiles<P: Projection>(&mut self, cells: &HashMap<HEALPixCell, bool>) {
-    // Ask for the real tiles being in the camera
-    self.buffer.ask_for_tiles(cells, &self.config);
-}*/
-
-/*pub fn request(&mut self, available_tiles: &Tiles, task_executor: &mut TaskExecutor) {
-        //survey.register_tiles_sent_to_gpu(copied_tiles);
-        self.buffer.get_resolved_tiles(available_tiles);
-    }
-
-    pub fn set_projection<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        self.update::<P>(camera);
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
-    }
-
-    pub fn update<P: Projection>(&mut self, available_tiles: &Tiles, camera: &CameraViewPort, exec: &mut TaskExecutor) -> IsNextFrameRendered {
-
-
-        if self.survey.is_ready() {
-            // Update the scene if:
-            // - The camera changed
-            // - There are remaining tiles to write to the GPU
-            // - The tiles blending in GPU must be done (500ms + the write time)
-            let update =  |
-                (Time::now() < self.time_last_tile_written + DeltaTime::from_millis(500_f32));
-
-            if !update {
-                false
-            } else {
-                let aperture = camera.get_aperture();
-                let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
-                if aperture <= limit_aperture {
-                    // Rasterizer mode
-                    self.raster.update::<P>(&mut self.buffer, camera, &self.config);
-                }
-
-                true
-            }
-        } else {
-            // Do not render the scene while the buffer is not ready
-            true
-        }
-    }
-
-    pub fn draw<P: Projection>(
-        &mut self,
-        gl: &WebGl2Context,
-        shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
-    ) {
-        let aperture = camera.get_aperture();
-        let limit_aperture: Angle<f32> = ArcDeg(150_f32).into();
-
-        if aperture <= limit_aperture {
-            // Rasterization
-            let shader = Rasterizer::get_shader::<P>(gl, shaders, &self.buffer);
-            let shader_bound = shader.bind(gl);
-            shader_bound.attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.survey)
-                //.attach_uniforms_from(&self.config)
-                //.attach_uniforms_from(&self.buffer)
-                .attach_uniform("inv_model", camera.get_inverted_model_mat())
-                .attach_uniform("current_time", &utils::get_current_time());
-
-            self.raster.draw::<P>(gl, &shader_bound);
-        } else {
-            // Ray-tracing
-            let shader = RayTracer::get_shader(gl, shaders, &self.buffer);
-            let shader_bound = shader.bind(gl);
-            shader_bound.attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.survey)
-                //.attach_uniforms_from(&self.config)
-                //.attach_uniforms_from(&self.buffer)
-                .attach_uniform("model", camera.get_model_mat())
-                .attach_uniform("current_depth", &(camera.depth() as i32))
-                .attach_uniform("current_time", &utils::get_current_time());
-
-            self.raytracer.draw(gl, &shader_bound);
-        }
-    }
-
-    #[inline]
-    pub fn config(&self) -> &HiPSConfig {
-        &self.config
-    }
-}*/

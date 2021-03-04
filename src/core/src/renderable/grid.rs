@@ -221,7 +221,6 @@ impl ProjetedGrid {
             .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
         if vertices.len() > self.size_vertices_buf {
             self.size_vertices_buf = vertices.len();
-            //crate::log(&format!("realloc num floats: {}", self.size_vertices_buf));
 
             self.gl.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,

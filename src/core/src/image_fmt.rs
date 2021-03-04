@@ -43,7 +43,7 @@ impl PNG {
         let num_channels = Self::NUM_CHANNELS as i32;
         let size_buf = (width * width * num_channels) as usize;
 
-        let pixels = [0, 0, 0, 255]
+        let pixels = [0, 0, 0, 0]
             .iter()
             .cloned()
             .cycle()

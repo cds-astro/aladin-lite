@@ -25,23 +25,42 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        var aladin = A.aladin('#aladin-lite-div', {target: "0 0",fov: 100, cooFrame: 'ICRS'});
-        aladin.setBaseImageLayer("P/DSS2/Color");
+        aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", target: "0 0", cooFrame: "gal"});
+
         var callback = function(ra, dec, fov) {
             aladin.addCatalog(A.catalogFromSimbad( {ra: ra, dec: dec} , 1 , {shape: 'circle', color: '#5d5', onClick: 'showTable'}));
             // we must return true, so that the default action (set view to center of image) is performed
             return true;
         }
-        aladin.displayJPG('https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
-                        null, callback);
+        aladin.displayJPG(
+            // the JPG to transform to HiPS
+            'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
+            // name of the HiPS layer
+            'overlay',
+            // no options
+            null,
+            // A callback fn once the overlay is set
+            callback
+        );
 
-        $( "#slider" ).on('input', function() {
-            aladin.getOverlayImageLayer().setAlpha($(this).val());
+        $("#slider").on('input', function() {
+            aladin.setOpacityLayer($(this).val(), "overlay");
         });
 
-        $('input[name=survey]').change(function() {
-            aladin.setImageSurvey($(this).val());
-        });
+        (async () => {
+            let twomass = await A.createImageSurvey("CDS/P/2MASS/color");
+            let dss2 = await A.createImageSurvey("CDS/P/DSS2/color");
+
+            $('input[name=survey]').change(async function() {
+                let surveyName = $(this).val();
+                console.log(surveyName)
+                if (surveyName === "P/2MASS/Color") {
+                    aladin.setBaseImageSurvey(twomass);
+                } else if (surveyName === "P/DSS2/Color") {
+                    aladin.setBaseImageSurvey(dss2);
+                }
+            });
+        })();
     });
 </script>
 </body>

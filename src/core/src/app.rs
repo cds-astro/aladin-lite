@@ -148,7 +148,7 @@ impl App {
         let panstarrs = SimpleHiPS {
             layer: String::from("base"),
             properties: HiPSProperties {
-                url: String::from("http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
+                url: String::from("https://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
 
                 max_order: 11,
                 frame: Frame {

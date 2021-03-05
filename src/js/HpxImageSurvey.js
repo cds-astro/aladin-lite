@@ -60,7 +60,7 @@ export let HpxImageSurvey = (function() {
             // Use the MOCServer to retrieve the
             // properties
             const id = rootURLOrId;
-            const MOCServerUrl = 'http://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
+            const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
 
             return (async () => {
                 let metadata = await request(MOCServerUrl);

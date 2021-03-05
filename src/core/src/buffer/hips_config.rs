@@ -9,6 +9,7 @@ struct TileConfig {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum TileArrayBufferImage {
     F32(TileArrayBuffer<ArrayF32>),
     F64(TileArrayBuffer<ArrayF64>),
@@ -254,21 +255,6 @@ impl HiPSConfig {
     #[inline]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_config.width
-    }
-
-    #[inline]
-    pub fn get_num_channels(&self) -> usize {
-        self.format.get_num_channels()
-    }
-
-    #[inline]
-    pub fn get_internal_format(&self) -> i32 {
-        self.format.get_internal_format()
-    }
-
-    #[inline]
-    pub fn get_ext_file(&self) -> &'static str {
-        self.format.get_ext_file()
     }
 
     #[inline]

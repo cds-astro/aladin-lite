@@ -18,6 +18,7 @@ impl<'a> Iterator for HEALPixCellsIter<'a> {
     }
 }
 
+#[allow(dead_code)]
 impl HEALPixCells {
     fn new() -> Self {
         HEALPixCells {
@@ -124,25 +125,6 @@ impl NewHEALPixCells {
             .collect::<HashMap<_, _>>();
 
         self.is_new_cells_added = is_new_cells_added;
-    }
-
-    /*#[inline]
-    fn is_there_new_cells_added(&self) -> bool {
-        self.is_new_cells_added
-    }*/
-
-    #[inline]
-    fn get_new_cells(&self) -> HEALPixCells {
-        let cells = self
-            .flags
-            .iter()
-            .filter_map(|(cell, new)| if *new { Some(*cell) } else { None })
-            .collect();
-
-        HEALPixCells {
-            depth: self.depth,
-            cells,
-        }
     }
 
     #[inline]
@@ -277,16 +259,6 @@ impl HEALPixCellsInView {
 
     // Accessors
     #[inline]
-    pub fn get_new_cells(&self) -> HEALPixCells {
-        self.new_cells.get_new_cells()
-    }
-
-    #[inline]
-    pub fn get_cells_iter<'a>(&'a self) -> HEALPixCellsIter<'a> {
-        self.cells.iter()
-    }
-
-    #[inline]
     pub fn get_cells(&self) -> &HEALPixCells {
         &self.cells
     }
@@ -306,11 +278,6 @@ impl HEALPixCellsInView {
         //self.new_cells.is_there_new_cells_added()
         self.is_new_cells
     }
-
-    /*#[inline]
-    pub fn is_view_different(&self) -> bool {
-        self.is_new_cells
-    }*/
 
     #[inline]
     pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {

@@ -4,7 +4,6 @@
 
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
 <link rel="stylesheet" href="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.css" />
-<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 
@@ -24,7 +23,6 @@
 
 <div id="aladin-lite-div" style="width: 1024px; height: 768px">
   <div id="ui" class="ui">
-    <!--<discovery-tree id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>-->
   </div>
 </div>
 
@@ -34,8 +32,15 @@
 <script type="text/javascript">
   let aladin;
   A.init.then(() => {
-      // Start up Aladin Lite
-      aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: true});
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {
+            fov: 360,
+            target: '0 0',
+            fullScreen: true,
+            survey: "CDS/P/Mars/Pan-Perseverance-PIA24422",
+            showCooGrid: true,
+        });
+        aladin.setProjection('mercator');
   });
 </script>
 

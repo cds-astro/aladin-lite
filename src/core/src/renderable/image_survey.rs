@@ -369,12 +369,6 @@ use std::mem;
 
 use crate::renderable::uv::{TileCorner, TileUVW};
 
-pub type LonLatVec = Vec<f32>;
-pub type PositionVec = Vec<f32>;
-pub type UVStartVec = Vec<f32>;
-pub type UVEndVec = Vec<f32>;
-pub type StartAnimTimeVec = Vec<f32>;
-
 pub type IdxVerticesVec = Vec<u16>;
 
 // This method only computes the vertex positions
@@ -785,11 +779,6 @@ impl ImageSurvey {
     #[inline]
     pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
-    }
-
-    #[inline]
-    pub fn get_id(&self) -> &str {
-        &self.get_textures().config.root_url
     }
 }
 
@@ -1215,10 +1204,6 @@ impl ImageSurveys {
         ready
     }
 
-    pub fn contains(&self, url: &str) -> bool {
-        self.surveys.contains_key(url)
-    }
-
     pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
         if self.surveys.is_empty() {
             None
@@ -1301,10 +1286,6 @@ impl ImageSurveys {
         self.surveys.get(root_url)
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, String, ImageSurvey> {
-        self.surveys.iter()
-    }
-
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, String, ImageSurvey> {
         self.surveys.iter_mut()
     }
@@ -1315,6 +1296,6 @@ use crate::{
     buffer::HiPSConfig,
     shader::ShaderManager,
 };
-use std::collections::hash_map::{Iter, IterMut};
+use std::collections::hash_map::IterMut;
 
 use crate::TransferFunction;

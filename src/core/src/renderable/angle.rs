@@ -339,10 +339,6 @@ where
     }
 }
 
-pub unsafe fn transmute_angles<S: BaseFloat>(angles: &[Angle<S>]) -> &[S] {
-    std::mem::transmute(angles)
-}
-
 // Convert from and to Rad<S>
 impl<S> From<Rad<S>> for Angle<S>
 where

@@ -134,7 +134,6 @@ pub struct ImageSurveyTextures {
     available_tiles_during_frame: bool,
 
     exec: Rc<RefCell<TaskExecutor>>,
-    gl: WebGl2Context,
 }
 use crate::JsValue;
 use crate::{
@@ -202,7 +201,6 @@ impl ImageSurveyTextures {
         let ready = false;
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
-        let gl = gl.clone();
         Ok(ImageSurveyTextures {
             config,
             heap,
@@ -216,7 +214,6 @@ impl ImageSurveyTextures {
 
             ready,
             exec,
-            gl,
         })
     }
 
@@ -431,7 +428,7 @@ impl ImageSurveyTextures {
         }
     }
 
-    // This is called when the HiPS changes
+    /*// This is called when the HiPS changes
     pub fn clear(&mut self) -> Result<(), JsValue> {
         // Size i.e. the num of textures is the same
         // no matter the HiPS config
@@ -449,7 +446,7 @@ impl ImageSurveyTextures {
         self.texture_2d_array = Rc::new(texture_2d_array);
 
         Ok(())
-    }
+    }*/
 
     /// Accessors
     pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {
@@ -474,13 +471,6 @@ impl ImageSurveyTextures {
 
     pub fn config(&self) -> &HiPSConfig {
         &self.config
-    }
-    pub fn config_mut(&mut self) -> &mut HiPSConfig {
-        &mut self.config
-    }
-
-    pub fn get_root_url(&self) -> &str {
-        &self.config.root_url
     }
 
     pub fn is_ready(&self) -> bool {

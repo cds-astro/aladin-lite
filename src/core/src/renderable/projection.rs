@@ -14,7 +14,7 @@ trait MyFloat: cgmath::BaseFloat + FloatConst {}
 impl MyFloat for f32 {}
 impl MyFloat for f64 {}
 
-
+#[allow(dead_code)]
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -32,6 +32,8 @@ pub fn screen_to_ndc_space(
     );
     pos_normalized_device
 }
+
+#[allow(dead_code)]
 pub fn ndc_to_screen_space(
     pos_normalized_device: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -45,6 +47,8 @@ pub fn ndc_to_screen_space(
 
     pos_screen_space
 }
+
+#[allow(dead_code)]
 pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort) -> Vector2<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
@@ -55,6 +59,7 @@ pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort)
     )
 }
 
+#[allow(dead_code)]
 pub fn clip_to_screen_space(
     pos_clip_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -70,6 +75,7 @@ pub fn clip_to_screen_space(
     pos_screen_space
 }
 
+#[allow(dead_code)]
 pub fn screen_to_clip_space(
     pos_screen_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -79,6 +85,7 @@ pub fn screen_to_clip_space(
     ndc_to_clip_space(&pos_normalized_device, camera)
 }
 
+#[allow(dead_code)]
 pub fn ndc_to_clip_space(
     pos_normalized_device: &Vector2<f64>,
     camera: &CameraViewPort,

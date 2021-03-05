@@ -130,11 +130,13 @@ pub enum CooSystem {
     GAL,
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen(js_name = "GALCooSys")]
 pub fn galcoo_sys() -> Result<CooSystem, JsValue> {
     Ok(CooSystem::GAL)
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen(js_name = "ICRSJ2000CooSys")]
 pub fn icrsj2000_coo_sys() -> Result<CooSystem, JsValue> {
     Ok(CooSystem::ICRSJ2000)

@@ -342,7 +342,13 @@ pub enum Error {
     FileNotFound { message: String },
 }
 
-use crate::FileSrc;
+use serde::Deserialize;
+#[derive(Debug, Deserialize)]
+pub struct FileSrc {
+    pub id: String,
+    pub content: String,
+}
+
 use std::collections::hash_map::Entry;
 impl ShaderManager {
     pub fn new(_gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {

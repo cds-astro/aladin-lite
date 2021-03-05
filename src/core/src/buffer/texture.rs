@@ -147,13 +147,7 @@ impl Texture {
 
     // Setter
     pub fn update_start_time(&mut self, start_time: Time) {
-        // Asserts the texture is full
-        //assert!(self.is_full());
         self.start_time = Some(start_time);
-    }
-
-    pub fn set_time_request(&mut self, time_request: Time) {
-        self.time_request = time_request;
     }
 
     pub fn replace(

@@ -357,7 +357,8 @@ impl<'a> Texture2DBound<'a> {
             )
             .expect("Sub texture 2d");
     }
-
+    
+    #[allow(dead_code)]
     pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
         &self,
         dx: i32,

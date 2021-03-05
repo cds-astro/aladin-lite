@@ -379,11 +379,7 @@ export let Aladin = (function () {
             e.preventDefault(); // to prevent text selection
         });
 
-        // go to full screen ?
-        if (options.fullScreen) {
-                // strange behaviour to wait for a sec
-            window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 1000);
-        }
+
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
@@ -394,6 +390,12 @@ export let Aladin = (function () {
         }
 
         this.view.redraw();
+
+        // go to full screen ?
+        if (options.fullScreen) {
+            // strange behaviour to wait for a sec
+            window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 10);
+        }
     };
 
     /**** CONSTANTS ****/

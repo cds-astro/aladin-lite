@@ -107,3 +107,10 @@ and run the tests
 cd src/core
 cargo test
 ```
+
+To generate the Rust backend API documentation
+
+```bash
+cd src/core
+cargo doc --no-deps --open
+```

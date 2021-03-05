@@ -122,26 +122,6 @@ impl FieldOfViewVertices {
         fov
     }
 
-    // Recompute the camera fov vertices when the projection is changing
-    pub fn set_projection<P: Projection>(
-        &mut self,
-        ndc_to_clip: &Vector2<f64>,
-        clip_zoom_factor: f64,
-        w2m: &Matrix4<f64>,
-        aperture: Angle<f64>,
-        longitude_reversed: bool,
-        system: &CooSystem
-    ) {
-        self.set_fov::<P>(
-            ndc_to_clip,
-            clip_zoom_factor,
-            w2m,
-            aperture,
-            longitude_reversed,
-            system
-        );
-    }
-
     pub fn set_fov<P: Projection>(
         &mut self,
         ndc_to_clip: &Vector2<f64>,

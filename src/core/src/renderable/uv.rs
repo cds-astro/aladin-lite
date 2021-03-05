@@ -3,30 +3,6 @@ use num::{Float, Zero};
 
 #[derive(Debug)]
 pub struct UV<T: Float + Zero>([Vector2<T>; 4]);
-impl<T> UV<T>
-where
-    T: Float + Zero,
-{
-    pub fn empty() -> UV<T> {
-        UV([Vector2::new(T::zero(), T::zero()); 4])
-    }
-
-    // The idx of the tile in the texture
-    pub fn new(p0: &Vector2<T>, size: &Vector2<T>) -> UV<T> {
-        UV::<T>([
-            *p0,
-            Vector2::new(p0.x + size.x, p0.y),
-            Vector2::new(p0.x + size.x, p0.y + size.y),
-            Vector2::new(p0.x, p0.y + size.y),
-        ])
-        /*UV::<T>([
-            Vector2::new(T::zero(), T::zero()),
-            Vector2::new(T::one(), T::zero()),
-            Vector2::new(T::one(), T::one()),
-            Vector2::new(T::zero(), T::one()),
-        ])*/
-    }
-}
 
 use core::ops::Deref;
 impl<T> Deref for UV<T>
@@ -43,10 +19,6 @@ where
 use crate::{buffer::HiPSConfig, buffer::Texture, healpix_cell::HEALPixCell, utils};
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
-    pub fn empty() -> TileUVW {
-        TileUVW([Vector3::new(0_f32, 0_f32, 0_f32); 4])
-    }
-
     // The texture cell passed must be a child of texture
     pub fn new(
         child_texture_cell: &HEALPixCell,
@@ -89,7 +61,7 @@ impl TileUVW {
         ])
     }
 }
-
+#[allow(dead_code)]
 pub enum TileCorner {
     BottomLeft,
     BottomRight,

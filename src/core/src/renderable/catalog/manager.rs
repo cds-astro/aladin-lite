@@ -3,7 +3,10 @@ use crate::renderable::projection::*;
 use crate::{
     core::{Texture2D, VecData, VertexArrayObject},
     shader::Shader,
-    Colormap, ShaderManager, WebGl2Context,
+    ShaderManager, WebGl2Context,
+    shaders::Colormap,
+    resources::Resources,
+    FormatImageType,
 };
 use std::collections::HashMap;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
@@ -35,9 +38,6 @@ pub struct Manager {
     kernel_size: Vector2<f32>,
 }
 
-use crate::FormatImageType;
-
-use crate::Resources;
 impl Manager {
     pub fn new(
         gl: &WebGl2Context,
@@ -205,11 +205,6 @@ impl Manager {
 
     pub fn get_mut_catalog(&mut self, name: &str) -> Result<&mut Catalog, Error> {
         self.catalogs.get_mut(name).ok_or(Error::CatalogNotPresent {
-            message: format!("{} catalog is not present!", name),
-        })
-    }
-    pub fn get_catalog(&self, name: &str) -> Result<&Catalog, Error> {
-        self.catalogs.get(name).ok_or(Error::CatalogNotPresent {
             message: format!("{} catalog is not present!", name),
         })
     }
@@ -389,10 +384,6 @@ impl Catalog {
 
     pub fn set_alpha(&mut self, alpha: f32) {
         self.alpha = alpha;
-    }
-
-    pub fn get_alpha(&self) -> f32 {
-        self.alpha
     }
 
     fn compute_max_density<P: Projection>(&self, d: f32) -> f32 {

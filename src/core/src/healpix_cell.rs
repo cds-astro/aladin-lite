@@ -5,13 +5,6 @@ pub struct HEALPixCell(pub u8, pub u64);
 
 use crate::renderable::projection::Projection;
 
-pub enum Child {
-    BottomLeft,
-    BottomRight,
-    TopLeft,
-    TopRight,
-}
-
 use crate::buffer::HiPSConfig;
 use crate::utils;
 impl HEALPixCell {
@@ -71,24 +64,6 @@ impl HEALPixCell {
     }
 
     #[inline]
-    pub const fn root() -> [HEALPixCell; 12] {
-        [
-            HEALPixCell(0, 0),
-            HEALPixCell(0, 1),
-            HEALPixCell(0, 2),
-            HEALPixCell(0, 3),
-            HEALPixCell(0, 4),
-            HEALPixCell(0, 5),
-            HEALPixCell(0, 6),
-            HEALPixCell(0, 7),
-            HEALPixCell(0, 8),
-            HEALPixCell(0, 9),
-            HEALPixCell(0, 10),
-            HEALPixCell(0, 11),
-        ]
-    }
-
-    #[inline]
     pub fn idx(&self) -> u64 {
         self.1
     }
@@ -96,22 +71,6 @@ impl HEALPixCell {
     #[inline]
     pub fn depth(&self) -> u8 {
         self.0
-    }
-
-    pub fn get(&self, child: Child) -> Self {
-        if self.depth() == 29 {
-            *self
-        } else {
-            let depth = self.depth() + 1;
-            let idx_off = self.idx() << 2;
-
-            match child {
-                Child::BottomLeft => HEALPixCell(depth, idx_off),
-                Child::BottomRight => HEALPixCell(depth, idx_off + 1),
-                Child::TopLeft => HEALPixCell(depth, idx_off + 2),
-                Child::TopRight => HEALPixCell(depth, idx_off + 3),
-            }
-        }
     }
 
     #[inline]
@@ -207,70 +166,8 @@ impl<'a> Ord for HEALPixCellUniqOrd<'a> {
     }
 }
 pub struct SphereSubdivided;
-/*
-pub struct SphereSubdivided(Box<[u8; 12288]>);
-
-fn subdivision(cell: &HEALPixCell) -> u8 {
-    let subdivision = 0;
-    let num_subdivision = recursive_sub(cell, subdivision);
-
-    num_subdivision
-}
-
-fn recursive_sub(cell: &HEALPixCell, num_subdivide: u8) -> u8 {
-    let ratio = compute_ratio_diag(cell);
-    if ratio < 0.8 && cell.depth() < 5 {
-        let child_bl = cell.get(Child::BottomLeft);
-        let child_br = cell.get(Child::BottomRight);
-        let child_tl = cell.get(Child::TopLeft);
-        let child_tr = cell.get(Child::TopRight);
-
-        let n1 = recursive_sub(&child_bl, num_subdivide);
-        let n2 = recursive_sub(&child_br, num_subdivide);
-        let n3 = recursive_sub(&child_tl, num_subdivide);
-        let n4 = recursive_sub(&child_tr, num_subdivide);
-
-        let r = std::cmp::max(n1, std::cmp::max(n2, std::cmp::max(n3, n4)));
-
-        r + 1
-    } else {
-        num_subdivide
-    }
-}
-
-use crate::renderable::Angle;
-use cgmath::Vector3;
-fn compute_ratio_diag(cell: &HEALPixCell) -> Angle<f32> {
-    let vertices = cdshealpix::vertices_lonlat(cell);
-
-    let vertices_world_space = vertices
-        .iter()
-        .map(|lonlat| {
-            let vertex_world_space = lonlat.vector::<Vector3<f32>>();
-            vertex_world_space
-        })
-        .collect::<Vec<_>>();
-
-    // Compute the diagonal of the cell
-    let d1 = math::ang_between_vect(&vertices_world_space[0], &vertices_world_space[2]);
-    let d2 = math::ang_between_vect(&vertices_world_space[1], &vertices_world_space[3]);
-
-    let ratio = if d1 < d2 { d1 / d2 } else { d2 / d1 };
-
-    ratio
-}*/
 
 impl SphereSubdivided {
-    /*pub fn new() -> SphereSubdivided {
-        let mut hpx_sub = Box::new([0; 12288]);
-
-        for idx in 0..hpx_sub.len() {
-            hpx_sub[idx] = subdivision(&HEALPixCell(5, idx as u64));
-        }
-
-        SphereSubdivided(hpx_sub)
-    }*/
-
     // Get the number of subdivision necessary for the given cell
     pub fn get_num_subdivide<P: Projection>(&self, cell: &HEALPixCell) -> u8 {
         let HEALPixCell(depth, _idx) = *cell;
@@ -299,12 +196,3 @@ impl SphereSubdivided {
         //std::cmp::min(num_sub, 3)
     }
 }
-
-/*use std::ops::Index;
-impl Index<usize> for SphereSubdivided {
-    type Output = u8;
-
-    fn index(&self, idx_d3: usize) -> &Self::Output {
-        &self.0[idx_d3]
-    }
-}*/

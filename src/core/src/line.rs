@@ -85,7 +85,7 @@ fn subdivide<P: Projection>(
                 camera,
             );
 
-            // and try subdividing a little further 
+            // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[1] + mp[2]) * 0.5;
             subdivide::<P>(
@@ -104,7 +104,7 @@ fn subdivide<P: Projection>(
                 camera,
             );
 
-            // and try subdividing a little further 
+            // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[0] + mp[1]) * 0.5;
             subdivide::<P>(

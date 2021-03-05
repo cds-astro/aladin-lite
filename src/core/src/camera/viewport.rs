@@ -171,7 +171,7 @@ impl CameraViewPort {
             // A reference to the WebGL2 context
             gl,
             // coo system
-            system
+            system,
         };
 
         camera
@@ -197,7 +197,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
-            &self.system
+            &self.system,
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -255,7 +255,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             self.longitude_reversed,
-            &self.system
+            &self.system,
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
@@ -292,7 +292,8 @@ impl CameraViewPort {
 
     pub fn set_coo_system<P: Projection>(&mut self, system: CooSystem) {
         self.system = system;
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+        self.vertices
+            .set_rotation::<P>(&self.w2m, self.aperture, &self.system);
     }
 
     // Accessors
@@ -396,7 +397,8 @@ impl CameraViewPort {
         self.update_center::<P>();
 
         // Rotate the fov vertices
-        self.vertices.set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+        self.vertices
+            .set_rotation::<P>(&self.w2m, self.aperture, &self.system);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;
@@ -405,16 +407,15 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
+        let center_world_space =
+            P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space
         self.center = self.w2m * center_world_space;
-        
+
         let axis = &self.center.truncate();
-        let center_rot = Rotation::from_axis_angle(
-            axis, self.rotation_center_angle
-        );
+        let center_rot = Rotation::from_axis_angle(axis, self.rotation_center_angle);
 
         // Re-update the model matrix to take into account the rotation
         // by theta around the center axis

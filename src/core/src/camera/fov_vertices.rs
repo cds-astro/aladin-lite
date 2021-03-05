@@ -56,8 +56,8 @@ pub struct FieldOfViewVertices {
     // in the field of view
     great_circles: FieldOfViewType,
 }
-use crate::CooSystem;
 use crate::Angle;
+use crate::CooSystem;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
         ndc_to_clip: &Vector2<f64>,
@@ -140,7 +140,12 @@ impl FieldOfViewVertices {
         self.set_rotation::<P>(w2m, aperture, system);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, w2m: &Matrix4<f64>, aperture: Angle<f64>, system: &CooSystem) {
+    pub fn set_rotation<P: Projection>(
+        &mut self,
+        w2m: &Matrix4<f64>,
+        aperture: Angle<f64>,
+        system: &CooSystem,
+    ) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
         } else {
@@ -153,7 +158,8 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
-                let vertices = vertices.iter()
+                let vertices = vertices
+                    .iter()
                     .cloned()
                     .map(|v| system.to_gal::<f64>() * v)
                     .collect::<Vec<_>>();

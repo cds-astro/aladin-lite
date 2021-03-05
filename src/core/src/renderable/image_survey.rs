@@ -242,7 +242,7 @@ trait Draw {
         camera: &CameraViewPort,
         color: &Color,
         opacity: f32,
-        blank_pixel_color: &color::Color
+        blank_pixel_color: &color::Color,
     );
 }
 
@@ -794,8 +794,8 @@ impl Drop for ImageSurvey {
     }
 }
 
-use std::borrow::Cow;
 use crate::color;
+use std::borrow::Cow;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
@@ -942,9 +942,7 @@ impl HiPS for SimpleHiPS {
         let SimpleHiPS { properties, .. } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
-        let survey = ImageSurvey::new(
-            gl, camera, surveys, config, exec,
-        )?;
+        let survey = ImageSurvey::new(gl, camera, surveys, config, exec)?;
 
         Ok(survey)
     }
@@ -974,8 +972,8 @@ use crate::buffer::Tiles;
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 
-use crate::Resources;
 use crate::coo_conversion::CooSystem;
+use crate::Resources;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -1042,8 +1040,7 @@ impl ImageSurveys {
     }
 
     pub fn move_image_surveys_layer_forward(&mut self, layer: &str) -> Result<(), JsValue> {
-        let pos = self.ordered_layer_names.iter()
-            .position(|l| l == layer);
+        let pos = self.ordered_layer_names.iter().position(|l| l == layer);
 
         if let Some(pos) = pos {
             let forward_pos = self.ordered_layer_names.len() - 1;
@@ -1069,13 +1066,16 @@ impl ImageSurveys {
 
         let mut idx_survey = 0;
         for (layer_idx, layer_name) in self.ordered_layer_names.iter().enumerate() {
-            let ImageSurveyLayer { names, colors, opacity, .. } = &self.layers[layer_name];
+            let ImageSurveyLayer {
+                names,
+                colors,
+                opacity,
+                ..
+            } = &self.layers[layer_name];
             if layer_idx == 0 {
                 // The base layer
-                self.gl.blend_func(
-                    WebGl2RenderingContext::ONE,
-                    WebGl2RenderingContext::ONE
-                );
+                self.gl
+                    .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
             } else {
                 // The following layers
                 self.gl.blend_func_separate(
@@ -1099,7 +1099,14 @@ impl ImageSurveys {
                     };
 
                     let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(&self.raytracer, shaders, camera, color, *opacity, &blank_pixel_color);
+                    survey.draw::<P>(
+                        &self.raytracer,
+                        shaders,
+                        camera,
+                        color,
+                        *opacity,
+                        &blank_pixel_color,
+                    );
 
                     idx_survey += 1;
                 }
@@ -1149,8 +1156,8 @@ impl ImageSurveys {
                         names: vec![url.clone()],
                         colors: vec![hips.color()],
                         opacity,
-                        name_most_precised_survey: url.clone()
-                    }
+                        name_most_precised_survey: url.clone(),
+                    },
                 );
             } else {
                 let layer = layers.get_mut(layer_name).unwrap();
@@ -1194,13 +1201,12 @@ impl ImageSurveys {
     }
 
     pub fn is_ready(&self) -> bool {
-        let ready = self.surveys
+        let ready = self
+            .surveys
             .iter()
-            .map(|(_, survey)| {
-                survey.textures.is_ready()
-            })
+            .map(|(_, survey)| survey.textures.is_ready())
             .fold(true, |acc, x| acc & x);
-        
+
         ready
     }
 
@@ -1210,11 +1216,7 @@ impl ImageSurveys {
         } else {
             let (_, layer) = &self.layers.iter().next().unwrap();
             let name = &layer.name_most_precised_survey;
-            Some(
-                self.surveys.get(name)
-                    .unwrap()
-                    .get_view()
-            )
+            Some(self.surveys.get(name).unwrap().get_view())
         }
     }
 
@@ -1291,11 +1293,7 @@ impl ImageSurveys {
     }
 }
 
-use crate::{
-    async_task::TaskExecutor,
-    buffer::HiPSConfig,
-    shader::ShaderManager,
-};
+use crate::{async_task::TaskExecutor, buffer::HiPSConfig, shader::ShaderManager};
 use std::collections::hash_map::IterMut;
 
 use crate::TransferFunction;

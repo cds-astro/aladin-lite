@@ -120,7 +120,6 @@ impl ProjetedGrid {
         canvas.set_width(2 * size_screen.x as u32);
         canvas.set_height(2 * size_screen.y as u32);
 
-
         let ctx2d = canvas
             .get_context("2d")
             .unwrap()
@@ -166,16 +165,24 @@ impl ProjetedGrid {
         let size_screen = &camera.get_screen_size();
 
         self.enabled = false;
-        self.ctx2d
-            .clear_rect(0.0, 0.0, 2.0 * size_screen.x as f64, 2.0 * size_screen.y as f64);
+        self.ctx2d.clear_rect(
+            0.0,
+            0.0,
+            2.0 * size_screen.x as f64,
+            2.0 * size_screen.y as f64,
+        );
     }
 
     pub fn hide_labels(&mut self, camera: &CameraViewPort) {
         let size_screen = &camera.get_screen_size();
 
         self.hide_labels = true;
-        self.ctx2d
-            .clear_rect(0.0, 0.0, 2.0 * size_screen.x as f64, 2.0 * size_screen.y as f64);
+        self.ctx2d.clear_rect(
+            0.0,
+            0.0,
+            2.0 * size_screen.x as f64,
+            2.0 * size_screen.y as f64,
+        );
     }
     pub fn show_labels(&mut self) {
         self.hide_labels = false;
@@ -323,8 +330,12 @@ impl ProjetedGrid {
             // Draw the labels here
             if !self.hide_labels {
                 let size_screen = &camera.get_screen_size();
-                self.ctx2d
-                    .clear_rect(0.0, 0.0, 2.0 * size_screen.x as f64, 2.0 * size_screen.y as f64);
+                self.ctx2d.clear_rect(
+                    0.0,
+                    0.0,
+                    2.0 * size_screen.x as f64,
+                    2.0 * size_screen.y as f64,
+                );
 
                 let text_height = Label::size(camera);
                 self.ctx2d
@@ -431,9 +442,12 @@ fn subdivide<P: Projection>(
 ) {
     // Convert to cartesian
     let system = camera.get_system();
-    let a: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
-    let b: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
-    let c: Vector4<f64> = system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
+    let a: Vector4<f64> =
+        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
+    let b: Vector4<f64> =
+        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
+    let c: Vector4<f64> =
+        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
 
     // Project them. We are always facing the camera
     let a = P::model_to_ndc_space(&a, camera);
@@ -630,7 +644,7 @@ impl Label {
                 return None;
             }
         }
-        
+
         let d = if fov.contains_north_pole(camera) {
             Vector3::new(0.0, 1.0, 0.0)
         } else if fov.contains_south_pole(camera) {
@@ -639,8 +653,7 @@ impl Label {
             Vector3::new(0.0, 1.0, 0.0)
         };
 
-        let m2 = ((m1.truncate() + d * 1e-3).normalize())
-            .extend(1.0);
+        let m2 = ((m1.truncate() + d * 1e-3).normalize()).extend(1.0);
 
         let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera)?;
         if !fov.is_allsky() && fov.contains_pole() {
@@ -725,8 +738,10 @@ impl Label {
         }
         let m2 = (m1 + d * 1e-3).normalize();
 
-        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera)?;
-        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera)?;
+        let s1 =
+            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera)?;
+        let s2 =
+            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -987,7 +1002,7 @@ const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
     ctx2d: &CanvasRenderingContext2d,
-    text_height: f64
+    text_height: f64,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let system = camera.get_system();
@@ -998,15 +1013,20 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            if let Some(snp) = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)), camera) {
+            if let Some(snp) = P::model_to_screen_space(
+                &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
+                camera,
+            ) {
                 Some(snp)
             } else {
                 None
             }
         } else {
             // screen south pole
-            if let Some(ssp) = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)), camera)
-            {
+            if let Some(ssp) = P::model_to_screen_space(
+                &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
+                camera,
+            ) {
                 Some(ssp)
             } else {
                 None
@@ -1052,9 +1072,14 @@ fn lines<P: Projection>(
     }
 
     while theta < stop_theta {
-        if let Some(line) =
-            GridLine::meridian::<P>(ctx2d, theta, &bbox.get_lat(), sp.as_ref(), camera, text_height)
-        {
+        if let Some(line) = GridLine::meridian::<P>(
+            ctx2d,
+            theta,
+            &bbox.get_lat(),
+            sp.as_ref(),
+            camera,
+            text_height,
+        ) {
             lines.push(line);
         }
         theta += step_lon;
@@ -1076,7 +1101,9 @@ fn lines<P: Projection>(
     }
 
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel::<P>(ctx2d, &bbox.get_lon(), alpha, camera, text_height) {
+        if let Some(line) =
+            GridLine::parallel::<P>(ctx2d, &bbox.get_lon(), alpha, camera, text_height)
+        {
             lines.push(line);
         }
         alpha += step_lat;

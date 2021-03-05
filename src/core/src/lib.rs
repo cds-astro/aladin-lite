@@ -2,7 +2,7 @@
 //!
 //! This is the starting point of the Rust core backend
 //! of Aladin Lite v3. It features the code that handles:
-//! 
+//!
 //! - The call to the WebGL API, the GPU shaders, and the
 //!   definition of Vertex/Index buffer to send to the GPU.
 //! - The HEALPix tiles retrieving heuristic.
@@ -24,50 +24,46 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 
-mod webgl_ctx;
-mod projection_type;
 mod app;
-mod coo_conversion;
 mod async_task;
 mod buffer;
 mod camera;
 mod cdshealpix;
 mod color;
+mod coo_conversion;
 mod core;
 mod healpix_cell;
+mod hips;
 mod image_fmt;
 mod line;
 mod math;
+mod projection_type;
 mod renderable;
-mod hips;
+mod resources;
 mod rotation;
 mod shader;
 mod shaders;
 mod sphere_geometry;
 mod time;
 mod transfert_function;
-mod resources;
+mod webgl_ctx;
 
 use crate::{
-    image_fmt::FormatImageType,
     camera::CameraViewPort,
-    math::LonLatT,
-    resources::Resources,
-    renderable::{
-        image_survey::ImageSurveys,
-        projection::Projection,
-        Angle, ArcDeg,
-    },
     coo_conversion::CooSystem,
+    hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
+    image_fmt::FormatImageType,
+    math::LonLatT,
+    renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
+    resources::Resources,
     shader::{Shader, ShaderManager},
-    webgl_ctx::WebGl2Context,
-    hips::{SimpleHiPS, HiPSProperties, HiPSColor, HiPSFormat},
-    time::DeltaTime,
     shaders::Colormap,
+    time::DeltaTime,
+    webgl_ctx::WebGl2Context,
 };
 
-use cgmath::{Vector4, Vector2};
 use app::App;
+use cgmath::{Vector2, Vector4};
 use projection_type::ProjectionType;
 
 #[wasm_bindgen]
@@ -132,7 +128,7 @@ impl WebClient {
             self.dt,
             // Force the update of some elements:
             // i.e. the grid
-            force
+            force,
         )?;
 
         Ok(())
@@ -172,10 +168,10 @@ impl WebClient {
     /// Image surveys
 
     /// Check whether the app is ready
-    /// 
+    ///
     /// Aladin Lite is in a good state when the root tiles of the
     /// HiPS chosen have all been retrieved and accessible for the GPU
-    /// 
+    ///
     /// The javascript can change the HiPSes only if aladin lite is ready
     #[wasm_bindgen(js_name = isReady)]
     pub fn is_ready(&mut self) -> Result<bool, JsValue> {
@@ -199,9 +195,9 @@ impl WebClient {
     }
 
     /// Move a layer forward
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// If the layer specified is not found
     #[wasm_bindgen(js_name = moveImageSurveysLayerForward)]
     pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
@@ -282,12 +278,10 @@ impl WebClient {
 
         let gal_lonlat = coo_conversion::to_galactic(lonlat);
 
-        Ok(Some(
-            Box::new([
-                gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
-                gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
-            ])
-        ))
+        Ok(Some(Box::new([
+            gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+            gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI),
+        ])))
     }
 
     #[wasm_bindgen(js_name = Gal2J2000)]
@@ -296,12 +290,10 @@ impl WebClient {
 
         let icrsj2000_lonlat = coo_conversion::to_icrs_j2000(lonlat);
 
-        Ok(Some(
-            Box::new([
-                icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
-                icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI)
-            ])
-        ))
+        Ok(Some(Box::new([
+            icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
+            icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI),
+        ])))
     }
 
     /// Camera moving functions
@@ -394,7 +386,7 @@ impl WebClient {
     }
 
     /// World to screen projection
-    /// 
+    ///
     /// Coordinates must be given in ICRS J2000
     /// They will be converted accordingly to the current frame of Aladin Lite
     #[wasm_bindgen(js_name = worldToScreen)]
@@ -552,11 +544,8 @@ impl WebClient {
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<_>>();
-        
-        JsValue::from_serde(&colormaps)
-            .map_err(
-                |e| JsValue::from_str(&e.to_string())
-            )
+
+        JsValue::from_serde(&colormaps).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }
 

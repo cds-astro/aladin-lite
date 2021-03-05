@@ -2,11 +2,10 @@ use super::source::Source;
 use crate::renderable::projection::*;
 use crate::{
     core::{Texture2D, VecData, VertexArrayObject},
-    shader::Shader,
-    ShaderManager, WebGl2Context,
-    shaders::Colormap,
     resources::Resources,
-    FormatImageType,
+    shader::Shader,
+    shaders::Colormap,
+    FormatImageType, ShaderManager, WebGl2Context,
 };
 use std::collections::HashMap;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};

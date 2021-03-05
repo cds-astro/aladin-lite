@@ -1,35 +1,33 @@
 use crate::{
-    async_task::{TaskResult, TaskType, BuildCatalogIndex, ParseTable},
+    async_task::TaskExecutor,
+    async_task::{BuildCatalogIndex, ParseTable, TaskResult, TaskType},
+    buffer::TileDownloader,
     camera::CameraViewPort,
+    color::Color,
+    coo_conversion::CooSystem,
+    hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
+    line, math,
     math::{LonLat, LonLatT},
-    resources::Resources,
     renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
+        image_survey::ImageSurveys,
         projection::{Orthographic, Projection},
-        Angle,
-        ArcDeg,
-        image_survey::ImageSurveys
+        Angle, ArcDeg,
     },
+    resources::Resources,
     shader::ShaderManager,
-    buffer::TileDownloader,
-    webgl_ctx::WebGl2Context,
-    coo_conversion::CooSystem,
-    async_task::TaskExecutor,
-    hips::{SimpleHiPS, Frame, HiPSProperties, HiPSColor, HiPSFormat},
     time::DeltaTime,
     utils,
-    math,
-    line,
-    color::Color
+    webgl_ctx::WebGl2Context,
 };
 use cgmath::Vector4;
 
-use web_sys::WebGl2RenderingContext;
 use wasm_bindgen::prelude::*;
+use web_sys::WebGl2RenderingContext;
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use std::collections::HashSet;
 
@@ -103,8 +101,8 @@ struct ZoomAnimation {
 }
 
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
-use crate::time::Time;
 use crate::buffer::Tile;
+use crate::time::Time;
 use cgmath::InnerSpace;
 impl App {
     pub fn new(
@@ -151,21 +149,20 @@ impl App {
             layer: String::from("base"),
             properties: HiPSProperties {
                 url: String::from("http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
-        
+
                 max_order: 11,
-                frame: Frame { label: "J2000".to_string(), system: "J2000".to_string() },
-                tile_size: 512,
-                format: {
-                    HiPSFormat::FITSImage {
-                        bitpix: 16,
-                    }
+                frame: Frame {
+                    label: "J2000".to_string(),
+                    system: "J2000".to_string(),
                 },
+                tile_size: 512,
+                format: { HiPSFormat::FITSImage { bitpix: 16 } },
                 min_cutout: Some(-0.15),
                 max_cutout: Some(5.0),
             },
             color: HiPSColor::Grayscale2Colormap {
                 colormap: String::from("RedTemperature"),
-                transfer: String::from("asinh")
+                transfer: String::from("asinh"),
             },
         };
         let system = CooSystem::ICRSJ2000;
@@ -174,7 +171,8 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let mut surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
+        let mut surveys =
+            ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &resources, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
@@ -200,7 +198,6 @@ impl App {
         let prev_center = Vector3::new(0.0, 1.0, 0.0);
         let out_of_fov = false;
         let catalog_loaded = false;
-
 
         let app = App {
             gl,
@@ -359,7 +356,8 @@ impl App {
             goal_anim_rot,
             time_start_anim,
             ..
-        }) = self.move_animation {
+        }) = self.move_animation
+        {
             let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000.0;
 
             // Undamped angular frequency of the oscillator
@@ -388,7 +386,8 @@ impl App {
             goal_fov,
             w0,
             ..
-        }) = self.zoom_animation {
+        }) = self.zoom_animation
+        {
             let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
@@ -420,7 +419,8 @@ impl App {
             time_start_anim,
             d0,
             axis,
-        }) = self.inertial_move_animation {
+        }) = self.inertial_move_animation
+        {
             let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
@@ -480,8 +480,7 @@ impl App {
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
             if let Some(view) = self.surveys.get_view() {
-                self.manager
-                .update::<P>(&self.camera, view);
+                self.manager.update::<P>(&self.camera, view);
             }
         }
         self.grid.update::<P>(&self.camera, force);
@@ -513,16 +512,10 @@ impl App {
         Ok(())
     }
 
-    pub fn set_image_surveys(
-        &mut self,
-        hipses: Vec<SimpleHiPS>,
-    ) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.set_image_surveys(
-            hipses,
-            &self.gl,
-            &self.camera,
-            self.exec.clone(),
-        )?;
+    pub fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
+        let new_survey_ids =
+            self.surveys
+                .set_image_surveys(hipses, &self.gl, &self.camera, self.exec.clone())?;
         self.downloader.clear_requests();
 
         if !new_survey_ids.is_empty() {
@@ -547,8 +540,12 @@ impl App {
 
     pub fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
-        self.surveys
-            .set_projection::<P>(&self.camera, &mut self.shaders, &self.resources, &self.system);
+        self.surveys.set_projection::<P>(
+            &self.camera,
+            &mut self.shaders,
+            &self.resources,
+            &self.system,
+        );
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -615,7 +612,11 @@ impl App {
         self.manager.set_kernel_size(&self.camera);
     }
 
-    pub fn set_catalog_colormap(&mut self, name: String, colormap: Colormap) -> Result<(), JsValue> {
+    pub fn set_catalog_colormap(
+        &mut self,
+        name: String,
+        colormap: Colormap,
+    ) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -682,13 +683,15 @@ impl App {
 
         self.system = coo_system;
         self.camera.set_coo_system::<P>(coo_system);
-        
+
         if icrs2gal {
             // rotate the camera around the center axis
             // to move the galactic plane straight to the center
-            self.camera.set_rotation_around_center::<P>(ArcDeg(58.6).into());
+            self.camera
+                .set_rotation_around_center::<P>(ArcDeg(58.6).into());
         } else if gal2icrs {
-            self.camera.set_rotation_around_center::<P>(ArcDeg(0.0).into());
+            self.camera
+                .set_rotation_around_center::<P>(ArcDeg(0.0).into());
         }
 
         self.request_redraw = true;

@@ -10,9 +10,9 @@ pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
 
+use crate::coo_conversion::CooSystem;
 use crate::math::LonLat;
 use crate::renderable::Triangulation;
-use crate::coo_conversion::CooSystem;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
     camera: &CameraViewPort,
@@ -23,11 +23,11 @@ fn create_vertices_array<P: Projection>(
     let vertices = vertices
         .into_iter()
         .map(|pos_clip_space| {
-            
             /*let pos_world_space = system.system_to_icrs_coo(
                 P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
             );*/
-            let pos_world_space = P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
+            let pos_world_space =
+                P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
             //let pos_world_space = system.to_icrs_j2000() * pos_world_space;
             let lonlat = pos_world_space.lonlat();
 

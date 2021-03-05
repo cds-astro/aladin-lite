@@ -317,7 +317,6 @@ impl ImageSurveyTextures {
 
                     TaskResult::TileSentToGPU { tile }
                 });
-            
         } else {
             unreachable!()
         }

@@ -1,14 +1,14 @@
 use crate::{
     app::App,
-    renderable::{
-        projection::{Aitoff, Orthographic, Mollweide, AzimuthalEquidistant, Gnomonic, Mercator},
-        angle::{Angle, ArcDeg},
-    },
     color::Color,
-    shaders::Colormap,
-    math::LonLatT,
-    time::DeltaTime,
     coo_conversion::CooSystem,
+    math::LonLatT,
+    renderable::{
+        angle::{Angle, ArcDeg},
+        projection::{Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic},
+    },
+    shaders::Colormap,
+    time::DeltaTime,
 };
 use cgmath::Vector2;
 use wasm_bindgen::prelude::*;
@@ -94,7 +94,11 @@ impl ProjectionType {
         }
     }
 
-    pub fn world_to_screen_vec(&self, app: &App, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue> {
+    pub fn world_to_screen_vec(
+        &self,
+        app: &App,
+        sources: &Vec<JsValue>,
+    ) -> Result<Vec<f64>, JsValue> {
         match self {
             ProjectionType::Aitoff => app.world_to_screen_vec::<Aitoff>(sources),
             ProjectionType::MollWeide => app.world_to_screen_vec::<Mollweide>(sources),

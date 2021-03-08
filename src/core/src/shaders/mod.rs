@@ -6,6 +6,11 @@ pub enum Colormap {
     IDLCBYIGnBu = 3,
     BluePastelRed = 4,
     IDLCBBrBG = 5,
+    viridis = 6,
+    plasma = 7,
+    magma = 8,
+    inferno = 9,
+    turbo = 10,
 }
 use std::borrow::Cow;
 
@@ -22,6 +27,16 @@ impl Colormap {
             Colormap::IDLCBYIGnBu
         } else if id.contains("IDLCBBrBG") {
             Colormap::IDLCBBrBG
+        } else if id.contains("viridis") {
+            Colormap::viridis
+        } else if id.contains("plasma") {
+            Colormap::plasma
+        } else if id.contains("magma") {
+            Colormap::magma
+        } else if id.contains("inferno") {
+            Colormap::inferno
+        } else if id.contains("turbo") {
+            Colormap::turbo
         } else {
             Colormap::BlackWhiteLinear
         }
@@ -35,6 +50,11 @@ impl Colormap {
             "IDLCBGnBu",
             "IDLCBYIGnBu",
             "IDLCBBrBG",
+            "viridis",
+            "plasma",
+            "magma",
+            "inferno",
+            "turbo",
             "BlackWhiteLinear"
         ]
     }
@@ -77,6 +97,46 @@ impl Colormap {
                 ),
             ),
             Colormap::IDLCBBrBG => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::viridis => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::plasma => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::magma => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::inferno => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::turbo => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),

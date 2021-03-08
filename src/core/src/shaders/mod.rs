@@ -11,6 +11,7 @@ pub enum Colormap {
     magma = 8,
     inferno = 9,
     turbo = 10,
+    YIOrBr = 11,
 }
 use std::borrow::Cow;
 
@@ -37,6 +38,8 @@ impl Colormap {
             Colormap::inferno
         } else if id.contains("turbo") {
             Colormap::turbo
+        } else if id.contains("YIOrBr") {
+            Colormap::YIOrBr
         } else {
             Colormap::BlackWhiteLinear
         }
@@ -50,6 +53,7 @@ impl Colormap {
             "IDLCBGnBu",
             "IDLCBYIGnBu",
             "IDLCBBrBG",
+            "YIOrBr",
             "viridis",
             "plasma",
             "magma",
@@ -137,6 +141,14 @@ impl Colormap {
             ),
             // TODO: update with correct shader
             Colormap::turbo => shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapVS"),
+                    Cow::Borrowed("ColormapIDL_CB_BrBGFS"),
+                ),
+            ),
+            // TODO: update with correct shader
+            Colormap::YIOrBr => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),

@@ -1016,3 +1016,46 @@ impl Projection for Mercator {
 
     const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((180.0 / 180.0) * std::f64::consts::PI);
 }
+
+mod tests {
+    use cgmath::Vector2;
+    use super::*;
+    use img_pixel::{Rgb, RgbImage};
+
+    fn generate_projection_map<P: Projection>(filename: &str) {
+        let (w, h) = (1024.0, 1024.0);
+        let mut img = RgbImage::new(w as u32, h as u32);
+        for x in 0..(w as u32) {
+            for y in 0..(h as u32) {
+                let xy = Vector2::new(x, y);
+                let clip_xy = Vector2::new(2.0 * ((xy.x as f64) / (w as f64)) - 1.0, 2.0 * ((xy.y as f64) / (h as f64)) - 1.0);
+                let rgb = if let Some(pos) = P::clip_to_world_space(
+                    &clip_xy,
+                    true,
+                ) {
+                    let pos = pos.truncate().normalize();
+                    Rgb([
+                        ((pos.x * 0.5 + 0.5) * 256.0) as u8,
+                        ((pos.y * 0.5 + 0.5) * 256.0) as u8,
+                        ((pos.z * 0.5 + 0.5) * 256.0) as u8
+                    ])
+                } else {
+                    Rgb([255, 255, 255])
+                };
+
+                img.put_pixel(x as u32, y as u32, rgb);
+            }
+        }
+        img.save(filename).unwrap();
+    }
+
+    #[test]
+    fn generate_maps() {
+        generate_projection_map::<Aitoff>("./img/aitoff.png");
+        generate_projection_map::<Gnomonic>("./img/tan.png");
+        generate_projection_map::<AzimuthalEquidistant>("./img/arc.png");
+        generate_projection_map::<Mollweide>("./img/mollweide.png");
+        generate_projection_map::<Mercator>("./img/mercator.png");
+        generate_projection_map::<Orthographic>("./img/sinus.png");
+    }
+}

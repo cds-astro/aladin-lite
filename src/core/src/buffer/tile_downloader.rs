@@ -67,7 +67,8 @@ impl Requests {
                 } else {
                     None
                 }
-            }
+            },
+            _ => unimplemented!()
         }
     }
 

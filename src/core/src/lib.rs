@@ -17,6 +17,9 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate task_async_executor;
+extern crate img_pixel;
+extern crate bincode;
+
 use std::panic;
 
 #[macro_use]

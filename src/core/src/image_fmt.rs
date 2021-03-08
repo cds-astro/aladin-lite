@@ -58,6 +58,34 @@ impl FormatImage for PNG {
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 }
+
+use crate::buffer::ArrayF32;
+pub struct RGBA32F;
+impl RGBA32F {
+    const FORMAT: u32 = WebGl2RenderingContext::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGBA32F as i32;
+    const TYPE: u32 = WebGl2RenderingContext::FLOAT;
+
+    pub fn create_black_tile(width: i32) -> TileArrayBuffer<ArrayF32> {
+        let num_channels = Self::NUM_CHANNELS as i32;
+        let size_buf = (width * width * num_channels) as usize;
+
+        let pixels = [0.0, 0.0, 0.0, 0.0]
+            .iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+
+        TileArrayBuffer::<ArrayF32>::new(&pixels, width, num_channels)
+    }
+}
+
+impl FormatImage for RGBA32F {
+    const NUM_CHANNELS: usize = 4;
+    const EXT: &'static str = "png";
+}
+
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct FITS {
     format: u32,
@@ -168,6 +196,7 @@ impl FITS {
 pub enum FormatImageType {
     FITS(FITS),
     PNG,
+    RGBA32F,
     JPG,
 }
 impl FormatImageType {
@@ -175,6 +204,7 @@ impl FormatImageType {
         match self {
             &FormatImageType::FITS(_) => FITS::NUM_CHANNELS,
             &FormatImageType::PNG => PNG::NUM_CHANNELS,
+            &FormatImageType::RGBA32F => RGBA32F::NUM_CHANNELS,
             &FormatImageType::JPG => JPG::NUM_CHANNELS,
         }
     }
@@ -183,6 +213,7 @@ impl FormatImageType {
         match self {
             &FormatImageType::FITS(fits) => fits.internal_format,
             &FormatImageType::PNG => PNG::INTERNAL_FORMAT,
+            &FormatImageType::RGBA32F => RGBA32F::INTERNAL_FORMAT,
             &FormatImageType::JPG => JPG::INTERNAL_FORMAT,
         }
     }
@@ -191,6 +222,7 @@ impl FormatImageType {
         match self {
             &FormatImageType::FITS(fits) => fits.format,
             &FormatImageType::PNG => PNG::FORMAT,
+            &FormatImageType::RGBA32F => RGBA32F::FORMAT,
             &FormatImageType::JPG => JPG::FORMAT,
         }
     }
@@ -199,6 +231,7 @@ impl FormatImageType {
         match self {
             &FormatImageType::FITS(fits) => fits._type,
             &FormatImageType::PNG => PNG::TYPE,
+            &FormatImageType::RGBA32F => RGBA32F::TYPE,
             &FormatImageType::JPG => JPG::TYPE,
         }
     }
@@ -207,6 +240,7 @@ impl FormatImageType {
         match self {
             &FormatImageType::FITS(_) => FITS::EXT,
             &FormatImageType::PNG => PNG::EXT,
+            &FormatImageType::RGBA32F => RGBA32F::EXT,
             &FormatImageType::JPG => JPG::EXT,
         }
     }

@@ -5,9 +5,7 @@ precision highp isampler2D;
 precision highp int;
 
 in vec3 out_vert_pos;
-in vec2 pos_clip;
-in vec2 out_lonlat;
-
+in vec2 out_clip_pos;
 out vec4 out_frag_color;
 
 uniform int user_action;
@@ -58,9 +56,13 @@ TileColor get_tile_color(vec3 pos) {
 const float duration = 500.f; // 500ms
 uniform int max_depth; // max depth of the HiPS
 
+uniform sampler2D position_tex;
+uniform mat4 model;
 void main() {
-    vec3 frag_pos = normalize(out_vert_pos);
-    // Get the HEALPix cell idx and the uv in the texture
+    vec2 uv = out_clip_pos * 0.5 + 0.5;
+    vec3 n = texture(position_tex, uv).rgb;
+
+    vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     TileColor current_tile = get_tile_color(frag_pos);
     out_frag_color = current_tile.color;

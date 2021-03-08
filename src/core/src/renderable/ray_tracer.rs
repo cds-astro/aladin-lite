@@ -1,8 +1,9 @@
 use crate::{
     camera::CameraViewPort,
-    core::VertexArrayObject,
+    core::{VertexArrayObject, Texture2D},
     renderable::projection::Projection,
     shader::{ShaderBound, ShaderManager},
+    image_fmt::FormatImageType,
     WebGl2Context,
 };
 
@@ -63,17 +64,52 @@ pub struct RayTracer {
     ebo: WebGlBuffer,
 
     num_indices: i32,
-    //ang2pix: [Texture2D; 3],
+    position_tex: Texture2D,
 }
 
+use cgmath::{Vector2, InnerSpace};
+use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen::JsCast;
 use crate::Resources;
+use web_sys::{Request, RequestInit, RequestMode, Response};
+use wasm_bindgen::JsValue;
 use std::mem;
+use crate::renderable::projection::Aitoff;
+fn generate_position<P: Projection>() -> Vec<f32> {
+    let (w, h) = (2048.0, 2048.0);
+    let mut data = vec![];
+    for y in 0..(h as u32) {
+        for x in 0..(w as u32) {
+            let xy = Vector2::new(x, y);
+            let clip_xy = Vector2::new(2.0 * ((xy.x as f64) / (w as f64)) - 1.0, 2.0 * ((xy.y as f64) / (h as f64)) - 1.0);
+            if let Some(pos) = P::clip_to_world_space(
+                &clip_xy,
+                true,
+            ) {
+                let pos = pos.truncate().normalize();
+
+                data.push(pos.x as f32);
+                data.push(pos.y as f32);
+                data.push(pos.z as f32);
+                data.push(1.0);
+            } else {
+                data.push(1.0);
+                data.push(1.0);
+                data.push(1.0);
+                data.push(1.0);
+            }
+        }
+    }
+
+    data
+}
+
 impl RayTracer {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
-        _resources: &Resources,
+        resources: &Resources,
         system: &CooSystem,
     ) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
@@ -134,55 +170,28 @@ impl RayTracer {
             &buf_indices,
             WebGl2RenderingContext::STATIC_DRAW,
         );
+        // create data
+        let data = generate_position::<P>();
 
-        // Load the texture of the gaussian kernel
-        /*let ang2pix = [
-            Texture2D::create(
-                gl,
-                "ang2pixd0",
-                &resources.get_filename("ang2pixd0").unwrap(),
-                &[
-                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
-                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
+        let position_tex = Texture2D::create_empty(
+            gl,
+            2048,
+            2048,
+            &[
+                (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
+                (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
 
-                    // Prevents s-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
-                    // Prevents t-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
-                ],
-                FormatImageType::PNG
-            ),
-            Texture2D::create(
-                gl,
-                "ang2pixd1",
-                &resources.get_filename("ang2pixd1").unwrap(),
-                &[
-                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
-                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
+                // Prevents s-coordinate wrapping (repeating)
+                (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
+                // Prevents t-coordinate wrapping (repeating)
+                (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
+            ],
+            FormatImageType::RGBA32F
+        ).unwrap();
 
-                    // Prevents s-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
-                    // Prevents t-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
-                ],
-                FormatImageType::PNG
-            ),
-            Texture2D::create(
-                gl,
-                "ang2pixd2",
-                &resources.get_filename("ang2pixd2").unwrap(),
-                &[
-                    (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::LINEAR),
-                    (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::LINEAR),
-
-                    // Prevents s-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::CLAMP_TO_EDGE),
-                    // Prevents t-coordinate wrapping (repeating)
-                    (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::CLAMP_TO_EDGE),
-                ],
-                FormatImageType::PNG
-            ),
-        ];*/
+        let buf_data = unsafe { js_sys::Float32Array::view(&data) };
+        position_tex.bind()
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
 
         let gl = gl.clone();
         RayTracer {
@@ -194,9 +203,18 @@ impl RayTracer {
             ebo,
 
             num_indices,
-            //ang2pix
+            //ang2pix,
+
+            position_tex
         }
     }
+
+    /*pub fn set_projection<P: Projection>(&mut self) {
+        let data = generate_position::<P>();
+        let buf_data = unsafe { js_sys::Float32Array::view(&data) };
+        position_tex.bind()
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
+    }*/
 
     /*pub fn send_textures(surveys: &ImageSurveys, shader: &ShaderBound<'a>) {
         if self.is_ready() {
@@ -228,7 +246,8 @@ impl RayTracer {
         self.gl.bind_vertex_array(None);
     }*/
 
-    pub fn draw<'a>(&self, _shader: &ShaderBound<'a>) {
+    pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
+        shader.attach_uniform("position_tex", &self.position_tex);
         //shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
         //self.gl.polygon_mode(WebGl2RenderingContext::FRONT_AND_BACK, WebGl2RenderingContext::LINES);
         self.gl.draw_elements_with_i32(

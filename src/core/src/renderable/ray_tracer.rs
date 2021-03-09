@@ -214,8 +214,6 @@ impl RayTracer {
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
         shader.attach_uniform("position_tex", &self.position_tex);
-        //shader.attach_uniform("ang2pixd", &self.ang2pix[0]);
-        //self.gl.polygon_mode(WebGl2RenderingContext::FRONT_AND_BACK, WebGl2RenderingContext::LINES);
         self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,

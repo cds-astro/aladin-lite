@@ -828,7 +828,7 @@ impl Draw for ImageSurvey {
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
-                .attach_uniforms_from(&*textures_array)
+                //.attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
@@ -873,7 +873,7 @@ impl Draw for ImageSurvey {
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
-                .attach_uniforms_from(&*textures_array)
+                //.attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))

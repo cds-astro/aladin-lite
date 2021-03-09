@@ -521,7 +521,8 @@ impl SendUniforms for ImageSurveyTextures {
                     num_textures += 1;
                 }
             }
-            shader.attach_uniforms_from(&self.config);
+            shader.attach_uniforms_from(&self.config)
+                .attach_uniforms_from(&*self.texture_2d_array);
         }
 
         shader

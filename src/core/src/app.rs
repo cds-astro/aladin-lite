@@ -145,7 +145,7 @@ impl App {
             },
             color: HiPSColor::Color,
         };*/
-        let panstarrs = SimpleHiPS {
+        /*let panstarrs = SimpleHiPS {
             layer: String::from("base"),
             properties: HiPSProperties {
                 url: String::from("https://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
@@ -165,7 +165,7 @@ impl App {
                 transfer: String::from("asinh"),
                 reversed: false,
             },
-        };
+        };*/
         let system = CooSystem::ICRSJ2000;
         let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
@@ -177,7 +177,7 @@ impl App {
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        surveys.set_image_surveys(vec![panstarrs], &gl, &camera, exec.clone())?;
+        //surveys.set_image_surveys(vec![panstarrs], &gl, &camera, exec.clone())?;
 
         let time_start_blending = Time::now();
 
@@ -894,5 +894,9 @@ impl App {
     pub fn get_fov(&self) -> f64 {
         let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
+    }
+
+    pub fn get_gl_canvas(&self) -> Option<js_sys::Object> {
+        self.gl.canvas()
     }
 }

@@ -550,6 +550,12 @@ impl WebClient {
 
         JsValue::from_serde(&colormaps).map_err(|e| JsValue::from_str(&e.to_string()))
     }
+
+    #[wasm_bindgen(js_name = canvas)]
+    pub fn get_gl_canvas(&mut self) -> Result<Option<js_sys::Object>, JsValue> {
+        let canvas = self.app.get_gl_canvas();
+        Ok(canvas)
+    }
 }
 
 mod tests {

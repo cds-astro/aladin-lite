@@ -243,7 +243,7 @@ let aladin;
 
 $( document ).ready(function() {
     $.ajax({
-        url: 'https://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&get=record&hips_frame=equatorial&fmt=json',
+        url: 'https://alasky.u-strasbg.fr/MocServer/query?dataproduct_type=image&get=record&fmt=json',
     }).done(function(data) {
         
         for (var k=0; k<data.length; k++) {
@@ -581,7 +581,8 @@ function update() {
             color = {
                 Grayscale2Colormap: {
                     colormap: colormap_c1,
-                    transfer: stretch_c1
+                    transfer: stretch_c1,
+                    reversed: true,
                 }
             };
         }

@@ -203,48 +203,14 @@ impl RayTracer {
             ebo,
 
             num_indices,
-            //ang2pix,
 
             position_tex
         }
     }
 
-    /*pub fn set_projection<P: Projection>(&mut self) {
-        let data = generate_position::<P>();
-        let buf_data = unsafe { js_sys::Float32Array::view(&data) };
-        position_tex.bind()
-            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
-    }*/
-
-    /*pub fn send_textures(surveys: &ImageSurveys, shader: &ShaderBound<'a>) {
-        if self.is_ready() {
-            // Send the textures
-            let textures = self.get_allsky_textures();
-            let mut num_textures = 0;
-            for texture in textures.iter() {
-                if texture.is_available() {
-                    let texture_uniforms = TextureUniforms::new(
-                        texture,
-                        num_textures as i32
-                    );
-
-                    shader.attach_uniforms_from(&texture_uniforms);
-                    num_textures += 1;
-                }
-            }
-            num_textures += 1;
-            //shader.attach_uniform("num_textures", &(num_textures as i32));
-            shader.attach_uniforms_from(&self.config);
-        }
-    }*/
-
     pub fn bind(&self) {
         self.gl.bind_vertex_array(Some(&self.vao));
     }
-
-    /*pub fn unbind(&self) {
-        self.gl.bind_vertex_array(None);
-    }*/
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
         shader.attach_uniform("position_tex", &self.position_tex);

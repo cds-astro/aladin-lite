@@ -107,7 +107,11 @@ pub trait UniformType {
         Self::uniform(&shader.gl, location, value);
     }
 }
-
+impl UniformType for bool {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1i(location, *value as i32);
+    }
+}
 impl UniformType for i32 {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value);

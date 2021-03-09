@@ -163,6 +163,7 @@ impl App {
             color: HiPSColor::Grayscale2Colormap {
                 colormap: String::from("RedTemperature"),
                 transfer: String::from("asinh"),
+                reversed: false,
             },
         };
         let system = CooSystem::ICRSJ2000;

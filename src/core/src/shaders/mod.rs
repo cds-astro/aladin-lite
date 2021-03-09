@@ -226,7 +226,8 @@ use crate::shader::ShaderBound;
 
 impl SendUniforms for Colormap {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap", self);
+        shader.attach_uniform("colormap", self)
+            .attach_uniform("reversed", &1);
 
         shader
     }

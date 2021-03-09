@@ -272,6 +272,7 @@ pub enum Color {
     Grayscale2Colormap {
         colormap: Colormap,
         param: GrayscaleParameter,
+        reversed: bool,
     },
     Grayscale2Color {
         // A color associated to the component
@@ -338,10 +339,11 @@ impl SendUniforms for Color {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
             Color::Colored => (),
-            Color::Grayscale2Colormap { colormap, param } => {
+            Color::Grayscale2Colormap { colormap, param, reversed } => {
                 shader
                     .attach_uniforms_from(colormap)
-                    .attach_uniforms_from(param);
+                    .attach_uniforms_from(param)
+                    .attach_uniform("reversed", reversed);
             }
             Color::Grayscale2Color { color, k, param } => {
                 shader
@@ -919,8 +921,9 @@ impl HiPS for SimpleHiPS {
                     max_value: self.properties.max_cutout.unwrap_or(1.0),
                 },
             },
-            HiPSColor::Grayscale2Colormap { colormap, transfer } => Color::Grayscale2Colormap {
+            HiPSColor::Grayscale2Colormap { colormap, transfer, reversed } => Color::Grayscale2Colormap {
                 colormap: colormap.into(),
+                reversed,
                 param: GrayscaleParameter {
                     h: transfer.into(),
                     min_value: self.properties.min_cutout.unwrap_or(0.0),

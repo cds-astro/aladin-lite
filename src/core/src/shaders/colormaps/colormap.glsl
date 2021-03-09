@@ -903,6 +903,8 @@ vec4 parula_f(float x) {
 }
 
 uniform int colormap;
+// can be either 0 or 1
+uniform int reversed;
 /*
 BlackWhiteLinear = 0,
 RedTemperature = 1,
@@ -923,6 +925,7 @@ RdBu = 15,
 parula = 16,
 */
 vec4 colormap_f(float x) {
+    x = mix(x, 1.0 - x, float(reversed));
     // BlackWhiteLinear = 0,
     if (colormap == 0) {
         return blackw_f(x);

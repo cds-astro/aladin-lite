@@ -89,7 +89,7 @@ export let DiscoveryTree = (function () {
                         color: color
                     };
 
-                    aladin.webglAPI.setHiPS([survey]);
+                    aladin.setImageSurveysLayer([survey], "base");
                 },
                 // Called when the user add a catalog survey
                 addCatalog(metadata, center, radius) {

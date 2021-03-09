@@ -52,6 +52,7 @@ pub enum HiPSColor {
     Grayscale2Colormap {
         colormap: String,
         transfer: String,
+        reversed: bool,
     },
     Grayscale2Color {
         color: [f32; 3],

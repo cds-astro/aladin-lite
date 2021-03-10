@@ -77,9 +77,7 @@ export let View = (function() {
             let resources = {
                 'kernel': kernel,
             };
-            this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(shaders, resources);
-            this.aladin.webglAPI.resize(500, 400);
-            //this.aladin.webglAPI.setHiPS(aladin.survey);
+            this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
 
             this.location = location;
             this.fovDiv = fovDiv;

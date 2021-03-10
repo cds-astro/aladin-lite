@@ -8,11 +8,15 @@ pub struct WebGl2Context {
 }
 
 impl WebGl2Context {
-    pub fn new() -> WebGl2Context {
+    pub fn new(aladin_div_name: &str) -> WebGl2Context {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
 
         let canvas = document
+            // Get the aladin div element
+            .get_element_by_id(aladin_div_name)
+            .unwrap()
+            // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-imageCanvas")
             .get_with_index(0)
             .unwrap();

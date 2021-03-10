@@ -107,6 +107,7 @@ use cgmath::InnerSpace;
 impl App {
     pub fn new(
         gl: &WebGl2Context,
+        aladin_div_name: &str,
         mut shaders: ShaderManager,
         resources: Resources,
     ) -> Result<Self, JsValue> {
@@ -185,7 +186,7 @@ impl App {
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders)?;
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, aladin_div_name, &camera, &mut shaders)?;
 
         // Variable storing the location to move to
         let move_animation = None;

@@ -93,14 +93,14 @@ use crate::color::Color;
 impl WebClient {
     /// Create a new web client
     #[wasm_bindgen(constructor)]
-    pub fn new(shaders: &JsValue, resources: &JsValue) -> Result<WebClient, JsValue> {
+    pub fn new(aladin_div_name: &str, shaders: &JsValue, resources: &JsValue) -> Result<WebClient, JsValue> {
         let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let gl = WebGl2Context::new();
+        let gl = WebGl2Context::new(aladin_div_name);
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-        let app = App::new(&gl, shaders, resources)?;
+        let app = App::new(&gl, aladin_div_name, shaders, resources)?;
 
         //let appconfig = AppConfig::Ortho(app);
         let dt = DeltaTime::zero();

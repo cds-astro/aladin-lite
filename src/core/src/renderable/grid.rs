@@ -41,6 +41,7 @@ use wasm_bindgen::JsValue;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
+        aladin_div_name: &str,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<ProjetedGrid, JsValue> {
@@ -111,6 +112,8 @@ impl ProjetedGrid {
         // Get the canvas rendering context
         let document = web_sys::window().unwrap().document().unwrap();
         let canvas = document
+            .get_element_by_id(aladin_div_name)
+            .unwrap()
             .get_elements_by_class_name("aladin-gridCanvas")
             .get_with_index(0)
             .unwrap();
@@ -286,13 +289,6 @@ impl ProjetedGrid {
     }
 
     fn draw_lines_cpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        let shader = shaders
-            .get(
-                &self.gl,
-                &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
-            )
-            .unwrap();
-
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
@@ -300,9 +296,14 @@ impl ProjetedGrid {
             WebGl2RenderingContext::ONE,
         );
 
-        shader
-            .bind(&self.gl)
-            .attach_uniforms_from(camera)
+        let shader = shaders
+            .get(
+                &self.gl,
+                &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
+            )
+            .unwrap();
+        let shader = shader.bind(&self.gl);
+        shader.attach_uniforms_from(camera)
             .attach_uniform("color", &self.color);
 
         // The raster vao is bound at the lib.rs level

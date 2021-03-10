@@ -1104,11 +1104,13 @@ export let Aladin = (function () {
             '<div style="clear: both;"></div>' +
             '</div>');
 
-        layerBox.append('<div class="aladin-label">Projection</div>' +
-        '<select id="projectionChoice"><option id="sinus" value="sinus">SINUS</option><option id="aitoff" value="aitoff">AITOFF</option><option id="mollweide" value="mollweide">MOLLWEIDE</option><option id="mercator" value="mercator">MERCATOR</option><option id="arc" value="arc">ARC</option><option id="tan" value="tan">TAN</option></select><br/>');
+        layerBox.append('<div class="aladin-label">Projection</div>');
 
-        $('#projectionChoice').change(function () {
-            //$(this).selected = $(this).val();
+        let projectionElt = $('<select id="projectionChoice"><option id="sinus" value="sinus">SINUS</option><option id="aitoff" value="aitoff">AITOFF</option><option id="mollweide" value="mollweide">MOLLWEIDE</option><option id="mercator" value="mercator">MERCATOR</option><option id="arc" value="arc">ARC</option><option id="tan" value="tan">TAN</option></select>');
+
+        layerBox.append(projectionElt)
+            .append('<br />');
+        projectionElt.change(function () {
             self.setProjection($(this).val());
         });
         

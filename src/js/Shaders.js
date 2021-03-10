@@ -50,9 +50,6 @@ import RasterizerGrayscale2ColorFS from '../core/src/shaders/hips/rasterizer/gra
 import RasterizerGrayscale2ColormapFS from '../core/src/shaders/hips/rasterizer/grayscale_to_colormap.frag'
 import RasterizerGrayscale2ColorIntegerFS from '../core/src/shaders/hips/rasterizer/grayscale_to_color_i.frag'
 import RasterizerGrayscale2ColormapIntegerFS from '../core/src/shaders/hips/rasterizer/grayscale_to_colormap_i.frag'
-// Misc
-import TextVS from '../core/src/shaders/misc/text.vert'
-import TextFS from '../core/src/shaders/misc/text.frag'
 
 let shaders = [
     // Catalog shaders
@@ -224,15 +221,6 @@ let shaders = [
     {
         id: "RasterizerGrayscale2ColormapIntegerFS",
         content: RasterizerGrayscale2ColormapIntegerFS,
-    },
-    // Misc
-    {
-        id: "TextVS",
-        content: TextVS,
-    },
-    {
-        id: "TextFS",
-        content: TextFS,
     },
 ];
 

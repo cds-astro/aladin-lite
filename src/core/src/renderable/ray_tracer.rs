@@ -91,7 +91,9 @@ fn generate_position<P: Projection>() -> Vec<f32> {
                 data.push(pos.x as f32);
                 data.push(pos.y as f32);
                 data.push(pos.z as f32);
+                data.push(1.0);
             } else {
+                data.push(1.0);
                 data.push(1.0);
                 data.push(1.0);
                 data.push(1.0);
@@ -184,7 +186,7 @@ impl RayTracer {
                 // Prevents t-coordinate wrapping (repeating)
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
             ],
-            FormatImageType::RGB32F
+            FormatImageType::RGBA32F
         ).unwrap();
 
         let buf_data = unsafe { js_sys::Float32Array::view(&data) };

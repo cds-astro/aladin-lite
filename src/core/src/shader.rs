@@ -322,11 +322,11 @@ impl<'a> ShaderBound<'a> {
     }
 }
 
-impl<'a> Drop for ShaderBound<'a> {
+/*impl<'a> Drop for ShaderBound<'a> {
     fn drop(&mut self) {
         self.unbind(&self.gl);
     }
-}
+}*/
 
 pub trait SendUniforms {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a>;

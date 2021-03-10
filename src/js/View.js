@@ -360,7 +360,10 @@ export let View = (function() {
         c.width = width;
         c.height = height;
         var ctx = c.getContext('2d');
-        ctx.drawImage(this.imageCanvas, 0, 0, c.width, c.height);
+
+        //ctx.drawImage(this.imageCanvas, 0, 0, c.width, c.height);
+        const canvas = this.aladin.webglAPI.canvas();
+        ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.reticleCanvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.gridCanvas, 0, 0, c.width, c.height);

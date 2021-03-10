@@ -384,6 +384,16 @@ impl<'a> Texture2DBound<'a> {
             )
             .expect("Sub texture 2d");
     }
+
+    pub fn unbind(&self) {
+        let texture_unit = self.texture_2d.idx_texture_unit;
+        self.texture_2d
+            .gl
+            .active_texture(texture_unit);
+        self.texture_2d
+            .gl
+            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, None);
+    }
 }
 /*impl<'a> Drop for Texture2DBound<'a> {
     fn drop(&mut self) {

@@ -1109,7 +1109,7 @@ export let Aladin = (function () {
 
         $('#projectionChoice').change(function () {
             //$(this).selected = $(this).val();
-            aladin.setProjection($(this).val());
+            self.setProjection($(this).val());
         });
         
         layerBox.append('<div class="aladin-box-separator"></div>' +

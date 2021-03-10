@@ -3,28 +3,27 @@
 <head>
 
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<link rel="stylesheet" href="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.css" />
-<link rel="stylesheet" href="./layers.css" />
 </head>
 <body>
 
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 
-<div id="al1" style="width: 500px; height: 500px"> </div>
-<div id="al2" style="width: 500px; height: 500px"> </div>
-
+<div id="al1" style="width: 500px; height: 500px">
+</div>
+<div id="al2" style="width: 500px; height: 500px">
+</div>
+  
+<div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-  let a1;
+  let al1;
+  let al2;
   A.init.then(() => {
       // Start up Aladin Lite
-      a1 = A.aladin('#al1', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: false});
-  });
-  let a2;
-  A.init.then(() => {
-      // Start up Aladin Lite
-      a2 = A.aladin('#al2', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: false});
+      al1 = A.aladin('#al1', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: false});
+      al2 = A.aladin('#al2', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: false});
+
   });
 </script>
 

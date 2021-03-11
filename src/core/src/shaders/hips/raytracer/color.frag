@@ -1,6 +1,7 @@
 #version 300 es
 precision highp float;
 precision highp sampler2D;
+precision highp usampler2D;
 precision highp isampler2D;
 
 precision highp int;
@@ -58,11 +59,12 @@ TileColor get_tile_color(vec3 pos) {
 const float duration = 500.f; // 500ms
 uniform int max_depth; // max depth of the HiPS
 
-uniform sampler2D position_tex;
+uniform usampler2D position_tex;
 uniform mat4 model;
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
-    vec3 n = texture(position_tex, uv).rgb;
+    uvec3 o = texture(position_tex, uv).rgb;
+    vec3 n = vec3(float(o.x)/65535.0, float(o.y)/65535.0, float(o.z)/65535.0) * 2.0 - 1.0;
 
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 

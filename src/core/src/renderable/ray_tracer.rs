@@ -75,7 +75,7 @@ use web_sys::{Request, RequestInit, RequestMode, Response};
 use wasm_bindgen::JsValue;
 use std::mem;
 use crate::renderable::projection::Aitoff;
-fn generate_position<P: Projection>() -> Vec<f32> {
+fn generate_position<P: Projection>() -> Vec<u16> {
     let (w, h) = (2048.0, 2048.0);
     let mut data = vec![];
     for y in 0..(h as u32) {
@@ -88,15 +88,13 @@ fn generate_position<P: Projection>() -> Vec<f32> {
             ) {
                 let pos = pos.truncate().normalize();
 
-                data.push(pos.x as f32);
-                data.push(pos.y as f32);
-                data.push(pos.z as f32);
-                data.push(1.0);
+                data.push(((pos.x * 0.5 + 0.5) * (std::u16::MAX as f64)) as u16);
+                data.push(((pos.y * 0.5 + 0.5) * (std::u16::MAX as f64)) as u16);
+                data.push(((pos.z * 0.5 + 0.5) * (std::u16::MAX as f64)) as u16);
             } else {
-                data.push(1.0);
-                data.push(1.0);
-                data.push(1.0);
-                data.push(1.0);
+                data.push(std::u16::MAX);
+                data.push(std::u16::MAX);
+                data.push(std::u16::MAX);
             }
         }
     }
@@ -173,7 +171,7 @@ impl RayTracer {
         // create data
         let data = generate_position::<P>();
 
-        let position_tex = Texture2D::create_empty(
+        /*let position_tex = Texture2D::create_empty(
             gl,
             2048,
             2048,
@@ -187,9 +185,37 @@ impl RayTracer {
                 (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
             ],
             FormatImageType::RGBA32F
+        ).unwrap();*/
+        let position_tex = Texture2D::create_empty_with_format(
+            gl,
+            2048,
+            2048,
+            &[
+                (
+                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+                    WebGl2RenderingContext::NEAREST,
+                ),
+                (
+                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+                    WebGl2RenderingContext::NEAREST,
+                ),
+                // Prevents s-coordinate wrapping (repeating)
+                (
+                    WebGl2RenderingContext::TEXTURE_WRAP_S,
+                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                ),
+                // Prevents t-coordinate wrapping (repeating)
+                (
+                    WebGl2RenderingContext::TEXTURE_WRAP_T,
+                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                ),
+            ],
+            WebGl2RenderingContext::RGB16UI as i32, // internal format
+            WebGl2RenderingContext::RGB_INTEGER,       // format
+            WebGl2RenderingContext::UNSIGNED_SHORT, // type
         ).unwrap();
 
-        let buf_data = unsafe { js_sys::Float32Array::view(&data) };
+        let buf_data = unsafe { js_sys::Uint16Array::view(&data) };
         let position_tex_bound = position_tex.bind();
         position_tex_bound.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
         position_tex_bound.unbind();

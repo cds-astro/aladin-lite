@@ -1,5 +1,7 @@
 //const int MAX_NUM_TEX = 3;
-uniform isampler2D tex[3];
+uniform isampler2D tex1;
+uniform isampler2D tex2;
+uniform isampler2D tex3;
 uniform int num_tex;
 
 uniform float scale;
@@ -21,11 +23,11 @@ uniform int tex_storing_fits;
 float get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return float(texture(tex[0], uv.xy).r);
+        return float(texture(tex1, uv.xy).r);
     } else if (idx_texture == 1) {
-        return float(texture(tex[1], uv.xy).r);
+        return float(texture(tex2, uv.xy).r);
     } else if (idx_texture == 2) {
-        return float(texture(tex[2], uv.xy).r);
+        return float(texture(tex3, uv.xy).r);
     } else {
         return 0.0;
     }

@@ -1,5 +1,8 @@
 //const int MAX_NUM_TEX = 3;
-uniform sampler2D tex[3];
+uniform sampler2D tex1;
+uniform sampler2D tex2;
+uniform sampler2D tex3;
+
 uniform int num_tex;
 
 uniform float scale;
@@ -21,11 +24,11 @@ uniform int tex_storing_fits;
 vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return texture(tex[0], uv.xy);
+        return texture(tex1, uv.xy);
     } else if (idx_texture == 1) {
-        return texture(tex[1], uv.xy);
+        return texture(tex2, uv.xy);
     } else if (idx_texture == 2) {
-        return texture(tex[2], uv.xy);
+        return texture(tex3, uv.xy);
     } else {
         return vec4(0.0, 1.0, 1.0, 1.0);
     }

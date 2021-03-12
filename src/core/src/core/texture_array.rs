@@ -67,8 +67,12 @@ impl SendUniforms for Texture2DArray {
             //shader.attach_uniform(loc, texture);
         //}
 
+        for (idx, tex) in self.textures.iter().enumerate() {
+            let loc = &format!("tex{}", idx + 1);
+            shader.attach_uniform(loc, tex);
+        }
         shader
-            .attach_uniform("tex[0]", &self.textures.as_slice())
+            //.attach_uniform("tex", &self.textures.as_slice())
             .attach_uniform("num_tex", &(num_tex as i32));
 
         shader

@@ -60,7 +60,7 @@ uniform sampler2D position_tex;
 uniform mat4 model;
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
-    vec3 n = texture(position_tex, uv).rgb * 2.0 - 1.0;
+    vec3 n = texture(position_tex, uv).rgb;
 
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 

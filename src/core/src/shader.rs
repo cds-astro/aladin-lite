@@ -262,35 +262,6 @@ impl UniformType for Texture2D {
     }
 }
 
-impl<'a> UniformType for &'a [Texture2D] {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, textures: &Self) {
-        let mut samplers = vec![];
-        for idx_texture in 0..textures.len() {
-            let texture = &textures[idx_texture as usize];
-
-            let sampler = texture
-                .active_texture()
-                .bind()
-                .get_idx_sampler();
-            samplers.push(sampler);
-        }
-
-        gl.uniform1iv_with_i32_array(location, samplers.as_slice());
-    }
-}
-
-/*use crate::core::Texture2DArrayBound;
-impl<'a> UniformType for Texture2DArrayBound<'a> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
-        // 1. Bind the texture array
-        //let tex = value.bind();
-
-        // 2. Get its sampler idx and send it
-        // to the the GPU as a i32 uniform
-
-    }
-}*/
-
 pub struct ShaderBound<'a> {
     pub shader: &'a Shader,
     gl: WebGl2Context,

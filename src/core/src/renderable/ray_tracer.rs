@@ -75,7 +75,7 @@ use web_sys::{Request, RequestInit, RequestMode, Response};
 use wasm_bindgen::JsValue;
 use std::mem;
 use crate::renderable::projection::Aitoff;
-fn generate_position<P: Projection>() -> Vec<u32> {
+fn generate_position<P: Projection>() -> Vec<f32> {
     let (w, h) = (2048.0, 2048.0);
     let mut data = vec![];
     for y in 0..(h as u32) {
@@ -88,14 +88,23 @@ fn generate_position<P: Projection>() -> Vec<u32> {
             ) {
                 let pos = pos.truncate().normalize();
                 let mut d: u32 = 0;
-                d |= 3 << 30;
+                /*d |= 3 << 30;
                 d |= (((pos.z * 0.5 + 0.5) * (1024.0 as f64)) as u32) << 20;
                 d |= (((pos.y * 0.5 + 0.5) * (1024.0 as f64)) as u32) << 10;
                 d |= ((pos.x * 0.5 + 0.5) * (1024.0 as f64)) as u32;
 
-                data.push(d);
+                data.push(d);*/
+                data.extend(&[
+                    pos.x as f32,
+                    pos.y as f32,
+                    pos.z as f32,
+                ]);
             } else {
-                data.push(!0);
+                data.extend(&[
+                    1.0,
+                    1.0,
+                    1.0,
+                ]);
             }
         }
     }
@@ -172,21 +181,6 @@ impl RayTracer {
         // create data
         let data = generate_position::<P>();
 
-        /*let position_tex = Texture2D::create_empty(
-            gl,
-            2048,
-            2048,
-            &[
-                (WebGl2RenderingContext::TEXTURE_MIN_FILTER, WebGl2RenderingContext::NEAREST),
-                (WebGl2RenderingContext::TEXTURE_MAG_FILTER, WebGl2RenderingContext::NEAREST),
-
-                // Prevents s-coordinate wrapping (repeating)
-                (WebGl2RenderingContext::TEXTURE_WRAP_S, WebGl2RenderingContext::REPEAT),
-                // Prevents t-coordinate wrapping (repeating)
-                (WebGl2RenderingContext::TEXTURE_WRAP_T, WebGl2RenderingContext::REPEAT),
-            ],
-            FormatImageType::RGBA32F
-        ).unwrap();*/
         let position_tex = Texture2D::create_empty_with_format(
             gl,
             2048,
@@ -211,12 +205,12 @@ impl RayTracer {
                     WebGl2RenderingContext::CLAMP_TO_EDGE,
                 ),
             ],
-            WebGl2RenderingContext::RGB10_A2 as i32, // internal format
-            WebGl2RenderingContext::RGBA,       // format
-            WebGl2RenderingContext::UNSIGNED_INT_2_10_10_10_REV, // type
+            WebGl2RenderingContext::RGB32F as i32, // internal format
+            WebGl2RenderingContext::RGB,       // format
+            WebGl2RenderingContext::FLOAT, // type
         ).unwrap();
 
-        let buf_data = unsafe { js_sys::Uint32Array::view(&data) };
+        let buf_data = unsafe { js_sys::Float32Array::view(&data) };
         position_tex
             .bind()
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));

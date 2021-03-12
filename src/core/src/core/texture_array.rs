@@ -53,27 +53,12 @@ use crate::shader::ShaderBound;
 impl SendUniforms for Texture2DArray {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let num_tex = self.textures.len();
-        
-        //let mut textures_bound = Vec::with_capacity(num_tex);
-        //for texture_idx in 0..num_tex {
-            /*let texture_bound = self.textures[texture_idx]
-                .active_texture()
-                .bind();
-            textures_bound.push(texture_bound.get_idx_sampler());*/
-
-            //let loc = &format!("tex[{}]", texture_idx);
-            //crate::log(&format!("{}", loc));
-            //let texture = &self.textures[texture_idx as usize];
-            //shader.attach_uniform(loc, texture);
-        //}
 
         for (idx, tex) in self.textures.iter().enumerate() {
             let loc = &format!("tex{}", idx + 1);
             shader.attach_uniform(loc, tex);
         }
-        shader
-            //.attach_uniform("tex", &self.textures.as_slice())
-            .attach_uniform("num_tex", &(num_tex as i32));
+        shader.attach_uniform("num_tex", &(num_tex as i32));
 
         shader
     }

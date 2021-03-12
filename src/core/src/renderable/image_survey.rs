@@ -814,13 +814,11 @@ impl Draw for ImageSurvey {
             return;
         }
 
-        let textures_array = self.textures.get_texture_array();
+        //let textures_array = self.textures.get_texture_array();
         let survey_storing_integers = self.textures.config.tex_storing_integers == 1;
 
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        //let raytracing = camera.is_allsky();
         if raytracing {
-            //raytracer.bind();
             let shader = color
                 .get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
                 .bind(&self.gl);

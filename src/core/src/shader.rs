@@ -251,14 +251,31 @@ impl UniformType for Matrix4<f64> {
 
 use crate::core::Texture2D;
 impl UniformType for Texture2D {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        // 1. Bind the texture
-        let tex = value.bind();
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
+        // 1. Active the texture unit of the texture
+        let tex = tex.active_texture()
+        // 2. Bind the texture to that texture unit
+            .bind();
 
-        // 2. Get its sampler idx and send it
-        // to the the GPU as a i32 uniform
         let idx_sampler = tex.get_idx_sampler();
         gl.uniform1i(location, idx_sampler);
+    }
+}
+
+impl<'a> UniformType for &'a [Texture2D] {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, textures: &Self) {
+        let mut samplers = vec![];
+        for idx_texture in 0..textures.len() {
+            let texture = &textures[idx_texture as usize];
+
+            let sampler = texture
+                .active_texture()
+                .bind()
+                .get_idx_sampler();
+            samplers.push(sampler);
+        }
+
+        gl.uniform1iv_with_i32_array(location, samplers.as_slice());
     }
 }
 

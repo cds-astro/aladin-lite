@@ -216,9 +216,9 @@ impl RayTracer {
         ).unwrap();
 
         let buf_data = unsafe { js_sys::Uint16Array::view(&data) };
-        let position_tex_bound = position_tex.bind();
-        position_tex_bound.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
-        position_tex_bound.unbind();
+        position_tex
+            .bind()
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
 
         let gl = gl.clone();
         RayTracer {

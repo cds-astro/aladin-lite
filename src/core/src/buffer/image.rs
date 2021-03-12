@@ -194,8 +194,8 @@ impl Image for TileArrayBufferImage {
         offset: &Vector3<i32>,
     ) {
         match &self {
-            TileArrayBufferImage::U8(b) => textures
-                .bind_texture_slice(offset.z)
+            TileArrayBufferImage::U8(b) => textures[offset.z as usize]
+                .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -203,8 +203,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I16(b) => textures
-                .bind_texture_slice(offset.z)
+            TileArrayBufferImage::I16(b) => textures[offset.z as usize]
+                .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -212,8 +212,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::I32(b) => textures
-                .bind_texture_slice(offset.z)
+            TileArrayBufferImage::I32(b) => textures[offset.z as usize]
+                .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -221,8 +221,8 @@ impl Image for TileArrayBufferImage {
                     b.size.y,
                     Some(b.buf.as_ref()),
                 ),
-            TileArrayBufferImage::F32(b) => textures
-                .bind_texture_slice(offset.z)
+            TileArrayBufferImage::F32(b) => textures[offset.z as usize]
+                .bind()
                 .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                     offset.x,
                     offset.y,
@@ -646,13 +646,13 @@ impl Image for TileHTMLImage {
         offset: &Vector3<i32>,
     ) {
         let _size = self.get_size();
-        let texture = textures.bind_texture_slice(offset.z);
-
-        texture.tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
-            offset.x,
-            offset.y,
-            &self.image,
-        );
+        textures[offset.z as usize]
+            .bind()
+            .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
+                offset.x,
+                offset.y,
+                &self.image,
+            );
     }
 
     // The size of the image

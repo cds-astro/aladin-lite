@@ -499,9 +499,9 @@ impl ImageSurveyTextures {
         ]
     }
 
-    pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
+    /*pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()
-    }
+    }*/
 }
 
 use crate::buffer::TextureUniforms;

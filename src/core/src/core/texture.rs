@@ -116,7 +116,6 @@ impl Texture2D {
             let texture = texture.clone();
 
             Closure::wrap(Box::new(move || {
-                gl.active_texture(idx_texture_unit);
                 gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
 
                 for (pname, param) in tex_params.iter() {
@@ -170,7 +169,6 @@ impl Texture2D {
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
         let texture = gl.create_texture();
 
-        gl.active_texture(idx_texture_unit);
         gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
 
         for (pname, param) in tex_params.iter() {
@@ -222,7 +220,6 @@ impl Texture2D {
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
         let texture = gl.create_texture();
 
-        gl.active_texture(idx_texture_unit);
         gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
 
         for (pname, param) in tex_params.iter() {
@@ -273,14 +270,24 @@ impl Texture2D {
         (self.data.get_width(), self.data.get_height())
     }
 
+    pub fn active_texture(&self) -> &Self {
+        self.gl.active_texture(self.idx_texture_unit);
+        self
+    }
+
     pub fn bind(&self) -> Texture2DBound {
-        let texture_unit = self.idx_texture_unit;
-        self.gl.active_texture(texture_unit);
-        self.gl
-            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
+        self.gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
 
         Texture2DBound { texture_2d: self }
     }
+
+    /*pub fn get_idx_sampler(&self) -> i32 {
+        let idx_sampler: i32 = (self.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
+            .try_into()
+            .unwrap();
+
+        idx_sampler
+    }*/
 }
 
 impl Drop for Texture2D {
@@ -301,8 +308,7 @@ pub struct Texture2DBound<'a> {
 
 impl<'a> Texture2DBound<'a> {
     pub fn get_idx_sampler(&self) -> i32 {
-        let idx_sampler: i32 = (self.texture_2d.idx_texture_unit
-            - WebGl2RenderingContext::TEXTURE0)
+        let idx_sampler: i32 = (self.texture_2d.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
             .try_into()
             .unwrap();
 

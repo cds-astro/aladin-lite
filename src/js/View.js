@@ -981,8 +981,8 @@ export let View = (function() {
      * redraw the whole view
      */
     View.prototype.redraw = function() {
+
         var saveNeedRedraw = this.needRedraw;
-        requestAnimFrame(this.redraw.bind(this));
         var now = Date.now();
         var dt = now - this.prev;
 
@@ -1010,7 +1010,6 @@ export let View = (function() {
             (typeof callbackFn === 'function') && callbackFn();
         }
         this.aladin.webglAPI.render(this.needRedraw);
-
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
         /*if (imageCtx.start2D) {
@@ -1289,11 +1288,12 @@ export let View = (function() {
         // objects lookup
         if (!this.dragging) {
             this.updateObjectsLookup();
-        } 
+        }
 
         // execute 'positionChanged' and 'zoomChanged' callbacks
         //this.executeCallbacksThrottled();
         this.prev = now;
+        requestAnimFrame(this.redraw.bind(this));
 
     };
 

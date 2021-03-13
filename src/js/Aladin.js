@@ -64,7 +64,6 @@ export let Aladin = (function () {
             return;
         }
         this.webglAPI = null;
-
         var self = this;
 
         // if not options was set, try to retrieve them from the query string

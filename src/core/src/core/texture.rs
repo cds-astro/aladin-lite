@@ -32,7 +32,7 @@ impl TextureType {
     }
 }
 
-use web_sys::WebGlTexture;
+use web_sys::{WebGlTexture, WebGlFramebuffer};
 pub struct Texture2D {
     pub texture: Option<WebGlTexture>,
     pub idx_texture_unit: u32,
@@ -281,6 +281,63 @@ impl Texture2D {
         Texture2DBound { texture_2d: self }
     }
 
+    pub fn read_pixel(&self, x: i32, y: i32) -> Result<Pixel, JsValue> {
+        // Create and bind the framebuffer
+        let reader = self.gl.create_framebuffer();
+        self.gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, reader.as_ref());
+
+        // Attach the texture as the first color attachment
+        self.attach_to_framebuffer();
+        
+
+        // set the viewport as the FBO won't be the same dimension as the screen
+        self.gl.viewport(x, y, self.data.get_width() as i32, self.data.get_height() as i32);
+
+        let value = match (self.format, self.type_) {
+            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+                let val = u8::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RU8(val))
+            },
+            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::SHORT) => {
+                let val = i16::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RI16(val))
+            },
+            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT) => {
+                let val = i32::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RI32(val))
+            },
+            (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT) => {
+                let val = f32::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RF32(val))
+            },
+            (WebGl2RenderingContext::RGB, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+                let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RGBU8(val))
+            },
+            (WebGl2RenderingContext::RGBA, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+                let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
+                Ok(Pixel::RGBAU8(val))
+            },
+            _ => {
+                Err(JsValue::from_str("Pixel retrieval not implemented for that texture format."))
+            }
+        };
+
+        // Unbind the framebuffer
+        self.gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
+        // Delete the framebuffer
+        self.gl.delete_framebuffer(reader.as_ref());
+
+        // set the viewport as the FBO won't be the same dimension as the screen
+        let canvas = self.gl.canvas()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+        self.gl.viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
+
+        value
+    }
+
     /*pub fn get_idx_sampler(&self) -> i32 {
         let idx_sampler: i32 = (self.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
             .try_into()
@@ -288,6 +345,93 @@ impl Texture2D {
 
         idx_sampler
     }*/
+}
+
+pub enum Pixel {
+    RU8(u8),
+    RI16(i16),
+    RI32(i32),
+    RF32(f32),
+    RGBU8([u8; 3]),
+    RGBAU8([u8; 4])
+}
+
+impl From<Pixel> for JsValue {
+    fn from(p: Pixel) -> Self {
+        match p {
+            Pixel::RU8(v) => {
+                JsValue::from_serde(&v).unwrap()
+            },
+            Pixel::RI16(v) => {
+                JsValue::from_serde(&v).unwrap()
+            },
+            Pixel::RI32(v) => {
+                JsValue::from_serde(&v).unwrap()
+            },
+            Pixel::RF32(v) => {
+                JsValue::from_serde(&v).unwrap()
+            },
+            Pixel::RGBU8(v) => {
+                JsValue::from_serde(&v).unwrap()
+            },
+            Pixel::RGBAU8(v) => {
+                JsValue::from_serde(&v).unwrap()
+            }
+        }
+    }
+}
+
+trait TextureData: std::marker::Sized {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue>;
+}
+
+impl TextureData for u8 {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Uint8Array::new_with_length(1);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE, Some(&pixels))?;
+
+        Ok(pixels.to_vec()[0])
+    }
+}
+impl TextureData for [u8; 3] {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Uint8Array::new_with_length(3);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RGB, WebGl2RenderingContext::UNSIGNED_BYTE, Some(&pixels))?;
+        let pixels = pixels.to_vec();
+        Ok([pixels[0], pixels[1], pixels[2]])
+    }
+}
+impl TextureData for [u8; 4] {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Uint8Array::new_with_length(4);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RGBA, WebGl2RenderingContext::UNSIGNED_BYTE, Some(&pixels))?;
+        let pixels = pixels.to_vec();
+        Ok([pixels[0], pixels[1], pixels[2], pixels[3]])
+    }
+}
+impl TextureData for i16 {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Int16Array::new_with_length(1);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::SHORT, Some(&pixels))?;
+
+        Ok(pixels.to_vec()[0])
+    }
+}
+impl TextureData for i32 {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Int32Array::new_with_length(1);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT, Some(&pixels))?;
+
+        Ok(pixels.to_vec()[0])
+    }
+}
+impl TextureData for f32 {
+    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Float32Array::new_with_length(1);
+        gl.read_pixels_with_opt_array_buffer_view(x, y, 1, 1, WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT, Some(&pixels))?;
+
+        Ok(pixels.to_vec()[0])
+    }
 }
 
 impl Drop for Texture2D {

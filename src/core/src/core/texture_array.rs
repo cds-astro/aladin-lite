@@ -14,7 +14,7 @@ impl Index<usize> for Texture2DArray {
     }
 }
 
-use super::{Texture2D, Texture2DBound};
+use super::Texture2D;
 use crate::JsValue;
 impl Texture2DArray {
     pub fn create_empty(
@@ -37,15 +37,6 @@ impl Texture2DArray {
 
         Ok(Texture2DArray { textures })
     }
-
-    pub fn len(&self) -> usize {
-        self.textures.len()
-    }
-
-    /*pub fn bind_texture_slice(&self, idx_texture: i32) -> &Texture2D {
-        &self.textures[idx_texture as usize];
-        
-    }*/
 }
 
 use crate::shader::SendUniforms;

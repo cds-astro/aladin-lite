@@ -521,8 +521,9 @@ pub struct ImageSurvey {
 }
 use crate::camera::UserAction;
 use crate::utils;
-
+use crate::core::Pixel;
 use web_sys::WebGl2RenderingContext;
+use crate::math::LonLatT;
 impl ImageSurvey {
     fn new(
         gl: &WebGl2Context,
@@ -671,6 +672,15 @@ impl ImageSurvey {
             size_vertices_buf,
             size_idx_vertices_buf,
         })
+    }
+
+    pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<Pixel, JsValue> {
+        // Get the array of textures from that survey
+        let pos_tex = self.textures.get_pixel_position_in_texture(pos, self.view.get_depth())?;
+
+        let slice_idx = pos_tex.z as usize;
+        let texture_array = self.textures.get_texture_array();
+        texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)
     }
 
     pub fn set_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
@@ -1008,6 +1018,19 @@ impl ImageSurveys {
         }
     }
 
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, layer: &str) -> Result<Pixel, JsValue> {
+        if let Some(layer) = self.layers.get(layer) {
+            // Read the pixel from the first survey of layer
+            let survey = layer.names.first().unwrap();
+
+            self.surveys.get(survey)
+                .unwrap()
+                .read_pixel(pos)
+        } else {
+            Err(JsValue::from_str(&format!("layer {} not found", layer)))
+        }
+    }
+
     pub fn set_projection<P: Projection>(
         &mut self,
         camera: &CameraViewPort,
@@ -1195,8 +1218,8 @@ impl ImageSurveys {
             self.surveys.remove(survey_to_remove);
         }
 
-        crate::log(&format!("layers {:?}", self.layers));
-        crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
+        //crate::log(&format!("layers {:?}", self.layers));
+        //crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
 
         Ok(new_survey_ids)
     }

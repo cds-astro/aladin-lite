@@ -141,6 +141,7 @@ use crate::{
     buffer::Image,
     WebGl2Context,
 };
+use crate::math::LonLatT;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array(
@@ -181,6 +182,7 @@ fn create_texture_array(
 }
 
 use super::Tile;
+use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
         gl: &WebGl2Context,
@@ -427,6 +429,44 @@ impl ImageSurveyTextures {
         }
     }
 
+    pub fn get_pixel_position_in_texture(&self, lonlat: &LonLatT<f64>, depth: u8) -> Result<Vector3<i32>, JsValue> {
+        let (pix, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
+
+        let cell = HEALPixCell(depth, pix);
+        // Index of the texture in the total set of textures
+        if let Some(texture) = self.textures.get(&cell) {
+            let texture_idx = texture.idx();
+            // Index of the slice of textures
+            let idx_slice = texture_idx / self.config.num_textures_by_slice();
+            // Index of the texture in its slice
+            let idx_in_slice = texture_idx % self.config.num_textures_by_slice();
+    
+            // Index of the column of the texture in its slice
+            let idx_col_in_slice = idx_in_slice / self.config.num_textures_by_side_slice();
+            // Index of the row of the texture in its slice
+            let idx_row_in_slice = idx_in_slice % self.config.num_textures_by_side_slice();
+    
+            // Row and column indexes of the tile in its texture
+            let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(&self.config);
+    
+            // The size of the global texture containing the tiles
+            let texture_size = self.config.get_texture_size();
+            // The size of a tile in its texture
+            let tile_size = self.config.get_tile_size();
+    
+            // Offset in the slice in pixels
+            let offset = Vector3::new(
+                (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size + ((dy * (tile_size as f64)) as i32),
+                (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size + ((dx * (tile_size as f64)) as i32),
+                idx_slice,
+            );
+
+            Ok(offset)
+        } else {
+            Err(JsValue::from_str(&format!("{:?} not loaded in the GPU, please wait before trying again.", cell)))
+        }
+    }
+
     /*// This is called when the HiPS changes
     pub fn clear(&mut self) -> Result<(), JsValue> {
         // Size i.e. the num of textures is the same
@@ -499,9 +539,9 @@ impl ImageSurveyTextures {
         ]
     }
 
-    /*pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
+    pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()
-    }*/
+    }
 }
 
 use crate::buffer::TextureUniforms;

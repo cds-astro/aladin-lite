@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
 #[derive(Clone)]
@@ -8,7 +9,7 @@ pub struct WebGl2Context {
 }
 
 impl WebGl2Context {
-    pub fn new(aladin_div_name: &str) -> WebGl2Context {
+    pub fn new(aladin_div_name: &str) -> Result<WebGl2Context, JsValue> {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
 
@@ -22,17 +23,18 @@ impl WebGl2Context {
             .unwrap();
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
-        let context_options = js_sys::JSON::parse(&"{\"antialias\":false}").unwrap();
-        let inner = Rc::new(
+        let context_options = js_sys::JSON::parse(&"{\"antialias\":false}")?;
+        let gl = Rc::new(
             canvas
-                .get_context_with_context_options("webgl2", context_options.as_ref())
-                .unwrap()
+                .get_context_with_context_options("webgl2", context_options.as_ref())?
                 .unwrap()
                 .dyn_into::<WebGl2RenderingContext>()
                 .unwrap(),
         );
 
-        WebGl2Context { inner }
+        let ext = gl.get_extension("EXT_color_buffer_float")?;
+
+        Ok(WebGl2Context { inner: gl })
     }
 }
 

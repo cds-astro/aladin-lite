@@ -923,7 +923,6 @@ export let View = (function() {
         var lonlat;
         try {
             lonlat = view.aladin.webglAPI.screenToWorld(x, y);
-            //lonlat = view.projection.unproject(xy.x, xy.y);
         } catch(err) {
         }
         

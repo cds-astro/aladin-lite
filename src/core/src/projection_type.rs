@@ -7,6 +7,7 @@ use crate::{
         angle::{Angle, ArcDeg},
         projection::{Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic},
     },
+    core::Pixel,
     shaders::Colormap,
     time::DeltaTime,
 };
@@ -164,6 +165,19 @@ impl ProjectionType {
         };
 
         Ok(())
+    }
+
+    pub fn read_pixel(&self, app: &App, x: f64, y: f64, layer: &str) -> Result<Pixel, JsValue> {
+        let p = match self {
+            ProjectionType::Aitoff => app.read_pixel::<Aitoff>(x, y, layer)?,
+            ProjectionType::MollWeide => app.read_pixel::<Mollweide>(x, y, layer)?,
+            ProjectionType::Ortho => app.read_pixel::<Orthographic>(x, y, layer)?,
+            ProjectionType::Arc => app.read_pixel::<AzimuthalEquidistant>(x, y, layer)?,
+            ProjectionType::Gnomonic => app.read_pixel::<Gnomonic>(x, y, layer)?,
+            ProjectionType::Mercator => app.read_pixel::<Mercator>(x, y, layer)?,
+        };
+
+        Ok(p)
     }
 
     pub fn add_catalog(&mut self, app: &mut App, name: String, table: JsValue, colormap: String) {

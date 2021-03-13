@@ -96,7 +96,7 @@ impl WebClient {
         let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let gl = WebGl2Context::new(aladin_div_name);
+        let gl = WebGl2Context::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = App::new(&gl, aladin_div_name, shaders, resources)?;
@@ -554,6 +554,12 @@ impl WebClient {
     pub fn get_gl_canvas(&mut self) -> Result<Option<js_sys::Object>, JsValue> {
         let canvas = self.app.get_gl_canvas();
         Ok(canvas)
+    }
+
+    #[wasm_bindgen(js_name = readPixel)]
+    pub fn read_pixel(&self, x: f64, y: f64, layer: &str) -> Result<JsValue, JsValue> {
+        let pixel = self.projection.read_pixel(&self.app, x, y, layer)?;
+        Ok(pixel.into())
     }
 }
 

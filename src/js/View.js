@@ -988,11 +988,10 @@ export let View = (function() {
 
         this.ready = this.aladin.webglAPI.isReady();
         if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
-            console.log("surveyes", this.imageSurveysToSet)
             try {
                 this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
-            } catch {
-                console.log("Number of total surveys exceeded")
+            } catch(e) {
+                console.warn(e)
             }
 
             this.imageSurveysToSet = null;

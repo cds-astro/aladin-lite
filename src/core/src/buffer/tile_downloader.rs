@@ -223,11 +223,12 @@ impl TileDownloader {
                                 let config =
                                     surveys.get(&tile.root_url).unwrap().get_textures().config();
 
-                                if let Some(image) =
-                                    req.get_image(config.get_tile_size(), &config.format())
-                                {
+                                let image = req.get_image(config.get_tile_size(), &config.format());
+                                if let Ok(image) = image {
                                     TileResolved::Found { image, time_req }
                                 } else {
+                                    let err = image.err().unwrap();
+                                    crate::log(&format!("{:?}", err));
                                     TileResolved::Missing { time_req }
                                 }
                             }

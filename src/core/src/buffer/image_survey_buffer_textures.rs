@@ -135,13 +135,13 @@ pub struct ImageSurveyTextures {
 
     exec: Rc<RefCell<TaskExecutor>>,
 }
+use crate::math::LonLatT;
 use crate::JsValue;
 use crate::{
     async_task::{SendTileToGPU, TaskExecutor, TaskResult, TaskType},
     buffer::Image,
     WebGl2Context,
 };
-use crate::math::LonLatT;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array(
@@ -429,7 +429,11 @@ impl ImageSurveyTextures {
         }
     }
 
-    pub fn get_pixel_position_in_texture(&self, lonlat: &LonLatT<f64>, depth: u8) -> Result<Vector3<i32>, JsValue> {
+    pub fn get_pixel_position_in_texture(
+        &self,
+        lonlat: &LonLatT<f64>,
+        depth: u8,
+    ) -> Result<Vector3<i32>, JsValue> {
         let (pix, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
 
         let cell = HEALPixCell(depth, pix);
@@ -440,15 +444,15 @@ impl ImageSurveyTextures {
             let idx_slice = texture_idx / self.config.num_textures_by_slice();
             // Index of the texture in its slice
             let idx_in_slice = texture_idx % self.config.num_textures_by_slice();
-    
+
             // Index of the column of the texture in its slice
             let idx_col_in_slice = idx_in_slice / self.config.num_textures_by_side_slice();
             // Index of the row of the texture in its slice
             let idx_row_in_slice = idx_in_slice % self.config.num_textures_by_side_slice();
-    
+
             // Row and column indexes of the tile in its texture
             let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(&self.config);
-    
+
             // The size of the global texture containing the tiles
             let texture_size = self.config.get_texture_size();
             // The size of a tile in its texture
@@ -456,21 +460,30 @@ impl ImageSurveyTextures {
 
             // Offset in the slice in pixels
             let mut offset = Vector3::new(
-                (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size + ((dy * (tile_size as f64)) as i32),
-                (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size + ((dx * (tile_size as f64)) as i32),
+                (idx_row_in_slice as i32) * texture_size
+                    + (idx_row_in_tex as i32) * tile_size
+                    + ((dy * (tile_size as f64)) as i32),
+                (idx_col_in_slice as i32) * texture_size
+                    + (idx_col_in_tex as i32) * tile_size
+                    + ((dx * (tile_size as f64)) as i32),
                 idx_slice,
             );
 
             if self.config.tex_storing_fits {
                 let mut uvy = offset.y as f32 / 4096.0;
-                uvy = self.config.size_tile_uv + 2.0*self.config.size_tile_uv*(uvy / self.config.size_tile_uv).floor() - uvy;
+                uvy = self.config.size_tile_uv
+                    + 2.0 * self.config.size_tile_uv * (uvy / self.config.size_tile_uv).floor()
+                    - uvy;
 
                 offset.y = (uvy * 4096.0) as i32;
             }
 
             Ok(offset)
         } else {
-            Err(JsValue::from_str(&format!("{:?} not loaded in the GPU, please wait before trying again.", cell)))
+            Err(JsValue::from_str(&format!(
+                "{:?} not loaded in the GPU, please wait before trying again.",
+                cell
+            )))
         }
     }
 
@@ -568,7 +581,8 @@ impl SendUniforms for ImageSurveyTextures {
                     num_textures += 1;
                 }
             }
-            shader.attach_uniforms_from(&self.config)
+            shader
+                .attach_uniforms_from(&self.config)
                 .attach_uniforms_from(&*self.texture_2d_array);
         }
 

@@ -339,7 +339,11 @@ impl SendUniforms for Color {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
             Color::Colored => (),
-            Color::Grayscale2Colormap { colormap, param, reversed } => {
+            Color::Grayscale2Colormap {
+                colormap,
+                param,
+                reversed,
+            } => {
                 shader
                     .attach_uniforms_from(colormap)
                     .attach_uniforms_from(param)
@@ -520,10 +524,10 @@ pub struct ImageSurvey {
     size_idx_vertices_buf: u32,
 }
 use crate::camera::UserAction;
-use crate::utils;
 use crate::core::Pixel;
-use web_sys::WebGl2RenderingContext;
 use crate::math::LonLatT;
+use crate::utils;
+use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     fn new(
         gl: &WebGl2Context,
@@ -676,7 +680,9 @@ impl ImageSurvey {
 
     pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<Pixel, JsValue> {
         // Get the array of textures from that survey
-        let pos_tex = self.textures.get_pixel_position_in_texture(pos, self.view.get_depth())?;
+        let pos_tex = self
+            .textures
+            .get_pixel_position_in_texture(pos, self.view.get_depth())?;
 
         let slice_idx = pos_tex.z as usize;
         let texture_array = self.textures.get_texture_array();
@@ -929,7 +935,11 @@ impl HiPS for SimpleHiPS {
                     max_value: self.properties.max_cutout.unwrap_or(1.0),
                 },
             },
-            HiPSColor::Grayscale2Colormap { colormap, transfer, reversed } => Color::Grayscale2Colormap {
+            HiPSColor::Grayscale2Colormap {
+                colormap,
+                transfer,
+                reversed,
+            } => Color::Grayscale2Colormap {
                 colormap: colormap.into(),
                 reversed,
                 param: GrayscaleParameter {
@@ -990,7 +1000,7 @@ impl ImageSurveys {
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        rs: &Resources,
+        _rs: &Resources,
         system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
@@ -1001,7 +1011,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, rs, system);
+        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, system);
 
         let gl = gl.clone();
 
@@ -1023,9 +1033,7 @@ impl ImageSurveys {
             // Read the pixel from the first survey of layer
             let survey = layer.names.first().unwrap();
 
-            self.surveys.get(survey)
-                .unwrap()
-                .read_pixel(pos)
+            self.surveys.get(survey).unwrap().read_pixel(pos)
         } else {
             Err(JsValue::from_str(&format!("layer {} not found", layer)))
         }
@@ -1035,11 +1043,11 @@ impl ImageSurveys {
         &mut self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        rs: &Resources,
+        _rs: &Resources,
         system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
     }
 
     pub fn set_longitude_reversed<P: Projection>(
@@ -1047,11 +1055,11 @@ impl ImageSurveys {
         _reversed: bool,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        rs: &Resources,
+        _rs: &Resources,
         system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, rs, system);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
     }
 
     pub fn set_opacity_layer(&mut self, layer: &str, opacity: f32) -> Result<(), JsValue> {
@@ -1166,7 +1174,9 @@ impl ImageSurveys {
         // plotted to 4.
         let num_surveys = hipses.len();
         if num_surveys > 4 {
-            return Err(JsValue::from_str("Cannot load more than 4 different surveys!"));
+            return Err(JsValue::from_str(
+                "Cannot load more than 4 different surveys!",
+            ));
         }
 
         let mut layers = HashMap::new();
@@ -1212,12 +1222,12 @@ impl ImageSurveys {
         }
 
         // Remove surveys that are not needed anymore
-        self.surveys = self.surveys.drain()
-            .filter(|(name, _)| {
-                current_needed_surveys.contains(name)
-            })
+        self.surveys = self
+            .surveys
+            .drain()
+            .filter(|(name, _)| current_needed_surveys.contains(name))
             .collect();
-        
+
         // Create the new surveys
         for hips in hipses.into_iter() {
             let url = hips.properties.url.clone();

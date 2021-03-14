@@ -122,7 +122,6 @@ impl FormatImage for RGB32F {
     const EXT: &'static str = "jpg";
 }
 
-
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct FITS {
     format: u32,

@@ -2,12 +2,12 @@ use crate::{
     app::App,
     color::Color,
     coo_conversion::CooSystem,
+    core::Pixel,
     math::LonLatT,
     renderable::{
         angle::{Angle, ArcDeg},
         projection::{Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic},
     },
-    core::Pixel,
     shaders::Colormap,
     time::DeltaTime,
 };
@@ -274,7 +274,7 @@ impl ProjectionType {
             ProjectionType::Mercator => app.get_center::<Mercator>(),
         }
     }
-    
+
     pub fn reset_north_orientation(&mut self, app: &mut App) {
         match self {
             ProjectionType::Aitoff => app.reset_north_orientation::<Aitoff>(),

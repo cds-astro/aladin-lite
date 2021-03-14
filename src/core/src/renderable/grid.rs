@@ -303,7 +303,8 @@ impl ProjetedGrid {
             )
             .unwrap();
         let shader = shader.bind(&self.gl);
-        shader.attach_uniforms_from(camera)
+        shader
+            .attach_uniforms_from(camera)
             .attach_uniform("color", &self.color);
 
         // The raster vao is bound at the lib.rs level

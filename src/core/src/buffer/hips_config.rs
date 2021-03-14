@@ -44,7 +44,7 @@ fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArr
             }
             _ => unimplemented!(),
         },
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }
 

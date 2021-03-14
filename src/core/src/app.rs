@@ -5,7 +5,8 @@ use crate::{
     camera::CameraViewPort,
     color::Color,
     coo_conversion::CooSystem,
-    hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
+    core::Pixel,
+    hips::SimpleHiPS,
     line, math,
     math::{LonLat, LonLatT},
     renderable::{
@@ -15,7 +16,6 @@ use crate::{
         projection::{Orthographic, Projection},
         Angle, ArcDeg,
     },
-    core::Pixel,
     resources::Resources,
     shader::ShaderManager,
     time::DeltaTime,
@@ -506,7 +506,10 @@ impl App {
         if let Some(lonlat) = self.screen_to_world::<P>(&pos) {
             self.surveys.read_pixel(&lonlat, layer)
         } else {
-            Err(JsValue::from_str(&format!("{:?} is out of projection", pos)))
+            Err(JsValue::from_str(&format!(
+                "{:?} is out of projection",
+                pos
+            )))
         }
     }
 

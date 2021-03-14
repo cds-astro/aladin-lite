@@ -2,7 +2,7 @@ mod buffers;
 mod texture;
 mod texture_array;
 
-pub use texture::{IdxTextureUnit, Texture2D, Texture2DBound, Pixel};
+pub use texture::{IdxTextureUnit, Pixel, Texture2D, Texture2DBound};
 pub use texture_array::Texture2DArray;
 
 pub use buffers::array_buffer::ArrayBuffer;

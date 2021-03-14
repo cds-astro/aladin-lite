@@ -25,7 +25,8 @@ impl WebGl2Context {
 
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
-        let context_options = js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
+        let context_options =
+            js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
         let gl = Rc::new(
             canvas
                 .get_context_with_context_options("webgl2", context_options.as_ref())?

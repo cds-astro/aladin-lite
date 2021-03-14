@@ -782,33 +782,6 @@ impl Projection for AzimuthalEquidistant {
 impl Projection for Gnomonic {
     const ALLOW_UNZOOM_MORE: bool = false;
 
-    /*fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
-        Vector2::new(1_f64, height / width)
-    }
-
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
-        let px2 = pos_clip_space.x * pos_clip_space.x;
-        let py2 = pos_clip_space.y * pos_clip_space.y;
-
-        (px2 + py2) < 1_f64
-    }
-
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
-        if y.abs() > 1.0_f64 {
-            None
-        } else {
-            let x = (1.0 - y*y).sqrt();
-            Some((-x + 1e-3, x - 1e-3))
-        }
-    }
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
-        if x.abs() > 1_f64 {
-            None
-        } else {
-            let y = (1.0 - x*x).sqrt();
-            Some((-y + 1e-3, y - 1e-3))
-        }
-    }*/
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, height / width)
     }
@@ -952,27 +925,6 @@ impl Projection for Mercator {
         pos_clip_space: &Vector2<f64>,
         longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
-        /*let xw_2 = 1_f64 - pos_clip_space.x*pos_clip_space.x - pos_clip_space.y*pos_clip_space.y;
-        if xw_2 > 0_f64 {
-            let (x, y) = (2_f64 * pos_clip_space.x, 2_f64 * pos_clip_space.y);
-
-            let rho2 = (x*x + y*y);
-            let rho = rho2.sqrt();
-
-            let c = 2_f64 * (0.5_f64 * rho).asin();
-
-            let mut delta = 0_f64;
-            let mut theta = 0_f64;
-            //if c >= 1e-4 {
-            delta = (y * c.sin() / rho).asin();
-            theta = -(x * c.sin()).atan2(rho * c.cos());
-            //}
-            let pos_world_space = math::radec_to_xyzw(Rad(theta), Rad(delta));
-            Some(pos_world_space)
-        } else {
-            // Out of the sphere
-            None
-        }*/
         let theta = pos_clip_space.x * f64::PI();
         let delta = (pos_clip_space.y.sinh()).atan() * f64::PI();
 
@@ -1018,39 +970,40 @@ impl Projection for Mercator {
 }
 
 mod tests {
-    use cgmath::Vector2;
-    use super::*;
-    use img_pixel::{Rgb, RgbImage};
 
-    fn generate_projection_map<P: Projection>(filename: &str) {
-        let (w, h) = (1024.0, 1024.0);
-        let mut img = RgbImage::new(w as u32, h as u32);
-        for x in 0..(w as u32) {
-            for y in 0..(h as u32) {
-                let xy = Vector2::new(x, y);
-                let clip_xy = Vector2::new(2.0 * ((xy.x as f64) / (w as f64)) - 1.0, 2.0 * ((xy.y as f64) / (h as f64)) - 1.0);
-                let rgb = if let Some(pos) = P::clip_to_world_space(
-                    &clip_xy,
-                    true,
-                ) {
-                    let pos = pos.truncate().normalize();
-                    Rgb([
-                        ((pos.x * 0.5 + 0.5) * 256.0) as u8,
-                        ((pos.y * 0.5 + 0.5) * 256.0) as u8,
-                        ((pos.z * 0.5 + 0.5) * 256.0) as u8
-                    ])
-                } else {
-                    Rgb([255, 255, 255])
-                };
-
-                img.put_pixel(x as u32, y as u32, rgb);
-            }
-        }
-        img.save(filename).unwrap();
-    }
 
     #[test]
     fn generate_maps() {
+        use super::*;
+        use cgmath::Vector2;
+        use img_pixel::{Rgb, RgbImage};
+        fn generate_projection_map<P: Projection>(filename: &str) {
+            let (w, h) = (1024.0, 1024.0);
+            let mut img = RgbImage::new(w as u32, h as u32);
+            for x in 0..(w as u32) {
+                for y in 0..(h as u32) {
+                    let xy = Vector2::new(x, y);
+                    let clip_xy = Vector2::new(
+                        2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
+                        2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
+                    );
+                    let rgb = if let Some(pos) = P::clip_to_world_space(&clip_xy, true) {
+                        let pos = pos.truncate().normalize();
+                        Rgb([
+                            ((pos.x * 0.5 + 0.5) * 256.0) as u8,
+                            ((pos.y * 0.5 + 0.5) * 256.0) as u8,
+                            ((pos.z * 0.5 + 0.5) * 256.0) as u8,
+                        ])
+                    } else {
+                        Rgb([255, 255, 255])
+                    };
+    
+                    img.put_pixel(x as u32, y as u32, rgb);
+                }
+            }
+            img.save(filename).unwrap();
+        }
+
         generate_projection_map::<Aitoff>("./img/aitoff.png");
         generate_projection_map::<Gnomonic>("./img/tan.png");
         generate_projection_map::<AzimuthalEquidistant>("./img/arc.png");

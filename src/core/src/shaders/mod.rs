@@ -6,17 +6,17 @@ pub enum Colormap {
     IDLCBYIGnBu = 3,
     BluePastelRed = 4,
     IDLCBBrBG = 5,
-    viridis = 6,
-    plasma = 7,
-    magma = 8,
-    inferno = 9,
-    turbo = 10,
+    Viridis = 6,
+    Plasma = 7,
+    Magma = 8,
+    Inferno = 9,
+    Turbo = 10,
     YIOrBr = 11,
-    stern = 12,
+    Stern = 12,
     EOSB = 13,
-    spectral = 14,
+    Spectral = 14,
     RdBu = 15,
-    parula = 16,
+    Parula = 16,
 }
 use std::borrow::Cow;
 
@@ -33,28 +33,28 @@ impl Colormap {
             Colormap::IDLCBYIGnBu
         } else if id.contains("IDLCBBrBG") {
             Colormap::IDLCBBrBG
-        } else if id.contains("viridis") {
-            Colormap::viridis
-        } else if id.contains("plasma") {
-            Colormap::plasma
-        } else if id.contains("magma") {
-            Colormap::magma
-        } else if id.contains("inferno") {
-            Colormap::inferno
-        } else if id.contains("turbo") {
-            Colormap::turbo
+        } else if id.contains("Viridis") {
+            Colormap::Viridis
+        } else if id.contains("Plasma") {
+            Colormap::Plasma
+        } else if id.contains("Magma") {
+            Colormap::Magma
+        } else if id.contains("Inferno") {
+            Colormap::Inferno
+        } else if id.contains("Turbo") {
+            Colormap::Turbo
         } else if id.contains("YIOrBr") {
             Colormap::YIOrBr
-        } else if id.contains("stern") {
-            Colormap::stern
+        } else if id.contains("Stern") {
+            Colormap::Stern
         } else if id.contains("EOSB") {
             Colormap::EOSB
-        } else if id.contains("spectral") {
-            Colormap::spectral
+        } else if id.contains("Spectral") {
+            Colormap::Spectral
         } else if id.contains("RdBu") {
             Colormap::RdBu
-        } else if id.contains("parula") {
-            Colormap::parula
+        } else if id.contains("Parula") {
+            Colormap::Parula
         } else {
             Colormap::BlackWhiteLinear
         }
@@ -69,17 +69,17 @@ impl Colormap {
             "IDLCBYIGnBu",
             "IDLCBBrBG",
             "YIOrBr",
-            "viridis",
-            "plasma",
-            "magma",
-            "inferno",
-            "turbo",
-            "stern",
+            "Viridis",
+            "Plasma",
+            "Magma",
+            "Inferno",
+            "Turbo",
+            "Stern",
             "EOSB",
-            "spectral",
+            "Spectral",
             "RdBu",
-            "parula",
-            "BlackWhiteLinear"
+            "Parula",
+            "BlackWhiteLinear",
         ]
     }
 
@@ -128,7 +128,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::viridis => shaders.get(
+            Colormap::Viridis => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -136,7 +136,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::plasma => shaders.get(
+            Colormap::Plasma => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -144,7 +144,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::magma => shaders.get(
+            Colormap::Magma => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -152,7 +152,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::inferno => shaders.get(
+            Colormap::Inferno => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -160,7 +160,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::turbo => shaders.get(
+            Colormap::Turbo => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -176,7 +176,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::stern => shaders.get(
+            Colormap::Stern => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -192,7 +192,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::spectral => shaders.get(
+            Colormap::Spectral => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -208,7 +208,7 @@ impl Colormap {
                 ),
             ),
             // TODO: update with correct shader
-            Colormap::parula => shaders.get(
+            Colormap::Parula => shaders.get(
                 gl,
                 &ShaderId(
                     Cow::Borrowed("ColormapVS"),
@@ -226,7 +226,8 @@ use crate::shader::ShaderBound;
 
 impl SendUniforms for Colormap {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap", self)
+        shader
+            .attach_uniform("colormap", self)
             .attach_uniform("reversed", &1);
 
         shader

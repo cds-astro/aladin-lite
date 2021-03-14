@@ -253,8 +253,9 @@ use crate::core::Texture2D;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Active the texture unit of the texture
-        let tex = tex.active_texture()
-        // 2. Bind the texture to that texture unit
+        let tex = tex
+            .active_texture()
+            // 2. Bind the texture to that texture unit
             .bind();
 
         let idx_sampler = tex.get_idx_sampler();

@@ -1,9 +1,8 @@
 use crate::{
     camera::CameraViewPort,
-    core::{VertexArrayObject, Texture2D},
+    core::{Texture2D, VertexArrayObject},
     renderable::projection::Projection,
     shader::{ShaderBound, ShaderManager},
-    image_fmt::FormatImageType,
     WebGl2Context,
 };
 
@@ -66,45 +65,30 @@ pub struct RayTracer {
     num_indices: i32,
     position_tex: Texture2D,
 }
-
-use cgmath::{Vector2, InnerSpace};
-use wasm_bindgen_futures::JsFuture;
-use wasm_bindgen::JsCast;
-use crate::Resources;
-use web_sys::{Request, RequestInit, RequestMode, Response};
-use wasm_bindgen::JsValue;
+use cgmath::{InnerSpace, Vector2};
 use std::mem;
-use crate::renderable::projection::Aitoff;
 fn generate_position<P: Projection>() -> Vec<f32> {
     let (w, h) = (2048.0, 2048.0);
     let mut data = vec![];
     for y in 0..(h as u32) {
         for x in 0..(w as u32) {
             let xy = Vector2::new(x, y);
-            let clip_xy = Vector2::new(2.0 * ((xy.x as f64) / (w as f64)) - 1.0, 2.0 * ((xy.y as f64) / (h as f64)) - 1.0);
-            if let Some(pos) = P::clip_to_world_space(
-                &clip_xy,
-                true,
-            ) {
+            let clip_xy = Vector2::new(
+                2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
+                2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
+            );
+            if let Some(pos) = P::clip_to_world_space(&clip_xy, true) {
                 let pos = pos.truncate().normalize();
-                let mut d: u32 = 0;
-                /*d |= 3 << 30;
+                /*let mut d: u32 = 0;
+                d |= 3 << 30;
                 d |= (((pos.z * 0.5 + 0.5) * (1024.0 as f64)) as u32) << 20;
                 d |= (((pos.y * 0.5 + 0.5) * (1024.0 as f64)) as u32) << 10;
                 d |= ((pos.x * 0.5 + 0.5) * (1024.0 as f64)) as u32;
 
                 data.push(d);*/
-                data.extend(&[
-                    pos.x as f32,
-                    pos.y as f32,
-                    pos.z as f32,
-                ]);
+                data.extend(&[pos.x as f32, pos.y as f32, pos.z as f32]);
             } else {
-                data.extend(&[
-                    1.0,
-                    1.0,
-                    1.0,
-                ]);
+                data.extend(&[1.0, 1.0, 1.0]);
             }
         }
     }
@@ -117,7 +101,6 @@ impl RayTracer {
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
-        resources: &Resources,
         system: &CooSystem,
     ) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
@@ -206,14 +189,21 @@ impl RayTracer {
                 ),
             ],
             WebGl2RenderingContext::RGB32F as i32, // internal format
-            WebGl2RenderingContext::RGB,       // format
-            WebGl2RenderingContext::FLOAT, // type
-        ).unwrap();
+            WebGl2RenderingContext::RGB,           // format
+            WebGl2RenderingContext::FLOAT,         // type
+        )
+        .unwrap();
 
         let buf_data = unsafe { js_sys::Float32Array::view(&data) };
         position_tex
             .bind()
-            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(0, 0, 2048, 2048, Some(&buf_data));
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                0,
+                0,
+                2048,
+                2048,
+                Some(&buf_data),
+            );
 
         let gl = gl.clone();
         RayTracer {
@@ -226,7 +216,7 @@ impl RayTracer {
 
             num_indices,
 
-            position_tex
+            position_tex,
         }
     }
 

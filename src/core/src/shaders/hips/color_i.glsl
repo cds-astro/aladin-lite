@@ -14,7 +14,6 @@ uniform int H;
 
 uniform float size_tile_uv;
 
-uniform float tex_storing_integers;
 uniform int tex_storing_fits;
 
 @import ../colormaps/colormap;

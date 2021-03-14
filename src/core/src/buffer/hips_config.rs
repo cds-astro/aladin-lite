@@ -103,8 +103,10 @@ pub struct HiPSConfig {
     pub offset: f32,
     pub blank: f32,
 
-    pub tex_storing_integers: i32,
-    pub tex_storing_fits: i32,
+    pub tex_storing_integers: bool,
+    pub tex_storing_fits: bool,
+
+    pub size_tile_uv: f32,
 }
 
 #[inline]
@@ -131,39 +133,39 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let fmt = &properties.format;
-        let mut tex_storing_integers = 0;
-        let mut tex_storing_fits = 0;
+        let mut tex_storing_integers = false;
+        let mut tex_storing_fits = false;
         let format: Result<_, JsValue> = match fmt {
             HiPSFormat::FITSImage { bitpix, .. } => {
-                tex_storing_fits = 1;
+                tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
                     8 => {
-                        tex_storing_integers = 1;
+                        tex_storing_integers = true;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R8UI as i32,
                         )))
                     }
                     16 => {
-                        tex_storing_integers = 1;
+                        tex_storing_integers = true;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R16I as i32,
                         )))
                     }
                     32 => {
-                        tex_storing_integers = 1;
+                        tex_storing_integers = true;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R32I as i32,
                         )))
                     }
                     -32 => {
-                        tex_storing_integers = 0;
+                        tex_storing_integers = false;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R32F as i32,
                         )))
                     }
                     -64 => {
-                        tex_storing_integers = 0;
+                        tex_storing_integers = false;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R32F as i32,
                         )))
@@ -176,7 +178,7 @@ impl HiPSConfig {
                 }
             }
             HiPSFormat::Image { format } => {
-                tex_storing_integers = 0;
+                tex_storing_integers = false;
 
                 if format.contains("png") {
                     Ok(FormatImageType::PNG)
@@ -200,6 +202,7 @@ impl HiPSConfig {
         let num_tiles_per_texture = num_tile_per_side_texture * num_tile_per_side_texture;
 
         let max_depth_texture = max_depth_tile - delta_depth;
+        let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
         let hips_config = HiPSConfig {
             // HiPS name
@@ -228,6 +231,8 @@ impl HiPSConfig {
 
             tex_storing_fits,
             tex_storing_integers,
+
+            size_tile_uv,
         };
 
         Ok(hips_config)
@@ -307,8 +312,7 @@ impl SendUniforms for HiPSConfig {
         // Send max depth
         shader
             .attach_uniform("max_depth", &(self.max_depth_texture as i32))
-            .attach_uniform("size_tile_uv", &(1_f32 / ((8 << self.delta_depth) as f32)))
-            .attach_uniform("tex_storing_integers", &(self.tex_storing_integers as f32))
+            .attach_uniform("size_tile_uv", &self.size_tile_uv)
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)

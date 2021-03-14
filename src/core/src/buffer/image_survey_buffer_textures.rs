@@ -453,13 +453,20 @@ impl ImageSurveyTextures {
             let texture_size = self.config.get_texture_size();
             // The size of a tile in its texture
             let tile_size = self.config.get_tile_size();
-    
+
             // Offset in the slice in pixels
-            let offset = Vector3::new(
+            let mut offset = Vector3::new(
                 (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size + ((dy * (tile_size as f64)) as i32),
                 (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size + ((dx * (tile_size as f64)) as i32),
                 idx_slice,
             );
+
+            if self.config.tex_storing_fits {
+                let mut uvy = offset.y as f32 / 4096.0;
+                uvy = self.config.size_tile_uv + 2.0*self.config.size_tile_uv*(uvy / self.config.size_tile_uv).floor() - uvy;
+
+                offset.y = (uvy * 4096.0) as i32;
+            }
 
             Ok(offset)
         } else {

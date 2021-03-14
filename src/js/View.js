@@ -932,6 +932,7 @@ export let View = (function() {
                 lonlat = view.aladin.webglAPI.J20002Gal(lonlat[0], lonlat[1]);
             }
 
+            //console.log(view.aladin.webglAPI.readPixel(x, y, 'base'));
             view.location.update(lonlat[0], lonlat[1], view.cooFrame, isViewCenterPosition);
         }
     }

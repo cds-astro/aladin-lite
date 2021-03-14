@@ -491,6 +491,16 @@ impl App {
         Ok(())
     }
 
+    pub fn reset_north_orientation<P: Projection>(&mut self) {
+        // Reset the rotation around the center if there is one
+        self.camera.set_rotation_around_center::<P>(Angle(0.0));
+        // Reset the camera position to its current position
+        // this will keep the current position but reset the orientation
+        // so that the north pole is at the top of the center.
+        let center = self.get_center::<P>();
+        self.set_center::<P>(&center);
+    }
+
     pub fn read_pixel<P: Projection>(&self, x: f64, y: f64, layer: &str) -> Result<Pixel, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world::<P>(&pos) {

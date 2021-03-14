@@ -825,7 +825,7 @@ impl Draw for ImageSurvey {
         }
 
         //let textures_array = self.textures.get_texture_array();
-        let survey_storing_integers = self.textures.config.tex_storing_integers == 1;
+        let survey_storing_integers = self.textures.config.tex_storing_integers;
 
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {

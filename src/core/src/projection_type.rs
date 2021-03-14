@@ -274,6 +274,17 @@ impl ProjectionType {
             ProjectionType::Mercator => app.get_center::<Mercator>(),
         }
     }
+    
+    pub fn reset_north_orientation(&mut self, app: &mut App) {
+        match self {
+            ProjectionType::Aitoff => app.reset_north_orientation::<Aitoff>(),
+            ProjectionType::MollWeide => app.reset_north_orientation::<Mollweide>(),
+            ProjectionType::Ortho => app.reset_north_orientation::<Orthographic>(),
+            ProjectionType::Arc => app.reset_north_orientation::<AzimuthalEquidistant>(),
+            ProjectionType::Gnomonic => app.reset_north_orientation::<Gnomonic>(),
+            ProjectionType::Mercator => app.reset_north_orientation::<Mercator>(),
+        };
+    }
 
     pub fn enable_grid(&mut self, app: &mut App) {
         match self {

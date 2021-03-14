@@ -204,10 +204,6 @@ impl CameraViewPort {
         );
     }
 
-    /*pub fn set_clip_zoom_factor<P: Projection>(&mut self, aperture) {
-
-    }*/
-
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute

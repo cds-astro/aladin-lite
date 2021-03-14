@@ -365,6 +365,12 @@ impl WebClient {
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
+    /// Orient the north pole on the top of the screen
+    #[wasm_bindgen(js_name = resetNorthOrientation)]
+    pub fn reset_north_orientation(&mut self) {
+        self.projection.reset_north_orientation(&mut self.app);
+    }
+
     /// Initiate a finite state machine that will move to a specific location
     #[wasm_bindgen(js_name = moveToLocation)]
     pub fn start_moving_to(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {

@@ -1153,20 +1153,34 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<Vec<String>, JsValue> {
-        // retrieve the max depth of the surveys composing the layer
+        // Limit the number of HiPS received to 4
+        // The number of texture units accepted by the large majority of machine
+        // is 16.
+        // One survey needs 3 textures units where one 4096x4096 texture will be associated to each
+        // of them.
+        // Therefore 4 surveys needs 4*3=12 texture units.
+        // 2 other texture units is needed:
+        // - one for the source kernel png
+        // - one storing the position of each vertices
+        // In total there is 12+2=14 texture units taken which limits the number of simultaneous surveys
+        // plotted to 4.
+        let num_surveys = hipses.len();
+        if num_surveys > 4 {
+            return Err(JsValue::from_str("Cannot load more than 4 different surveys!"));
+        }
 
         let mut layers = HashMap::new();
         let mut new_survey_ids = Vec::new();
 
         let mut current_needed_surveys = HashSet::new();
-        self.ordered_layer_names.clear();
-        for hips in hipses.into_iter() {
+        let mut ordered_layer_names = vec![];
+        for hips in hipses.iter() {
             let layer_name = &hips.layer;
-            if !self.ordered_layer_names.contains(layer_name) {
+            if !ordered_layer_names.contains(layer_name) {
                 if layer_name == "base" {
-                    self.ordered_layer_names.insert(0, layer_name.to_string());
+                    ordered_layer_names.insert(0, layer_name.to_string());
                 } else {
-                    self.ordered_layer_names.push(layer_name.to_string());
+                    ordered_layer_names.push(layer_name.to_string());
                 }
             }
 
@@ -1194,29 +1208,29 @@ impl ImageSurveys {
                 }
             }
 
+            current_needed_surveys.insert(url);
+        }
+
+        // Remove surveys that are not needed anymore
+        self.surveys = self.surveys.drain()
+            .filter(|(name, _)| {
+                current_needed_surveys.contains(name)
+            })
+            .collect();
+        
+        // Create the new surveys
+        for hips in hipses.into_iter() {
+            let url = hips.properties.url.clone();
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
                 self.surveys.insert(url.clone(), survey);
-                new_survey_ids.push(url.clone());
+                new_survey_ids.push(url);
             }
-
-            current_needed_surveys.insert(url);
         }
         self.layers = layers;
-
-        // loop over the surveys to remove the one that are not needed anymore
-        let mut surveys_to_remove = vec![];
-        for (name, _) in self.surveys.iter() {
-            if !current_needed_surveys.contains(name) {
-                surveys_to_remove.push(name.clone());
-            }
-        }
-
-        for survey_to_remove in &surveys_to_remove {
-            self.surveys.remove(survey_to_remove);
-        }
+        self.ordered_layer_names = ordered_layer_names;
 
         //crate::log(&format!("layers {:?}", self.layers));
         //crate::log(&format!("list of surveys {:?}", self.surveys.keys()));

@@ -54,6 +54,8 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { loadShaders } from './Shaders.js';
 // Import kernel image
 import kernel from '../core/img/kernel.png';
+import parula from '../core/img/parula.png';
+
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 
 export let View = (function() {
@@ -76,6 +78,7 @@ export let View = (function() {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             let resources = {
                 'kernel': kernel,
+                'parula': parula,
             };
             this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
 

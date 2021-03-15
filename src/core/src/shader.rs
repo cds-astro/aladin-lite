@@ -123,13 +123,13 @@ impl UniformType for TransferFunction {
         gl.uniform1i(location, *value as i32);
     }
 }
-use crate::shaders::Colormap;
+/*use crate::shaders::Colormap;
 impl UniformType for Colormap {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value as i32);
     }
 }
-
+*/
 impl UniformType for f32 {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, *value);

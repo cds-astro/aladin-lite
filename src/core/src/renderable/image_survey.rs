@@ -243,6 +243,7 @@ trait Draw {
         color: &Color,
         opacity: f32,
         blank_pixel_color: &color::Color,
+        colormap: &Colormap,
     );
 }
 
@@ -270,7 +271,7 @@ impl SendUniforms for GrayscaleParameter {
 pub enum Color {
     Colored,
     Grayscale2Colormap {
-        colormap: Colormap,
+        colormap: Rc<Colormap>,
         param: GrayscaleParameter,
         reversed: bool,
     },
@@ -345,7 +346,7 @@ impl SendUniforms for Color {
                 reversed,
             } => {
                 shader
-                    .attach_uniforms_from(colormap)
+                    .attach_uniforms_from(&**colormap)
                     .attach_uniforms_from(param)
                     .attach_uniform("reversed", reversed);
             }
@@ -823,6 +824,7 @@ impl Draw for ImageSurvey {
         color: &Color,
         opacity: f32,
         blank_pixel_color: &color::Color,
+        colormap: &Colormap,
     ) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
@@ -915,15 +917,18 @@ pub trait HiPS {
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<ImageSurvey, JsValue>;
-    fn color(&self) -> Color;
+    fn color(
+        &self,
+        colormap_tex: Rc<Colormap>
+    ) -> Color;
 }
 
 use crate::{HiPSColor, SimpleHiPS};
 use std::cell::RefCell;
 use std::rc::Rc;
-
+use crate::core::Texture2D;
 impl HiPS for SimpleHiPS {
-    fn color(&self) -> Color {
+    fn color(&self, colormap_tex: Rc<Colormap>) -> Color {
         let color = match self.color.clone() {
             HiPSColor::Color => Color::Colored,
             HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
@@ -940,7 +945,7 @@ impl HiPS for SimpleHiPS {
                 transfer,
                 reversed,
             } => Color::Grayscale2Colormap {
-                colormap: colormap.into(),
+                colormap: colormap_tex,
                 reversed,
                 param: GrayscaleParameter {
                     h: transfer.into(),
@@ -987,6 +992,8 @@ pub struct ImageSurveys {
 
     raytracer: RayTracer,
     gl: WebGl2Context,
+
+    colormap: Rc<Colormap>,
 }
 
 use crate::buffer::Tiles;
@@ -1000,7 +1007,7 @@ impl ImageSurveys {
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        _rs: &Resources,
+        rs: &Resources,
         system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
@@ -1016,6 +1023,8 @@ impl ImageSurveys {
         let gl = gl.clone();
 
         let ordered_layer_names = vec![];
+
+        let colormap = Rc::new(Colormap::new(&gl, rs, "parula").unwrap());
         ImageSurveys {
             surveys,
             ordered_layer_names,
@@ -1023,8 +1032,9 @@ impl ImageSurveys {
             layers,
 
             raytracer,
-
             gl,
+
+            colormap,
         }
     }
 
@@ -1138,6 +1148,7 @@ impl ImageSurveys {
                         color,
                         *opacity,
                         &blank_pixel_color,
+                        &self.colormap,
                     );
 
                     idx_survey += 1;
@@ -1202,7 +1213,7 @@ impl ImageSurveys {
                     layer_name.clone(),
                     ImageSurveyLayer {
                         names: vec![url.clone()],
-                        colors: vec![hips.color()],
+                        colors: vec![hips.color(self.colormap.clone())],
                         opacity,
                         name_most_precised_survey: url.clone(),
                     },
@@ -1214,7 +1225,7 @@ impl ImageSurveys {
                     continue;
                 } else {
                     layer.names.push(url.clone());
-                    layer.colors.push(hips.color());
+                    layer.colors.push(hips.color(self.colormap.clone()));
                 }
             }
 

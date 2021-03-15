@@ -40,7 +40,7 @@ struct S {
 }
 
 pub struct App {
-    gl: WebGl2Context,
+    pub gl: WebGl2Context,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -59,7 +59,7 @@ pub struct App {
 
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
-    resources: Resources,
+    pub resources: Resources,
 
     move_animation: Option<MoveAnimation>,
     zoom_animation: Option<ZoomAnimation>,
@@ -605,6 +605,8 @@ impl App {
     pub fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
+        let colormap = Colormap::new(&self.gl, &self.resources, &colormap).unwrap();
+
         exec_ref.spawner().spawn(TaskType::ParseTable, async {
             let mut stream = ParseTable::<[f32; 2]>::new(table);
             let mut results: Vec<Source> = vec![];
@@ -619,7 +621,6 @@ impl App {
 
             // The stream is finished, we get the sorted sources
             let results = stream_sort.sources;
-            let colormap: Colormap = colormap.into();
 
             TaskResult::TableParsed {
                 name,

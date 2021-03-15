@@ -495,7 +495,7 @@ impl WebClient {
         name_catalog: String,
         colormap: String,
     ) -> Result<(), JsValue> {
-        let colormap: Colormap = colormap.into();
+        let colormap = Colormap::new(&self.app.gl, &self.app.resources, &name_catalog)?;
         self.projection
             .set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
 

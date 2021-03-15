@@ -120,8 +120,7 @@ impl Manager {
             let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
 
             let mut vao = VertexArrayObject::new(gl);
-            let colormap = Colormap::BlackWhiteLinear;
-            let shader = colormap.get_shader(gl, shaders);
+            let shader = Colormap::get_catalog_shader(gl, shaders);
             shader
                 .bind(gl)
                 .bind_vertex_array_object(&mut vao)
@@ -514,9 +513,15 @@ impl Catalog {
             let size = camera.get_screen_size();
             gl.viewport(0, 0, size.x as i32, size.y as i32);
 
-            let shader = self.colormap.get_shader(gl, shaders);
-            shader
-                .bind(gl)
+            let shader = shaders.get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("ColormapCatalogVS"),
+                    Cow::Borrowed("ColormapCatalogFS"),
+                ),
+            ).unwrap();
+            //self.colormap.get_shader(gl, shaders);
+            shader.bind(gl)
                 .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
                 .attach_uniform("alpha", &self.alpha) // Alpha channel
                 .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)

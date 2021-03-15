@@ -10,13 +10,8 @@ import CatalogOrthoFS from '../core/src/shaders/catalogs/ortho.frag';
 import CatalogFS from '../core/src/shaders/catalogs/catalog.frag';
 
 // Colormap shaders
-import ColormapVS from '../core/src/shaders/colormaps/colormap.vert'
-import ColormapBlackWhiteFS from '../core/src/shaders/colormaps/blackwhite.frag'
-import ColormapBluePastelRedFS from '../core/src/shaders/colormaps/BluePastelRed.frag'
-import ColormapIDL_CB_BrBGFS from '../core/src/shaders/colormaps/IDL_CB_BrBG.frag'
-import ColormapIDL_CB_GnBuFS from '../core/src/shaders/colormaps/IDL_CB_GnBu.frag'
-import ColormapIDL_CB_YIGnBuFS from '../core/src/shaders/colormaps/IDL_CB_YIGnBu.frag'
-import ColormapRedTemperatureFS from '../core/src/shaders/colormaps/red.frag'
+import ColormapCatalogVS from '../core/src/shaders/colormaps/colormap.vert'
+import ColormapCatalogFS from '../core/src/shaders/colormaps/colormap.frag'
 
 // Grid shader
 import GridVS from '../core/src/shaders/grid/grid.vert'
@@ -87,32 +82,12 @@ let shaders = [
     },
     // Colormap shaders
     {
-        id: "ColormapVS",
-        content: ColormapVS,
+        id: "ColormapCatalogVS",
+        content: ColormapCatalogVS,
     },
     {
-        id: "ColormapBlackWhiteFS",
-        content: ColormapBlackWhiteFS
-    },
-    {
-        id: "ColormapBluePastelRedFS",
-        content: ColormapBluePastelRedFS
-    },
-    {
-        id: "ColormapIDL_CB_BrBGFS",
-        content: ColormapIDL_CB_BrBGFS
-    },
-    {
-        id: "ColormapIDL_CB_GnBuFS",
-        content: ColormapIDL_CB_GnBuFS
-    },
-    {
-        id: "ColormapIDL_CB_YIGnBuFS",
-        content: ColormapIDL_CB_YIGnBuFS
-    },
-    {
-        id: "ColormapRedTemperatureFS",
-        content: ColormapRedTemperatureFS
+        id: "ColormapCatalogFS",
+        content: ColormapCatalogFS,
     },
     // Grid shader
     {

@@ -1,4 +1,4 @@
-// Blue & Pastel & Red
+/*// Blue & Pastel & Red
 float colormap_red(float x) {
     if (x < 0.1131206452846527) {
         return (-9.40943766883858E+02 * x - 1.84146720562529E+02) * x + 3.28713709677420E+01;
@@ -901,8 +901,8 @@ vec4 parula_f(float x) {
                + vec4( 9.7629999999999995e-01,  9.8309999999999997e-01,  5.3800000000000001e-02, 1.0);
     }
 }
-
-uniform int colormap;
+*/
+uniform sampler2D colormap;
 // can be either 0 or 1
 uniform int reversed;
 /*
@@ -926,7 +926,7 @@ parula = 16,
 */
 vec4 colormap_f(float x) {
     x = mix(x, 1.0 - x, float(reversed));
-    // BlackWhiteLinear = 0,
+    /*// BlackWhiteLinear = 0,
     if (colormap == 0) {
         return blackw_f(x);
     // RedTemperature = 1,
@@ -977,5 +977,7 @@ vec4 colormap_f(float x) {
     // parula = 16,
     } else if (colormap == 16) {
         return parula_f(x);
-    }
+    }*/
+
+    return texture(colormap, vec2(x, 0.5));
 }

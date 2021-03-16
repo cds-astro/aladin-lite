@@ -243,7 +243,7 @@ trait Draw {
         color: &Color,
         opacity: f32,
         blank_pixel_color: &color::Color,
-        colormap: &Colormap,
+        colormaps: &Colormaps,
     );
 }
 
@@ -271,7 +271,7 @@ impl SendUniforms for GrayscaleParameter {
 pub enum Color {
     Colored,
     Grayscale2Colormap {
-        colormap: Rc<Colormap>,
+        colormap: Colormap,
         param: GrayscaleParameter,
         reversed: bool,
     },
@@ -346,7 +346,7 @@ impl SendUniforms for Color {
                 reversed,
             } => {
                 shader
-                    .attach_uniforms_from(&**colormap)
+                    .attach_uniforms_from(colormap)
                     .attach_uniforms_from(param)
                     .attach_uniform("reversed", reversed);
             }
@@ -824,7 +824,7 @@ impl Draw for ImageSurvey {
         color: &Color,
         opacity: f32,
         blank_pixel_color: &color::Color,
-        colormap: &Colormap,
+        colormaps: &Colormaps,
     ) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
@@ -849,7 +849,8 @@ impl Draw for ImageSurvey {
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity);
+                .attach_uniform("opacity", &opacity)
+                .attach_uniforms_from(colormaps);
 
             raytracer.draw(&shader);
 
@@ -894,7 +895,8 @@ impl Draw for ImageSurvey {
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity);
+                .attach_uniform("opacity", &opacity)
+                .attach_uniforms_from(colormaps);
 
             // The raster vao is bound at the lib.rs level
             self.gl.draw_elements_with_i32(
@@ -919,16 +921,15 @@ pub trait HiPS {
     ) -> Result<ImageSurvey, JsValue>;
     fn color(
         &self,
-        colormap_tex: Rc<Colormap>
+        colormaps: &Colormaps
     ) -> Color;
 }
 
 use crate::{HiPSColor, SimpleHiPS};
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::core::Texture2D;
 impl HiPS for SimpleHiPS {
-    fn color(&self, colormap_tex: Rc<Colormap>) -> Color {
+    fn color(&self, colormaps: &Colormaps) -> Color {
         let color = match self.color.clone() {
             HiPSColor::Color => Color::Colored,
             HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
@@ -945,7 +946,7 @@ impl HiPS for SimpleHiPS {
                 transfer,
                 reversed,
             } => Color::Grayscale2Colormap {
-                colormap: colormap_tex,
+                colormap: colormaps.get(&colormap),
                 reversed,
                 param: GrayscaleParameter {
                     h: transfer.into(),
@@ -992,8 +993,6 @@ pub struct ImageSurveys {
 
     raytracer: RayTracer,
     gl: WebGl2Context,
-
-    colormap: Rc<Colormap>,
 }
 
 use crate::buffer::Tiles;
@@ -1002,12 +1001,12 @@ use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 
 use crate::coo_conversion::CooSystem;
 use crate::Resources;
+use crate::shaders::Colormaps;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        rs: &Resources,
         system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
@@ -1024,7 +1023,6 @@ impl ImageSurveys {
 
         let ordered_layer_names = vec![];
 
-        let colormap = Rc::new(Colormap::new(&gl, rs, "parula").unwrap());
         ImageSurveys {
             surveys,
             ordered_layer_names,
@@ -1033,8 +1031,6 @@ impl ImageSurveys {
 
             raytracer,
             gl,
-
-            colormap,
         }
     }
 
@@ -1094,7 +1090,7 @@ impl ImageSurveys {
         }
     }
 
-    pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+    pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager, colormaps: &Colormaps) {
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
 
         if raytracing {
@@ -1148,7 +1144,7 @@ impl ImageSurveys {
                         color,
                         *opacity,
                         &blank_pixel_color,
-                        &self.colormap,
+                        &colormaps,
                     );
 
                     idx_survey += 1;
@@ -1171,6 +1167,7 @@ impl ImageSurveys {
         gl: &WebGl2Context,
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
+        colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
         // Limit the number of HiPS received to 4
         // The number of texture units accepted by the large majority of machine
@@ -1213,7 +1210,7 @@ impl ImageSurveys {
                     layer_name.clone(),
                     ImageSurveyLayer {
                         names: vec![url.clone()],
-                        colors: vec![hips.color(self.colormap.clone())],
+                        colors: vec![hips.color(colormaps)],
                         opacity,
                         name_most_precised_survey: url.clone(),
                     },
@@ -1225,7 +1222,7 @@ impl ImageSurveys {
                     continue;
                 } else {
                     layer.names.push(url.clone());
-                    layer.colors.push(hips.color(self.colormap.clone()));
+                    layer.colors.push(hips.color(&colormaps));
                 }
             }
 

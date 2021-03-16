@@ -120,7 +120,7 @@ impl Manager {
             let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
 
             let mut vao = VertexArrayObject::new(gl);
-            let shader = Colormap::get_catalog_shader(gl, shaders);
+            let shader = Colormap::get_catalog_shader(gl, shaders)?;
             shader
                 .bind(gl)
                 .bind_vertex_array_object(&mut vao)
@@ -244,10 +244,13 @@ impl Manager {
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
-    ) {
+        colormaps: &Colormaps
+    ) -> Result<(), JsValue> {
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(&gl, shaders, self, camera);
+            catalog.draw::<P>(&gl, shaders, self, camera, colormaps)?;
         }
+
+        Ok(())
     }
 }
 
@@ -271,7 +274,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
 use crate::renderable::{HEALPixCells, HEALPixCellsInView};
-
+use crate::shaders::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -455,82 +458,87 @@ impl Catalog {
         shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
         camera: &CameraViewPort,
-    ) {
+        colormaps: &Colormaps,
+    ) -> Result<(), JsValue> {
         // If the catalog is transparent, simply discard the draw
-        if self.alpha == 0_f32 {
-            return;
+        if self.alpha > 0_f32 {
+            // Render to the FRAMEBUFFER
+            gl.blend_func_separate(
+                WebGl2RenderingContext::SRC_ALPHA,
+                WebGl2RenderingContext::ONE,
+                WebGl2RenderingContext::ONE,
+                WebGl2RenderingContext::ONE,
+            );
+            {
+                // bind the FBO
+                gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
+                let (fbo_width, fbo_height) = manager.fbo_texture.get_size();
+                // Set the camera
+                gl.viewport(0, 0, fbo_width as i32, fbo_height as i32);
+                gl.scissor(0, 0, fbo_width as i32, fbo_height as i32);
+
+                gl.clear_color(0.0, 0.0, 0.0, 1.0);
+                gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+                let shader = P::get_catalog_shader(gl, shaders);
+                let shader_bound = shader.bind(gl);
+
+                shader_bound
+                    .attach_uniforms_from(camera)
+                    // Attach catalog specialized uniforms
+                    .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
+                    .attach_uniform("strength", &self.strength) // Strengh of the kernel
+                    .attach_uniform("current_time", &utils::get_current_time())
+                    .attach_uniform("kernel_size", &manager.kernel_size)
+                    .attach_uniform("max_density", &self.max_density)
+                    .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
+                    .draw_elements_instanced_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        0,
+                        self.num_instances,
+                    );
+
+                // Unbind the FBO
+                gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
+            }
+            //gl.disable(WebGl2RenderingContext::BLEND);
+            gl.blend_func_separate(
+                WebGl2RenderingContext::SRC_ALPHA,
+                WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+                WebGl2RenderingContext::ONE,
+                WebGl2RenderingContext::ONE,
+            );
+
+            // Render to the heatmap to the screen
+            {
+                // Set the camera
+                let size = camera.get_screen_size();
+                gl.viewport(0, 0, size.x as i32, size.y as i32);
+
+                let shader = shaders.get(
+                    gl,
+                    &ShaderId(
+                        Cow::Borrowed("ColormapCatalogVS"),
+                        Cow::Borrowed("ColormapCatalogFS"),
+                    ),
+                )?;
+                //self.colormap.get_shader(gl, shaders);
+                shader.bind(gl)
+                    .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
+                    .attach_uniform("alpha", &self.alpha) // Alpha channel
+                    .attach_uniforms_from(&self.colormap)
+                    .attach_uniforms_from(colormaps)
+                    .attach_uniform("reversed", &false)
+                    .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        None,
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                    );
+            }
         }
-        // Render to the FRAMEBUFFER
-        gl.blend_func_separate(
-            WebGl2RenderingContext::SRC_ALPHA,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-        );
-        {
-            // bind the FBO
-            gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
-            let (fbo_width, fbo_height) = manager.fbo_texture.get_size();
-            // Set the camera
-            gl.viewport(0, 0, fbo_width as i32, fbo_height as i32);
-            gl.scissor(0, 0, fbo_width as i32, fbo_height as i32);
 
-            gl.clear_color(0.0, 0.0, 0.0, 1.0);
-            gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-            let shader = P::get_catalog_shader(gl, shaders);
-            let shader_bound = shader.bind(gl);
-
-            shader_bound
-                .attach_uniforms_from(camera)
-                // Attach catalog specialized uniforms
-                .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
-                .attach_uniform("strength", &self.strength) // Strengh of the kernel
-                .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("kernel_size", &manager.kernel_size)
-                .attach_uniform("max_density", &self.max_density)
-                .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
-                .draw_elements_instanced_with_i32(
-                    WebGl2RenderingContext::TRIANGLES,
-                    0,
-                    self.num_instances,
-                );
-
-            // Unbind the FBO
-            gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
-        }
-        //gl.disable(WebGl2RenderingContext::BLEND);
-        gl.blend_func_separate(
-            WebGl2RenderingContext::SRC_ALPHA,
-            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-        );
-
-        // Render to the heatmap to the screen
-        {
-            // Set the camera
-            let size = camera.get_screen_size();
-            gl.viewport(0, 0, size.x as i32, size.y as i32);
-
-            let shader = shaders.get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("ColormapCatalogVS"),
-                    Cow::Borrowed("ColormapCatalogFS"),
-                ),
-            ).unwrap();
-            //self.colormap.get_shader(gl, shaders);
-            shader.bind(gl)
-                .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
-                .attach_uniform("alpha", &self.alpha) // Alpha channel
-                .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
-                .draw_elements_with_i32(
-                    WebGl2RenderingContext::TRIANGLES,
-                    None,
-                    WebGl2RenderingContext::UNSIGNED_SHORT,
-                );
-        }
+        Ok(())
     }
 }
 pub trait CatalogShaderProjection {

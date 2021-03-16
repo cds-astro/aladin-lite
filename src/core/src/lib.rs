@@ -59,7 +59,7 @@ use crate::{
     renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
     resources::Resources,
     shader::{Shader, ShaderManager},
-    shaders::Colormap,
+    shaders::Colormaps,
     time::DeltaTime,
     webgl_ctx::WebGl2Context,
 };
@@ -495,7 +495,7 @@ impl WebClient {
         name_catalog: String,
         colormap: String,
     ) -> Result<(), JsValue> {
-        let colormap = Colormap::new(&self.app.gl, &self.app.resources, &name_catalog)?;
+        let colormap = self.app.colormaps.get(&colormap);
         self.projection
             .set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
 
@@ -552,7 +552,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = getAvailableColormapList)]
     pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
-        let colormaps = Colormap::get_list_available_colormaps()
+        let colormaps = Colormaps::get_list_available_colormaps()
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<_>>();

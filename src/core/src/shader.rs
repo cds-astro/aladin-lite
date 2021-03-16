@@ -341,6 +341,23 @@ pub enum Error {
     FileNotFound { message: String },
 }
 
+use wasm_bindgen::JsValue;
+impl From<Error> for JsValue {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::ShaderAlreadyInserted { message } => {
+                JsValue::from_str(&format!("Shader already inserted: {:?}", message))
+            },
+            Error::ShaderNotFound { message } => {
+                JsValue::from_str(&format!("Shader not found: {:?}", message))
+            },
+            Error::FileNotFound { message } => {
+                JsValue::from_str(&format!("Shader not found: {:?}", message))
+            },
+        }
+    }
+}
+
 use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct FileSrc {

@@ -640,7 +640,7 @@ impl ImageRequest for FITSImageRequest {
         let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
             Some(*blank as f32)
         } else {
-            Some(-100.0)
+            Some(std::f32::NAN)
         };
 
         let metadata = FITSMetaData {

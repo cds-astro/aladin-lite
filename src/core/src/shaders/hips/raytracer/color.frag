@@ -16,25 +16,20 @@ struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
     float start_time; // Absolute time that the load has been done in ms
-    int empty;
+    float empty;
 };
 
 uniform int current_depth;
 uniform Tile textures_tiles[12];
 
 uniform float current_time; // current time in ms
-struct TileColor {
-    Tile tile;
-    vec4 color;
-    bool found;
-};
 
 @import ../color;
 @import ./healpix;
 
 uniform float opacity;
 
-TileColor get_tile_color(vec3 pos) {
+vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 
     int idx = result.idx;
@@ -51,9 +46,9 @@ TileColor get_tile_color(vec3 pos) {
     vec3 UV = vec3(offset, float(idx_texture));
 
     vec4 color = get_color_from_texture(UV);
-    color.a = mix(color.a, blank_color.a, float(tile.empty));
+    color.a = mix(color.a, blank_color.a, tile.empty);
     
-    return TileColor(tile, color, true);
+    return color;
 }
 
 const float duration = 500.f; // 500ms
@@ -68,7 +63,6 @@ void main() {
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     // Get the HEALPix cell idx and the uv in the texture
-    TileColor current_tile = get_tile_color(frag_pos);
-    float pixel_transparency = current_tile.color.a;
-    out_frag_color = vec4(current_tile.color.rgb, opacity * pixel_transparency);
+    vec4 c = get_tile_color(frag_pos);
+    out_frag_color = vec4(c.rgb, opacity * c.a);
 }

@@ -226,7 +226,7 @@ impl<'a> SendUniforms for TextureUniforms<'a> {
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "empty"),
-                &(self.texture.missing as i32),
+                &((self.texture.missing as u8) as f32),
             )
             .attach_uniform(
                 &format!("{}{}", self.name, "start_time"),

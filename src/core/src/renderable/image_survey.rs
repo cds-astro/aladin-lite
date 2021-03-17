@@ -289,22 +289,31 @@ impl Color {
         gl: &WebGl2Context,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
+        unsigned_tex: bool,
     ) -> &'a Shader {
         match self {
             Color::Colored => P::get_raster_shader_color(gl, shaders),
             Color::Grayscale2Colormap { .. } => {
-                if integer_tex {
-                    P::get_raster_shader_gray2colormap_integer(gl, shaders)
-                } else {
-                    P::get_raster_shader_gray2colormap(gl, shaders)
+                if unsigned_tex {
+                    return P::get_raster_shader_gray2colormap_unsigned(gl, shaders);
                 }
+
+                if integer_tex {
+                    return P::get_raster_shader_gray2colormap_integer(gl, shaders);
+                }
+                
+                P::get_raster_shader_gray2colormap(gl, shaders)
             }
             Color::Grayscale2Color { .. } => {
-                if integer_tex {
-                    P::get_raster_shader_gray2color_integer(gl, shaders)
-                } else {
-                    P::get_raster_shader_gray2color(gl, shaders)
+                if unsigned_tex {
+                    return P::get_raster_shader_gray2color_unsigned(gl, shaders);
                 }
+
+                if integer_tex {
+                    return P::get_raster_shader_gray2color_integer(gl, shaders);
+                }
+                
+                P::get_raster_shader_gray2color(gl, shaders)
             }
         }
     }
@@ -314,22 +323,31 @@ impl Color {
         gl: &WebGl2Context,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
+        unsigned_tex: bool,
     ) -> &'a Shader {
         match self {
             Color::Colored => P::get_raytracer_shader_color(gl, shaders),
             Color::Grayscale2Colormap { .. } => {
-                if integer_tex {
-                    P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
-                } else {
-                    P::get_raytracer_shader_gray2colormap(gl, shaders)
+                if unsigned_tex {
+                    return P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders);
                 }
+
+                if integer_tex {
+                    return P::get_raytracer_shader_gray2colormap_integer(gl, shaders);
+                }
+                
+                P::get_raytracer_shader_gray2colormap(gl, shaders)
             }
             Color::Grayscale2Color { .. } => {
-                if integer_tex {
-                    P::get_raytracer_shader_gray2color_integer(gl, shaders)
-                } else {
-                    P::get_raytracer_shader_gray2color(gl, shaders)
+                if unsigned_tex {
+                    return P::get_raytracer_shader_gray2color_unsigned(gl, shaders);
                 }
+
+                if integer_tex {
+                    return P::get_raytracer_shader_gray2color_integer(gl, shaders);
+                }
+                
+                P::get_raytracer_shader_gray2color(gl, shaders)
             }
         }
     }
@@ -833,12 +851,16 @@ impl Draw for ImageSurvey {
         }
 
         //let textures_array = self.textures.get_texture_array();
-        let survey_storing_integers = self.textures.config.tex_storing_integers;
 
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
         if raytracing {
             let shader = color
-                .get_raytracer_shader::<P>(&self.gl, shaders, survey_storing_integers)
+                .get_raytracer_shader::<P>(
+                    &self.gl,
+                    shaders,
+                    self.textures.config.tex_storing_integers,
+                    self.textures.config.tex_storing_unsigned_int
+                )
                 .bind(&self.gl);
 
             shader
@@ -885,7 +907,12 @@ impl Draw for ImageSurvey {
             }
 
             let shader = color
-                .get_raster_shader::<P>(&self.gl, shaders, survey_storing_integers)
+                .get_raster_shader::<P>(
+                    &self.gl,
+                    shaders,
+                    self.textures.config.tex_storing_integers,
+                    self.textures.config.tex_storing_unsigned_int
+                )
                 .bind(&self.gl);
 
             shader

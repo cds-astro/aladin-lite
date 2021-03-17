@@ -105,6 +105,7 @@ pub struct HiPSConfig {
 
     pub tex_storing_integers: bool,
     pub tex_storing_fits: bool,
+    pub tex_storing_unsigned_int: bool,
 
     pub size_tile_uv: f32,
 }
@@ -133,7 +134,9 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let fmt = &properties.format;
+        let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;
+
         let mut tex_storing_fits = false;
         let format: Result<_, JsValue> = match fmt {
             HiPSFormat::FITSImage { bitpix, .. } => {
@@ -141,7 +144,7 @@ impl HiPSConfig {
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
                     8 => {
-                        tex_storing_integers = true;
+                        tex_storing_unsigned_int = true;
                         Ok(FormatImageType::FITS(FITS::new(
                             WebGl2RenderingContext::R8UI as i32,
                         )))
@@ -178,8 +181,6 @@ impl HiPSConfig {
                 }
             }
             HiPSFormat::Image { format } => {
-                tex_storing_integers = false;
-
                 if format.contains("png") {
                     Ok(FormatImageType::PNG)
                 } else if format.contains("jpeg") || format.contains("jpg") {
@@ -231,6 +232,7 @@ impl HiPSConfig {
 
             tex_storing_fits,
             tex_storing_integers,
+            tex_storing_unsigned_int,
 
             size_tile_uv,
         };

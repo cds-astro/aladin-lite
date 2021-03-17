@@ -32,7 +32,8 @@ import RayTracerGrayscale2ColorFS from '../core/src/shaders/hips/raytracer/grays
 import RayTracerGrayscale2ColormapFS from '../core/src/shaders/hips/raytracer/grayscale_to_colormap.frag'
 import RayTracerGrayscale2ColorIntegerFS from '../core/src/shaders/hips/raytracer/grayscale_to_color_i.frag'
 import RayTracerGrayscale2ColormapIntegerFS from '../core/src/shaders/hips/raytracer/grayscale_to_colormap_i.frag'
-
+import RayTracerGrayscale2ColorUnsignedFS from '../core/src/shaders/hips/raytracer/grayscale_to_color_u.frag'
+import RayTracerGrayscale2ColormapUnsignedFS from '../core/src/shaders/hips/raytracer/grayscale_to_colormap_u.frag'
 // Rasterizer
 import RasterizerOrthoVS from '../core/src/shaders/hips/rasterizer/ortho.vert'
 import RasterizerMercatorVS from '../core/src/shaders/hips/rasterizer/mercator.vert'
@@ -45,6 +46,8 @@ import RasterizerGrayscale2ColorFS from '../core/src/shaders/hips/rasterizer/gra
 import RasterizerGrayscale2ColormapFS from '../core/src/shaders/hips/rasterizer/grayscale_to_colormap.frag'
 import RasterizerGrayscale2ColorIntegerFS from '../core/src/shaders/hips/rasterizer/grayscale_to_color_i.frag'
 import RasterizerGrayscale2ColormapIntegerFS from '../core/src/shaders/hips/rasterizer/grayscale_to_colormap_i.frag'
+import RasterizerGrayscale2ColorUnsignedFS from '../core/src/shaders/hips/rasterizer/grayscale_to_color_u.frag'
+import RasterizerGrayscale2ColormapUnsignedFS from '../core/src/shaders/hips/rasterizer/grayscale_to_colormap_u.frag'
 
 let shaders = [
     // Catalog shaders
@@ -152,6 +155,14 @@ let shaders = [
         id: "RayTracerGrayscale2ColormapIntegerFS",
         content: RayTracerGrayscale2ColormapIntegerFS,
     },
+    {
+        id: "RayTracerGrayscale2ColorUnsignedFS",
+        content: RayTracerGrayscale2ColorUnsignedFS,
+    },
+    {
+        id: "RayTracerGrayscale2ColormapUnsignedFS",
+        content: RayTracerGrayscale2ColormapUnsignedFS,
+    },
     /// Rasterizer
     {
         id: "RasterizerOrthoVS",
@@ -196,6 +207,14 @@ let shaders = [
     {
         id: "RasterizerGrayscale2ColormapIntegerFS",
         content: RasterizerGrayscale2ColormapIntegerFS,
+    },
+    {
+        id: "RasterizerGrayscale2ColorUnsignedFS",
+        content: RasterizerGrayscale2ColorUnsignedFS,
+    },
+    {
+        id: "RasterizerGrayscale2ColormapUnsignedFS",
+        content: RasterizerGrayscale2ColormapUnsignedFS,
     },
 ];
 

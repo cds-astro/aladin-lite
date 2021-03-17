@@ -427,6 +427,14 @@ pub trait GetShader {
         gl: &WebGl2Context,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader;
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader;
 
     fn get_raytracer_shader_color<'a>(
         gl: &WebGl2Context,
@@ -495,6 +503,34 @@ pub trait GetShader {
                 &ShaderId(
                     Cow::Borrowed("RayTracerVS"),
                     Cow::Borrowed("RayTracerGrayscale2ColorIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raytracer_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RayTracerVS"),
+                    Cow::Borrowed("RayTracerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raytracer_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RayTracerVS"),
+                    Cow::Borrowed("RayTracerGrayscale2ColorUnsignedFS"),
                 ),
             )
             .unwrap()
@@ -572,6 +608,34 @@ impl GetShader for Aitoff {
             )
             .unwrap()
     }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerAitoffVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerAitoffVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
 }
 impl GetShader for Mollweide {
     fn get_raster_shader_color<'a>(
@@ -640,6 +704,34 @@ impl GetShader for Mollweide {
                 &ShaderId(
                     Cow::Borrowed("RasterizerMollVS"),
                     Cow::Borrowed("RasterizerGrayscale2ColorIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerMollVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerMollVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
                 ),
             )
             .unwrap()
@@ -716,6 +808,34 @@ impl GetShader for AzimuthalEquidistant {
             )
             .unwrap()
     }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerArcVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerArcVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
 }
 impl GetShader for Gnomonic {
     fn get_raster_shader_color<'a>(
@@ -784,6 +904,34 @@ impl GetShader for Gnomonic {
                 &ShaderId(
                     Cow::Borrowed("RasterizerGnomonicVS"),
                     Cow::Borrowed("RasterizerGrayscale2ColorIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
                 ),
             )
             .unwrap()
@@ -860,6 +1008,34 @@ impl GetShader for Mercator {
             )
             .unwrap()
     }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
 }
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(
@@ -928,6 +1104,34 @@ impl GetShader for Orthographic {
                 &ShaderId(
                     Cow::Borrowed("RasterizerOrthoVS"),
                     Cow::Borrowed("RasterizerGrayscale2ColorIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGl2Context,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerGnomonicVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
                 ),
             )
             .unwrap()

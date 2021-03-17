@@ -14,6 +14,9 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         filename: 'aladin.js',
     },
+    experiments: {
+        syncWebAssembly: true,
+    },
     plugins: [
         //new HtmlWebpackPlugin(),
         new WasmPackPlugin({

@@ -178,6 +178,13 @@ export let View = (function() {
                 initialFov: undefined,
                 initialDistance: undefined
             };
+
+            // two-fingers rotation
+            this.fingersRotationParameters = {
+                initialViewAngleFromCenter: undefined,
+                initialFingerAngle: undefined,
+                rotationInitiated: false
+            }
     
             this.downloader = new Downloader(this); // the downloader object is shared across all HpxImageSurveys
             this.flagForceRedraw = false;
@@ -487,6 +494,9 @@ export let View = (function() {
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
 
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.aladin.webglAPI.getRotationAroundCenter();
+                view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
+
                 return;
             }
 
@@ -521,6 +531,13 @@ export let View = (function() {
             if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
+    
+                return;
+            }
+            if (e.type==='touchend' && view.fingersRotationParameters.rotationInitiated) {
+                view.fingersRotationParameters.initialViewAngleFromCenter = undefined;
+                view.fingersRotationParameters.initialFingerAngle = undefined;
+                view.fingersRotationParameters.rotationInitiated = false;
     
                 return;
             }
@@ -664,6 +681,21 @@ export let View = (function() {
             e.preventDefault();
 
             if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
+
+                // rotation
+                var currentFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
+                var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;
+                // rotation is initiated when angle is equal or greater than 7 degrees
+                if (! view.fingersRotationParameters.rotationInitiated && Math.abs(fingerAngleDiff)>=7) {
+                    view.fingersRotationParameters.rotationInitiated = true;
+                    view.fingersRotationParameters.initialFingerAngle = currentFingerAngle;
+                    fingerAngleDiff = 0;
+                }
+                if (view.fingersRotationParameters.rotationInitiated) {
+                    view.aladin.webglAPI.setRotationAroundCenter(fingerAngleDiff + view.fingersRotationParameters.initialViewAngleFromCenter);
+                }
+
+                // zoom
                 var dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
                 view.setZoom(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist);
 

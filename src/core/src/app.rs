@@ -709,13 +709,13 @@ impl App {
     }
 
     pub fn set_coo_system<P: Projection>(&mut self, coo_system: CooSystem) {
-        let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
-        let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
+        //let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
+        //let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
 
         self.system = coo_system;
         self.camera.set_coo_system::<P>(coo_system);
 
-        if icrs2gal {
+        /*if icrs2gal {
             // rotate the camera around the center axis
             // to move the galactic plane straight to the center
             self.camera
@@ -723,7 +723,7 @@ impl App {
         } else if gal2icrs {
             self.camera
                 .set_rotation_around_center::<P>(ArcDeg(0.0).into());
-        }
+        }*/
 
         self.request_redraw = true;
     }

@@ -80,7 +80,7 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     canvas.set_width(width);
     canvas.set_height(height);
     gl.viewport(0, 0, width as i32, height as i32);
-    //gl.scissor(0, 0, width as i32, height as i32);
+    gl.scissor(0, 0, width as i32, height as i32);
 }
 
 use crate::math;
@@ -117,7 +117,7 @@ impl CameraViewPort {
             .as_f64()
             .unwrap() as f32;
         set_canvas_size(&gl, width as u32, height as u32);
-        gl.scissor(0, 0, width as i32, height as i32);
+        //gl.scissor(0, 0, width as i32, height as i32);
 
         let aspect = width / height;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
@@ -185,7 +185,7 @@ impl CameraViewPort {
         self.aspect = width / height;
 
         set_canvas_size(&self.gl, width as u32, height as u32);
-        self.update_scissor();
+        //self.update_scissor();
 
         // Compute the new clip zoom factor
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
@@ -259,17 +259,17 @@ impl CameraViewPort {
             &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
         );
 
-        self.update_scissor();
+        //self.update_scissor();
     }
 
-    fn update_scissor(&mut self) {
+    /*fn update_scissor(&mut self) {
         let a = crate::renderable::projection::clip_to_screen_space(&Vector2::new(-1.0, 1.0), self);
         let b = crate::renderable::projection::clip_to_screen_space(&Vector2::new(1.0, -1.0), self);
 
         let w = (b.x - a.x).abs();
         let h = (b.y - a.y).abs();
         self.gl.scissor(a.x as i32, a.y as i32, w as i32, h as i32);
-    }
+    }*/
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
@@ -396,6 +396,7 @@ impl CameraViewPort {
     }
 }
 use cgmath::Matrix;
+//use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
     fn update_rot_matrices<P: Projection>(&mut self) {

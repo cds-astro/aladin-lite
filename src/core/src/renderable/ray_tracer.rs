@@ -11,11 +11,10 @@ pub trait RayTracingProjection {
 }
 
 use crate::coo_conversion::CooSystem;
-use crate::math::LonLat;
 use crate::renderable::Triangulation;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
-    camera: &CameraViewPort,
+    _camera: &CameraViewPort,
     _system: &CooSystem,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
@@ -26,10 +25,9 @@ fn create_vertices_array<P: Projection>(
             /*let pos_world_space = system.system_to_icrs_coo(
                 P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
             );*/
-            let pos_world_space =
-                P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
+            //let pos_world_space =
+            //    P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
             //let pos_world_space = system.to_icrs_j2000() * pos_world_space;
-            let lonlat = pos_world_space.lonlat();
 
             // Cast all the double into float
             // simple precision because this buffer
@@ -37,11 +35,6 @@ fn create_vertices_array<P: Projection>(
             vec![
                 pos_clip_space.x as f32,
                 pos_clip_space.y as f32,
-                lonlat.lon().0 as f32,
-                lonlat.lat().0 as f32,
-                pos_world_space.x as f32,
-                pos_world_space.y as f32,
-                pos_world_space.z as f32,
             ]
         })
         .flatten()
@@ -123,32 +116,10 @@ impl RayTracer {
             2,
             WebGl2RenderingContext::FLOAT,
             false,
-            (7 * mem::size_of::<f32>()) as i32,
+            (2 * mem::size_of::<f32>()) as i32,
             (0 * mem::size_of::<f32>()) as i32,
         );
         gl.enable_vertex_attrib_array(0);
-
-        // layout (location = 1) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(
-            1,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            (7 * mem::size_of::<f32>()) as i32,
-            (2 * mem::size_of::<f32>()) as i32,
-        );
-        gl.enable_vertex_attrib_array(1);
-
-        // layout (location = 2) in vec3 pos_world_space;
-        gl.vertex_attrib_pointer_with_i32(
-            2,
-            3,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            (7 * mem::size_of::<f32>()) as i32,
-            (4 * mem::size_of::<f32>()) as i32,
-        );
-        gl.enable_vertex_attrib_array(2);
 
         let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer

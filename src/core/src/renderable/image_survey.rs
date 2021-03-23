@@ -301,7 +301,7 @@ impl Color {
                 if integer_tex {
                     return P::get_raster_shader_gray2colormap_integer(gl, shaders);
                 }
-                
+
                 P::get_raster_shader_gray2colormap(gl, shaders)
             }
             Color::Grayscale2Color { .. } => {
@@ -312,7 +312,7 @@ impl Color {
                 if integer_tex {
                     return P::get_raster_shader_gray2color_integer(gl, shaders);
                 }
-                
+
                 P::get_raster_shader_gray2color(gl, shaders)
             }
         }
@@ -335,7 +335,7 @@ impl Color {
                 if integer_tex {
                     return P::get_raytracer_shader_gray2colormap_integer(gl, shaders);
                 }
-                
+
                 P::get_raytracer_shader_gray2colormap(gl, shaders)
             }
             Color::Grayscale2Color { .. } => {
@@ -346,7 +346,7 @@ impl Color {
                 if integer_tex {
                     return P::get_raytracer_shader_gray2color_integer(gl, shaders);
                 }
-                
+
                 P::get_raytracer_shader_gray2color(gl, shaders)
             }
         }
@@ -859,7 +859,7 @@ impl Draw for ImageSurvey {
                     &self.gl,
                     shaders,
                     self.textures.config.tex_storing_integers,
-                    self.textures.config.tex_storing_unsigned_int
+                    self.textures.config.tex_storing_unsigned_int,
                 )
                 .bind(&self.gl);
 
@@ -911,7 +911,7 @@ impl Draw for ImageSurvey {
                     &self.gl,
                     shaders,
                     self.textures.config.tex_storing_integers,
-                    self.textures.config.tex_storing_unsigned_int
+                    self.textures.config.tex_storing_unsigned_int,
                 )
                 .bind(&self.gl);
 
@@ -948,10 +948,7 @@ pub trait HiPS {
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<ImageSurvey, JsValue>;
-    fn color(
-        &self,
-        colormaps: &Colormaps
-    ) -> Color;
+    fn color(&self, colormaps: &Colormaps) -> Color;
 }
 
 use crate::{HiPSColor, SimpleHiPS};
@@ -1029,8 +1026,8 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
 
 use crate::coo_conversion::CooSystem;
-use crate::Resources;
 use crate::shaders::Colormaps;
+use crate::Resources;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -1119,7 +1116,12 @@ impl ImageSurveys {
         }
     }
 
-    pub fn draw<P: Projection>(&mut self, camera: &CameraViewPort, shaders: &mut ShaderManager, colormaps: &Colormaps) {
+    pub fn draw<P: Projection>(
+        &mut self,
+        camera: &CameraViewPort,
+        shaders: &mut ShaderManager,
+        colormaps: &Colormaps,
+    ) {
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
 
         if raytracing {

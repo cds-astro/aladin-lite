@@ -35,7 +35,7 @@ mod color;
 mod coo_conversion;
 mod core;
 mod healpix_cell;
-mod hips;
+pub mod hips;
 mod image_fmt;
 mod line;
 mod math;
@@ -52,7 +52,6 @@ mod webgl_ctx;
 
 use crate::{
     camera::CameraViewPort,
-    coo_conversion::CooSystem,
     hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
     image_fmt::FormatImageType,
     math::LonLatT,
@@ -63,6 +62,7 @@ use crate::{
     time::DeltaTime,
     webgl_ctx::WebGl2Context,
 };
+pub use coo_conversion::CooSystem;
 
 use app::App;
 use cgmath::{Vector2, Vector4};
@@ -90,7 +90,13 @@ use crate::transfert_function::TransferFunction;
 use crate::color::Color;
 #[wasm_bindgen]
 impl WebClient {
-    /// Create a new web client
+    /// Create the Aladin Lite webgl backend
+    ///
+    /// # Arguments
+    ///
+    /// * `aladin_div_name` - The name of the div where aladin is created
+    /// * `shaders` - The list of shader objects containing the GLSL code source
+    /// * `resources` - Image resource files
     #[wasm_bindgen(constructor)]
     pub fn new(
         aladin_div_name: &str,
@@ -105,7 +111,6 @@ impl WebClient {
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = App::new(&gl, aladin_div_name, shaders, resources)?;
 
-        //let appconfig = AppConfig::Ortho(app);
         let dt = DeltaTime::zero();
         let projection = ProjectionType::Ortho;
 
@@ -119,9 +124,13 @@ impl WebClient {
         Ok(webclient)
     }
 
-    /// Main update method
-    /// The force parameter ensures to force the update of some elements
-    /// even if the camera has not moved
+    /// Update the view
+    ///
+    /// # Arguments
+    ///
+    /// * `dt` - The time elapsed from the last frame update
+    /// * `force` - This parameter ensures to force the update of some elements
+    ///   even if the camera has not moved
     pub fn update(&mut self, dt: f32, force: bool) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
@@ -141,20 +150,35 @@ impl WebClient {
     }
 
     /// Resize the window
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - The width in pixels of the view
+    /// * `height` - The height in pixels of the view
     pub fn resize(&mut self, width: f32, height: f32) -> Result<(), JsValue> {
         self.projection.resize(&mut self.app, width, height);
 
         Ok(())
     }
 
-    /// Update our WebGL Water application.
+    /// Render the frame to the canvas
+    ///
+    /// The rendering does not redraw the scene if nothing has changed
+    ///
+    /// # Arguments
+    ///
+    /// * `force` - Force the rendering of the frame
     pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
         self.projection.render(&mut self.app, force)?;
 
         Ok(())
     }
 
-    /// Change the current projection of the HiPS
+    /// Set the type of projections
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Can be aitoff, mollweide, arc, sinus, tan or mercator
     #[wasm_bindgen(js_name = setProjection)]
     pub fn set_projection(&mut self, name: String) -> Result<(), JsValue> {
         self.projection.set_projection(&mut self.app, name)?;
@@ -162,7 +186,11 @@ impl WebClient {
         Ok(())
     }
 
-    /// Change the current projection of the HiPS
+    /// Reverse the longitude axis
+    ///
+    /// # Arguments
+    ///
+    /// * `reversed` - set it to `false` for planetary surveys, `true` for spatial ones
     #[wasm_bindgen(js_name = setLongitudeReversed)]
     pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
         self.projection
@@ -171,19 +199,64 @@ impl WebClient {
         Ok(())
     }
 
-    /// Image surveys
-
     /// Check whether the app is ready
     ///
     /// Aladin Lite is in a good state when the root tiles of the
     /// HiPS chosen have all been retrieved and accessible for the GPU
     ///
-    /// The javascript can change the HiPSes only if aladin lite is ready
+    /// Surveys can be changed only if Aladin Lite is ready
     #[wasm_bindgen(js_name = isReady)]
     pub fn is_ready(&mut self) -> Result<bool, JsValue> {
         self.app.is_ready()
     }
 
+    /// Set new image surveys
+    ///
+    /// Send the image surveys to render inside the Aladin Lite view
+    ///
+    /// # Arguments
+    ///
+    /// * `surveys` - A list/array of survey. A survey is a javascript object
+    /// having the specific form. Please check the file in core/src/hips.rs to see
+    /// the different semantics accepted.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// let al = new Aladin.wasmLibs.webgl.WebClient(...);
+    /// const panstarrs = {
+    ///     layer: 'base',
+    ///     properties: {
+    ///         url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
+    ///
+    ///         maxOrder: 11,
+    ///         frame: { label: "J2000", system: "J2000" },
+    ///         tileSize: 512,
+    ///         format: {
+    ///             FITSImage: {
+    ///                 bitpix: 16,
+    ///             }
+    ///         },
+    ///         minCutout: -0.15,
+    ///         maxCutout: 5,
+    ///     },
+    ///     color: {
+    ///         Grayscale2Colormap: {
+    ///             colormap: "RedTemperature",
+    ///             transfer: "asinh",
+    ///             reversed: false,
+    ///         }
+    ///     },
+    /// };
+    /// al.setImageSurveys([panstarrs]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// * If the surveys do not match SimpleHiPS type
+    /// * If the number of surveys is greater than 4. For the moment, due to the limitations
+    ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
+    ///   limited to 4.
     #[wasm_bindgen(js_name = setImageSurveys)]
     pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
@@ -200,26 +273,43 @@ impl WebClient {
         Ok(())
     }
 
-    /// Move a layer forward
+    /// Move a layer forward the other ones
+    ///
+    /// # Arguments
+    ///
+    /// * `layer_name` - The name of the layer to move
     ///
     /// # Panics
     ///
-    /// If the layer specified is not found
+    /// * If the layer specified is not found
     #[wasm_bindgen(js_name = moveImageSurveysLayerForward)]
     pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
         self.app.move_image_surveys_layer_forward(layer_name)
     }
 
+    /// Set the opacity of a layer
+    ///
+    /// # Arguments
+    ///
+    /// * `opacity` - Set an opacity value (between 0.0 and 1.0)
+    /// * `layer_name` - The name of the layer to move
+    ///
+    /// # Panics
+    ///
+    /// * If the layer specified is not found
     #[wasm_bindgen(js_name = setOpacityLayer)]
     pub fn set_opacity_layer(&mut self, opacity: f32, layer_name: &str) -> Result<(), JsValue> {
-        self.app.set_opacity_layer(layer_name, opacity)?;
-
-        Ok(())
+        self.app.set_opacity_layer(layer_name, opacity)
     }
 
-    /// Grid
-
-    /// Change grid color
+    /// Set the equatorial grid color
+    ///
+    /// # Arguments
+    ///
+    /// * `red` - Red amount (between 0.0 and 1.0)
+    /// * `green` - Green amount (between 0.0 and 1.0)
+    /// * `blue` - Blue amount (between 0.0 and 1.0)
+    /// * `alpha` - Alpha amount (between 0.0 and 1.0)
     #[wasm_bindgen(js_name = setGridColor)]
     pub fn set_grid_color(
         &mut self,
@@ -234,7 +324,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// Enable the draw of the grid
+    /// Enable the rendering of the equatorial grid
     #[wasm_bindgen(js_name = enableGrid)]
     pub fn enable_grid(&mut self) -> Result<(), JsValue> {
         self.projection.enable_grid(&mut self.app);
@@ -242,7 +332,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// Disable the draw of the grid
+    /// Disable the rendering of the equatorial grid
     #[wasm_bindgen(js_name = disableGrid)]
     pub fn disable_grid(&mut self) -> Result<(), JsValue> {
         self.projection.disable_grid(&mut self.app);
@@ -250,27 +340,35 @@ impl WebClient {
         Ok(())
     }
 
+    /// Enable the rendering of the equatorial grid labels
     #[wasm_bindgen(js_name = hideGridLabels)]
-    pub fn hide_grid_labels(&mut self) -> Result<(), JsValue> {
+    pub fn enable_grid_labels(&mut self) -> Result<(), JsValue> {
         self.projection.hide_grid_labels(&mut self.app);
 
         Ok(())
     }
 
+    /// Disable the rendering of the equatorial grid labels
     #[wasm_bindgen(js_name = showGridLabels)]
-    pub fn show_grid_labels(&mut self) -> Result<(), JsValue> {
+    pub fn disable_grid_labels(&mut self) -> Result<(), JsValue> {
         self.projection.show_grid_labels(&mut self.app);
 
         Ok(())
     }
 
-    /// ICRS in J2000 to galactic conversion functions
-
+    /// Get the coordinate system of the view
+    ///
+    /// Returns either ICRSJ2000 or GAL
     #[wasm_bindgen(js_name = cooSystem)]
     pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
         Ok(self.app.system)
     }
 
+    /// Set the coordinate system for the view
+    ///
+    /// # Arguments
+    ///
+    /// * `coo_system` - The coordinate system
     #[wasm_bindgen(js_name = setCooSystem)]
     pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
         self.projection.set_coo_system(&mut self.app, coo_system);
@@ -278,6 +376,12 @@ impl WebClient {
         Ok(())
     }
 
+    /// Convert a j2000 lonlat to a galactic one
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = J20002Gal)]
     pub fn j2000_to_gal(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -290,6 +394,12 @@ impl WebClient {
         ])))
     }
 
+    /// Convert a galactic lonlat to a j2000 one
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = Gal2J2000)]
     pub fn gal_to_j2000(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -302,15 +412,18 @@ impl WebClient {
         ])))
     }
 
-    /// Camera moving functions
-
+    /// Get the field of the view in degrees
     #[wasm_bindgen(js_name = getFieldOfView)]
     pub fn get_fov(&self) -> Result<f64, JsValue> {
         let fov = self.app.get_fov();
         Ok(fov)
     }
 
-    /// Set directly the field of view (for pinch zooming)
+    /// Set the field of view
+    ///
+    /// # Arguments
+    ///
+    /// * `fov` - The field of view in degrees
     #[wasm_bindgen(js_name = setFieldOfView)]
     pub fn set_fov(&mut self, fov: f64) -> Result<(), JsValue> {
         //let fov = fov as f32;
@@ -322,6 +435,11 @@ impl WebClient {
         Ok(())
     }
 
+    /// Set the absolute orientation of the view
+    ///
+    /// # Arguments
+    ///
+    /// * `theta` - The rotation angle in degrees
     #[wasm_bindgen(js_name = setRotationAroundCenter)]
     pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
@@ -330,6 +448,7 @@ impl WebClient {
         Ok(())
     }
 
+    /// Get the absolute orientation angle of the view
     #[wasm_bindgen(js_name = getRotationAroundCenter)]
     pub fn get_rotation_around_center(&mut self) -> Result<f64, JsValue> {
         let theta = self.app.get_rotation_around_center();
@@ -337,28 +456,49 @@ impl WebClient {
         Ok(theta.0 * 360.0 / (2.0 * std::f64::consts::PI))
     }
 
+    /// Get the field of view angle value when the view is zoomed out to its maximum
+    ///
+    /// This method is dependent of the projection currently set.
+    /// All sky projections should return 360 degrees whereas
+    /// the sinus would be 180 degrees.
     #[wasm_bindgen(js_name = getMaxFieldOfView)]
     pub fn get_max_fov(&mut self) -> f64 {
         self.projection.get_max_fov(&mut self.app)
     }
 
+    /// Get the clip zoom factor of the view
+    ///
+    /// This factor is deduced from the field of view angle.
+    /// It is a constant which when multiplied to the screen coordinates
+    /// gives the coordinates in clipping space.
     #[wasm_bindgen(js_name = getClipZoomFactor)]
     pub fn get_clip_zoom_factor(&self) -> Result<f64, JsValue> {
         Ok(self.app.get_clip_zoom_factor())
     }
 
-    /// Set directly the center position
+    /// Set the center of the view
+    ///
+    /// The core works in ICRS system so
+    /// the location must be given in this system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = setCenter)]
     pub fn set_center(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        //let location = self.app.system.to_icrs_j2000(lonlat);
 
         self.projection.set_center(&mut self.app, location);
 
         Ok(())
     }
 
-    /// Set directly the center position
+    /// Get the center of the view
+    ///
+    /// This returns a javascript array of size 2.
+    /// The first component is the longitude, the second one is the latitude.
+    /// The angles are given in degrees.
     #[wasm_bindgen(js_name = getCenter)]
     pub fn get_center(&self) -> Result<Box<[f64]>, JsValue> {
         let center = self.projection.get_center(&self.app);
@@ -369,26 +509,40 @@ impl WebClient {
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }
 
-    /// Orient the north pole on the top of the screen
+    /// Rest the north pole orientation to the top of the screen
     #[wasm_bindgen(js_name = resetNorthOrientation)]
     pub fn reset_north_orientation(&mut self) {
         self.projection.reset_north_orientation(&mut self.app);
     }
 
-    /// Initiate a finite state machine that will move to a specific location
+    /// Move to a location
+    ///
+    /// The core works in ICRS system so
+    /// the location must be given in this system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = moveToLocation)]
-    pub fn start_moving_to(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
+    pub fn move_to_location(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
         // The core works in ICRS_J2000 coordinates
         // Check if the user is giving galactic coordinates
         // so that we can convert them to icrs
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        //let location = self.app.system.to_icrs_j2000(location);
-
         self.projection.start_moving_to(&mut self.app, location);
 
         Ok(())
     }
 
+    /// Go from a location to another one
+    ///
+    /// # Arguments
+    ///
+    /// * `s1x` - The x screen coordinate in pixels of the starting point
+    /// * `s1y` - The y screen coordinate in pixels of the starting point
+    /// * `s2x` - The x screen coordinate in pixels of the goal point
+    /// * `s2y` - The y screen coordinate in pixels of the goal point
     #[wasm_bindgen(js_name = goFromTo)]
     pub fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) -> Result<(), JsValue> {
         self.projection
@@ -399,8 +553,12 @@ impl WebClient {
 
     /// World to screen projection
     ///
-    /// Coordinates must be given in ICRS J2000
-    /// They will be converted accordingly to the current frame of Aladin Lite
+    /// Coordinates must be given in the ICRS coo system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -412,12 +570,25 @@ impl WebClient {
         }
     }
 
+    /// World to screen projection of a list of sources
+    ///
+    /// Coordinates must be given in the ICRS coo system
+    ///
+    /// # Arguments
+    ///
+    /// * `sources` - An array of sources
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
         let screen_positions = self.projection.world_to_screen_vec(&self.app, &sources)?;
         Ok(screen_positions.into_boxed_slice())
     }
 
+    /// Screen to world unprojection
+    ///
+    /// # Arguments
+    ///
+    /// * `pos_x` - The x screen coordinate in pixels
+    /// * `pos_y` - The y screen coordinate in pixels
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
         if let Some(lonlat) = self
@@ -433,8 +604,9 @@ impl WebClient {
         }
     }
 
-    /// Tell the backend when the left mouse button has been
-    /// released. This is useful for beginning inerting
+    /// Signal the backend when the left mouse button has been released.
+    ///
+    /// This is useful for beginning inerting.
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
     pub fn release_left_button_mouse(&mut self) -> Result<(), JsValue> {
         self.app.release_left_button_mouse();
@@ -442,7 +614,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// Tell the backend when the left mouse button has been pressed
+    /// Signal the backend when the left mouse button has been pressed.
     #[wasm_bindgen(js_name = pressLeftMouseButton)]
     pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {
         self.app.press_left_button_mouse();
@@ -450,6 +622,14 @@ impl WebClient {
         Ok(())
     }
 
+    /// Signal the backend when a wheel event has been registered
+    ///
+    /// The field of view is changed accordingly
+    ///
+    /// # Arguments
+    ///
+    /// * `delta` - The delta coming from the wheel event. This is
+    ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = registerWheelEvent)]
     pub fn wheel_event_callback(&mut self, delta: f64) -> Result<(), JsValue> {
         let zooming = delta > 0.0;
@@ -469,7 +649,13 @@ impl WebClient {
         Ok(())
     }
 
-    /// Catalogs
+    /// Add a catalog rendered as a heatmap.
+    ///
+    /// # Arguments
+    ///
+    /// * `name_catalog` - The name of the catalog
+    /// * `data` - The list of the catalog sources.
+    /// * `colormap` - The name of the colormap. Check out the list of possible colormaps names `getAvailableColormapList`.
     #[wasm_bindgen(js_name = addCatalog)]
     pub fn add_catalog(
         &mut self,
@@ -483,12 +669,32 @@ impl WebClient {
         Ok(())
     }
 
+    /// Set the catalog heatmap colormap
+    ///
+    /// # Arguments
+    ///
+    /// * `name_catalog` - The name of the catalog to apply this change to
+    /// * `colormap` - The name of the colormap. Check out the list of possible colormaps names `getAvailableColormapList`.
+    ///
+    /// # Panics
+    ///
+    /// If the catalog has not been found
     #[wasm_bindgen(js_name = isCatalogLoaded)]
     pub fn is_catalog_loaded(&mut self) -> Result<bool, JsValue> {
         let cat_loaded = self.app.is_catalog_loaded();
         Ok(cat_loaded)
     }
 
+    /// Set the catalog heatmap colormap
+    ///
+    /// # Arguments
+    ///
+    /// * `name_catalog` - The name of the catalog to apply this change to
+    /// * `colormap` - The name of the colormap. Check out the list of possible colormaps names `getAvailableColormapList`.
+    ///
+    /// # Panics
+    ///
+    /// If the catalog has not been found
     #[wasm_bindgen(js_name = setCatalogColormap)]
     pub fn set_catalog_colormap(
         &mut self,
@@ -502,7 +708,16 @@ impl WebClient {
         Ok(())
     }
 
-    /// Set the heatmap global opacity
+    /// Set the catalog heatmap opacity
+    ///
+    /// # Arguments
+    ///
+    /// * `name_catalog` - The name of the catalog to apply this change to
+    /// * `opacity` - The opacity factor (between 0.0 and 1.0)
+    ///
+    /// # Panics
+    ///
+    /// If the catalog has not been found
     #[wasm_bindgen(js_name = setCatalogOpacity)]
     pub fn set_heatmap_opacity(
         &mut self,
@@ -515,6 +730,16 @@ impl WebClient {
         Ok(())
     }
 
+    /// Set the kernel strength for the catalog heatmap rendering
+    ///
+    /// # Arguments
+    ///
+    /// * `name_catalog` - The name of the catalog to apply this change to
+    /// * `strength` - The strength of the kernel
+    ///
+    /// # Panics
+    ///
+    /// If the catalog has not been found
     #[wasm_bindgen(js_name = setCatalogKernelStrength)]
     pub fn set_kernel_strength(
         &mut self,
@@ -527,8 +752,21 @@ impl WebClient {
         Ok(())
     }
 
-    /// Utilities
-
+    /// Project a line to the screen
+    ///
+    /// # Returns
+    ///
+    /// A list of xy screen coordinates defining the projected line.
+    /// The algorithm involved is recursive and can return different number of
+    /// control points depending on the projection used and therefore
+    /// the deformation of the line.
+    ///
+    /// # Arguments
+    ///
+    /// * `lon1` - The longitude in degrees of the starting line point
+    /// * `lat1` - The latitude in degrees of the starting line point
+    /// * `lon2` - The longitude in degrees of the ending line point
+    /// * `lat2` - The latitude in degrees of the ending line point
     #[wasm_bindgen(js_name = projectLine)]
     pub fn project_line(
         &self,
@@ -550,6 +788,10 @@ impl WebClient {
         Ok(vertices.into_boxed_slice())
     }
 
+    /// Get the list of colormap supported
+    ///
+    /// This list must be updated whenever a new colormap is added
+    /// in core/img/colormaps/colormaps.png
     #[wasm_bindgen(js_name = getAvailableColormapList)]
     pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
         let colormaps = Colormaps::get_list_available_colormaps()
@@ -560,27 +802,32 @@ impl WebClient {
         JsValue::from_serde(&colormaps).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    /// Get the image canvas where the webgl rendering is done
     #[wasm_bindgen(js_name = canvas)]
     pub fn get_gl_canvas(&mut self) -> Result<Option<js_sys::Object>, JsValue> {
         let canvas = self.app.get_gl_canvas();
         Ok(canvas)
     }
 
+    /// Read the pixel value
+    ///
+    /// The current implementation only returns the pixel value
+    /// of the first survey of the `layer` specified.
+    ///
+    /// # Returns
+    ///
+    /// - An array of 3 items (rgb) for JPG tiles
+    /// - An array of 4 items (rgba) for PNG tiles
+    /// - A single value for FITS tiles
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The x screen coordinate in pixels
+    /// * `y` - The y screen coordinate in pixels
+    /// * `layer` - The name of the layer to read the pixel from.
     #[wasm_bindgen(js_name = readPixel)]
     pub fn read_pixel(&self, x: f64, y: f64, layer: &str) -> Result<JsValue, JsValue> {
         let pixel = self.projection.read_pixel(&self.app, x, y, layer)?;
         Ok(pixel.into())
-    }
-}
-
-mod tests {
-    #[test]
-    fn lambert_wm1() {
-        let d = 0.1;
-        let x = -d / std::f32::consts::E;
-
-        let w = super::math::lambert_wm1(x);
-
-        println!("{}", w);
     }
 }

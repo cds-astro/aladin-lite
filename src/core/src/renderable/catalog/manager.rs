@@ -244,7 +244,7 @@ impl Manager {
         gl: &WebGl2Context,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
-        colormaps: &Colormaps
+        colormaps: &Colormaps,
     ) -> Result<(), JsValue> {
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, camera, colormaps)?;
@@ -523,7 +523,8 @@ impl Catalog {
                     ),
                 )?;
                 //self.colormap.get_shader(gl, shaders);
-                shader.bind(gl)
+                shader
+                    .bind(gl)
                     .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
                     .attach_uniform("alpha", &self.alpha) // Alpha channel
                     .attach_uniforms_from(&self.colormap)

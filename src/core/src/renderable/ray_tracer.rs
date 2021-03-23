@@ -32,10 +32,7 @@ fn create_vertices_array<P: Projection>(
             // Cast all the double into float
             // simple precision because this buffer
             // is sent to the GPU
-            vec![
-                pos_clip_space.x as f32,
-                pos_clip_space.y as f32,
-            ]
+            vec![pos_clip_space.x as f32, pos_clip_space.y as f32]
         })
         .flatten()
         .collect::<Vec<_>>();

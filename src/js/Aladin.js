@@ -303,23 +303,7 @@ export let Aladin = (function () {
                 this.createCatalogFromVOTable(options.catalogUrls[k]);
             }
         }
-        
-        /*let webglAPI = await import('../render/pkg/');
-        console.log('webgl imported');
-        let shaders = await loadShaders(webglAPI);
-        console.log(shaders);
-    
-        // Start our Rust application. You can find `WebClient` in `src/lib.rs`
-        let resources = {
-            'kernel': kernel,
-        };
-        Aladin.wasmLibs.webglAPI = new webglAPI.WebClient(shaders, resources);
-        let webgl = Aladin.wasmLibs.webglAPI;
-        webgl.resize(500, 400);*/
 
-        /*let imageSurveyInfo = HpxImageSurvey.getSurveyInfoFromId(options.survey);
-        console.log('image survey, ', imageSurveyInfo)
-        webgl.setImageSurvey(imageSurveyInfo);*/
         // Add the image layers
         // For that we check the survey key of options
         // It can be given as a single string or an array of strings

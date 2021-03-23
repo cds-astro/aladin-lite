@@ -1929,8 +1929,6 @@ export let View = (function() {
         }
 
         this.imageSurveysToSet = surveys;
-
-        //this.aladin.webglAPI.setImageSurveys(surveys);
     };
 
     View.prototype.requestRedraw = function() {

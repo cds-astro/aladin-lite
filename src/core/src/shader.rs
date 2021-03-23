@@ -347,13 +347,13 @@ impl From<Error> for JsValue {
         match e {
             Error::ShaderAlreadyInserted { message } => {
                 JsValue::from_str(&format!("Shader already inserted: {:?}", message))
-            },
+            }
             Error::ShaderNotFound { message } => {
                 JsValue::from_str(&format!("Shader not found: {:?}", message))
-            },
+            }
             Error::FileNotFound { message } => {
                 JsValue::from_str(&format!("Shader not found: {:?}", message))
-            },
+            }
         }
     }
 }

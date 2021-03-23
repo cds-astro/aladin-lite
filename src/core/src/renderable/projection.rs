@@ -971,7 +971,6 @@ impl Projection for Mercator {
 
 mod tests {
 
-
     #[test]
     fn generate_maps() {
         use super::*;
@@ -997,7 +996,7 @@ mod tests {
                     } else {
                         Rgb([255, 255, 255])
                     };
-    
+
                     img.put_pixel(x as u32, y as u32, rgb);
                 }
             }

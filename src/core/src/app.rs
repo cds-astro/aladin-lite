@@ -176,8 +176,7 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
-        let surveys =
-            ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &system);
+        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &system);
 
         //let color = sdss.color();
         //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
@@ -238,7 +237,7 @@ impl App {
             catalog_loaded,
             system,
 
-            colormaps
+            colormaps,
         };
 
         Ok(app)
@@ -526,11 +525,13 @@ impl App {
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
-            self.surveys.draw::<P>(&self.camera, &mut self.shaders, &self.colormaps);
+            self.surveys
+                .draw::<P>(&self.camera, &mut self.shaders, &self.colormaps);
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
             // Draw the catalog
-            self.manager.draw::<P>(&self.gl, &mut self.shaders, &self.camera, &self.colormaps)?;
+            self.manager
+                .draw::<P>(&self.gl, &mut self.shaders, &self.camera, &self.colormaps)?;
 
             self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
             self.gl.disable(WebGl2RenderingContext::BLEND);
@@ -543,9 +544,13 @@ impl App {
     }
 
     pub fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        let new_survey_ids =
-            self.surveys
-                .set_image_surveys(hipses, &self.gl, &self.camera, self.exec.clone(), &self.colormaps)?;
+        let new_survey_ids = self.surveys.set_image_surveys(
+            hipses,
+            &self.gl,
+            &self.camera,
+            self.exec.clone(),
+            &self.colormaps,
+        )?;
         self.downloader.clear_requests();
 
         if !new_survey_ids.is_empty() {

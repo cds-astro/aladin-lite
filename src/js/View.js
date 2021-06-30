@@ -80,7 +80,12 @@ export let View = (function() {
                 'kernel': kernel,
                 'colormaps': colormaps,
             };
-            this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
+
+            try {
+                this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
+            } catch(e) {
+                alert("It may be possible that WebGL2 is not supported by default on your browser (Safari concerned).\nPlease enable it by checking:\nDeveloper Menu > Experimental Features > WebGL2 and reload the page.")
+            }
 
             this.location = location;
             this.fovDiv = fovDiv;

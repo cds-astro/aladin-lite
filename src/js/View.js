@@ -73,14 +73,23 @@ export let View = (function() {
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too
             let shaders = loadShaders();
-            //console.log(shaders);
         
-            // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             let resources = {
                 'kernel': kernel,
                 'colormaps': colormaps,
             };
-            this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
+
+            try {
+                // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+                this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
+            } catch(e) {
+                // For browsers not supporting WebGL2:
+                // 1. Print the original exception message in the console
+                console.log(e)
+                // 2. Add a more explicite message to the end user
+                alert("WebGL2 is not supported by default in your browser. If you're using Safari, you can enable it by checking:\nDeveloper Menu > Experimental Features > WebGL2. You will have to reload the page afterwards.")
+                // TODO: 3. propose a another possibility to the user: a button to run aladin lite v2 instead
+            }
 
             this.location = location;
             this.fovDiv = fovDiv;

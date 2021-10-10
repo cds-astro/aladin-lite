@@ -559,6 +559,15 @@ impl ImageSurveyTextures {
         ]
     }
 
+    // Get the textures in the buffer
+    // The resulting array is uniq sorted
+    fn get_textures(&self) -> Vec<&Texture> {
+        assert!(self.is_ready());
+        let mut textures = self.textures.values().collect::<Vec<_>>();
+        textures.sort_unstable();
+        textures
+    }
+
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()
     }
@@ -571,7 +580,8 @@ impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         if self.is_ready() {
             // Send the textures
-            let textures = self.get_allsky_textures();
+            //let textures = self.get_allsky_textures();
+            let textures = self.get_textures();
             let mut num_textures = 0;
             for texture in textures.iter() {
                 if texture.is_available() {
@@ -581,7 +591,11 @@ impl SendUniforms for ImageSurveyTextures {
                     num_textures += 1;
                 }
             }
+            let num_tiles = textures.len() as i32;
+
+            unsafe { crate::log(&format!("{}", num_tiles)); }
             shader
+                .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)
                 .attach_uniforms_from(&*self.texture_2d_array);
         }

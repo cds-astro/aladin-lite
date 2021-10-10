@@ -31,7 +31,7 @@ module.exports = {
         new VueLoaderPlugin()
     ],
     devServer:{
-        contentBase: 'dist'
+        static: 'dist'
     },
     module: {
         rules: [

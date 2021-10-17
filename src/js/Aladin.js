@@ -215,7 +215,6 @@ export let Aladin = (function () {
 
         }
 
-
         // goto control panel
         if (options.showGotoControl) {
             var d = $('<div class="aladin-gotoControl-container" title="Go to position"><div class="aladin-gotoControl"></div></div>');

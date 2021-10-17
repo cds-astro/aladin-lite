@@ -18,6 +18,9 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate task_async_executor;
+extern crate egui;
+extern crate epi;
+extern crate egui_web;
 
 use std::panic;
 
@@ -49,6 +52,7 @@ mod sphere_geometry;
 mod time;
 mod transfert_function;
 mod webgl_ctx;
+mod ui;
 
 use crate::{
     camera::CameraViewPort,
@@ -65,7 +69,7 @@ use crate::{
 pub use coo_conversion::CooSystem;
 
 use app::App;
-use cgmath::{Vector2, Vector4};
+use cgmath::{Vector2, Vector4, VectorSpace};
 use projection_type::ProjectionType;
 
 #[wasm_bindgen]
@@ -113,6 +117,11 @@ impl WebClient {
 
         let dt = DeltaTime::zero();
         let projection = ProjectionType::Ortho;
+
+        //let a = TemplateApp::default();
+        //eframe::start_web("aladin-guiCanvas", Box::new(a)).unwrap();
+        //let mut backend = egui_web::WebBackend::new("aladin-guiCanvas").expect("Failed to make a web backend for egui");
+        //let mut web_input: WebInput = Default::default();
 
         let webclient = WebClient {
             app,

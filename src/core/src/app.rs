@@ -40,8 +40,11 @@ struct S {
     dec: f64,
 }
 
+use crate::ui::Gui;
 pub struct App {
     pub gl: WebGl2Context,
+
+    ui: Gui,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -205,8 +208,11 @@ impl App {
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
+
+        let ui = Gui::new(&gl)?;
         let app = App {
             gl,
+            ui,
 
             shaders,
 
@@ -539,6 +545,11 @@ impl App {
             // Reset the flags about the user action
             self.camera.reset();
         }
+
+        if true {
+            self.ui.render()?;
+        }
+
 
         Ok(())
     }

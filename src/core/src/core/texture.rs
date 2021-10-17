@@ -8,28 +8,13 @@ use web_sys::WebGl2RenderingContext;
 use crate::WebGl2Context;
 
 #[derive(Clone)]
-enum TextureType {
-    // The image containing the width and height
-    // of the texture
-    ImageElement(HtmlImageElement),
-    // Width and Height
-    Bytes(u32, u32),
-}
+struct Texture2DMeta {
+    pub format: u32,
+    pub internal_format: i32,
+    pub type_: u32,
 
-impl TextureType {
-    fn get_width(&self) -> u32 {
-        match self {
-            TextureType::ImageElement(image) => image.width() as u32,
-            TextureType::Bytes(width, _) => *width,
-        }
-    }
-
-    fn get_height(&self) -> u32 {
-        match self {
-            TextureType::ImageElement(image) => image.height() as u32,
-            TextureType::Bytes(_, height) => *height,
-        }
-    }
+    pub width: u32,
+    pub height: u32,
 }
 
 use web_sys::WebGlTexture;
@@ -39,11 +24,7 @@ pub struct Texture2D {
 
     gl: WebGl2Context,
 
-    data: TextureType,
-
-    pub format: u32,
-    pub internal_format: i32,
-    pub type_: u32,
+    metadata: Option<Texture2DMeta>,
 }
 
 static mut AVAILABLE_TEX_UNITS: [Option<u32>; 16] = [
@@ -103,7 +84,7 @@ impl Texture2D {
         let texture = gl.create_texture();
         let onerror = {
             Closure::wrap(Box::new(move || {
-                crate::log(&format!("Cannot load texture located at: {:?}", name));
+                unsafe { crate::log(&format!("Cannot load texture located at: {:?}", name)); }
             }) as Box<dyn Fn()>)
         };
         let internal_format = format.get_internal_format();
@@ -144,7 +125,13 @@ impl Texture2D {
         onload.forget();
         onerror.forget();
 
-        let data = TextureType::ImageElement(image);
+        let metadata = Some(Texture2DMeta {
+            width: image.width(),
+            height: image.height(),
+            internal_format,
+            format,
+            type_,
+        });
         let gl = gl.clone();
         Ok(Texture2D {
             texture,
@@ -152,10 +139,7 @@ impl Texture2D {
 
             gl,
 
-            data,
-            format,
-            internal_format,
-            type_,
+            metadata,
         })
     }
 
@@ -193,7 +177,13 @@ impl Texture2D {
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
 
         let gl = gl.clone();
-        let data = TextureType::Bytes(width as u32, height as u32);
+        let metadata = Some(Texture2DMeta {
+            width: width as u32,
+            height: height as u32,
+            internal_format,
+            format,
+            type_,
+        });
 
         Ok(Texture2D {
             texture,
@@ -201,10 +191,33 @@ impl Texture2D {
 
             gl,
 
-            data,
-            internal_format,
-            format,
-            type_,
+            metadata
+        })
+    }
+
+    pub fn create_empty_unsized(
+        gl: &WebGl2Context,
+        tex_params: &'static [(u32, u32)],
+    ) -> Result<Texture2D, JsValue> {
+        let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
+        let texture = gl.create_texture();
+
+        gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+
+        for (pname, param) in tex_params.iter() {
+            gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+        }
+
+        let gl = gl.clone();
+        
+        let metadata = None;
+        Ok(Texture2D {
+            texture,
+            idx_texture_unit,
+
+            gl,
+
+            metadata
         })
     }
 
@@ -241,18 +254,20 @@ impl Texture2D {
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
 
         let gl = gl.clone();
-        let data = TextureType::Bytes(width as u32, height as u32);
-
+        let metadata = Some(Texture2DMeta {
+            width: width as u32,
+            height: height as u32,
+            internal_format,
+            format,
+            type_,
+        });
         Ok(Texture2D {
             texture,
             idx_texture_unit,
 
             gl,
 
-            data,
-            format,
-            internal_format,
-            type_,
+            metadata
         })
     }
 
@@ -267,7 +282,15 @@ impl Texture2D {
     }
 
     pub fn get_size(&self) -> (u32, u32) {
-        (self.data.get_width(), self.data.get_height())
+        (self.metadata.as_ref().unwrap().width, self.metadata.as_ref().unwrap().height)
+    }
+
+    pub fn width(&self) -> u32 {
+        self.metadata.as_ref().unwrap().width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.metadata.as_ref().unwrap().height
     }
 
     pub fn active_texture(&self) -> &Self {
@@ -282,6 +305,13 @@ impl Texture2D {
         Texture2DBound { texture_2d: self }
     }
 
+    pub fn bind_mut(&mut self) -> Texture2DBoundMut {
+        self.gl
+            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
+
+        Texture2DBoundMut { texture_2d: self }
+    }
+
     pub fn read_pixel(&self, x: i32, y: i32) -> Result<Pixel, JsValue> {
         // Create and bind the framebuffer
         let reader = self.gl.create_framebuffer();
@@ -292,14 +322,15 @@ impl Texture2D {
         self.attach_to_framebuffer();
 
         // set the viewport as the FBO won't be the same dimension as the screen
+        let Texture2DMeta {width, height, format, type_, ..} = self.metadata.as_ref().unwrap();
         self.gl.viewport(
             x,
             y,
-            self.data.get_width() as i32,
-            self.data.get_height() as i32,
+            *width as i32,
+            *height as i32,
         );
 
-        let value = match (self.format, self.type_) {
+        let value = match (*format, *type_) {
             (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE) => {
                 let val = u8::read_pixel(&self.gl, x, y)?;
                 Ok(Pixel::RU8(val))
@@ -347,14 +378,6 @@ impl Texture2D {
 
         value
     }
-
-    /*pub fn get_idx_sampler(&self) -> i32 {
-        let idx_sampler: i32 = (self.idx_texture_unit - WebGl2RenderingContext::TEXTURE0)
-            .try_into()
-            .unwrap();
-
-        idx_sampler
-    }*/
 }
 
 pub enum Pixel {
@@ -512,8 +535,7 @@ impl<'a> Texture2DBound<'a> {
         dy: i32,
         image: &HtmlImageElement,
     ) {
-        let _type = self.texture_2d.type_;
-        let format = self.texture_2d.format;
+        let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.as_ref().unwrap();
 
         self.texture_2d
             .gl
@@ -522,8 +544,8 @@ impl<'a> Texture2DBound<'a> {
                 0,
                 dx,
                 dy,
-                format,
-                _type,
+                *format,
+                *type_,
                 &image,
             )
             .expect("Sub texture 2d");
@@ -537,8 +559,8 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         image: Option<&js_sys::Object>,
     ) {
-        let _type = self.texture_2d.type_;
-        let format = self.texture_2d.format;
+        let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.as_ref().unwrap();
+
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
@@ -548,13 +570,13 @@ impl<'a> Texture2DBound<'a> {
                 dy,
                 width,
                 height,
-                format,
-                _type,
+                *format,
+                *type_,
                 image,
             )
             .expect("Sub texture 2d");
     }
-
+    
     #[allow(dead_code)]
     pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
         &self,
@@ -564,8 +586,8 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         pixels: Option<&[u8]>,
     ) {
-        let _type = self.texture_2d.type_;
-        let format = self.texture_2d.format;
+        let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.as_ref().unwrap();
+
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
@@ -575,10 +597,59 @@ impl<'a> Texture2DBound<'a> {
                 dy,
                 width,
                 height,
-                format,
-                _type,
+                *format,
+                *type_,
                 pixels,
             )
             .expect("Sub texture 2d");
     }
 }
+
+pub struct Texture2DBoundMut<'a> {
+    texture_2d: &'a mut Texture2D,
+}
+
+impl<'a> Texture2DBoundMut<'a> {
+    #[allow(dead_code)]
+    pub fn tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+        &mut self,
+        width: i32,  // Width of the image
+        height: i32, // Height of the image
+        internal_format: i32,
+        src_format: u32,
+        src_type: u32,
+        pixels: Option<&[u8]>,
+    ) {
+        //let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.unwrap();
+        /*self.texture_2d
+            .gl
+            .pixel_storei(WebGl2RenderingContext::UNPACK_ALIGNMENT, 1);*/
+        self.texture_2d
+            .gl
+            .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                WebGl2RenderingContext::TEXTURE_2D,
+                0,
+                internal_format as i32,
+                width as i32,
+                height as i32,
+                0,
+                src_format,
+                src_type,
+                pixels,
+            )
+            .expect("Sub texture 2d");
+        //self.texture_2d.gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
+
+        let metadata = self.texture_2d.metadata.as_mut()
+            .unwrap();
+        *metadata = Texture2DMeta {
+            format: src_format,
+            internal_format,
+            type_: src_type,
+            width: width as u32,
+            height: height as u32,
+        };  
+    }
+}
+
+

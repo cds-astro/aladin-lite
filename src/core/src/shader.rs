@@ -24,17 +24,18 @@ fn compile_shader(
     }
 }
 
-fn link_program(
+
+fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
     gl: &WebGl2Context,
-    vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader,
+    shaders: T,
 ) -> Result<WebGlProgram, String> {
     let program = gl
         .create_program()
         .ok_or_else(|| String::from("Unable to create shader object"))?;
 
-    gl.attach_shader(&program, vert_shader);
-    gl.attach_shader(&program, frag_shader);
+    for shader in shaders {
+        gl.attach_shader(&program, shader)
+    }
     gl.link_program(&program);
 
     if gl
@@ -82,7 +83,7 @@ impl Shader {
         let vert_shader = compile_shader(gl, WebGl2RenderingContext::VERTEX_SHADER, &vert_src)?;
         let frag_shader = compile_shader(gl, WebGl2RenderingContext::FRAGMENT_SHADER, &frag_src)?;
 
-        let program = link_program(gl, &vert_shader, &frag_shader)?;
+        let program = link_program(gl, &[vert_shader, frag_shader])?;
         // Get the active uniforms
         let uniform_locations = get_active_uniform_locations(gl, &program);
 

@@ -24,6 +24,9 @@ fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', bran
 rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 num-traits = "0.2.14"
 img_pixel = { package = "image", version = "0.23.14"}
+egui = "*"
+epi = "*"
+egui_web = "*"
 
 [dependencies.wasm-bindgen]
 version = "0.2.70"

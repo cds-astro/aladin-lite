@@ -3,7 +3,6 @@ precision highp float;
 precision mediump int;
 
 layout (location = 0) in vec2 lonlat;
-//layout (location = 1) in vec3 position;
 layout (location = 1) in vec2 ndc_pos;
 layout (location = 2) in vec3 uv_start;
 layout (location = 3) in vec3 uv_end;

@@ -51,9 +51,10 @@ int binary_search_tile(int uniq) {
 
 vec4 get_tile_color(vec3 pos) {
     int d = current_depth;
+
     while (d >= 0) {
         HashDxDy result = hash_with_dxdy(d, pos.zxy);
-
+        
         int idx = result.idx;
         vec2 uv = vec2(result.dy, result.dx);
 

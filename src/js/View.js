@@ -68,6 +68,7 @@ export let View = (function() {
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
+            this.guiCanvas = $('<canvas id="aladin-guiCanvas"></canvas>').appendTo(this.aladinDiv)[0];
 
             this.createCanvases();
             // Init the WebGL context
@@ -250,15 +251,20 @@ export let View = (function() {
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
+
+
         //a.find('.aladin-webglCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         a.find('.aladin-gridCanvas').remove();
+        //a.find('.aladin-guiCanvas').remove();
 
         // canvas to draw the images
         //this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the overlays
+                // canvas to draw the gui
+                //this.guiCanvas = $("<canvas id='aladin-guiCanvas' style={width: 200px}≈></canvas>").appendTo(this.aladinDiv)[0];
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the grid
         this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
@@ -266,7 +272,6 @@ export let View = (function() {
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the reticle
         this.reticleCanvas = $("<canvas class='aladin-reticleCanvas'></canvas>").appendTo(this.aladinDiv)[0];
-
     };
     
     // called at startup and when window is resized

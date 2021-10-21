@@ -141,6 +141,7 @@ pub enum TileResolved {
 use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
+use crate::log::*;
 use crate::ImageSurveys;
 use wasm_bindgen::JsValue;
 impl TileDownloader {
@@ -228,7 +229,7 @@ impl TileDownloader {
                                     TileResolved::Found { image, time_req }
                                 } else {
                                     let err = image.err().unwrap();
-                                    crate::log(&format!("{:?}", err));
+                                    log!(err);
                                     TileResolved::Missing { time_req }
                                 }
                             }

@@ -1,7 +1,7 @@
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlBuffer;
 
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 use crate::core::BufferDataStorage;
 

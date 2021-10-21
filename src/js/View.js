@@ -536,7 +536,7 @@ export let View = (function() {
             else if (view.mode==View.SELECT) {
                 view.selectStartCoo = {x: view.dragx, y: view.dragy};
             }
-            view.aladin.webglAPI.pressLeftMouseButton();
+            view.aladin.webglAPI.pressLeftMouseButton(view.dragx, view.dragy);
             return false; // to disable text selection
         });
 

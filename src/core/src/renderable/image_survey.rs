@@ -225,7 +225,7 @@ impl RecomputeRasterizer for UnZoom {
 }
 
 use crate::camera::CameraViewPort;
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 use crate::renderable::projection::Projection;
 
@@ -254,7 +254,7 @@ pub struct GrayscaleParameter {
     max_value: f32,
 }
 
-use crate::shader::{Shader, ShaderBound};
+use crate::core::{Shader, ShaderBound};
 impl SendUniforms for GrayscaleParameter {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
@@ -353,7 +353,7 @@ impl Color {
     }
 }
 
-use crate::shader::SendUniforms;
+use crate::core::SendUniforms;
 impl SendUniforms for Color {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
@@ -1123,7 +1123,8 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        //let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        let raytracing = true;
 
         if raytracing {
             self.raytracer.bind();

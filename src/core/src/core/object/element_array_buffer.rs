@@ -3,7 +3,7 @@ use web_sys::WebGlBuffer;
 
 use crate::core::VertexBufferObject;
 
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 #[derive(Clone)]
 pub struct ElementArrayBuffer {

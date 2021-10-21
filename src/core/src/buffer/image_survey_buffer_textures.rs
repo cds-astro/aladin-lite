@@ -572,10 +572,9 @@ impl ImageSurveyTextures {
         self.texture_2d_array.clone()
     }
 }
-
+use crate::log::*;
 use crate::buffer::TextureUniforms;
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         if self.is_ready() {
@@ -593,7 +592,7 @@ impl SendUniforms for ImageSurveyTextures {
             }
             let num_tiles = textures.len() as i32;
 
-            unsafe { crate::log(&format!("{}", num_tiles)); }
+            log!(num_tiles);
             shader
                 .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)

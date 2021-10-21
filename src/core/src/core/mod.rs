@@ -1,18 +1,22 @@
-mod buffers;
+mod object;
 mod texture;
-mod texture_array;
+mod shader;
+mod webgl_ctx;
 
 pub use texture::{IdxTextureUnit, Pixel, Texture2D, Texture2DBound};
-pub use texture_array::Texture2DArray;
+pub use texture::Texture2DArray;
 
-pub use buffers::array_buffer::ArrayBuffer;
-pub use buffers::array_buffer_instanced::ArrayBufferInstanced;
-pub use buffers::buffer_data::{BufferDataStorage, SliceData, VecData};
-pub use buffers::element_array_buffer::ElementArrayBuffer;
-pub use buffers::vertex_array_object::{
+pub use shader::{Shader, ShaderBound, SendUniforms};
+pub use webgl_ctx::WebGl2Context;
+
+pub use object::array_buffer::ArrayBuffer;
+pub use object::array_buffer_instanced::ArrayBufferInstanced;
+pub use object::buffer_data::{BufferDataStorage, SliceData, VecData};
+pub use object::element_array_buffer::ElementArrayBuffer;
+pub use object::vertex_array_object::{
     ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
     VertexArrayObjectBound,
 };
 
-use buffers::array_buffer::VertexAttribPointerType;
-use buffers::array_buffer::VertexBufferObject;
+use object::array_buffer::VertexAttribPointerType;
+use object::array_buffer::VertexBufferObject;

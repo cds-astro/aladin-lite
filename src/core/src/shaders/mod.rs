@@ -102,7 +102,7 @@ impl Colormaps {
         .cloned()
         .collect();
         let colormap_filename = rs.get_filename("colormaps").unwrap();
-        let tex = Texture2D::create(
+        let tex = Texture2D::create_from_path(
             gl,
             "colormap",
             &colormap_filename,
@@ -170,7 +170,7 @@ use crate::core::Texture2D;
 use crate::image_fmt::FormatImageType;
 use crate::resources::Resources;
 use crate::shader::ShaderId;
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 use std::borrow::Cow;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
@@ -191,8 +191,7 @@ impl Colormap {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 
 impl SendUniforms for Colormaps {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

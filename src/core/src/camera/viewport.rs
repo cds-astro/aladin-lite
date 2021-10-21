@@ -60,7 +60,7 @@ pub struct CameraViewPort {
     system: CooSystem,
 }
 use crate::coo_conversion::CooSystem;
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 use crate::{
     renderable::{projection::Projection, Angle},
@@ -435,8 +435,7 @@ impl CameraViewPort {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader

@@ -1,50 +1,140 @@
 mod painter;
 use painter::WebGl2Painter;
 
+mod input;
+
 use egui;
 use wasm_bindgen::{prelude::*, JsCast};
 use egui_web::Painter;
-//use self::WebGl2Painter;
+
+// ----------------------------------------------------------------------------
+
+use std::sync::atomic::Ordering::SeqCst;
+
+pub struct NeedRepaint(std::sync::atomic::AtomicBool);
+
+impl Default for NeedRepaint {
+    fn default() -> Self {
+        Self(true.into())
+    }
+}
+
+impl NeedRepaint {
+    pub fn fetch_and_clear(&self) -> bool {
+        self.0.swap(false, SeqCst)
+    }
+
+    pub fn set_true(&self) {
+        self.0.store(true, SeqCst);
+    }
+}
+
+impl epi::RepaintSignal for NeedRepaint {
+    fn request_repaint(&self) {
+        self.0.store(true, SeqCst);
+    }
+}
+
+
 pub struct Gui {
     //backend: egui_web::WebBackend,
     //web_input: egui_web::backend::WebInput,
-
+    pub input: egui_web::WebInput,
+    pub painter: WebGl2Painter,
     ctx: egui::CtxRef,
-    painter: WebGl2Painter,
+
     gallery: WidgetGallery,
+
+    events: Vec<egui::Event>,
+
+    pub needs_repaint: std::sync::Arc<NeedRepaint>,
+    pub last_text_cursor_pos: Option<egui::Pos2>,
 }
 
-use crate::webgl_ctx::WebGl2Context;
+pub use crate::ui::input::GuiRef;
+use crate::ui::input::*;
+use crate::log::log;
+use crate::core::WebGl2Context;
 impl Gui {
-    pub fn new(gl: &WebGl2Context) -> Result<Self, JsValue> {
+    pub fn new(gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
         /*let mut backend = egui_web::WebBackend::new("mycanvas")
             .expect("Failed to make a web backend for egui");
-        let mut web_input: egui_web::backend::WebInput = Default::default();*/
+        */
         let ctx = egui::CtxRef::default();
         let painter = WebGl2Painter::new(gl.clone())?;
+        let mut input: egui_web::backend::WebInput = Default::default();
 
         let gallery = WidgetGallery::default();
-        Ok(Self {
+
+        let events = vec![];
+
+        let gui = Self {
             ctx,
             painter,
 
+            input,
+
             gallery,
-        })
+
+            events,
+
+            needs_repaint: Default::default(),
+            last_text_cursor_pos: None,
+        };
+
+        let gui_ref = GuiRef(std::sync::Arc::new(egui::mutex::Mutex::new(gui)));
+
+        install_canvas_events(&gui_ref)?;
+        install_document_events(&gui_ref)?;
+        install_text_agent(&gui_ref)?;
+
+        Ok(gui_ref)
+    }
+
+    pub fn add_event(&mut self, event: egui::Event) {
+        self.events.push(event);
+    }
+
+    /*pub fn canvas_id(&self) -> &str  {
+        self.painter.canvas_id()
+    }*/
+
+    pub fn egui_ctx(&self) -> &egui::CtxRef {
+        &self.ctx
+    }
+
+    pub fn is_pointer_over_ui(&self) -> bool {
+        self.ctx.wants_pointer_input()
     }
 
     pub fn render(&mut self) -> Result<(), JsValue> {
-        let raw_input = egui::RawInput::default();
+        //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
+        let canvas_size = egui::vec2(self.painter.canvas.width() as f32, self.painter.canvas.height() as f32);
+        let raw_input = self.input.new_frame(canvas_size);
+
+        //self.web_backend.begin_frame(raw_input);
+
+        //raw_input.events = self.events.clone();
+        //self.events.clear();
+
         self.ctx.begin_frame(raw_input);
     
         let mut open = true;
         self.gallery.show(&self.ctx, &mut open);
 
+        self.painter.upload_egui_texture(&self.ctx.texture());
+
         let (output, shapes) = self.ctx.end_frame();
         let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
-        //handle_output(output);
+        handle_output(&output, self);
         self.painter.paint_meshes(clipped_meshes, 1.0)?;
 
         Ok(())
+    }
+
+    pub fn redraw_needed(&mut self) -> bool {
+        let redraw = self.needs_repaint.fetch_and_clear();
+        redraw
     }
 }
 
@@ -100,7 +190,7 @@ impl WidgetGallery {
                 egui::Window::new("egui_demo_panel")
                     .min_width(150.0)
                     .default_width(190.0)
-                    .anchor(egui::Align2::LEFT_BOTTOM, [0.0, 0.0])
+                    .default_pos(egui::Pos2 { x: 0.0, y: 100.0 })
                     .collapsible(true)
                     .show(ctx, |ui| {
                         //use super::View as _;

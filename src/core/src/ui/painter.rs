@@ -20,23 +20,25 @@ use {
     },
 };
 use web_sys::console;
-
-use crate::{core::{VecData, VertexArrayObject}, shader::{Shader, ShaderId, ShaderManager}};
+use crate::log::*;
+use crate::{core::{VecData, VertexArrayObject, Shader}, shader::{ShaderId, ShaderManager}};
 type Gl = WebGl2RenderingContext;
-macro_rules! loog {
-    ($l:expr) => { crate::log(&format("{:?}", $l)); }
-}
+
 pub struct WebGl2Painter {
-    canvas_id: String,
-    canvas: web_sys::HtmlCanvasElement,
+    pub canvas_id: String,
+    pub canvas: web_sys::HtmlCanvasElement,
     gl: WebGl2Context,
     shader: Shader,
     /*index_buffer: WebGlBuffer,
     pos_buffer: WebGlBuffer,
     tc_buffer: WebGlBuffer,
     color_buffer: WebGlBuffer,*/
-    vao: VertexArrayObject,
-    post_process: PostProcess,
+    //vao: VertexArrayObject,
+    //post_process: PostProcess,
+
+    vao: WebGlVertexArrayObject,
+    vbo: WebGlBuffer,
+    ebo: WebGlBuffer,
 
     egui_texture: Texture2D,
     egui_texture_version: Option<u64>,
@@ -56,13 +58,24 @@ struct UserTexture {
     gl_texture: Option<Texture2D>,
 }
 
-use crate::webgl_ctx::WebGl2Context;
+use crate::core::WebGl2Context;
 use crate::core::Texture2D;
 impl WebGl2Painter {
     pub fn new(gl: WebGl2Context) -> Result<WebGl2Painter, JsValue> {
-        let canvas = gl.canvas()
+        /*let canvas = gl.canvas()
             .unwrap()
-            .dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+            .dyn_into::<web_sys::HtmlCanvasElement>().unwrap();*/
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        let canvas = document
+            // Get the aladin div element
+            .get_element_by_id("aladin-lite-div")
+            .unwrap()
+            // Inside it, retrieve the canvas
+            .get_elements_by_class_name("aladin-imageCanvas")
+            .get_with_index(0)
+            .unwrap();
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
         let canvas_id = canvas.id();
         let egui_texture = Texture2D::create_empty_unsized(
@@ -93,14 +106,14 @@ impl WebGl2Painter {
         gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_WRAP_S, Gl::CLAMP_TO_EDGE as i32);
         gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_WRAP_T, Gl::CLAMP_TO_EDGE as i32);
         gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_MIN_FILTER, Gl::LINEAR as i32);
-        gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_MAG_FILTER, Gl::LINEAR as i32);*/        
+        gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_MAG_FILTER, Gl::LINEAR as i32);*/
         let shader = Shader::new(
             &gl,
             include_str!("shaders/main_vertex_100es.glsl"),
             include_str!("shaders/main_fragment_100es.glsl"),
         )?;
 
-        let mut vao = VertexArrayObject::new(&gl);
+        /*let mut vao = VertexArrayObject::new(&gl);
         shader
             .bind(&gl)
                 .bind_vertex_array_object(&mut vao)
@@ -125,8 +138,8 @@ impl WebGl2Painter {
         let tc_buffer = gl.create_buffer().ok_or("failed to create tc_buffer")?;
         let color_buffer = gl.create_buffer().ok_or("failed to create color_buffer")?;*/
 
-        let post_process =
-            PostProcess::new(gl.clone(), canvas.width() as i32, canvas.height() as i32)?;
+        //let post_process =
+        //    PostProcess::new(gl.clone(), canvas.width() as i32, canvas.height() as i32)?;
 
         Ok(WebGl2Painter {
             canvas_id: canvas_id.to_owned(),
@@ -138,7 +151,94 @@ impl WebGl2Painter {
             tc_buffer,
             color_buffer,*/
             vao,
-            post_process,
+            //post_process,
+            egui_texture,
+            egui_texture_version: None,
+            user_textures: Default::default(),
+        })*/
+        let shader = Shader::new(
+            &gl,
+            include_str!("shaders/main_vertex_100es.glsl"),
+            include_str!("shaders/main_fragment_100es.glsl"),
+        )?;
+        let vao = gl.create_vertex_array().unwrap();
+        gl.bind_vertex_array(Some(&vao));
+
+        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+
+        let data = vec![
+            -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+            1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
+            -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+        ];
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            unsafe { &js_sys::Float32Array::view(&data) },
+            WebGl2RenderingContext::STREAM_DRAW,
+        );
+
+        let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
+        // layout (location = 0) in vec2 pos;
+        gl.vertex_attrib_pointer_with_i32(
+            0,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (0 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(0);
+
+        // layout (location = 1) in vec2 tx;
+        gl.vertex_attrib_pointer_with_i32(
+            1,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (2 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(1);
+
+        // layout (location = 2) in vec4 color;
+        gl.vertex_attrib_pointer_with_i32(
+            2,
+            4,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (4 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(2);
+
+        let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        // Bind the buffer
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        let data = vec![0_u16, 1, 2];
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            unsafe { &js_sys::Uint16Array::view(&data) },
+            WebGl2RenderingContext::STREAM_DRAW,
+        );
+        gl.bind_vertex_array(None);
+
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+
+        Ok(WebGl2Painter {
+            canvas_id: canvas_id.to_owned(),
+            canvas,
+            gl,
+            shader,
+            /*index_buffer,
+            pos_buffer,
+            tc_buffer,
+            color_buffer,*/
+            vao,
+            vbo,
+            ebo,
+            //post_process,
             egui_texture,
             egui_texture_version: None,
             user_textures: Default::default(),
@@ -212,11 +312,10 @@ impl WebGl2Painter {
     fn upload_user_textures(&mut self) {
         let gl = &self.gl;
         for user_texture in self.user_textures.iter_mut().flatten() {
-            crate::log("sdsdfs");
             if user_texture.gl_texture.is_none() {
                 let pixels = std::mem::take(&mut user_texture.pixels);
 
-                let gl_texture = Texture2D::create_empty(
+                let gl_texture = Texture2D::create_from_raw_pixels(
                     &gl,
                     user_texture.size.0 as i32,
                     user_texture.size.1 as i32,
@@ -240,15 +339,10 @@ impl WebGl2Painter {
                             WebGl2RenderingContext::CLAMP_TO_EDGE,
                         ),
                     ],
-                    crate::image_fmt::FormatImageType::PNG
+                    crate::image_fmt::FormatImageType::PNG,
+                    Some(&pixels)
                 ).unwrap();
 
-                crate::log(
-                    &format!("width: {:?}", user_texture.size.0),
-                );
-                crate::log(
-                    &format!("height: {:?}", user_texture.size.1),
-                );
                 /*let gl_texture = gl.create_texture().unwrap();
                 gl.bind_texture(Gl::TEXTURE_2D, Some(&gl_texture));
                 gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_WRAP_S, Gl::CLAMP_TO_EDGE as i32);
@@ -276,15 +370,13 @@ impl WebGl2Painter {
                     Some(&pixels),
                 )
                 .unwrap();*/
-                gl_texture.bind()
-                    .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(0, 0, user_texture.size.0 as i32, user_texture.size.1 as i32, Some(&pixels));
 
                 user_texture.gl_texture = Some(gl_texture);
             }
         }
     }
 
-    /*#[deprecated = "Use: `NativeTexture::register_native_texture` instead"]
+    #[deprecated = "Use: `NativeTexture::register_native_texture` instead"]
     pub fn register_webgl_texture(&mut self, texture: WebGlTexture) -> egui::TextureId {
         let id = self.alloc_user_texture_index();
         if let Some(Some(user_texture)) = self.user_textures.get_mut(id) {
@@ -295,10 +387,10 @@ impl WebGl2Painter {
             }
         }
         egui::TextureId::User(id as u64)
-    }*/
+    }
 
-    fn paint_mesh(&mut self, mesh: &egui::epaint::Mesh16) -> Result<(), JsValue> {
-        debug_assert!(mesh.is_valid());
+    fn paint_mesh(&mut self, mesh: &egui::epaint::Mesh16, screen_size_points: &egui::Vec2) -> Result<(), JsValue> {
+        //debug_assert!(mesh.is_valid());
         let mut vertices = Vec::with_capacity(8 * mesh.vertices.len());
         //let mut colors: Vec<u8> = Vec::with_capacity(4 * mesh.vertices.len());
         for v in &mesh.vertices {
@@ -312,114 +404,77 @@ impl WebGl2Painter {
             vertices.push((v.color[3] as f32)/255.0);
         }
 
-        // --------------------------------------------------------------------
-
         let gl = &self.gl;
 
-        let shader_bound = self.shader
-            .bind(gl);
-        let mut shader_bound = shader_bound
-                .bind_vertex_array_object(&mut self.vao);
-        shader_bound
-            .update_array(0, Gl::STREAM_DRAW, VecData(&vertices))
-            .update_element_array(Gl::STREAM_DRAW, VecData(&mesh.indices));
-            
-        
-        /*let indices_memory_buffer = wasm_bindgen::memory()
-            .dyn_into::<WebAssembly::Memory>()?
-            .buffer();
-        let indices_ptr = mesh.indices.as_ptr() as u32 / 2;
-        let indices_array = js_sys::Int16Array::new(&indices_memory_buffer)
-            .subarray(indices_ptr, indices_ptr + mesh.indices.len() as u32);
+        self.gl.bind_vertex_array(Some(&self.vao));
 
-        gl.bind_buffer(Gl::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
+        // Bind the buffer
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
         gl.buffer_data_with_array_buffer_view(
-            Gl::ELEMENT_ARRAY_BUFFER,
-            &indices_array,
-            Gl::STREAM_DRAW,
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            unsafe { &js_sys::Float32Array::view(&vertices) },
+            WebGl2RenderingContext::STREAM_DRAW,
         );
 
-        // --------------------------------------------------------------------
-
-        let pos_memory_buffer = wasm_bindgen::memory()
-            .dyn_into::<WebAssembly::Memory>()?
-            .buffer();
-        let pos_ptr = positions.as_ptr() as u32 / 4;
-        let pos_array = js_sys::Float32Array::new(&pos_memory_buffer)
-            .subarray(pos_ptr, pos_ptr + positions.len() as u32);
-
-        gl.bind_buffer(Gl::ARRAY_BUFFER, Some(&self.pos_buffer));
-        gl.buffer_data_with_array_buffer_view(Gl::ARRAY_BUFFER, &pos_array, Gl::STREAM_DRAW);
-
-        let a_pos_loc = gl.get_attrib_location(&shader.program, "a_pos");
-        assert!(a_pos_loc >= 0);
-        let a_pos_loc = a_pos_loc as u32;
-
-        let normalize = false;
-        let stride = 0;
-        let offset = 0;
-        gl.vertex_attrib_pointer_with_i32(a_pos_loc, 2, Gl::FLOAT, normalize, stride, offset);
-        gl.enable_vertex_attrib_array(a_pos_loc);
-
-        // --------------------------------------------------------------------
-
-        let tc_memory_buffer = wasm_bindgen::memory()
-            .dyn_into::<WebAssembly::Memory>()?
-            .buffer();
-        let tc_ptr = tex_coords.as_ptr() as u32 / 4;
-        let tc_array = js_sys::Float32Array::new(&tc_memory_buffer)
-            .subarray(tc_ptr, tc_ptr + tex_coords.len() as u32);
-
-        gl.bind_buffer(Gl::ARRAY_BUFFER, Some(&self.tc_buffer));
-        gl.buffer_data_with_array_buffer_view(Gl::ARRAY_BUFFER, &tc_array, Gl::STREAM_DRAW);
-
-        let a_tc_loc = gl.get_attrib_location(&self.program, "a_tc");
-        assert!(a_tc_loc >= 0);
-        let a_tc_loc = a_tc_loc as u32;
-
-        let normalize = false;
-        let stride = 0;
-        let offset = 0;
-        gl.vertex_attrib_pointer_with_i32(a_tc_loc, 2, Gl::FLOAT, normalize, stride, offset);
-        gl.enable_vertex_attrib_array(a_tc_loc);
-
-        // --------------------------------------------------------------------
-
-        let colors_memory_buffer = wasm_bindgen::memory()
-            .dyn_into::<WebAssembly::Memory>()?
-            .buffer();
-        let colors_ptr = colors.as_ptr() as u32;
-        let colors_array = js_sys::Uint8Array::new(&colors_memory_buffer)
-            .subarray(colors_ptr, colors_ptr + colors.len() as u32);
-
-        gl.bind_buffer(Gl::ARRAY_BUFFER, Some(&self.color_buffer));
-        gl.buffer_data_with_array_buffer_view(Gl::ARRAY_BUFFER, &colors_array, Gl::STREAM_DRAW);
-
-        let a_srgba_loc = gl.get_attrib_location(&self.program, "a_srgba");
-        assert!(a_srgba_loc >= 0);
-        let a_srgba_loc = a_srgba_loc as u32;
-
-        let normalize = false;
-        let stride = 0;
-        let offset = 0;
+        let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
+        // layout (location = 0) in vec2 pos;
         gl.vertex_attrib_pointer_with_i32(
-            a_srgba_loc,
-            4,
-            Gl::UNSIGNED_BYTE,
-            normalize,
-            stride,
-            offset,
+            0,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (0 * num_bytes_per_f32) as i32,
         );
-        gl.enable_vertex_attrib_array(a_srgba_loc);
-        */
-        // --------------------------------------------------------------------
+        gl.enable_vertex_attrib_array(0);
 
-        gl.draw_elements_with_i32(
-            Gl::TRIANGLES,
+        // layout (location = 1) in vec2 tx;
+        gl.vertex_attrib_pointer_with_i32(
+            1,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (2 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(1);
+
+        // layout (location = 2) in vec4 color;
+        gl.vertex_attrib_pointer_with_i32(
+            2,
+            4,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            8 * num_bytes_per_f32,
+            (4 * num_bytes_per_f32) as i32,
+        );
+        gl.enable_vertex_attrib_array(2);
+
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.ebo));
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            unsafe { &js_sys::Uint16Array::view(&mesh.indices) },
+            WebGl2RenderingContext::STREAM_DRAW,
+        );
+
+
+        let shader = self.shader
+            .bind(&self.gl);
+
+        shader
+            .attach_uniform("u_screen_size", &Vector2::new(screen_size_points.x, screen_size_points.y))
+            .attach_uniform("u_sampler", self.get_texture(mesh.texture_id).unwrap());
+
+
+        // The raster vao is bound at the lib.rs level
+        self.gl.draw_elements_with_i32(
+            //WebGl2RenderingContext::LINES,
+            WebGl2RenderingContext::TRIANGLES,
             mesh.indices.len() as i32,
-            Gl::UNSIGNED_SHORT,
+            WebGl2RenderingContext::UNSIGNED_SHORT,
             0,
         );
+        self.gl.bind_vertex_array(None);
 
         Ok(())
     }
@@ -439,7 +494,7 @@ impl epi::TextureAllocator for WebGl2Painter {
     }
 }
 
-
+use std::sync::Arc;
 impl egui_web::Painter for WebGl2Painter {
     fn as_tex_allocator(&mut self) -> &mut dyn epi::TextureAllocator {
         self
@@ -473,28 +528,20 @@ impl egui_web::Painter for WebGl2Painter {
             pixels.push(srgba.b());
             pixels.push(srgba.a());
         }
-
-        let gl = &self.gl;
-        //gl.bind_texture(Gl::TEXTURE_2D, Some(&self.egui_texture));
-
         let internal_format = Gl::SRGB8_ALPHA8;
         let src_format = Gl::RGBA;
         let src_type = Gl::UNSIGNED_BYTE;
+        let gl = &self.gl;
         self.egui_texture.bind_mut()
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                dbg!(texture.width as i32), 
-                dbg!(texture.height as i32),
+                texture.width as i32, 
+                texture.height as i32,
                 internal_format as i32,
                 src_format,
                 src_type,
                 Some(&pixels)
             );
-        console::log_1(
-            &format!("width: {:?}", texture.width).into(),
-        );
-        console::log_1(
-            &format!("height: {:?}", texture.height).into(),
-        );
+        //gl.bind_texture(Gl::TEXTURE_2D, Some(&self.egui_texture));
 
         /*gl.pixel_storei(Gl::UNPACK_ALIGNMENT, 1);
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
@@ -518,9 +565,9 @@ impl egui_web::Painter for WebGl2Painter {
 
         //gl.disable(Gl::SCISSOR_TEST);
 
-        let width = self.canvas.width() as i32;
+        /*let width = self.canvas.width() as i32;
         let height = self.canvas.height() as i32;
-        gl.viewport(0, 0, width, height);
+        gl.viewport(0, 0, width, height);*/
 
         /*let clear_color: Color32 = clear_color.into();
         gl.clear_color(
@@ -537,11 +584,15 @@ impl egui_web::Painter for WebGl2Painter {
         clipped_meshes: Vec<egui::ClippedMesh>,
         pixels_per_point: f32,
     ) -> Result<(), JsValue> {
-        //self.upload_user_textures();
+        self.upload_user_textures();
+        //self.post_process
+        //    .begin(self.canvas.width() as i32, self.canvas.height() as i32);
+        self.gl.enable(Gl::SCISSOR_TEST);
+        self.gl.disable(Gl::CULL_FACE); // egui is not strict about winding order.
+        self.gl.enable(Gl::BLEND);
+        self.gl.blend_func(Gl::ONE, Gl::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 
-        self.post_process
-            .begin(self.canvas.width() as i32, self.canvas.height() as i32)?;
-        
+
         //self.gl.clear(Gl::COLOR_BUFFER_BIT);
         let screen_size_pixels = vec2(self.canvas.width() as f32, self.canvas.height() as f32);
         let screen_size_points = screen_size_pixels / pixels_per_point;
@@ -555,14 +606,7 @@ impl egui_web::Painter for WebGl2Painter {
         //gl.uniform1i(Some(&u_sampler_loc), 0);
 
         for egui::ClippedMesh(clip_rect, mesh) in clipped_meshes {
-            if let Some(gl_texture) = self.get_texture(mesh.texture_id) {
-                self.shader.bind(&self.gl)
-                    .attach_uniform("u_screen_size", &Vector2::new(screen_size_points.x, screen_size_points.y));
-                    //.attach_uniform("u_sampler", gl_texture);
-
-                crate::log(
-                    "rendering ui"
-                );
+            if let Some(_) = self.get_texture(mesh.texture_id) {
                 let clip_min_x = pixels_per_point * clip_rect.min.x;
                 let clip_min_y = pixels_per_point * clip_rect.min.y;
                 let clip_max_x = pixels_per_point * clip_rect.max.x;
@@ -577,15 +621,15 @@ impl egui_web::Painter for WebGl2Painter {
                 let clip_max_y = clip_max_y.round() as i32;
 
                 // scissor Y coordinate is from the bottom
-                /*self.gl.scissor(
+                self.gl.scissor(
                     clip_min_x,
                     self.canvas.height() as i32 - clip_max_y,
                     clip_max_x - clip_min_x,
                     clip_max_y - clip_min_y,
-                );*/
+                );
 
                 for mesh in mesh.split_to_u16() {
-                    self.paint_mesh(&mesh)?;
+                    self.paint_mesh(&mesh, &screen_size_points)?;
                 }
             } else {
                 egui_web::console_warn(format!(
@@ -595,13 +639,15 @@ impl egui_web::Painter for WebGl2Painter {
             }
         }
 
-        self.post_process.end(self.canvas.width() as i32, self.canvas.height() as i32);
-
+        //self.post_process.end(self.canvas.width() as i32, self.canvas.height() as i32);
+        self.gl.disable(Gl::SCISSOR_TEST);
+        self.gl.disable(WebGl2RenderingContext::BLEND);
+        self.gl.enable(Gl::CULL_FACE);
         Ok(())
     }
 }
 
-/// Uses a framebuffer to render everything in linear color space and convert it back to sRGB
+/*/// Uses a framebuffer to render everything in linear color space and convert it back to sRGB
 /// in a separate "post processing" step
 struct PostProcess {
     gl: WebGl2Context,
@@ -688,7 +734,7 @@ impl PostProcess {
         })
     }
 
-    fn begin(&mut self, canvas_w: i32, canvas_h: i32) -> Result<(), JsValue> {
+    fn begin(&mut self, canvas_w: i32, canvas_h: i32) {
         let gl = &self.gl;
 
         if (canvas_w, canvas_h) != (self.texture.width() as i32, self.texture.height() as i32) {
@@ -716,8 +762,9 @@ impl PostProcess {
             )?;
             gl.bind_text    ure(Gl::TEXTURE_2D, None);*/
             crate::log("resize screen framebuffer");
-            //gl.bind_framebuffer(Gl::FRAMEBUFFER, Some(&self.fbo));
-            let size_w = canvas_w as usize;
+
+            gl.bind_framebuffer(Gl::FRAMEBUFFER, Some(&self.fbo));
+            let size_w = dbg!(canvas_w as usize);
             let size_h = canvas_h as usize;
             let pixels = [120_u8, 0, 0, 255].iter().cloned().cycle().take(4*size_h*size_w).collect::<Vec<_>>();
             self.texture.bind_mut()
@@ -727,18 +774,12 @@ impl PostProcess {
                     Gl::SRGB8_ALPHA8 as i32,
                     Gl::RGBA,
                     Gl::UNSIGNED_BYTE,
-                    None
+                    Some(&pixels.as_slice())
                 );
+
             //self.texture.attach_to_framebuffer();
-            /*self.gl.framebuffer_texture_2d(
-                WebGl2RenderingContext::FRAMEBUFFER,
-                WebGl2RenderingContext::COLOR_ATTACHMENT0,
-                WebGl2RenderingContext::TEXTURE_2D,
-                self.texture.texture.as_ref(),
-                0,
-            );*/
             //gl.clear(Gl::COLOR_BUFFER_BIT);
-            //gl.bind_framebuffer(Gl::FRAMEBUFFER, None);
+            gl.bind_framebuffer(Gl::FRAMEBUFFER, None);
 
             //tex_bound.unbind();
             //self.texture_size = (width, height);
@@ -749,7 +790,6 @@ impl PostProcess {
         self.gl.disable(Gl::CULL_FACE); // egui is not strict about winding order.
         self.gl.enable(Gl::BLEND);
         self.gl.blend_func(Gl::ONE, Gl::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
-        Ok(())
     }
 
     fn end(&self, canvas_w: i32, canvas_h: i32) {
@@ -782,7 +822,7 @@ impl Drop for PostProcess {
 
         // The webgl texture is deleted when the Texture2D is dropped
     }
-}
+}*/
 /*
 fn compile_shader(
     gl: &WebGl2RenderingContext,

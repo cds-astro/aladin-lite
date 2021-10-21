@@ -214,8 +214,7 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader

@@ -2,8 +2,8 @@ use crate::{
     camera::CameraViewPort,
     core::{Texture2D, VertexArrayObject},
     renderable::projection::Projection,
-    shader::{ShaderBound, ShaderManager},
-    WebGl2Context,
+    shader::ShaderManager,
+    core::{ShaderBound, WebGl2Context},
 };
 
 pub trait RayTracingProjection {

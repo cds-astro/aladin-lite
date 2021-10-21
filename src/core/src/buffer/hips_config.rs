@@ -23,7 +23,7 @@ use std::rc::Rc;
 
 use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 use crate::image_fmt::{FITS, JPG, PNG};
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let _num_channels = format.get_num_channels() as i32;
     match format {
@@ -306,8 +306,7 @@ impl HiPSConfig {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

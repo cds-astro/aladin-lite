@@ -5,7 +5,7 @@ use crate::core::ArrayBufferInstanced;
 use crate::core::BufferDataStorage;
 use crate::core::ElementArrayBuffer;
 
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 pub struct VertexArrayObject {
     array_buffer: Vec<ArrayBuffer>,
@@ -98,7 +98,7 @@ impl Drop for VertexArrayObject {
     }
 }
 
-use crate::shader::ShaderBound;
+use crate::core::ShaderBound;
 pub struct ShaderVertexArrayObjectBound<'a, 'b> {
     vao: &'a mut VertexArrayObject,
     _shader: &'b ShaderBound<'b>,

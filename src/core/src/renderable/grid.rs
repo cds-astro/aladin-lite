@@ -35,7 +35,7 @@ pub struct ProjetedGrid {
 use crate::core::{VecData, VertexArrayObject};
 use crate::renderable::projection::Projection;
 use crate::ShaderManager;
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 impl ProjetedGrid {

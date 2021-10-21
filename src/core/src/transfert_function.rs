@@ -23,8 +23,7 @@ impl TransferFunction {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{ShaderBound, SendUniforms};
 
 impl SendUniforms for TransferFunction {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

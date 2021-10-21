@@ -1,11 +1,11 @@
 use super::source::Source;
 use crate::renderable::projection::*;
 use crate::{
-    core::{Texture2D, VecData, VertexArrayObject},
+    core::{Texture2D, VecData, VertexArrayObject, WebGl2Context},
     resources::Resources,
-    shader::Shader,
+    core::Shader,
     shaders::Colormap,
-    FormatImageType, ShaderManager, WebGl2Context,
+    FormatImageType, ShaderManager,
 };
 use std::collections::HashMap;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
@@ -46,7 +46,7 @@ impl Manager {
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
-        let kernel_texture = Texture2D::create(
+        let kernel_texture = Texture2D::create_from_path(
             gl,
             "kernel",
             &kernel_filename,

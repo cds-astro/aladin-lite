@@ -27,6 +27,9 @@ use std::panic;
 #[macro_use]
 mod utils;
 
+#[macro_use]
+mod log;
+
 use wasm_bindgen::prelude::*;
 
 mod app;
@@ -51,7 +54,6 @@ mod shaders;
 mod sphere_geometry;
 mod time;
 mod transfert_function;
-mod webgl_ctx;
 mod ui;
 
 use crate::{
@@ -61,10 +63,11 @@ use crate::{
     math::LonLatT,
     renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
     resources::Resources,
-    shader::{Shader, ShaderManager},
+    shader::{ShaderManager},
     shaders::Colormaps,
     time::DeltaTime,
-    webgl_ctx::WebGl2Context,
+    core::WebGl2Context,
+    core::Shader,
 };
 pub use coo_conversion::CooSystem;
 
@@ -83,11 +86,6 @@ pub struct WebClient {
     dt: DeltaTime,
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
 use crate::shader::FileSrc;
 use crate::transfert_function::TransferFunction;
 
@@ -617,16 +615,16 @@ impl WebClient {
     ///
     /// This is useful for beginning inerting.
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
-    pub fn release_left_button_mouse(&mut self) -> Result<(), JsValue> {
-        self.app.release_left_button_mouse();
+    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) -> Result<(), JsValue> {
+        self.app.release_left_button_mouse(sx, sy);
 
         Ok(())
     }
 
     /// Signal the backend when the left mouse button has been pressed.
     #[wasm_bindgen(js_name = pressLeftMouseButton)]
-    pub fn press_left_button_mouse(&mut self) -> Result<(), JsValue> {
-        self.app.press_left_button_mouse();
+    pub fn press_left_button_mouse(&mut self, sx: f32, sy: f32) -> Result<(), JsValue> {
+        self.app.press_left_button_mouse(sx, sy);
 
         Ok(())
     }

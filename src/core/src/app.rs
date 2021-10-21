@@ -21,7 +21,7 @@ use crate::{
     shaders::Colormaps,
     time::DeltaTime,
     utils,
-    webgl_ctx::WebGl2Context,
+    core::WebGl2Context,
 };
 use cgmath::Vector4;
 
@@ -40,11 +40,11 @@ struct S {
     dec: f64,
 }
 
-use crate::ui::Gui;
+use crate::ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
 
-    ui: Gui,
+    ui: GuiRef,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -105,7 +105,7 @@ struct ZoomAnimation {
     goal_fov: Angle<f64>,
     w0: f64,
 }
-
+use crate::log::log;
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::buffer::Tile;
 use crate::time::Time;
@@ -488,7 +488,7 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
-        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw;
+        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw | self.ui.lock().redraw_needed();
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -524,7 +524,7 @@ impl App {
         }
     }
 
-    pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+    pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {        
         if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
@@ -542,14 +542,12 @@ impl App {
             self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
+            // Render the UI
+            self.ui.lock().render()?;
+
             // Reset the flags about the user action
             self.camera.reset();
         }
-
-        if true {
-            self.ui.render()?;
-        }
-
 
         Ok(())
     }
@@ -811,14 +809,14 @@ impl App {
         self.inertial_move_animation = None;
     }
 
-    pub fn press_left_button_mouse(&mut self) {
+    pub fn press_left_button_mouse(&mut self, sx: f32, sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
         self.move_animation = None;
         self.out_of_fov = false;
     }
 
-    pub fn release_left_button_mouse(&mut self) {
+    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.
@@ -839,6 +837,13 @@ impl App {
         {
             return;
         }
+        
+        // do not start inerting if we release the mouse button over the ui
+        let mouse_over_ui = self.ui.lock().is_pointer_over_ui();
+        if mouse_over_ui {
+            return;
+        }
+
         // Start inertia here
 
         // Angular distance between the previous and current
@@ -903,6 +908,11 @@ impl App {
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
+        let mouse_over_ui = self.ui.lock().is_pointer_over_ui();
+        if mouse_over_ui {
+            return;
+        }
+
         if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
             if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
                 let r = self.camera.get_final_rotation();

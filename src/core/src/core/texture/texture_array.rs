@@ -31,7 +31,7 @@ impl Texture2DArray {
     ) -> Result<Texture2DArray, JsValue> {
         let mut textures = vec![];
         for _slice_idx in 0..num_slices {
-            let texture = Texture2D::create_empty(gl, width, height, tex_params, format)?;
+            let texture = Texture2D::create_from_raw_pixels(gl, width, height, tex_params, format, None)?;
             textures.push(texture);
         }
 
@@ -39,8 +39,7 @@ impl Texture2DArray {
     }
 }
 
-use crate::shader::SendUniforms;
-use crate::shader::ShaderBound;
+use crate::core::{SendUniforms, ShaderBound};
 impl SendUniforms for Texture2DArray {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let num_tex = self.textures.len();

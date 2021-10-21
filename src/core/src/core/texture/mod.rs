@@ -1,3 +1,6 @@
+mod texture_array;
+pub use texture_array::Texture2DArray;
+
 use std::convert::TryInto;
 
 use wasm_bindgen::prelude::Closure;
@@ -5,7 +8,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
 use web_sys::WebGl2RenderingContext;
 
-use crate::WebGl2Context;
+use crate::core::WebGl2Context;
 
 #[derive(Clone)]
 struct Texture2DMeta {
@@ -68,10 +71,11 @@ impl IdxTextureUnit {
     }
 }
 
+use crate::log::*;
 use crate::FormatImageType;
 use std::path::Path;
 impl Texture2D {
-    pub fn create<P: AsRef<Path>>(
+    pub fn create_from_path<P: AsRef<Path>>(
         gl: &WebGl2Context,
         name: &'static str,
         src: &P,
@@ -84,7 +88,8 @@ impl Texture2D {
         let texture = gl.create_texture();
         let onerror = {
             Closure::wrap(Box::new(move || {
-                unsafe { crate::log(&format!("Cannot load texture located at: {:?}", name)); }
+                let msg = format!("Cannot load texture located at: {:?}", name);
+                log!(msg);
             }) as Box<dyn Fn()>)
         };
         let internal_format = format.get_internal_format();
@@ -143,12 +148,13 @@ impl Texture2D {
         })
     }
 
-    pub fn create_empty(
+    pub fn create_from_raw_pixels(
         gl: &WebGl2Context,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
         format: FormatImageType,
+        pixels: Option<&[u8]>
     ) -> Result<Texture2D, JsValue> {
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
         let texture = gl.create_texture();
@@ -171,7 +177,7 @@ impl Texture2D {
             0,
             format,
             type_,
-            None,
+            pixels,
         )
         .expect("Texture 2D");
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
@@ -640,15 +646,14 @@ impl<'a> Texture2DBoundMut<'a> {
             .expect("Sub texture 2d");
         //self.texture_2d.gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
 
-        let metadata = self.texture_2d.metadata.as_mut()
-            .unwrap();
-        *metadata = Texture2DMeta {
+        self.texture_2d.metadata = Some(
+            Texture2DMeta {
             format: src_format,
             internal_format,
             type_: src_type,
             width: width as u32,
             height: height as u32,
-        };  
+        });
     }
 }
 

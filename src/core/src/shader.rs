@@ -1,6 +1,6 @@
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
-use crate::core::Shader;
-use crate::core::WebGl2Context;
+use al_core::shader::Shader;
+use al_core::WebGl2Context;
 
 pub type VertId = Cow<'static, str>;
 pub type FragId = Cow<'static, str>;

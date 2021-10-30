@@ -161,7 +161,7 @@ impl Texture {
         // which have not yet been completed.
         for tile_cell in self.texture_cell.get_tile_cells(config) {
             let tile = Tile::new(&tile_cell, config);
-            exec.remove(&TaskType::SendTileToGPU(tile));
+            exec.remove(&TaskType::ImageTile2GpuTask(tile));
         }
 
         self.texture_cell = *texture_cell;
@@ -178,7 +178,7 @@ impl Texture {
     pub fn clear_tasks_in_progress(&self, config: &HiPSConfig, exec: &mut TaskExecutor) {
         for tile_cell in self.texture_cell.get_tile_cells(config) {
             let tile = Tile::new(&tile_cell, config);
-            exec.remove(&TaskType::SendTileToGPU(tile));
+            exec.remove(&TaskType::ImageTile2GpuTask(tile));
         }
     }
 }
@@ -214,7 +214,7 @@ impl<'a> TextureUniforms<'a> {
     }
 }
 
-use crate::core::{SendUniforms, ShaderBound};
+use al_core::shader::{SendUniforms, ShaderBound};
 impl<'a> SendUniforms for TextureUniforms<'a> {
     fn attach_uniforms<'b>(&self, shader: &'b ShaderBound<'b>) -> &'b ShaderBound<'b> {
         shader

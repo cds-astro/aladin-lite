@@ -1,11 +1,11 @@
 use web_sys::WebGlVertexArrayObject;
 
-use crate::core::ArrayBuffer;
-use crate::core::ArrayBufferInstanced;
-use crate::core::BufferDataStorage;
-use crate::core::ElementArrayBuffer;
+use super::array_buffer::ArrayBuffer;
+use super::array_buffer_instanced::ArrayBufferInstanced;
+use super::buffer_data::BufferDataStorage;
+use super::element_array_buffer::ElementArrayBuffer;
 
-use crate::core::WebGl2Context;
+use crate::webgl_ctx::WebGl2Context;
 
 pub struct VertexArrayObject {
     array_buffer: Vec<ArrayBuffer>,
@@ -98,13 +98,13 @@ impl Drop for VertexArrayObject {
     }
 }
 
-use crate::core::ShaderBound;
+use crate::shader::ShaderBound;
 pub struct ShaderVertexArrayObjectBound<'a, 'b> {
     vao: &'a mut VertexArrayObject,
     _shader: &'b ShaderBound<'b>,
 }
 
-use crate::core::VertexAttribPointerType;
+use crate::VertexAttribPointerType;
 use web_sys::WebGl2RenderingContext;
 impl<'a, 'b> ShaderVertexArrayObjectBound<'a, 'b> {
     /// Precondition: self must be bound

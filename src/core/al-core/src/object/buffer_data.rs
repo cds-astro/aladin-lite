@@ -1,4 +1,4 @@
-use crate::core::VertexAttribPointerType;
+use super::array_buffer::VertexAttribPointerType;
 
 pub trait BufferDataStorage<'a, T: VertexAttribPointerType> {
     fn get_slice(&self) -> &[T];

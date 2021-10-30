@@ -603,3 +603,18 @@ where
         Angle(-self.0)
     }
 }
+use web_sys::WebGlUniformLocation;
+use al_core::{
+    WebGl2Context,
+    shader::UniformType
+};
+impl UniformType for Angle<f32> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1f(location, value.0);
+    }
+}
+impl UniformType for Angle<f64> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1f(location, value.0 as f32);
+    }
+}

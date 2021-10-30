@@ -1,9 +1,13 @@
 use crate::{
     camera::CameraViewPort,
-    core::{Texture2D, VertexArrayObject},
     renderable::projection::Projection,
     shader::ShaderManager,
-    core::{ShaderBound, WebGl2Context},
+};
+
+use al_core::{
+    WebGl2Context,
+    shader::ShaderBound,
+    Texture2D, VertexArrayObject,
 };
 
 pub trait RayTracingProjection {
@@ -132,7 +136,7 @@ impl RayTracer {
         // create data
         let data = generate_position::<P>();
 
-        let position_tex = Texture2D::create_empty_with_format(
+        let position_tex = Texture2D::create_empty_with_format<al_core::format::RGB32F>(
             gl,
             2048,
             2048,
@@ -156,9 +160,6 @@ impl RayTracer {
                     WebGl2RenderingContext::CLAMP_TO_EDGE,
                 ),
             ],
-            WebGl2RenderingContext::RGB32F as i32, // internal format
-            WebGl2RenderingContext::RGB,           // format
-            WebGl2RenderingContext::FLOAT,         // type
         )
         .unwrap();
 

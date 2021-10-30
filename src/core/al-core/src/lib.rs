@@ -1,12 +1,14 @@
 mod object;
-mod texture;
-mod shader;
-mod webgl_ctx;
+pub mod texture;
+pub mod shader;
+pub mod webgl_ctx;
 
-pub use texture::{IdxTextureUnit, Pixel, Texture2D, Texture2DBound};
+pub use texture::texture::{Texture2D, Texture2DBound, IdxTextureUnit};
 pub use texture::Texture2DArray;
+pub use texture::image;
+pub use texture::format;
+pub use texture::pixel;
 
-pub use shader::{Shader, ShaderBound, SendUniforms};
 pub use webgl_ctx::WebGl2Context;
 
 pub use object::array_buffer::ArrayBuffer;
@@ -19,4 +21,3 @@ pub use object::vertex_array_object::{
 };
 
 use object::array_buffer::VertexAttribPointerType;
-use object::array_buffer::VertexBufferObject;

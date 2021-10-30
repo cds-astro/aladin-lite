@@ -2,7 +2,6 @@ use crate::{
     app::App,
     color::Color,
     coo_conversion::CooSystem,
-    core::Pixel,
     math::LonLatT,
     renderable::{
         angle::{Angle, ArcDeg},
@@ -11,6 +10,7 @@ use crate::{
     shaders::Colormap,
     time::DeltaTime,
 };
+use al_core::pixel::PixelType;
 use cgmath::Vector2;
 use wasm_bindgen::prelude::*;
 
@@ -167,7 +167,7 @@ impl ProjectionType {
         Ok(())
     }
 
-    pub fn read_pixel(&self, app: &App, x: f64, y: f64, layer: &str) -> Result<Pixel, JsValue> {
+    pub fn read_pixel(&self, app: &App, x: f64, y: f64, layer: &str) -> Result<PixelType, JsValue> {
         let p = match self {
             ProjectionType::Aitoff => app.read_pixel::<Aitoff>(x, y, layer)?,
             ProjectionType::MollWeide => app.read_pixel::<Mollweide>(x, y, layer)?,

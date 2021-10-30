@@ -21,8 +21,10 @@ extern crate task_async_executor;
 extern crate egui;
 extern crate epi;
 extern crate egui_web;
+use al_core;
 
 use std::panic;
+
 
 #[macro_use]
 mod utils;
@@ -39,10 +41,9 @@ mod camera;
 mod cdshealpix;
 mod color;
 mod coo_conversion;
-mod core;
+
 mod healpix_cell;
 pub mod hips;
-mod image_fmt;
 mod line;
 mod math;
 mod projection_type;
@@ -56,18 +57,20 @@ mod time;
 mod transfert_function;
 mod ui;
 
+use al_core::format::ImageFormatType;
 use crate::{
     camera::CameraViewPort,
     hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
-    image_fmt::FormatImageType,
     math::LonLatT,
     renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
     resources::Resources,
     shader::{ShaderManager},
     shaders::Colormaps,
     time::DeltaTime,
-    core::WebGl2Context,
-    core::Shader,
+};
+use al_core::{
+    WebGl2Context,
+    shader::Shader
 };
 pub use coo_conversion::CooSystem;
 
@@ -654,6 +657,32 @@ impl WebClient {
         self.projection.start_zooming_to(&mut self.app, target_fov);
 
         Ok(())
+    }
+
+    /// Signal the backend when a wheel event has been registered
+    ///
+    /// The field of view is changed accordingly
+    ///
+    /// # Arguments
+    ///
+    /// * `delta` - The delta coming from the wheel event. This is
+    ///   used to know if we are zooming or not.
+    #[wasm_bindgen(js_name = mouseOnUi)]
+    pub fn mouse_on_ui(&mut self) -> bool {
+        self.app.mouse_on_ui()
+    }
+
+    /// Signal the backend when a wheel event has been registered
+    ///
+    /// The field of view is changed accordingly
+    ///
+    /// # Arguments
+    ///
+    /// * `delta` - The delta coming from the wheel event. This is
+    ///   used to know if we are zooming or not.
+    #[wasm_bindgen(js_name = posOnUi)]
+    pub fn screen_position_on_ui(&mut self, sx: f32, sy:f32) -> bool {
+        self.app.pos_over_ui(sx, sy)
     }
 
     /// Add a catalog rendered as a heatmap.

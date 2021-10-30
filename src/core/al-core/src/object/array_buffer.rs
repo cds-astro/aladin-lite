@@ -1,9 +1,9 @@
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlBuffer;
 
-use crate::core::WebGl2Context;
 
-use crate::core::BufferDataStorage;
+use crate::webgl_ctx::WebGl2Context;
+use super::buffer_data::BufferDataStorage;
 
 pub trait VertexBufferObject {
     fn bind(&self);

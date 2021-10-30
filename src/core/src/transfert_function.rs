@@ -23,7 +23,9 @@ impl TransferFunction {
     }
 }
 
-use crate::core::{ShaderBound, SendUniforms};
+use al_core::{
+    shader::{ShaderBound, SendUniforms}
+};
 
 impl SendUniforms for TransferFunction {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
@@ -36,5 +38,15 @@ impl SendUniforms for TransferFunction {
 impl From<String> for TransferFunction {
     fn from(id: String) -> Self {
         TransferFunction::new(&id)
+    }
+}
+use web_sys::WebGlUniformLocation;
+use al_core::{
+    WebGl2Context,
+    shader::UniformType
+};
+impl UniformType for TransferFunction {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1i(location, *value as i32);
     }
 }

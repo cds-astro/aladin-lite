@@ -5,7 +5,6 @@ use crate::{
     camera::CameraViewPort,
     color::Color,
     coo_conversion::CooSystem,
-    core::Pixel,
     hips::SimpleHiPS,
     line, math,
     math::{LonLat, LonLatT},
@@ -21,8 +20,13 @@ use crate::{
     shaders::Colormaps,
     time::DeltaTime,
     utils,
-    core::WebGl2Context,
 };
+
+use al_core::{
+    WebGl2Context,
+    pixel::PixelType
+};
+
 use cgmath::Vector4;
 
 use wasm_bindgen::prelude::*;
@@ -209,7 +213,7 @@ impl App {
         let colormaps = Colormaps::new(&gl, &resources)?;
 
 
-        let ui = Gui::new(&gl)?;
+        let ui = Gui::new(aladin_div_name, &gl)?;
         let app = App {
             gl,
             ui,
@@ -247,6 +251,16 @@ impl App {
         };
 
         Ok(app)
+    }
+
+    pub fn mouse_on_ui(&self) -> bool {
+        // do not start inerting if we release the mouse button over the ui
+        self.ui.lock().is_pointer_over_ui()
+    }
+
+    pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
+        // do not start inerting if we release the mouse button over the ui
+        self.ui.lock().pos_over_ui(sx, sy)
     }
 
     pub fn is_catalog_loaded(&mut self) -> bool {
@@ -512,7 +526,7 @@ impl App {
         self.set_center::<P>(&center);
     }
 
-    pub fn read_pixel<P: Projection>(&self, x: f64, y: f64, layer: &str) -> Result<Pixel, JsValue> {
+    pub fn read_pixel<P: Projection>(&self, x: f64, y: f64, layer: &str) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world::<P>(&pos) {
             self.surveys.read_pixel(&lonlat, layer)
@@ -626,8 +640,8 @@ impl App {
         let table = table;
         let c = self.colormaps.get(&colormap);
 
-        exec_ref.spawner().spawn(TaskType::ParseTable, async move {
-            let mut stream = ParseTable::<[f32; 2]>::new(table);
+        exec_ref.spawner().spawn(TaskType::ParseTableTask, async move {
+            let mut stream = ParseTableTask::<[f32; 2]>::new(table);
             let mut results: Vec<Source> = vec![];
 
             while let Some(item) = stream.next().await {
@@ -837,13 +851,10 @@ impl App {
         {
             return;
         }
-        
-        // do not start inerting if we release the mouse button over the ui
-        let mouse_over_ui = self.ui.lock().is_pointer_over_ui();
-        if mouse_over_ui {
+
+        if(self.ui.lock().pos_over_ui(sx, sy)) {
             return;
         }
-
         // Start inertia here
 
         // Angular distance between the previous and current
@@ -908,11 +919,6 @@ impl App {
     }
 
     pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
-        let mouse_over_ui = self.ui.lock().is_pointer_over_ui();
-        if mouse_over_ui {
-            return;
-        }
-
         if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
             if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
                 let r = self.camera.get_final_rotation();

@@ -1,9 +1,9 @@
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlBuffer;
 
-use crate::core::VertexBufferObject;
+use super::array_buffer::VertexBufferObject;
 
-use crate::core::WebGl2Context;
+use crate::webgl_ctx::WebGl2Context;
 
 #[derive(Clone)]
 pub struct ElementArrayBuffer {
@@ -27,7 +27,8 @@ impl VertexBufferObject for ElementArrayBuffer {
     }
 }
 
-use crate::core::{BufferDataStorage, VertexAttribPointerType};
+use super::buffer_data::BufferDataStorage;
+use super::array_buffer::VertexAttribPointerType;
 use web_sys::console;
 
 impl ElementArrayBuffer {

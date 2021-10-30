@@ -70,7 +70,7 @@ pub fn canvas_element(runner_lock: &Gui) -> web_sys::HtmlCanvasElement {
     let document = window.document().unwrap();
     let canvas = document
         // Get the aladin div element
-        .get_element_by_id("aladin-lite-div")
+        .get_element_by_id(&runner_lock.aladin_lite_div)
         .unwrap()
         // Inside it, retrieve the canvas
         .get_elements_by_class_name("aladin-reticleCanvas")
@@ -284,6 +284,7 @@ pub fn handle_output(output: &egui::Output, runner: &mut Gui) {
         needs_repaint: _, // handled elsewhere
         events: _,        // we ignore these (TODO: accessibility screen reader)
         text_cursor_pos,
+        ..
     } = output;
 
     set_cursor_icon(*cursor_icon);

@@ -22,8 +22,8 @@ pub enum TaskResult {
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub enum TaskType {
-    SendTileToGPU(Tile),
-    ParseTable,
+    ImageTile2GpuTask(Tile),
+    ParseTableTask,
 }
 
 use futures::stream::Stream;
@@ -31,7 +31,7 @@ use futures::stream::Stream;
 use wasm_bindgen::JsValue;
 
 // Task that parse a table
-pub struct ParseTable<T>
+pub struct ParseTableTask<T>
 where
     T: DeserializeOwned + AsRef<[f32]>,
 {
@@ -41,7 +41,7 @@ where
 }
 
 use wasm_bindgen::JsCast;
-impl<T> ParseTable<T>
+impl<T> ParseTableTask<T>
 where
     T: DeserializeOwned + AsRef<[f32]>,
 {
@@ -60,7 +60,7 @@ where
 use serde::de::DeserializeOwned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-impl<T> Stream for ParseTable<T>
+impl<T> Stream for ParseTableTask<T>
 where
     T: DeserializeOwned + AsRef<[f32]> + Unpin,
 {
@@ -228,26 +228,33 @@ impl Stream for BuildCatalogIndex {
 }
 
 use cgmath::Vector3;
-
+use al_core::format::ImageFormat;
 /// Task that send a tile to the GPU
-pub struct SendTileToGPU {
+pub struct ImageTile2GpuTask<I>
+where
+    I: Image + 'static,
+{
     offset: Vector3<i32>,
-    image: Box<dyn Image>,
+    image: I,
     texture_array: Rc<Texture2DArray>,
 }
 
-use crate::buffer::{HiPSConfig, Image, Texture};
-use crate::core::Texture2DArray;
+use crate::buffer::{HiPSConfig, Texture};
+use al_core::image::Image;
+use super::al_core::Texture2DArray;
 
 use std::rc::Rc;
-impl SendTileToGPU {
-    pub fn new<I: Image + 'static>(
+impl ImageTile2GpuTask<I>
+where
+    I: Image + 'static
+{
+    pub fn new(
         tile: &Tile, // The tile cell. It must lie in the texture
         texture: &Texture,
         image: I,
         texture_array: Rc<Texture2DArray>,
         conf: &HiPSConfig,
-    ) -> SendTileToGPU {
+    ) -> ImageTile2GpuTask<I> {
         let cell = tile.cell;
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
@@ -276,8 +283,8 @@ impl SendTileToGPU {
             idx_slice,
         );
 
-        let image = Box::new(image) as Box<dyn Image>;
-        SendTileToGPU {
+        //let image = Box::new(image) as Box<dyn Image>;
+        ImageTile2GpuTask {
             offset,
             image,
             texture_array,
@@ -291,7 +298,10 @@ impl SendTileToGPU {
 }
 
 use futures::Future;
-impl Future for SendTileToGPU {
+impl Future for ImageTile2GpuTask<I>
+where 
+    I: Image + 'static
+{
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {

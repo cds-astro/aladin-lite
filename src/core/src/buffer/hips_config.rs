@@ -1,29 +1,89 @@
-use crate::image_fmt::FormatImageType;
-
+use al_core::{
+    image::ImageBuffer,
+    format::ImageFormat
+};
 #[derive(Clone, Debug)]
-struct TileConfig {
+struct TileConfig<F>
+where
+    F: ImageFormat
+{
     // The size of the tile in the texture
     width: i32,
-    default: Rc<TileArrayBufferImage>,
-    black_tile_value: f32,
+    default: Rc<ImageBuffer<F>>,
+    pixel_fill: <F as ImageFormat>::P
+}
+use al_core::{
+    pixel::Pixel,
+    image::Image
+};
+impl<F> TileConfig<F>
+where
+    F: ImageFormat
+{
+    fn new(width: i32) -> TileConfig<F> {
+        assert!(is_power_of_two(width as usize));
+        let pixel_fill = <<F as ImageFormat>::P as Pixel>::BLACK;
+        let default = Rc::new(ImageBuffer::<F>::allocate(width, &pixel_fill));
+        TileConfig {
+            width,
+            default,
+            pixel_fill,
+        }
+    }
+
+    #[inline]
+    pub fn get_default_tile(&self) -> Rc<ImageBuffer<F>> {
+        self.default.clone()
+    }
+
+    #[inline]
+    pub fn set_default_pixel(&mut self, pixel_fill: <F as ImageFormat>::P) {
+        if pixel_fill != self.pixel_fill {
+            self.pixel_fill = pixel_fill;
+            self.default = Rc::new(ImageBuffer::<F>::allocate(self.width, &pixel_fill));
+        }
+    }
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub enum TileArrayBufferImage {
-    F32(TileArrayBuffer<ArrayF32>),
-    F64(TileArrayBuffer<ArrayF64>),
-    U8(TileArrayBuffer<ArrayU8>),
-    I16(TileArrayBuffer<ArrayI16>),
-    I32(TileArrayBuffer<ArrayI32>),
+pub enum TileConfigType {
+    RGBA8U { config: TileConfig<RGBA8U> },
+    RGB8U { config: TileConfig<RGB8U> },
+    R32F { config: TileConfig<R32F> },
+    R8UI { config: TileConfig<R8UI> },
+    R16I { config: TileConfig<R16I> },
+    R32I { config: TileConfig<R32I> },
+}
+use al_core::format::{ImageFormatType, RGBA8U, RGB8U, R32F, R32I, R16I, R8UI};
+impl TileConfigType {
+    fn format(&self) -> ImageFormatType {
+        match self {
+            TileConfigType::RGBA8U { .. } => ImageFormatType::RGBA8U,
+            TileConfigType::RGB8U { .. } => ImageFormatType::RGB8U,
+            TileConfigType::R32F { .. } => ImageFormatType::R32F,
+            TileConfigType::R8UI { .. } => ImageFormatType::R8UI,
+            TileConfigType::R16I { .. } => ImageFormatType::R16I,
+            TileConfigType::R32I { .. } => ImageFormatType::R32I,
+        }
+    }
+    fn width(&self) -> i32 {
+        match self {
+            TileConfigType::RGBA8U { config } => config.width,
+            TileConfigType::RGB8U { config } => config.width,
+            TileConfigType::R32F { config } => config.width,
+            TileConfigType::R8UI { config } => config.width,
+            TileConfigType::R16I { config } => config.width,
+            TileConfigType::R32I { config } => config.width,
+        }
+    }
 }
 
-use super::TileArrayBuffer;
+//use super::TileArrayBuffer;
 use std::rc::Rc;
+use crate::WebGl2Context;
 
-use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
-use crate::image_fmt::{FITS, JPG, PNG};
-use crate::core::WebGl2Context;
+/*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
     let _num_channels = format.get_num_channels() as i32;
     match format {
@@ -46,41 +106,15 @@ fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArr
         },
         _ => unimplemented!(),
     }
-}
+}*/
 
-impl TileConfig {
-    fn new(width: i32, format: FormatImageType) -> TileConfig {
-        assert!(is_power_of_two(width as usize));
-        let black_tile_value = 0.0;
-        let default = Rc::new(create_black_tile(format, width, black_tile_value));
-        TileConfig {
-            width,
-            black_tile_value,
-            default,
-        }
-    }
 
-    #[inline]
-    pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
-        self.default.clone()
-    }
-
-    #[inline]
-    pub fn set_black_tile_value(&mut self, value: f32, format: FormatImageType) {
-        if value != self.black_tile_value {
-            self.black_tile_value = value;
-            self.default = Rc::new(create_black_tile(format, self.width, self.black_tile_value));
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct HiPSConfig {
     pub root_url: String,
     // HiPS image format
-    format: FormatImageType,
-
-    tile_config: TileConfig,
+    pub tile_config: TileConfigType,
 
     // The size of the texture images
     pub texture_size: i32,
@@ -129,6 +163,8 @@ impl HiPSConfig {
         let num_slices = 3;
         let num_textures = (num_textures_by_slice * num_slices) as usize;
 
+        let max_depth_tile = properties.max_order;
+        let tile_size = properties.tile_size;
         // Assert size is a power of two
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
@@ -138,40 +174,40 @@ impl HiPSConfig {
         let mut tex_storing_integers = false;
 
         let mut tex_storing_fits = false;
-        let format: Result<_, JsValue> = match fmt {
+        let tile_config: Result<_, JsValue> = match fmt {
             HiPSFormat::FITSImage { bitpix, .. } => {
                 tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
                     8 => {
                         tex_storing_unsigned_int = true;
-                        Ok(FormatImageType::FITS(FITS::new(
-                            WebGl2RenderingContext::R8UI as i32,
-                        )))
+                        Ok(TileConfigType::R8UI {
+                            config: TileConfig::<R8UI>::new(tile_size)
+                        })
                     }
                     16 => {
                         tex_storing_integers = true;
-                        Ok(FormatImageType::FITS(FITS::new(
-                            WebGl2RenderingContext::R16I as i32,
-                        )))
+                        Ok(TileConfigType::R16I {
+                            config: TileConfig::<R16I>::new(tile_size)
+                        })
                     }
                     32 => {
                         tex_storing_integers = true;
-                        Ok(FormatImageType::FITS(FITS::new(
-                            WebGl2RenderingContext::R32I as i32,
-                        )))
+                        Ok(TileConfigType::R32I {
+                            config: TileConfig::<R32I>::new(tile_size)
+                        })
                     }
                     -32 => {
                         tex_storing_integers = false;
-                        Ok(FormatImageType::FITS(FITS::new(
-                            WebGl2RenderingContext::R32F as i32,
-                        )))
+                        Ok(TileConfigType::R32F {
+                            config: TileConfig::<R32F>::new(tile_size)
+                        })
                     }
                     -64 => {
                         tex_storing_integers = false;
-                        Ok(FormatImageType::FITS(FITS::new(
-                            WebGl2RenderingContext::R32F as i32,
-                        )))
+                        Ok(TileConfigType::R32F {
+                            config: TileConfig::<R32F>::new(tile_size)
+                        })
                     }
                     _ => Err(
                         "Fits tiles exists but the BITPIX is not correct in the property file"
@@ -182,19 +218,19 @@ impl HiPSConfig {
             }
             HiPSFormat::Image { format } => {
                 if format.contains("png") {
-                    Ok(FormatImageType::PNG)
+                    Ok(TileConfigType::RGBA8U {
+                        config: TileConfig::<RGBA8U>::new(tile_size)
+                    })
                 } else if format.contains("jpeg") || format.contains("jpg") {
-                    Ok(FormatImageType::JPG)
+                    Ok(TileConfigType::RGB8U {
+                        config: TileConfig::<RGB8U>::new(tile_size)
+                    })
                 } else {
                     Err(format!("{} Unrecognized image format", format).into())
                 }
             }
         };
-        let format = format?;
-        let max_depth_tile = properties.max_order;
-        let tile_size = properties.tile_size;
-
-        let tile_config = TileConfig::new(tile_size, format);
+        let tile_config = tile_config?;
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         let num_tile_per_side_texture = (texture_size / tile_size) as usize;
@@ -208,7 +244,6 @@ impl HiPSConfig {
         let hips_config = HiPSConfig {
             // HiPS name
             root_url,
-            format,
             // Tile size & blank tile data
             tile_config,
             // Texture config
@@ -241,8 +276,28 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn set_black_tile_value(&mut self, value: f32) {
-        self.tile_config.set_black_tile_value(value, self.format);
+    pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+        self.scale = bscale;
+        self.offset = bzero;
+        if let Some(blank) = blank {
+            self.blank = blank;
+
+            match &self.tile_config {
+                TileConfigType::R32F { config } => {
+                    config.set_default_pixel([blank]);
+                },
+                TileConfigType::R8UI { config } => {
+                    config.set_default_pixel([blank as u8]);
+                },
+                TileConfigType::R16I { config } => {
+                    config.set_default_pixel([blank as i16]);
+                },
+                TileConfigType::R32I { config } => {
+                    config.set_default_pixel([blank as i32]);
+                },
+                _ => unreachable!()
+            }
+        }
     }
 
     #[inline]
@@ -262,14 +317,14 @@ impl HiPSConfig {
 
     #[inline]
     pub fn get_tile_size(&self) -> i32 {
-        self.tile_config.width
+        self.tile_config.width()
     }
-
+/*
     #[inline]
     pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
         self.tile_config.get_black_tile()
     }
-
+*/
     #[inline]
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
@@ -301,12 +356,15 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn format(&self) -> FormatImageType {
-        self.format
+    pub fn format(&self) -> ImageFormatType {
+        self.tile_config.format()
     }
 }
 
-use crate::core::{SendUniforms, ShaderBound};
+use al_core::shader::{
+    ShaderBound,
+    SendUniforms
+};
 
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

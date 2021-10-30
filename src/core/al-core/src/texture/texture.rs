@@ -1,35 +1,11 @@
-mod texture_array;
-pub use texture_array::Texture2DArray;
 
-use std::convert::TryInto;
 
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
+use crate::webgl_ctx::WebGl2Context;
+use wasm_bindgen::prelude::*;
 use web_sys::HtmlImageElement;
 use web_sys::WebGl2RenderingContext;
-
-use crate::core::WebGl2Context;
-
-#[derive(Clone)]
-struct Texture2DMeta {
-    pub format: u32,
-    pub internal_format: i32,
-    pub type_: u32,
-
-    pub width: u32,
-    pub height: u32,
-}
-
-use web_sys::WebGlTexture;
-pub struct Texture2D {
-    pub texture: Option<WebGlTexture>,
-    pub idx_texture_unit: u32,
-
-    gl: WebGl2Context,
-
-    metadata: Option<Texture2DMeta>,
-}
-
+use wasm_bindgen::JsCast;
+use std::convert::TryInto;
 static mut AVAILABLE_TEX_UNITS: [Option<u32>; 16] = [
     Some(WebGl2RenderingContext::TEXTURE0),
     Some(WebGl2RenderingContext::TEXTURE1),
@@ -71,16 +47,35 @@ impl IdxTextureUnit {
     }
 }
 
-use crate::log::*;
-use crate::FormatImageType;
+#[derive(Clone)]
+struct Texture2DMeta {
+    pub format: u32,
+    pub internal_format: i32,
+    pub type_: u32,
+
+    pub width: u32,
+    pub height: u32,
+}
+
+use web_sys::WebGlTexture;
+pub struct Texture2D {
+    pub texture: Option<WebGlTexture>,
+    pub idx_texture_unit: u32,
+
+    gl: WebGl2Context,
+
+    metadata: Option<Texture2DMeta>,
+}
+use super::pixel::Pixel;
+use super::format::ImageFormat;
 use std::path::Path;
+use super::pixel::PixelType;
 impl Texture2D {
-    pub fn create_from_path<P: AsRef<Path>>(
+    pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
         gl: &WebGl2Context,
         name: &'static str,
         src: &P,
         tex_params: &'static [(u32, u32)],
-        format: FormatImageType,
     ) -> Result<Texture2D, JsValue> {
         let image = HtmlImageElement::new().unwrap();
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
@@ -88,13 +83,9 @@ impl Texture2D {
         let texture = gl.create_texture();
         let onerror = {
             Closure::wrap(Box::new(move || {
-                let msg = format!("Cannot load texture located at: {:?}", name);
-                log!(msg);
+                println!("Cannot load texture located at: {:?}", name);
             }) as Box<dyn Fn()>)
         };
-        let internal_format = format.get_internal_format();
-        let type_ = format.get_type();
-        let format = format.get_format();
 
         let onload = {
             let image = image.clone();
@@ -111,9 +102,9 @@ impl Texture2D {
                 gl.tex_image_2d_with_u32_and_u32_and_html_image_element(
                     WebGl2RenderingContext::TEXTURE_2D,
                     0,
-                    internal_format,
-                    format,
-                    type_,
+                    F::INTERNAL_FORMAT,
+                    F::FORMAT,
+                    F::TYPE,
                     &image,
                 )
                 .expect("Texture 2D");
@@ -133,9 +124,9 @@ impl Texture2D {
         let metadata = Some(Texture2DMeta {
             width: image.width(),
             height: image.height(),
-            internal_format,
-            format,
-            type_,
+            internal_format: F::INTERNAL_FORMAT,
+            format: F::FORMAT,
+            type_: F::TYPE,
         });
         let gl = gl.clone();
         Ok(Texture2D {
@@ -148,12 +139,11 @@ impl Texture2D {
         })
     }
 
-    pub fn create_from_raw_pixels(
+    pub fn create_from_raw_pixels<F: ImageFormat>(
         gl: &WebGl2Context,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
-        format: FormatImageType,
         pixels: Option<&[u8]>
     ) -> Result<Texture2D, JsValue> {
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
@@ -164,19 +154,16 @@ impl Texture2D {
         for (pname, param) in tex_params.iter() {
             gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
         }
-        let internal_format = format.get_internal_format();
-        let type_ = format.get_type();
-        let format = format.get_format();
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
             WebGl2RenderingContext::TEXTURE_2D,
             0,
-            internal_format,
+            F::INTERNAL_FORMAT,
             width,
             height,
             0,
-            format,
-            type_,
+            F::FORMAT,
+            F::TYPE,
             pixels,
         )
         .expect("Texture 2D");
@@ -186,9 +173,9 @@ impl Texture2D {
         let metadata = Some(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format,
-            format,
-            type_,
+            internal_format: F::INTERNAL_FORMAT,
+            format: F::FORMAT,
+            type_: F::TYPE,
         });
 
         Ok(Texture2D {
@@ -227,14 +214,11 @@ impl Texture2D {
         })
     }
 
-    pub fn create_empty_with_format(
+    pub fn create_empty_with_format<F: ImageFormat>(
         gl: &WebGl2Context,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
-        internal_format: i32,
-        format: u32,
-        type_: u32,
     ) -> Result<Texture2D, JsValue> {
         let idx_texture_unit = unsafe { IdxTextureUnit::new()? };
         let texture = gl.create_texture();
@@ -248,12 +232,12 @@ impl Texture2D {
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
             WebGl2RenderingContext::TEXTURE_2D,
             0,
-            internal_format,
+            F::INTERNAL_FORMAT,
             width,
             height,
             0,
-            format,
-            type_,
+            F::FORMAT,
+            F::TYPE,
             None,
         )
         .expect("Texture 2D");
@@ -263,9 +247,9 @@ impl Texture2D {
         let metadata = Some(Texture2DMeta {
             width: width as u32,
             height: height as u32,
-            internal_format,
-            format,
-            type_,
+            internal_format: F::INTERNAL_FORMAT,
+            format: F::FORMAT,
+            type_: F::TYPE,
         });
         Ok(Texture2D {
             texture,
@@ -318,7 +302,7 @@ impl Texture2D {
         Texture2DBoundMut { texture_2d: self }
     }
 
-    pub fn read_pixel(&self, x: i32, y: i32) -> Result<Pixel, JsValue> {
+    pub fn read_pixel(&self, x: i32, y: i32) -> Result<PixelType, JsValue> {
         // Create and bind the framebuffer
         let reader = self.gl.create_framebuffer();
         self.gl
@@ -338,28 +322,28 @@ impl Texture2D {
 
         let value = match (*format, *type_) {
             (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE) => {
-                let val = u8::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RU8(val))
+                let val = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RU8(val))
             }
             (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::SHORT) => {
-                let val = i16::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RI16(val))
+                let val = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RI16(val))
             }
             (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT) => {
-                let val = i32::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RI32(val))
+                let val = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RI32(val))
             }
             (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT) => {
-                let val = f32::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RF32(val))
+                let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RF32(val))
             }
             (WebGl2RenderingContext::RGB, WebGl2RenderingContext::UNSIGNED_BYTE) => {
                 let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RGBU8(val))
+                Ok(PixelType::RGBU8(val))
             }
             (WebGl2RenderingContext::RGBA, WebGl2RenderingContext::UNSIGNED_BYTE) => {
                 let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
-                Ok(Pixel::RGBAU8(val))
+                Ok(PixelType::RGBAU8(val))
             }
             _ => Err(JsValue::from_str(
                 "Pixel retrieval not implemented for that texture format.",
@@ -383,129 +367,6 @@ impl Texture2D {
             .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
 
         value
-    }
-}
-
-pub enum Pixel {
-    RU8(u8),
-    RI16(i16),
-    RI32(i32),
-    RF32(f32),
-    RGBU8([u8; 3]),
-    RGBAU8([u8; 4]),
-}
-
-impl From<Pixel> for JsValue {
-    fn from(p: Pixel) -> Self {
-        match p {
-            Pixel::RU8(v) => JsValue::from_serde(&v).unwrap(),
-            Pixel::RI16(v) => JsValue::from_serde(&v).unwrap(),
-            Pixel::RI32(v) => JsValue::from_serde(&v).unwrap(),
-            Pixel::RF32(v) => JsValue::from_serde(&v).unwrap(),
-            Pixel::RGBU8(v) => JsValue::from_serde(&v).unwrap(),
-            Pixel::RGBAU8(v) => JsValue::from_serde(&v).unwrap(),
-        }
-    }
-}
-
-trait TextureData: std::marker::Sized {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue>;
-}
-
-impl TextureData for u8 {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Uint8Array::new_with_length(1);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
-            Some(&pixels),
-        )?;
-
-        Ok(pixels.to_vec()[0])
-    }
-}
-impl TextureData for [u8; 3] {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Uint8Array::new_with_length(3);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RGB,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
-            Some(&pixels),
-        )?;
-        let pixels = pixels.to_vec();
-        Ok([pixels[0], pixels[1], pixels[2]])
-    }
-}
-impl TextureData for [u8; 4] {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Uint8Array::new_with_length(4);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RGBA,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
-            Some(&pixels),
-        )?;
-        let pixels = pixels.to_vec();
-        Ok([pixels[0], pixels[1], pixels[2], pixels[3]])
-    }
-}
-impl TextureData for i16 {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Int16Array::new_with_length(1);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::SHORT,
-            Some(&pixels),
-        )?;
-
-        Ok(pixels.to_vec()[0])
-    }
-}
-impl TextureData for i32 {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Int32Array::new_with_length(1);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::INT,
-            Some(&pixels),
-        )?;
-
-        Ok(pixels.to_vec()[0])
-    }
-}
-impl TextureData for f32 {
-    fn read_pixel(gl: &WebGl2RenderingContext, x: i32, y: i32) -> Result<Self, JsValue> {
-        let pixels = js_sys::Float32Array::new_with_length(1);
-        gl.read_pixels_with_opt_array_buffer_view(
-            x,
-            y,
-            1,
-            1,
-            WebGl2RenderingContext::RED,
-            WebGl2RenderingContext::FLOAT,
-            Some(&pixels),
-        )?;
-
-        Ok(pixels.to_vec()[0])
     }
 }
 
@@ -656,5 +517,3 @@ impl<'a> Texture2DBoundMut<'a> {
         });
     }
 }
-
-

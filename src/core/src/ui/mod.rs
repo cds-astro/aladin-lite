@@ -49,19 +49,21 @@ pub struct Gui {
 
     pub needs_repaint: std::sync::Arc<NeedRepaint>,
     pub last_text_cursor_pos: Option<egui::Pos2>,
+
+    pub aladin_lite_div: String,
 }
 
 pub use crate::ui::input::GuiRef;
 use crate::ui::input::*;
 use crate::log::log;
-use crate::core::WebGl2Context;
+use al_core::WebGl2Context;
 impl Gui {
-    pub fn new(gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
+    pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
         /*let mut backend = egui_web::WebBackend::new("mycanvas")
             .expect("Failed to make a web backend for egui");
         */
         let ctx = egui::CtxRef::default();
-        let painter = WebGl2Painter::new(gl.clone())?;
+        let painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let mut input: egui_web::backend::WebInput = Default::default();
 
         let gallery = WidgetGallery::default();
@@ -80,6 +82,8 @@ impl Gui {
 
             needs_repaint: Default::default(),
             last_text_cursor_pos: None,
+
+            aladin_lite_div: aladin_lite_div.to_string()
         };
 
         let gui_ref = GuiRef(std::sync::Arc::new(egui::mutex::Mutex::new(gui)));
@@ -105,6 +109,11 @@ impl Gui {
 
     pub fn is_pointer_over_ui(&self) -> bool {
         self.ctx.wants_pointer_input()
+    }
+
+    pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
+        let egui::layers::LayerId { order, .. } = self.ctx.layer_id_at(egui::Pos2::new(sx, sy)).unwrap();
+        order != egui::layers::Order::Background
     }
 
     pub fn render(&mut self) -> Result<(), JsValue> {

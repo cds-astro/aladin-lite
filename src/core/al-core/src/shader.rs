@@ -76,7 +76,7 @@ pub struct Shader {
     uniform_locations: UniformLocations,
 }
 
-use crate::core::WebGl2Context;
+use crate::webgl_ctx::WebGl2Context;
 impl Shader {
     pub fn new(gl: &WebGl2Context, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
         let vert_shader = compile_shader(gl, WebGl2RenderingContext::VERTEX_SHADER, &vert_src)?;
@@ -117,19 +117,7 @@ impl UniformType for i32 {
         gl.uniform1i(location, *value);
     }
 }
-use crate::transfert_function::TransferFunction;
-impl UniformType for TransferFunction {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1i(location, *value as i32);
-    }
-}
-/*use crate::shaders::Colormap;
-impl UniformType for Colormap {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1i(location, *value as i32);
-    }
-}
-*/
+
 impl UniformType for f32 {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, *value);
@@ -138,12 +126,6 @@ impl UniformType for f32 {
 impl UniformType for f64 {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, *value as f32);
-    }
-}
-use crate::time::Time;
-impl UniformType for Time {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1f(location, value.0);
     }
 }
 
@@ -161,17 +143,6 @@ impl UniformType for &[f64] {
 impl UniformType for &[i32] {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1iv_with_i32_array(location, value);
-    }
-}
-use crate::Angle;
-impl UniformType for Angle<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1f(location, value.0);
-    }
-}
-impl UniformType for Angle<f64> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform1f(location, value.0 as f32);
     }
 }
 
@@ -223,18 +194,6 @@ impl UniformType for Vector4<f64> {
     }
 }
 
-use crate::color::Color;
-impl UniformType for Color {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
-    }
-}
-impl<'a> UniformType for &'a Color {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
-    }
-}
-
 use cgmath::Matrix4;
 impl UniformType for Matrix4<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
@@ -249,7 +208,7 @@ impl UniformType for Matrix4<f64> {
     }
 }
 
-use crate::core::Texture2D;
+use super::texture::Texture2D;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Active the texture unit of the texture
@@ -268,8 +227,12 @@ pub struct ShaderBound<'a> {
     gl: WebGl2Context,
 }
 
-use crate::core::{
-    ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
+use crate::{
+    object::{
+        VertexArrayObject,
+        ShaderVertexArrayObjectBound,
+        ShaderVertexArrayObjectBoundRef
+    },
 };
 impl<'a> ShaderBound<'a> {
     fn get_uniform_location(&self, name: &str) -> Option<&WebGlUniformLocation> {

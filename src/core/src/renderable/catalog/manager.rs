@@ -1,11 +1,15 @@
 use super::source::Source;
 use crate::renderable::projection::*;
 use crate::{
-    core::{Texture2D, VecData, VertexArrayObject, WebGl2Context},
     resources::Resources,
-    core::Shader,
     shaders::Colormap,
-    FormatImageType, ShaderManager,
+    ShaderManager,
+};
+use al_core::{
+    Texture2D, VecData, VertexArrayObject,
+    WebGl2Context,
+    shader::Shader,
+    format::ImageFormatType
 };
 use std::collections::HashMap;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
@@ -46,7 +50,7 @@ impl Manager {
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
-        let kernel_texture = Texture2D::create_from_path(
+        let kernel_texture = Texture2D::create_from_path<al_core::format::RGBA8U>(
             gl,
             "kernel",
             &kernel_filename,
@@ -70,11 +74,10 @@ impl Manager {
                     WebGl2RenderingContext::CLAMP_TO_EDGE,
                 ),
             ],
-            FormatImageType::PNG,
         )?;
         //let _ext = gl.get_extension("EXT_color_buffer_float");
         // Initialize texture for framebuffer
-        let fbo_texture = Texture2D::create_empty_with_format(
+        let fbo_texture = Texture2D::create_empty_with_format<al_core::format::R8UI>(
             gl,
             768,
             768,
@@ -97,10 +100,7 @@ impl Manager {
                     WebGl2RenderingContext::TEXTURE_WRAP_T,
                     WebGl2RenderingContext::CLAMP_TO_EDGE,
                 ),
-            ],
-            WebGl2RenderingContext::R8 as i32, // internal format
-            WebGl2RenderingContext::RED,       // format
-            WebGl2RenderingContext::UNSIGNED_BYTE, // type
+            ]
         )?;
         // Create and bind the framebuffer
         let fbo = gl.create_framebuffer();

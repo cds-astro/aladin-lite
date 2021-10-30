@@ -57,3 +57,13 @@ impl Mul<f32> for DeltaTime {
         DeltaTime(self.0 * factor)
     }
 }
+use web_sys::WebGlUniformLocation;
+use al_core::{
+    shader::UniformType,
+    WebGl2Context
+};
+impl UniformType for Time {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1f(location, value.0);
+    }
+}

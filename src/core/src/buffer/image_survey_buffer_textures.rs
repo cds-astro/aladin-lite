@@ -61,7 +61,8 @@ impl From<&mut Texture> for TextureCellItem {
     }
 }
 
-use crate::{buffer::HiPSConfig, core::Texture2DArray};
+use crate::buffer::HiPSConfig;
+use al_core::Texture2DArray;
 use std::collections::HashMap;
 
 use crate::time::Time;
@@ -138,20 +139,21 @@ pub struct ImageSurveyTextures {
 use crate::math::LonLatT;
 use crate::JsValue;
 use crate::{
-    async_task::{SendTileToGPU, TaskExecutor, TaskResult, TaskType},
-    buffer::Image,
+    async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType},
     WebGl2Context,
 };
+use al_core::image::Image;
+use al_core::format::ImageFormat;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
-fn create_texture_array(
+fn create_texture_array<F: ImageFormat>(
     gl: &WebGl2Context,
     config: &HiPSConfig,
 ) -> Result<Texture2DArray, JsValue> {
     let texture_size = config.get_texture_size();
     let num_textures_by_side_slice = config.num_textures_by_side_slice();
     let num_slices = config.num_slices();
-    Texture2DArray::create_empty(
+    Texture2DArray::create_empty::<F>(
         gl,
         texture_size * num_textures_by_side_slice,
         texture_size * num_textures_by_side_slice,
@@ -177,7 +179,6 @@ fn create_texture_array(
                 WebGl2RenderingContext::CLAMP_TO_EDGE,
             ),
         ],
-        config.format(),
     )
 }
 
@@ -302,7 +303,7 @@ impl ImageSurveyTextures {
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
             let mut exec_ref = self.exec.borrow_mut();
-            let task = SendTileToGPU::new(
+            let task = ImageTile2GpuTask::<I>::new(
                 &tile,
                 texture,
                 image,
@@ -314,7 +315,7 @@ impl ImageSurveyTextures {
             let tile = tile;
             exec_ref
                 .spawner()
-                .spawn(TaskType::SendTileToGPU(tile.clone()), async move {
+                .spawn(TaskType::ImageTile2GpuTask(tile.clone()), async move {
                     task.await;
 
                     TaskResult::TileSentToGPU { tile }
@@ -574,7 +575,7 @@ impl ImageSurveyTextures {
 }
 use crate::log::*;
 use crate::buffer::TextureUniforms;
-use crate::core::{SendUniforms, ShaderBound};
+use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         if self.is_ready() {

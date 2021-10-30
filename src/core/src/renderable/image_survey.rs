@@ -1,5 +1,9 @@
 use crate::buffer::Texture;
 use crate::healpix_cell::HEALPixCell;
+use al_core::{
+    image::ImageBuffer,
+    format::{RGB8U, RGBA8U, R32F, R8UI, R16I, R32I}
+};
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
@@ -225,7 +229,7 @@ impl RecomputeRasterizer for UnZoom {
 }
 
 use crate::camera::CameraViewPort;
-use crate::core::WebGl2Context;
+use al_core::WebGl2Context;
 
 use crate::renderable::projection::Projection;
 
@@ -254,7 +258,7 @@ pub struct GrayscaleParameter {
     max_value: f32,
 }
 
-use crate::core::{Shader, ShaderBound};
+use al_core::shader::{Shader, ShaderBound};
 impl SendUniforms for GrayscaleParameter {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
@@ -353,7 +357,7 @@ impl Color {
     }
 }
 
-use crate::core::SendUniforms;
+use al_core::shader::SendUniforms;
 impl SendUniforms for Color {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
@@ -543,7 +547,7 @@ pub struct ImageSurvey {
     size_idx_vertices_buf: u32,
 }
 use crate::camera::UserAction;
-use crate::core::Pixel;
+use al_core::pixel::PixelType;
 use crate::math::LonLatT;
 use crate::utils;
 use web_sys::WebGl2RenderingContext;
@@ -697,7 +701,7 @@ impl ImageSurvey {
         })
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<Pixel, JsValue> {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<PixelType, JsValue> {
         // Get the array of textures from that survey
         let pos_tex = self
             .textures
@@ -1024,11 +1028,12 @@ pub struct ImageSurveys {
 
 use crate::buffer::Tiles;
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
-use crate::buffer::{TileArrayBufferImage, TileHTMLImage};
+use crate::buffer::{FitsImage, FitsImageBuffer, HTMLImage, TileConfigType};
 
 use crate::coo_conversion::CooSystem;
 use crate::shaders::Colormaps;
 use crate::Resources;
+use al_core::image::Image;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -1061,7 +1066,7 @@ impl ImageSurveys {
         }
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>, layer: &str) -> Result<Pixel, JsValue> {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, layer: &str) -> Result<PixelType, JsValue> {
         if let Some(layer) = self.layers.get(layer) {
             // Read the pixel from the first survey of layer
             let survey = layer.names.first().unwrap();
@@ -1336,34 +1341,80 @@ impl ImageSurveys {
                 match result {
                     TileResolved::Missing { time_req } => {
                         let missing = true;
-                        let default_image = textures.config().get_black_tile();
-                        textures.push::<Rc<TileArrayBufferImage>>(
-                            tile,
-                            default_image,
-                            time_req,
-                            missing,
-                        );
-                    }
+                        let tile_conf = &textures.config.tile_config;
+                        match tile_conf {
+                            TileConfigType::RGBA8U { config } => {
+                                textures.push::<ImageBuffer<RGBA8U>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            },
+                            TileConfigType::RGB8U { config } => {
+                                textures.push::<ImageBuffer<RGB8U>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            },
+                            TileConfigType::R32F { config } => {
+                                textures.push::<ImageBuffer<R32F>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            },
+                            TileConfigType::R8UI { config } => {
+                                textures.push::<ImageBuffer<R8UI>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            },
+                            TileConfigType::R16I { config } => {
+                                textures.push::<ImageBuffer<R16I>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            },
+                            TileConfigType::R32I { config } => {
+                                textures.push::<ImageBuffer<R32I>>(
+                                    tile,
+                                    *config.get_default_tile(),
+                                    time_req,
+                                    missing,
+                                );
+                            }
+                        }
+                    },
                     TileResolved::Found { image, time_req } => {
                         let missing = false;
                         match image {
-                            RetrievedImageType::FITSImage { image, metadata } => {
-                                // Update the metadata found in the header of the
-                                // FITS tile received
-                                if let Some(blank) = metadata.blank {
-                                    textures.config.blank = blank;
-                                    textures.config.set_black_tile_value(blank);
-                                }
-                                textures.config.scale = metadata.bscale;
-                                textures.config.offset = metadata.bzero;
-                                //self.set_metadata_fits_surveys(&tile.root_url, metadata);
-                                // Update the blank textures
-                                //textures.config.set_black_tile_value(0.0);
-                                textures
-                                    .push::<TileArrayBufferImage>(tile, image, time_req, missing);
-                            }
+                            RetrievedImageType::FitsImage_R32F { image } => {
+                                // update the metadata
+                                textures.config.set_fits_metadata(image.bscale, image.bzero, image.blank);
+                                textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
+                            },
+                            RetrievedImageType::FitsImage_R32I { image } => {
+                                textures.config.set_fits_metadata(image.bscale, image.bzero, image.blank);
+                                textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
+                            },
+                            RetrievedImageType::FitsImage_R16I { image } => {
+                                textures.config.set_fits_metadata(image.bscale, image.bzero, image.blank);
+                                textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
+                            },
+                            RetrievedImageType::FitsImage_R8UI { image } => {
+                                textures.config.set_fits_metadata(image.bscale, image.bzero, image.blank);
+                                textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
+                            },
                             RetrievedImageType::CompressedImage { image } => {
-                                textures.push::<TileHTMLImage>(tile, image, time_req, missing);
+                                textures.push::<HTMLImage>(tile, image, time_req, missing);
                             }
                         }
                     }

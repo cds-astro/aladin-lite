@@ -466,6 +466,9 @@ export let View = (function() {
         // various listeners
         let onDblClick = function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
+            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+                return;
+            }
 
             //var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
             try {
@@ -488,15 +491,18 @@ export let View = (function() {
             else {
                 radec = lonlat;
             }*/
-
+            
             view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
         if (! hasTouchEvents) {
             $(view.reticleCanvas).dblclick(onDblClick);
         }
         
-        
         $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
+            var xymouse = view.imageCanvas.relMouseCoords(e);
+            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+                return;
+            }
             // zoom pinching
             if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
                 view.dragging = false;
@@ -542,6 +548,7 @@ export let View = (function() {
 
         //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
         $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
+            var xymouse = view.imageCanvas.relMouseCoords(e);
             if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -611,7 +618,6 @@ export let View = (function() {
                 }
             }
 
-            var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.mode==View.TOOL_SIMBAD_POINTER) {
                 var radec = view.aladin.pix2world(xymouse.x, xymouse.y);
@@ -686,13 +692,20 @@ export let View = (function() {
             view.refreshProgressiveCats();
 
             view.requestRedraw(true);
-            view.aladin.webglAPI.releaseLeftButtonMouse();
+            view.aladin.webglAPI.releaseLeftButtonMouse(xymouse.x, xymouse.y);
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
+        var mouseOnUi = false;
         let webglAPI = view.aladin.webglAPI;
+        let p = null;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
+            var xymouse = view.imageCanvas.relMouseCoords(e);
+            p = xymouse;
+            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+                return;
+            }
 
             if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
 
@@ -716,7 +729,8 @@ export let View = (function() {
                 return;
             }
 
-            var xymouse = view.imageCanvas.relMouseCoords(e);
+
+
             if (!view.dragging || hasTouchEvents) {
                 // update location box
                 updateLocation(view, xymouse.x, xymouse.y);
@@ -803,6 +817,8 @@ export let View = (function() {
                 s1 = {x: view.dragx, y: view.dragy};
                 s2 = {x: xymouse.x, y: xymouse.y};
             }
+
+
             
             // TODO : faut il faire ce test ??
 //            var distSquared = xoffset*xoffset+yoffset*yoffset;
@@ -872,9 +888,16 @@ export let View = (function() {
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
 
-        $(view.reticleCanvas).on('wheel', function(event) {
+        $(view.reticleCanvas).on('wheel', function(event) {            
             event.preventDefault();
             event.stopPropagation();
+            //var xymouse = view.imageCanvas.relMouseCoords(event);
+
+            if(view.aladin.webglAPI.posOnUi(p.x, p.y)) {
+                return;
+            }
+            //var xymouse = view.imageCanvas.relMouseCoords(event);
+            //if(mouseOnUi) {return;}
             //var level = view.zoomLevel;
 
             var delta = event.deltaY;

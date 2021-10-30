@@ -38,3 +38,18 @@ impl From<&Color> for String {
         color
     }
 }
+use web_sys::WebGlUniformLocation;
+use al_core::{
+    WebGl2Context,
+    shader::UniformType
+};
+impl UniformType for Color {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+    }
+}
+impl<'a> UniformType for &'a Color {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+    }
+}

@@ -21,7 +21,12 @@ use {
 };
 use web_sys::console;
 use crate::log::*;
-use crate::{core::{VecData, VertexArrayObject, Shader}, shader::{ShaderId, ShaderManager}};
+use al_core::{
+    VecData,
+    VertexArrayObject,
+    shader::Shader
+};
+use crate::shader::{ShaderId, ShaderManager};
 type Gl = WebGl2RenderingContext;
 
 pub struct WebGl2Painter {
@@ -58,10 +63,10 @@ struct UserTexture {
     gl_texture: Option<Texture2D>,
 }
 
-use crate::core::WebGl2Context;
-use crate::core::Texture2D;
+use al_core::WebGl2Context;
+use al_core::Texture2D;
 impl WebGl2Painter {
-    pub fn new(gl: WebGl2Context) -> Result<WebGl2Painter, JsValue> {
+    pub fn new(aladin_lite_div: &str, gl: WebGl2Context) -> Result<WebGl2Painter, JsValue> {
         /*let canvas = gl.canvas()
             .unwrap()
             .dyn_into::<web_sys::HtmlCanvasElement>().unwrap();*/
@@ -69,7 +74,7 @@ impl WebGl2Painter {
         let document = window.document().unwrap();
         let canvas = document
             // Get the aladin div element
-            .get_element_by_id("aladin-lite-div")
+            .get_element_by_id(aladin_lite_div)
             .unwrap()
             // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-imageCanvas")
@@ -315,7 +320,7 @@ impl WebGl2Painter {
             if user_texture.gl_texture.is_none() {
                 let pixels = std::mem::take(&mut user_texture.pixels);
 
-                let gl_texture = Texture2D::create_from_raw_pixels(
+                let gl_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
                     &gl,
                     user_texture.size.0 as i32,
                     user_texture.size.1 as i32,
@@ -339,7 +344,6 @@ impl WebGl2Painter {
                             WebGl2RenderingContext::CLAMP_TO_EDGE,
                         ),
                     ],
-                    crate::image_fmt::FormatImageType::PNG,
                     Some(&pixels)
                 ).unwrap();
 

@@ -32,10 +32,10 @@ pub struct ProjetedGrid {
     hide_labels: bool,
 }
 
-use al_core::{VecData, VertexArrayObject};
 use crate::renderable::projection::Projection;
 use crate::ShaderManager;
 use al_core::WebGl2Context;
+use al_core::{VecData, VertexArrayObject};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 impl ProjetedGrid {

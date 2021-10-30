@@ -14,7 +14,7 @@ pub trait ImageFormat {
 use web_sys::WebGl2RenderingContext;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RGB8U;
-impl ImageFormat for RGB8U {    
+impl ImageFormat for RGB8U {
     type P = [u8; 3];
 
     const NUM_CHANNELS: usize = 3;
@@ -125,5 +125,20 @@ pub enum ImageFormatType {
     R8UI,
     R16I,
     R32I,
-    R32F
+    R32F,
+}
+
+impl ImageFormatType {
+    pub fn get_ext_file(&self) -> &'static str {
+        match self {
+            ImageFormatType::RGBA32F => unimplemented!(),
+            ImageFormatType::RGB32F => unimplemented!(),
+            ImageFormatType::RGBA8U => RGBA8U::EXT,
+            ImageFormatType::RGB8U => RGB8U::EXT,
+            ImageFormatType::R8UI => R8UI::EXT,
+            ImageFormatType::R16I => R16I::EXT,
+            ImageFormatType::R32I => R32I::EXT,
+            ImageFormatType::R32F => R32F::EXT,
+        }
+    }
 }

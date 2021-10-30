@@ -1,6 +1,6 @@
 use crate::{
     async_task::TaskExecutor,
-    async_task::{BuildCatalogIndex, ParseTable, TaskResult, TaskType},
+    async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType},
     buffer::TileDownloader,
     camera::CameraViewPort,
     color::Color,
@@ -22,10 +22,7 @@ use crate::{
     utils,
 };
 
-use al_core::{
-    WebGl2Context,
-    pixel::PixelType
-};
+use al_core::{pixel::PixelType, WebGl2Context};
 
 use cgmath::Vector4;
 
@@ -211,7 +208,6 @@ impl App {
         let catalog_loaded = false;
 
         let colormaps = Colormaps::new(&gl, &resources)?;
-
 
         let ui = Gui::new(aladin_div_name, &gl)?;
         let app = App {
@@ -502,7 +498,10 @@ impl App {
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
-        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw | self.ui.lock().redraw_needed();
+        self.rendering = blending_anim_occuring
+            | has_camera_moved
+            | self.request_redraw
+            | self.ui.lock().redraw_needed();
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -526,7 +525,12 @@ impl App {
         self.set_center::<P>(&center);
     }
 
-    pub fn read_pixel<P: Projection>(&self, x: f64, y: f64, layer: &str) -> Result<PixelType, JsValue> {
+    pub fn read_pixel<P: Projection>(
+        &self,
+        x: f64,
+        y: f64,
+        layer: &str,
+    ) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world::<P>(&pos) {
             self.surveys.read_pixel(&lonlat, layer)
@@ -538,7 +542,7 @@ impl App {
         }
     }
 
-    pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {        
+    pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
         if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
@@ -640,27 +644,29 @@ impl App {
         let table = table;
         let c = self.colormaps.get(&colormap);
 
-        exec_ref.spawner().spawn(TaskType::ParseTableTask, async move {
-            let mut stream = ParseTableTask::<[f32; 2]>::new(table);
-            let mut results: Vec<Source> = vec![];
+        exec_ref
+            .spawner()
+            .spawn(TaskType::ParseTableTask, async move {
+                let mut stream = ParseTableTask::<[f32; 2]>::new(table);
+                let mut results: Vec<Source> = vec![];
 
-            while let Some(item) = stream.next().await {
-                let item: &[f32] = item.as_ref();
-                results.push(item.into());
-            }
+                while let Some(item) = stream.next().await {
+                    let item: &[f32] = item.as_ref();
+                    results.push(item.into());
+                }
 
-            let mut stream_sort = BuildCatalogIndex::new(results);
-            while stream_sort.next().await.is_some() {}
+                let mut stream_sort = BuildCatalogIndex::new(results);
+                while stream_sort.next().await.is_some() {}
 
-            // The stream is finished, we get the sorted sources
-            let results = stream_sort.sources;
+                // The stream is finished, we get the sorted sources
+                let results = stream_sort.sources;
 
-            TaskResult::TableParsed {
-                name,
-                sources: results,
-                colormap: c,
-            }
-        });
+                TaskResult::TableParsed {
+                    name,
+                    sources: results,
+                    colormap: c,
+                }
+            });
     }
 
     pub fn resize_window<P: Projection>(&mut self, width: f32, height: f32) {
@@ -852,7 +858,7 @@ impl App {
             return;
         }
 
-        if(self.ui.lock().pos_over_ui(sx, sy)) {
+        if (self.ui.lock().pos_over_ui(sx, sy)) {
             return;
         }
         // Start inertia here

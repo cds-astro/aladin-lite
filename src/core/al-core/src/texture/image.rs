@@ -131,13 +131,13 @@ impl ArrayBuffer for ArrayF64 {
     }
 }
 
-use super::pixel::Pixel;
 use super::format::ImageFormat;
+use super::pixel::Pixel;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct ImageBuffer<T>
 where
-    T: ImageFormat
+    T: ImageFormat,
 {
     buf: <<T as ImageFormat>::P as Pixel>::Container,
     size: Vector2<i32>,
@@ -145,18 +145,21 @@ where
 }
 
 impl<T> ImageBuffer<T>
-where 
-    T: ImageFormat
+where
+    T: ImageFormat,
 {
     pub fn new(buf: &[<<T as ImageFormat>::P as Pixel>::Item], width: i32) -> Self {
         let size_buf = width * width * (T::NUM_CHANNELS as i32);
         assert_eq!(size_buf, buf.len() as i32);
         let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
         let size = Vector2::new(width, width);
-        Self { buf, size, format: std::marker::PhantomData }
+        Self {
+            buf,
+            size,
+            format: std::marker::PhantomData,
+        }
     }
 }
-
 
 use super::Texture2DArray;
 pub trait Image {
@@ -175,15 +178,15 @@ pub trait Image {
     // The size of the image
     fn get_size(&self) -> &Vector2<i32>;
 }
-/*use std::rc::Rc;
+use std::rc::Rc;
 impl<I> Image for Rc<I>
 where
     I: Image,
 {
     type T = I::T;
 
-    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> ImageBuffer<Self::T> {
-        I::allocate(width, pixel_fill)
+    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self {
+        Rc::new(I::allocate(width, pixel_fill))
     }
 
     fn tex_sub_image_3d(
@@ -202,14 +205,17 @@ where
         image.get_size()
     }
 }
-*/
+
 impl<I> Image for ImageBuffer<I>
 where
-    I: ImageFormat
+    I: ImageFormat,
 {
     type T = I;
 
-    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> ImageBuffer<Self::T> {
+    fn allocate(
+        width: i32,
+        pixel_fill: &<<Self as Image>::T as ImageFormat>::P,
+    ) -> ImageBuffer<Self::T> {
         let size_buf = (width * width * (Self::T::NUM_CHANNELS as i32)) as usize;
 
         let pixels = pixel_fill

@@ -34,8 +34,8 @@ impl VertexBufferObject for ArrayBufferInstanced {
     }
 }
 
-use super::buffer_data::BufferDataStorage;
 use super::array_buffer::VertexAttribPointerType;
+use super::buffer_data::BufferDataStorage;
 
 impl ArrayBufferInstanced {
     pub fn new<'a, B: BufferDataStorage<'a, f32>>(

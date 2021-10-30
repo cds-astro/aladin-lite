@@ -1,13 +1,14 @@
-
 use super::image::ArrayBuffer;
+use super::image::{ArrayF32, ArrayI16, ArrayI32, ArrayU8};
 use wasm_bindgen::JsValue;
-use super::image::{ArrayI16, ArrayI32, ArrayF32, ArrayU8};
 use web_sys::WebGl2RenderingContext;
 
 use crate::webgl_ctx::WebGl2Context;
-pub trait Pixel: AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone {
+pub trait Pixel:
+    AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone
+{
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
-    type Container: ArrayBuffer<Item=Self::Item>;
+    type Container: ArrayBuffer<Item = Self::Item>;
 
     const BLACK: Self;
 

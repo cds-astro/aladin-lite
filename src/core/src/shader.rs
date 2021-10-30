@@ -1,6 +1,6 @@
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 use al_core::shader::Shader;
 use al_core::WebGl2Context;
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 
 pub type VertId = Cow<'static, str>;
 pub type FragId = Cow<'static, str>;
@@ -46,8 +46,8 @@ pub struct FileSrc {
     pub content: String,
 }
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 impl ShaderManager {
     pub fn new(_gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
         let src = files

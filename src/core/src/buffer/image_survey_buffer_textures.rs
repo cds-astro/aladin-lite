@@ -142,8 +142,8 @@ use crate::{
     async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType},
     WebGl2Context,
 };
-use al_core::image::Image;
 use al_core::format::ImageFormat;
+use al_core::image::Image;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array<F: ImageFormat>(
@@ -183,6 +183,7 @@ fn create_texture_array<F: ImageFormat>(
 }
 
 use super::Tile;
+use al_core::format::{ImageFormatType, R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
@@ -198,7 +199,16 @@ impl ImageSurveyTextures {
 
         let textures = HashMap::with_capacity(size);
 
-        let texture_2d_array = Rc::new(create_texture_array(gl, &config)?);
+        let texture_2d_array = match config.format() {
+            ImageFormatType::RGBA32F => unimplemented!(),
+            ImageFormatType::RGB32F => unimplemented!(),
+            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
+            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
+            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &config)?),
+            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &config)?),
+            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
+            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
+        };
 
         // The root textures have not been loaded
         let ready = false;
@@ -573,8 +583,8 @@ impl ImageSurveyTextures {
         self.texture_2d_array.clone()
     }
 }
-use crate::log::*;
 use crate::buffer::TextureUniforms;
+use crate::log::*;
 use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

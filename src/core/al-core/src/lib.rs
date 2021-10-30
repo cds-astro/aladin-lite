@@ -1,13 +1,13 @@
 mod object;
-pub mod texture;
 pub mod shader;
+pub mod texture;
 pub mod webgl_ctx;
 
-pub use texture::texture::{Texture2D, Texture2DBound, IdxTextureUnit};
-pub use texture::Texture2DArray;
-pub use texture::image;
 pub use texture::format;
+pub use texture::image;
 pub use texture::pixel;
+pub use texture::texture::{IdxTextureUnit, Texture2D, Texture2DBound};
+pub use texture::Texture2DArray;
 
 pub use webgl_ctx::WebGl2Context;
 

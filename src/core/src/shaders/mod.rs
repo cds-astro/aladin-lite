@@ -102,7 +102,7 @@ impl Colormaps {
         .cloned()
         .collect();
         let colormap_filename = rs.get_filename("colormaps").unwrap();
-        let tex = Texture2D::create_from_path<P= _, F=al_core::format::RGBA8U>(
+        let tex = Texture2D::create_from_path::<_, al_core::format::RGBA8U>(
             gl,
             "colormap",
             &colormap_filename,
@@ -165,10 +165,10 @@ pub struct Colormap {
     pub id: i32,
 }
 
-use al_core::Texture2D;
-use al_core::format::ImageFormatType;
 use crate::resources::Resources;
 use crate::shader::ShaderId;
+use al_core::format::ImageFormatType;
+use al_core::Texture2D;
 use al_core::WebGl2Context;
 use std::borrow::Cow;
 use wasm_bindgen::JsValue;

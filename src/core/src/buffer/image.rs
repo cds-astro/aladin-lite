@@ -4,24 +4,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 pub enum RetrievedImageType {
-    FitsImage_R32F {
-        image: FitsImage<R32F>
-    },
-    FitsImage_R32I {
-        image: FitsImage<R32I>
-    },
-    FitsImage_R16I {
-        image: FitsImage<R16I>
-    },
-    FitsImage_R8UI {
-        image: FitsImage<R8UI>
-    },
-    PNGImage_RGBA8U {
-        image: HTMLImage<RGBA8U>,
-    },
-    JPGImage_RGB8U {
-        image: HTMLImage<RGB8U>,
-    }
+    FitsImage_R32F { image: FitsImage<R32F> },
+    FitsImage_R32I { image: FitsImage<R32I> },
+    FitsImage_R16I { image: FitsImage<R16I> },
+    FitsImage_R8UI { image: FitsImage<R8UI> },
+    PNGImage_RGBA8U { image: HTMLImage<RGBA8U> },
+    JPGImage_RGB8U { image: HTMLImage<RGB8U> },
 }
 
 /*pub enum RequestType {
@@ -32,9 +20,9 @@ pub enum RetrievedImageType {
 use al_core::format::ImageFormatType;
 pub trait ImageRequest<F>
 where
-    F: ImageFormat
+    F: ImageFormat,
 {
-    type I: Image<T=F>;
+    type I: Image<T = F>;
 
     fn new() -> Self;
     fn send(
@@ -43,13 +31,10 @@ where
         fail: Option<&Function>,
         url: &str,
     ) -> Result<(), JsValue>;
-    fn image(
-        &self,
-        tile_width: i32,
-    ) -> Result<Self::I, JsValue>;
+    fn image(&self, tile_width: i32) -> Result<Self::I, JsValue>;
 }
 
-enum ImageRequestType {
+pub enum ImageRequestType {
     FitsR32FImageReq(FitsImageRequest),
     FitsR32IImageReq(FitsImageRequest),
     FitsR16IImageReq(FitsImageRequest),
@@ -57,6 +42,7 @@ enum ImageRequestType {
     PNGRGBA8UImageReq(CompressedImageRequest),
     JPGRGB8UImageReq(CompressedImageRequest),
 }
+
 impl ImageRequestType {
     fn send(
         &self,
@@ -65,28 +51,51 @@ impl ImageRequestType {
         url: &str,
     ) -> Result<(), JsValue> {
         match self {
-            ImageRequestType::FitsR32FImageReq(r) => r.send(success, fail, url),
-            ImageRequestType::FitsR32IImageReq(r) => r.send(success, fail, url),
-            ImageRequestType::FitsR16IImageReq(r) => r.send(success, fail, url),
-            ImageRequestType::FitsR8UIImageReq(r) => r.send(success, fail, url),
-            ImageRequestType::PNGRGBA8UImageReq(r) => r.send(success, fail, url),
-            ImageRequestType::JPGRGB8UImageReq(r) => r.send(success, fail, url),
+            ImageRequestType::FitsR32FImageReq(r) => {
+                <FitsImageRequest as ImageRequest<R32F>>::send(r, success, fail, url)
+            }
+            ImageRequestType::FitsR32IImageReq(r) => {
+                <FitsImageRequest as ImageRequest<R32I>>::send(r, success, fail, url)
+            }
+            ImageRequestType::FitsR16IImageReq(r) => {
+                <FitsImageRequest as ImageRequest<R16I>>::send(r, success, fail, url)
+            }
+            ImageRequestType::FitsR8UIImageReq(r) => {
+                <FitsImageRequest as ImageRequest<R8UI>>::send(r, success, fail, url)
+            }
+            ImageRequestType::PNGRGBA8UImageReq(r) => {
+                <CompressedImageRequest as ImageRequest<RGBA8U>>::send(r, success, fail, url)
+            }
+            ImageRequestType::JPGRGB8UImageReq(r) => {
+                <CompressedImageRequest as ImageRequest<RGB8U>>::send(r, success, fail, url)
+            }
         }
     }
-    fn image(
-        &self,
-        tile_width: i32,
-    ) -> Result<RetrievedImageType, JsValue> {
+
+    fn image(&self, tile_width: i32) -> Result<RetrievedImageType, JsValue> {
         match self {
-            ImageRequestType::FitsR32FImageReq(r) => Ok(RetrievedImageType::FitsImage_R32F { image: r.image(tile_width)? }),
-            ImageRequestType::FitsR32IImageReq(r) => Ok(RetrievedImageType::FitsImage_R32I { image: r.image(tile_width)? }),
-            ImageRequestType::FitsR16IImageReq(r) => Ok(RetrievedImageType::FitsImage_R16I { image: r.image(tile_width)? }),
-            ImageRequestType::FitsR8UIImageReq(r) => Ok(RetrievedImageType::FitsImage_R8UI { image: r.image(tile_width)? }),
-            ImageRequestType::PNGRGBA8UImageReq(r) => Ok(RetrievedImageType::PNGImage_RGBA8U { image: r.image(tile_width)? }),
-            ImageRequestType::JPGRGB8UImageReq(r) => Ok(RetrievedImageType::JPGImage_RGB8U { image: r.image(tile_width)? })
+            ImageRequestType::FitsR32FImageReq(r) => Ok(RetrievedImageType::FitsImage_R32F {
+                image: r.image(tile_width)?,
+            }),
+            ImageRequestType::FitsR32IImageReq(r) => Ok(RetrievedImageType::FitsImage_R32I {
+                image: r.image(tile_width)?,
+            }),
+            ImageRequestType::FitsR16IImageReq(r) => Ok(RetrievedImageType::FitsImage_R16I {
+                image: r.image(tile_width)?,
+            }),
+            ImageRequestType::FitsR8UIImageReq(r) => Ok(RetrievedImageType::FitsImage_R8UI {
+                image: r.image(tile_width)?,
+            }),
+            ImageRequestType::PNGRGBA8UImageReq(r) => Ok(RetrievedImageType::PNGImage_RGBA8U {
+                image: r.image(tile_width)?,
+            }),
+            ImageRequestType::JPGRGB8UImageReq(r) => Ok(RetrievedImageType::JPGImage_RGB8U {
+                image: r.image(tile_width)?,
+            }),
         }
     }
 }
+use super::Tile;
 
 pub struct TileRequest {
     // Is none when it is available for downloading a new fits
@@ -95,7 +104,7 @@ pub struct TileRequest {
     time_request: Time,
     // Flag telling if the tile has been copied so that
     // the HtmlImageElement can be reused to download another tile
-    ready: bool,
+    //ready: bool,
     resolved: Rc<Cell<ResolvedStatus>>,
     pub tile: Option<Tile>,
     closures: [Closure<dyn FnMut(&web_sys::Event)>; 2],
@@ -109,7 +118,6 @@ pub enum ResolvedStatus {
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
-use super::Tile;
 impl TileRequest {
     pub fn new(image_req: ImageRequestType) -> Self {
         // By default, we say the tile is available to be reused
@@ -123,12 +131,12 @@ impl TileRequest {
                 Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
             ),
         ];
-        let ready = true;
+        //let ready = true;
         let time_request = Time::now();
         Self {
             req: image_req,
             resolved,
-            ready,
+            //ready,
             tile,
             closures,
             time_request,
@@ -136,7 +144,7 @@ impl TileRequest {
     }
 
     pub fn send(&mut self, tile: Tile) -> Result<(), JsValue> {
-        assert!(self.is_ready());
+        //assert!(self.is_ready());
 
         self.tile = Some(tile.clone());
         let Tile {
@@ -145,7 +153,7 @@ impl TileRequest {
             format,
         } = tile;
 
-        self.ready = false;
+        //self.ready = false;
 
         let url = {
             let HEALPixCell(depth, idx) = cell;
@@ -206,15 +214,15 @@ impl TileRequest {
         resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Missing
     }
 
-    pub fn is_ready(&self) -> bool {
+    /*pub fn is_ready(&self) -> bool {
         self.ready
     }
 
     pub fn set_ready(&mut self) {
         self.ready = true;
-    }
+    }*/
 
-    pub fn clear(&mut self) {
+    /*pub fn clear(&mut self) {
         self.req.send(None, None, "").unwrap();
         self.ready = true;
         self.resolved.set(ResolvedStatus::NotResolved);
@@ -228,46 +236,48 @@ impl TileRequest {
         ];
         //self.tile = HEALPixCell(0, 13);
         self.time_request = Time::now();
-    }
+    }*/
 
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
     }
 
-    pub fn get_image(
-        &self,
-        tile_width: i32,
-    ) -> Result<RetrievedImageType, JsValue> {
+    pub fn get_image(&self, tile_width: i32) -> Result<RetrievedImageType, JsValue> {
         assert!(self.is_resolved());
         self.req.image(tile_width)
     }
 }
 
-impl Default for TileRequest {
-    fn default() -> Self {
-        TileRequest::new::<CompressedImageRequest>()
-    }
-}
-
-
 impl Drop for TileRequest {
-    fn drop(&mut self) {}
+    fn drop(&mut self) {
+        self.req.send(None, None, "").unwrap();
+        /*self.ready = true;
+        self.resolved.set(ResolvedStatus::NotResolved);
+        self.closures = [
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
+            Closure::wrap(
+                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
+            ),
+        ];*/
+    }
 }
 
 /* ------------------------------------------------------ */
 
 pub struct HTMLImage<F>
 where
-    F: FormatImage
+    F: ImageFormat,
 {
     image: web_sys::HtmlImageElement,
     size: Vector2<i32>,
-    format: std::marker::PhantomData<F>
+    format: std::marker::PhantomData<F>,
 }
 use cgmath::{Vector2, Vector3};
 impl<F> Image for HTMLImage<F>
-where 
-    F: FormatImage
+where
+    F: ImageFormat,
 {
     type T = F;
 
@@ -302,14 +312,14 @@ pub struct CompressedImageRequest {
     image: web_sys::HtmlImageElement,
 }
 
-use al_core::format::{RGBA8U, RGB8U, R32F, R16I, R8UI, R32I};
+use al_core::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 trait CompressedImageFormat: ImageFormat {}
 impl CompressedImageFormat for RGBA8U {}
 impl CompressedImageFormat for RGB8U {}
 
 impl<F> ImageRequest<F> for CompressedImageRequest
 where
-    F: CompressedImageFormat
+    F: CompressedImageFormat,
 {
     type I = HTMLImage<F>;
 
@@ -333,21 +343,16 @@ where
         Ok(())
     }
 
-    fn image(
-        &self,
-        _tile_width: i32
-    ) -> Result<Self::I, JsValue> {
+    fn image(&self, _tile_width: i32) -> Result<Self::I, JsValue> {
         let width = self.image.width() as i32;
         let height = self.image.height() as i32;
 
         let size = Vector2::new(width, height);
-        Ok(
-            HTMLImage {
-                size,
-                image: self.image.clone(),
-                format: std::marker::PhantomData
-            }
-        )
+        Ok(HTMLImage {
+            size,
+            image: self.image.clone(),
+            format: std::marker::PhantomData,
+        })
     }
 }
 
@@ -355,7 +360,7 @@ where
 
 pub struct FitsImage<F>
 where
-    F: ImageFormat
+    F: ImageFormat,
 {
     pub blank: Option<f32>,
     pub bzero: f32,
@@ -364,15 +369,32 @@ where
     pub image: ImageBuffer<F>,
 }
 
-use al_core::{texture::Texture2DArray, image::Image};
+use al_core::{image::Image, texture::Texture2DArray};
 impl<F> Image for FitsImage<F>
-where 
-    F: ImageFormat
+where
+    F: ImageFormat,
 {
     type T = F;
 
-    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> ImageBuffer<Self::T> {
-        self.image.allocate(width, pixel_fill)
+    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> FitsImage<F> {
+        let size_buf = (width * width * (Self::T::NUM_CHANNELS as i32)) as usize;
+
+        let pixels = pixel_fill
+            .as_ref()
+            .iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+
+        let image = ImageBuffer::<Self::T>::new(&pixels[..], width);
+
+        FitsImage {
+            blank: None,
+            bzero: 0.0,
+            bscale: 1.0,
+            image,
+        }
     }
 
     fn tex_sub_image_3d(
@@ -387,7 +409,7 @@ where
 
     // The size of the image
     fn get_size(&self) -> &Vector2<i32> {
-        self.image.size()
+        self.image.get_size()
     }
 }
 
@@ -400,28 +422,21 @@ use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
 use web_sys::XmlHttpRequestResponseType;
 
-use al_core::{
-    format::{R32F, R8UI, R16I, R32I},
-    image::ImageBuffer,
-};
 use al_core::format::ImageFormat;
+use al_core::image::ImageBuffer;
 trait FitsImageFormat: ImageFormat {
-    fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> where Self: Sized;
+    fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self>
+    where
+        Self: Sized;
 }
 
 impl FitsImageFormat for R32F {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::F32(data) = fits_data {
-            ImageBuffer::<R32F>::new(
-                &data.0,
-                width,
-            )
+            ImageBuffer::<R32F>::new(&data.0, width)
         } else if let DataType::F64(data) = fits_data {
             let data = data.0.into_iter().map(|v| v as f32).collect::<Vec<_>>();
-            ImageBuffer::<R32F>::new(
-                &data,
-                width,
-            )
+            ImageBuffer::<R32F>::new(&data, width)
         } else {
             unreachable!()
         }
@@ -430,10 +445,7 @@ impl FitsImageFormat for R32F {
 impl FitsImageFormat for R32I {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::I32(data) = fits_data {
-            ImageBuffer::<R32I>::new(
-                &data.0,
-                width,
-            )
+            ImageBuffer::<R32I>::new(&data.0, width)
         } else {
             unreachable!()
         }
@@ -442,10 +454,7 @@ impl FitsImageFormat for R32I {
 impl FitsImageFormat for R16I {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::I16(data) = fits_data {
-            ImageBuffer::<R16I>::new(
-                &data.0,
-                width,
-            )
+            ImageBuffer::<R16I>::new(&data.0, width)
         } else {
             unreachable!()
         }
@@ -454,10 +463,7 @@ impl FitsImageFormat for R16I {
 impl FitsImageFormat for R8UI {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::U8(data) = fits_data {
-            ImageBuffer::<R8UI>::new(
-                &data.0,
-                width,
-            )
+            ImageBuffer::<R8UI>::new(&data.0, width)
         } else {
             unreachable!()
         }
@@ -466,7 +472,7 @@ impl FitsImageFormat for R8UI {
 
 impl<F> ImageRequest<F> for FitsImageRequest
 where
-    F: FitsImageFormat
+    F: FitsImageFormat,
 {
     type I = FitsImage<F>;
 
@@ -492,10 +498,7 @@ where
         Ok(())
     }
 
-    fn image(
-        &self,
-        size: i32,
-    ) -> Result<Self::I, JsValue> {
+    fn image(&self, size: i32) -> Result<Self::I, JsValue> {
         // We know at this point the request is resolved
         let array_buf = js_sys::Uint8Array::new(self.image.response().unwrap().as_ref());
         let bytes = &array_buf.to_vec();
@@ -506,7 +509,7 @@ where
                 e
             ))
         })?;
-        
+
         let image = F::extract_image_from_fits(data, size);
 
         let bscale = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BSCALE") {
@@ -539,8 +542,7 @@ where
             // meta
             blank,
             bscale,
-            bzero
+            bzero,
         })
     }
 }
-

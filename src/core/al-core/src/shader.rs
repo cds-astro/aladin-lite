@@ -24,7 +24,6 @@ fn compile_shader(
     }
 }
 
-
 fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
     gl: &WebGl2Context,
     shaders: T,
@@ -227,12 +226,8 @@ pub struct ShaderBound<'a> {
     gl: WebGl2Context,
 }
 
-use crate::{
-    object::{
-        VertexArrayObject,
-        ShaderVertexArrayObjectBound,
-        ShaderVertexArrayObjectBoundRef
-    },
+use crate::object::{
+    ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
 };
 impl<'a> ShaderBound<'a> {
     fn get_uniform_location(&self, name: &str) -> Option<&WebGlUniformLocation> {

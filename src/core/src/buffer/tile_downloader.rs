@@ -5,33 +5,32 @@ use crate::buffer::HiPSConfig;
 // A power of two maximum simultaneous tile requests
 const NUM_EVENT_LISTENERS: usize = 32;
 
-struct Requests {
-    reqs: [Option<TileRequest>; NUM_EVENT_LISTENERS],
+struct RequestSystem {
+    reqs: Box<[Option<TileRequest>; NUM_EVENT_LISTENERS]>,
     //start_fits_req_idx: usize,
     free_slots_idx: Vec<usize>,
 }
-
-impl Requests {
+use super::image::ImageRequestType;
+use crate::buffer::image::ImageRequest;
+use al_core::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use std::convert::TryInto;
+impl RequestSystem {
     fn new() -> Self {
-        let reqs = [None; NUM_EVENT_LISTENERS];
-        let free_slots_idx = (0..NUM_EVENT_LISTENERS).iter().collect();
-        /*let mut reqs = Vec::with_capacity(NUM_EVENT_LISTENERS);
-        for _i in 0..NUM_EVENT_LISTENERS {
-            reqs.push(TileRequest(CompressedImageReq::new()));
-        }
-        let start_fits_req_idx = NUM_EVENT_LISTENERS >> 1;
-
-        for idx in start_fits_req_idx..NUM_EVENT_LISTENERS {
-            reqs[idx] = TileRequest(FitsImageReq::new());
+        let mut reqs: Vec<Option<TileRequest>> = Vec::with_capacity(NUM_EVENT_LISTENERS);
+        for _ in 0..NUM_EVENT_LISTENERS {
+            reqs.push(None);
         }
 
-        Requests {
+        let reqs = reqs.into_boxed_slice();
+        let reqs = unsafe {
+            Box::from_raw(Box::into_raw(reqs) as *mut [Option<TileRequest>; NUM_EVENT_LISTENERS])
+        };
+
+        let free_slots_idx = (0..NUM_EVENT_LISTENERS).into_iter().collect();
+
+        RequestSystem {
             reqs,
-            start_fits_req_idx,
-        }*/
-        Requests {
-            reqs,
-            free_slots_idx
+            free_slots_idx,
         }
     }
 
@@ -40,113 +39,100 @@ impl Requests {
             return None;
         }
 
-        let free_idx = free_slots_idx.pop().unwrap();
+        let free_idx = self.free_slots_idx.pop().unwrap();
 
         match format {
             ImageFormatType::RGBA8U => {
-                self.reqs[free_idx] = TileRequest(ImageRequestType::PNGRGBA8UImageReq::new(CompressedImageReq::new()));        
-            },
-            /*ImageFormatType::RGB8U => {
-                let mut cur_idx_comp = 0;
-                let mut html_image_req_available = true;
-
-                while html_image_req_available && !self.reqs[cur_idx_comp].is_ready() {
-                    cur_idx_comp += 1;
-                    if cur_idx_comp == self.start_fits_req_idx {
-                        html_image_req_available = false;
-                    }
-                }
-
-                if html_image_req_available {
-                    let req = &mut self.reqs[cur_idx_comp];
-                    assert!(req.is_ready());
-                    Some(req)
-                } else {
-                    None
-                }
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::PNGRGBA8UImageReq(
+                    <CompressedImageRequest as ImageRequest<RGBA8U>>::new(),
+                )));
             }
-            ImageFormatType::R32F | ImageFormatType::R8UI | ImageFormatType::R16I | ImageFormatType::R32I => {
-                let mut cur_idx_fits = self.start_fits_req_idx;
-                let mut fits_image_req_available = true;
-
-                while fits_image_req_available && !self.reqs[cur_idx_fits].is_ready() {
-                    cur_idx_fits += 1;
-                    if cur_idx_fits == NUM_EVENT_LISTENERS {
-                        fits_image_req_available = false;
-                    }
-                }
-
-                if fits_image_req_available {
-                    let req = &mut self.reqs[cur_idx_fits];
-                    assert!(req.is_ready());
-                    Some(req)
-                } else {
-                    None
-                }
+            ImageFormatType::RGB8U => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::JPGRGB8UImageReq(
+                    <CompressedImageRequest as ImageRequest<RGB8U>>::new(),
+                )));
             }
-            _ => unimplemented!(),*/
+            ImageFormatType::R32F => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32FImageReq(
+                    <FitsImageRequest as ImageRequest<R32F>>::new(),
+                )));
+            }
+            ImageFormatType::R8UI => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR8UIImageReq(
+                    <FitsImageRequest as ImageRequest<R8UI>>::new(),
+                )));
+            }
+            ImageFormatType::R16I => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR16IImageReq(
+                    <FitsImageRequest as ImageRequest<R16I>>::new(),
+                )));
+            }
+            ImageFormatType::R32I => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32IImageReq(
+                    <FitsImageRequest as ImageRequest<R32I>>::new(),
+                )));
+            }
+            _ => unimplemented!(),
         }
+
+        self.reqs[free_idx].as_mut()
     }
 
-    /*fn iter_mut<'a>(&'a mut self) -> RequestsIterMut<'a> {
-        RequestsIterMut(self.reqs.iter_mut())
-    }*/
-    fn resolved_requests(&mut self, tiles_uploaded_on_gpu: &HashSet<Tile>, surveys: &ImageSurveys) -> HashMap<Tile, TileResolved> {
-        let results = HashMap::new();
+    fn resolved_tiles(
+        &mut self,
+        tiles_uploaded_on_gpu: &HashSet<Tile>,
+        surveys: &ImageSurveys,
+    ) -> HashMap<Tile, TileResolved> {
+        let mut results = HashMap::new();
 
         for (idx, req) in self.reqs.iter_mut().enumerate() {
             // First, tag the tile requests as ready if they just have been
             // given to the GPU
-            if req.is_resolved() {
-                let tile = req.get_tile();
+            if let Some(request) = req {
+                if request.is_resolved() {
+                    let tile = request.get_tile();
+                    // A tile request can be reused if its cell texture is available/readable
+                    // by the GPU
+                    let available_req = tiles_uploaded_on_gpu.contains(tile);
+                    if available_req {
+                        *req = None;
+                        self.free_slots_idx.push(idx);
+                    } else {
+                        // Time when the tile has been received
+                        let time_req = request.get_time_request();
 
-                // A tile request can be reused if its cell texture is available/readable
-                // by the GPU
-                let available_req = tiles_uploaded_on_gpu.contains(tile);
-                if available_req {
-                    self.free_slots_idx.push(idx);
-                    self.req = None;
-                } else {
-                    // Time when the tile has been received
-                    let time_req = req.get_time_request();
+                        let tile_resolved = match request.resolve_status() {
+                            ResolvedStatus::Missing => TileResolved::Missing { time_req },
+                            ResolvedStatus::Found => {
+                                let config =
+                                    surveys.get(&tile.root_url).unwrap().get_textures().config();
 
-                    let tile_resolved = match req.resolve_status() {
-                        ResolvedStatus::Missing => TileResolved::Missing { time_req },
-                        ResolvedStatus::Found => {
-                            let config =
-                                surveys.get(&tile.root_url).unwrap().get_textures().config();
-
-                            let image = req.get_image(config.get_tile_size());
-                            if let Ok(image) = image {
-                                TileResolved::Found { image, time_req }
-                            } else {
-                                let err = image.err().unwrap();
-                                log!(err);
-                                TileResolved::Missing { time_req }
+                                let image = request.get_image(config.get_tile_size());
+                                if let Ok(image) = image {
+                                    TileResolved::Found { image, time_req }
+                                } else {
+                                    let err = image.err().unwrap();
+                                    log!(err);
+                                    TileResolved::Missing { time_req }
+                                }
                             }
-                        }
-                    };
+                            _ => unreachable!(),
+                        };
 
-                    results.insert(
-                        tile.clone(),
-                        tile_resolved
-                    );
+                        results.insert(tile.clone(), tile_resolved);
+                    }
                 }
             }
         }
 
         results
     }
-}
 
-struct RequestsIterMut<'a>(std::slice::IterMut<'a, TileRequest>);
-
-impl<'a> Iterator for RequestsIterMut<'a> {
-    type Item = &'a mut TileRequest;
-
-    // next() is the only required method
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+    fn clear(&mut self) {
+        for req in self.reqs.iter_mut() {
+            *req = None;
+        }
+        self.free_slots_idx = (0..NUM_EVENT_LISTENERS).into_iter().collect();
     }
 }
 
@@ -180,7 +166,7 @@ pub struct TileDownloader {
     tiles_to_req: Vec<Tile>,
     base_tiles_to_req: Vec<Tile>,
 
-    requests: Requests,
+    requests: RequestSystem,
 
     requested_tiles: HashSet<Tile>,
 }
@@ -206,7 +192,7 @@ use crate::ImageSurveys;
 use wasm_bindgen::JsValue;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
-        let requests = Requests::new();
+        let requests = RequestSystem::new();
         let tiles_to_req = Vec::new();
         let requested_tiles = HashSet::with_capacity(64);
         let base_tiles_to_req = vec![];
@@ -223,9 +209,7 @@ impl TileDownloader {
     pub fn clear_requests(&mut self) {
         self.tiles_to_req.clear();
 
-        for req in self.requests.iter_mut() {
-            req.clear();
-        }
+        self.requests.clear();
         self.requested_tiles.clear();
     }
 
@@ -243,7 +227,7 @@ impl TileDownloader {
         let already_requested = self.requested_tiles.contains(&tile);
         // The cell is not already requested
         if !already_requested && !tile.is_root() {
-            self.tiles_to_req.push_back(tile);
+            self.tiles_to_req.push(tile);
         }
     }
 
@@ -253,13 +237,14 @@ impl TileDownloader {
     // * The image is missing
     pub fn get_resolved_tiles(
         &mut self,
-        available_tiles: &Tiles,
+        available_tiles: &HashSet<Tile>,
         surveys: &ImageSurveys,
     ) -> ResolvedTiles {
-        let resolved_tiles = self.requests.resolved_tiles();
+        let resolved_tiles = self.requests.resolved_tiles(available_tiles, surveys);
         for (tile, resolve) in resolved_tiles.iter() {
-            assert!(self.requested_tiles.contains(tile));
-            self.requested_tiles.remove(tile);
+            if self.requested_tiles.contains(tile) {
+                self.requested_tiles.remove(tile);
+            }
         }
 
         resolved_tiles
@@ -278,10 +263,10 @@ impl TileDownloader {
                 base_tile_requested = true;
                 base_tile
             } else {
-                self.tiles_to_req.back().unwrap()
+                self.tiles_to_req.last().unwrap()
             };
 
-            if let Some(available_req) = self.requests.check_send(tile.format) {
+            if let Some(available_req) = self.requests.check_send(tile.format.clone()) {
                 let tile = if base_tile_requested {
                     // Send in priority requests to get the base tiles
                     self.base_tiles_to_req.pop().unwrap()

@@ -9,6 +9,9 @@
 //! - All the spherical geometry maths for the computation
 //!   of the equatorial/galactic coordinates grid.
 extern crate console_error_panic_hook;
+extern crate egui;
+extern crate egui_web;
+extern crate epi;
 extern crate fitsrs;
 extern crate img_pixel;
 extern crate itertools_num;
@@ -18,13 +21,9 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate task_async_executor;
-extern crate egui;
-extern crate epi;
-extern crate egui_web;
 use al_core;
 
 use std::panic;
-
 
 #[macro_use]
 mod utils;
@@ -57,21 +56,18 @@ mod time;
 mod transfert_function;
 mod ui;
 
-use al_core::format::ImageFormatType;
 use crate::{
     camera::CameraViewPort,
     hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
     math::LonLatT,
     renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
     resources::Resources,
-    shader::{ShaderManager},
+    shader::ShaderManager,
     shaders::Colormaps,
     time::DeltaTime,
 };
-use al_core::{
-    WebGl2Context,
-    shader::Shader
-};
+use al_core::format::ImageFormatType;
+use al_core::{shader::Shader, WebGl2Context};
 pub use coo_conversion::CooSystem;
 
 use app::App;
@@ -681,7 +677,7 @@ impl WebClient {
     /// * `delta` - The delta coming from the wheel event. This is
     ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = posOnUi)]
-    pub fn screen_position_on_ui(&mut self, sx: f32, sy:f32) -> bool {
+    pub fn screen_position_on_ui(&mut self, sx: f32, sy: f32) -> bool {
         self.app.pos_over_ui(sx, sy)
     }
 

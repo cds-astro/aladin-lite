@@ -227,8 +227,8 @@ impl Stream for BuildCatalogIndex {
     }
 }
 
-use cgmath::Vector3;
 use al_core::format::ImageFormat;
+use cgmath::Vector3;
 /// Task that send a tile to the GPU
 pub struct ImageTile2GpuTask<I>
 where
@@ -239,14 +239,14 @@ where
     texture_array: Rc<Texture2DArray>,
 }
 
+use super::al_core::Texture2DArray;
 use crate::buffer::{HiPSConfig, Texture};
 use al_core::image::Image;
-use super::al_core::Texture2DArray;
 
 use std::rc::Rc;
-impl ImageTile2GpuTask<I>
+impl<I> ImageTile2GpuTask<I>
 where
-    I: Image + 'static
+    I: Image + 'static,
 {
     pub fn new(
         tile: &Tile, // The tile cell. It must lie in the texture
@@ -298,9 +298,9 @@ where
 }
 
 use futures::Future;
-impl Future for ImageTile2GpuTask<I>
-where 
-    I: Image + 'static
+impl<I> Future for ImageTile2GpuTask<I>
+where
+    I: Image + 'static,
 {
     type Output = ();
 

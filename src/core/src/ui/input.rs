@@ -143,8 +143,7 @@ fn pos_from_touch(canvas_origin: egui::Pos2, touch: &web_sys::Touch) -> egui::Po
 }
 
 fn canvas_origin(runner: &Gui) -> egui::Pos2 {
-    let rect = canvas_element(runner)
-        .get_bounding_client_rect();
+    let rect = canvas_element(runner).get_bounding_client_rect();
     egui::Pos2::new(rect.left() as f32, rect.top() as f32)
 }
 
@@ -306,7 +305,6 @@ pub fn handle_output(output: &egui::Output, runner: &mut Gui) {
             runner.last_text_cursor_pos = *text_cursor_pos;
         }
     }
-
 }
 
 pub fn set_cursor_icon(cursor: egui::CursorIcon) -> Option<()> {
@@ -940,8 +938,7 @@ pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
         let closure = Closure::wrap(Box::new(move |event: web_sys::TouchEvent| {
             let mut runner_lock = runner_ref.0.lock();
             let mut latest_touch_pos_id = runner_lock.input.latest_touch_pos_id;
-            let pos =
-                pos_from_touch_event(&*runner_lock, &event, &mut latest_touch_pos_id);
+            let pos = pos_from_touch_event(&*runner_lock, &event, &mut latest_touch_pos_id);
             runner_lock.input.latest_touch_pos_id = latest_touch_pos_id;
             runner_lock.input.latest_touch_pos = Some(pos);
             let modifiers = runner_lock.input.raw.modifiers;
@@ -971,8 +968,7 @@ pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
         let closure = Closure::wrap(Box::new(move |event: web_sys::TouchEvent| {
             let mut runner_lock = runner_ref.0.lock();
             let mut latest_touch_pos_id = runner_lock.input.latest_touch_pos_id;
-            let pos =
-                pos_from_touch_event(&runner_lock, &event, &mut latest_touch_pos_id);
+            let pos = pos_from_touch_event(&runner_lock, &event, &mut latest_touch_pos_id);
             runner_lock.input.latest_touch_pos_id = latest_touch_pos_id;
             runner_lock.input.latest_touch_pos = Some(pos);
             runner_lock
@@ -1044,9 +1040,7 @@ pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
             let mut runner_lock = runner_ref.0.lock();
 
             let scroll_multiplier = match event.delta_mode() {
-                web_sys::WheelEvent::DOM_DELTA_PAGE => {
-                    canvas_size_in_points(&*runner_lock).y
-                }
+                web_sys::WheelEvent::DOM_DELTA_PAGE => canvas_size_in_points(&*runner_lock).y,
                 web_sys::WheelEvent::DOM_DELTA_LINE => {
                     #[allow(clippy::let_and_return)]
                     let points_per_scroll_line = 8.0; // Note that this is intentionally different from what we use in egui_glium / winit.
@@ -1177,7 +1171,10 @@ pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
     Ok(())
 }
 
-fn manipulate_agent<'a>(runner_lock: &GuiLock<'a>, latest_cursor: Option<egui::Pos2>) -> Option<()> {
+fn manipulate_agent<'a>(
+    runner_lock: &GuiLock<'a>,
+    latest_cursor: Option<egui::Pos2>,
+) -> Option<()> {
     use wasm_bindgen::JsCast;
     use web_sys::HtmlInputElement;
     let window = web_sys::window()?;

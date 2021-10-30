@@ -29,7 +29,8 @@ impl Texture2DArray {
     ) -> Result<Texture2DArray, JsValue> {
         let mut textures = vec![];
         for _slice_idx in 0..num_slices {
-            let texture = Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)?;
+            let texture =
+                Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)?;
             textures.push(texture);
         }
 

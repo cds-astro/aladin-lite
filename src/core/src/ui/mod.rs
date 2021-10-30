@@ -4,8 +4,8 @@ use painter::WebGl2Painter;
 mod input;
 
 use egui;
-use wasm_bindgen::{prelude::*, JsCast};
 use egui_web::Painter;
+use wasm_bindgen::{prelude::*, JsCast};
 
 // ----------------------------------------------------------------------------
 
@@ -35,7 +35,6 @@ impl epi::RepaintSignal for NeedRepaint {
     }
 }
 
-
 pub struct Gui {
     //backend: egui_web::WebBackend,
     //web_input: egui_web::backend::WebInput,
@@ -53,9 +52,9 @@ pub struct Gui {
     pub aladin_lite_div: String,
 }
 
+use crate::log::log;
 pub use crate::ui::input::GuiRef;
 use crate::ui::input::*;
-use crate::log::log;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
@@ -83,7 +82,7 @@ impl Gui {
             needs_repaint: Default::default(),
             last_text_cursor_pos: None,
 
-            aladin_lite_div: aladin_lite_div.to_string()
+            aladin_lite_div: aladin_lite_div.to_string(),
         };
 
         let gui_ref = GuiRef(std::sync::Arc::new(egui::mutex::Mutex::new(gui)));
@@ -112,13 +111,17 @@ impl Gui {
     }
 
     pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
-        let egui::layers::LayerId { order, .. } = self.ctx.layer_id_at(egui::Pos2::new(sx, sy)).unwrap();
+        let egui::layers::LayerId { order, .. } =
+            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)).unwrap();
         order != egui::layers::Order::Background
     }
 
     pub fn render(&mut self) -> Result<(), JsValue> {
         //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
-        let canvas_size = egui::vec2(self.painter.canvas.width() as f32, self.painter.canvas.height() as f32);
+        let canvas_size = egui::vec2(
+            self.painter.canvas.width() as f32,
+            self.painter.canvas.height() as f32,
+        );
         let raw_input = self.input.new_frame(canvas_size);
 
         //self.web_backend.begin_frame(raw_input);
@@ -127,7 +130,7 @@ impl Gui {
         //self.events.clear();
 
         self.ctx.begin_frame(raw_input);
-    
+
         let mut open = true;
         self.gallery.show(&self.ctx, &mut open);
 

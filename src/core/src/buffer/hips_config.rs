@@ -1,24 +1,18 @@
-use al_core::{
-    image::ImageBuffer,
-    format::ImageFormat
-};
+use al_core::{format::ImageFormat, image::ImageBuffer};
 #[derive(Clone, Debug)]
-struct TileConfig<F>
+pub struct TileConfig<F>
 where
-    F: ImageFormat
+    F: ImageFormat,
 {
     // The size of the tile in the texture
     width: i32,
     default: Rc<ImageBuffer<F>>,
-    pixel_fill: <F as ImageFormat>::P
+    pixel_fill: <F as ImageFormat>::P,
 }
-use al_core::{
-    pixel::Pixel,
-    image::Image
-};
+use al_core::{image::Image, pixel::Pixel};
 impl<F> TileConfig<F>
 where
-    F: ImageFormat
+    F: ImageFormat,
 {
     fn new(width: i32) -> TileConfig<F> {
         assert!(is_power_of_two(width as usize));
@@ -39,8 +33,8 @@ where
     #[inline]
     pub fn set_default_pixel(&mut self, pixel_fill: <F as ImageFormat>::P) {
         if pixel_fill != self.pixel_fill {
-            self.pixel_fill = pixel_fill;
             self.default = Rc::new(ImageBuffer::<F>::allocate(self.width, &pixel_fill));
+            self.pixel_fill = pixel_fill;
         }
     }
 }
@@ -55,7 +49,7 @@ pub enum TileConfigType {
     R16I { config: TileConfig<R16I> },
     R32I { config: TileConfig<R32I> },
 }
-use al_core::format::{ImageFormatType, RGBA8U, RGB8U, R32F, R32I, R16I, R8UI};
+use al_core::format::{ImageFormatType, R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 impl TileConfigType {
     fn format(&self) -> ImageFormatType {
         match self {
@@ -80,8 +74,8 @@ impl TileConfigType {
 }
 
 //use super::TileArrayBuffer;
-use std::rc::Rc;
 use crate::WebGl2Context;
+use std::rc::Rc;
 
 /*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
@@ -107,8 +101,6 @@ fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArr
         _ => unimplemented!(),
     }
 }*/
-
-
 
 #[derive(Debug)]
 pub struct HiPSConfig {
@@ -182,31 +174,31 @@ impl HiPSConfig {
                     8 => {
                         tex_storing_unsigned_int = true;
                         Ok(TileConfigType::R8UI {
-                            config: TileConfig::<R8UI>::new(tile_size)
+                            config: TileConfig::<R8UI>::new(tile_size),
                         })
                     }
                     16 => {
                         tex_storing_integers = true;
                         Ok(TileConfigType::R16I {
-                            config: TileConfig::<R16I>::new(tile_size)
+                            config: TileConfig::<R16I>::new(tile_size),
                         })
                     }
                     32 => {
                         tex_storing_integers = true;
                         Ok(TileConfigType::R32I {
-                            config: TileConfig::<R32I>::new(tile_size)
+                            config: TileConfig::<R32I>::new(tile_size),
                         })
                     }
                     -32 => {
                         tex_storing_integers = false;
                         Ok(TileConfigType::R32F {
-                            config: TileConfig::<R32F>::new(tile_size)
+                            config: TileConfig::<R32F>::new(tile_size),
                         })
                     }
                     -64 => {
                         tex_storing_integers = false;
                         Ok(TileConfigType::R32F {
-                            config: TileConfig::<R32F>::new(tile_size)
+                            config: TileConfig::<R32F>::new(tile_size),
                         })
                     }
                     _ => Err(
@@ -219,11 +211,11 @@ impl HiPSConfig {
             HiPSFormat::Image { format } => {
                 if format.contains("png") {
                     Ok(TileConfigType::RGBA8U {
-                        config: TileConfig::<RGBA8U>::new(tile_size)
+                        config: TileConfig::<RGBA8U>::new(tile_size),
                     })
                 } else if format.contains("jpeg") || format.contains("jpg") {
                     Ok(TileConfigType::RGB8U {
-                        config: TileConfig::<RGB8U>::new(tile_size)
+                        config: TileConfig::<RGB8U>::new(tile_size),
                     })
                 } else {
                     Err(format!("{} Unrecognized image format", format).into())
@@ -282,20 +274,20 @@ impl HiPSConfig {
         if let Some(blank) = blank {
             self.blank = blank;
 
-            match &self.tile_config {
+            match &mut self.tile_config {
                 TileConfigType::R32F { config } => {
                     config.set_default_pixel([blank]);
-                },
+                }
                 TileConfigType::R8UI { config } => {
                     config.set_default_pixel([blank as u8]);
-                },
+                }
                 TileConfigType::R16I { config } => {
                     config.set_default_pixel([blank as i16]);
-                },
+                }
                 TileConfigType::R32I { config } => {
                     config.set_default_pixel([blank as i32]);
-                },
-                _ => unreachable!()
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -319,12 +311,12 @@ impl HiPSConfig {
     pub fn get_tile_size(&self) -> i32 {
         self.tile_config.width()
     }
-/*
-    #[inline]
-    pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
-        self.tile_config.get_black_tile()
-    }
-*/
+    /*
+        #[inline]
+        pub fn get_black_tile(&self) -> Rc<TileArrayBufferImage> {
+            self.tile_config.get_black_tile()
+        }
+    */
     #[inline]
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
@@ -361,10 +353,7 @@ impl HiPSConfig {
     }
 }
 
-use al_core::shader::{
-    ShaderBound,
-    SendUniforms
-};
+use al_core::shader::{SendUniforms, ShaderBound};
 
 impl SendUniforms for HiPSConfig {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

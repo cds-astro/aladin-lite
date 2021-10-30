@@ -1,14 +1,6 @@
-use crate::{
-    camera::CameraViewPort,
-    renderable::projection::Projection,
-    shader::ShaderManager,
-};
+use crate::{camera::CameraViewPort, renderable::projection::Projection, shader::ShaderManager};
 
-use al_core::{
-    WebGl2Context,
-    shader::ShaderBound,
-    Texture2D, VertexArrayObject,
-};
+use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGl2Context};
 
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
@@ -136,7 +128,7 @@ impl RayTracer {
         // create data
         let data = generate_position::<P>();
 
-        let position_tex = Texture2D::create_empty_with_format<al_core::format::RGB32F>(
+        let position_tex = Texture2D::create_empty_with_format::<al_core::format::RGB32F>(
             gl,
             2048,
             2048,

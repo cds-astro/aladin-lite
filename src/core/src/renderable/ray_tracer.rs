@@ -110,7 +110,7 @@ impl RayTracer {
             WebGl2RenderingContext::FLOAT,
             false,
             (2 * mem::size_of::<f32>()) as i32,
-            (0 * mem::size_of::<f32>()) as i32,
+            0,
         );
         gl.enable_vertex_attrib_array(0);
 

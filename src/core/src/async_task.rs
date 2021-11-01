@@ -3,7 +3,7 @@
 // can be run concurrently on one thread under a time limit period
 // When the time limit is reached, the executor stops polling the remaining
 // futures and return the results of the finished ones
-use task_async_executor::Executor;
+use al_task_exec::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
 pub use crate::buffer::Tile;
@@ -239,7 +239,7 @@ where
     texture_array: Rc<Texture2DArray>,
 }
 
-use super::al_core::Texture2DArray;
+use al_core::Texture2DArray;
 use crate::buffer::{HiPSConfig, Texture};
 use al_core::image::Image;
 

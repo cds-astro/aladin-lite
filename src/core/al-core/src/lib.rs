@@ -2,6 +2,8 @@ mod object;
 pub mod shader;
 pub mod texture;
 pub mod webgl_ctx;
+#[macro_use]
+pub mod log;
 
 pub use texture::format;
 pub use texture::image;

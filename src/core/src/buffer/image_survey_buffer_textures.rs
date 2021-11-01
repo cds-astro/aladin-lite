@@ -584,7 +584,7 @@ impl ImageSurveyTextures {
     }
 }
 use crate::buffer::TextureUniforms;
-use crate::log::*;
+use al_core::log::*;
 use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
@@ -603,7 +603,7 @@ impl SendUniforms for ImageSurveyTextures {
             }
             let num_tiles = textures.len() as i32;
 
-            log!(num_tiles);
+            al_core::log!(num_tiles);
             shader
                 .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)

@@ -14,16 +14,17 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::all, missing_crate_level_docs, rust_2018_idioms)]
 
-use crate::ui::Gui;
+use wasm_bindgen::{prelude::*};
+
 
 use egui::mutex::Mutex;
-pub use wasm_bindgen;
-pub use web_sys;
+use crate::Gui;
 
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
+use al_core::log::*;
 
 static AGENT_ID: &str = "egui_text_agent";
 
@@ -546,7 +547,6 @@ pub fn install_document_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
         // keydown
         let runner_ref = runner_ref.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
-            log!("key event");
             if event.is_composing() || event.key_code() == 229 {
                 // https://www.fxsitecompat.dev/en-CA/docs/2018/keydown-and-keyup-events-are-now-fired-during-ime-composition/
                 return;
@@ -818,7 +818,6 @@ pub fn install_text_agent(runner_ref: &GuiRef) -> Result<(), JsValue> {
     body.append_child(&input)?;
     Ok(())
 }
-use crate::log::*;
 pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
     use wasm_bindgen::JsCast;
     let runner_ref = runner_ref.clone();

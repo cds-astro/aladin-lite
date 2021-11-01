@@ -1,18 +1,8 @@
 [package]
-name = "aladin-lite"
+name = "al-ui"
 version = "0.1.0"
 authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
 edition = "2018"
-
-[workspace]
-members = [
-    "al-core",
-    "al-task-exec",
-    "al-ui"
-]
-
-[lib]
-crate-type = ["cdylib"]
 
 [dependencies]
 console_error_panic_hook = "0.1.6"
@@ -33,10 +23,7 @@ img_pixel = { package = "image", version = "0.23.14" }
 egui = "*"
 epi = "*"
 egui_web = "*"
-
-al-core = { path = "./al-core" }
-al-ui = { path = "./al-ui" }
-al-task-exec = { path = "./al-task-exec" }
+al-core = { path = "../al-core" }
 
 
 [dependencies.wasm-bindgen]
@@ -93,4 +80,4 @@ lto = true
 opt-level = 3
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = true

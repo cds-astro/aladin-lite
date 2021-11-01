@@ -583,7 +583,7 @@ impl ImageSurvey {
             WebGl2RenderingContext::FLOAT,
             false,
             13 * num_bytes_per_f32,
-            (0 * num_bytes_per_f32) as i32,
+            0,
         );
         gl.enable_vertex_attrib_array(0);
 
@@ -825,7 +825,7 @@ impl ImageSurvey {
 
 impl Drop for ImageSurvey {
     fn drop(&mut self) {
-        drop(&mut self.textures);
+        //drop(self.textures);
 
         // Drop the vertex arrays
         self.gl.delete_buffer(Some(&self.vbo));

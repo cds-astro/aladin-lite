@@ -20,16 +20,11 @@ extern crate num_traits;
 extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
-extern crate task_async_executor;
-use al_core;
 
 use std::panic;
 
 #[macro_use]
 mod utils;
-
-#[macro_use]
-mod log;
 
 use wasm_bindgen::prelude::*;
 
@@ -54,7 +49,6 @@ mod shaders;
 mod sphere_geometry;
 mod time;
 mod transfert_function;
-mod ui;
 
 use crate::{
     camera::CameraViewPort,

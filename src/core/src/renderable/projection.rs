@@ -567,7 +567,7 @@ impl Projection for Mollweide {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((180.0 / 180.0) * std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 use crate::renderable::Angle;
@@ -719,7 +719,7 @@ impl Projection for AzimuthalEquidistant {
             r = math::sinc_positive(r);
 
             let pos_world_space = if longitude_reversed {
-                Vector4::new(-x * r, y * r, z, 1.0)
+                Vector4::new(x * r, y * r, z, 1.0)
             } else {
                 Vector4::new(-x * r, y * r, z, 1.0)
             };
@@ -966,7 +966,7 @@ impl Projection for Mercator {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((180.0 / 180.0) * std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 mod tests {

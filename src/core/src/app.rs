@@ -41,7 +41,7 @@ struct S {
     dec: f64,
 }
 
-use crate::ui::{Gui, GuiRef};
+use al_ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
 
@@ -106,7 +106,7 @@ struct ZoomAnimation {
     goal_fov: Angle<f64>,
     w0: f64,
 }
-use crate::log::log;
+use al_core::log::log;
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::buffer::Tile;
 use crate::time::Time;

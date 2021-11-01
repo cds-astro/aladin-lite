@@ -98,7 +98,7 @@ impl ProjetedGrid {
             WebGl2RenderingContext::FLOAT,
             false,
             2 * num_bytes_per_f32,
-            (0 * num_bytes_per_f32) as i32,
+            0,
         );
         gl.enable_vertex_attrib_array(0);
 
@@ -978,11 +978,7 @@ fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
     }
 
     // Add parallels
-    let step_lat = if fov.contains_pole() {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
-    } else {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
-    };
+    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;
@@ -1088,11 +1084,7 @@ fn lines<P: Projection>(
     }
 
     // Add parallels
-    let step_lat = if fov.contains_pole() {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
-    } else {
-        select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES)
-    };
+    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;

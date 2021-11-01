@@ -11,8 +11,7 @@ use {
 
 use std::borrow::Cow;
 
-use crate::log::*;
-use crate::shader::{ShaderId, ShaderManager};
+use al_core::log::*;
 use al_core::{shader::Shader, VecData, VertexArrayObject};
 use cgmath::Vector2;
 use egui::{
@@ -107,8 +106,8 @@ impl WebGl2Painter {
         gl.tex_parameteri(Gl::TEXTURE_2D, Gl::TEXTURE_MAG_FILTER, Gl::LINEAR as i32);*/
         let shader = Shader::new(
             &gl,
-            include_str!("shaders/main_vertex_100es.glsl"),
-            include_str!("shaders/main_fragment_100es.glsl"),
+            include_str!("../shaders/main_vertex_100es.glsl"),
+            include_str!("../shaders/main_fragment_100es.glsl"),
         )?;
 
         /*let mut vao = VertexArrayObject::new(&gl);
@@ -156,8 +155,8 @@ impl WebGl2Painter {
         })*/
         let shader = Shader::new(
             &gl,
-            include_str!("shaders/main_vertex_100es.glsl"),
-            include_str!("shaders/main_fragment_100es.glsl"),
+            include_str!("../shaders/main_vertex_100es.glsl"),
+            include_str!("../shaders/main_fragment_100es.glsl"),
         )?;
         let vao = gl.create_vertex_array().unwrap();
         gl.bind_vertex_array(Some(&vao));
@@ -183,7 +182,7 @@ impl WebGl2Painter {
             WebGl2RenderingContext::FLOAT,
             false,
             8 * num_bytes_per_f32,
-            (0 * num_bytes_per_f32) as i32,
+            0,
         );
         gl.enable_vertex_attrib_array(0);
 
@@ -425,7 +424,7 @@ impl WebGl2Painter {
             WebGl2RenderingContext::FLOAT,
             false,
             8 * num_bytes_per_f32,
-            (0 * num_bytes_per_f32) as i32,
+            0,
         );
         gl.enable_vertex_attrib_array(0);
 

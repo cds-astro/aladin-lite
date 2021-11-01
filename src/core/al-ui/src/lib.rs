@@ -2,6 +2,8 @@ mod painter;
 use painter::WebGl2Painter;
 
 mod input;
+use input::*;
+pub use input::GuiRef;
 
 use egui;
 use egui_web::Painter;
@@ -52,9 +54,7 @@ pub struct Gui {
     pub aladin_lite_div: String,
 }
 
-use crate::log::log;
-pub use crate::ui::input::GuiRef;
-use crate::ui::input::*;
+use al_core::log::*;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {

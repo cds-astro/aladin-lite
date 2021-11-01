@@ -24,6 +24,7 @@ pub fn console_error(s: impl Into<JsValue>) {
     web_sys::console::error_1(&s.into());
 }
 
+#[macro_export]
 macro_rules! log {
     // The pattern for a single `eval`
     ($($arg:tt)*) => {

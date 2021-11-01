@@ -112,7 +112,7 @@ impl RequestSystem {
                                     TileResolved::Found { image, time_req }
                                 } else {
                                     let err = image.err().unwrap();
-                                    log!(err);
+                                    al_core::log!(err);
                                     TileResolved::Missing { time_req }
                                 }
                             }
@@ -187,7 +187,7 @@ pub enum TileResolved {
 use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
-use crate::log::*;
+use al_core::log::*;
 use crate::ImageSurveys;
 use wasm_bindgen::JsValue;
 impl TileDownloader {

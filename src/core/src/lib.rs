@@ -20,6 +20,7 @@ extern crate num_traits;
 extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
+extern crate fontdue;
 
 use std::panic;
 
@@ -35,6 +36,9 @@ mod camera;
 mod cdshealpix;
 mod color;
 mod coo_conversion;
+mod angle;
+
+pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 
 mod healpix_cell;
 pub mod hips;
@@ -48,13 +52,15 @@ mod shader;
 mod shaders;
 mod sphere_geometry;
 mod time;
+mod projection;
 mod transfert_function;
 
 use crate::{
     camera::CameraViewPort,
     hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
     math::LonLatT,
-    renderable::{image_survey::ImageSurveys, projection::Projection, Angle, ArcDeg},
+    renderable::{survey::image_survey::ImageSurveys},
+    projection::Projection,
     resources::Resources,
     shader::ShaderManager,
     shaders::Colormaps,

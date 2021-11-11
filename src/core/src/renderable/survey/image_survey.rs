@@ -170,7 +170,7 @@ impl RecomputeRasterizer for UnZoom {
         // We do not draw the parent cells if the depth has not decreased by at least one
         let cells_to_draw = if depth < max_depth && view.has_depth_decreased_while_unzooming(camera)
         {
-            Cow::Owned(crate::renderable::view_on_surveys::get_cells_in_camera(
+            Cow::Owned(crate::renderable::survey::view_on_surveys::get_cells_in_camera(
                 depth + 1,
                 camera,
             ))
@@ -231,10 +231,10 @@ impl RecomputeRasterizer for UnZoom {
 use crate::camera::CameraViewPort;
 use al_core::WebGl2Context;
 
-use crate::renderable::projection::Projection;
+use crate::projection::Projection;
 
 use crate::buffer::ImageSurveyTextures;
-use crate::renderable::RayTracer;
+use super::RayTracer;
 
 use crate::shaders::Colormap;
 
@@ -396,7 +396,7 @@ const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 use cgmath::{Vector3, Vector4};
 use std::mem;
 
-use crate::renderable::uv::{TileCorner, TileUVW};
+use crate::renderable::survey::uv::{TileCorner, TileUVW};
 
 pub type IdxVerticesVec = Vec<u16>;
 
@@ -1015,7 +1015,7 @@ struct ImageSurveyLayer {
 }
 
 type LayerName = String;
-use crate::renderable::view_on_surveys::HEALPixCellsInView;
+use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
 pub struct ImageSurveys {
     surveys: HashMap<String, ImageSurvey>,
 

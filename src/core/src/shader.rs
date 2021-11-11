@@ -86,7 +86,7 @@ impl ShaderManager {
     }
 }
 
-use crate::renderable::projection::*;
+use crate::projection::*;
 use std::borrow::Cow;
 pub trait GetShader {
     fn get_raster_shader_color<'a>(
@@ -719,6 +719,8 @@ impl GetShader for Mercator {
             .unwrap()
     }
 }
+
+use crate::projection::*;
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(
         gl: &WebGl2Context,

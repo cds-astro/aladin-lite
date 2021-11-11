@@ -11,10 +11,11 @@ use crate::{
     renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
-        image_survey::ImageSurveys,
-        projection::{Orthographic, Projection},
-        Angle, ArcDeg,
+        survey::image_survey::ImageSurveys,
+        labels::{RenderManager, TextRenderManager},
     },
+    projection::{Orthographic, Projection},
+    angle::{Angle, ArcDeg},
     resources::Resources,
     shader::ShaderManager,
     shaders::Colormaps,
@@ -62,6 +63,9 @@ pub struct App {
     // Catalog manager
     manager: Manager,
 
+    // Render Text Manager
+    text_renderer: TextRenderManager,
+
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
     pub resources: Resources,
@@ -107,6 +111,7 @@ struct ZoomAnimation {
     w0: f64,
 }
 use al_core::log::log;
+use cgmath::Rad;
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::buffer::Tile;
 use crate::time::Time;
@@ -209,6 +214,8 @@ impl App {
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
+        let text_renderer = TextRenderManager::new(gl.clone())?;
+
         let ui = Gui::new(aladin_div_name, &gl)?;
         let app = App {
             gl,
@@ -228,6 +235,8 @@ impl App {
             grid,
             // The catalog renderable
             manager,
+
+            text_renderer,
 
             exec,
             resources,
@@ -510,7 +519,12 @@ impl App {
                 self.manager.update::<P>(&self.camera, view);
             }
         }
-        self.grid.update::<P>(&self.camera, force);
+
+        {
+            self.text_renderer.begin_frame();
+            self.grid.update::<P>(&self.camera, force, &mut self.text_renderer);
+            self.text_renderer.end_frame();
+        }
 
         Ok(())
     }
@@ -559,6 +573,9 @@ impl App {
 
             self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
             self.gl.disable(WebGl2RenderingContext::BLEND);
+
+            // Draw all the labels
+            self.text_renderer.draw(&self.camera.get_screen_size());
 
             // Render the UI
             self.ui.lock().render()?;
@@ -723,7 +740,7 @@ impl App {
     }
 
     pub fn enable_grid<P: Projection>(&mut self) {
-        self.grid.enable::<P>(&self.camera);
+        self.grid.enable::<P>(&self.camera, &mut self.text_renderer);
         self.request_redraw = true;
     }
 

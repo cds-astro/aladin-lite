@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct HEALPixCell(pub u8, pub u64);
 
-use crate::renderable::projection::Projection;
+use crate::projection::Projection;
 
 use crate::buffer::HiPSConfig;
 use crate::utils;

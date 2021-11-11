@@ -1,4 +1,4 @@
-use crate::{camera::CameraViewPort, renderable::projection::Projection, shader::ShaderManager};
+use crate::{camera::CameraViewPort, projection::Projection, shader::ShaderManager};
 
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGl2Context};
 
@@ -7,7 +7,7 @@ pub trait RayTracingProjection {
 }
 
 use crate::coo_conversion::CooSystem;
-use crate::renderable::Triangulation;
+use super::Triangulation;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGl2Context,
     _camera: &CameraViewPort,

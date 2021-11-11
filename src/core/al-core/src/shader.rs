@@ -193,6 +193,13 @@ impl UniformType for Vector4<f64> {
     }
 }
 
+use cgmath::Matrix2;
+impl UniformType for Matrix2<f32> {
+    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform_matrix2fv_with_f32_array(location, false, value.as_ref() as &[f32; 4]);
+    }
+}
+
 use cgmath::Matrix4;
 impl UniformType for Matrix4<f32> {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {

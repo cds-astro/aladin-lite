@@ -3,10 +3,8 @@ use crate::{
     color::Color,
     coo_conversion::CooSystem,
     math::LonLatT,
-    renderable::{
-        angle::{Angle, ArcDeg},
-        projection::{Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic},
-    },
+    angle::{Angle, ArcDeg},
+    projection::{Aitoff, AzimuthalEquidistant, Gnomonic, Mercator, Mollweide, Orthographic},
     shaders::Colormap,
     time::DeltaTime,
 };

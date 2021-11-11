@@ -190,4 +190,4 @@ impl FieldOfViewVertices {
 use crate::sphere_geometry::BoundingBox;
 use std::iter;
 
-use crate::renderable::projection::Projection;
+use crate::projection::Projection;

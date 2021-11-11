@@ -2,7 +2,7 @@ use web_sys::WebGl2RenderingContext;
 
 use crate::color::Color;
 
-use crate::renderable::angle;
+use crate::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
@@ -18,7 +18,7 @@ pub struct ProjetedGrid {
 
     vbo: WebGlBuffer,
     // A pointer over the 2d context where we can write text
-    ctx2d: CanvasRenderingContext2d,
+    //ctx2d: CanvasRenderingContext2d,
 
     labels: Vec<Option<Label>>,
     size_vertices_buf: usize,
@@ -32,12 +32,14 @@ pub struct ProjetedGrid {
     hide_labels: bool,
 }
 
-use crate::renderable::projection::Projection;
+use crate::projection::Projection;
 use crate::ShaderManager;
 use al_core::WebGl2Context;
 use al_core::{VecData, VertexArrayObject};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
+
+use super::TextRenderManager;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
@@ -110,7 +112,7 @@ impl ProjetedGrid {
         let offsets = vec![];
 
         // Get the canvas rendering context
-        let document = web_sys::window().unwrap().document().unwrap();
+        /*let document = web_sys::window().unwrap().document().unwrap();
         let canvas = document
             .get_element_by_id(aladin_div_name)
             .unwrap()
@@ -121,15 +123,15 @@ impl ProjetedGrid {
         let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
         let size_screen = camera.get_screen_size();
         canvas.set_width(2 * size_screen.x as u32);
-        canvas.set_height(2 * size_screen.y as u32);
+        canvas.set_height(2 * size_screen.y as u32);*/
 
-        let ctx2d = canvas
+        /*let ctx2d = canvas
             .get_context("2d")
             .unwrap()
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
-        ctx2d.scale(2.0, 2.0)?;
+        ctx2d.scale(2.0, 2.0)?;*/
 
         let enabled = false;
         let hide_labels = false;
@@ -146,7 +148,7 @@ impl ProjetedGrid {
             sizes,
             offsets,
 
-            ctx2d,
+            //ctx2d,
             gl,
             enabled,
             hide_labels,
@@ -159,40 +161,40 @@ impl ProjetedGrid {
         self.color = color;
     }
 
-    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
         self.enabled = true;
-        self.force_update::<P>(camera);
+        self.force_update::<P>(camera, text_renderer);
     }
 
     pub fn disable(&mut self, camera: &CameraViewPort) {
         let size_screen = &camera.get_screen_size();
 
         self.enabled = false;
-        self.ctx2d.clear_rect(
+        /*self.ctx2d.clear_rect(
             0.0,
             0.0,
             2.0 * size_screen.x as f64,
             2.0 * size_screen.y as f64,
-        );
+        );*/
     }
 
     pub fn hide_labels(&mut self, camera: &CameraViewPort) {
         let size_screen = &camera.get_screen_size();
 
         self.hide_labels = true;
-        self.ctx2d.clear_rect(
+        /*self.ctx2d.clear_rect(
             0.0,
             0.0,
             2.0 * size_screen.x as f64,
             2.0 * size_screen.y as f64,
-        );
+        );*/
     }
     pub fn show_labels(&mut self) {
         self.hide_labels = false;
     }
-    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
-        let text_height = Label::size(camera);
-        let lines = lines::<P>(camera, &self.ctx2d, text_height);
+    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
+        let text_height = text_renderer.text_size();
+        let lines = lines::<P>(camera, 0.0);
 
         self.offsets.clear();
         self.sizes.clear();
@@ -211,6 +213,13 @@ impl ProjetedGrid {
             })
             .unzip();
         self.labels = labels;
+
+        for label in self.labels.iter() {
+            if let Some(label) = label {
+                text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), &self.color, cgmath::Rad(label.rot as f32));
+            }
+        }
+
         let mut vertices = vertices
             .into_iter()
             .flatten()
@@ -247,13 +256,13 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool, text_renderer: &mut TextRenderManager) {
         if !self.enabled {
             return;
         }
 
         if camera.has_moved() || force {
-            self.force_update::<P>(camera);
+            self.force_update::<P>(camera, text_renderer);
         }
     }
 
@@ -285,6 +294,7 @@ impl ProjetedGrid {
                 // Number of elements, by default None
                 None,
                 WebGl2RenderingContext::UNSIGNED_SHORT,
+                0
             );
     }
 
@@ -330,7 +340,7 @@ impl ProjetedGrid {
             }
 
             // Draw the labels here
-            if !self.hide_labels {
+            /*if !self.hide_labels {
                 let size_screen = &camera.get_screen_size();
                 self.ctx2d.clear_rect(
                     0.0,
@@ -357,14 +367,14 @@ impl ProjetedGrid {
                         self.ctx2d.restore();
                     }
                 }
-            }
+            }*/
         }
 
         Ok(())
     }
 }
 
-use crate::{renderable::projection::*, shader::ShaderId, Shader};
+use crate::{projection::*, shader::ShaderId, Shader};
 use std::borrow::Cow;
 pub trait GridShaderProjection {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
@@ -420,6 +430,7 @@ impl GridShaderProjection for Gnomonic {
             .unwrap()
     }
 }
+use crate::projection::*;
 impl GridShaderProjection for AzimuthalEquidistant {
     fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -629,7 +640,6 @@ impl Label {
         m1: &Vector4<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
-        ctx2d: &CanvasRenderingContext2d,
         text_height: f64,
     ) -> Option<Self> {
         let system = camera.get_system();
@@ -688,8 +698,9 @@ impl Label {
 
         let content = Angle(lon).to_string::<angle::DMS>();
         let mut position = if !fov.is_allsky() {
-            let dim = ctx2d.measure_text(&content).unwrap();
-            let k = ds * (dim.width() * 0.5 + 10.0);
+            //let dim = ctx2d.measure_text(&content).unwrap();
+            let dim = 0.0;
+            let k = ds * (0.0 * 0.5 + 10.0);
 
             s1 + k
         } else {
@@ -728,7 +739,6 @@ impl Label {
         lat: f64,
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
-        ctx2d: &CanvasRenderingContext2d,
         // in pixels
         text_height: f64,
     ) -> Option<Self> {
@@ -759,8 +769,9 @@ impl Label {
 
         let content = Angle(lat).to_string::<angle::DMS>();
         let mut position = if !fov.is_allsky() && !fov.contains_pole() {
-            let dim = ctx2d.measure_text(&content).unwrap();
-            let k = ds * (dim.width() * 0.5 + 10.0);
+            //let dim = ctx2d.measure_text(&content).unwrap();
+            let dim = 0.0;
+            let k = ds * (0.0 * 0.5 + 10.0);
             //let k = Vector2::new(0.0, 0.0);
 
             s1 + k
@@ -794,12 +805,11 @@ impl Label {
         })
     }
 
-    /// Size of the label in pixels
-    fn size(camera: &CameraViewPort) -> f64 {
+    /*fn size(camera: &CameraViewPort) -> f64 {
         let ndc1 =
-            crate::renderable::projection::clip_to_ndc_space(&Vector2::new(-1.0, 0.0), camera);
+            crate::projection::clip_to_ndc_space(&Vector2::new(-1.0, 0.0), camera);
         let ndc2 =
-            crate::renderable::projection::clip_to_ndc_space(&Vector2::new(1.0, 0.0), camera);
+            crate::projection::clip_to_ndc_space(&Vector2::new(1.0, 0.0), camera);
 
         let dx = ndc2.x - ndc1.x;
         let allsky = dx < 2.0;
@@ -813,7 +823,7 @@ impl Label {
         } else {
             size_not_allsky
         }
-    }
+    }*/
 }
 
 #[derive(Debug)]
@@ -821,7 +831,7 @@ struct GridLine {
     vertices: Vec<Vector2<f64>>,
     label: Option<Label>,
 }
-use super::angle::SerializeToString;
+use crate::angle::SerializeToString;
 use cgmath::{Rad, Vector3};
 const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
@@ -829,7 +839,6 @@ use crate::math::LonLat;
 use crate::{ArcDeg, LonLatT};
 impl GridLine {
     fn meridian<P: Projection>(
-        ctx2d: &CanvasRenderingContext2d,
         lon: f64,
         lat: &Range<f64>,
         sp: Option<&Vector2<f64>>,
@@ -857,13 +866,12 @@ impl GridLine {
             None
         };*/
         let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
-        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, ctx2d, text_height);
+        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_height);
 
         Some(GridLine { vertices, label })
     }
 
     fn parallel<P: Projection>(
-        ctx2d: &CanvasRenderingContext2d,
         lon: &Range<f64>,
         lat: f64,
         camera: &CameraViewPort,
@@ -891,7 +899,7 @@ impl GridLine {
             } else {
                 None
             };*/
-            let label = Label::parallel::<P>(fov, lat, &p, camera, ctx2d, text_height);
+            let label = Label::parallel::<P>(fov, lat, &p, camera, text_height);
 
             Some(GridLine { vertices, label })
         } else {
@@ -999,7 +1007,6 @@ fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
 const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
-    ctx2d: &CanvasRenderingContext2d,
     text_height: f64,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
@@ -1071,7 +1078,6 @@ fn lines<P: Projection>(
 
     while theta < stop_theta {
         if let Some(line) = GridLine::meridian::<P>(
-            ctx2d,
             theta,
             &bbox.get_lat(),
             sp.as_ref(),
@@ -1096,7 +1102,7 @@ fn lines<P: Projection>(
 
     while alpha < stop_alpha {
         if let Some(line) =
-            GridLine::parallel::<P>(ctx2d, &bbox.get_lon(), alpha, camera, text_height)
+            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_height)
         {
             lines.push(line);
         }

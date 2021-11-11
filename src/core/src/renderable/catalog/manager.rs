@@ -1,5 +1,5 @@
 use super::source::Source;
-use crate::renderable::projection::*;
+use crate::projection::*;
 use crate::{resources::Resources, shaders::Colormap, ShaderManager};
 use al_core::{
     format::ImageFormatType, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGl2Context,
@@ -260,13 +260,13 @@ pub struct Catalog {
 }
 
 use crate::healpix_cell::HEALPixCell;
-use crate::{camera::CameraViewPort, utils, Projection};
+use crate::{camera::CameraViewPort, utils, projection::Projection};
 use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
-use crate::renderable::view_on_surveys::depth_from_pixels_on_screen;
-use crate::renderable::{HEALPixCells, HEALPixCellsInView};
+use crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen;
+use crate::renderable::survey::{HEALPixCells, HEALPixCellsInView};
 use crate::shaders::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
@@ -413,7 +413,7 @@ impl Catalog {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
 
         self.max_density = self.compute_max_density::<P>(
-            crate::renderable::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
+            crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
         );
 
         // depth < 7
@@ -528,6 +528,7 @@ impl Catalog {
                         WebGl2RenderingContext::TRIANGLES,
                         None,
                         WebGl2RenderingContext::UNSIGNED_SHORT,
+                        0
                     );
             }
         }
@@ -541,6 +542,8 @@ pub trait CatalogShaderProjection {
 
 use crate::shader::ShaderId;
 use std::borrow::Cow;
+use crate::projection::Aitoff;
+
 impl CatalogShaderProjection for Aitoff {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -551,6 +554,8 @@ impl CatalogShaderProjection for Aitoff {
             .unwrap()
     }
 }
+use crate::projection::Mollweide;
+
 impl CatalogShaderProjection for Mollweide {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -561,6 +566,8 @@ impl CatalogShaderProjection for Mollweide {
             .unwrap()
     }
 }
+use crate::projection::AzimuthalEquidistant;
+
 impl CatalogShaderProjection for AzimuthalEquidistant {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -571,6 +578,8 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
             .unwrap()
     }
 }
+use crate::projection::Mercator;
+
 impl CatalogShaderProjection for Mercator {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -581,6 +590,8 @@ impl CatalogShaderProjection for Mercator {
             .unwrap()
     }
 }
+use crate::projection::Orthographic;
+
 impl CatalogShaderProjection for Orthographic {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -594,6 +605,7 @@ impl CatalogShaderProjection for Orthographic {
             .unwrap()
     }
 }
+use crate::projection::Gnomonic;
 impl CatalogShaderProjection for Gnomonic {
     fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders

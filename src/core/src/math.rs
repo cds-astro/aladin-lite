@@ -85,7 +85,7 @@ pub trait LonLat<S: BaseFloat> {
     fn from_lonlat(lonlat: &LonLatT<S>) -> Self;
 }
 
-use crate::renderable::angle::Angle;
+use crate::angle::Angle;
 #[derive(Clone, Copy, Debug)]
 pub struct LonLatT<S: BaseFloat>(pub Angle<S>, pub Angle<S>);
 

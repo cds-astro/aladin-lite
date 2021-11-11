@@ -215,11 +215,11 @@ pub struct ShaderVertexArrayObjectBoundRef<'a, 'b> {
 }
 
 impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
-    pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32) {
+    pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
         let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
         self.vao
             .gl
-            .draw_elements_with_i32(mode, num_elements, type_, 0);
+            .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
     }
 
     pub fn draw_elements_instanced_with_i32(

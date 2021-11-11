@@ -1,3 +1,6 @@
+extern crate fontdue;
+pub mod text;
+
 mod object;
 pub mod shader;
 pub mod texture;

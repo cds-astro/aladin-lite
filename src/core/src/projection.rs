@@ -288,7 +288,7 @@ pub struct Mercator;
 
 use cgmath::Vector2;
 
-use crate::renderable::ArcDeg;
+use crate::ArcDeg;
 
 impl Projection for Aitoff {
     const ALLOW_UNZOOM_MORE: bool = true;
@@ -570,7 +570,7 @@ impl Projection for Mollweide {
     const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
-use crate::renderable::Angle;
+use crate::Angle;
 impl Projection for Orthographic {
     const ALLOW_UNZOOM_MORE: bool = true;
 

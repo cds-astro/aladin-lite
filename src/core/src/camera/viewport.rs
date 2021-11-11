@@ -63,7 +63,8 @@ use crate::coo_conversion::CooSystem;
 use al_core::WebGl2Context;
 
 use crate::{
-    renderable::{projection::Projection, Angle},
+    projection::Projection,
+    angle::Angle,
     rotation::Rotation,
     sphere_geometry::FieldOfViewType,
 };
@@ -202,7 +203,7 @@ impl CameraViewPort {
             &self.system,
         );
         self.is_allsky = !P::is_included_inside_projection(
-            &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
+            &crate::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
         );
     }
 
@@ -256,7 +257,7 @@ impl CameraViewPort {
             &self.system,
         );
         self.is_allsky = !P::is_included_inside_projection(
-            &crate::renderable::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
+            &crate::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
         );
 
         //self.update_scissor();

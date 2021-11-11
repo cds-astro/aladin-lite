@@ -32,7 +32,7 @@ where
     }
 }
 use crate::coo_conversion::CooBaseFloat;
-use crate::renderable::Angle;
+use crate::Angle;
 use cgmath::Matrix;
 use cgmath::Rad;
 impl<S> Rotation<S>

@@ -68,7 +68,6 @@ export let View = (function() {
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
-            this.guiCanvas = $('<canvas id="aladin-guiCanvas"></canvas>').appendTo(this.aladinDiv)[0];
 
             this.createCanvases();
             // Init the WebGL context
@@ -258,7 +257,6 @@ export let View = (function() {
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         a.find('.aladin-gridCanvas').remove();
-        //a.find('.aladin-guiCanvas').remove();
 
         // canvas to draw the images
         //this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
@@ -303,6 +301,7 @@ export let View = (function() {
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
         this.gridCtx = this.gridCanvas.getContext("2d");
+        //this.guiCtx = this.guiCanvas.getContext("webgl2");
 
         this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;

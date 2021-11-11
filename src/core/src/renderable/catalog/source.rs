@@ -19,7 +19,7 @@ impl Source {
 impl Eq for Source {}
 
 use crate::math;
-use crate::renderable::Angle;
+use crate::angle::Angle;
 impl Source {
     pub fn new(lon: Angle<f32>, lat: Angle<f32> /*, mag: f32*/) -> Source {
         let world_pos = math::radec_to_xyz(lon, lat);
@@ -43,7 +43,7 @@ impl Source {
     }
 }
 
-use crate::renderable::ArcDeg;
+use crate::angle::ArcDeg;
 impl From<&[f32]> for Source {
     fn from(data: &[f32]) -> Source {
         let lon = ArcDeg(data[0]).into();

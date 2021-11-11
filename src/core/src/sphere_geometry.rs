@@ -4,7 +4,7 @@ const PI: Angle<f64> = Angle(std::f64::consts::PI);
 const TWICE_PI: Angle<f64> = Angle(std::f64::consts::PI * 2.0);
 const HALF_PI: Angle<f64> = Angle(std::f64::consts::PI * 0.5);
 
-use crate::renderable::angle::Angle;
+use crate::angle::Angle;
 
 use cgmath::InnerSpace;
 

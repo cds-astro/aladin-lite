@@ -1,5 +1,5 @@
 use crate::renderable::grid::MAX_ANGLE_BEFORE_SUBDIVISION;
-use crate::renderable::projection::Projection;
+use crate::projection::Projection;
 pub fn project<P: Projection>(
     v1: &Vector3<f64>,
     v2: &Vector3<f64>,

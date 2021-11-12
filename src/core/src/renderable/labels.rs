@@ -7,7 +7,7 @@ use al_core::shader::Shader;
 use std::collections::HashMap;
 
 pub trait RenderManager {
-    fn begin_frame(&mut self) -> Result<(), JsValue>;
+    fn begin_frame(&mut self);
     fn end_frame(&mut self);
     fn draw(&mut self, window_size: &Vector2<f32>) -> Result<(), JsValue>;
 }
@@ -126,7 +126,7 @@ impl TextRenderManager {
         self.text_size
     }
 
-    pub fn add_label<A: Into<Rad<f32>>>(&mut self, text: &str, screen_pos: &Vector2<f32>, color: &Color, angle_rot: A) -> Result<(), JsValue> {
+    pub fn add_label<A: Into<Rad<f32>>>(&mut self, text: &str, screen_pos: &Vector2<f32>, color: &Color, angle_rot: A) {
         // 1. Loop over the text chars to compute the size of the text to plot
         let (mut w, mut h) = (0, 0);
         for c in text.chars() {
@@ -192,20 +192,16 @@ impl TextRenderManager {
                 rot: rot.into(),
             }
         );
-
-        Ok(())
     }
 }
 
 use cgmath::Vector4;
 impl RenderManager for TextRenderManager {
-    fn begin_frame(&mut self) -> Result<(), JsValue> {
+    fn begin_frame(&mut self) {
         self.vertices.clear();
         self.indices.clear();
 
         self.labels.clear();
-
-        Ok(())
     }
 
     fn end_frame(&mut self) {

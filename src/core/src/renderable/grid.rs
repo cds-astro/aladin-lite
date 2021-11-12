@@ -39,6 +39,8 @@ use al_core::{VecData, VertexArrayObject};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 
+use super::labels::RenderManager;
+
 use super::TextRenderManager;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
@@ -193,65 +195,69 @@ impl ProjetedGrid {
         self.hide_labels = false;
     }
     fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
-        let text_height = text_renderer.text_size();
-        let lines = lines::<P>(camera, 0.0);
-
-        self.offsets.clear();
-        self.sizes.clear();
-        let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
-            .into_iter()
-            .map(|line| {
-                if self.sizes.is_empty() {
-                    self.offsets.push(0);
-                } else {
-                    let last_offset = *self.offsets.last().unwrap();
-                    self.offsets.push(last_offset + self.sizes.last().unwrap());
+        {
+            text_renderer.begin_frame();
+            let text_height = text_renderer.text_size();
+            let lines = lines::<P>(camera, 0.0);
+    
+            self.offsets.clear();
+            self.sizes.clear();
+            let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
+                .into_iter()
+                .map(|line| {
+                    if self.sizes.is_empty() {
+                        self.offsets.push(0);
+                    } else {
+                        let last_offset = *self.offsets.last().unwrap();
+                        self.offsets.push(last_offset + self.sizes.last().unwrap());
+                    }
+                    self.sizes.push(line.vertices.len());
+    
+                    (line.vertices, line.label)
+                })
+                .unzip();
+            self.labels = labels;
+    
+            for label in self.labels.iter() {
+                if let Some(label) = label {
+                    text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), &self.color, cgmath::Rad(label.rot as f32));
                 }
-                self.sizes.push(line.vertices.len());
-
-                (line.vertices, line.label)
-            })
-            .unzip();
-        self.labels = labels;
-
-        for label in self.labels.iter() {
-            if let Some(label) = label {
-                text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), &self.color, cgmath::Rad(label.rot as f32));
             }
-        }
-
-        let mut vertices = vertices
-            .into_iter()
-            .flatten()
-            .map(|v| Vector2::new(v.x as f32, v.y as f32))
-            .collect::<Vec<_>>();
-        //self.lines = lines;
-        self.num_vertices = vertices.len();
-
-        let vertices: Vec<f32> = unsafe {
-            vertices.set_len(vertices.len() * 2);
-            std::mem::transmute(vertices)
-        };
-
-        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-
-        self.gl.bind_vertex_array(Some(&self.vao));
-        self.gl
-            .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
-        if vertices.len() > self.size_vertices_buf {
-            self.size_vertices_buf = vertices.len();
-
-            self.gl.buffer_data_with_array_buffer_view(
-                WebGl2RenderingContext::ARRAY_BUFFER,
-                &buf_vertices,
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-            );
-        } else {
-            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-                WebGl2RenderingContext::ARRAY_BUFFER,
-                0,
-                &buf_vertices,
-            );
+    
+            let mut vertices = vertices
+                .into_iter()
+                .flatten()
+                .map(|v| Vector2::new(v.x as f32, v.y as f32))
+                .collect::<Vec<_>>();
+            //self.lines = lines;
+            self.num_vertices = vertices.len();
+    
+            let vertices: Vec<f32> = unsafe {
+                vertices.set_len(vertices.len() * 2);
+                std::mem::transmute(vertices)
+            };
+    
+            let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
+    
+            self.gl.bind_vertex_array(Some(&self.vao));
+            self.gl
+                .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+            if vertices.len() > self.size_vertices_buf {
+                self.size_vertices_buf = vertices.len();
+    
+                self.gl.buffer_data_with_array_buffer_view(
+                    WebGl2RenderingContext::ARRAY_BUFFER,
+                    &buf_vertices,
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                );
+            } else {
+                self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+                    WebGl2RenderingContext::ARRAY_BUFFER,
+                    0,
+                    &buf_vertices,
+                );
+            }
+            text_renderer.end_frame();
         }
     }
 

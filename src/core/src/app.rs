@@ -520,11 +520,7 @@ impl App {
             }
         }
 
-        {
-            self.text_renderer.begin_frame();
-            self.grid.update::<P>(&self.camera, force, &mut self.text_renderer);
-            self.text_renderer.end_frame();
-        }
+        self.grid.update::<P>(&self.camera, force, &mut self.text_renderer);        
 
         Ok(())
     }

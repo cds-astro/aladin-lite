@@ -1,5 +1,6 @@
 use crate::renderable::grid::MAX_ANGLE_BEFORE_SUBDIVISION;
 use crate::projection::Projection;
+use crate::projection::ndc_to_screen_space;
 pub fn project<P: Projection>(
     v1: &Vector3<f64>,
     v2: &Vector3<f64>,
@@ -13,21 +14,33 @@ pub fn project<P: Projection>(
 
     subdivide::<P>(&mut s_vert, [v1, &v, v2], camera);
 
+    for ndc_vert in s_vert.iter_mut() {
+        *ndc_vert = ndc_to_screen_space(&ndc_vert, camera);
+    }
+
     s_vert
 }
+
+const MAX_LENGTH_LINE_SEGMENT_SQUARED: f64 = 0.02*0.02;
 use crate::math;
 use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
+
+fn out_of_camera(p: &Vector2<f64>) -> bool {
+    p.x < -1.0 || p.x > 1.0 || p.y < -1.0 || p.y > 1.0
+}
+
 fn subdivide<P: Projection>(
     vertices: &mut Vec<Vector2<f64>>,
     mp: [&Vector3<f64>; 3],
     camera: &CameraViewPort,
 ) {
     // Project them. We are always facing the camera
-    let a = P::model_to_screen_space(&mp[0].extend(1.0), camera);
-    let b = P::model_to_screen_space(&mp[1].extend(1.0), camera);
-    let c = P::model_to_screen_space(&mp[2].extend(1.0), camera);
+    let a = P::model_to_ndc_space(&mp[0].extend(1.0), camera);
+    let b = P::model_to_ndc_space(&mp[1].extend(1.0), camera);
+    let c = P::model_to_ndc_space(&mp[2].extend(1.0), camera);
+
     match (a, b, c) {
         (None, None, None) => {}
         (Some(a), Some(b), Some(c)) => {
@@ -41,7 +54,7 @@ fn subdivide<P: Projection>(
             let bc = bc.normalize();
             let theta = math::angle(&ab, &bc);
 
-            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION {
+            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && (ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED && bc_l < MAX_LENGTH_LINE_SEGMENT_SQUARED || !camera.is_allsky()) {
                 // Check if ab and bc are colinear
                 let colinear = (ab.x * bc.y - bc.x * ab.y).abs() < 1e-2;
                 if colinear {
@@ -54,7 +67,7 @@ fn subdivide<P: Projection>(
                     vertices.push(b);
                     vertices.push(c);
                 }
-            } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
+            } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 && (ab_l.min(bc_l) < MAX_LENGTH_LINE_SEGMENT_SQUARED || !camera.is_allsky()) {
                 if ab_l < bc_l {
                     vertices.push(a);
                     vertices.push(b);
@@ -115,6 +128,6 @@ fn subdivide<P: Projection>(
             //vertices.push(b);
             //vertices.push(c);
         }
-        _ => (),
+        _ => ()
     }
 }

@@ -17,6 +17,8 @@ struct LabelMeta {
     rot: Matrix2<f32>,
     color: Color,
     screen_pos: Vector2<f32>,
+    scale: f32,
+    width_pixel: f32,
     off_idx: u16,
     num_idx: u16,
 }
@@ -126,7 +128,7 @@ impl TextRenderManager {
         self.text_size
     }
 
-    pub fn add_label<A: Into<Rad<f32>>>(&mut self, text: &str, screen_pos: &Vector2<f32>, color: &Color, angle_rot: A) {
+    pub fn add_label<A: Into<Rad<f32>>>(&mut self, text: &str, screen_pos: &Vector2<f32>, scale: f32, color: &Color, angle_rot: A) {
         // 1. Loop over the text chars to compute the size of the text to plot
         let (mut w, mut h) = (0, 0);
         for c in text.chars() {
@@ -136,8 +138,8 @@ impl TextRenderManager {
             }
         }
 
-        let mut x_pos = -(w as f32)*0.5;
-        let mut y_pos = -(h as f32)*0.5;
+        let x_pos = -(w as f32)*0.5;
+        let y_pos = -(h as f32)*0.5;
 
         let f_tex_size = &self.font_texture.get_size();
 
@@ -145,6 +147,8 @@ impl TextRenderManager {
         
         let off_idx = self.indices.len() as u16;
         let mut num_idx = 0;
+
+        let mut width_pixel = 0.0;
 
         for c in text.chars() {
             if let Some(l) = self.letters.get(&c) {
@@ -187,15 +191,27 @@ impl TextRenderManager {
             LabelMeta {
                 off_idx,
                 num_idx,
+                scale,
+                width_pixel: w as f32,
                 color: color.clone(),
                 screen_pos: *screen_pos,
                 rot: rot.into(),
             }
         );
     }
+
+    pub fn get_width_pixel_size(&self, content: &str) -> f64 {
+        let mut w = 0;
+        for c in content.chars() {
+            if let Some(l) = self.letters.get(&c) {
+                w += l.x_advance;
+            }
+        }
+
+        w as f64
+    }
 }
 
-use cgmath::Vector4;
 impl RenderManager for TextRenderManager {
     fn begin_frame(&mut self) {
         self.vertices.clear();
@@ -215,7 +231,7 @@ impl RenderManager for TextRenderManager {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 
-        let mut shader = self.shader.bind(&self.gl);
+        let shader = self.shader.bind(&self.gl);
         self.vao.bind(&shader);
 
         for label in self.labels.iter() {
@@ -224,7 +240,8 @@ impl RenderManager for TextRenderManager {
                 .attach_uniform("u_color", &label.color) // Strengh of the kernel
                 .attach_uniform("u_screen_size", window_size)
                 .attach_uniform("u_screen_pos", &label.screen_pos)
-                .attach_uniform("u_rot", &label.rot);
+                .attach_uniform("u_rot", &label.rot)
+                .attach_uniform("u_scale", &label.scale);
 
             self.gl.draw_elements_with_i32(
                 WebGl2RenderingContext::TRIANGLES,

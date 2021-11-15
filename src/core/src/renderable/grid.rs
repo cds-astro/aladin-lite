@@ -197,9 +197,9 @@ impl ProjetedGrid {
     fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
         {
             text_renderer.begin_frame();
-            let text_height = text_renderer.text_size();
-            let lines = lines::<P>(camera, 0.0);
-    
+            //let text_height = text_renderer.text_size();
+            let lines = lines::<P>(camera, text_renderer);
+
             self.offsets.clear();
             self.sizes.clear();
             let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
@@ -218,9 +218,10 @@ impl ProjetedGrid {
                 .unzip();
             self.labels = labels;
     
+            let scale = Label::size(camera) as f32;
             for label in self.labels.iter() {
                 if let Some(label) = label {
-                    text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), &self.color, cgmath::Rad(label.rot as f32));
+                    text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.color, cgmath::Rad(label.rot as f32));
                 }
             }
     
@@ -646,7 +647,7 @@ impl Label {
         m1: &Vector4<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
-        text_height: f64,
+        text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let system = camera.get_system();
 
@@ -696,24 +697,18 @@ impl Label {
 
         let ds = (s2 - s1).normalize();
 
-        let dv = if ds.x < 0.0 {
-            Vector2::new(-ds.y, ds.x)
-        } else {
-            Vector2::new(ds.y, -ds.x)
-        };
-
         let content = Angle(lon).to_string::<angle::DMS>();
         let mut position = if !fov.is_allsky() {
             //let dim = ctx2d.measure_text(&content).unwrap();
-            let dim = 0.0;
-            let k = ds * (0.0 * 0.5 + 10.0);
+            let dim = text_renderer.get_width_pixel_size(&content);
+            let k = ds * (dim * 0.5 + 10.0);
 
             s1 + k
         } else {
             s1
         };
 
-        position += dv * text_height * 0.5;
+        //position += dv * text_height * 0.5;
 
         // rot is between -PI and +PI
         let rot = if ds.y > 0.0 {
@@ -746,7 +741,8 @@ impl Label {
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         // in pixels
-        text_height: f64,
+        //text_height: f64,
+        text_renderer: &TextRenderManager
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let system = camera.get_system();
@@ -763,28 +759,17 @@ impl Label {
 
         let ds = (s2 - s1).normalize();
 
-        let dv = if ds.x >= 0.0 && ds.y <= 0.0 {
-            Vector2::new(ds.y, -ds.x)
-        } else if ds.x >= 0.0 && ds.y >= 0.0 {
-            Vector2::new(ds.y, -ds.x)
-        } else if ds.x <= 0.0 && ds.y <= 0.0 {
-            Vector2::new(-ds.y, ds.x)
-        } else {
-            Vector2::new(-ds.y, ds.x)
-        };
-
         let content = Angle(lat).to_string::<angle::DMS>();
-        let mut position = if !fov.is_allsky() && !fov.contains_pole() {
-            //let dim = ctx2d.measure_text(&content).unwrap();
-            let dim = 0.0;
-            let k = ds * (0.0 * 0.5 + 10.0);
+        let position = if !fov.is_allsky() && !fov.contains_pole() {
+            let dim = text_renderer.get_width_pixel_size(&content);
+            let k = ds * (dim * 0.5 + 10.0);
             //let k = Vector2::new(0.0, 0.0);
 
             s1 + k
         } else {
             s1
         };
-        position += dv * text_height * 0.5;
+        //position += dv * text_height * 0.5;
 
         // rot is between -PI and +PI
         let rot = if ds.y > 0.0 {
@@ -811,7 +796,7 @@ impl Label {
         })
     }
 
-    /*fn size(camera: &CameraViewPort) -> f64 {
+    fn size(camera: &CameraViewPort) -> f64 {
         let ndc1 =
             crate::projection::clip_to_ndc_space(&Vector2::new(-1.0, 0.0), camera);
         let ndc2 =
@@ -820,16 +805,13 @@ impl Label {
         let dx = ndc2.x - ndc1.x;
         let allsky = dx < 2.0;
 
-        let ss = camera.get_screen_size();
-        let size_not_allsky = ((ss.y.max(ss.x) as f64) * 0.1).min(13.0);
-
         if allsky {
             let dw = dx / 2.0; // [0..1]
-            (dw * size_not_allsky).max(10.0)
+            dw.max(0.75)
         } else {
-            size_not_allsky
+            1.0
         }
-    }*/
+    }
 }
 
 #[derive(Debug)]
@@ -849,7 +831,8 @@ impl GridLine {
         lat: &Range<f64>,
         sp: Option<&Vector2<f64>>,
         camera: &CameraViewPort,
-        text_height: f64,
+        //text_height: f64,
+        text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
@@ -872,7 +855,7 @@ impl GridLine {
             None
         };*/
         let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
-        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_height);
+        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
 
         Some(GridLine { vertices, label })
     }
@@ -881,7 +864,8 @@ impl GridLine {
         lon: &Range<f64>,
         lat: f64,
         camera: &CameraViewPort,
-        text_height: f64,
+        //text_height: f64,
+        text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -905,7 +889,7 @@ impl GridLine {
             } else {
                 None
             };*/
-            let label = Label::parallel::<P>(fov, lat, &p, camera, text_height);
+            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer);
 
             Some(GridLine { vertices, label })
         } else {
@@ -1013,7 +997,8 @@ fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
 const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
-    text_height: f64,
+    //text_height: f64,
+    text_renderer: &TextRenderManager,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let system = camera.get_system();
@@ -1088,7 +1073,7 @@ fn lines<P: Projection>(
             &bbox.get_lat(),
             sp.as_ref(),
             camera,
-            text_height,
+            text_renderer,
         ) {
             lines.push(line);
         }
@@ -1108,7 +1093,7 @@ fn lines<P: Projection>(
 
     while alpha < stop_alpha {
         if let Some(line) =
-            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_height)
+            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer)
         {
             lines.push(line);
         }

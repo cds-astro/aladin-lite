@@ -55,7 +55,7 @@ fn subdivide<P: Projection>(
                     vertices.push(c);
                 }
             } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
-                if ab_l == ab_l.min(bc_l) {
+                if ab_l < bc_l {
                     vertices.push(a);
                     vertices.push(b);
                 } else {

@@ -484,13 +484,19 @@ pub fn translate_key(key: &str) -> Option<egui::Key> {
 }
 
 // ----------------------------------------------------------------------------
-
-#[derive(Clone)]
+use crate::Ui;
 pub struct GuiRef(pub Arc<Mutex<Gui>>);
+
+impl Clone for GuiRef {
+    fn clone(&self) -> Self {
+        GuiRef(self.0.clone())
+    }
+}
 use egui::mutex::MutexGuard;
 pub type GuiLock<'a> = MutexGuard<'a, Gui>;
 use std::ops::Deref;
-impl Deref for GuiRef {
+impl Deref for GuiRef
+{
     type Target = Arc<Mutex<Gui>>;
 
     fn deref(&self) -> &Self::Target {
@@ -538,7 +544,7 @@ fn text_agent() -> web_sys::HtmlInputElement {
         .unwrap()
 }
 
-pub fn install_document_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
+pub fn install_document_events(runner_ref: GuiRef) -> Result<(), JsValue> {
     use wasm_bindgen::JsCast;
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
@@ -726,7 +732,7 @@ fn modifiers_from_event(event: &web_sys::KeyboardEvent) -> egui::Modifiers {
 
 ///
 /// Text event handler,
-pub fn install_text_agent(runner_ref: &GuiRef) -> Result<(), JsValue> {
+pub fn install_text_agent(runner_ref: GuiRef) -> Result<(), JsValue> {
     use wasm_bindgen::JsCast;
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
@@ -818,7 +824,7 @@ pub fn install_text_agent(runner_ref: &GuiRef) -> Result<(), JsValue> {
     body.append_child(&input)?;
     Ok(())
 }
-pub fn install_canvas_events(runner_ref: &GuiRef) -> Result<(), JsValue> {
+pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
     use wasm_bindgen::JsCast;
     let runner_ref = runner_ref.clone();
     let mut runner_lock = runner_ref.0.lock();

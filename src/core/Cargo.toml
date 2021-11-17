@@ -32,7 +32,6 @@ num-traits = "0.2.14"
 img_pixel = { package = "image", version = "0.23.14" }
 egui = "*"
 epi = "*"
-egui_web = "*"
 fontdue = "*"
 
 al-core = { path = "./al-core" }

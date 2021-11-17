@@ -10,7 +10,6 @@
 //!   of the equatorial/galactic coordinates grid.
 extern crate console_error_panic_hook;
 extern crate egui;
-extern crate egui_web;
 extern crate epi;
 extern crate fitsrs;
 extern crate img_pixel;
@@ -44,6 +43,7 @@ mod healpix_cell;
 pub mod hips;
 mod line;
 mod math;
+mod ui;
 mod projection_type;
 mod renderable;
 mod resources;

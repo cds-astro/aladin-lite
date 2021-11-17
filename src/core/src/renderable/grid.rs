@@ -698,7 +698,7 @@ impl Label {
         let ds = (s2 - s1).normalize();
 
         let content = Angle(lon).to_string::<angle::DMS>();
-        let mut position = if !fov.is_allsky() {
+        let position = if !fov.is_allsky() {
             //let dim = ctx2d.measure_text(&content).unwrap();
             let dim = text_renderer.get_width_pixel_size(&content);
             let k = ds * (dim * 0.5 + 10.0);

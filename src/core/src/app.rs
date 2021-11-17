@@ -1,27 +1,9 @@
-use crate::{
-    async_task::TaskExecutor,
-    async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType},
-    buffer::TileDownloader,
-    camera::CameraViewPort,
-    color::Color,
-    coo_conversion::CooSystem,
-    hips::SimpleHiPS,
-    line, math,
-    math::{LonLat, LonLatT},
-    renderable::{
+use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, color::Color, coo_conversion::CooSystem, hips::SimpleHiPS, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
         labels::{RenderManager, TextRenderManager},
-    },
-    projection::{Orthographic, Projection},
-    angle::{Angle, ArcDeg},
-    resources::Resources,
-    shader::ShaderManager,
-    shaders::Colormaps,
-    time::DeltaTime,
-    utils,
-};
+    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, ui::AlUserInterface, utils};
 
 use al_core::{pixel::PixelType, WebGl2Context};
 
@@ -47,6 +29,7 @@ pub struct App {
     pub gl: WebGl2Context,
 
     ui: GuiRef,
+    ui_layout: AlUserInterface,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -220,7 +203,8 @@ impl App {
         let app = App {
             gl,
             ui,
-
+            ui_layout: AlUserInterface::default(),
+            
             shaders,
 
             camera,
@@ -574,7 +558,7 @@ impl App {
             self.text_renderer.draw(&self.camera.get_screen_size());
 
             // Render the UI
-            self.ui.lock().render()?;
+            self.ui.lock().render(&mut self.ui_layout)?;
 
             // Reset the flags about the user action
             self.camera.reset();

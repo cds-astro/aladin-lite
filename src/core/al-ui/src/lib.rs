@@ -52,7 +52,7 @@ pub struct Gui
 
     pub aladin_lite_div: String,
 }
-
+use al_core::FrameBufferObject;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
@@ -102,7 +102,7 @@ impl Gui {
         order != egui::layers::Order::Background
     }
 
-    pub fn render<U: Ui>(&mut self, ui: &mut U) -> Result<(), JsValue> {
+    pub fn draw<U: Ui>(&mut self, ui: &mut U, fbo: &FrameBufferObject) -> Result<(), JsValue> {
         //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
@@ -131,9 +131,12 @@ impl Gui {
 
         if self.redraw_needed() {
             let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
-            self.painter.paint_meshes(clipped_meshes, 1.0)?;
-        } else {
-            self.painter.paint_fbo();
+            let s = self;
+            fbo.draw_onto(move || {
+                s.painter.paint_meshes(clipped_meshes, 1.0)?;
+
+                Ok(())
+            })?;
         }
 
         Ok(())

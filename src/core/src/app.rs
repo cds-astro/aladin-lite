@@ -23,7 +23,8 @@ struct S {
     ra: f64,
     dec: f64,
 }
-
+use crate::renderable::final_pass::RenderPass;
+use al_core::FrameBufferObject;
 use al_ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
@@ -61,6 +62,10 @@ pub struct App {
     out_of_fov: bool,
     tasks_finished: bool,
     catalog_loaded: bool,
+
+    final_rendering_pass: RenderPass,
+    fbo_view: FrameBufferObject,
+    fbo_ui: FrameBufferObject,
 
     pub system: CooSystem,
     pub colormaps: Colormaps,
@@ -199,7 +204,12 @@ impl App {
 
         let text_renderer = TextRenderManager::new(gl.clone())?;
 
+        let screen_size = &camera.get_screen_size();
+        let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let ui = Gui::new(aladin_div_name, &gl)?;
+        let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+        let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+
         let app = App {
             gl,
             ui,
@@ -225,6 +235,10 @@ impl App {
             exec,
             resources,
             prev_center,
+
+            fbo_view,
+            fbo_ui,
+            final_rendering_pass,
 
             move_animation,
             zoom_animation,
@@ -536,39 +550,48 @@ impl App {
     }
 
     pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
-
         if self.rendering || force_render {
-            // Render the scene
-            self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
-            self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            let shaders = &mut self.shaders;
+            let gl = self.gl.clone();
+            let camera = &self.camera;
 
+            let surveys = &self.surveys;
+            let grid = &self.grid;
+            let surveys = &mut self.surveys;
+            let text_renderer = &mut self.text_renderer;
+            let catalogs = &self.manager;
+            let colormaps = &self.colormaps;
 
-            //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
-            self.surveys
-                .draw::<P>(&self.camera, &mut self.shaders, &self.colormaps);
-            self.gl.enable(WebGl2RenderingContext::BLEND);
+            self.fbo_view.draw_onto(move || {
+                // Render the scene
+                gl.clear_color(0.08, 0.08, 0.08, 1.0);
+                gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            // Draw the catalog
-            self.manager
-                .draw::<P>(&self.gl, &mut self.shaders, &self.camera, &self.colormaps)?;
+                //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+                surveys.draw::<P>(camera, shaders, colormaps);
 
-            self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
-            self.gl.disable(WebGl2RenderingContext::BLEND);
+                gl.enable(WebGl2RenderingContext::BLEND);
 
-            // Draw all the labels
-            self.text_renderer.draw(&self.camera.get_screen_size());
+                // Draw the catalog
+                catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
+                grid.draw::<P>(camera, shaders)?;
+
+                gl.disable(WebGl2RenderingContext::BLEND);
+
+                // Draw all the labels
+                text_renderer.draw(&camera.get_screen_size());
+
+                Ok(())
+            });
 
             // Reset the flags about the user action
             self.camera.reset();
         }
 
-        {
-            let mut ui = self.ui.lock();
-            //if ui.redraw_needed() {
-                // Render the UI
-                ui.render(&mut self.ui_layout)?;
-            //}
-        }
+        self.ui.lock().draw(&mut self.ui_layout, &self.fbo_ui)?;
+
+        self.final_rendering_pass.draw_on_screen(&self.fbo_view);
+        self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
 
         Ok(())
     }
@@ -674,8 +697,15 @@ impl App {
 
     pub fn resize_window<P: Projection>(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size::<P>(width, height);
+        // resize the view fbo
+        self.fbo_view.resize(width as usize, height as usize);
+        // resize the ui fbo
+        self.fbo_ui.resize(width as usize, height as usize);
 
-        // Launch the new tile requests
+        // redraw the ui as well
+        self.ui.lock().needs_repaint.set_true();
+
+        // launch the new tile requests
         self.look_for_new_tiles();
         self.manager.set_kernel_size(&self.camera);
     }

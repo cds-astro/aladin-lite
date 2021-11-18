@@ -11,7 +11,7 @@ use crate::{
 use al_core::pixel::PixelType;
 use cgmath::Vector2;
 use wasm_bindgen::prelude::*;
-
+use al_ui::GuiRef;
 pub enum ProjectionType {
     Aitoff,
     MollWeide,
@@ -141,25 +141,25 @@ impl ProjectionType {
         }
     }
 
-    pub fn update(&mut self, app: &mut App, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
+    pub fn update(&mut self, app: &mut App, gui: &GuiRef, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.update::<Aitoff>(dt, force),
-            ProjectionType::MollWeide => app.update::<Mollweide>(dt, force),
-            ProjectionType::Ortho => app.update::<Orthographic>(dt, force),
-            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(dt, force),
-            ProjectionType::Gnomonic => app.update::<Gnomonic>(dt, force),
-            ProjectionType::Mercator => app.update::<Mercator>(dt, force),
+            ProjectionType::Aitoff => app.update::<Aitoff>(gui, dt, force),
+            ProjectionType::MollWeide => app.update::<Mollweide>(gui, dt, force),
+            ProjectionType::Ortho => app.update::<Orthographic>(gui, dt, force),
+            ProjectionType::Arc => app.update::<AzimuthalEquidistant>(gui, dt, force),
+            ProjectionType::Gnomonic => app.update::<Gnomonic>(gui, dt, force),
+            ProjectionType::Mercator => app.update::<Mercator>(gui, dt, force),
         }
     }
 
-    pub fn render(&mut self, app: &mut App, force: bool) -> Result<(), JsValue> {
+    pub fn draw(&mut self, app: &mut App, gui: &GuiRef, force: bool) -> Result<(), JsValue> {
         match self {
-            ProjectionType::Aitoff => app.render::<Aitoff>(force)?,
-            ProjectionType::MollWeide => app.render::<Mollweide>(force)?,
-            ProjectionType::Ortho => app.render::<Orthographic>(force)?,
-            ProjectionType::Arc => app.render::<AzimuthalEquidistant>(force)?,
-            ProjectionType::Gnomonic => app.render::<Gnomonic>(force)?,
-            ProjectionType::Mercator => app.render::<Mercator>(force)?,
+            ProjectionType::Aitoff => app.draw::<Aitoff>(gui, force)?,
+            ProjectionType::MollWeide => app.draw::<Mollweide>(gui, force)?,
+            ProjectionType::Ortho => app.draw::<Orthographic>(gui, force)?,
+            ProjectionType::Arc => app.draw::<AzimuthalEquidistant>(gui, force)?,
+            ProjectionType::Gnomonic => app.draw::<Gnomonic>(gui, force)?,
+            ProjectionType::Mercator => app.draw::<Mercator>(gui, force)?,
         };
 
         Ok(())

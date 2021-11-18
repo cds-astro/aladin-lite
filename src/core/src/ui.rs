@@ -1,6 +1,4 @@
 
-use al_ui::Ui;
-
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 enum Enum {
@@ -37,16 +35,82 @@ impl Default for AlUserInterface {
     }
 }
 
-impl Ui for AlUserInterface {
+impl al_ui::App for crate::App {
     fn show(&mut self, ui: &mut egui::Ui) {
-        egui::Window::new("egui_demo_panel")
+        egui::Window::new("Settings")
             .min_width(150.0)
             .default_width(190.0)
             .default_pos(egui::Pos2 { x: 0.0, y: 100.0 })
             .collapsible(true)
             .show(ui.ctx(), |ui| {
-                //use super::View as _;
-                self.ui(ui);
+                ui.scope(|ui| {
+                    ui.set_visible(self.ui_layout.visible);
+                    ui.set_enabled(self.ui_layout.enabled);
+        
+                    egui::Grid::new("my_grid")
+                        .num_columns(2)
+                        .spacing([40.0, 4.0])
+                        //.striped(true)
+                        .show(ui, |ui| {                    
+                            ui.add(doc_link_label("Label", "label,heading"));
+                            ui.label("Welcome to the widget gallery!");
+                            ui.end_row();
+                    
+                            ui.add(doc_link_label("Hyperlink", "Hyperlink"));
+                            use egui::special_emojis::GITHUB;
+                            ui.hyperlink_to(
+                                format!("{} egui home page", GITHUB),
+                                "https://github.com/emilk/egui",
+                            );
+                            ui.end_row();
+                
+                            ui.add(doc_link_label("ComboBox", "ComboBox"));
+                    
+                            egui::ComboBox::from_label("Select the projection")
+                                .selected_text(format!("{:?}", self.ui_layout.radio))
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(&mut self.ui_layout.radio, Enum::First, "Aitoff");
+                                    ui.selectable_value(&mut self.ui_layout.radio, Enum::Second, "Orthographic");
+                                    ui.selectable_value(&mut self.ui_layout.radio, Enum::Third, "Mercator");
+                                
+                                    match self.ui_layout.radio {
+                                        Enum::First => self.set_projection::<crate::projection::Aitoff>(),
+                                        Enum::Second => self.set_projection::<crate::projection::Orthographic>(),
+                                        Enum::Third => self.set_projection::<crate::projection::Mercator>(),
+                                        _ => (),
+                                    }
+                                });
+
+                            ui.end_row();
+                    
+                            
+                    
+                            ui.add(doc_link_label("Plot", "plot"));
+                            ui.add(example_plot());
+                            ui.end_row();
+                        });
+                });
+        
+                ui.separator();
+        
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut self.ui_layout.visible, "Visible")
+                        .on_hover_text("Uncheck to hide all the widgets.");
+                    if self.ui_layout.visible {
+                        ui.checkbox(&mut self.ui_layout.enabled, "Interactive")
+                            .on_hover_text("Uncheck to inspect how the widgets look when disabled.");
+                    }
+                });
+        
+                ui.separator();
+        
+                ui.vertical_centered(|ui| {
+                    let tooltip_text = "The full egui documentation.\nYou can also click the different widgets names in the left column.";
+                    ui.hyperlink("https://docs.rs/egui/").on_hover_text(tooltip_text);
+                    /*ui.add(crate::__egui_github_link_file!(
+                        "Source code of the widget gallery"
+                    ));*/
+                });
             });
     }
 }
@@ -56,176 +120,8 @@ impl AlUserInterface {
         "Aladin Lite User Interface"
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui) {
-        ui.scope(|ui| {
-            ui.set_visible(self.visible);
-            ui.set_enabled(self.enabled);
-
-            egui::Grid::new("my_grid")
-                .num_columns(2)
-                .spacing([40.0, 4.0])
-                //.striped(true)
-                .show(ui, |ui| {
-                    self.gallery_grid_contents(ui);
-                });
-        });
-
-        ui.separator();
-
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut self.visible, "Visible")
-                .on_hover_text("Uncheck to hide all the widgets.");
-            if self.visible {
-                ui.checkbox(&mut self.enabled, "Interactive")
-                    .on_hover_text("Uncheck to inspect how the widgets look when disabled.");
-            }
-        });
-
-        ui.separator();
-
-        ui.vertical_centered(|ui| {
-            let tooltip_text = "The full egui documentation.\nYou can also click the different widgets names in the left column.";
-            ui.hyperlink("https://docs.rs/egui/").on_hover_text(tooltip_text);
-            /*ui.add(crate::__egui_github_link_file!(
-                "Source code of the widget gallery"
-            ));*/
-        });
-    }
-
     fn gallery_grid_contents(&mut self, ui: &mut egui::Ui) {
-        let Self {
-            enabled: _,
-            visible: _,
-            boolean,
-            radio,
-            scalar,
-            string,
-            color,
-            animate_progress_bar,
-        } = self;
-
-        ui.add(doc_link_label("Label", "label,heading"));
-        ui.label("Welcome to the widget gallery!");
-        ui.end_row();
-
-        ui.add(doc_link_label("Hyperlink", "Hyperlink"));
-        use egui::special_emojis::GITHUB;
-        ui.hyperlink_to(
-            format!("{} egui home page", GITHUB),
-            "https://github.com/emilk/egui",
-        );
-        ui.end_row();
-
-        ui.add(doc_link_label("TextEdit", "TextEdit,text_edit"));
-        ui.add(egui::TextEdit::singleline(string).hint_text("Write something here"));
-        ui.end_row();
-
-        ui.add(doc_link_label("Button", "button"));
-        if ui.button("Click me!").clicked() {
-            *boolean = !*boolean;
-        }
-        ui.end_row();
-
-        ui.add(doc_link_label("Checkbox", "checkbox"));
-        ui.checkbox(boolean, "Checkbox");
-        ui.end_row();
-
-        ui.add(doc_link_label("RadioButton", "radio"));
-        ui.horizontal(|ui| {
-            ui.radio_value(radio, Enum::First, "First");
-            ui.radio_value(radio, Enum::Second, "Second");
-            ui.radio_value(radio, Enum::Third, "Third");
-        });
-        ui.end_row();
-
-        ui.add(doc_link_label(
-            "SelectableLabel",
-            "selectable_value,SelectableLabel",
-        ));
-        ui.horizontal(|ui| {
-            ui.selectable_value(radio, Enum::First, "First");
-            ui.selectable_value(radio, Enum::Second, "Second");
-            ui.selectable_value(radio, Enum::Third, "Third");
-        });
-        ui.end_row();
-
-        ui.add(doc_link_label("ComboBox", "ComboBox"));
-
-        egui::ComboBox::from_label("Take your pick")
-            .selected_text(format!("{:?}", radio))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(radio, Enum::First, "First");
-                ui.selectable_value(radio, Enum::Second, "Second");
-                ui.selectable_value(radio, Enum::Third, "Third");
-            });
-        ui.end_row();
-
-        ui.add(doc_link_label("Slider", "Slider"));
-        ui.add(egui::Slider::new(scalar, 0.0..=360.0).suffix("°"));
-        ui.end_row();
-
-        ui.add(doc_link_label("DragValue", "DragValue"));
-        ui.add(egui::DragValue::new(scalar).speed(1.0));
-        ui.end_row();
-
-        ui.add(doc_link_label("ProgressBar", "ProgressBar"));
-        let progress = *scalar / 360.0;
-        let progress_bar = egui::ProgressBar::new(progress)
-            .show_percentage()
-            .animate(*animate_progress_bar);
-        *animate_progress_bar = ui
-            .add(progress_bar)
-            .on_hover_text("The progress bar can be animated!")
-            .hovered();
-        ui.end_row();
-
-        ui.add(doc_link_label("Color picker", "color_edit"));
-        ui.color_edit_button_srgba(color);
-        ui.end_row();
-
-        ui.add(doc_link_label("Image", "Image"));
-        ui.image(egui::TextureId::Egui, [24.0, 16.0])
-            .on_hover_text("The egui font texture was the convenient choice to show here.");
-        ui.end_row();
-
-        ui.add(doc_link_label("ImageButton", "ImageButton"));
-        if ui
-            .add(egui::ImageButton::new(egui::TextureId::Egui, [24.0, 16.0]))
-            .on_hover_text("The egui font texture was the convenient choice to show here.")
-            .clicked()
-        {
-            *boolean = !*boolean;
-        }
-        ui.end_row();
-
-        ui.add(doc_link_label("Separator", "separator"));
-        ui.separator();
-        ui.end_row();
-
-        ui.add(doc_link_label("CollapsingHeader", "collapsing"));
-        ui.collapsing("Click to see what is hidden!", |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(
-                    "Not much, as it turns out - but here is a gold star for you for checking:",
-                );
-                ui.colored_label(egui::Color32::GOLD, "☆");
-            });
-        });
-        ui.end_row();
-
-        ui.add(doc_link_label("Plot", "plot"));
-        ui.add(example_plot());
-        ui.end_row();
-
-        /*ui.hyperlink_to(
-            "Custom widget:",
-            super::toggle_switch::url_to_file_source_code(),
-        );
-        ui.add(super::toggle_switch::toggle(boolean)).on_hover_text(
-            "It's easy to create your own widgets!\n\
-            This toggle switch is just 15 lines of code.",
-        );*/
-        ui.end_row();
+        
     }
 }
 

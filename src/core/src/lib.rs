@@ -73,11 +73,13 @@ pub use coo_conversion::CooSystem;
 use app::App;
 use cgmath::{Vector2, Vector4, VectorSpace};
 use projection_type::ProjectionType;
+use al_ui::{GuiRef, Gui};
 
 #[wasm_bindgen]
 pub struct WebClient {
     // The app
     app: App,
+    gui: GuiRef,
     projection: ProjectionType,
 
     // The time between the previous and the current
@@ -115,6 +117,8 @@ impl WebClient {
         let dt = DeltaTime::zero();
         let projection = ProjectionType::Ortho;
 
+        let gui = Gui::new(aladin_div_name, &gl)?;
+
         //let a = TemplateApp::default();
         //eframe::start_web("aladin-guiCanvas", Box::new(a)).unwrap();
         //let mut backend = egui_web::WebBackend::new("aladin-guiCanvas").expect("Failed to make a web backend for egui");
@@ -122,6 +126,7 @@ impl WebClient {
 
         let webclient = WebClient {
             app,
+            gui,
             projection,
 
             dt,
@@ -145,6 +150,7 @@ impl WebClient {
         // world coordinates of the center of projection in (ra, dec)
         self.projection.update(
             &mut self.app,
+            &self.gui,
             // Time of the previous frame rendering
             self.dt,
             // Force the update of some elements:
@@ -175,7 +181,7 @@ impl WebClient {
     ///
     /// * `force` - Force the rendering of the frame
     pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
-        self.projection.render(&mut self.app, force)?;
+        self.projection.draw(&mut self.app, &self.gui, force)?;
 
         Ok(())
     }
@@ -615,7 +621,7 @@ impl WebClient {
     /// This is useful for beginning inerting.
     #[wasm_bindgen(js_name = releaseLeftButtonMouse)]
     pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) -> Result<(), JsValue> {
-        self.app.release_left_button_mouse(sx, sy);
+        self.app.release_left_button_mouse(sx, sy, &self.gui);
 
         Ok(())
     }
@@ -665,7 +671,7 @@ impl WebClient {
     ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = mouseOnUi)]
     pub fn mouse_on_ui(&mut self) -> bool {
-        self.app.mouse_on_ui()
+        self.app.mouse_on_ui(&self.gui)
     }
 
     /// Signal the backend when a wheel event has been registered
@@ -678,7 +684,7 @@ impl WebClient {
     ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = posOnUi)]
     pub fn screen_position_on_ui(&mut self, sx: f32, sy: f32) -> bool {
-        self.app.pos_over_ui(sx, sy)
+        self.app.pos_over_ui(sx, sy, &self.gui)
     }
 
     /// Add a catalog rendered as a heatmap.

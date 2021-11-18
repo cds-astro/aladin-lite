@@ -35,7 +35,8 @@ impl epi::RepaintSignal for NeedRepaint {
         self.0.store(true, SeqCst);
     }
 }
-pub trait Ui {
+
+pub trait App {
     fn show(&mut self, ui: &mut egui::Ui);
 }
 
@@ -102,7 +103,7 @@ impl Gui {
         order != egui::layers::Order::Background
     }
 
-    pub fn render<U: Ui>(&mut self, ui: &mut U) -> Result<(), JsValue> {
+    pub fn render<A: App>(&mut self, app: &mut A) -> Result<(), JsValue> {
         //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
@@ -126,7 +127,7 @@ impl Gui {
             egui::CentralPanel::default()
                 .frame(f)
                 .show(&self.ctx, |egui| {
-                    ui.show(egui)
+                    app.show(egui)
                 });
         }
 

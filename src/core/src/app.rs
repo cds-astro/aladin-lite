@@ -28,8 +28,7 @@ use al_ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
 
-    ui: GuiRef,
-    ui_layout: AlUserInterface,
+    pub ui_layout: AlUserInterface,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -199,10 +198,8 @@ impl App {
 
         let text_renderer = TextRenderManager::new(gl.clone())?;
 
-        let ui = Gui::new(aladin_div_name, &gl)?;
         let app = App {
             gl,
-            ui,
             ui_layout: AlUserInterface::default(),
             
             shaders,
@@ -242,14 +239,14 @@ impl App {
         Ok(app)
     }
 
-    pub fn mouse_on_ui(&self) -> bool {
+    pub fn mouse_on_ui(&self, gui: &GuiRef) -> bool {
         // do not start inerting if we release the mouse button over the ui
-        self.ui.lock().is_pointer_over_ui()
+        gui.lock().is_pointer_over_ui()
     }
 
-    pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
+    pub fn pos_over_ui(&self, sx: f32, sy: f32, gui: &GuiRef) -> bool {
         // do not start inerting if we release the mouse button over the ui
-        self.ui.lock().pos_over_ui(sx, sy)
+        gui.lock().pos_over_ui(sx, sy)
     }
 
     pub fn is_catalog_loaded(&mut self) -> bool {
@@ -363,7 +360,7 @@ impl App {
         Ok(res)
     }
 
-    pub fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
+    pub fn update<P: Projection>(&mut self, gui: &GuiRef, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
@@ -494,7 +491,7 @@ impl App {
         self.rendering = blending_anim_occuring
             | has_camera_moved
             | self.request_redraw
-            | self.ui.lock().redraw_needed();
+            | gui.lock().redraw_needed();
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -536,7 +533,7 @@ impl App {
         }
     }
 
-    pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+    pub fn draw<P: Projection>(&mut self, gui: &GuiRef, force_render: bool) -> Result<(), JsValue> {
         if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
@@ -555,10 +552,11 @@ impl App {
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
             // Draw all the labels
-            self.text_renderer.draw(&self.camera.get_screen_size());
+            self.text_renderer.draw(&self.camera.get_screen_size())?;
 
             // Render the UI
-            self.ui.lock().render(&mut self.ui_layout)?;
+            gui.lock()
+                .render(self)?;
 
             // Reset the flags about the user action
             self.camera.reset();
@@ -833,7 +831,7 @@ impl App {
         self.out_of_fov = false;
     }
 
-    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32, gui: &GuiRef) {
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.
@@ -855,7 +853,7 @@ impl App {
             return;
         }
 
-        if (self.ui.lock().pos_over_ui(sx, sy)) {
+        if gui.lock().pos_over_ui(sx, sy) {
             return;
         }
         // Start inertia here

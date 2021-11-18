@@ -97,12 +97,15 @@ impl Gui {
     }
 
     pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
-        let egui::layers::LayerId { order, .. } =
-            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)).unwrap();
-        order != egui::layers::Order::Background
+        if let Some(egui::layers::LayerId { order, .. }) =
+            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)) {
+            order != egui::layers::Order::Background
+        } else {
+            false
+        }
     }
 
-    pub fn draw<U: Ui>(&mut self, ui: &mut U, fbo: &FrameBufferObject) -> Result<(), JsValue> {
+    pub fn draw<U: Ui>(&mut self, ui: &mut U, fbo: &FrameBufferObject) -> Result<bool, JsValue> {
         //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
@@ -129,7 +132,8 @@ impl Gui {
         let (output, shapes) = self.ctx.end_frame();
         input::handle_output(&output, self);
 
-        if self.redraw_needed() {
+        let redraw = self.redraw_needed();
+        if redraw {
             let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
             let s = self;
             fbo.draw_onto(move || {
@@ -139,7 +143,7 @@ impl Gui {
             })?;
         }
 
-        Ok(())
+        Ok(redraw)
     }
 
     pub fn redraw_needed(&mut self) -> bool {

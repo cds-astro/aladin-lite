@@ -550,7 +550,8 @@ impl App {
     }
 
     pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
-        if self.rendering || force_render {
+        let scene_redraw = self.rendering | force_render;
+        if scene_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
             let camera = &self.camera;
@@ -588,10 +589,15 @@ impl App {
             self.camera.reset();
         }
 
-        self.ui.lock().draw(&mut self.ui_layout, &self.fbo_ui)?;
+        // Tell if the ui has been redrawn
+        let ui_redraw = self.ui.lock().draw(&mut self.ui_layout, &self.fbo_ui)?;
 
-        self.final_rendering_pass.draw_on_screen(&self.fbo_view);
-        self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
+        // If neither of the scene or the ui has been redraw then do nothing
+        // otherwise, redraw both fbos on the screen
+        if scene_redraw || ui_redraw { 
+            self.final_rendering_pass.draw_on_screen(&self.fbo_view);
+            self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
+        }
 
         Ok(())
     }

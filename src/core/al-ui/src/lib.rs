@@ -109,12 +109,6 @@ impl Gui {
             self.painter.canvas.height() as f32,
         );
         let raw_input = self.input.new_frame(canvas_size);
-
-        //self.web_backend.begin_frame(raw_input);
-
-        //raw_input.events = self.events.clone();
-        //self.events.clear();
-
         self.ctx.begin_frame(raw_input);
 
         // Define the central panel containing the ui
@@ -133,9 +127,14 @@ impl Gui {
         self.painter.upload_egui_texture(&self.ctx.texture());
 
         let (output, shapes) = self.ctx.end_frame();
-        let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
         input::handle_output(&output, self);
-        self.painter.paint_meshes(clipped_meshes, 1.0)?;
+
+        if self.redraw_needed() {
+            let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
+            self.painter.paint_meshes(clipped_meshes, 1.0)?;
+        } else {
+            self.painter.paint_fbo();
+        }
 
         Ok(())
     }

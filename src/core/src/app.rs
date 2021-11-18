@@ -493,8 +493,7 @@ impl App {
             (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
         self.rendering = blending_anim_occuring
             | has_camera_moved
-            | self.request_redraw
-            | self.ui.lock().redraw_needed();
+            | self.request_redraw;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -537,10 +536,12 @@ impl App {
     }
 
     pub fn render<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+
         if self.rendering || force_render {
             // Render the scene
             self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
             self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
 
             //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
             self.surveys
@@ -557,11 +558,16 @@ impl App {
             // Draw all the labels
             self.text_renderer.draw(&self.camera.get_screen_size());
 
-            // Render the UI
-            self.ui.lock().render(&mut self.ui_layout)?;
-
             // Reset the flags about the user action
             self.camera.reset();
+        }
+
+        {
+            let mut ui = self.ui.lock();
+            //if ui.redraw_needed() {
+                // Render the UI
+                ui.render(&mut self.ui_layout)?;
+            //}
         }
 
         Ok(())

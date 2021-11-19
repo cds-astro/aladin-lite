@@ -4,6 +4,9 @@ use painter::WebGl2Painter;
 mod input;
 pub use input::GuiRef;
 
+mod layout;
+use layout::Layout;
+
 use egui;
 use egui_web::Painter;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -35,14 +38,19 @@ impl epi::RepaintSignal for NeedRepaint {
         self.0.store(true, SeqCst);
     }
 }
-pub trait Ui {
-    fn show(&mut self, ui: &mut egui::Ui);
+
+pub enum Event {
+    Grid {
+        color:  [f32; 4],
+        line_thickness: f32,
+        enable: bool
+    },
+    Location {
+        name: String
+    }
 }
 
-pub struct Gui
-{
-    //backend: egui_web::WebBackend,
-    //web_input: egui_web::backend::WebInput,
+pub struct Gui {
     pub input: egui_web::WebInput,
     pub painter: WebGl2Painter,
     ctx: egui::CtxRef,
@@ -51,23 +59,27 @@ pub struct Gui
     pub last_text_cursor_pos: Option<egui::Pos2>,
 
     pub aladin_lite_div: String,
+
+    // The layout contains all the ui definition
+    layout: layout::Layout,
+    clipped_meshes: Option<Vec<egui::ClippedMesh>>
 }
 use al_core::FrameBufferObject;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
-        /*let mut backend = egui_web::WebBackend::new("mycanvas")
-            .expect("Failed to make a web backend for egui");
-        */
         let ctx = egui::CtxRef::default();
         let painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let input: egui_web::backend::WebInput = Default::default();
 
+        let layout = layout::Layout::default();
         let gui = Self {
             ctx,
             painter,
 
             input,
+            layout,
+            clipped_meshes: None,
 
             needs_repaint: Default::default(),
             last_text_cursor_pos: None,
@@ -83,10 +95,6 @@ impl Gui {
 
         Ok(gui_ref)
     }
-
-    /*pub fn canvas_id(&self) -> &str  {
-        self.painter.canvas_id()
-    }*/
 
     pub fn egui_ctx(&self) -> &egui::CtxRef {
         &self.ctx
@@ -105,8 +113,7 @@ impl Gui {
         }
     }
 
-    pub fn draw<U: Ui>(&mut self, ui: &mut U, fbo: &FrameBufferObject) -> Result<bool, JsValue> {
-        //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
+    pub fn update(&mut self) -> Vec<Event> {
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
             self.painter.canvas.height() as f32,
@@ -114,36 +121,36 @@ impl Gui {
         let raw_input = self.input.new_frame(canvas_size);
         self.ctx.begin_frame(raw_input);
 
+        let mut events = vec![];
         // Define the central panel containing the ui
         {
             let f = egui::Frame {
                 fill: egui::Color32::TRANSPARENT,
                 ..Default::default()
             };
+            let layout = &mut self.layout;
             egui::CentralPanel::default()
                 .frame(f)
-                .show(&self.ctx, |egui| {
-                    ui.show(egui)
+                .show(&self.ctx, |ui| {
+                    layout.show(ui, &mut events)
                 });
         }
-
         self.painter.upload_egui_texture(&self.ctx.texture());
 
         let (output, shapes) = self.ctx.end_frame();
+        self.clipped_meshes = Some(self.ctx.tessellate(shapes)); // create triangles to paint    
+
         input::handle_output(&output, self);
 
-        let redraw = self.redraw_needed();
-        if redraw {
-            let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
-            let s = self;
-            fbo.draw_onto(move || {
-                s.painter.paint_meshes(clipped_meshes, 1.0)?;
+        events
+    }
 
-                Ok(())
-            })?;
+    pub fn draw(&mut self) -> Result<(), JsValue> {
+        if let Some(meshes) = self.clipped_meshes.take() {
+            self.painter.paint_meshes(meshes, 1.0)?;
         }
 
-        Ok(redraw)
+        Ok(())
     }
 
     pub fn redraw_needed(&mut self) -> bool {

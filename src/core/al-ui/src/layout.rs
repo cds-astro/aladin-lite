@@ -1,6 +1,4 @@
 
-use al_ui::Ui;
-
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 enum Enum {
@@ -11,7 +9,7 @@ enum Enum {
 
 /// Shows off one example of each major type of widget.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct AlUserInterface {
+pub struct Layout {
     enabled: bool,
     visible: bool,
     boolean: bool,
@@ -22,7 +20,7 @@ pub struct AlUserInterface {
     animate_progress_bar: bool,
 }
 
-impl Default for AlUserInterface {
+impl Default for Layout {
     fn default() -> Self {
         Self {
             enabled: true,
@@ -37,8 +35,14 @@ impl Default for AlUserInterface {
     }
 }
 
-impl Ui for AlUserInterface {
-    fn show(&mut self, ui: &mut egui::Ui) {
+use crate::Event;
+
+impl Layout {
+    /*fn name(&self) -> &'static str {
+        "Aladin Lite User Interface"
+    }*/
+
+    pub fn show(&mut self, ui: &mut egui::Ui, events: &mut Vec<Event>) {
         egui::Window::new("egui_demo_panel")
             .min_width(150.0)
             .default_width(190.0)
@@ -46,17 +50,11 @@ impl Ui for AlUserInterface {
             .collapsible(true)
             .show(ui.ctx(), |ui| {
                 //use super::View as _;
-                self.ui(ui);
+                self.ui(ui, events);
             });
     }
-}
 
-impl AlUserInterface {
-    fn name(&self) -> &'static str {
-        "Aladin Lite User Interface"
-    }
-
-    fn ui(&mut self, ui: &mut egui::Ui) {
+    fn ui(&mut self, ui: &mut egui::Ui, events: &mut Vec<Event>) {
         ui.scope(|ui| {
             ui.set_visible(self.visible);
             ui.set_enabled(self.enabled);

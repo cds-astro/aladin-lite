@@ -484,7 +484,6 @@ pub fn translate_key(key: &str) -> Option<egui::Key> {
 }
 
 // ----------------------------------------------------------------------------
-use crate::Ui;
 pub struct GuiRef(pub Arc<Mutex<Gui>>);
 
 impl Clone for GuiRef {

@@ -3,7 +3,7 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
         labels::{RenderManager, TextRenderManager},
-    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, ui::AlUserInterface, utils};
+    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
 use al_core::{pixel::PixelType, WebGl2Context};
 
@@ -30,7 +30,6 @@ pub struct App {
     pub gl: WebGl2Context,
 
     ui: GuiRef,
-    ui_layout: AlUserInterface,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -213,7 +212,6 @@ impl App {
         let app = App {
             gl,
             ui,
-            ui_layout: AlUserInterface::default(),
             
             shaders,
 
@@ -518,9 +516,11 @@ impl App {
         }
 
         self.grid.update::<P>(&self.camera, force, &mut self.text_renderer);        
+        let events = self.ui.lock().update();
 
         Ok(())
     }
+
 
     pub fn reset_north_orientation<P: Projection>(&mut self) {
         // Reset the rotation around the center if there is one
@@ -590,7 +590,18 @@ impl App {
         }
 
         // Tell if the ui has been redrawn
-        let ui_redraw = self.ui.lock().draw(&mut self.ui_layout, &self.fbo_ui)?;
+        let mut ui_redraw = false;
+        {
+            let mut ui = self.ui.lock();
+            ui_redraw = ui.redraw_needed();
+            if ui_redraw {
+                self.fbo_ui.draw_onto(move || {
+                    ui.draw()?;
+
+                    Ok(())
+                })?;
+            }
+        }
 
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen

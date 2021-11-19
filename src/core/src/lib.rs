@@ -43,7 +43,6 @@ mod healpix_cell;
 pub mod hips;
 mod line;
 mod math;
-mod ui;
 mod projection_type;
 mod renderable;
 mod resources;

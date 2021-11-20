@@ -719,9 +719,9 @@ impl Projection for AzimuthalEquidistant {
             r = math::sinc_positive(r);
 
             let pos_world_space = if longitude_reversed {
-                Vector4::new(x * r, y * r, z, 1.0)
-            } else {
                 Vector4::new(-x * r, y * r, z, 1.0)
+            } else {
+                Vector4::new(x * r, y * r, z, 1.0)
             };
 
             Some(pos_world_space)

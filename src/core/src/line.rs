@@ -27,10 +27,6 @@ use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
 
-fn out_of_camera(p: &Vector2<f64>) -> bool {
-    p.x < -1.0 || p.x > 1.0 || p.y < -1.0 || p.y > 1.0
-}
-
 fn subdivide<P: Projection>(
     vertices: &mut Vec<Vector2<f64>>,
     mp: [&Vector3<f64>; 3],

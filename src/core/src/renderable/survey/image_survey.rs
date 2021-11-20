@@ -856,8 +856,8 @@ impl Draw for ImageSurvey {
 
         //let textures_array = self.textures.get_texture_array();
 
-        //let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        let raytracing = true;
+        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        //let raytracing = true;
         if raytracing {
             let shader = color
                 .get_raytracer_shader::<P>(
@@ -1129,8 +1129,8 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        //let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        let raytracing = true;
+        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        //let raytracing = true;
 
         if raytracing {
             self.raytracer.bind();

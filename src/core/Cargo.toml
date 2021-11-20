@@ -49,6 +49,7 @@ features = [
   'console',
   'Document',
   'Element',
+  'CssStyleDeclaration',
   'HtmlCollection',
   'HtmlElement',
   'HtmlImageElement',

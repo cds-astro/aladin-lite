@@ -303,12 +303,12 @@ export let View = (function() {
         this.gridCtx = this.gridCanvas.getContext("2d");
         //this.guiCtx = this.guiCanvas.getContext("webgl2");
 
-        this.imageCtx.canvas.width = this.width;
+        //this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;
         this.reticleCtx.canvas.width = this.width;
         this.gridCtx.canvas.width = this.width;
         
-        this.imageCtx.canvas.height = this.height;
+        //this.imageCtx.canvas.height = this.height;
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
         this.gridCtx.canvas.height = this.height;
@@ -1048,6 +1048,10 @@ export let View = (function() {
             height: this.height   
         };
     };
+
+    View.prototype.setGridColor = function(r, g, b, a) {
+        this.aladin.webglAPI.setGridColor(r, g, b, a);
+    }
 
     /**
      * redraw the whole view

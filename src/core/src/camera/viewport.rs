@@ -78,8 +78,10 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
         .dyn_into::<web_sys::HtmlCanvasElement>()
         .unwrap();
 
-    canvas.set_width(width);
-    canvas.set_height(height);
+    canvas.set_width(width as u32);
+    canvas.set_height(height as u32);
+
+
     gl.viewport(0, 0, width as i32, height as i32);
     gl.scissor(0, 0, width as i32, height as i32);
 }

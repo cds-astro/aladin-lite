@@ -1,4 +1,5 @@
 extern crate fontdue;
+extern crate lazy_static;
 pub mod text;
 
 mod object;
@@ -20,6 +21,7 @@ pub use object::array_buffer::ArrayBuffer;
 pub use object::array_buffer_instanced::ArrayBufferInstanced;
 pub use object::buffer_data::{BufferDataStorage, SliceData, VecData};
 pub use object::element_array_buffer::ElementArrayBuffer;
+pub use object::framebuffer::FrameBufferObject;
 pub use object::vertex_array_object::{
     ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
     VertexArrayObjectBound,

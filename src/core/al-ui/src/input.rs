@@ -502,35 +502,33 @@ impl Deref for GuiRef
         &self.0
     }
 }
-/*
-fn paint_and_schedule(runner_ref: GuiRef) -> Result<(), JsValue> {
-    fn paint_if_needed(runner_ref: &GuiRef) -> Result<(), JsValue> {
-        let mut runner_lock = runner_ref.0.lock();
-        if runner_lock.needs_repaint.fetch_and_clear() {
-            let (output, clipped_meshes) = runner_lock.logic()?;
-            runner_lock.paint(clipped_meshes)?;
-            if output.needs_repaint {
-                runner_lock.needs_repaint.set_true();
-            }
-            runner_lock.auto_save();
-        }
 
-        Ok(())
-    }
-
-    fn request_animation_frame(runner_ref: GuiRef) -> Result<(), JsValue> {
-        use wasm_bindgen::JsCast;
-        let window = web_sys::window().unwrap();
-        let closure = Closure::once(move || paint_and_schedule(runner_ref));
-        window.request_animation_frame(closure.as_ref().unchecked_ref())?;
-        closure.forget(); // We must forget it, or else the callback is canceled on drop
-        Ok(())
-    }
-
-    paint_if_needed(&runner_ref)?;
-    request_animation_frame(runner_ref)
+fn get_current_time() -> f32 {
+    let window = web_sys::window().expect("should have a window in this context");
+    let performance = window
+        .performance()
+        .expect("performance should be available");
+    performance.now() as f32
 }
-*/
+
+fn paint_for_duration_milli_secs(runner_ref: GuiRef, start_time: f32, duration: f32) -> Result<(), JsValue> {
+    fn request_animation_frame(runner_ref: GuiRef, start_time: f32, duration: f32) -> Result<(), JsValue> {
+        use wasm_bindgen::JsCast;
+
+        if get_current_time() - start_time < duration {
+            let window = web_sys::window().unwrap();
+
+            let closure = Closure::once(move || paint_for_duration_milli_secs(runner_ref, start_time, duration));
+            window.request_animation_frame(closure.as_ref().unchecked_ref())?;
+            closure.forget(); // We must forget it, or else the callback is canceled on drop
+        }
+        Ok(())
+    }
+
+    runner_ref.lock().needs_repaint.set_true();
+    request_animation_frame(runner_ref, start_time, duration)
+}
+
 fn text_agent() -> web_sys::HtmlInputElement {
     use wasm_bindgen::JsCast;
     web_sys::window()
@@ -851,21 +849,23 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
         let runner_ref = runner_ref.clone();
         let closure = Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
             if let Some(button) = button_from_mouse_event(&event) {
-                let mut runner_lock = runner_ref.lock();
-                //let canvas = canvas_element(&runner_lock);
-                let pos = pos_from_mouse_event(&runner_lock, &event);
-                let modifiers = runner_lock.input.raw.modifiers;
-                runner_lock
-                    .input
-                    .raw
-                    .events
-                    .push(egui::Event::PointerButton {
-                        pos,
-                        button,
-                        pressed: true,
-                        modifiers,
-                    });
-                runner_lock.needs_repaint.set_true();
+                {
+                    let mut runner_lock = runner_ref.lock();
+                    //let canvas = canvas_element(&runner_lock);
+                    let pos = pos_from_mouse_event(&runner_lock, &event);
+                    let modifiers = runner_lock.input.raw.modifiers;
+                    runner_lock
+                        .input
+                        .raw
+                        .events
+                        .push(egui::Event::PointerButton {
+                            pos,
+                            button,
+                            pressed: true,
+                            modifiers,
+                        });
+                }
+                paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0);
             }
 
             event.stop_propagation();

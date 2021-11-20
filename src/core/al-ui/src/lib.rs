@@ -38,6 +38,7 @@ impl epi::RepaintSignal for NeedRepaint {
 
 pub trait App {
     fn show(&mut self, ui: &mut egui::Ui);
+    fn get_framebuffer_ui(&self) -> &FrameBufferObject;
 }
 
 pub struct Gui
@@ -53,7 +54,7 @@ pub struct Gui
 
     pub aladin_lite_div: String,
 }
-
+use al_core::FrameBufferObject;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
@@ -98,24 +99,22 @@ impl Gui {
     }
 
     pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
-        let egui::layers::LayerId { order, .. } =
-            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)).unwrap();
-        order != egui::layers::Order::Background
+        if let Some(egui::layers::LayerId { order, .. }) =
+            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)) {
+            order != egui::layers::Order::Background
+        } else {
+            false
+        }
     }
 
-    pub fn render<A: App>(&mut self, app: &mut A) -> Result<(), JsValue> {
+
+    pub fn draw<A: App>(&mut self, app: &mut A) -> Result<bool, JsValue> {
         //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
             self.painter.canvas.height() as f32,
         );
         let raw_input = self.input.new_frame(canvas_size);
-
-        //self.web_backend.begin_frame(raw_input);
-
-        //raw_input.events = self.events.clone();
-        //self.events.clear();
-
         self.ctx.begin_frame(raw_input);
 
         // Define the central panel containing the ui
@@ -134,11 +133,20 @@ impl Gui {
         self.painter.upload_egui_texture(&self.ctx.texture());
 
         let (output, shapes) = self.ctx.end_frame();
-        let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
         input::handle_output(&output, self);
-        self.painter.paint_meshes(clipped_meshes, 1.0)?;
 
-        Ok(())
+        let redraw = self.redraw_needed();
+        if redraw {
+            let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
+            let s = self;
+            app.get_framebuffer_ui().draw_onto(move || {
+                s.painter.paint_meshes(clipped_meshes, 2.0)?;
+
+                Ok(())
+            })?;
+        }
+
+        Ok(redraw)
     }
 
     pub fn redraw_needed(&mut self) -> bool {

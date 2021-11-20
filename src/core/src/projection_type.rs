@@ -184,12 +184,12 @@ impl ProjectionType {
 
     pub fn resize(&mut self, app: &mut App, width: f32, height: f32) {
         match self {
-            ProjectionType::Aitoff => app.resize_window::<Aitoff>(width, height),
-            ProjectionType::MollWeide => app.resize_window::<Mollweide>(width, height),
-            ProjectionType::Ortho => app.resize_window::<Orthographic>(width, height),
-            ProjectionType::Arc => app.resize_window::<AzimuthalEquidistant>(width, height),
-            ProjectionType::Gnomonic => app.resize_window::<Gnomonic>(width, height),
-            ProjectionType::Mercator => app.resize_window::<Mercator>(width, height),
+            ProjectionType::Aitoff => app.resize::<Aitoff>(width, height),
+            ProjectionType::MollWeide => app.resize::<Mollweide>(width, height),
+            ProjectionType::Ortho => app.resize::<Orthographic>(width, height),
+            ProjectionType::Arc => app.resize::<AzimuthalEquidistant>(width, height),
+            ProjectionType::Gnomonic => app.resize::<Gnomonic>(width, height),
+            ProjectionType::Mercator => app.resize::<Mercator>(width, height),
         };
     }
 

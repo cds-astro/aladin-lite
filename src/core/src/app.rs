@@ -23,7 +23,8 @@ struct S {
     ra: f64,
     dec: f64,
 }
-
+use crate::renderable::final_pass::RenderPass;
+use al_core::FrameBufferObject;
 use al_ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
@@ -60,6 +61,10 @@ pub struct App {
     out_of_fov: bool,
     tasks_finished: bool,
     catalog_loaded: bool,
+
+    final_rendering_pass: RenderPass,
+    fbo_view: FrameBufferObject,
+    pub fbo_ui: FrameBufferObject,
 
     pub system: CooSystem,
     pub colormaps: Colormaps,
@@ -98,6 +103,7 @@ const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
+use wasm_bindgen::JsCast;
 impl App {
     pub fn new(
         gl: &WebGl2Context,
@@ -198,6 +204,12 @@ impl App {
 
         let text_renderer = TextRenderManager::new(gl.clone())?;
 
+        let screen_size = &camera.get_screen_size();
+        let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
+        //let ui = Gui::new(aladin_div_name, &gl)?;
+        let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+        let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+
         let app = App {
             gl,
             ui_layout: AlUserInterface::default(),
@@ -222,6 +234,10 @@ impl App {
             exec,
             resources,
             prev_center,
+
+            fbo_view,
+            fbo_ui,
+            final_rendering_pass,
 
             move_animation,
             zoom_animation,
@@ -490,8 +506,7 @@ impl App {
             (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
         self.rendering = blending_anim_occuring
             | has_camera_moved
-            | self.request_redraw
-            | gui.lock().redraw_needed();
+            | self.request_redraw;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -533,33 +548,55 @@ impl App {
         }
     }
 
+
     pub fn draw<P: Projection>(&mut self, gui: &GuiRef, force_render: bool) -> Result<(), JsValue> {
-        if self.rendering || force_render {
-            // Render the scene
-            self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
-            self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        let scene_redraw = self.rendering | force_render;
+        if scene_redraw {
+            let shaders = &mut self.shaders;
+            let gl = self.gl.clone();
+            let camera = &self.camera;
 
-            //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
-            self.surveys
-                .draw::<P>(&self.camera, &mut self.shaders, &self.colormaps);
-            self.gl.enable(WebGl2RenderingContext::BLEND);
+            let grid = &self.grid;
+            let surveys = &mut self.surveys;
+            let text_renderer = &mut self.text_renderer;
+            let catalogs = &self.manager;
+            let colormaps = &self.colormaps;
 
-            // Draw the catalog
-            self.manager
-                .draw::<P>(&self.gl, &mut self.shaders, &self.camera, &self.colormaps)?;
+            self.fbo_view.draw_onto(move || {
+                // Render the scene
+                gl.clear_color(0.08, 0.08, 0.08, 1.0);
+                gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            self.grid.draw::<P>(&self.camera, &mut self.shaders)?;
-            self.gl.disable(WebGl2RenderingContext::BLEND);
+                //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
+                surveys.draw::<P>(camera, shaders, colormaps);
 
-            // Draw all the labels
-            self.text_renderer.draw(&self.camera.get_screen_size())?;
+                gl.enable(WebGl2RenderingContext::BLEND);
 
-            // Render the UI
-            gui.lock()
-                .render(self)?;
+                // Draw the catalog
+                catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
+                grid.draw::<P>(camera, shaders)?;
+
+                gl.disable(WebGl2RenderingContext::BLEND);
+
+                // Draw all the labels
+                text_renderer.draw(&camera.get_screen_size())?;
+
+                Ok(())
+            })?;
 
             // Reset the flags about the user action
             self.camera.reset();
+        }
+
+        // Tell if the ui has been redrawn
+        // Render the UI
+        let ui_redraw = gui.lock()
+            .draw(self)?;
+        // If neither of the scene or the ui has been redraw then do nothing
+        // otherwise, redraw both fbos on the screen
+        if scene_redraw || ui_redraw { 
+            self.final_rendering_pass.draw_on_screen(&self.fbo_view);
+            self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
         }
 
         Ok(())
@@ -664,10 +701,30 @@ impl App {
             });
     }
 
-    pub fn resize_window<P: Projection>(&mut self, width: f32, height: f32) {
-        self.camera.set_screen_size::<P>(width, height);
+    pub fn resize<P: Projection>(&mut self, width: f32, height: f32) {
+        let window = web_sys::window().unwrap();
+        let mut scale = window.device_pixel_ratio() as f32;
+        if scale > 2.0 {
+            scale = 2.0;
+        }
+        
+        let w = (width as f32) * scale;
+        let h = (height as f32 ) * scale;
+        let canvas = self.gl
+            .canvas()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+        canvas.style().set_property("width", &format!("{}px", width.to_string())).unwrap();
+        canvas.style().set_property("height", &format!("{}px", height.to_string())).unwrap();
 
-        // Launch the new tile requests
+        self.camera.set_screen_size::<P>(w, h);
+        // resize the view fbo
+        self.fbo_view.resize(w as usize, h as usize);
+        // resize the ui fbo
+        self.fbo_ui.resize(w as usize, h as usize);
+
+        // launch the new tile requests
         self.look_for_new_tiles();
         self.manager.set_kernel_size(&self.camera);
     }
@@ -799,7 +856,15 @@ impl App {
     }
 
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
-        if let Some(model_pos) = P::screen_to_model_space(pos, &self.camera) {
+        let window = web_sys::window().unwrap();
+        let mut scale = window.device_pixel_ratio() as f64;
+        if scale > 2.0 {
+            scale = 2.0;
+        }
+
+        let pos = Vector2::new(pos.x * scale, pos.y * scale);
+
+        if let Some(model_pos) = P::screen_to_model_space(&pos, &self.camera) {
             //let model_pos = self.system.system_to_icrs_coo(model_pos);
             Some(model_pos.lonlat())
         } else {
@@ -832,6 +897,14 @@ impl App {
     }
 
     pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32, gui: &GuiRef) {
+        let window = web_sys::window().unwrap();
+        let mut scale = window.device_pixel_ratio() as f32;
+        if scale > 2.0 {
+            scale = 2.0;
+        }
+        
+        let sx = (sx as f32) * scale;
+        let sy = (sy as f32 ) * scale;
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.

@@ -34,8 +34,12 @@ impl Default for AlUserInterface {
         }
     }
 }
-
+use al_core::FrameBufferObject;
 impl al_ui::App for crate::App {
+    fn get_framebuffer_ui(&self) -> &FrameBufferObject {
+        &self.fbo_ui
+    }
+
     fn show(&mut self, ui: &mut egui::Ui) {
         egui::Window::new("Settings")
             .min_width(150.0)
@@ -75,7 +79,10 @@ impl al_ui::App for crate::App {
                                 
                                     match self.ui_layout.radio {
                                         Enum::First => self.set_projection::<crate::projection::Aitoff>(),
-                                        Enum::Second => self.set_projection::<crate::projection::Orthographic>(),
+                                        Enum::Second => {
+                                            self.set_projection::<crate::projection::Orthographic>();
+                                            self.set_grid_color(crate::Color::new(1.0, 0.0, 0.0, 0.2));
+                                        },
                                         Enum::Third => self.set_projection::<crate::projection::Mercator>(),
                                         _ => (),
                                     }

@@ -60,18 +60,16 @@ use crate::{
     hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
     math::LonLatT,
     renderable::{survey::image_survey::ImageSurveys},
-    projection::Projection,
     resources::Resources,
     shader::ShaderManager,
     shaders::Colormaps,
     time::DeltaTime,
 };
-use al_core::format::ImageFormatType;
 use al_core::{shader::Shader, WebGl2Context};
 pub use coo_conversion::CooSystem;
 
 use app::App;
-use cgmath::{Vector2, Vector4, VectorSpace};
+use cgmath::{Vector2, Vector4};
 use projection_type::ProjectionType;
 use al_ui::{GuiRef, Gui};
 
@@ -119,11 +117,6 @@ impl WebClient {
 
         let gui = Gui::new(aladin_div_name, &gl)?;
 
-        //let a = TemplateApp::default();
-        //eframe::start_web("aladin-guiCanvas", Box::new(a)).unwrap();
-        //let mut backend = egui_web::WebBackend::new("aladin-guiCanvas").expect("Failed to make a web backend for egui");
-        //let mut web_input: WebInput = Default::default();
-
         let webclient = WebClient {
             app,
             gui,
@@ -131,6 +124,7 @@ impl WebClient {
 
             dt,
         };
+        //gui.set_webclient(Arc::new(Mutex::new(webclient)));
 
         Ok(webclient)
     }
@@ -170,6 +164,8 @@ impl WebClient {
     pub fn resize(&mut self, width: f32, height: f32) -> Result<(), JsValue> {
         self.projection.resize(&mut self.app, width, height);
 
+        // redraw the ui as well
+        self.gui.lock().needs_repaint.set_true();
         Ok(())
     }
 

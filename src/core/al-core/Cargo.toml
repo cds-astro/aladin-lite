@@ -11,6 +11,7 @@ wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
 fontdue = "0.6.2"
 image = "0.23.14"
+lazy_static = "1.4.0"
 
 [dependencies.wasm-bindgen]
 version = "0.2.70"

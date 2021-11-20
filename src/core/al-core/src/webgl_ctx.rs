@@ -23,6 +23,8 @@ impl WebGl2Context {
             .unwrap();
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
+        // Normalize coordinate system to use css pixels.
+        //gl.scale(scale, scale);
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =

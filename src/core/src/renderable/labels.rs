@@ -18,7 +18,6 @@ struct LabelMeta {
     color: Color,
     screen_pos: Vector2<f32>,
     scale: f32,
-    width_pixel: f32,
     off_idx: u16,
     num_idx: u16,
 }
@@ -46,10 +45,11 @@ use wasm_bindgen::prelude::*;
 use web_sys::WebGl2RenderingContext;
 use fontdue::layout::*;
 use crate::Color;
+use crate::camera::CameraViewPort;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGl2Context) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGl2Context, camera: &CameraViewPort) -> Result<Self, JsValue> {
         // Create the VAO for the screen
         let shader = Shader::new(
             &gl,
@@ -75,7 +75,8 @@ impl TextRenderManager {
                     )
                 // Unbind the buffer
                 .unbind();
-        let text_size = 17.0;
+        let dpi = camera.get_dpi();
+        let text_size = 17.0 * dpi;
         let Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
 
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
@@ -148,8 +149,6 @@ impl TextRenderManager {
         let off_idx = self.indices.len() as u16;
         let mut num_idx = 0;
 
-        let mut width_pixel = 0.0;
-
         for c in text.chars() {
             if let Some(l) = self.letters.get(&c) {
                 let u1 = (l.x_min as f32)/(f_tex_size.0 as f32);
@@ -192,7 +191,6 @@ impl TextRenderManager {
                 off_idx,
                 num_idx,
                 scale,
-                width_pixel: w as f32,
                 color: color.clone(),
                 screen_pos: *screen_pos,
                 rot: rot.into(),

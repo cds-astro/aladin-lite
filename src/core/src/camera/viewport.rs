@@ -33,6 +33,10 @@ pub struct CameraViewPort {
     width: f32,
     // The height of the screen in pixels
     height: f32,
+    // dpi. Equals to 1.0 normally but HDI screens
+    // can have greater values. For macbook pro retina screen, this
+    // should be equal to 2
+    dpi: f32,
 
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f64>,
@@ -81,7 +85,6 @@ fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
     canvas.set_width(width as u32);
     canvas.set_height(height as u32);
 
-
     gl.viewport(0, 0, width as i32, height as i32);
     gl.scissor(0, 0, width as i32, height as i32);
 }
@@ -107,18 +110,19 @@ impl CameraViewPort {
         let final_rot = Rotation::zero();
 
         // Get the initial size of the window
-        let width = web_sys::window()
-            .unwrap()
+        let window = web_sys::window()
+            .unwrap();
+        let width = window
             .inner_width()
             .unwrap()
             .as_f64()
             .unwrap() as f32;
-        let height = web_sys::window()
-            .unwrap()
+        let height = window
             .inner_height()
             .unwrap()
             .as_f64()
             .unwrap() as f32;
+        let dpi = window.device_pixel_ratio() as f32;
         set_canvas_size(&gl, width as u32, height as u32);
         //gl.scissor(0, 0, width as i32, height as i32);
 
@@ -144,6 +148,7 @@ impl CameraViewPort {
             w2m,
             m2w,
 
+            dpi,
             final_rot,
             rotation_center_angle,
             // The width over height ratio
@@ -351,6 +356,10 @@ impl CameraViewPort {
 
     pub fn get_last_user_action(&self) -> UserAction {
         self.last_user_action
+    }
+
+    pub fn get_dpi(&self) -> f32 {
+        self.dpi
     }
 
     pub fn has_moved(&self) -> bool {

@@ -65,6 +65,7 @@ impl RenderPass {
 
     pub fn draw_on_screen(&self, fbo: &FrameBufferObject) {
         self.gl.enable(WebGl2RenderingContext::BLEND);
+        self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 
         self.shader.bind(&self.gl)
             .attach_uniform("fbo_tex", &fbo.texture)

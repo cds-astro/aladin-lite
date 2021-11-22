@@ -3,7 +3,7 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
         labels::{RenderManager, TextRenderManager},
-    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, ui::AlUserInterface, utils};
+    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
 use al_core::{pixel::PixelType, WebGl2Context};
 
@@ -29,7 +29,7 @@ use al_ui::{Gui, GuiRef};
 pub struct App {
     pub gl: WebGl2Context,
 
-    pub ui_layout: AlUserInterface,
+    ui: GuiRef,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -45,9 +45,6 @@ pub struct App {
     grid: ProjetedGrid,
     // Catalog manager
     manager: Manager,
-
-    // Render Text Manager
-    text_renderer: TextRenderManager,
 
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
@@ -185,7 +182,7 @@ impl App {
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, aladin_div_name, &camera, &mut shaders)?;
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders)?;
 
         // Variable storing the location to move to
         let move_animation = None;
@@ -202,17 +199,15 @@ impl App {
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
-        let text_renderer = TextRenderManager::new(gl.clone())?;
-
         let screen_size = &camera.get_screen_size();
         let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
-        //let ui = Gui::new(aladin_div_name, &gl)?;
+        let ui = Gui::new(aladin_div_name, &gl)?;
         let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
         let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         let app = App {
             gl,
-            ui_layout: AlUserInterface::default(),
+            ui,
             
             shaders,
 
@@ -228,9 +223,6 @@ impl App {
             grid,
             // The catalog renderable
             manager,
-
-            text_renderer,
-
             exec,
             resources,
             prev_center,
@@ -255,14 +247,8 @@ impl App {
         Ok(app)
     }
 
-    pub fn mouse_on_ui(&self, gui: &GuiRef) -> bool {
-        // do not start inerting if we release the mouse button over the ui
-        gui.lock().is_pointer_over_ui()
-    }
-
-    pub fn pos_over_ui(&self, sx: f32, sy: f32, gui: &GuiRef) -> bool {
-        // do not start inerting if we release the mouse button over the ui
-        gui.lock().pos_over_ui(sx, sy)
+    pub fn pos_over_ui(&self) -> bool {
+        self.ui.lock().pos_over_ui()
     }
 
     pub fn is_catalog_loaded(&mut self) -> bool {
@@ -376,7 +362,7 @@ impl App {
         Ok(res)
     }
 
-    pub fn update<P: Projection>(&mut self, gui: &GuiRef, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
+    pub fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         let available_tiles = self.run_tasks::<P>(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
@@ -516,10 +502,12 @@ impl App {
             }
         }
 
-        self.grid.update::<P>(&self.camera, force, &mut self.text_renderer);        
+        self.grid.update::<P>(&self.camera, force);        
+        let events = self.ui.lock().update();
 
         Ok(())
     }
+
 
     pub fn reset_north_orientation<P: Projection>(&mut self) {
         // Reset the rotation around the center if there is one
@@ -549,16 +537,15 @@ impl App {
     }
 
 
-    pub fn draw<P: Projection>(&mut self, gui: &GuiRef, force_render: bool) -> Result<(), JsValue> {
+    pub fn draw<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
         let scene_redraw = self.rendering | force_render;
         if scene_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
             let camera = &self.camera;
 
-            let grid = &self.grid;
+            let grid = &mut self.grid;
             let surveys = &mut self.surveys;
-            let text_renderer = &mut self.text_renderer;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
 
@@ -567,19 +554,13 @@ impl App {
                 gl.clear_color(0.08, 0.08, 0.08, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                //self.gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
                 surveys.draw::<P>(camera, shaders, colormaps);
-
-                gl.enable(WebGl2RenderingContext::BLEND);
 
                 // Draw the catalog
                 catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
+
                 grid.draw::<P>(camera, shaders)?;
-
-                gl.disable(WebGl2RenderingContext::BLEND);
-
-                // Draw all the labels
-                text_renderer.draw(&camera.get_screen_size())?;
+                
 
                 Ok(())
             })?;
@@ -589,9 +570,22 @@ impl App {
         }
 
         // Tell if the ui has been redrawn
-        // Render the UI
-        let ui_redraw = gui.lock()
-            .draw(self)?;
+        let mut ui_redraw = false;
+        {
+            let mut ui = self.ui.lock();
+            let dpi  = self.camera.get_dpi();
+            ui_redraw = ui.redraw_needed();
+            if ui_redraw {
+                let gl = self.gl.clone();
+
+                self.fbo_ui.draw_onto(move || {
+                    ui.draw(&gl, dpi)?;
+
+                    Ok(())
+                })?;
+            }
+        }
+
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen
         if scene_redraw || ui_redraw { 
@@ -702,14 +696,9 @@ impl App {
     }
 
     pub fn resize<P: Projection>(&mut self, width: f32, height: f32) {
-        let window = web_sys::window().unwrap();
-        let mut scale = window.device_pixel_ratio() as f32;
-        if scale > 2.0 {
-            scale = 2.0;
-        }
+        let dpi = self.camera.get_dpi();
         
-        let w = (width as f32) * scale;
-        let h = (height as f32 ) * scale;
+
         let canvas = self.gl
             .canvas()
             .unwrap()
@@ -718,6 +707,8 @@ impl App {
         canvas.style().set_property("width", &format!("{}px", width.to_string())).unwrap();
         canvas.style().set_property("height", &format!("{}px", height.to_string())).unwrap();
 
+        let w = (width as f32) * dpi;
+        let h = (height as f32 ) * dpi;
         self.camera.set_screen_size::<P>(w, h);
         // resize the view fbo
         self.fbo_view.resize(w as usize, h as usize);
@@ -775,7 +766,7 @@ impl App {
     }
 
     pub fn enable_grid<P: Projection>(&mut self) {
-        self.grid.enable::<P>(&self.camera, &mut self.text_renderer);
+        self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
 
@@ -856,14 +847,6 @@ impl App {
     }
 
     pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
-        let window = web_sys::window().unwrap();
-        let mut scale = window.device_pixel_ratio() as f64;
-        if scale > 2.0 {
-            scale = 2.0;
-        }
-
-        let pos = Vector2::new(pos.x * scale, pos.y * scale);
-
         if let Some(model_pos) = P::screen_to_model_space(&pos, &self.camera) {
             //let model_pos = self.system.system_to_icrs_coo(model_pos);
             Some(model_pos.lonlat())
@@ -896,15 +879,11 @@ impl App {
         self.out_of_fov = false;
     }
 
-    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32, gui: &GuiRef) {
-        let window = web_sys::window().unwrap();
-        let mut scale = window.device_pixel_ratio() as f32;
-        if scale > 2.0 {
-            scale = 2.0;
-        }
+    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+        let dpi = self.camera.get_dpi();
         
-        let sx = (sx as f32) * scale;
-        let sy = (sy as f32 ) * scale;
+        let sx = (sx as f32) * dpi;
+        let sy = (sy as f32) * dpi;
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.
@@ -926,7 +905,7 @@ impl App {
             return;
         }
 
-        if gui.lock().pos_over_ui(sx, sy) {
+        if self.ui.lock().pos_over_ui() {
             return;
         }
         // Start inertia here

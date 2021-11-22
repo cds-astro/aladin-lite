@@ -120,7 +120,10 @@ pub trait Projection:
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
-        let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
+        // Change the screen position according to the dpi
+        let dpi = camera.get_dpi();
+        let pos_screen_space = *pos_screen_space * (dpi as f64);
+        let pos_normalized_device = screen_to_ndc_space(&pos_screen_space, camera);
 
         let ndc_to_clip = camera.get_ndc_to_clip();
         let clip_zoom_factor = camera.get_clip_zoom_factor();

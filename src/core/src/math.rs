@@ -50,34 +50,7 @@ pub fn _ang_between_lonlat<S: BaseFloat>(
     let abs_diff_lon = (lon1 - lon2).abs();
     Angle((lat1.sin() * lat2.sin() + lat1.cos() * lat2.cos() * abs_diff_lon.cos()).acos())
 }
-/*
-#[inline]
-pub fn course_between_lonlat<S: BaseFloat>(lon1: Angle<S>, lat1: Angle<S>, lon2: Angle<S>, lat2: Angle<S>) -> Angle<S> {
-    // Check if the starting vertex is on a pole
-    let eps = S::from(1e-5).unwrap();
-    let tc1 = if lat1.cos() < eps {
-        if lat1 > S::zero() {
-            // starting vertex is located on the N pole
-            S::from(std::f32::consts::PI).unwrap()
-        } else {
-            // starting vertex is located on the S pole
-            S::from(2_f32 * std::f32::consts::PI).unwrap()
-        }
-    } else {
-        // d stores the great circle distance between the two vertices
-        let d = ang_between_lonlat(lon1, lat1, lon2, lat2);
 
-        let a = ((lat2.sin()-lat1.sin()*d.cos())/(d.sin()*lat1.cos())).acos();
-        if (lon2 - lon1).sin() < S::zero() {
-            a
-        } else {
-            S::from(2_f32 * std::f32::consts::PI).unwrap() - a
-        }
-    };
-
-    tc1*S::from(180_f32 / std::f32::consts::PI).unwrap()
-}
-*/
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
     fn lat(&self) -> Angle<S>;
@@ -231,35 +204,6 @@ pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S
     )
 }
 
-/*pub fn ang_per_pixel_to_depth(x: f32) -> u8 {
-    let depth_pixel = (((4_f32 * std::f32::consts::PI) / (12_f32 * x * x)).log2() / 2_f32).floor() as i32;
-
-    let mut depth = depth_pixel - 9;
-    if depth < 0 {
-        depth = 0;
-    }
-    depth as u8
-}*/
-
-/*
-pub fn depth_to_fov(depth: u8) -> Rad<f32> {
-    let sphere_area = 4_f32 * std::f32::consts::PI;
-    let num_hpx_cells = 12_f32 * 4_f32.powf(depth as f32);
-    let hpx_cell_ang = Rad((sphere_area / num_hpx_cells).sqrt());
-
-    hpx_cell_ang
-}
-*/
-/*use cgmath::Vector2;
-pub fn is_inside_ellipse(screen_pos: &Vector2<f32>, a: f32, b: f32) -> bool {
-    let a2 = a * a;
-    let b2 = b * b;
-    let px2 = screen_pos.x * screen_pos.x;
-    let py2 = screen_pos.y * screen_pos.y;
-
-    return (px2 * b2 + py2 * a2) <= a2 * b2;
-}
-*/
 #[inline]
 const fn num_bits<T>() -> usize {
     std::mem::size_of::<T>() * 8

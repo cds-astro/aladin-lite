@@ -1,12 +1,17 @@
+use al_core;
+
 mod painter;
 use painter::WebGl2Painter;
 
 mod input;
 pub use input::GuiRef;
 
+mod layout;
+
 use egui;
 use egui_web::Painter;
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::prelude::*;
+use web_sys::WebGl2RenderingContext;
 
 // ----------------------------------------------------------------------------
 
@@ -36,15 +41,18 @@ impl epi::RepaintSignal for NeedRepaint {
     }
 }
 
-pub trait App {
-    fn show(&mut self, ui: &mut egui::Ui);
-    fn get_framebuffer_ui(&self) -> &FrameBufferObject;
+pub enum Event {
+    Grid {
+        color:  [f32; 4],
+        line_thickness: f32,
+        enable: bool
+    },
+    Location {
+        name: String
+    }
 }
 
-pub struct Gui
-{
-    //backend: egui_web::WebBackend,
-    //web_input: egui_web::backend::WebInput,
+pub struct Gui {
     pub input: egui_web::WebInput,
     pub painter: WebGl2Painter,
     ctx: egui::CtxRef,
@@ -53,23 +61,34 @@ pub struct Gui
     pub last_text_cursor_pos: Option<egui::Pos2>,
 
     pub aladin_lite_div: String,
+
+    // The layout contains all the ui definition
+    layout: layout::Layout,
+    clipped_meshes: Option<Vec<egui::ClippedMesh>>,
+
+    pub mouse_on_ui: bool,
+    pub cur_mouse_pos: egui::Pos2,
 }
-use al_core::FrameBufferObject;
 use al_core::WebGl2Context;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
-        /*let mut backend = egui_web::WebBackend::new("mycanvas")
-            .expect("Failed to make a web backend for egui");
-        */
         let ctx = egui::CtxRef::default();
         let painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let input: egui_web::backend::WebInput = Default::default();
 
+        let layout = layout::Layout::default();
+        let mouse_on_ui = false;
+        let cur_mouse_pos = egui::Pos2::ZERO;
         let gui = Self {
             ctx,
             painter,
 
             input,
+            layout,
+            clipped_meshes: None,
+
+            mouse_on_ui,
+            cur_mouse_pos,
 
             needs_repaint: Default::default(),
             last_text_cursor_pos: None,
@@ -86,30 +105,19 @@ impl Gui {
         Ok(gui_ref)
     }
 
-    /*pub fn canvas_id(&self) -> &str  {
-        self.painter.canvas_id()
-    }*/
-
     pub fn egui_ctx(&self) -> &egui::CtxRef {
         &self.ctx
     }
 
-    pub fn is_pointer_over_ui(&self) -> bool {
+    /*pub fn is_pointer_over_ui(&self) -> bool {
         self.ctx.wants_pointer_input()
+    }*/
+
+    pub fn pos_over_ui(&self) -> bool {
+        self.mouse_on_ui
     }
 
-    pub fn pos_over_ui(&self, sx: f32, sy: f32) -> bool {
-        if let Some(egui::layers::LayerId { order, .. }) =
-            self.ctx.layer_id_at(egui::Pos2::new(sx, sy)) {
-            order != egui::layers::Order::Background
-        } else {
-            false
-        }
-    }
-
-
-    pub fn draw<A: App>(&mut self, app: &mut A) -> Result<bool, JsValue> {
-        //let canvas_size = egui_web::canvas_size_in_points(self.painter.canvas_id());
+    pub fn update(&mut self) -> Vec<Event> {
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
             self.painter.canvas.height() as f32,
@@ -117,36 +125,43 @@ impl Gui {
         let raw_input = self.input.new_frame(canvas_size);
         self.ctx.begin_frame(raw_input);
 
+        let mut events = vec![];
         // Define the central panel containing the ui
         {
             let f = egui::Frame {
                 fill: egui::Color32::TRANSPARENT,
                 ..Default::default()
             };
-            egui::CentralPanel::default()
+            let layout = &mut self.layout;
+            let response = egui::CentralPanel::default()
                 .frame(f)
-                .show(&self.ctx, |egui| {
-                    app.show(egui)
+                .show(&self.ctx, |ui| {
+                    layout.show(ui, &mut events);
                 });
+            
+            self.mouse_on_ui = !response.response.hovered();
         }
-
         self.painter.upload_egui_texture(&self.ctx.texture());
 
         let (output, shapes) = self.ctx.end_frame();
+        self.clipped_meshes = Some(self.ctx.tessellate(shapes)); // create triangles to paint    
+
         input::handle_output(&output, self);
 
-        let redraw = self.redraw_needed();
-        if redraw {
-            let clipped_meshes = self.ctx.tessellate(shapes); // create triangles to paint
-            let s = self;
-            app.get_framebuffer_ui().draw_onto(move || {
-                s.painter.paint_meshes(clipped_meshes, 2.0)?;
+        events
+    }
 
-                Ok(())
-            })?;
+    pub fn draw(&mut self, gl: &WebGl2Context, pixels_per_point: f32) -> Result<(), JsValue> {
+        if let Some(meshes) = self.clipped_meshes.take() {
+            gl.enable(WebGl2RenderingContext::BLEND);
+            gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
+            
+            self.painter.paint_meshes(meshes, pixels_per_point)?;
+
+            gl.disable(WebGl2RenderingContext::BLEND);
         }
 
-        Ok(redraw)
+        Ok(())
     }
 
     pub fn redraw_needed(&mut self) -> bool {

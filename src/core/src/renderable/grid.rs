@@ -30,6 +30,9 @@ pub struct ProjetedGrid {
     gl: WebGl2Context,
     enabled: bool,
     hide_labels: bool,
+
+    // Render Text Manager
+    text_renderer: TextRenderManager,
 }
 
 use crate::projection::Projection;
@@ -45,7 +48,6 @@ use super::TextRenderManager;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGl2Context,
-        aladin_div_name: &str,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<ProjetedGrid, JsValue> {
@@ -113,28 +115,8 @@ impl ProjetedGrid {
         let sizes = vec![];
         let offsets = vec![];
 
+        let text_renderer = TextRenderManager::new(gl.clone(), &camera)?;
         // Get the canvas rendering context
-        /*let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document
-            .get_element_by_id(aladin_div_name)
-            .unwrap()
-            .get_elements_by_class_name("aladin-gridCanvas")
-            .get_with_index(0)
-            .unwrap();
-        canvas.set_attribute("style", "z-index:1; position:absolute; top:0; left:0;")?;
-        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
-        let size_screen = camera.get_screen_size();
-        canvas.set_width(2 * size_screen.x as u32);
-        canvas.set_height(2 * size_screen.y as u32);*/
-
-        /*let ctx2d = canvas
-            .get_context("2d")
-            .unwrap()
-            .unwrap()
-            .dyn_into::<web_sys::CanvasRenderingContext2d>()
-            .unwrap();
-        ctx2d.scale(2.0, 2.0)?;*/
-
         let enabled = false;
         let hide_labels = false;
         let grid = ProjetedGrid {
@@ -155,6 +137,8 @@ impl ProjetedGrid {
             enabled,
             hide_labels,
             vao_gpu,
+
+            text_renderer
         };
         Ok(grid)
     }
@@ -163,9 +147,9 @@ impl ProjetedGrid {
         self.color = color;
     }
 
-    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
+    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
         self.enabled = true;
-        self.force_update::<P>(camera, text_renderer);
+        self.force_update::<P>(camera);
     }
 
     pub fn disable(&mut self, camera: &CameraViewPort) {
@@ -194,11 +178,11 @@ impl ProjetedGrid {
     pub fn show_labels(&mut self) {
         self.hide_labels = false;
     }
-    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, text_renderer: &mut TextRenderManager) {
+    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
         {
-            text_renderer.begin_frame();
+            self.text_renderer.begin_frame();
             //let text_height = text_renderer.text_size();
-            let lines = lines::<P>(camera, text_renderer);
+            let lines = lines::<P>(camera, &self.text_renderer);
 
             self.offsets.clear();
             self.sizes.clear();
@@ -221,7 +205,7 @@ impl ProjetedGrid {
             let scale = Label::size(camera) as f32;
             for label in self.labels.iter() {
                 if let Some(label) = label {
-                    text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.color, cgmath::Rad(label.rot as f32));
+                    self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.color, cgmath::Rad(label.rot as f32));
                 }
             }
     
@@ -258,24 +242,23 @@ impl ProjetedGrid {
                     &buf_vertices,
                 );
             }
-            text_renderer.end_frame();
+            self.text_renderer.end_frame();
         }
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool, text_renderer: &mut TextRenderManager) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
         if !self.enabled {
             return;
         }
 
         if camera.has_moved() || force {
-            self.force_update::<P>(camera, text_renderer);
+            self.force_update::<P>(camera);
         }
     }
 
     fn draw_lines_gpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         let shader = P::get_grid_shader(&self.gl, shaders);
-
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
@@ -335,46 +318,23 @@ impl ProjetedGrid {
     }
 
     pub fn draw<P: Projection>(
-        &self,
+        &mut self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
         if self.enabled {
+            self.gl.enable(WebGl2RenderingContext::BLEND);
+
             if camera.get_aperture() < ArcDeg(10.0) {
                 self.draw_lines_cpu::<P>(camera, shaders);
             } else {
                 self.draw_lines_gpu::<P>(camera, shaders);
             }
 
-            // Draw the labels here
-            /*if !self.hide_labels {
-                let size_screen = &camera.get_screen_size();
-                self.ctx2d.clear_rect(
-                    0.0,
-                    0.0,
-                    2.0 * size_screen.x as f64,
-                    2.0 * size_screen.y as f64,
-                );
+            self.gl.disable(WebGl2RenderingContext::BLEND);
 
-                let text_height = Label::size(camera);
-                self.ctx2d
-                    .set_font(&format!("{}px Arial", text_height as usize));
-                self.ctx2d.set_text_align("center");
-                let fill_style: String = (&self.color).into();
-                self.ctx2d.set_fill_style(&JsValue::from_str(&fill_style));
-                for label in self.labels.iter() {
-                    if let Some(label) = &label {
-                        self.ctx2d.save();
-                        self.ctx2d
-                            .translate(label.position.x as f64, label.position.y as f64)?;
-                        self.ctx2d.rotate(label.rot as f64)?;
-                        self.ctx2d
-                            .fill_text(&label.content, 0.0, text_height / 4.0)
-                            .unwrap();
-                        self.ctx2d.restore();
-                    }
-                }
-            }*/
+
+            self.text_renderer.draw(&camera.get_screen_size())?;  
         }
 
         Ok(())
@@ -741,7 +701,6 @@ impl Label {
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         // in pixels
-        //text_height: f64,
         text_renderer: &TextRenderManager
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();

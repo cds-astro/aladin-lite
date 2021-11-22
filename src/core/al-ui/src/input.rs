@@ -824,13 +824,9 @@ pub fn install_text_agent(runner_ref: GuiRef) -> Result<(), JsValue> {
 pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
     use wasm_bindgen::JsCast;
     let runner_ref = runner_ref.clone();
-    let mut runner_lock = runner_ref.0.lock();
-
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
+    let runner_lock = runner_ref.0.lock();
 
     let canvas = canvas_element(&runner_lock);
-
     {
         // By default, right-clicks open a context menu.
         // We don't want to do that (right clicks is handled by egui):
@@ -865,7 +861,7 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                             modifiers,
                         });
                 }
-                paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0);
+                paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0).unwrap();
             }
 
             event.stop_propagation();
@@ -887,6 +883,7 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                 .events
                 .push(egui::Event::PointerMoved(pos));
             runner_lock.needs_repaint.set_true();
+            runner_lock.cur_mouse_pos = pos;
             event.stop_propagation();
             event.prevent_default();
         }) as Box<dyn FnMut(_)>);

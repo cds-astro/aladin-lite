@@ -84,8 +84,8 @@ pub fn rasterize_font(text_size: f32) -> Font {
         }
     });
 
-    let h_tex = 256;
-    let w_tex = 256;
+    let h_tex = 512;
+    let w_tex = 512;
 
     let mut letters_tex = HashMap::new();
     let mut x_min = 0;

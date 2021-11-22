@@ -465,11 +465,9 @@ export let View = (function() {
         // various listeners
         let onDblClick = function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+            if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
-
-            //var xy = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
             try {
                 var lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
             }
@@ -499,7 +497,7 @@ export let View = (function() {
         
         $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+            if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
             // zoom pinching
@@ -691,18 +689,18 @@ export let View = (function() {
             view.refreshProgressiveCats();
 
             view.requestRedraw(true);
-            view.aladin.webglAPI.releaseLeftButtonMouse(xymouse.x, xymouse.y);
+            view.aladin.webglAPI.releaseLeftButtonMouse();
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        var mouseOnUi = false;
         let webglAPI = view.aladin.webglAPI;
         let p = null;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
             p = xymouse;
-            if(view.aladin.webglAPI.posOnUi(xymouse.x, xymouse.y)) {
+            if(view.aladin.webglAPI.posOnUi()) {
+
                 return;
             }
 
@@ -892,11 +890,10 @@ export let View = (function() {
             event.stopPropagation();
             //var xymouse = view.imageCanvas.relMouseCoords(event);
 
-            if(view.aladin.webglAPI.posOnUi(p.x, p.y)) {
+            if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
             //var xymouse = view.imageCanvas.relMouseCoords(event);
-            //if(mouseOnUi) {return;}
             //var level = view.zoomLevel;
 
             var delta = event.deltaY;

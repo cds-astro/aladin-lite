@@ -239,9 +239,14 @@ impl Manager {
         camera: &CameraViewPort,
         colormaps: &Colormaps,
     ) -> Result<(), JsValue> {
+        gl.enable(WebGl2RenderingContext::BLEND);
+
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, camera, colormaps)?;
         }
+
+        gl.disable(WebGl2RenderingContext::BLEND);
+
 
         Ok(())
     }

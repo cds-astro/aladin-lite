@@ -139,7 +139,7 @@ HpxKey = (function() {
 
         drawChildren: function(ctx, view, maxParente) {
             var n=0;
-            var limitOrder = 13; // corresponds to NSIDE=8192, current HealpixJS limit
+            var limitOrder = 18 //13; // corresponds to NSIDE=8192, current HealpixJS limit
             if ( this.width>1 && this.norder<limitOrder && this.parente<maxParente ) {
                 var children = this.getChildren();
                 if ( children!=null ) {

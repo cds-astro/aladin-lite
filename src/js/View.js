@@ -102,7 +102,14 @@ View = (function() {
             
     
             
-            this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
+            // @DES custom
+            // Set an array of tile bufrers
+            this.tileBuffers = [];
+            // Setting max hardcoded tile buffer size to 3
+            for (int i=0;i < 3; i++) {
+this.tileBuffers = new TileBuffer();                
+            }
+            // this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
             this.fixLayoutDimensions();
             
     

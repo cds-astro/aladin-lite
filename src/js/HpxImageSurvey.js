@@ -36,6 +36,9 @@ HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
+    /* Added feature: set the layer compositing style for this survey when drawing into the canvas.
+    set in options with a default 
+    */
     var HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
         // new way
         if (idOrHiPSDefinition instanceof HiPSDefinition) {
@@ -121,8 +124,10 @@ HpxImageSurvey = (function() {
             });
         }
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
+        
+        // Finally set compositing style
+        this.blendingMode = options.blendingMode || BlendingModeEnum.sourceover;
     };
-
 
 
     HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
@@ -383,6 +388,10 @@ HpxImageSurvey = (function() {
     				c.width = c.height = self.allskyTextureSize;
     				c.allSkyTexture = true;
     				var context = c.getContext('2d');
+            // Change the blending mode if it isn't default
+            if (this.blendingMode != BlendingModeEnum.sourceover) {
+            context.globalCompositeOperation = this.blendingMode;
+            }
     				context.drawImage(img, i*self.allskyTextureSize, j*self.allskyTextureSize, self.allskyTextureSize, self.allskyTextureSize, 0, 0, c.width, c.height);
     				self.allskyTextures.push(c);
     			}

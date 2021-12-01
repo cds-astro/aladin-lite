@@ -64,6 +64,9 @@ Downloader = (function() {
 	Downloader.prototype.tryDownload = function() {
 	    //if (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
 		while (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
+            if (this.view.refreshed) {
+                this.view.refreshed = false;
+            }
 			this.startDownloadNext();
 		}
 	};

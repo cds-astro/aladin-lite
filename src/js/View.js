@@ -37,12 +37,14 @@ View = (function() {
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
+            // Keeping a tab on completed visual refresh
+            this.refreshed = false;
 
             this.createCanvases();
             this.location = location;
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
-            this.mustRedrawReticle = true;
+            this.mustRedrawReticle = true;;
             
             this.mode = View.PAN;
             
@@ -980,6 +982,8 @@ this.tileBuffers = new TileBuffer();
         }
         */
         
+        // Refresh at this point as sky is loaded
+        this.refreshed = true;
 
         // redraw overlay image survey
         // TODO : does not work if different frames 

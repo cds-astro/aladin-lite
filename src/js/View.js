@@ -105,8 +105,8 @@ View = (function() {
             // @DES custom
             // Set an array of tile bufrers
             this.tileBuffers = [];
-            // Setting max hardcoded tile buffer size to 3
-            for (int i=0;i < 3; i++) {
+            // Setting max hardcoded tile buffer size to 5
+            for (int i=0;i < 5; i++) {
 this.tileBuffers = new TileBuffer();                
             }
             // this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
@@ -305,6 +305,21 @@ this.tileBuffers = new TileBuffer();
         
         return c.toDataURL(imgType);
         //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
+    };
+
+    /**
+     * return dataURL string corresponding to the current skymap
+     */
+    View.prototype.getCanvasSkymapDataURL = function(imgType, width, height) {
+        imgType = imgType || "image/png"; 
+        var c = document.createElement('canvas');
+        width = width || this.width;
+        height = height || this.height;
+        c.width = width;
+        c.height = height;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(this.imageCanvas, 0, 0, c.width, c.height);
+        return c.toDataURL(imgType);
     };
 
 

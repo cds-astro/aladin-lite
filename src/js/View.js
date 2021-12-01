@@ -322,7 +322,6 @@ this.tileBuffers = new TileBuffer();
         return c.toDataURL(imgType);
     };
 
-
     /**
      * Compute the FoV in degrees of the view and update mouseMoveIncrement
      * 

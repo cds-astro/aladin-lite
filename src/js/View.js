@@ -1788,6 +1788,7 @@ View = (function() {
         setTimeout(function() {self.refreshProgressiveCats();}, 1000);
 
     };
+    
     View.prototype.makeUniqLayerName = function(name) {
         if (! this.layerNameExists(name)) {
             return name;
@@ -1814,6 +1815,11 @@ View = (function() {
         this.overlays = [];
         this.mocs = [];
         this.allOverlayLayers = [];
+        this.requestRedraw();
+    };
+
+    View.prototype.removeImageSurveyAtIndex = function(index) {
+        this.imageSurveys.splice(i, 1);
         this.requestRedraw();
     };
 

@@ -74,7 +74,10 @@ View = (function() {
             }
             
             // current reference image survey displayed
-            this.imageSurvey = null;
+            // this.imageSurvey = null;
+            // new: added multi image survey 
+            this.imageSurveys = [];
+            
             // current catalogs displayed
             this.catalogs = [];
             // a dedicated catalog for the popup
@@ -107,10 +110,6 @@ View = (function() {
             // @DES custom
             // Set an array of tile bufrers
             this.tileBuffers = [];
-            // Setting max hardcoded tile buffer size to 5
-            for (int i=0;i < 5; i++) {
-this.tileBuffers = new TileBuffer();                
-            }
             // this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
             this.fixLayoutDimensions();
             
@@ -179,7 +178,13 @@ this.tileBuffers = new TileBuffer();
 
     View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
 
-    
+/* Add a new TileBuffer
+    associated to a HPXImageSurvey
+    */
+        View.prototype.addTileBuffer = function() {
+            this.tileBuffers.push(new TileBuffer());
+        };
+        
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
@@ -948,15 +953,19 @@ this.tileBuffers = new TileBuffer();
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+        
+        // Added going through all image surveys with the same routine
+        for imageSurvey of this.imageSurveys {
+        if (imageSurvey && imageSurvey.isReady && this.displaySurvey) {
                 if (this.aladin.reduceDeformations==null) {
-                    this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
+                    imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
                 }
 
                 else {
-                    this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
+                    imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
+    }
         /*
         else {
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
@@ -1229,7 +1238,7 @@ this.tileBuffers = new TileBuffer();
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
+            if (this.imageSurveys[0] && this.imageSurveys[0].longitudeReversed===true) {
                 spatialVector.set(lonlat[0], lonlat[1]);
             }
             else {
@@ -1262,8 +1271,8 @@ this.tileBuffers = new TileBuffer();
     
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function(norder, frameSurvey) {
-        if (! frameSurvey && this.imageSurvey) {
-            frameSurvey = this.imageSurvey.cooFrame;
+        if (! frameSurvey && this.imageSurveys.length > 0) {
+            frameSurvey = this.imageSurveys[0].cooFrame;
         }
         var cells = []; // array to be returned
         var cornersXY = [];
@@ -1300,7 +1309,7 @@ this.tileBuffers = new TileBuffer();
             else {
                 lonlat = [radec.ra, radec.dec];
             }
-            if (this.imageSurvey && this.imageSurvey.longitudeReversed===true) {
+            if (this.imageSurveys.length > 0 && this.imageSurveys[0].longitudeReversed===true) {
                 spatialVector.set(lonlat[0], lonlat[1]);
             }
             else {
@@ -1436,13 +1445,13 @@ this.tileBuffers = new TileBuffer();
             spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
                 
             // need for frame transformation ?
-            if (this.imageSurvey && this.imageSurvey.cooFrame.system != this.cooFrame.system) {
-                if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
+            if (this.imageSurveys.length > 0 && this.imageSurveys[0].cooFrame.system != this.cooFrame.system) {
+                if (this.imageSurveys[0].cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
                     var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]); 
                     lon = radec[0];
                     lat = radec[1];
                 }
-                else if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
+                else if (this.imageSurveys[0].cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
                     var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
                     lon = radec[0];
                     lat = radec[1];
@@ -1564,13 +1573,13 @@ this.tileBuffers = new TileBuffer();
            
 
         // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        if (this.imageSurvey && norder<=2 && this.imageSurvey.minOrder>2) {
-            norder = this.imageSurvey.minOrder;
+        if (this.imageSurveys.length > 0 && norder<=2 && this.imageSurveys[0].minOrder>2) {
+            norder = this.imageSurveys[0].minOrder;
         }
 
         var overlayNorder  = norder;
-        if (this.imageSurvey && norder>this.imageSurvey.maxOrder) {
-            norder = this.imageSurvey.maxOrder;
+        if (this.imageSurveys.length > 0 && norder>this.imageSurveys[0].maxOrder) {
+            norder = this.imageSurveys[0].maxOrder;
         }
         if (this.overlayImageSurvey && overlayNorder>this.overlayImageSurvey.maxOrder) {
             overlayNorder = this.overlayImageSurvey.maxOrder;
@@ -1649,7 +1658,7 @@ this.tileBuffers = new TileBuffer();
         
         // reset canvas to "untaint" canvas if needed
         // we test if the previous base image layer was using CORS or not
-        if ($.support.cors && this.imageSurvey && ! this.imageSurvey.useCors) {
+        if ($.support.cors && this.imageSurveys[this.lastSurveyIdx] && ! this.imageSurveys[this.lastSurveyIdx].useCors) {
             this.untaintCanvases();
         }
         

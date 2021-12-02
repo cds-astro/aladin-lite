@@ -70,5 +70,10 @@ TileBuffer = (function() {
         return this.tilesMap[url];
 	};
 	
+	TileBuffer.prototype.removeTile = function(url) {
+            delete this.tilesMap[url];
+            this.pointer --;
+	};
+    
 	return TileBuffer;
 })();

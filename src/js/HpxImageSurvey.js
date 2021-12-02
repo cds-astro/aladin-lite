@@ -36,8 +36,8 @@ HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    /* Added feature: set the layer compositing style for this survey when drawing into the canvas.
-    set in options with a default 
+    /* Added feature: set the layer compositing style for this survey when drawing into the canvas in options.blendingMode
+    set in options with a default sourceover mode
     */
     var HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
         // new way

@@ -45,7 +45,12 @@ Downloader = (function() {
 
 	Downloader.prototype.emptyQueue = function() {
 		this.dlQueue = [];
+        var remaining = [];
+        for (url of this.urlsInQueue) {
+            remaining.push(url);
+        }
         this.urlsInQueue = {};
+        return remaining;
     };
 	
 	Downloader.prototype.requestDownload = function(img, url, cors) {

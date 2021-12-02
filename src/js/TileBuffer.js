@@ -75,5 +75,12 @@ TileBuffer = (function() {
             this.pointer --;
 	};
     
+	TileBuffer.prototype.removeTiles = function(urls) {
+        for (url of urls) {
+            delete this.tilesMap[url];
+            this.pointer --;
+        }
+	};
+    
 	return TileBuffer;
 })();

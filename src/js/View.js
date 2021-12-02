@@ -812,7 +812,7 @@ View = (function() {
 
 
         view.displayHpxGrid = false;
-        view.displaySurvey = true;
+        view.displaySurvey = [];
         view.displayCatalog = false;
         view.displayReticle = true;
         
@@ -955,8 +955,8 @@ View = (function() {
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
         
         // Added going through all image surveys with the same routine
-        for imageSurvey of this.imageSurveys {
-        if (imageSurvey && imageSurvey.isReady && this.displaySurvey) {
+        for (const [i, imageSurvey] of this.imageSurveys.entries()) {
+        if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
                     imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
                 }
@@ -980,7 +980,8 @@ View = (function() {
             }
 
             // redraw image survey
-            if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+    for (const [i, imageSurvey] of this.imageSurveys.entries()) {
+            if (imageSurvey.isReady && this.displaySurvey[i]) {
                 // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
                 // TODO refactoring : should be a method of HpxImageSurvey
                 this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
@@ -1674,17 +1675,18 @@ View = (function() {
             newImageSurvey = imageSurvey;
         }
  
-        // TODO: this is a temporary fix for issue https://github.com/cds-astro/aladin-lite/issues/16
-        // ideally, instead of creating a new TileBuffer object,
-        //  one should remove from TileBuffer all Tile objects still in the download queue qui sont encore dans la download queue
-        this.tileBuffer = new TileBuffer();
+        /* Feature: added filter of remaining urls in download queue to be used to selectively remove tiles        
+        */
+                var remaining = this.downloader.emptyQueue();
+        for (buffer of this.tileBuffers) {
+            buffer.removeTiles(remaining);
+        }
 
-        this.downloader.emptyQueue();
-        
         newImageSurvey.isReady = false;
-        this.imageSurvey = newImageSurvey;
+        this.imageSurveys.push(newImageSurvey);
+        var idx = this.imageSurveys.length;
 
-        this.projection.reverseLongitude(this.imageSurvey.longitudeReversed); 
+        this.projection.reverseLongitude(this.imageSurveys[idx].longitudeReversed); 
         
         var self = this;
         newImageSurvey.init(this, function() {
@@ -1737,6 +1739,12 @@ View = (function() {
     View.prototype.showSurvey = function(show) {
         this.displaySurvey = show;
 
+        this.requestRedraw();
+    };
+    
+    View.prototype.toggleShowSurveyAtIndex = function(show, index) {
+        const toggle = show ? false : true;
+        this.displaySurvey[i] = toggle;
         this.requestRedraw();
     };
     

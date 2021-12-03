@@ -1791,8 +1791,8 @@ View = (function() {
         this.requestRedraw();
     };
     
-    View.prototype.toggleShowSurveyAtIndex = function(show, index) {
-        const toggle = show ? false : true;
+    View.prototype.toggleShowSurveyAtIndex = function(index) {
+        const toggle = (this.displaySurvey[index]) ? false : true;
         this.displaySurvey[i] = toggle;
         this.requestRedraw();
     };

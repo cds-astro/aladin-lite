@@ -127,6 +127,7 @@ HpxImageSurvey = (function() {
         
         // Finally set compositing style
         this.blendingMode = options.blendingMode || BlendingModeEnum.sourceover;
+        
     };
 
 
@@ -139,9 +140,8 @@ HpxImageSurvey = (function() {
             this.cm = new ColorMap(this.view);
         }
     	
-    	// tileBuffer is now shared across different image surveys
-    	//this.tileBuffer = new TileBuffer();
-    	this.tileBuffer = this.view.tileBuffer;
+// Tile buffers are associated to their image surveys as last element   
+         	this.tileBuffer = this.view.tileBuffers[-1];
     	
     	this.useCors = false;
     	var self = this;

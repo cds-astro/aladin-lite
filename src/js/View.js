@@ -73,8 +73,6 @@ View = (function() {
                 this.setZoom(zoom);
             }
             
-            // current reference image survey displayed
-            // this.imageSurvey = null;
             // new: added multi image survey 
             this.imageSurveys = [];
             
@@ -107,10 +105,11 @@ View = (function() {
             
     
             
-            // @DES custom
-            // Set an array of tile bufrers
+            /* Set an array of tile bufrers
+            To avoid buffer sharing between loaded surveys
+            */
             this.tileBuffers = [];
-            // this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
+
             this.fixLayoutDimensions();
             
     
@@ -142,7 +141,6 @@ View = (function() {
             
             init(this);
             
-
             // listen to window resize and reshape canvases
             this.resizeTimer = null;
             var self = this;
@@ -1702,6 +1700,57 @@ View = (function() {
         });
     };
     
+    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @param index: index to place the image survey at
+    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, callback) {
+        if (! imageSurvey) {
+            return;
+        }
+        
+        // reset canvas to "untaint" canvas if needed
+        // we test if the previous base image layer was using CORS or not
+        if ($.support.cors && this.imageSurveys[this.lastSurveyIdx] && ! this.imageSurveys[this.lastSurveyIdx].useCors) {
+            this.untaintCanvases();
+        }
+        
+        var newImageSurvey;
+        if (typeof imageSurvey == "string") {
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
+            if ( ! newImageSurvey) {
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
+                unknownSurveyId = imageSurvey;
+            }
+        }
+        else {
+            newImageSurvey = imageSurvey;
+        }
+ 
+        /* Feature: added filter of remaining urls in download queue to be used to selectively remove tiles        
+        */
+                var remaining = this.downloader.emptyQueue();
+        for (buffer of this.tileBuffers) {
+            buffer.removeTiles(remaining);
+        }
+
+        newImageSurvey.isReady = false;
+        this.imageSurveys[index] = newImageSurvey;
+
+        this.projection.reverseLongitude(this.imageSurveys[index].longitudeReversed); 
+        
+        var self = this;
+        newImageSurvey.init(this, function() {
+            //self.imageSurvey = newImageSurvey;
+            self.computeNorder();
+            newImageSurvey.isReady = true;
+            self.requestRedraw();
+            self.updateObjectsLookup();
+            
+            if (callback) {
+                callback();
+            }
+        });
+    };
+    
     View.prototype.requestRedraw = function() {
         this.needRedraw = true;
     };
@@ -1834,6 +1883,7 @@ View = (function() {
             catalog.init(this);
         }
     };
+    
     View.prototype.addOverlay = function(overlay) {
         overlay.name = this.makeUniqLayerName(overlay.name);
         this.overlays.push(overlay);

@@ -131,8 +131,7 @@ Aladin = (function() {
 
 
 		// Aladin logo
-		$("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
-		
+        // $("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
 		
 		// we store the boxes
 		this.boxes = [];
@@ -793,9 +792,6 @@ Aladin = (function() {
         return [radToDeg(lon), radToDeg(lat)];
     };
 
-
-
-    
     /**
      * get current [ra, dec] position of the center of the view
      * 
@@ -829,17 +825,28 @@ Aladin = (function() {
     Aladin.prototype.showSurvey = function(show) {
         this.view.showSurvey(show);
     };
+    
+    Aladin.prototype.toggleShowSurveyAtIndex = function(index) {
+        this.view.toggleShowSurveyAtIndex(index);
+    };
+    
     Aladin.prototype.showCatalog = function(show) {
         this.view.showCatalog(show);
     };
+    
     Aladin.prototype.showReticle = function(show) {
         this.view.showReticle(show);
         $('#displayReticle').attr('checked', show);
     };
+    
     Aladin.prototype.removeLayers = function() {
         this.view.removeLayers();
     };
 
+    Aladin.prototype.removeImageSurveyAtIndex = function(index) {
+        this.view.removeImageSurveyAtIndex(index);
+    };
+    
     // these 3 methods should be merged into a unique "add" method
     Aladin.prototype.addCatalog = function(catalog) {
         this.view.addCatalog(catalog);
@@ -852,18 +859,23 @@ Aladin = (function() {
     };
     
 
-  
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
         return new HpxImageSurvey(id, name, rootUrl, cooFrame, maxOrder, options);        
     };
 
-
- 
     // @api
     Aladin.prototype.getBaseImageLayer = function() {
-        return this.view.imageSurvey;
+        return this.view.imageSurveys[0];
     };
+    
+    // @api
+    Aladin.prototype.getImageLayerAtIndex = function(index) {
+        if (index <= this.view.imageSurveys.length - 1) {
+        return this.view.imageSurveys[index];
+    }
+    };
+    
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
@@ -879,8 +891,29 @@ Aladin = (function() {
             Logger.log("changeImageSurvey", id);
         }
     };
+    
+    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @param index: index of survey in the stack
+    // @api
+    // @old
+    Aladin.prototype.setImageSurveyAtIndex = function(imageSurvey, index, callback) {
+        this.view.setImageSurveyAtIndex(imageSurvey, index, callback);
+        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        if (this.options.log) {
+            var id = imageSurvey;
+            if (typeof imageSurvey !== "string") {
+                id = imageSurvey.rootUrl;
+            }
+
+            Logger.log("changeImageSurvey", id);
+        }
+    };
+    
     // @api
     Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
+    
+    // @api
+    Aladin.prototype.setImageLayerAtIndex = Aladin.prototype.setImageSurveyAtIndex;
     
     // @api
     Aladin.prototype.getOverlayImageLayer = function() {

@@ -1,7 +1,8 @@
 use super::source::Source;
 use crate::projection::*;
-use crate::{resources::Resources, shaders::Colormap, ShaderManager};
+use crate::{shaders::Colormap, ShaderManager};
 use al_core::{
+    resources::Resources,
     format::ImageFormatType, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGl2Context,
 };
 use std::collections::HashMap;

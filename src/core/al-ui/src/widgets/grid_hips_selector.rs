@@ -34,30 +34,48 @@ pub struct SurveyGrid {
     thumbnail_texture_size: egui::Vec2,
     open: bool,
 }
-
-use image::ImageBuffer;
+use wasm_bindgen::prelude::*;
+use img_pixel::{RgbImage, RgbaImage, ImageBuffer};
 use super::SurveyWidget;
 impl SurveyGrid {
-    pub fn new(painter: &mut WebGl2Painter) -> Self {
+    pub fn new(painter: &mut WebGl2Painter) -> Result<Self, JsValue> {
         //let thumbnail_img_path = resources.get_filename("ui_thumbnail").unwrap();
 
         let (user_texture, size_thumbnail_tex) = {
             let size_thumbnail_img = (64, 64);
-            let srgba_pixels: &[Color32; 
-            ] = unsafe { std::mem::transmute( ImageBuffer::from_raw(include_bytes!("../../img/CDS_P_SDSS9_color.png")) ) };
 
+            let width_thumbnail_img = size_thumbnail_img.0 as u32;
+            let height_thumbnail_img = size_thumbnail_img.1 as u32;
+            let image_buf: RgbaImage = ImageBuffer::from_raw(
+                width_thumbnail_img,
+                height_thumbnail_img,
+                include_bytes!("../../img/CDS_P_SDSS9_color.png").to_vec()
+            ).ok_or(JsValue::from_str("Decoding UI texture failed"))?;
+            let mut data_rgba = Vec::with_capacity((width_thumbnail_img as usize) * (height_thumbnail_img as usize) * 4);
+
+            let srgba_pixels = {
+                let data  = &image_buf.as_raw()[..];
+                for (r, (g, b)) in data.iter().zip(data.iter().skip(1).zip(data.iter().skip(2)).step_by(3)) {
+                    data_rgba.push(*r);
+                    data_rgba.push(*g);
+                    data_rgba.push(*b);
+                    data_rgba.push(255);
+                }
+                unsafe { std::slice::from_raw_parts(data_rgba.as_ptr() as *const Color32, data_rgba.len() >> 2) }
+            };
             // register the texture to the ui backend
             let user_texture = painter.alloc_user_texture(size_thumbnail_img, srgba_pixels);
             (user_texture, size_thumbnail_img)
         };
 
-
         let open = false;
-        Self {
-            thumbnail_texture: user_texture,
-            thumbnail_texture_size: egui::Vec2::new(size_thumbnail_tex.0 as f32, size_thumbnail_tex.1 as f32),
-            open,
-        }
+        Ok(
+            Self {
+                thumbnail_texture: user_texture,
+                thumbnail_texture_size: egui::Vec2::new(size_thumbnail_tex.0 as f32, size_thumbnail_tex.1 as f32),
+                open,
+            }
+        )
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>, s_id_selected: &mut String, s_list: Arc<Mutex<Vec<SurveyWidget>>>) {
@@ -72,7 +90,7 @@ impl SurveyGrid {
         .anchor(egui::Align2::LEFT_TOP, egui::vec2(10.0, 10.0))
         .show(ui.ctx(), |ui| {
             egui::Grid::new("Surveys browsing").show(ui, |ui| {
-                for (idx, &thumbnail) in SURVEY_THUMBNAILS.iter().enumerate() {
+                for (idx, thumbnail) in SURVEY_THUMBNAILS.iter().enumerate() {
                     if ui
                         .add(egui::ImageButton::new(self.thumbnail_texture, self.thumbnail_texture_size).uv(egui::Rect {
                             min: egui::Pos2::new(

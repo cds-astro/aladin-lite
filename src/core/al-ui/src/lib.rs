@@ -79,12 +79,12 @@ pub struct Gui {
 use al_core::WebGl2Context;
 use std::sync::{Arc, Mutex};
 impl Gui {
-    pub fn new(ui_backend: &mut WebGl2Painter, aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
+    pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
         let ctx = egui::CtxRef::default();
-        let painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
+        let mut painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let input: egui_web::backend::WebInput = Default::default();
 
-        let layout = layout::LayerLayout::new(ui_backend);
+        let layout = layout::LayerLayout::new(&mut painter)?;
         let mouse_on_ui = false;
         let cur_mouse_pos = egui::Pos2::ZERO;
         let events = Arc::new(Mutex::new(vec![]));

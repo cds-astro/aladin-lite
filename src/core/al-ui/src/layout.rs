@@ -49,16 +49,17 @@ use crate::hips::{Frame, HiPSProperties, SimpleHiPS, HiPSColor::Grayscale2Color,
 const SURVEYS_NAME: &'static [&'static str] = &[
     "GALEX/GR6-03-2014/AIS-FD"
 ];
-
+use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
 impl LayerLayout {
-    pub fn new(ui_backend: &mut WebGl2Painter) -> Self {
-        Self {
+    pub fn new(ui_backend: &mut WebGl2Painter) -> Result<Self, JsValue> {
+        let survey_grid_widget = SurveyGrid::new(ui_backend)?;
+        Ok(Self {
             selection_open: false,
             survey_name_selected: String::new(),
             surveys: Arc::new(Mutex::new(vec![])),
-            s_select_w: SurveyGrid::new(ui_backend)
-        }
+            s_select_w: survey_grid_widget,
+        })
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {

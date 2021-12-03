@@ -44,7 +44,6 @@ mod line;
 mod math;
 mod projection_type;
 mod renderable;
-mod resources;
 mod rotation;
 mod shader;
 mod shaders;
@@ -57,11 +56,11 @@ use crate::{
     camera::CameraViewPort,
     math::LonLatT,
     renderable::{survey::image_survey::ImageSurveys},
-    resources::Resources,
     shader::ShaderManager,
     shaders::Colormaps,
     time::DeltaTime,
 };
+use al_core::resources::Resources;
 use al_ui::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 use al_core::{shader::Shader, WebGl2Context};
 pub use coo_conversion::CooSystem;

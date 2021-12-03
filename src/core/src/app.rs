@@ -3,8 +3,9 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
         labels::{RenderManager, TextRenderManager},
-    }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
+    }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
+use al_core::resources::Resources;
 use al_ui::hips::SimpleHiPS;
 use al_core::{pixel::PixelType, WebGl2Context};
 

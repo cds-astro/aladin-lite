@@ -165,7 +165,7 @@ pub struct Colormap {
     pub id: i32,
 }
 
-use crate::resources::Resources;
+use al_core::resources::Resources;
 use crate::shader::ShaderId;
 use al_core::format::ImageFormatType;
 use al_core::Texture2D;

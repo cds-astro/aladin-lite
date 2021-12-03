@@ -147,7 +147,7 @@ use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 impl HiPSConfig {
     pub fn new(_gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
-        let root_url = properties.url.clone();
+        let root_url = properties.url.to_string();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
         let num_textures_by_side_slice = 8;

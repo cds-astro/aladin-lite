@@ -239,72 +239,75 @@ impl SurveyWidget {
                     ui.selectable_value(&mut self.visible, !visible, "👁");
                 });
 
-                ui.horizontal(|ui| {
-                    egui::CollapsingHeader::new(&self.properties.obs_title)
-                        .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                match &mut self.color {
-                                    Color::Color(c) => {
-                                        ui.label("Color picker");
-                                        if ui.color_edit_button_srgba(c).changed() {
-                                            events.lock().unwrap().push(
-                                                Event::ImageSurveys(vec![self.get_hips_config()])
-                                            );
-                                        }
-                                    },
-                                    Color::Image => (),
-                                    _ => todo!()
-                                    //Color::Colormap => todo!()
-                                };
-                            });
-        
-                            ui.separator();
-                            ui.group(|ui| {
-                                ui.horizontal(|ui| {
-                                    ui.selectable_value(
-                                        &mut self.t, 
-                                        TransferFunction::ASINH, 
-                                        "asinh"
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.t,
-                                        TransferFunction::SIN,
-                                        "sin",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.t,
-                                        TransferFunction::LINEAR,
-                                        "linear",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.t, 
-                                        TransferFunction::POW, 
-                                        "pow"
-                                    );
-                                });
-                                ui.separator();
-                                ui.label("Transfer function");
-                                match self.t {
-                                    TransferFunction::ASINH => plot(ui, |x| x.asinh()),
-                                    TransferFunction::LINEAR => plot(ui, |x| x),
-                                    TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
-                                    TransferFunction::SIN => plot(ui, |x| x.sin())
-                                }
-
-                                ui.separator();
-                                ui.label("Cutouts:");
-                                ui.add(
-                                    egui::widgets::Slider::new(&mut self.cutouts[0], (-1e5 as f32)..=(1e5 as f32))
-                                        .text("left"),
-                                );
-                                ui.add(
-                                    egui::widgets::Slider::new(&mut self.cutouts[1], (-1e5 as f32)..=(1e5 as f32))
-                                        .text("right"),
-                                );
-                            });
-                        });
-                })
+                ui.label(&self.properties.obs_title);
             });
+
+        if self.edition_mode {
+            egui::Frame::popup(ui.style())
+                .stroke(egui::Stroke::none())
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        match &mut self.color {
+                            Color::Color(c) => {
+                                ui.label("Color picker");
+                                if ui.color_edit_button_srgba(c).changed() {
+                                    events.lock().unwrap().push(
+                                        Event::ImageSurveys(vec![self.get_hips_config()])
+                                    );
+                                }
+                            },
+                            Color::Image => (),
+                            _ => todo!()
+                            //Color::Colormap => todo!()
+                        };
+                    });
+        
+                    ui.separator();
+                    ui.group(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.selectable_value(
+                                &mut self.t, 
+                                TransferFunction::ASINH, 
+                                "asinh"
+                            );
+                            ui.selectable_value(
+                                &mut self.t,
+                                TransferFunction::SIN,
+                                "sin",
+                            );
+                            ui.selectable_value(
+                                &mut self.t,
+                                TransferFunction::LINEAR,
+                                "linear",
+                            );
+                            ui.selectable_value(
+                                &mut self.t, 
+                                TransferFunction::POW, 
+                                "pow"
+                            );
+                        });
+                        ui.separator();
+                        ui.label("Transfer function");
+                        match self.t {
+                            TransferFunction::ASINH => plot(ui, |x| x.asinh()),
+                            TransferFunction::LINEAR => plot(ui, |x| x),
+                            TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
+                            TransferFunction::SIN => plot(ui, |x| x.sin())
+                        }
+        
+                        ui.separator();
+                        ui.label("Cutouts:");
+                        ui.add(
+                            egui::widgets::Slider::new(&mut self.cutouts[0], (-1e5 as f32)..=(1e5 as f32))
+                                .text("left"),
+                        );
+                        ui.add(
+                            egui::widgets::Slider::new(&mut self.cutouts[1], (-1e5 as f32)..=(1e5 as f32))
+                                .text("right"),
+                        );
+                    });
+                });
+        }
     }
 }
 

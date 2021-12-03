@@ -12,6 +12,7 @@ cgmath = "*"
 fontdue = "0.6.2"
 image = "0.23.14"
 lazy_static = "1.4.0"
+serde = { version = "^1.0.59", features = ["derive"] }
 
 [dependencies.wasm-bindgen]
 version = "0.2.70"

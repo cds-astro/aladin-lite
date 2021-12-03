@@ -1,10 +1,11 @@
-use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, color::Color, coo_conversion::CooSystem, hips::SimpleHiPS, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
+use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, color::Color, coo_conversion::CooSystem, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
         labels::{RenderManager, TextRenderManager},
     }, resources::Resources, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
+use al_ui::hips::SimpleHiPS;
 use al_core::{pixel::PixelType, WebGl2Context};
 
 use cgmath::Vector4;
@@ -110,8 +111,6 @@ impl App {
     ) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
-        //gl.enable(WebGl2RenderingContext::BLEND);
-        //gl.blend_func(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE);
 
         gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -119,7 +118,6 @@ impl App {
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE,
         );
-        //gl.blend_func_separate(WebGl2RenderingContext::SRC_ALPHA, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
 
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
@@ -171,10 +169,6 @@ impl App {
         let downloader = TileDownloader::new();
         // The surveys storing the textures of the resolved tiles
         let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &system);
-
-        //let color = sdss.color();
-        //let survey = sdss.create(&gl, &camera, &surveys, exec.clone())?;
-        //surveys.set_image_surveys(vec![panstarrs], &gl, &camera, exec.clone())?;
 
         let time_start_blending = Time::now();
 
@@ -503,7 +497,17 @@ impl App {
         }
 
         self.grid.update::<P>(&self.camera, force);        
-        let events = self.ui.lock().update();
+        {
+            let events = self.ui.lock().update();
+            let mut events = events.lock().unwrap();
+
+            for event in events.drain(..) {
+                match event {
+                    al_ui::Event::ImageSurveys(surveys) => self.set_image_surveys(surveys)?,
+                    _ => ()
+                }
+            }
+        }
 
         Ok(())
     }

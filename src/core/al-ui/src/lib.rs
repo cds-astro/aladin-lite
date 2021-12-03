@@ -1,12 +1,15 @@
 use al_core;
 
 mod painter;
+use hips::SimpleHiPS;
 use painter::WebGl2Painter;
 
 mod input;
 pub use input::GuiRef;
 
 mod layout;
+pub mod hips;
+pub mod widgets;
 
 use egui;
 use egui_web::Painter;
@@ -41,6 +44,7 @@ impl epi::RepaintSignal for NeedRepaint {
     }
 }
 
+#[derive(Debug)]
 pub enum Event {
     Grid {
         color:  [f32; 4],
@@ -49,7 +53,8 @@ pub enum Event {
     },
     Location {
         name: String
-    }
+    },
+    ImageSurveys(Vec<SimpleHiPS>)
 }
 
 pub struct Gui {
@@ -63,22 +68,27 @@ pub struct Gui {
     pub aladin_lite_div: String,
 
     // The layout contains all the ui definition
-    layout: layout::Layout,
+    layout: layout::LayerLayout,
     clipped_meshes: Option<Vec<egui::ClippedMesh>>,
 
     pub mouse_on_ui: bool,
     pub cur_mouse_pos: egui::Pos2,
+
+    events: Arc<Mutex<Vec<Event>>>,
 }
 use al_core::WebGl2Context;
+use std::sync::{Arc, Mutex};
 impl Gui {
-    pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
+    pub fn new(ui_backend: &mut WebGl2Painter, aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
         let ctx = egui::CtxRef::default();
         let painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let input: egui_web::backend::WebInput = Default::default();
 
-        let layout = layout::Layout::default();
+        let layout = layout::LayerLayout::new(ui_backend);
         let mouse_on_ui = false;
         let cur_mouse_pos = egui::Pos2::ZERO;
+        let events = Arc::new(Mutex::new(vec![]));
+
         let gui = Self {
             ctx,
             painter,
@@ -94,6 +104,8 @@ impl Gui {
             last_text_cursor_pos: None,
 
             aladin_lite_div: aladin_lite_div.to_string(),
+
+            events,
         };
 
         let gui_ref = GuiRef(std::sync::Arc::new(egui::mutex::Mutex::new(gui)));
@@ -109,15 +121,11 @@ impl Gui {
         &self.ctx
     }
 
-    /*pub fn is_pointer_over_ui(&self) -> bool {
-        self.ctx.wants_pointer_input()
-    }*/
-
     pub fn pos_over_ui(&self) -> bool {
         self.mouse_on_ui
     }
 
-    pub fn update(&mut self) -> Vec<Event> {
+    pub fn update(&mut self) -> Arc<Mutex<Vec<Event>>> {
         let canvas_size = egui::vec2(
             self.painter.canvas.width() as f32,
             self.painter.canvas.height() as f32,
@@ -125,7 +133,6 @@ impl Gui {
         let raw_input = self.input.new_frame(canvas_size);
         self.ctx.begin_frame(raw_input);
 
-        let mut events = vec![];
         // Define the central panel containing the ui
         {
             let f = egui::Frame {
@@ -133,10 +140,35 @@ impl Gui {
                 ..Default::default()
             };
             let layout = &mut self.layout;
+            let events = self.events.clone();
             let response = egui::CentralPanel::default()
                 .frame(f)
                 .show(&self.ctx, |ui| {
-                    layout.show(ui, &mut events);
+                    egui::containers::panel::SidePanel::left(
+                        "Menu"
+                    )
+                    .resizable(false)
+                    .show_inside(ui, |ui| {
+                        ui.vertical_centered(|ui| {
+                            if ui.add(egui::Button::new("Search")).clicked() {
+                                //do_stuff();
+                            }
+                            if ui.add(egui::Button::new("Layers")).clicked() {
+                                //do_stuff();
+                            }
+                            if ui.add(egui::Button::new("Projections")).clicked() {
+                                //do_stuff();
+                            }
+                            if ui.add(egui::Button::new("Grid")).clicked() {
+                                //do_stuff();
+                            }
+                            if ui.add(egui::Button::new("Pipette")).clicked() {
+                                //do_stuff();
+                            }
+                        });
+                    });
+
+                    layout.show(ui, events);
                 });
             
             self.mouse_on_ui = !response.response.hovered();
@@ -148,7 +180,7 @@ impl Gui {
 
         input::handle_output(&output, self);
 
-        events
+        self.events.clone()
     }
 
     pub fn draw(&mut self, gl: &WebGl2Context, pixels_per_point: f32) -> Result<(), JsValue> {

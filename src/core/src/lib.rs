@@ -40,7 +40,6 @@ mod angle;
 pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 
 mod healpix_cell;
-pub mod hips;
 mod line;
 mod math;
 mod projection_type;
@@ -56,7 +55,6 @@ mod transfert_function;
 
 use crate::{
     camera::CameraViewPort,
-    hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS},
     math::LonLatT,
     renderable::{survey::image_survey::ImageSurveys},
     resources::Resources,
@@ -64,6 +62,7 @@ use crate::{
     shaders::Colormaps,
     time::DeltaTime,
 };
+use al_ui::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 use al_core::{shader::Shader, WebGl2Context};
 pub use coo_conversion::CooSystem;
 

@@ -1,108 +1,131 @@
-
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-enum Enum {
-    First,
-    Second,
-    Third,
-}
+use crate::painter::WebGl2Painter;
+use crate::widgets::SurveyWidget;
 
 /// Shows off one example of each major type of widget.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-pub struct Layout {
-    enabled: bool,
-    visible: bool,
-    boolean: bool,
-    radio: Enum,
-    scalar: f32,
-    string: String,
-    color: egui::Color32,
-    animate_progress_bar: bool,
+pub struct LayerLayout {
+    selection_open: bool,
+    survey_name_selected: String,
+
+    surveys: Arc<Mutex<Vec<SurveyWidget>>>,
+    s_select_w: SurveyGrid,
 }
 
-impl Default for Layout {
-    fn default() -> Self {
+use crate::widgets::SurveyGrid;
+use crate::Event;
+use al_core::log::log;
+use egui::Stroke;
+
+use crate::hips::{Frame, HiPSProperties, SimpleHiPS, HiPSColor::Grayscale2Color, HiPSFormat};
+/*const HiPS: &'static [(&'static str, SimpleHiPS)] = &[
+    ("GALEX AIS-FD", SimpleHiPS {
+        properties: HiPSProperties {
+            url: Cow::Borrowed("https://alaskybis.u-strasbg.fr/GALEX/GR6-03-2014/AIS-FD"),
+            max_order: 8,
+            frame: Frame {
+                label: Cow::Borrowed("J2000"),
+                system: Cow::Borrowed("J2000")
+            },
+            tile_size: 512,
+            format: HiPSFormat::FITSImage {
+                bitpix: -32
+            },
+            min_cutout: Some(0.0),
+            max_cutout: Some(0.003)
+        },
+        color: Grayscale2Color {
+            color: [
+                1.0,
+                0.0,
+                0.0
+            ],
+            k: 1.0,
+            transfer: Cow::Borrowed("asinh"),
+        },
+        layer: Cow::Borrowed("base")
+    })
+];*/
+
+const SURVEYS_NAME: &'static [&'static str] = &[
+    "GALEX/GR6-03-2014/AIS-FD"
+];
+
+use std::sync::{Arc, Mutex};
+impl LayerLayout {
+    pub fn new(ui_backend: &mut WebGl2Painter) -> Self {
         Self {
-            enabled: true,
-            visible: true,
-            boolean: false,
-            radio: Enum::First,
-            scalar: 42.0,
-            string: Default::default(),
-            color: egui::Color32::LIGHT_BLUE.linear_multiply(0.5),
-            animate_progress_bar: false,
+            selection_open: false,
+            survey_name_selected: String::new(),
+            surveys: Arc::new(Mutex::new(vec![])),
+            s_select_w: SurveyGrid::new(ui_backend)
         }
     }
-}
 
-use crate::Event;
-
-impl Layout {
-    /*fn name(&self) -> &'static str {
-        "Aladin Lite User Interface"
-    }*/
-
-    pub fn show(&mut self, ui: &mut egui::Ui, events: &mut Vec<Event>) {
-        egui::Window::new("egui_demo_panel")
-            .min_width(150.0)
-            .default_width(190.0)
-            .default_pos(egui::Pos2 { x: 0.0, y: 100.0 })
-            .collapsible(true)
-            .show(ui.ctx(), |ui| {
+    pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
+        egui::Frame::popup(ui.style())
+            .stroke(egui::Stroke::none())
+            .show(ui, |ui| {
+                ui.set_max_width(270.0);
                 //use super::View as _;
                 self.ui(ui, events);
             });
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, events: &mut Vec<Event>) {
-        ui.scope(|ui| {
-            ui.set_visible(self.visible);
-            ui.set_enabled(self.enabled);
+    fn ui(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
+        ui.label("Layers");
+        ui.separator();
 
-            egui::Grid::new("my_grid")
-                .num_columns(2)
-                .spacing([40.0, 4.0])
-                //.striped(true)
-                .show(ui, |ui| {
+        for survey in &mut *self.surveys.lock().unwrap() {
+            survey.show(ui, events.clone());
+        }
+
+        // TODO: check if you can add a new survey
+        // it is not possible if:
+        // - a color survey is already selected 
+        // - a grayscale survey mapped to a colormap object is selected
+        if ui.add(egui::Button::new("Add survey")).clicked() {
+            self.selection_open = true;
+        }
+
+        if self.selection_open {
+            self.s_select_w.show(ui, events, &mut self.survey_name_selected, self.surveys.clone())
+        }
+        /*{
+            //let survey = self.survey.clone();
+            //let s = survey.lock().unwrap();
+            if let Some(s) = &*self.survey.clone().lock().unwrap()  {
+                ui.group(|ui| {
+                    ui.label("Description:");
+
+                    ui.group(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Title:");
+                            ui.label(&s.obs_title);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("Category:");
+                            ui.label(&s.client_category);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("Regime:");
+                            ui.label(&s.obs_regime);
+                        });
+
+                        let scroll_area = ScrollArea::vertical()
+                            .max_height(200.0)
+                            .auto_shrink([false; 2]);
+
+                        ui.separator();
+                        scroll_area.show(ui, |ui| {
+                            ui.label("Description:");
+                            ui.label(&s.obs_description);
+                        });
+                    });
                 });
-        });
-
-        ui.separator();
-
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut self.visible, "Visible")
-                .on_hover_text("Uncheck to hide all the widgets.");
-            if self.visible {
-                ui.checkbox(&mut self.enabled, "Interactive")
-                    .on_hover_text("Uncheck to inspect how the widgets look when disabled.");
             }
-        });
-
-        ui.separator();
-
-        ui.vertical_centered(|ui| {
-            let tooltip_text = "The full egui documentation.\nYou can also click the different widgets names in the left column.";
-            ui.hyperlink("https://docs.rs/egui/").on_hover_text(tooltip_text);
-            /*ui.add(crate::__egui_github_link_file!(
-                "Source code of the widget gallery"
-            ));*/
-        });
+        }*/
     }
 
-}
-
-fn example_plot() -> egui::plot::Plot {
-    use egui::plot::{Line, Plot, Value, Values};
-    let n = 128;
-    let line = Line::new(Values::from_values_iter((0..=n).map(|i| {
-        use std::f64::consts::TAU;
-        let x = egui::remap(i as f64, 0.0..=(n as f64), -TAU..=TAU);
-        Value::new(x, x.sin())
-    })));
-    Plot::new("example_plot")
-        .line(line)
-        .height(32.0)
-        .data_aspect(1.0)
 }
 
 fn doc_link_label<'a>(title: &'a str, search_term: &'a str) -> impl egui::Widget + 'a {

@@ -24,7 +24,6 @@ epi = "*"
 egui_web = "*"
 al-core = { path = "../al-core" }
 
-
 [dependencies.wasm-bindgen]
 version = "0.2.70"
 features = ["serde-serialize"]

@@ -80,17 +80,10 @@ impl FrameBufferObject {
         // clear the fbo
         self.gl.clear_color(0.0, 0.0, 0.0, 0.0);
         self.gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-        // enable the blending 
-        //self.gl.enable(WebGl2RenderingContext::BLEND);
-        //self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
-
-        //self.gl.viewport(0, 0, self.texture.width() as i32, self.texture.height() as i32);
 
         // render all the things onto the fbo
         f()?;
 
-        // disable blending
-        //self.gl.disable(WebGl2RenderingContext::BLEND);
         // unbind the fbo
         self.gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
 

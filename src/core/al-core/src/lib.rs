@@ -28,3 +28,6 @@ pub use object::vertex_array_object::{
 };
 
 use object::array_buffer::VertexAttribPointerType;
+
+pub mod resources;
+pub use resources::Resources;

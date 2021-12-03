@@ -44,9 +44,6 @@ pub struct Font {
 
 use cgmath::Vector2;
 pub fn rasterize_font(text_size: f32) -> Font {
-    use crate::text::Letter;
-    use image::{GenericImage, GenericImageView, ImageBuffer, open, Rgba, Pixel};
-    use crate::text::LetterTexPosition;
     // Read the font data.
     let font = include_bytes!("../resources/arial.ttf") as &[u8];
     // Parse it into the font type.
@@ -151,7 +148,6 @@ mod tests {
         use std::cmp::Ordering;
 
         use std::collections::HashMap;
-        use image::{GenericImage, GenericImageView, ImageBuffer, open, Rgba, Pixel};
         use super::LetterTexPosition;
         // Read the font data.
         let font = include_bytes!("../resources/arial.ttf") as &[u8];

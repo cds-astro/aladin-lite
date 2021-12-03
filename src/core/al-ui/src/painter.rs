@@ -61,9 +61,6 @@ use al_core::Texture2D;
 use al_core::WebGl2Context;
 impl WebGl2Painter {
     pub fn new(aladin_lite_div: &str, gl: WebGl2Context) -> Result<WebGl2Painter, JsValue> {
-        /*let canvas = gl.canvas()
-        .unwrap()
-        .dyn_into::<web_sys::HtmlCanvasElement>().unwrap();*/
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let canvas = document
@@ -200,7 +197,7 @@ impl WebGl2Painter {
         index
     }
 
-    fn alloc_user_texture(
+    pub fn alloc_user_texture(
         &mut self,
         size: (usize, usize),
         srgba_pixels: &[Color32],

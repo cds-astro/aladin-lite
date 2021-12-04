@@ -4,7 +4,6 @@ use crate::widgets::SurveyWidget;
 /// Shows off one example of each major type of widget.
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct LayerLayout {
-    selection_open: bool,
     survey_name_selected: String,
 
     surveys: Arc<Mutex<Vec<SurveyWidget>>>,
@@ -55,7 +54,6 @@ impl LayerLayout {
     pub fn new(ui_backend: &mut WebGl2Painter) -> Result<Self, JsValue> {
         let survey_grid_widget = SurveyGrid::new(ui_backend)?;
         Ok(Self {
-            selection_open: false,
             survey_name_selected: String::new(),
             surveys: Arc::new(Mutex::new(vec![])),
             s_select_w: survey_grid_widget,
@@ -85,12 +83,11 @@ impl LayerLayout {
         // - a color survey is already selected 
         // - a grayscale survey mapped to a colormap object is selected
         if ui.add(egui::Button::new("Add survey")).clicked() {
-            self.selection_open = true;
+            self.s_select_w.open();
         }
 
-        if self.selection_open {
-            self.s_select_w.show(ui, events, &mut self.survey_name_selected, self.surveys.clone())
-        }
+        self.s_select_w.show(ui, events, &mut self.survey_name_selected, self.surveys.clone())
+        
         /*{
             //let survey = self.survey.clone();
             //let s = survey.lock().unwrap();

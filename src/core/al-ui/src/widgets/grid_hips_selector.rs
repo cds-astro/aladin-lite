@@ -35,7 +35,7 @@ pub struct SurveyGrid {
     open: bool,
 }
 use wasm_bindgen::prelude::*;
-use img_pixel::{RgbImage, RgbaImage, ImageBuffer};
+use img_pixel::{RgbImage, RgbaImage, Rgba, ImageBuffer};
 use super::SurveyWidget;
 impl SurveyGrid {
     pub fn new(painter: &mut WebGl2Painter) -> Result<Self, JsValue> {
@@ -46,22 +46,15 @@ impl SurveyGrid {
 
             let width_thumbnail_img = size_thumbnail_img.0 as u32;
             let height_thumbnail_img = size_thumbnail_img.1 as u32;
-            let image_buf: RgbaImage = ImageBuffer::from_raw(
-                width_thumbnail_img,
-                height_thumbnail_img,
-                include_bytes!("../../img/CDS_P_SDSS9_color.png").to_vec()
-            ).ok_or(JsValue::from_str("Decoding UI texture failed"))?;
-            let mut data_rgba = Vec::with_capacity((width_thumbnail_img as usize) * (height_thumbnail_img as usize) * 4);
+            let image_buf = img_pixel::load_from_memory_with_format(
+                include_bytes!("../../img/aa2.png"),
+                img_pixel::ImageFormat::Png
+            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+            //let mut data_rgba = Vec::with_capacity((width_thumbnail_img as usize) * (height_thumbnail_img as usize) * 4);
+            let data = image_buf.into_bytes();
 
             let srgba_pixels = {
-                let data  = &image_buf.as_raw()[..];
-                for (r, (g, b)) in data.iter().zip(data.iter().skip(1).zip(data.iter().skip(2)).step_by(3)) {
-                    data_rgba.push(*r);
-                    data_rgba.push(*g);
-                    data_rgba.push(*b);
-                    data_rgba.push(255);
-                }
-                unsafe { std::slice::from_raw_parts(data_rgba.as_ptr() as *const Color32, data_rgba.len() >> 2) }
+                unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Color32, data.len() >> 2) }
             };
             // register the texture to the ui backend
             let user_texture = painter.alloc_user_texture(size_thumbnail_img, srgba_pixels);
@@ -78,6 +71,10 @@ impl SurveyGrid {
         )
     }
 
+    pub fn open(&mut self) {
+        self.open = true;
+    }
+
     pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>, s_id_selected: &mut String, s_list: Arc<Mutex<Vec<SurveyWidget>>>) {
         if !self.open {
             return;
@@ -92,7 +89,8 @@ impl SurveyGrid {
             egui::Grid::new("Surveys browsing").show(ui, |ui| {
                 for (idx, thumbnail) in SURVEY_THUMBNAILS.iter().enumerate() {
                     if ui
-                        .add(egui::ImageButton::new(self.thumbnail_texture, self.thumbnail_texture_size).uv(egui::Rect {
+                        .add(egui::ImageButton::new(self.thumbnail_texture, self.thumbnail_texture_size))
+                        /*.uv(egui::Rect {
                             min: egui::Pos2::new(
                                 ((thumbnail.index_thumbnail % 4) as f32) * (SIZE_SURVEY_THUMBNAIL.0 as f32) / self.thumbnail_texture_size.x,
                                 ((thumbnail.index_thumbnail / 4) as f32) * (SIZE_SURVEY_THUMBNAIL.1 as f32) / self.thumbnail_texture_size.y
@@ -101,11 +99,11 @@ impl SurveyGrid {
                                 ((thumbnail.index_thumbnail % 4) as f32 + 1.0) * (SIZE_SURVEY_THUMBNAIL.0 as f32) / self.thumbnail_texture_size.x,
                                 ((thumbnail.index_thumbnail / 4) as f32 + 1.0) * (SIZE_SURVEY_THUMBNAIL.1 as f32) / self.thumbnail_texture_size.y
                             )
-                        }))
+                        }))*/
                         .on_hover_text(thumbnail.desc.regime)
                         .clicked()
                     {
-                        *s_id_selected = thumbnail.desc.id.to_string();
+                        *s_id_selected = thumbnail.desc.url.to_string();
                     }
 
                     if idx % 4 == 0 {
@@ -145,5 +143,24 @@ impl SurveyGrid {
                 }
             });
         });
+    }
+}
+
+mod tests {
+    use img_pixel::{RgbaImage, ImageBuffer};
+
+    #[test]
+    fn test_open_png_image() {
+        let size_thumbnail_img = (64, 64);
+
+        let width_thumbnail_img = size_thumbnail_img.0 as u32;
+        let height_thumbnail_img = size_thumbnail_img.1 as u32;
+        let image_buf: RgbaImage = ImageBuffer::from_raw(
+            width_thumbnail_img,
+            height_thumbnail_img,
+            include_bytes!("../../img/CDS_P_SDSS9_color.png").to_vec()
+        ).unwrap();
+
+        assert_eq!(image_buf.pixels().len(), size_thumbnail_img.0 * size_thumbnail_img.1);
     }
 }

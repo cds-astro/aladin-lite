@@ -1,23 +1,78 @@
+use serde::{Serialize, Deserialize};
+
 #[derive(Debug, PartialEq, Default)]
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Deserialize, Serialize)]
 struct Properties {
+    #[serde(default="default_empty_string")]
     obs_description: String,
+
+    #[serde(default="default_float")]
     moc_sky_fraction: String,
+
+    #[serde(default="default_empty_string")]
     bib_reference: String,
+
+    #[serde(default="default_empty_string")]
     bib_reference_url: String,
+
+    #[serde(default="default_empty_string")]
     obs_regime: String,
-    em_min: String,
-    em_max: String,
-    hips_order: String,
-    hips_pixel_bitpix: String,
-    hips_tile_format: String,
-    hips_tile_width: String,
-    hips_pixel_cut: String,
-    hips_frame: String,
+
+    #[serde(default="default_empty_string")]
     prov_progenitor: String,
+
+    #[serde(default="default_empty_string")]
     client_category: String,
+
+    #[serde(default="default_empty_string")]
     obs_collection: String,
+
+    #[serde(default="default_empty_string")]
     obs_title: String,
+
+    #[serde(default="default_float")]
+    em_min: String,
+
+    #[serde(default="default_float")]
+    em_max: String,
+
+    #[serde(default="default_int")]
+    hips_order: String,
+
+    #[serde(default="default_empty_string")]
+    hips_pixel_bitpix: String,
+
+    #[serde(default="default_format")]
+    hips_tile_format: String,
+
+    #[serde(default="default_int")]
+    hips_tile_width: String,
+
+    #[serde(default="default_empty_string")]
+    hips_pixel_cut: String,
+
+    #[serde(default="default_frame")]
+    hips_frame: String,
+}
+
+fn default_empty_string() -> String {
+    String::new()
+}
+
+fn default_float() -> String {
+    String::from("0.0")
+}
+
+fn default_int() -> String {
+    String::from("0")
+}
+
+fn default_format() -> String {
+    String::from("jpg")
+}
+
+fn default_frame() -> String {
+    String::from("equatorial")
 }
 
 #[derive(Default, Debug)]
@@ -31,9 +86,9 @@ struct PropertiesParsed {
     em_max: f32,
     hips_order: u8,
     hips_pixel_bitpix: Option<i32>,
+    hips_pixel_cut: Option<[f32; 2]>,
     hips_tile_format: String,
     hips_tile_width: i32,
-    hips_pixel_cut: [f32; 2],
     hips_frame: String,
     prov_progenitor: String,
     client_category: String,
@@ -72,7 +127,17 @@ async fn request_survey_properties(url: String) -> PropertiesParsed {
 
     al_core::log::log(&format!("{:?}", res));
     let cuts: Vec<_> = res.hips_pixel_cut.split(" ").collect();
-    let cuts = [cuts[0].parse::<f32>().unwrap(), cuts[1].parse::<f32>().unwrap()];
+
+    let cuts = if cuts.len() != 2 {
+        None
+    } else {
+        let (c0, c1) = (cuts[0].parse::<f32>(), cuts[1].parse::<f32>());
+        if c0.is_err() || c1.is_err() {
+            None
+        } else {
+            Some([c0.unwrap(), c1.unwrap()])
+        }
+    };
 
     let properties = PropertiesParsed {
         obs_collection: res.obs_collection,
@@ -84,7 +149,7 @@ async fn request_survey_properties(url: String) -> PropertiesParsed {
         em_min: res.em_min.parse::<f32>().unwrap(),
         em_max: res.em_max.parse::<f32>().unwrap(),
         hips_order: res.hips_order.parse::<u8>().unwrap(),
-        hips_pixel_bitpix: Some(res.hips_pixel_bitpix.parse::<i32>().unwrap()),
+        hips_pixel_bitpix: res.hips_pixel_bitpix.parse::<i32>().ok(),
         hips_tile_format: res.hips_tile_format,
         hips_tile_width: res.hips_tile_width.parse::<i32>().unwrap(),
         hips_pixel_cut: cuts,
@@ -123,8 +188,10 @@ pub struct SurveyWidget {
 
     // edition mode
     color: Color,
-    t: TransferFunction,
-    cutouts: [f32; 2]
+    // In case of a fits HiPS
+    transfer_func: Option<TransferFunction>,
+    // In case of a fits HiPS
+    cutouts: Option<[f32; 2]>
 }
 
 use cgmath::num_traits::Pow;
@@ -135,6 +202,18 @@ impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
         let cutouts = properties.hips_pixel_cut.clone();
+        let color = if properties.is_fits_image() {
+            Color::Color(Color32::RED)
+        } else {
+            Color::Image
+        };
+
+        let transfer_func = if properties.is_fits_image() {
+            Some(TransferFunction::ASINH)
+        } else {
+            None
+        };
+
         Self {
             url,
             properties,
@@ -143,25 +222,25 @@ impl SurveyWidget {
             edition_mode: false,
 
             // edition mode
-            color: Color::Color(Color32::RED),
-            t: TransferFunction::ASINH,
+            color,
+            transfer_func,
             cutouts,
         }
     }
 
     pub fn get_hips_config(&self) -> SimpleHiPS {
-        let transfer = match self.t {
-            TransferFunction::ASINH => String::from("asinh"),
-            TransferFunction::LINEAR => String::from("linear"),
-            TransferFunction::POW => String::from("pow"),
-            TransferFunction::SIN => String::from("sin"),
-        };
-
         let color = match &self.color {
             Color::Image => {
                 HiPSColor::Color
             },
             Color::Color(c) => {
+                let transfer = match self.transfer_func.as_ref().unwrap() {
+                    TransferFunction::ASINH => String::from("asinh"),
+                    TransferFunction::LINEAR => String::from("linear"),
+                    TransferFunction::POW => String::from("pow"),
+                    TransferFunction::SIN => String::from("sin"),
+                };
+
                 HiPSColor::Grayscale2Color {
                     color: [(c.r() as f32)/255.0, (c.g() as f32)/255.0, (c.b() as f32)/255.0],
                     transfer,
@@ -171,6 +250,13 @@ impl SurveyWidget {
             Color::Colormap {
                 reversed, name
             } => {
+                let transfer = match self.transfer_func.as_ref().unwrap() {
+                    TransferFunction::ASINH => String::from("asinh"),
+                    TransferFunction::LINEAR => String::from("linear"),
+                    TransferFunction::POW => String::from("pow"),
+                    TransferFunction::SIN => String::from("sin"),
+                };
+
                 HiPSColor::Grayscale2Colormap {
                     reversed: *reversed,
                     colormap: name.to_string(),
@@ -186,8 +272,16 @@ impl SurveyWidget {
             system: String::from("J2000")
         };
         let tile_size = props.hips_tile_width;
-        let min_cutout = Some(self.cutouts[0]);
-        let max_cutout = Some(self.cutouts[1]);
+        let min_cutout = if let Some(c) = self.cutouts {
+            Some(c[0])
+        } else {
+            None
+        };
+        let max_cutout = if let Some(c) = self.cutouts {
+            Some(c[1])
+        } else {
+            None
+        };
         let format = if props.is_fits_image() {
             HiPSFormat::FITSImage {
                 bitpix: props.hips_pixel_bitpix.unwrap()
@@ -246,67 +340,72 @@ impl SurveyWidget {
             egui::Frame::popup(ui.style())
                 .stroke(egui::Stroke::none())
                 .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        match &mut self.color {
-                            Color::Color(c) => {
-                                ui.label("Color picker");
-                                if ui.color_edit_button_srgba(c).changed() {
-                                    events.lock().unwrap().push(
-                                        Event::ImageSurveys(vec![self.get_hips_config()])
-                                    );
-                                }
-                            },
-                            Color::Image => (),
-                            _ => todo!()
-                            //Color::Colormap => todo!()
-                        };
-                    });
-        
-                    ui.separator();
-                    ui.group(|ui| {
                         ui.horizontal(|ui| {
-                            ui.selectable_value(
-                                &mut self.t, 
-                                TransferFunction::ASINH, 
-                                "asinh"
-                            );
-                            ui.selectable_value(
-                                &mut self.t,
-                                TransferFunction::SIN,
-                                "sin",
-                            );
-                            ui.selectable_value(
-                                &mut self.t,
-                                TransferFunction::LINEAR,
-                                "linear",
-                            );
-                            ui.selectable_value(
-                                &mut self.t, 
-                                TransferFunction::POW, 
-                                "pow"
-                            );
+                            match &mut self.color {
+                                Color::Color(c) => {
+                                    ui.label("Color picker");
+                                    if ui.color_edit_button_srgba(c).changed() {
+                                        events.lock().unwrap().push(
+                                            Event::ImageSurveys(vec![self.get_hips_config()])
+                                        );
+                                    }
+                                },
+                                Color::Image => (),
+                                _ => todo!()
+                                //Color::Colormap => todo!()
+                            };
                         });
-                        ui.separator();
-                        ui.label("Transfer function");
-                        match self.t {
-                            TransferFunction::ASINH => plot(ui, |x| x.asinh()),
-                            TransferFunction::LINEAR => plot(ui, |x| x),
-                            TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
-                            TransferFunction::SIN => plot(ui, |x| x.sin())
+
+                        if let Some(t) = &mut self.transfer_func {
+                            ui.separator();
+                            ui.group(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.selectable_value(
+                                        t,
+                                        TransferFunction::ASINH, 
+                                        "asinh"
+                                    );
+                                    ui.selectable_value(
+                                        t,
+                                        TransferFunction::SIN,
+                                        "sin",
+                                    );
+                                    ui.selectable_value(
+                                        t,
+                                        TransferFunction::LINEAR,
+                                        "linear",
+                                    );
+                                    ui.selectable_value(
+                                        t,
+                                        TransferFunction::POW, 
+                                        "pow"
+                                    );
+                                });
+                                ui.separator();
+                                ui.label("Transfer function");
+                                match t {
+                                    TransferFunction::ASINH => plot(ui, |x| x.asinh()),
+                                    TransferFunction::LINEAR => plot(ui, |x| x),
+                                    TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
+                                    TransferFunction::SIN => plot(ui, |x| x.sin())
+                                }
+                            });
                         }
-        
-                        ui.separator();
-                        ui.label("Cutouts:");
-                        ui.add(
-                            egui::widgets::Slider::new(&mut self.cutouts[0], (-1e5 as f32)..=(1e5 as f32))
-                                .text("left"),
-                        );
-                        ui.add(
-                            egui::widgets::Slider::new(&mut self.cutouts[1], (-1e5 as f32)..=(1e5 as f32))
-                                .text("right"),
-                        );
+
+                        if let Some(c) = &mut self.cutouts {
+                            ui.separator();
+                            ui.label("Cutouts:");
+                            ui.add(
+                                egui::widgets::Slider::new(&mut c[0], (-1e5 as f32)..=(1e5 as f32))
+                                    .text("left"),
+                            );
+
+                            ui.add(
+                                egui::widgets::Slider::new(&mut c[1], (-1e5 as f32)..=(1e5 as f32))
+                                    .text("right"),
+                            );
+                        }
                     });
-                });
         }
     }
 }

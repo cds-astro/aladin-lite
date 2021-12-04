@@ -15,7 +15,7 @@ destinationin: "destination-in",
 // The existing canvas content is kept where both the new shape and existing canvas content overlap. Everything else is made transparent.
 destinationout: "destination-out",
 // The existing content is kept where it doesn't overlap the new shape.
-destination-atop: "destination-atop",
+destinationatop: "destination-atop",
 // The existing canvas is only kept where it overlaps the new shape. The new shape is drawn behind the canvas content.
 lighter: "lighter",
 // Where both shapes overlap the color is determined by adding color values.

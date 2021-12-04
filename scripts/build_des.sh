@@ -33,10 +33,10 @@ cssfileminified=${distribdir}/aladin.min.css
 
 srctar=${distribdir}/AladinLiteSrc.tar
 
-uglifyjs="$(echo $(npm root -g))/uglify-js"
-lessc="$(echo $(npm root -g))/lessc"
+uglifyjs="$(echo $(npm root -g))/uglify-js/bin/uglifyjs"
+lessc="/usr/bin/less"
 
-jsfiles=('js/cds.js' 'js/libs/json2.js' 'js/Logger.js' 'js/libs/jquery.mousewheel.js' 'js/libs/RequestAnimationFrame.js' 'js/libs/Stats.js' 'js/libs/healpix.min.js' 'js/libs/astro/astroMath.js' 'js/libs/astro/projection.js' 'js/libs/astro/coo.js' 'js/SimbadPointer.js' 'js/Box.js' 'js/CooConversion.js' 'js/Sesame.js' 'js/HealpixCache.js' 'js/Utils.js' 'js/URLBuilder.js' 'js/MeasurementTable.js' 'js/Color.js' 'js/AladinUtils.js' 'js/ProjectionEnum.js' 'js/CooFrameEnum.js' 'js/HiPSDefinition.js' 'js/Downloader.js' 'js/libs/fits.js' 'js/MOC.js' 'js/CooGrid.js' 'js/Footprint.js' 'js/Popup.js' 'js/Circle.js' 'js/Polyline.js' 'js/Overlay.js' 'js/Source.js' 'js/Catalog.js' 'js/ProgressiveCat.js' 'js/Tile.js' 'js/TileBuffer.js' 'js/ColorMap.js' 'js/HpxKey.js' 'js/HpxImageSurvey.js' 'js/HealpixGrid.js' 'js/Location.js' 'js/View.js' 'js/Aladin.js')
+jsfiles=('js/cds.js' 'js/libs/json2.js' 'js/Logger.js' 'js/libs/jquery.mousewheel.js' 'js/libs/RequestAnimationFrame.js' 'js/libs/Stats.js' 'js/libs/healpix.min.js' 'js/libs/astro/astroMath.js' 'js/libs/astro/projection.js' 'js/libs/astro/coo.js' 'js/SimbadPointer.js' 'js/Box.js' 'js/CooConversion.js' 'js/Sesame.js' 'js/HealpixCache.js' 'js/Utils.js' 'js/URLBuilder.js' 'js/MeasurementTable.js' 'js/Color.js' 'js/AladinUtils.js' 'js/ProjectionEnum.js' 'js/CooFrameEnum.js' 'js/HiPSDefinition.js' 'js/Downloader.js' 'js/libs/fits.js' 'js/MOC.js' 'js/CooGrid.js' 'js/Footprint.js' 'js/Popup.js' 'js/Circle.js' 'js/Polyline.js' 'js/Overlay.js' 'js/Source.js' 'js/Catalog.js' 'js/ProgressiveCat.js' 'js/Tile.js' 'js/TileBuffer.js' 'js/ColorMap.js' 'js/HpxKey.js' 'js/HpxImageSurvey.js' 'js/HealpixGrid.js' 'js/Location.js' 'js/View.js' 'js/Aladin.js' 'js/BlendingModeEnum.js')
 
 cmd="cat "
 for t in "${jsfiles[@]}"

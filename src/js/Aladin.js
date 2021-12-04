@@ -1,4 +1,4 @@
-"// Copyright 2013 - UDS/CNRS
+// Copyright 2013 - UDS/CNRS
 // The Aladin Lite program is distributed under the terms
 // of the GNU General Public License version 3.
 //
@@ -877,27 +877,18 @@ Aladin = (function() {
     };
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    // @api
-    // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, callback) {
-        this.view.setImageSurvey(imageSurvey, callback);
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        if (this.options.log) {
-            var id = imageSurvey;
-            if (typeof imageSurvey !== "string") {
-                id = imageSurvey.rootUrl;
-            }
-
-            Logger.log("changeImageSurvey", id);
-        }
-    };
-    
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index of survey in the stack
     // @api
     // @old
-    Aladin.prototype.setImageSurveyAtIndex = function(imageSurvey, index, callback) {
-        this.view.setImageSurveyAtIndex(imageSurvey, index, callback);
+    Aladin.prototype.setImageSurvey = function(imageSurvey, callback, index) {
+        
+        /* idx is the last layer (adding) if index is undefined else it's a replacement */
+        const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
+        if (index === undefined) {
+        this.view.setImageSurveyAtIndex(imageSurvey, idx, callback);
+    } else {
+        this.view.setImageSurvey(imageSurvey, callback);
+    }
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;
@@ -913,7 +904,7 @@ Aladin = (function() {
     Aladin.prototype.setBaseImageLayer = Aladin.prototype.setImageSurvey;
     
     // @api
-    Aladin.prototype.setImageLayerAtIndex = Aladin.prototype.setImageSurveyAtIndex;
+    Aladin.prototype.addImageLayer = Aladin.prototype.setImageSurvey;
     
     // @api
     Aladin.prototype.getOverlayImageLayer = function() {

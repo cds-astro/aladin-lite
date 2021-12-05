@@ -12,44 +12,10 @@ pub struct LayerLayout {
 
 use crate::widgets::SurveyGrid;
 use crate::Event;
-use al_core::log::log;
-use egui::Stroke;
 
-use crate::hips::{Frame, HiPSProperties, SimpleHiPS, HiPSColor::Grayscale2Color, HiPSFormat};
-/*const HiPS: &'static [(&'static str, SimpleHiPS)] = &[
-    ("GALEX AIS-FD", SimpleHiPS {
-        properties: HiPSProperties {
-            url: Cow::Borrowed("https://alaskybis.u-strasbg.fr/GALEX/GR6-03-2014/AIS-FD"),
-            max_order: 8,
-            frame: Frame {
-                label: Cow::Borrowed("J2000"),
-                system: Cow::Borrowed("J2000")
-            },
-            tile_size: 512,
-            format: HiPSFormat::FITSImage {
-                bitpix: -32
-            },
-            min_cutout: Some(0.0),
-            max_cutout: Some(0.003)
-        },
-        color: Grayscale2Color {
-            color: [
-                1.0,
-                0.0,
-                0.0
-            ],
-            k: 1.0,
-            transfer: Cow::Borrowed("asinh"),
-        },
-        layer: Cow::Borrowed("base")
-    })
-];*/
-
-const SURVEYS_NAME: &'static [&'static str] = &[
-    "GALEX/GR6-03-2014/AIS-FD"
-];
 use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
+use crate::widgets::survey::Color;
 impl LayerLayout {
     pub fn new(ui_backend: &mut WebGl2Painter) -> Result<Self, JsValue> {
         let survey_grid_widget = SurveyGrid::new(ui_backend)?;
@@ -86,8 +52,42 @@ impl LayerLayout {
             self.s_select_w.open();
         }
 
-        self.s_select_w.show(ui, events, &mut self.survey_name_selected, self.surveys.clone())
+        let mut new_survey_added = false;
+        self.s_select_w.show(ui, &mut self.survey_name_selected, &mut new_survey_added);
         
+        if new_survey_added {
+            let s_id_selected = self.survey_name_selected.clone();
+            let s_list = self.surveys.clone();
+            let events = events.clone();
+            let fut = async move {
+                let url = format!("https://alaskybis.u-strasbg.fr/{}", s_id_selected);
+                let new_survey = SurveyWidget::new(url).await;
+                let mut can_surveys_be_added = true;
+                // check if the new survey is compatible with the ones already pushed
+                for s in s_list.lock().unwrap().iter() {
+                    match s.color() {
+                        Color::Color(_) => (),
+                        _ => {
+                            can_surveys_be_added = false;
+                            break;
+                        }
+                    }
+                }
+
+                if can_surveys_be_added {
+                    // get the SimpleHiPS from the SurveyWidget
+                    let mut image_surveys = vec![new_survey.get_hips_config()];
+                    for survey in s_list.lock().unwrap().iter() {
+                        image_surveys.push(survey.get_hips_config());
+                    }
+
+                    events.lock().unwrap().push(Event::ImageSurveys(image_surveys));
+                    s_list.lock().unwrap().push(new_survey);
+                }
+            };
+
+            wasm_bindgen_futures::spawn_local(fut);
+        }
         /*{
             //let survey = self.survey.clone();
             //let s = survey.lock().unwrap();

@@ -170,7 +170,7 @@ enum TransferFunction {
     SIN
 }
 
-enum Color {
+pub enum Color {
     Image,
     Color(egui::Color32),
     Colormap {
@@ -186,7 +186,7 @@ pub struct SurveyWidget {
     visible: bool,
     edition_mode: bool,
 
-    // edition mode
+    // Edition mode
     color: Color,
     // In case of a fits HiPS
     transfer_func: Option<TransferFunction>,
@@ -226,6 +226,10 @@ impl SurveyWidget {
             transfer_func,
             cutouts,
         }
+    }
+
+    pub fn color(&self) -> &Color {
+        &self.color
     }
 
     pub fn get_hips_config(&self) -> SimpleHiPS {

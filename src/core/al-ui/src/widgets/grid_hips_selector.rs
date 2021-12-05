@@ -31,7 +31,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "DSS2 NIR",
             regime: "Optical",
-            url: "DSS2/NIR",
+            url: "DSS/DSS2-NIR/",
         },
         index_thumbnail: 1
     },
@@ -39,7 +39,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "HLA SDSSz",
             regime: "Optical",
-            url: "HLA/SDSSz",
+            url: "HLA-hips/filter_SDSSz_hips",
         },
         index_thumbnail: 2
     },
@@ -47,7 +47,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "PanSTARRS DR1 g",
             regime: "Optical",
-            url: "PanSTARRS/DR1/g",
+            url: "Pan-STARRS/DR1/g",
         },
         index_thumbnail: 3
     },
@@ -55,7 +55,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "PanSTARRS DR1 z",
             regime: "Optical",
-            url: "PanSTARRS/DR1/z",
+            url: "Pan-STARRS/DR1/z",
         },
         index_thumbnail: 4
     },
@@ -63,7 +63,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "I 345 gaia2",
             regime: "Optical",
-            url: "DM/I/345/gaia2",
+            url: "ancillary/GaiaDR2/hips-density-map",
         },
         index_thumbnail: 5
     },
@@ -71,7 +71,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
         desc: SurveyThumbnailDesc {
             id: "GALEXGR6 AIS FUV",
             regime: "UV",
-            url: "GALEXGR6/AIS/FUV",
+            url: "GALEX/GR6-03-2014/AIS-FD",
         },
         index_thumbnail: 6
     }
@@ -128,8 +128,14 @@ impl SurveyGrid {
         egui::Frame::popup(ui.style())
             .stroke(egui::Stroke::none())
             .show(ui, |ui| {
+                ui.set_max_width(270.0);
                 egui::Grid::new("Surveys browsing").show(ui, |ui| {
                     for (idx, thumbnail) in SURVEY_THUMBNAILS.iter().enumerate() {
+                        if idx > 0 && idx % 4 == 0 {
+                            ui.end_row();
+                        }
+
+                        let hover_text = format!("{:?}\nRegime: {}", thumbnail.desc.id, thumbnail.desc.regime);
                         if ui
                             .add(egui::ImageButton::new(self.thumbnail_texture, SIZE_SURVEY_THUMBNAIL)
                                 .uv(egui::Rect {
@@ -143,30 +149,26 @@ impl SurveyGrid {
                                     )
                                 })
                             )
-                            .on_hover_text(thumbnail.desc.regime)
-                            .clicked()
-                        {
+                            .on_hover_text(hover_text)
+                            .clicked() {
                             *s_id_selected = thumbnail.desc.url.to_string();
-                        }
-
-                        if idx % 5 == 0 {
-                            ui.end_row();
                         }
                     }
                 });
+                ui.end_row();
 
-            ui.separator();
-            ui.horizontal(|ui| {
-                if ui.add(egui::Button::new("Add")).clicked() {
-                    // TODO. You will not be able to add a new survey if there is a color one
-                    let selected_survey_compatible = true;
-                    *add = true;
-                }
+                ui.separator();
+                ui.horizontal(|ui| {
+                    if ui.add(egui::Button::new("Add")).clicked() {
+                        // TODO. You will not be able to add a new survey if there is a color one
+                        let selected_survey_compatible = true;
+                        *add = true;
+                    }
 
-                if ui.add(egui::Button::new("Cancel")).clicked() {
-                    self.open = false;
-                }
-            });
+                    if ui.add(egui::Button::new("Cancel")).clicked() {
+                        self.open = false;
+                    }
+                });
         });
     }
 }

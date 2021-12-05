@@ -1,3 +1,4 @@
+use num::iter::{Range, RangeInclusive};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, PartialEq, Default)]
@@ -183,25 +184,41 @@ pub struct SurveyWidget {
     url: String,
     properties: PropertiesParsed,
 
-    visible: bool,
+    pub visible: bool,
     edition_mode: bool,
+    quit: bool,
+
+    pub update_survey: bool,
 
     // Edition mode
     color: Color,
     // In case of a fits HiPS
     transfer_func: Option<TransferFunction>,
     // In case of a fits HiPS
-    cutouts: Option<[f32; 2]>
+    cutouts: Option<[f32; 2]>,
+    cut_range: std::ops::RangeInclusive<f32>
 }
 
 use cgmath::num_traits::Pow;
-use crate::Event;
 
 use crate::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
         let cutouts = properties.hips_pixel_cut.clone();
+        let cut_range = if let Some(c) = properties.hips_pixel_cut.clone() {
+            let lc = c[1] - c[0];
+            let half_lc = 0.5 * lc;
+    
+            let c_min = c[0] - half_lc;
+            let c_max = c[1] + half_lc;
+
+            c_min..=c_max
+        } else {
+            0.0..=0.0
+        };
+
+       
         let color = if properties.is_fits_image() {
             Color::Color(Color32::RED)
         } else {
@@ -218,13 +235,17 @@ impl SurveyWidget {
             url,
             properties,
 
+            quit: false,
             visible: false,
             edition_mode: false,
+
+            update_survey: false,
 
             // edition mode
             color,
             transfer_func,
             cutouts,
+            cut_range
         }
     }
 
@@ -320,21 +341,28 @@ impl SurveyWidget {
         hips
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
+    pub fn removed(&self) -> bool {
+        self.quit
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui) {
+        self.update_survey = false;
+
         egui::Frame::popup(ui.style())
             .stroke(egui::Stroke::none())
             .show(ui, |ui| {
                 ui.set_max_width(270.0);
-                let mut quit = false;
                 let edition_mode = self.edition_mode;
                 let visible = self.visible;
                 let mut info = false;
 
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut quit, true, "❌");
+                    ui.selectable_value(&mut self.quit, true, "❌");
                     ui.selectable_value(&mut info,true, "ℹ");
                     ui.selectable_value(&mut self.edition_mode, !edition_mode, "🖊");
-                    ui.selectable_value(&mut self.visible, !visible, "👁");
+                    if ui.selectable_value(&mut self.visible, !visible, "👁").clicked() {
+                        self.update_survey = true;
+                    }
                 });
 
                 ui.label(&self.properties.obs_title);
@@ -349,9 +377,7 @@ impl SurveyWidget {
                                 Color::Color(c) => {
                                     ui.label("Color picker");
                                     if ui.color_edit_button_srgba(c).changed() {
-                                        events.lock().unwrap().push(
-                                            Event::ImageSurveys(vec![self.get_hips_config()])
-                                        );
+                                        self.update_survey = true;
                                     }
                                 },
                                 Color::Image => (),
@@ -361,30 +387,43 @@ impl SurveyWidget {
                         });
 
                         if let Some(t) = &mut self.transfer_func {
+                            let update_survey = &mut self.update_survey;
                             ui.separator();
                             ui.group(|ui| {
                                 ui.horizontal(|ui| {
-                                    ui.selectable_value(
+                                    if ui.selectable_value(
                                         t,
                                         TransferFunction::ASINH, 
                                         "asinh"
-                                    );
-                                    ui.selectable_value(
+                                    ).clicked() {
+                                        *update_survey = true;
+                                    }
+
+                                    if ui.selectable_value(
                                         t,
                                         TransferFunction::SIN,
                                         "sin",
-                                    );
-                                    ui.selectable_value(
+                                    ).clicked() {
+                                        *update_survey = true;
+                                    }
+
+                                    if ui.selectable_value(
                                         t,
                                         TransferFunction::LINEAR,
                                         "linear",
-                                    );
-                                    ui.selectable_value(
+                                    ).clicked() {
+                                        *update_survey = true;
+                                    }
+
+                                    if ui.selectable_value(
                                         t,
                                         TransferFunction::POW, 
                                         "pow"
-                                    );
+                                    ).clicked() {
+                                        *update_survey = true;
+                                    }
                                 });
+
                                 ui.separator();
                                 ui.label("Transfer function");
                                 match t {
@@ -399,15 +438,19 @@ impl SurveyWidget {
                         if let Some(c) = &mut self.cutouts {
                             ui.separator();
                             ui.label("Cutouts:");
-                            ui.add(
-                                egui::widgets::Slider::new(&mut c[0], (-1e5 as f32)..=(1e5 as f32))
-                                    .text("left"),
-                            );
+                            if ui.add(
+                                egui::widgets::Slider::new(&mut c[0], self.cut_range.clone())
+                                    .text("left")
+                            ).changed() {
+                                self.update_survey = true;
+                            }
 
-                            ui.add(
-                                egui::widgets::Slider::new(&mut c[1], (-1e5 as f32)..=(1e5 as f32))
+                            if ui.add(
+                                egui::widgets::Slider::new(&mut c[1], self.cut_range.clone())
                                     .text("right"),
-                            );
+                            ).changed() {
+                                self.update_survey = true;
+                            }
                         }
                     });
         }

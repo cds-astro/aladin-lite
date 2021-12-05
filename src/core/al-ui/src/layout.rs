@@ -32,25 +32,8 @@ impl LayerLayout {
             .show(ui, |ui| {
                 ui.set_max_width(270.0);
                 //use super::View as _;
-                self.ui(ui, events);
+                self.ui(ui, events.clone());
             });
-    }
-
-    fn ui(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
-        ui.label("Layers");
-        ui.separator();
-
-        for survey in &mut *self.surveys.lock().unwrap() {
-            survey.show(ui, events.clone());
-        }
-
-        // TODO: check if you can add a new survey
-        // it is not possible if:
-        // - a color survey is already selected 
-        // - a grayscale survey mapped to a colormap object is selected
-        if ui.add(egui::Button::new("Add survey")).clicked() {
-            self.s_select_w.open();
-        }
 
         let mut new_survey_added = false;
         self.s_select_w.show(ui, &mut self.survey_name_selected, &mut new_survey_added);
@@ -88,6 +71,46 @@ impl LayerLayout {
 
             wasm_bindgen_futures::spawn_local(fut);
         }
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
+        ui.label("Layers");
+        ui.separator();
+        let surveys = &mut *self.surveys.lock().unwrap();
+        let mut update_viewed_surveys = false;
+        for idx in (0..surveys.len()).rev() {
+            surveys[idx].show(ui);
+
+            if surveys[idx].update_survey {
+                update_viewed_surveys = true;
+            }
+
+            if surveys[idx].removed() {
+                surveys.remove(idx);
+                update_viewed_surveys = true;
+            }
+        }
+
+        // TODO: check if you can add a new survey
+        // it is not possible if:
+        // - a color survey is already selected 
+        // - a grayscale survey mapped to a colormap object is selected
+        if ui.add(egui::Button::new("Add survey")).clicked() {
+            self.s_select_w.open();
+        }
+
+        if update_viewed_surveys {
+            let mut image_surveys = vec![];
+            for survey in surveys.iter() {
+                if survey.visible {
+                    image_surveys.push(survey.get_hips_config());
+                }
+            }
+
+            events.lock().unwrap()
+                .push(Event::ImageSurveys(image_surveys));
+        }
+
         /*{
             //let survey = self.survey.clone();
             //let s = survey.lock().unwrap();

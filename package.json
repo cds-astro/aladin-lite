@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "lessc": "^1.0.2"
+  }
+}

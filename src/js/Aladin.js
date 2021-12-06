@@ -144,6 +144,7 @@ Aladin = (function() {
 		var location = new Location(locationDiv.find('.aladin-location-text'));
         
 		// set different options
+        console.log('setting new view');
 		this.view = new View(this, location, fovDiv, cooFrame, options.fov);
 		this.view.setShowGrid(options.showCooGrid);
 

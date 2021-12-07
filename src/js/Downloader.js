@@ -37,16 +37,19 @@ Downloader = (function() {
 	
 	
 	var Downloader = function(view) {
+        		this.dlQueue = []; // queue of items being downloaded
+        this.urlsInQueue = {};
+        console.log('url queue set');
+        
 		this.view = view; // reference to the view to be able to request redraw
 		this.nbDownloads = 0; // number of current downloads
-		this.dlQueue = []; // queue of items being downloaded
-        this.urlsInQueue = {};
+
 	};
 
 	Downloader.prototype.emptyQueue = function() {
 		this.dlQueue = [];
         var remaining = [];
-        for (url of this.urlsInQueue) {
+        for (const [k, url] of Object.entries(this.urlsInQueue)) {
             remaining.push(url);
         }
         this.urlsInQueue = {};

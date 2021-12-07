@@ -5,7 +5,7 @@
 // This file is part of Aladin Lite.
 //
 //    Aladin Lite is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
+////    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, version 3 of the License.
 //
 //    Aladin Lite is distributed in the hope that it will be useful,
@@ -39,75 +39,75 @@ Aladin = (function() {
         }
 
 
-	    var self = this;
-	    
-	    // if not options was set, try to retrieve them from the query string
-	    if (requestedOptions===undefined) {
-	        requestedOptions = this.getOptionsFromQueryString();
-	    }
-	    requestedOptions = requestedOptions || {};
-	    
-	    
-	    // 'fov' option was previsouly called 'zoom'
-	    if ('zoom' in requestedOptions) {
-	        var fovValue = requestedOptions.zoom;
-	        delete requestedOptions.zoom;
-	        requestedOptions.fov = fovValue;
-	    }
-	    // merge with default options
-	    var options = {};
-	    for (var key in Aladin.DEFAULT_OPTIONS) {
-	        if (requestedOptions[key] !== undefined) {
-	            options[key] = requestedOptions[key];
-	        }
-	        else {
-	            options[key] = Aladin.DEFAULT_OPTIONS[key];
-	        }
-	    }
-	    for (var key in requestedOptions) {
-	        if (Aladin.DEFAULT_OPTIONS[key]===undefined) {
-	            options[key] = requestedOptions[key];
-	        }
-	    }
-	    
+    var self = this;
+    
+    // if not options was set, try to retrieve them from the query string
+    if (requestedOptions===undefined) {
+        requestedOptions = this.getOptionsFromQueryString();
+    }
+    requestedOptions = requestedOptions || {};
+    
+    
+    // 'fov' option was previsouly called 'zoom'
+    if ('zoom' in requestedOptions) {
+        var fovValue = requestedOptions.zoom;
+        delete requestedOptions.zoom;
+        requestedOptions.fov = fovValue;
+    }
+    // merge with default options
+    var options = {};
+    for (var key in Aladin.DEFAULT_OPTIONS) {
+        if (requestedOptions[key] !== undefined) {
+            options[key] = requestedOptions[key];
+        }
+        else {
+            options[key] = Aladin.DEFAULT_OPTIONS[key];
+        }
+    }
+    for (var key in requestedOptions) {
+        if (Aladin.DEFAULT_OPTIONS[key]===undefined) {
+            options[key] = requestedOptions[key];
+        }
+    }
+    
         this.options = options;
 
         $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
 
-	    
+    
 
-		this.aladinDiv = aladinDiv;
+this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
 
-		// parent div
-		$(aladinDiv).addClass("aladin-container");
-		
-	      
-		var cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
-		// locationDiv is the div where we write the position
-		var locationDiv = $('<div class="aladin-location">'
-		                    + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
-		                    + (cooFrame==CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
-		                    + (cooFrame==CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
-		                    + (cooFrame==CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
-		                    + '<span class="aladin-location-text"></span></div>')
-		                    .appendTo(aladinDiv);
-		// div where FoV value is written
-		var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
-		
-		
-		// zoom control
+// parent div
+$(aladinDiv).addClass("aladin-container");
+
+      
+var cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+// locationDiv is the div where we write the position
+var locationDiv = $('<div class="aladin-location">'
+                    + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
+                    + (cooFrame==CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
+                    + (cooFrame==CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
+                    + (cooFrame==CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
+                    + '<span class="aladin-location-text"></span></div>')
+                    .appendTo(aladinDiv);
+// div where FoV value is written
+var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
+
+
+// zoom control
         if (options.showZoomControl) {
-	          $('<div class="aladin-zoomControl"><a href="#" class="zoomPlus" title="Zoom in">+</a><a href="#" class="zoomMinus" title="Zoom out">&ndash;</a></div>').appendTo(aladinDiv);
-	    }
+          $('<div class="aladin-zoomControl"><a href="#" class="zoomPlus" title="Zoom in">+</a><a href="#" class="zoomMinus" title="Zoom out">&ndash;</a></div>').appendTo(aladinDiv);
+    }
         
         // maximize control
         if (options.showFullscreenControl) {
             $('<div class="aladin-fullscreenControl aladin-maximize" title="Full screen"></div>')
                 .appendTo(aladinDiv);
         }
-        this.fullScreenBtn = $(aladinDiv).find('.aladin-fullscreenControl')
+        this.fullScreenBtn = $(aladinDiv).find('.aladin-fullscreenControl');
         this.fullScreenBtn.click(function() {
             self.toggleFullscreen(self.options.realFullscreen);
         });
@@ -130,32 +130,32 @@ Aladin = (function() {
 
 
 
-		// Aladin logo
+// Aladin logo
         // $("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
-		
-		// we store the boxes
-		this.boxes = [];
+
+// we store the boxes
+this.boxes = [];
 
         // measurement table
         this.measurementTable = new MeasurementTable(aladinDiv);
 
-		
-		
-		var location = new Location(locationDiv.find('.aladin-location-text'));
-        
-		// set different options
-        console.log('setting new view');
-		this.view = new View(this, location, fovDiv, cooFrame, options.fov);
-		this.view.setShowGrid(options.showCooGrid);
 
-	    // retrieve available surveys
+
+var location = new Location(locationDiv.find('.aladin-location-text'));
+        
+// set different options
+        console.log('setting new view');
+this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+this.view.setShowGrid(options.showCooGrid);
+
+    // retrieve available surveys
         // TODO: replace call with MocServer
-	    $.ajax({
-	        url: "//aladin.unistra.fr/java/nph-aladin.pl",
-	        data: {"frame": "aladinLiteDic"},
-	        method: 'GET',
-	        dataType: 'jsonp', // could this be repaced by json ??
-	        success: function(data) {
+    $.ajax({
+        url: "//aladin.unistra.fr/java/nph-aladin.pl",
+        data: {"frame": "aladinLiteDic"},
+        method: 'GET',
+        dataType: 'jsonp', // could this be repaced by json ??
+        success: function(data) {
                 var map = {};
                 for (var k=0; k<data.length; k++) {
                     map[data[k].id] = true;
@@ -166,16 +166,16 @@ Aladin = (function() {
                         data.push(HpxImageSurvey.SURVEYS[k]);
                     }
                 }
-	            HpxImageSurvey.SURVEYS = data;
+            HpxImageSurvey.SURVEYS = data;
                 self.view.setUnknownSurveyIfNeeded();
-	        },
-	        error: function() {
-	        }
-	    });
-		
-	      // layers control panel
+        },
+        error: function() {
+        }
+    });
+
+      // layers control panel
         // TODO : valeur des checkbox en fonction des options
-		// TODO : classe LayerBox
+// TODO : classe LayerBox
         if (options.showLayersControl) {
             var d = $('<div class="aladin-layersControl-container" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
@@ -261,8 +261,8 @@ Aladin = (function() {
             });
             shareBox.find('.aladin-closeBtn').click(function() {self.hideBoxes();return false;});
         }
-		
-		
+
+
         this.gotoObject(options.target);
 
         if (options.log) {
@@ -271,25 +271,25 @@ Aladin = (function() {
             Logger.log("startup", params);
         }
         
-		this.showReticle(options.showReticle);
-		
-		if (options.catalogUrls) {
-		    for (var k=0, len=options.catalogUrls.length; k<len; k++) {
-		        this.createCatalogFromVOTable(options.catalogUrls[k]);
-		    }
-		}
-		
-		this.setImageSurvey(options.survey);
-		this.view.showCatalog(options.showCatalog);
-		
-	    
-    	var aladin = this;
-    	$(aladinDiv).find('.aladin-frameChoice').change(function() {
-    		aladin.setFrame($(this).val());
-    	});
-    	$('#projectionChoice').change(function() {
-    		aladin.setProjection($(this).val());
-    	});
+this.showReticle(options.showReticle);
+
+if (options.catalogUrls) {
+    for (var k=0, len=options.catalogUrls.length; k<len; k++) {
+        this.createCatalogFromVOTable(options.catalogUrls[k]);
+    }
+}
+
+this.setImageSurvey(options.survey);
+this.view.showCatalog(options.showCatalog);
+
+    
+    var aladin = this;
+    $(aladinDiv).find('.aladin-frameChoice').change(function() {
+    aladin.setFrame($(this).val());
+    });
+    $('#projectionChoice').change(function() {
+    aladin.setProjection($(this).val());
+    });
         
 
         $(aladinDiv).find('.aladin-target-form').submit(function() {
@@ -301,8 +301,8 @@ Aladin = (function() {
         
         var zoomPlus = $(aladinDiv).find('.zoomPlus');
         zoomPlus.click(function() {
-        	aladin.increaseZoom();
-        	return false;
+        aladin.increaseZoom();
+        return false;
         });
         zoomPlus.bind('mousedown', function(e) {
             e.preventDefault(); // to prevent text selection
@@ -324,8 +324,8 @@ Aladin = (function() {
 
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
-	};
-	
+};
+
     /**** CONSTANTS ****/
     Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
     
@@ -423,12 +423,15 @@ Aladin = (function() {
             }
             return a.order && a.order > b.order ? 1 : -1;
         });
+        
         var select = $(this.aladinDiv).find('.aladin-surveySelection');
         select.empty();
+        if (this.view.imageSurveys.length > 0) {
         for (var i=0; i<surveys.length; i++) {
-            var isCurSurvey = this.view.imageSurvey.id==surveys[i].id;
+            var isCurSurvey = this.view.imageSurveys[-1].id==surveys[i].id;
             select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].id).text(surveys[i].name));
-        };
+        }
+    }
     };
     
     Aladin.prototype.getOptionsFromQueryString = function() {
@@ -467,33 +470,33 @@ Aladin = (function() {
         
         return options;
     };
-	
+
     // TODO: rename to setFoV
     //@oldAPI
-	Aladin.prototype.setZoom = function(fovDegrees) {
-		this.view.setZoom(fovDegrees);
-	};
+Aladin.prototype.setZoom = function(fovDegrees) {
+this.view.setZoom(fovDegrees);
+};
 
-	// @API
-	Aladin.prototype.setFoV = Aladin.prototype.setFov = function(fovDegrees) {
-		this.view.setZoom(fovDegrees);
-	};
+// @API
+Aladin.prototype.setFoV = Aladin.prototype.setFov = function(fovDegrees) {
+this.view.setZoom(fovDegrees);
+};
 
     // @API
     // (experimental) try to adjust the FoV to the given object name. Does nothing if object is not known from Simbad
-	Aladin.prototype.adjustFovForObject = function(objectName) {
+Aladin.prototype.adjustFovForObject = function(objectName) {
         var self = this;
-		this.getFovForObject(objectName, function(fovDegrees) {
+this.getFovForObject(objectName, function(fovDegrees) {
             self.setFoV(fovDegrees);
         });
-	};
+};
 
     
-	Aladin.prototype.getFovForObject = function(objectName, callback) {
+Aladin.prototype.getFovForObject = function(objectName, callback) {
         var query = "SELECT galdim_majaxis, V FROM basic JOIN ident ON oid=ident.oidref JOIN allfluxes ON oid=allfluxes.oidref WHERE id='" + objectName + "'";
         var url = '//simbad.u-strasbg.fr/simbad/sim-tap/sync?query=' + encodeURIComponent(query) + '&request=doQuery&lang=adql&format=json&phase=run';
 
-        var ajax = Utils.getAjaxObject(url, 'GET', 'json', false)
+        var ajax = Utils.getAjaxObject(url, 'GET', 'json', false);
         ajax.done(function(result) {
             var defaultFov = 4 / 60; // 4 arcmin
             var fov = defaultFov;
@@ -515,7 +518,7 @@ Aladin = (function() {
             (typeof callback === 'function') && callback(fov);
         });
     };
-	
+
     Aladin.prototype.setFrame = function(frameName) {
         if (! frameName) {
             return;
@@ -530,20 +533,20 @@ Aladin = (function() {
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
 
-	Aladin.prototype.setProjection = function(projectionName) {
-		if (! projectionName) {
-			return;
-		}
-		projectionName = projectionName.toLowerCase();
-		switch(projectionName) {
-			case "aitoff":
-				this.view.changeProjection(ProjectionEnum.AITOFF);
-				break;
-			case "sinus":
-			default:
-				this.view.changeProjection(ProjectionEnum.SIN);
-		}
-	};
+Aladin.prototype.setProjection = function(projectionName) {
+if (! projectionName) {
+return;
+}
+projectionName = projectionName.toLowerCase();
+switch(projectionName) {
+case "aitoff":
+this.view.changeProjection(ProjectionEnum.AITOFF);
+break;
+case "sinus":
+default:
+this.view.changeProjection(ProjectionEnum.SIN);
+}
+};
     
     /** point view to a given object (resolved by Sesame) or position
      * @api
@@ -568,40 +571,40 @@ Aladin = (function() {
         }
 
 
-    	var isObjectName = /[a-zA-Z]/.test(targetName);
-    	
-    	// try to parse as a position
-    	if ( ! isObjectName) {
-    		var coo = new Coo();
+    var isObjectName = /[a-zA-Z]/.test(targetName);
+    
+    // try to parse as a position
+    if ( ! isObjectName) {
+    var coo = new Coo();
 
-			coo.parse(targetName);
-			var lonlat = [coo.lon, coo.lat];
-			if (this.view.cooFrame == CooFrameEnum.GAL) {
-				lonlat = CooConversion.GalacticToJ2000(lonlat);
-			}
-    		this.view.pointTo(lonlat[0], lonlat[1]);
+coo.parse(targetName);
+var lonlat = [coo.lon, coo.lat];
+if (this.view.cooFrame == CooFrameEnum.GAL) {
+lonlat = CooConversion.GalacticToJ2000(lonlat);
+}
+    this.view.pointTo(lonlat[0], lonlat[1]);
             
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
-    	}
-    	// ask resolution by Sesame
-    	else {
-	        var self = this;
-	        Sesame.resolve(targetName,
-	                       function(data) { // success callback
-	        					   var ra = data.Target.Resolver.jradeg;
-	        					   var dec = data.Target.Resolver.jdedeg;
-	        					   self.view.pointTo(ra, dec);
+    }
+    // ask resolution by Sesame
+    else {
+        var self = this;
+        Sesame.resolve(targetName,
+                       function(data) { // success callback
+           var ra = data.Target.Resolver.jradeg;
+           var dec = data.Target.Resolver.jdedeg;
+           self.view.pointTo(ra, dec);
 
                                    (typeof successCallback === 'function') && successCallback(self.getRaDec());
-	                       },
-	                       function(data) { // errror callback
-	                            if (console) {
-	                                console.log("Could not resolve object name " + targetName);
-	                                console.log(data);
-	                            }
+                       },
+                       function(data) { // errror callback
+                            if (console) {
+                                console.log("Could not resolve object name " + targetName);
+                                console.log(data);
+                            }
                                 (typeof errorCallback === 'function') && errorCallback();
-	                       });
-    	}
+                       });
+    }
     };
     
     
@@ -620,7 +623,7 @@ Aladin = (function() {
         else {
             radec = [lon, lat];
         }
-    	this.view.pointTo(radec[0], radec[1]);
+    this.view.pointTo(radec[0], radec[1]);
     };
     
     
@@ -667,7 +670,7 @@ Aladin = (function() {
         if (this.animationParams) {
             this.animationParams['running']     = false;
         }
-    }
+    };
 
     /*
      * animate smoothly from the current position to the given ra, dec
@@ -921,14 +924,14 @@ Aladin = (function() {
         if (!step) {
             step = 5;
         }
-    	this.view.setZoomLevel(this.view.zoomLevel+step);
+    this.view.setZoomLevel(this.view.zoomLevel+step);
     };
     
     Aladin.prototype.decreaseZoom = function(step) {
         if (!step) {
             step = 5;
         }
-    	this.view.setZoomLevel(this.view.zoomLevel-step);
+    this.view.setZoomLevel(this.view.zoomLevel-step);
     };
     
     // @oldAPI
@@ -1032,7 +1035,7 @@ Aladin = (function() {
             }
         }
         else {
-    	    var isObjectName = /[a-zA-Z]/.test(target);
+        var isObjectName = /[a-zA-Z]/.test(target);
             if (isObjectName)  {
                 url = URLBuilder.buildNEDObjectCSURL(target, radius);
             }
@@ -1504,7 +1507,7 @@ Aladin = (function() {
          return $(this.aladinDiv);
      };
     
-	return Aladin;
+return Aladin;
 })();
 
 //// New API ////

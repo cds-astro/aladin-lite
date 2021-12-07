@@ -37,11 +37,14 @@ View = (function() {
             // Keeping a tab on completed visual refresh
             this.refreshed = false;
 
+            // new: added multi image survey 
+            this.imageSurveys = [];
+            console.log('image surveys declared');
             this.createCanvases();
             this.location = location;
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
-            this.mustRedrawReticle = true;;
+            this.mustRedrawReticle = true;
             
             this.mode = View.PAN;
             
@@ -70,8 +73,7 @@ View = (function() {
                 this.setZoom(zoom);
             }
             
-            // new: added multi image survey 
-            this.imageSurveys = [];
+
             
             // current catalogs displayed
             this.catalogs = [];
@@ -98,7 +100,7 @@ View = (function() {
             // MOCs
             this.mocs = [];
             // reference to all overlay layers (= catalogs + overlays + mocs)
-            this.allOverlayLayers = []
+            this.allOverlayLayers = [];
             
     
             
@@ -143,7 +145,7 @@ View = (function() {
             var self = this;
             $(window).resize(function() {
                 clearTimeout(self.resizeTimer);
-                self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self)}, 100);
+                self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self);}, 100);
             });
 
 
@@ -159,7 +161,7 @@ View = (function() {
                     self.setZoomLevel(self.zoomLevel); // needed to force recomputation of displayed FoV
                 }
            }, 1000);
-        };
+        }
     
     // different available modes
     View.PAN = 0;
@@ -260,7 +262,7 @@ View = (function() {
         ctx.mozImageSmoothingEnabled = enableSmoothing;
         ctx.msImageSmoothingEnabled = enableSmoothing;
         ctx.oImageSmoothingEnabled = enableSmoothing;
-    }
+    };
     
 
     View.prototype.setMode = function(mode) {
@@ -1492,6 +1494,7 @@ View = (function() {
     };
     
     View.prototype.setShowGrid = function(showGrid) {
+        console.log('refreshing view');
         this.showGrid = showGrid;
         this.requestRedraw();
     };
@@ -1569,7 +1572,8 @@ View = (function() {
            
 
         // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        if (this.imageSurveys.length > 0 && norder<=2 && this.imageSurveys[0].minOrder>2) {
+        console.log(this.imageSurveys);
+        if (this.imageSurveys > 0 && norder<=2 && this.imageSurveys[0].minOrder>2) {
             norder = this.imageSurveys[0].minOrder;
         }
 

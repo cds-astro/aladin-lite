@@ -126,7 +126,7 @@ HpxImageSurvey = (function() {
         HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
         
         // Finally set compositing style
-        this.blendingMode = options.blendingMode || BlendingModeEnum.sourceover;
+        this.blendingMode = options.blendingMode;
         
     };
 
@@ -346,13 +346,13 @@ HpxImageSurvey = (function() {
         return null;
     };
 
-    HpxImageSurvey.getSurveyFromId = function(id) {
+    HpxImageSurvey.getSurveyFromId = function(id, blendingMode) {
         if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
             return HpxImageSurvey.SURVEYS_OBJECTS[id];
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
-            var options = {};
+            var options = {blendingMode: blendingMode};
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }

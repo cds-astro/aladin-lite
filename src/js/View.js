@@ -1602,7 +1602,7 @@ View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback) {
+    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, blendingMode, callback) {
         if (! overlayImageSurvey) {
             this.overlayImageSurvey = null;
             this.requestRedraw();
@@ -1615,11 +1615,12 @@ View = (function() {
             this.untaintCanvases();
         }
         
+        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
         var newOverlayImageSurvey;
         if (typeof overlayImageSurvey == "string") {
-            newOverlayImageSurvey = HpxImageSurvey.getSurveyFromId(overlayImageSurvey);
+            newOverlayImageSurvey = HpxImageSurvey.getSurveyFromId(overlayImageSurvey, blend);
             if ( ! newOverlayImageSurvey) {
-                newOverlayImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
+                newOverlayImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
             }
         }
         else {
@@ -1651,7 +1652,7 @@ View = (function() {
     
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.setImageSurvey = function(imageSurvey, callback) {
+    View.prototype.setImageSurvey = function(imageSurvey, blendingMode, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -1662,11 +1663,14 @@ View = (function() {
             this.untaintCanvases();
         }
         
+        // Take the default non alpha blending mode or the specified one
+        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
+        
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -1684,8 +1688,8 @@ View = (function() {
         newImageSurvey.isReady = false;
         this.imageSurveys.push(newImageSurvey);
         var idx = this.imageSurveys.length;
-
-        this.projection.reverseLongitude(this.imageSurveys[idx].longitudeReversed); 
+        console.log('idx = '+idx);
+        this.projection.reverseLongitude(this.imageSurveys[idx - 1].longitudeReversed); 
         
         var self = this;
         newImageSurvey.init(this, function() {
@@ -1703,7 +1707,7 @@ View = (function() {
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index to place the image survey at
-    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, callback) {
+    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -1714,11 +1718,13 @@ View = (function() {
             this.untaintCanvases();
         }
         
+        // Take the default non alpha blendmode or the specified one
+        const blend = (blendMode) ? blendingMode : BlendingModeEnum.sourceover;
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
                 unknownSurveyId = imageSurvey;
             }
         }

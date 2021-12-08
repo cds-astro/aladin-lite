@@ -126,10 +126,6 @@ var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
             }
         });
 
-        
-
-
-
 // Aladin logo
         // $("<div class='aladin-logo-container'><a href='http://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
 
@@ -279,7 +275,8 @@ if (options.catalogUrls) {
     }
 }
 
-this.setImageSurvey(options.survey);
+console.log('Setting image survey ' + options.survey);
+this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover);
 this.view.showCatalog(options.showCatalog);
 
     
@@ -428,7 +425,7 @@ this.view.showCatalog(options.showCatalog);
         select.empty();
         if (this.view.imageSurveys.length > 0) {
         for (var i=0; i<surveys.length; i++) {
-            var isCurSurvey = this.view.imageSurveys[-1].id==surveys[i].id;
+            var isCurSurvey = this.view.imageSurveys[this.view.imageSurveys.length - 1].id==surveys[i].id;
             select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].id).text(surveys[i].name));
         }
     }
@@ -882,16 +879,19 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index of survey in the stack
+    //@param: blendingMode: blending mode for this layer
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, callback, index) {
+    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, callback) {
         
         /* idx is the last layer (adding) if index is undefined else it's a replacement */
         const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
+        // Blending mode is default or specified
+        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
         if (index === undefined) {
-        this.view.setImageSurveyAtIndex(imageSurvey, idx, callback);
+        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, callback);
     } else {
-        this.view.setImageSurvey(imageSurvey, callback);
+        this.view.setImageSurvey(imageSurvey, blend, callback);
     }
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {

@@ -91,3 +91,6 @@ then
 fi
 
 ln -s ${distribdir} ${latest_symlink}
+
+cp ../index.html ../distrib/latest
+cp ../jquery.js ../distrib/latest

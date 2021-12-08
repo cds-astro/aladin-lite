@@ -181,11 +181,22 @@ window.webkit.messageHandlers.update_image.postMessage({
                 cat.addSources([A.marker(s.coord[0], s.coord[1], {popupTitle: s.id})]);
             }
         };
+
+        // Add a new overlay image
+        function addSurveylayer(ID, index, blendingMode) {
+            aladin.setImageSurvey(ID, index, blendingMode);
+        };
+        
+setTimeout( function() {
+    addSurveylayer("P/DSS2/color", 1, "overlay"); 
+}, 3000);
+
         
         // goToObject('Polaris');
-                                setTimeout( function() {
-        addMarkers('Polaris', 7, {"objects":[{"id":"* alf UMi","coord":[2.530303955078125,89.264106750488281]},{"id":"* alf UMi B","coord":[2.5100212097167969,89.260887145996094]},{"id":"Gaia DR2 576402619921730176","coord":[2.5752172470092773,89.25811767578125]},{"id":"UCAC3 359-258","coord":[2.5866830348968506,89.262542724609375]},{"id":"UCAC3 359-247","coord":[2.5123193264007568,89.241584777832031]},{"id":"PWP  8","coord":[2.5858445167541504,89.289718627929688]},{"id":"RN  6","coord":[2.6880555152893066,89.278335571289062]}]});
-            }, 3000);
+        //                         setTimeout( function() {
+        // addMarkers('Polaris', 7, {"objects":[{"id":"* alf UMi","coord":[2.530303955078125,89.264106750488281]},{"id":"* alf UMi B","coord":[2.5100212097167969,89.260887145996094]},{"id":"Gaia DR2 576402619921730176","coord":[2.5752172470092773,89.25811767578125]},{"id":"UCAC3 359-258","coord":[2.5866830348968506,89.262542724609375]},{"id":"UCAC3 359-247","coord":[2.5123193264007568,89.241584777832031]},{"id":"PWP  8","coord":[2.5858445167541504,89.289718627929688]},{"id":"RN  6","coord":[2.6880555152893066,89.278335571289062]}]});
+        //     }, 3000);
+        
         
 </script>
 </body>

@@ -893,6 +893,9 @@ View = (function() {
         } 
         else if (! this.needRedraw) {
             if ( ! this.flagForceRedraw) {
+                // Refresh at this point as sky is loaded
+                this.refreshed = true;
+                console.log('sky map loaded');
                 return;
             }
             else {
@@ -989,8 +992,6 @@ View = (function() {
         }
         */
         
-        // Refresh at this point as sky is loaded
-        this.refreshed = true;
 
         // redraw overlay image survey
         // TODO : does not work if different frames 

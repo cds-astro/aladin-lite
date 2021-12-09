@@ -127,6 +127,8 @@ HpxImageSurvey = (function() {
         
         // Finally set compositing style
         this.blendingMode = options.blendingMode;
+        // if the layer is grayscale, add color
+        this.colorCorrection = options.colorCorrection; 
         
     };
 

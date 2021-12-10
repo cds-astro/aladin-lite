@@ -67,6 +67,7 @@ impl ElementArrayBuffer {
         usage: u32,
         data: B,
     ) {
+        self.bind();
         if self.len >= data.len() {
             T::buffer_sub_data_with_i32_and_array_buffer_view(
                 &self.gl,

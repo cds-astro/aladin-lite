@@ -1,5 +1,7 @@
 use crate::{camera::CameraViewPort, projection::Projection, shader::ShaderManager};
 
+use al_core::VecData;
+use al_core::shader::Shader;
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGl2Context};
 
 pub trait RayTracingProjection {
@@ -43,12 +45,7 @@ use web_sys::WebGlVertexArrayObject;
 pub struct RayTracer {
     gl: WebGl2Context,
 
-    vao: WebGlVertexArrayObject,
-
-    vbo: WebGlBuffer,
-    ebo: WebGlBuffer,
-
-    num_indices: i32,
+    vao: VertexArrayObject,
     position_tex: Texture2D,
 }
 use cgmath::{InnerSpace, Vector2};
@@ -91,43 +88,26 @@ impl RayTracer {
     ) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
 
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(&vao));
-
-        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-        let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &buf_vertices,
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-
+        let mut vao = VertexArrayObject::new(&gl);
         // layout (location = 0) in vec2 pos_clip_space;
-        gl.vertex_attrib_pointer_with_i32(
-            0,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            (2 * mem::size_of::<f32>()) as i32,
-            0,
-        );
-        gl.enable_vertex_attrib_array(0);
+        vao.bind_for_update()
+            .add_array_buffer(
+                2 * std::mem::size_of::<f32>(),
+                &[2],
+                &[0],
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData::<u16>(&idx),
+            )
+        // Unbind the buffer
+        .unbind();
 
-        let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-        let num_indices = idx.len() as i32;
-
-        let buf_indices = unsafe { js_sys::Uint16Array::view(&idx) };
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            &buf_indices,
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
         // create data
         let data = generate_position::<P>();
-
         let position_tex = Texture2D::create_empty_with_format::<al_core::format::RGB32F>(
             gl,
             2048,
@@ -172,35 +152,34 @@ impl RayTracer {
 
             vao,
 
-            vbo,
-            ebo,
-
-            num_indices,
-
             position_tex,
         }
     }
 
-    pub fn bind(&self) {
-        self.gl.bind_vertex_array(Some(&self.vao));
-    }
-
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
-        shader.attach_uniform("position_tex", &self.position_tex);
-        self.gl.draw_elements_with_i32(
+        shader
+            .attach_uniform("position_tex", &self.position_tex)
+            .bind_vertex_array_object_ref(&self.vao)
+                .draw_elements_with_i32(
+                    WebGl2RenderingContext::TRIANGLES, 
+                    None, 
+                    WebGl2RenderingContext::UNSIGNED_SHORT, 
+                    0)
+            //.unbind();
+        /*self.gl.draw_elements_with_i32(
             //WebGl2RenderingContext::LINES,
             WebGl2RenderingContext::TRIANGLES,
             self.num_indices,
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0,
-        );
+        );*/
     }
 }
 
 impl Drop for RayTracer {
     fn drop(&mut self) {
-        self.gl.delete_vertex_array(Some(&self.vao));
+        /*self.gl.delete_vertex_array(Some(&self.vao));
         self.gl.delete_buffer(Some(&self.vbo));
-        self.gl.delete_buffer(Some(&self.ebo));
+        self.gl.delete_buffer(Some(&self.ebo));*/
     }
 }

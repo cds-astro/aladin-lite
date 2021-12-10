@@ -6,7 +6,7 @@ use crate::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
-use web_sys::{CanvasRenderingContext2d, WebGlBuffer, WebGlVertexArrayObject};
+use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
 
 pub struct ProjetedGrid {
     // The color of the grid
@@ -39,7 +39,6 @@ use crate::projection::Projection;
 use crate::ShaderManager;
 use al_core::WebGl2Context;
 use al_core::{VecData, VertexArrayObject};
-use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 
 use super::labels::RenderManager;
@@ -54,30 +53,32 @@ impl ProjetedGrid {
         let vao_gpu = {
             let mut vao = VertexArrayObject::new(gl);
 
-            let shader = shaders
+            /*let shader = shaders
                 .get(
                     &gl,
                     &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
                 )
-                .unwrap();
-            shader
-                .bind(gl)
-                .bind_vertex_array_object(&mut vao)
+                .unwrap();*/
+            let vertices = vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
+            let indices = vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
+            {
+                let mut vao_bound = vao.bind_for_update();
                 // Store the screen and uv of the billboard in a VBO
-                .add_array_buffer(
+                
+                vao_bound.add_array_buffer(
                     2 * std::mem::size_of::<f32>(),
                     &[2],
                     &[0],
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]),
+                    VecData(&vertices),
                 )
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16]),
-                )
+                    VecData(&indices),
+                );
                 // Unbind the buffer
-                .unbind();
+            }
             vao
         };
 

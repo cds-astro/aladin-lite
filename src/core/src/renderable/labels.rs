@@ -57,24 +57,23 @@ impl TextRenderManager {
             include_str!("../shaders/text/text_frag.glsl"),
         )?;
         let mut vao = VertexArrayObject::new(&gl);
-
-        shader
-            .bind(&gl)
-                .bind_vertex_array_object(&mut vao)
-                    .add_array_buffer(
-                        4 * std::mem::size_of::<f32>(),
-                        &[2, 2],
-                        &[0, 2 * std::mem::size_of::<f32>()],
-                        WebGl2RenderingContext::STREAM_DRAW,
-                        VecData::<f32>(&vec![]),
-                    )
-                    // Set the element buffer
-                    .add_element_buffer(
-                        WebGl2RenderingContext::STREAM_DRAW,
-                        VecData::<u16>(&vec![]),
-                    )
-                // Unbind the buffer
-                .unbind();
+        let vertices = vec![];
+        let indices = vec![];
+        vao.bind_for_update()
+            .add_array_buffer(
+                4 * std::mem::size_of::<f32>(),
+                &[2, 2],
+                &[0, 2 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices)
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<u16>(&indices),
+            )
+        // Unbind the buffer
+        .unbind();
         let dpi = camera.get_dpi();
         let text_size = 17.0 * dpi;
         let Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);

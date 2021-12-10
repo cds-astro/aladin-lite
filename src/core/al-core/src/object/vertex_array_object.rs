@@ -107,6 +107,82 @@ pub struct ShaderVertexArrayObjectBound<'a, 'b> {
 use crate::VertexAttribPointerType;
 use web_sys::WebGl2RenderingContext;
 impl<'a, 'b> ShaderVertexArrayObjectBound<'a, 'b> {
+    pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
+        &mut self,
+        idx: usize,
+        usage: u32,
+        array_data: B,
+    ) -> &mut Self {
+        self.vao.array_buffer[idx].update(usage, array_data);
+        self
+    }
+
+    pub fn update_element_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
+        &mut self,
+        usage: u32,
+        element_data: B,
+    ) -> &mut Self {
+        if let Some(ref mut element_array_buffer) = self.vao.element_array_buffer {
+            element_array_buffer.update(usage, element_data);
+        }
+        self
+    }
+
+    pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
+        &mut self,
+        idx: usize,
+        array_data: B,
+    ) -> &mut Self {
+        self.vao.array_buffer_instanced[idx].update(array_data);
+        self
+    }
+
+    pub fn unbind(&self) {
+        self.vao.gl.bind_vertex_array(None);
+    }
+}
+
+pub struct ShaderVertexArrayObjectBoundRef<'a, 'b> {
+    vao: &'a VertexArrayObject,
+    _shader: &'b ShaderBound<'b>,
+}
+
+impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
+    pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
+        let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
+        self.vao
+            .gl
+            .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
+    }
+
+    pub fn draw_elements_instanced_with_i32(
+        &self,
+        mode: u32,
+        offset_instance_idx: i32,
+        num_instances: i32,
+    ) {
+        self.vao.gl.draw_elements_instanced_with_i32(
+            mode,
+            self.vao.num_elements() as i32,
+            WebGl2RenderingContext::UNSIGNED_SHORT,
+            offset_instance_idx,
+            num_instances,
+        );
+    }
+
+    pub fn unbind(&self) {
+        self.vao.gl.bind_vertex_array(None);
+    }
+}
+
+
+// Struct defined when only the Vertex Array Object is
+// defined
+pub struct VertexArrayObjectBound<'a> {
+    vao: &'a mut VertexArrayObject,
+}
+
+impl<'a> VertexArrayObjectBound<'a> {
     /// Precondition: self must be bound
     pub fn add_array_buffer<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
         &mut self,
@@ -204,81 +280,6 @@ impl<'a, 'b> ShaderVertexArrayObjectBound<'a, 'b> {
         self
     }
 
-    pub fn unbind(&self) {
-        self.vao.gl.bind_vertex_array(None);
-    }
-}
-
-pub struct ShaderVertexArrayObjectBoundRef<'a, 'b> {
-    vao: &'a VertexArrayObject,
-    _shader: &'b ShaderBound<'b>,
-}
-
-impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
-    pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
-        let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
-        self.vao
-            .gl
-            .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
-    }
-
-    pub fn draw_elements_instanced_with_i32(
-        &self,
-        mode: u32,
-        offset_instance_idx: i32,
-        num_instances: i32,
-    ) {
-        self.vao.gl.draw_elements_instanced_with_i32(
-            mode,
-            self.vao.num_elements() as i32,
-            WebGl2RenderingContext::UNSIGNED_SHORT,
-            offset_instance_idx,
-            num_instances,
-        );
-    }
-
-    pub fn unbind(&self) {
-        self.vao.gl.bind_vertex_array(None);
-    }
-}
-
-// Struct defined when only the Vertex Array Object is
-// defined
-pub struct VertexArrayObjectBound<'a> {
-    vao: &'a mut VertexArrayObject,
-}
-
-impl<'a> VertexArrayObjectBound<'a> {
-    pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
-        &mut self,
-        idx: usize,
-        usage: u32,
-        array_data: B,
-    ) -> &mut Self {
-        self.vao.array_buffer[idx].update(usage, array_data);
-        self
-    }
-
-    pub fn update_element_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
-        &mut self,
-        usage: u32,
-        element_data: B,
-    ) -> &mut Self {
-        if let Some(ref mut element_array_buffer) = self.vao.element_array_buffer {
-            element_array_buffer.update(usage, element_data);
-        }
-        self
-    }
-
-    pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
-        &mut self,
-        idx: usize,
-        array_data: B,
-    ) -> &mut Self {
-        self.vao.array_buffer_instanced[idx].update(array_data);
-        self
-    }
-
     pub fn append_to_instanced_array<B: BufferDataStorage<'a, f32>>(
         &mut self,
         idx: usize,
@@ -286,5 +287,15 @@ impl<'a> VertexArrayObjectBound<'a> {
     ) -> &mut Self {
         self.vao.array_buffer_instanced[idx].append(buffer);
         self
+    }
+
+    pub fn unbind(&self) {
+        self.vao.gl.bind_vertex_array(None);
+    }
+}
+
+impl<'a> Drop for VertexArrayObjectBound<'a> {
+    fn drop(&mut self) {
+        self.unbind();
     }
 }

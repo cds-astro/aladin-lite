@@ -1062,6 +1062,7 @@ export let View = (function() {
         this.ready = this.aladin.webglAPI.isReady();
         if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
             try {
+                console.log("sdfff ", this.imageSurveysToSet)
                 this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
             } catch(e) {
                 console.warn(e)
@@ -1071,7 +1072,11 @@ export let View = (function() {
             this.firstHiPS = false;
         }
 
-        this.aladin.webglAPI.update(dt, this.needRedraw);
+        try {
+            this.aladin.webglAPI.update(dt, this.needRedraw);
+        } catch(e) {
+            console.error(e)
+        }
         // This is called at each frame
         // Better way is to give this function
         // to Rust so that the backend executes it
@@ -1085,7 +1090,13 @@ export let View = (function() {
             var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
             (typeof callbackFn === 'function') && callbackFn();
         }
-        this.aladin.webglAPI.render(this.needRedraw);
+
+        try {
+            this.aladin.webglAPI.render(this.needRedraw);
+        } catch(e) {
+            console.error("Error: ", e);
+        }
+
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
         /*if (imageCtx.start2D) {

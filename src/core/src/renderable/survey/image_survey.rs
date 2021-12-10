@@ -1,9 +1,7 @@
 use crate::buffer::Texture;
 use crate::healpix_cell::HEALPixCell;
-use al_core::{
-    format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U},
-    image::ImageBuffer,
-};
+use al_core::{VecData, format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U}, image::ImageBuffer};
+use al_ui::hips::HiPSProperties;
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
@@ -520,8 +518,8 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
-
 use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
+use al_core::VertexArrayObject;
 pub struct ImageSurvey {
     //color: Color,
     // The image survey texture buffer
@@ -536,15 +534,17 @@ pub struct ImageSurvey {
     num_idx: usize,
 
     sphere_sub: SphereSubdivided,
-    vao: WebGlVertexArrayObject,
+    
+    /*vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
-    ebo: WebGlBuffer,
+    ebo: WebGlBuffer,*/
+    vao: VertexArrayObject,
 
     gl: WebGl2Context,
 
     //_type: ImageSurveyType,
-    size_vertices_buf: u32,
-    size_idx_vertices_buf: u32,
+    /*size_vertices_buf: u32,
+    size_idx_vertices_buf: u32,*/
 }
 use crate::camera::UserAction;
 use crate::math::LonLatT;
@@ -555,117 +555,144 @@ impl ImageSurvey {
     fn new(
         gl: &WebGl2Context,
         camera: &CameraViewPort,
-        _surveys: &ImageSurveys,
         config: HiPSConfig,
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
         //_type: ImageSurveyType
     ) -> Result<Self, JsValue> {
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(&vao));
+        let mut vao = VertexArrayObject::new(&gl);
 
-        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-
-        let data = vec![0.0_f32; MAX_NUM_FLOATS_TO_DRAW];
-        let size_vertices_buf = MAX_NUM_FLOATS_TO_DRAW as u32;
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            unsafe { &js_sys::Float32Array::view(&data) },
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-        );
-
-        let num_bytes_per_f32 = mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 lonlat;
-        gl.vertex_attrib_pointer_with_i32(
-            0,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            0,
-        );
-        gl.enable_vertex_attrib_array(0);
-
         // layout (location = 1) in vec2 position;
-        gl.vertex_attrib_pointer_with_i32(
-            1,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (2 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(1);
-
         // layout (location = 2) in vec3 uv_start;
-        gl.vertex_attrib_pointer_with_i32(
-            2,
-            3,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (4 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(2);
-
         // layout (location = 3) in vec3 uv_end;
-        gl.vertex_attrib_pointer_with_i32(
-            3,
-            3,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (7 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(3);
-
         // layout (location = 4) in float time_tile_received;
-        gl.vertex_attrib_pointer_with_i32(
-            4,
-            1,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (10 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(4);
-
         // layout (location = 5) in float m0;
-        gl.vertex_attrib_pointer_with_i32(
-            5,
-            1,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (11 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(5);
-
         // layout (location = 6) in float m1;
-        gl.vertex_attrib_pointer_with_i32(
-            6,
-            1,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            13 * num_bytes_per_f32,
-            (12 * num_bytes_per_f32) as i32,
-        );
-        gl.enable_vertex_attrib_array(6);
+        //let vertices = vec![];
+        //let indices = vec![];
 
-        let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-        let data = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
-        let size_idx_vertices_buf = MAX_NUM_INDICES_TO_DRAW as u32;
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            unsafe { &js_sys::Uint16Array::view(&data) },
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-        );
-        gl.bind_vertex_array(None);
+        let vertices = vec![0.0; MAX_NUM_INDICES_TO_DRAW];
+        let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        /*vao.bind_for_update()
+            .add_array_buffer(
+                13 * std::mem::size_of::<f32>(),
+                &[2, 2, 3, 3, 1, 1, 1],
+                &[0, 2 * std::mem::size_of::<f32>(), 4 * std::mem::size_of::<f32>(), 7 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>(), 12 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<u16>(&indices),
+            ).unbind();*/
+        // Unbind the buffer
+        /*let vao = gl.create_vertex_array().unwrap();
+                gl.bind_vertex_array(Some(&vao));
+        
+                let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+                gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+        
+                let data = vec![0.0_f32; MAX_NUM_FLOATS_TO_DRAW];
+                let size_vertices_buf = MAX_NUM_FLOATS_TO_DRAW as u32;
+                gl.buffer_data_with_array_buffer_view(
+                    WebGl2RenderingContext::ARRAY_BUFFER,
+                    unsafe { &js_sys::Float32Array::view(&data) },
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                );
+         
+                let num_bytes_per_f32 = mem::size_of::<f32>() as i32;
+                 // layout (location = 0) in vec2 lonlat;
+                gl.vertex_attrib_pointer_with_i32(
+                    0,
+                    2,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    0,
+                );
+                gl.enable_vertex_attrib_array(0);
+        
+                 // layout (location = 1) in vec2 position;
+                gl.vertex_attrib_pointer_with_i32(
+                    1,
+                    2,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (2 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(1);
+        
+                 // layout (location = 2) in vec3 uv_start;
+                gl.vertex_attrib_pointer_with_i32(
+                    2,
+                    3,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (4 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(2);
+        
+                 // layout (location = 3) in vec3 uv_end;
+                gl.vertex_attrib_pointer_with_i32(
+                    3,
+                    3,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (7 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(3);
+        
+                 // layout (location = 4) in float time_tile_received;
+                gl.vertex_attrib_pointer_with_i32(
+                    4,
+                    1,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (10 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(4);
+        
+                 // layout (location = 5) in float m0;
+                gl.vertex_attrib_pointer_with_i32(
+                    5,
+                    1,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (11 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(5);
+        
+                 // layout (location = 6) in float m1;
+                gl.vertex_attrib_pointer_with_i32(
+                    6,
+                    1,
+                    WebGl2RenderingContext::FLOAT,
+                    false,
+                    13 * num_bytes_per_f32,
+                    (12 * num_bytes_per_f32) as i32,
+                );
+                gl.enable_vertex_attrib_array(6);
+        
+                let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+                // Bind the buffer
+                gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+                let data = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+                let size_idx_vertices_buf = MAX_NUM_INDICES_TO_DRAW as u32;
+                gl.buffer_data_with_array_buffer_view(
+                    WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                    unsafe { &js_sys::Uint16Array::view(&data) },
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                );
+                gl.bind_vertex_array(None);*/
 
-        let num_idx = 0;
+        let num_idx = MAX_NUM_INDICES_TO_DRAW;
         let sphere_sub = SphereSubdivided {};
 
         let textures = ImageSurveyTextures::new(gl, config, exec)?;
@@ -688,16 +715,16 @@ impl ImageSurvey {
 
             sphere_sub,
             vao,
-            vbo,
-            ebo,
+            //ebo,
+            //vbo,
 
             gl,
             vertices,
             idx_vertices,
 
             //_type,
-            size_vertices_buf,
-            size_idx_vertices_buf,
+            /*size_vertices_buf,
+            size_idx_vertices_buf,*/
         })
     }
 
@@ -733,8 +760,11 @@ impl ImageSurvey {
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
+
         self.vertices.clear();
         self.idx_vertices.clear();
+        //let mut vertices = vec![];
+        //let mut idx_vertices = vec![];
 
         let survey_config = self.textures.config();
 
@@ -758,15 +788,19 @@ impl ImageSurvey {
                 camera,
             );
         }
-
-        self.gl
-            .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        self.num_idx = self.idx_vertices.len();
+        /*self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
         self.gl.bind_buffer(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
             Some(&self.ebo),
-        );
+        );*/
 
-        let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
+
+        /*let mut vao = self.vao.bind_for_update();
+        vao.update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));*/
+
+        /*let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
         if self.vertices.len() > self.size_vertices_buf as usize {
             self.size_vertices_buf = self.vertices.len() as u32;
 
@@ -785,6 +819,8 @@ impl ImageSurvey {
 
         self.num_idx = self.idx_vertices.len();
         let buf_idx = unsafe { js_sys::Uint16Array::view(&self.idx_vertices) };
+        
+
         if self.idx_vertices.len() > self.size_idx_vertices_buf as usize {
             self.size_idx_vertices_buf = self.idx_vertices.len() as u32;
             self.gl.buffer_data_with_array_buffer_view(
@@ -798,7 +834,7 @@ impl ImageSurvey {
                 0,
                 &buf_idx,
             );
-        }
+        }*/
     }
 
     fn refresh_view(&mut self, camera: &CameraViewPort) {
@@ -828,10 +864,10 @@ impl Drop for ImageSurvey {
         //drop(self.textures);
 
         // Drop the vertex arrays
-        self.gl.delete_buffer(Some(&self.vbo));
+        /*self.gl.delete_buffer(Some(&self.vbo));
         self.gl.delete_buffer(Some(&self.ebo));
 
-        self.gl.delete_vertex_array(Some(&self.vao));
+        self.gl.delete_vertex_array(Some(&self.vao));*/
     }
 }
 
@@ -854,7 +890,6 @@ impl Draw for ImageSurvey {
             return;
         }
 
-        //let textures_array = self.textures.get_texture_array();
 
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
         //let raytracing = true;
@@ -865,13 +900,12 @@ impl Draw for ImageSurvey {
                     shaders,
                     self.textures.config.tex_storing_integers,
                     self.textures.config.tex_storing_unsigned_int,
-                )
-                .bind(&self.gl);
+                );
 
+            let shader = shader.bind(&self.gl);
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
-                //.attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("first_survey", &blank_pixel_color.alpha)
@@ -881,7 +915,6 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(colormaps);
 
             raytracer.draw(&shader);
-
             return;
         }
 
@@ -906,12 +939,8 @@ impl Draw for ImageSurvey {
         {
             let recompute_vertices =
                 recompute_positions | self.textures.is_there_available_tiles() | camera.has_moved();
-            self.gl.bind_vertex_array(Some(&self.vao));
-            if recompute_vertices {
-                self.set_vertices::<P>(camera);
-            }
-
-            let shader = color
+            
+                let shader = color
                 .get_raster_shader::<P>(
                     &self.gl,
                     shaders,
@@ -920,10 +949,14 @@ impl Draw for ImageSurvey {
                 )
                 .bind(&self.gl);
 
-            shader
+            //self.gl.bind_vertex_array(Some(&self.vao));
+            
+            if recompute_vertices {
+                self.set_vertices::<P>(camera);
+            }
+            let shader = shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
-                //.attach_uniforms_from(&*textures_array)
                 .attach_uniforms_from(color)
                 .attach_uniform("blank_color", &blank_pixel_color)
                 .attach_uniform("first_survey", &blank_pixel_color.alpha)
@@ -931,15 +964,21 @@ impl Draw for ImageSurvey {
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps);
+            /*self.vao.bind_ref(shader)
+                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
+                        Some(self.num_idx as i32), 
+                        WebGl2RenderingContext::UNSIGNED_SHORT, 
+                        0
+                    );*/
 
             // The raster vao is bound at the lib.rs level
-            self.gl.draw_elements_with_i32(
+            /*self.gl.draw_elements_with_i32(
                 //WebGl2RenderingContext::LINES,
                 WebGl2RenderingContext::TRIANGLES,
                 self.num_idx as i32,
                 WebGl2RenderingContext::UNSIGNED_SHORT,
                 0,
-            );
+            );*/
         }
     }
 }
@@ -1000,27 +1039,34 @@ impl HiPS for SimpleHiPS {
         let SimpleHiPS { properties, .. } = self;
 
         let config = HiPSConfig::new(gl, &properties)?;
-        let survey = ImageSurvey::new(gl, camera, surveys, config, exec)?;
+        let survey = ImageSurvey::new(gl, camera, config, exec)?;
 
         Ok(survey)
     }
 }
 
-#[derive(Debug)]
+/*#[derive(Debug)]
 struct ImageSurveyLayer {
     opacity: f32,
     names: Vec<String>,
     colors: Vec<Color>,
     name_most_precised_survey: String,
+}*/
+
+#[derive(Debug)]
+struct ImageSurveyMeta {
+    color: Color,
+    opacity: f32,
 }
 
 type LayerName = String;
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
+type SurveyURL = String;
 pub struct ImageSurveys {
-    surveys: HashMap<String, ImageSurvey>,
+    surveys: HashMap<SurveyURL, ImageSurvey>,
+    meta: HashMap<SurveyURL, ImageSurveyMeta>,
 
-    ordered_layer_names: Vec<LayerName>,
-    layers: HashMap<LayerName, ImageSurveyLayer>,
+    most_precise_survey: SurveyURL,
 
     raytracer: RayTracer,
     gl: WebGl2Context,
@@ -1032,7 +1078,6 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::coo_conversion::CooSystem;
 use crate::shaders::Colormaps;
 use crate::Resources;
-use al_core::image::Image;
 
 use crate::buffer::Tile;
 impl ImageSurveys {
@@ -1043,7 +1088,7 @@ impl ImageSurveys {
         system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
-        let layers = HashMap::new();
+        let meta = HashMap::new();
 
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
@@ -1051,30 +1096,24 @@ impl ImageSurveys {
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, system);
-
         let gl = gl.clone();
-
-        let ordered_layer_names = vec![];
-
+        let most_precise_survey = String::new();
         ImageSurveys {
             surveys,
-            ordered_layer_names,
-
-            layers,
+            meta,
+            most_precise_survey,
 
             raytracer,
             gl,
         }
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>, layer: &str) -> Result<PixelType, JsValue> {
-        if let Some(layer) = self.layers.get(layer) {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, _layer: &str) -> Result<PixelType, JsValue> {
+        if let Some(survey) = self.surveys.values().next() {
             // Read the pixel from the first survey of layer
-            let survey = layer.names.first().unwrap();
-
-            self.surveys.get(survey).unwrap().read_pixel(pos)
+            survey.read_pixel(pos)
         } else {
-            Err(JsValue::from_str(&format!("layer {} not found", layer)))
+            Err(JsValue::from_str(&format!("No survey found")))
         }
     }
 
@@ -1101,16 +1140,16 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
     }
 
-    pub fn set_opacity_layer(&mut self, layer: &str, opacity: f32) -> Result<(), JsValue> {
+    /*pub fn set_opacity_layer(&mut self, _layer: &str, opacity: f32) -> Result<(), JsValue> {
         if let Some(layer) = self.layers.get_mut(layer) {
             layer.opacity = opacity;
             Ok(())
         } else {
             Err(JsValue::from_str(&format!("layer {} not found", layer)))
         }
-    }
-
-    pub fn move_image_surveys_layer_forward(&mut self, layer: &str) -> Result<(), JsValue> {
+    }*/
+    /*
+    pub fn move_image_surveys_layer_forward(&mut self, _layer: &str) -> Result<(), JsValue> {
         let pos = self.ordered_layer_names.iter().position(|l| l == layer);
 
         if let Some(pos) = pos {
@@ -1122,6 +1161,7 @@ impl ImageSurveys {
             Err(JsValue::from_str(&format!("layer {} not found", layer)))
         }
     }
+    */
 
     pub fn draw<P: Projection>(
         &mut self,
@@ -1133,7 +1173,6 @@ impl ImageSurveys {
         //let raytracing = true;
 
         if raytracing {
-            self.raytracer.bind();
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else if camera.is_reversed_longitude() {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -1141,54 +1180,34 @@ impl ImageSurveys {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
+        // The base layer
+        self.gl
+            .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
         let mut idx_survey = 0;
-        for (layer_idx, layer_name) in self.ordered_layer_names.iter().enumerate() {
-            let ImageSurveyLayer {
-                names,
-                colors,
-                opacity,
-                ..
-            } = &self.layers[layer_name];
-            if layer_idx == 0 {
-                // The base layer
-                self.gl
-                    .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
+    
+        for (name, meta) in &self.meta {
+            // Enable the blending for the following HiPSes
+            let blank_pixel_color = if idx_survey == 0 {
+                // The very first survey has the blending disabled
+                self.gl.disable(WebGl2RenderingContext::BLEND);
+                color::Color::new(0.0, 0.0, 0.0, 1.0)
             } else {
-                // The following layers
-                self.gl.blend_func_separate(
-                    WebGl2RenderingContext::SRC_ALPHA,
-                    WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-                    WebGl2RenderingContext::ONE,
-                    WebGl2RenderingContext::ONE,
-                );
-            }
+                self.gl.enable(WebGl2RenderingContext::BLEND);
+                color::Color::new(0.0, 0.0, 0.0, 0.0)
+            };
 
-            if opacity > &0.0 {
-                for (name, color) in names.iter().zip(colors.iter()) {
-                    // Enable the blending for the following HiPSes
-                    let blank_pixel_color = if idx_survey == 0 {
-                        // The very first survey has the blending disabled
-                        self.gl.disable(WebGl2RenderingContext::BLEND);
-                        color::Color::new(0.0, 0.0, 0.0, 1.0)
-                    } else {
-                        self.gl.enable(WebGl2RenderingContext::BLEND);
-                        color::Color::new(0.0, 0.0, 0.0, 0.0)
-                    };
+            let survey = self.surveys.get_mut(name).unwrap();
+            survey.draw::<P>(
+                &self.raytracer,
+                shaders,
+                camera,
+                &meta.color,
+                meta.opacity,
+                &blank_pixel_color,
+                &colormaps,
+            );
 
-                    let survey = self.surveys.get_mut(name).unwrap();
-                    survey.draw::<P>(
-                        &self.raytracer,
-                        shaders,
-                        camera,
-                        color,
-                        *opacity,
-                        &blank_pixel_color,
-                        &colormaps,
-                    );
-
-                    idx_survey += 1;
-                }
-            }
+            idx_survey += 1;
         }
 
         self.gl.blend_func_separate(
@@ -1225,72 +1244,57 @@ impl ImageSurveys {
                 "Cannot load more than 4 different surveys!",
             ));
         }
+        al_core::log::log(&format!("list of surveys {:?}", hipses.len()));
 
-        let mut layers = HashMap::new();
         let mut new_survey_ids = Vec::new();
-
-        let mut current_needed_surveys = HashSet::new();
-        let mut ordered_layer_names = vec![];
-        for hips in hipses.iter() {
-            let layer_name = &hips.layer;
-            if !ordered_layer_names.contains(layer_name) {
-                if layer_name == "base" {
-                    ordered_layer_names.insert(0, layer_name.to_string());
-                } else {
-                    ordered_layer_names.push(layer_name.to_string());
-                }
+        {
+            let mut current_needed_surveys = HashSet::new();
+            for hips in hipses.iter() {
+                let url = hips.properties.url.clone();
+                current_needed_surveys.insert(url);
             }
 
-            let url = hips.properties.url.clone();
-
-            if !layers.contains_key(layer_name) {
-                let opacity = 1.0;
-                layers.insert(
-                    layer_name.clone(),
-                    ImageSurveyLayer {
-                        names: vec![url.clone()],
-                        colors: vec![hips.color(colormaps)],
-                        opacity,
-                        name_most_precised_survey: url.clone(),
-                    },
-                );
-            } else {
-                let layer = layers.get_mut(layer_name).unwrap();
-
-                if layer.names.contains(&url) {
-                    continue;
-                } else {
-                    layer.names.push(url.clone());
-                    layer.colors.push(hips.color(&colormaps));
-                }
-            }
-
-            current_needed_surveys.insert(url);
+            // Remove surveys that are not needed anymore
+            self.surveys = self
+                .surveys
+                .drain()
+                .filter(|(name, _)| current_needed_surveys.contains(name))
+                .collect();
+            self.meta = self
+                .meta
+                .drain()
+                .filter(|(name, _)| current_needed_surveys.contains(name))
+                .collect();
         }
-
-        // Remove surveys that are not needed anymore
-        self.surveys = self
-            .surveys
-            .drain()
-            .filter(|(name, _)| current_needed_surveys.contains(name))
-            .collect();
-
         // Create the new surveys
+        let mut max_depth_among_surveys = 0;
         for hips in hipses.into_iter() {
-            let url = hips.properties.url.clone();
+            let url = {
+                let HiPSProperties { url, max_order, .. } = &hips.properties;
+                if *max_order > max_depth_among_surveys {
+                    max_depth_among_surveys = *max_order;
+                    self.most_precise_survey = url.clone();
+                }
+                url.clone()
+            };
+
+            let color = hips.color(colormaps);
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
                 self.surveys.insert(url.clone(), survey);
-                new_survey_ids.push(url);
+                new_survey_ids.push(url.clone());
             }
+
+            self.meta.insert(url, ImageSurveyMeta {
+                opacity: 1.0,
+                color,
+            });
         }
-        self.layers = layers;
-        self.ordered_layer_names = ordered_layer_names;
 
         //crate::log(&format!("layers {:?}", self.layers));
-        //crate::log(&format!("list of surveys {:?}", self.surveys.keys()));
+        al_core::log::log(&format!("list of surveys {:?} {:?} {:?}", self.surveys.keys(), self.meta, self.most_precise_survey));
 
         Ok(new_survey_ids)
     }
@@ -1309,9 +1313,7 @@ impl ImageSurveys {
         if self.surveys.is_empty() {
             None
         } else {
-            let (_, layer) = &self.layers.iter().next().unwrap();
-            let name = &layer.name_most_precised_survey;
-            Some(self.surveys.get(name).unwrap().get_view())
+            Some(self.surveys.get(&self.most_precise_survey).unwrap().get_view())
         }
     }
 

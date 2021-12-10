@@ -114,10 +114,8 @@ impl Manager {
             let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
 
             let mut vao = VertexArrayObject::new(gl);
-            let shader = Colormap::get_catalog_shader(gl, shaders)?;
-            shader
-                .bind(gl)
-                .bind_vertex_array_object(&mut vao)
+            //let shader = Colormap::get_catalog_shader(gl, shaders)?;
+            vao.bind_for_update()
                 // Store the screen and uv of the billboard in a VBO
                 .add_array_buffer(
                     4 * std::mem::size_of::<f32>(),
@@ -299,10 +297,8 @@ impl Catalog {
 
             let mut vao = VertexArrayObject::new(gl);
 
-            let shader = Orthographic::get_catalog_shader(gl, shaders);
-            shader
-                .bind(gl)
-                .bind_vertex_array_object(&mut vao)
+            //let shader = Orthographic::get_catalog_shader(gl, shaders);
+            vao.bind_for_update()
                 // Store the UV and the offsets of the billboard in a VBO
                 .add_array_buffer(
                     4 * std::mem::size_of::<f32>(),

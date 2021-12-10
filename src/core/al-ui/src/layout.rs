@@ -102,9 +102,9 @@ impl LayerLayout {
         if update_viewed_surveys {
             let mut image_surveys = vec![];
             for survey in surveys.iter() {
-                if survey.visible {
+                //if survey.visible {
                     image_surveys.push(survey.get_hips_config());
-                }
+                //}
             }
 
             events.lock().unwrap()

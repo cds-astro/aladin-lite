@@ -277,8 +277,10 @@ impl WebClient {
     ///
     /// * If the layer specified is not found
     #[wasm_bindgen(js_name = moveImageSurveysLayerForward)]
-    pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
-        self.app.move_image_surveys_layer_forward(layer_name)
+    pub fn move_image_surveys_layer_forward(&mut self, survey_url: &str) -> Result<(), JsValue> {
+        //self.app.move_image_surveys_layer_forward(layer_name)
+
+        Ok(())
     }
 
     /// Set the opacity of a layer
@@ -292,8 +294,10 @@ impl WebClient {
     ///
     /// * If the layer specified is not found
     #[wasm_bindgen(js_name = setOpacityLayer)]
-    pub fn set_opacity_layer(&mut self, opacity: f32, layer_name: &str) -> Result<(), JsValue> {
-        self.app.set_opacity_layer(layer_name, opacity)
+    pub fn set_opacity_layer(&mut self, opacity: f32, survey_url: &str) -> Result<(), JsValue> {
+        //self.app.set_opacity_layer(layer_name, opacity)
+
+        Ok(())
     }
 
     /// Set the equatorial grid color

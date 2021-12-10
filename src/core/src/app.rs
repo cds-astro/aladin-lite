@@ -123,51 +123,17 @@ impl App {
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
-        /*let url = String::from("http://alasky.u-strasbg.fr/SDSS/DR9/color");
-        let sdss = SimpleHiPS {
-            properties: HiPSProperties {
-                url: url.clone(),
-
-                max_order: 10,
-                frame: Frame {
-                    label: String::from("J2000"),
-                    system: String::from("J2000"),
-                },
-                tile_size: 512,
-                format: HiPSFormat::Image {
-                    format: String::from("jpeg"),
-                },
-                min_cutout: None,
-                max_cutout: None,
-            },
-            color: HiPSColor::Color,
-        };*/
-        /*let panstarrs = SimpleHiPS {
-            layer: String::from("base"),
-            properties: HiPSProperties {
-                url: String::from("https://alasky.u-strasbg.fr/Pan-STARRS/DR1/r"),
-
-                max_order: 11,
-                frame: Frame {
-                    label: "J2000".to_string(),
-                    system: "J2000".to_string(),
-                },
-                tile_size: 512,
-                format: { HiPSFormat::FITSImage { bitpix: 16 } },
-                min_cutout: Some(-0.15),
-                max_cutout: Some(5.0),
-            },
-            color: HiPSColor::Grayscale2Colormap {
-                colormap: String::from("RedTemperature"),
-                transfer: String::from("asinh"),
-                reversed: false,
-            },
-        };*/
         let system = CooSystem::ICRSJ2000;
-        let camera = CameraViewPort::new::<Orthographic>(&gl, system);
 
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
+
+        let camera = CameraViewPort::new::<Orthographic>(&gl, system);
+        let screen_size = &camera.get_screen_size();
+
+        let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+        let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+
         // The surveys storing the textures of the resolved tiles
         let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &system);
 
@@ -194,11 +160,9 @@ impl App {
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
-        let screen_size = &camera.get_screen_size();
         let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let ui = Gui::new(aladin_div_name, &gl)?;
-        let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
-        let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+
 
         let app = App {
             gl,
@@ -354,6 +318,7 @@ impl App {
 
     pub fn is_ready(&self) -> Result<bool, JsValue> {
         let res = self.surveys.is_ready();
+
         Ok(res)
     }
 
@@ -497,7 +462,7 @@ impl App {
             }
         }
 
-        self.grid.update::<P>(&self.camera, force);        
+        //self.grid.update::<P>(&self.camera, force);        
         {
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -509,6 +474,8 @@ impl App {
                 }
             }
         }
+
+        al_core::log::log(&format!("update {:?}", self.rendering));
 
         Ok(())
     }
@@ -563,9 +530,7 @@ impl App {
 
                 // Draw the catalog
                 catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
-
-                grid.draw::<P>(camera, shaders)?;
-                
+                //grid.draw::<P>(camera, shaders)?;
 
                 Ok(())
             })?;
@@ -593,7 +558,8 @@ impl App {
 
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen
-        if scene_redraw || ui_redraw { 
+        if scene_redraw || ui_redraw {
+            al_core::log::log("draw on screen");
             self.final_rendering_pass.draw_on_screen(&self.fbo_view);
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
         }
@@ -614,22 +580,24 @@ impl App {
         if !new_survey_ids.is_empty() {
             for id in new_survey_ids.iter() {
                 let config = &self.surveys.get(id).unwrap().get_textures().config;
+                al_core::log::log(&format!("config: {:?}", config));
                 self.downloader.request_base_tiles(config);
             }
             // Once its added, request its tiles
             self.look_for_new_tiles();
         }
         self.request_redraw = true;
+        al_core::log::log(&format!("OKk"));
 
         Ok(())
     }
 
-    pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
+    /*pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
         self.surveys.move_image_surveys_layer_forward(layer_name)?;
         self.request_redraw = true;
 
         Ok(())
-    }
+    }*/
 
     pub fn set_projection<P: Projection>(&mut self) {
         self.camera.set_projection::<P>();
@@ -663,12 +631,12 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub fn set_opacity_layer(&mut self, layer_name: &str, opacity: f32) -> Result<(), JsValue> {
+    /*pub fn set_opacity_layer(&mut self, layer_name: &str, opacity: f32) -> Result<(), JsValue> {
         self.surveys.set_opacity_layer(layer_name, opacity)?;
         self.request_redraw = true;
 
         Ok(())
-    }
+    }*/
 
     pub fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();

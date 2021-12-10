@@ -10,6 +10,7 @@
 #
 #
 
+rm -R ../distrib
 scriptdir="$( cd "$( dirname "$0" )" && pwd )"
 srcdir=${scriptdir}/../src
 
@@ -94,3 +95,13 @@ ln -s ${distribdir} ${latest_symlink}
 
 cp ../index.html ../distrib/latest
 cp ../jquery.js ../distrib/latest
+
+proc=$(echo $(ps -ax | grep Python | grep -v grep))
+if [ -z "$proc" ]; then
+echo "No process, starting server"
+ttab ./run_server.sh
+else
+    procID=$(echo $proc | grep -Eo '^[0-9]*')
+kill $(echo $procID)
+ttab ./run_server.sh
+fi

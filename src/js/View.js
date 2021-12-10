@@ -39,7 +39,6 @@ View = (function() {
 
             // new: added multi image survey 
             this.imageSurveys = [];
-            console.log('image surveys declared');
             this.createCanvases();
             this.location = location;
             this.fovDiv = fovDiv;
@@ -809,6 +808,7 @@ View = (function() {
 
 
         view.displayHpxGrid = false;
+
         view.displaySurvey = [];
         view.displayCatalog = false;
         view.displayReticle = true;
@@ -893,13 +893,13 @@ View = (function() {
         } 
         else if (! this.needRedraw) {
             if ( ! this.flagForceRedraw) {
-                // Refresh at this point as sky is loaded
-                this.refreshed = true;
-                console.log('sky map loaded');
                 return;
             }
             else {
                 this.flagForceRedraw = false;
+                // Refresh at this point as sky is loaded
+                this.refreshed = true;
+                console.log('refreshed');
             }
         }
         this.stats.update();
@@ -953,7 +953,7 @@ View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        
+        // console.log('rendering tiles');
         // Added going through all image surveys with the same routine
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
@@ -1664,14 +1664,17 @@ View = (function() {
             this.untaintCanvases();
         }
         
+        // Set the display of this new survey to true
+        this.displaySurvey.push(true);
         // Take the default non alpha blending mode or the specified one
         const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
+            console.log('string image survey'+imageSurvey+' with blending '+blend);
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
+                console.log('resorting to default image survey');                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -1683,6 +1686,7 @@ View = (function() {
         */
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
+            console.log('removing tile buffer');
             buffer.removeTiles(remaining);
         }
 

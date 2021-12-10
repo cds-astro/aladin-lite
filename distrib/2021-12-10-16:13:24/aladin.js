@@ -9279,7 +9279,7 @@ HpxKey = (function() {
 
         drawChildren: function(ctx, view, maxParente) {
             var n=0;
-            var limitOrder = 18 //13; // corresponds to NSIDE=8192, current HealpixJS limit
+            var limitOrder = 13 //13; // corresponds to NSIDE=8192, current HealpixJS limit
             if ( this.width>1 && this.norder<limitOrder && this.parente<maxParente ) {
                 var children = this.getChildren();
                 if ( children!=null ) {
@@ -9534,6 +9534,8 @@ HpxImageSurvey = (function() {
         
         // Finally set compositing style
         this.blendingMode = options.blendingMode;
+        // if the layer is grayscale, add color
+        this.colorCorrection = options.colorCorrection; 
         
     };
 
@@ -9548,7 +9550,9 @@ HpxImageSurvey = (function() {
         }
     	
 // Tile buffers are associated to their image surveys as last element   
-         	this.tileBuffer = this.view.tileBuffers[-1];
+        this.tileBuffer = new TileBuffer();
+         	this.view.tileBuffers.push(this.tileBuffer);
+            console.log('tile buffer set '+this.tileBuffer);
     	
     	this.useCors = false;
     	var self = this;
@@ -9563,6 +9567,7 @@ HpxImageSurvey = (function() {
                 headers: {
                 },
                 success: function() {
+                    console.log('CORS is supported');
                     // CORS is supported
                     self.useCors = true;
                     
@@ -9573,6 +9578,7 @@ HpxImageSurvey = (function() {
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     // CORS is not supported
+                    console.log('CORS not supported');
                     self.retrieveAllskyTextures();
                     if (callback) {
                         callback();
@@ -9776,6 +9782,7 @@ HpxImageSurvey = (function() {
     };
     
     HpxImageSurvey.prototype.retrieveAllskyTextures = function() {
+        console.log('retrieving sky texture');
     	// start loading of allsky
     	var img = new Image();
     	if (this.useCors) {
@@ -9783,6 +9790,7 @@ HpxImageSurvey = (function() {
         }
     	var self = this;
     	img.onload = function() {
+            console.log('loading image');
     		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
     	    self.allskyTextureSize = img.width/27;
             self.allskyTexture = img;
@@ -9799,6 +9807,7 @@ HpxImageSurvey = (function() {
             if (this.blendingMode != BlendingModeEnum.sourceover) {
             context.globalCompositeOperation = this.blendingMode;
             }
+            console.log('drawing with blending mode' + this.blendingMode);
     				context.drawImage(img, i*self.allskyTextureSize, j*self.allskyTextureSize, self.allskyTextureSize, self.allskyTextureSize, 0, 0, c.width, c.height);
     				self.allskyTextures.push(c);
     			}
@@ -10222,7 +10231,6 @@ HpxImageSurvey = (function() {
     function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
-
         dx = dx || 0;
         dy = dy || 0;
 
@@ -10583,7 +10591,6 @@ View = (function() {
 
             // new: added multi image survey 
             this.imageSurveys = [];
-            console.log('image surveys declared');
             this.createCanvases();
             this.location = location;
             this.fovDiv = fovDiv;
@@ -11353,6 +11360,7 @@ View = (function() {
 
 
         view.displayHpxGrid = false;
+
         view.displaySurvey = [];
         view.displayCatalog = false;
         view.displayReticle = true;
@@ -11441,6 +11449,9 @@ View = (function() {
             }
             else {
                 this.flagForceRedraw = false;
+                // Refresh at this point as sky is loaded
+                this.refreshed = true;
+                console.log('refreshed');
             }
         }
         this.stats.update();
@@ -11494,7 +11505,7 @@ View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        
+        // console.log('rendering tiles');
         // Added going through all image surveys with the same routine
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
@@ -11533,8 +11544,6 @@ View = (function() {
         }
         */
         
-        // Refresh at this point as sky is loaded
-        this.refreshed = true;
 
         // redraw overlay image survey
         // TODO : does not work if different frames 
@@ -12207,14 +12216,17 @@ View = (function() {
             this.untaintCanvases();
         }
         
+        // Set the display of this new survey to true
+        this.displaySurvey.push(true);
         // Take the default non alpha blending mode or the specified one
         const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
+            console.log('string image survey'+imageSurvey+' with blending '+blend);
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
+                console.log('resorting to default image survey');                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -12226,6 +12238,7 @@ View = (function() {
         */
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
+            console.log('removing tile buffer');
             buffer.removeTiles(remaining);
         }
 
@@ -12939,7 +12952,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-09-10:11:41"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-10-16:13:24"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";

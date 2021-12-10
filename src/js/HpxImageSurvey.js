@@ -143,7 +143,9 @@ HpxImageSurvey = (function() {
         }
     	
 // Tile buffers are associated to their image surveys as last element   
-         	this.tileBuffer = this.view.tileBuffers[-1];
+        this.tileBuffer = new TileBuffer();
+         	this.view.tileBuffers.push(this.tileBuffer);
+            console.log('tile buffer set '+this.tileBuffer);
     	
     	this.useCors = false;
     	var self = this;
@@ -158,6 +160,7 @@ HpxImageSurvey = (function() {
                 headers: {
                 },
                 success: function() {
+                    console.log('CORS is supported');
                     // CORS is supported
                     self.useCors = true;
                     
@@ -168,6 +171,7 @@ HpxImageSurvey = (function() {
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     // CORS is not supported
+                    console.log('CORS not supported');
                     self.retrieveAllskyTextures();
                     if (callback) {
                         callback();
@@ -371,6 +375,7 @@ HpxImageSurvey = (function() {
     };
     
     HpxImageSurvey.prototype.retrieveAllskyTextures = function() {
+        console.log('retrieving sky texture');
     	// start loading of allsky
     	var img = new Image();
     	if (this.useCors) {
@@ -378,6 +383,7 @@ HpxImageSurvey = (function() {
         }
     	var self = this;
     	img.onload = function() {
+            console.log('loading image');
     		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
     	    self.allskyTextureSize = img.width/27;
             self.allskyTexture = img;
@@ -390,10 +396,6 @@ HpxImageSurvey = (function() {
     				c.width = c.height = self.allskyTextureSize;
     				c.allSkyTexture = true;
     				var context = c.getContext('2d');
-            // Change the blending mode if it isn't default
-            if (this.blendingMode != BlendingModeEnum.sourceover) {
-            context.globalCompositeOperation = this.blendingMode;
-            }
     				context.drawImage(img, i*self.allskyTextureSize, j*self.allskyTextureSize, self.allskyTextureSize, self.allskyTextureSize, 0, 0, c.width, c.height);
     				self.allskyTextures.push(c);
     			}
@@ -817,7 +819,6 @@ HpxImageSurvey = (function() {
     function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
-
         dx = dx || 0;
         dy = dy || 0;
 
@@ -833,7 +834,6 @@ HpxImageSurvey = (function() {
         v2 += dy;
         var xc = (x0 + x1 + x2) / 3;
         var yc = (y0 + y1 + y2) / 3;
-
 
         // ---- centroid ----
         var xc = (x0 + x1 + x2) / 3;
@@ -880,7 +880,10 @@ coeff = 0.02;
              (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
              (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
         );
-        ctx.drawImage(img, 0, 0);
+        
+        const colored = compositeHueToLayer(img);
+                    ctx.globalCompositeOperation = this.blendingMode;
+        ctx.drawImage(colored, 0, 0);
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
 
     //    ctx.globalAlpha = 1.0;
@@ -888,6 +891,16 @@ coeff = 0.02;
         ctx.restore();
     }
 
+// Helper method to create off screen composite of color hue with layer
+    function compositeHueToLayer(img) {
+        const canvas = new OffScreenCanvas(0, 0, img.width, img.height);
+        const overCtx = canvas.getContext('2d');
+        overCtx.drawImage(img, 0, 0);
+        overCtx.globalCompositeOperation = BlendingModeEnum.multiply;
+        overCtx.fillStyle = this.colorCorrection;
+        overCtx.fillRect(0, 0, img.width, img.height);
+        return overCtx.getImageData(0, 0, img.width, img.height);
+    }
  
     // uses affine texture mapping to draw a textured triangle
     // at screen coordinates [x0, y0], [x1, y1], [x2, y2] from

@@ -462,7 +462,7 @@ impl App {
             }
         }
 
-        //self.grid.update::<P>(&self.camera, force);        
+        self.grid.update::<P>(&self.camera, force);        
         {
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -474,8 +474,6 @@ impl App {
                 }
             }
         }
-
-        al_core::log::log(&format!("update {:?}", self.rendering));
 
         Ok(())
     }
@@ -530,7 +528,7 @@ impl App {
 
                 // Draw the catalog
                 catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
-                //grid.draw::<P>(camera, shaders)?;
+                grid.draw::<P>(camera, shaders)?;
 
                 Ok(())
             })?;
@@ -559,7 +557,6 @@ impl App {
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen
         if scene_redraw || ui_redraw {
-            al_core::log::log("draw on screen");
             self.final_rendering_pass.draw_on_screen(&self.fbo_view);
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
         }
@@ -587,7 +584,6 @@ impl App {
             self.look_for_new_tiles();
         }
         self.request_redraw = true;
-        al_core::log::log(&format!("OKk"));
 
         Ok(())
     }

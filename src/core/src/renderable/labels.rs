@@ -71,9 +71,7 @@ impl TextRenderManager {
             .add_element_buffer(
                 WebGl2RenderingContext::STREAM_DRAW,
                 VecData::<u16>(&indices),
-            )
-        // Unbind the buffer
-        .unbind();
+            );
         let dpi = camera.get_dpi();
         let text_size = 17.0 * dpi;
         let Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
@@ -228,25 +226,27 @@ impl RenderManager for TextRenderManager {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 
-        let shader = self.shader.bind(&self.gl);
-        self.vao.bind(&shader);
-
-        for label in self.labels.iter() {
+        {
+            let shader = self.shader.bind(&self.gl);
             shader
-                .attach_uniform("u_sampler_font", &self.font_texture) // Gaussian kernel texture
-                .attach_uniform("u_color", &label.color) // Strengh of the kernel
-                .attach_uniform("u_screen_size", window_size)
-                .attach_uniform("u_screen_pos", &label.screen_pos)
-                .attach_uniform("u_rot", &label.rot)
-                .attach_uniform("u_scale", &label.scale);
-
-            self.gl.draw_elements_with_i32(
-                WebGl2RenderingContext::TRIANGLES,
-                label.num_idx as i32,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                (label.off_idx as i32) * (std::mem::size_of::<u16>() as i32)
-            );
+                .attach_uniform("u_sampler_font", &self.font_texture) // Font letters texture
+                .attach_uniform("u_screen_size", window_size);
+            for label in self.labels.iter() {
+                shader
+                    .attach_uniform("u_color", &label.color) // Strengh of the kernel
+                    .attach_uniform("u_screen_pos", &label.screen_pos)
+                    .attach_uniform("u_rot", &label.rot)
+                    .attach_uniform("u_scale", &label.scale)
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        Some(label.num_idx as i32),
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                        (label.off_idx as i32) * (std::mem::size_of::<u16>() as i32)
+                    );
+            }
         }
+
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
 

@@ -39,8 +39,6 @@ fn create_vertices_array<P: Projection>(
 }
 
 use web_sys::WebGl2RenderingContext;
-use web_sys::WebGlBuffer;
-use web_sys::WebGlVertexArrayObject;
 
 pub struct RayTracer {
     gl: WebGl2Context,

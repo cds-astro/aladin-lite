@@ -7,16 +7,16 @@ use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
 use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
-
+use al_core::VertexArrayObject;
 pub struct ProjetedGrid {
     // The color of the grid
     color: Color,
 
     // The vertex array object of the screen in NDC
-    vao: WebGlVertexArrayObject,
+    vao: VertexArrayObject,
     vao_gpu: VertexArrayObject,
 
-    vbo: WebGlBuffer,
+    //vbo: WebGlBuffer,
     // A pointer over the 2d context where we can write text
     //ctx2d: CanvasRenderingContext2d,
 
@@ -38,7 +38,7 @@ pub struct ProjetedGrid {
 use crate::projection::Projection;
 use crate::ShaderManager;
 use al_core::WebGl2Context;
-use al_core::{VecData, VertexArrayObject};
+use al_core::VecData;
 use wasm_bindgen::JsValue;
 
 use super::labels::RenderManager;
@@ -53,19 +53,11 @@ impl ProjetedGrid {
         let vao_gpu = {
             let mut vao = VertexArrayObject::new(gl);
 
-            /*let shader = shaders
-                .get(
-                    &gl,
-                    &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
-                )
-                .unwrap();*/
             let vertices = vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
             let indices = vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
-            {
-                let mut vao_bound = vao.bind_for_update();
-                // Store the screen and uv of the billboard in a VBO
-                
-                vao_bound.add_array_buffer(
+
+            vao.bind_for_update()
+                .add_array_buffer(
                     2 * std::mem::size_of::<f32>(),
                     &[2],
                     &[0],
@@ -77,38 +69,30 @@ impl ProjetedGrid {
                     WebGl2RenderingContext::STATIC_DRAW,
                     VecData(&indices),
                 );
-                // Unbind the buffer
-            }
+            
             vao
         };
 
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(&vao));
+        let vao = {
+            let mut vao = VertexArrayObject::new(gl);
+            let vertices= vec![];
+            // layout (location = 0) in vec2 ndc_pos;
+            vao.bind_for_update()
+                .add_array_buffer(
+                    2 * std::mem::size_of::<f32>(),
+                    &[2],
+                    &[0],
+                    WebGl2RenderingContext::STREAM_DRAW,
+                    VecData::<f32>(&vertices),
+                );
+            
+            vao
+        };
 
-        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-        gl.line_width(1.0);
-        let data = vec![0.0_f32; 1000];
         let size_vertices_buf = 1000;
         let num_vertices = 0;
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            unsafe { &js_sys::Float32Array::view(&data) },
-            WebGl2RenderingContext::DYNAMIC_DRAW,
-        );
 
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
-        // layout (location = 0) in vec2 ndc_pos;
-        gl.vertex_attrib_pointer_with_i32(
-            0,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            2 * num_bytes_per_f32,
-            0,
-        );
-        gl.enable_vertex_attrib_array(0);
-
         let labels = vec![];
 
         let color = Color::new(0_f32, 1_f32, 0_f32, 0.3_f32);
@@ -124,7 +108,7 @@ impl ProjetedGrid {
             color,
 
             vao,
-            vbo,
+            //vbo,
 
             labels,
             size_vertices_buf,
@@ -224,25 +208,11 @@ impl ProjetedGrid {
             };
     
             let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
-    
-            self.gl.bind_vertex_array(Some(&self.vao));
-            self.gl
-                .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
-            if vertices.len() > self.size_vertices_buf {
-                self.size_vertices_buf = vertices.len();
-    
-                self.gl.buffer_data_with_array_buffer_view(
-                    WebGl2RenderingContext::ARRAY_BUFFER,
-                    &buf_vertices,
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                );
-            } else {
-                self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-                    WebGl2RenderingContext::ARRAY_BUFFER,
-                    0,
-                    &buf_vertices,
-                );
-            }
+            self.size_vertices_buf = vertices.len();
+            
+            self.vao.bind_for_update()
+                .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&vertices));
+
             self.text_renderer.end_frame();
         }
     }
@@ -309,11 +279,10 @@ impl ProjetedGrid {
             .attach_uniform("color", &self.color);
 
         // The raster vao is bound at the lib.rs level
-        self.gl.bind_vertex_array(Some(&self.vao));
+        let drawer = shader.bind_vertex_array_object_ref(&self.vao);
         for (offset, size) in self.offsets.iter().zip(self.sizes.iter()) {
             if *size > 0 {
-                self.gl
-                    .draw_arrays(WebGl2RenderingContext::LINES, *offset as i32, *size as i32);
+                drawer.draw_arrays(WebGl2RenderingContext::LINES, *offset as i32, *size as i32);
             }
         }
     }

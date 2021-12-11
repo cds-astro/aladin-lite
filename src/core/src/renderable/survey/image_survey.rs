@@ -574,7 +574,7 @@ impl ImageSurvey {
 
         let vertices = vec![0.0; MAX_NUM_INDICES_TO_DRAW];
         let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
-        /*vao.bind_for_update()
+        vao.bind_for_update()
             .add_array_buffer(
                 13 * std::mem::size_of::<f32>(),
                 &[2, 2, 3, 3, 1, 1, 1],
@@ -586,7 +586,7 @@ impl ImageSurvey {
             .add_element_buffer(
                 WebGl2RenderingContext::STREAM_DRAW,
                 VecData::<u16>(&indices),
-            ).unbind();*/
+            ).unbind();
         // Unbind the buffer
         /*let vao = gl.create_vertex_array().unwrap();
                 gl.bind_vertex_array(Some(&vao));
@@ -760,7 +760,6 @@ impl ImageSurvey {
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
-
         self.vertices.clear();
         self.idx_vertices.clear();
         //let mut vertices = vec![];
@@ -796,9 +795,9 @@ impl ImageSurvey {
         );*/
 
 
-        /*let mut vao = self.vao.bind_for_update();
+        let mut vao = self.vao.bind_for_update();
         vao.update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
-            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));*/
+            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));
 
         /*let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
         if self.vertices.len() > self.size_vertices_buf as usize {
@@ -954,7 +953,7 @@ impl Draw for ImageSurvey {
             if recompute_vertices {
                 self.set_vertices::<P>(camera);
             }
-            let shader = shader
+            shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
@@ -963,13 +962,13 @@ impl Draw for ImageSurvey {
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
-                .attach_uniforms_from(colormaps);
-            /*self.vao.bind_ref(shader)
+                .attach_uniforms_from(colormaps)
+                .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
                         Some(self.num_idx as i32), 
                         WebGl2RenderingContext::UNSIGNED_SHORT, 
                         0
-                    );*/
+                    );
 
             // The raster vao is bound at the lib.rs level
             /*self.gl.draw_elements_with_i32(

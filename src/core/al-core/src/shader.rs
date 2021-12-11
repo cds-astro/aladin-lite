@@ -70,6 +70,7 @@ fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> U
 }
 
 use std::collections::HashMap;
+use std::thread::current;
 pub struct Shader {
     pub program: WebGlProgram,
     uniform_locations: UniformLocations,
@@ -92,6 +93,7 @@ impl Shader {
     }
 
     pub fn bind<'a>(&'a self, gl: &WebGl2Context) -> ShaderBound<'a> {
+        unsafe { CUR_IDX_TEX_UNIT = 0 };
         gl.use_program(Some(&self.program));
         let gl = gl.clone();
         ShaderBound { shader: self, gl }
@@ -213,18 +215,23 @@ impl UniformType for Matrix4<f64> {
         gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
     }
 }
-
+use super::texture::CUR_IDX_TEX_UNIT;
 use super::texture::Texture2D;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Active the texture unit of the texture
-        let tex = tex
-            .active_texture()
-            // 2. Bind the texture to that texture unit
-            .bind();
+        unsafe {
+            let tex = tex
+                .active_texture(CUR_IDX_TEX_UNIT)
+                // 2. Bind the texture to that texture unit
+                .bind();
 
-        let idx_sampler = tex.get_idx_sampler();
-        gl.uniform1i(location, idx_sampler);
+            gl.uniform1i(location, CUR_IDX_TEX_UNIT as i32);
+
+            CUR_IDX_TEX_UNIT += 1;
+        };
+
+
     }
 }
 
@@ -263,6 +270,7 @@ impl<'a> ShaderBound<'a> {
     ) -> ShaderVertexArrayObjectBound<'b, 'a> {
         vao.bind(self)
     }
+
     pub fn bind_vertex_array_object_ref<'b>(
         &'a self,
         vao: &'b VertexArrayObject,

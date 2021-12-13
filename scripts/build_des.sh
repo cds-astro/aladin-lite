@@ -96,7 +96,7 @@ ln -s ${distribdir} ${latest_symlink}
 cp ../index.html ../distrib/latest
 cp ../jquery.js ../distrib/latest
 
-proc=$(echo $(ps -ax | grep Python | grep -v grep))
+proc=$(echo $(ps -ax | grep "python -m" | grep -v grep))
 if [ -z "$proc" ]; then
 echo "No process, starting server"
 ttab ./run_server.sh

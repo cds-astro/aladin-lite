@@ -882,17 +882,16 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     //@param: blendingMode: blending mode for this layer
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, callback) {
+    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, callback) {
         
         /* idx is the last layer (adding) if index is undefined else it's a replacement */
         const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
         // Blending mode is default or specified
         const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-        if (index === undefined) {
-        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, callback);
-    } else {
-        this.view.setImageSurvey(imageSurvey, blend, callback);
-    }
+        const colorHue = (hue) ? hue : "#000";
+        console.log('setting hue as  '+colorHue);
+            console.log('setting survey at index'+idx);
+        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, colorHue, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;

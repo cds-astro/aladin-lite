@@ -64,6 +64,8 @@ HpxImageSurvey = (function() {
     	    else {
     	        this.rootUrl = rootUrl;
     	    }
+            this.blendingMode = options.blendingMode;
+            this.colorCorrection = options.colorCorrection;
             this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
@@ -123,13 +125,14 @@ HpxImageSurvey = (function() {
                  "frame": this.cooFrame
             });
         }
-        HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
         
         // Finally set compositing style
         this.blendingMode = options.blendingMode;
-        // if the layer is grayscale, add color
-        this.colorCorrection = options.colorCorrection; 
+        // Default color hue 
+        this.colorCorrection = options.colorCorrection;
         
+        
+        HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
     };
 
 
@@ -145,7 +148,6 @@ HpxImageSurvey = (function() {
 // Tile buffers are associated to their image surveys as last element   
         this.tileBuffer = new TileBuffer();
          	this.view.tileBuffers.push(this.tileBuffer);
-            console.log('tile buffer set '+this.tileBuffer);
     	
     	this.useCors = false;
     	var self = this;
@@ -160,7 +162,6 @@ HpxImageSurvey = (function() {
                 headers: {
                 },
                 success: function() {
-                    console.log('CORS is supported');
                     // CORS is supported
                     self.useCors = true;
                     
@@ -196,7 +197,9 @@ HpxImageSurvey = (function() {
         "name": "2MASS colored",
         "maxOrder": 9,
         "frame": "equatorial",
-        "format": "jpeg"
+        "format": "jpeg",
+        blendingMode: "overlay",
+        colorCorrection: "#F00"
      },
      {
         "id": "P/DSS2/color",
@@ -204,7 +207,9 @@ HpxImageSurvey = (function() {
         "name": "DSS colored",
         "maxOrder": 9,
         "frame": "equatorial",
-        "format": "jpeg"
+        "format": "jpeg",
+        blendingMode: "sourceover",
+        colorCorrection: "#000"
      },
      {
         "id": "P/DSS2/red",
@@ -212,7 +217,9 @@ HpxImageSurvey = (function() {
         "name": "DSS2 Red (F+R)",
         "maxOrder": 9,
         "frame": "equatorial",
-        "format": "jpeg fits"
+        "format": "jpeg fits",
+        blendingMode: "overlay",
+        colorCorrection: "#F00"
      },
      {
         "id": "P/PanSTARRS/DR1/g",
@@ -220,7 +227,9 @@ HpxImageSurvey = (function() {
         "name": "PanSTARRS DR1 g",
         "maxOrder": 11,
         "frame": "equatorial",
-        "format": "jpeg fits"
+        "format": "jpeg fits",
+        blendingMode: "overlay",
+        colorCorrection: "#0F0"
      },
      {
         "id": "P/PanSTARRS/DR1/color-z-zg-g",
@@ -228,7 +237,9 @@ HpxImageSurvey = (function() {
         "name": "PanSTARRS DR1 color",
         "maxOrder": 11,
         "frame": "equatorial",
-        "format": "jpeg"
+        "format": "jpeg",
+        blendingMode: "overlay",
+        colorCorrection: "#00F"
      },
      {
         "id": "P/DECaPS/DR1/color",
@@ -260,7 +271,9 @@ HpxImageSurvey = (function() {
         "name": "GALEX Allsky Imaging Survey colored",
         "maxOrder": 8,
         "frame": "equatorial",
-        "format": "jpeg"
+        "format": "jpeg",
+        blendingMode: "overlay",
+        colorCorrection: "#F00"
      },
      {
         "id": "P/IRIS/color",
@@ -324,7 +337,9 @@ HpxImageSurvey = (function() {
          "name": "AllWISE color",
          "maxOrder": 8,
          "frame": "equatorial",
-         "format": "jpeg"
+         "format": "jpeg",
+        blendingMode: "overlay",
+        colorCorrection: "#F00"
      },
      {
          "id": "P/GLIMPSE360",
@@ -352,13 +367,17 @@ HpxImageSurvey = (function() {
         return null;
     };
 
-    HpxImageSurvey.getSurveyFromId = function(id, blendingMode) {
+    HpxImageSurvey.getSurveyFromId = function(id, blendingMode, hue) {
         if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
-            return HpxImageSurvey.SURVEYS_OBJECTS[id];
+            var survey = HpxImageSurvey.SURVEYS_OBJECTS[id];
+            survey.blendingMode = blendingMode;
+            survey.colorCorrection = hue;
+
+            return survey;
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
-            var options = {blendingMode: blendingMode};
+            var options = {blendingMode: blendingMode, colorCorrection: hue};
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }
@@ -375,7 +394,6 @@ HpxImageSurvey = (function() {
     };
     
     HpxImageSurvey.prototype.retrieveAllskyTextures = function() {
-        console.log('retrieving sky texture');
     	// start loading of allsky
     	var img = new Image();
     	if (this.useCors) {
@@ -383,7 +401,6 @@ HpxImageSurvey = (function() {
         }
     	var self = this;
     	img.onload = function() {
-            console.log('loading image');
     		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
     	    self.allskyTextureSize = img.width/27;
             self.allskyTexture = img;
@@ -416,7 +433,7 @@ HpxImageSurvey = (function() {
      * @param subdivide: should
      *
      */
-    HpxImageSurvey.prototype.draw = function(ctx, view, subdivide, curOverlayNorder) {
+    HpxImageSurvey.prototype.draw = function(ctx, view, index, subdivide, curOverlayNorder) {
         subdivide = (subdivide===undefined) ? false: subdivide;
 
         var cornersXYViewMapAllsky = view.getVisibleCells(3, this.cooFrame);
@@ -438,15 +455,15 @@ HpxImageSurvey = (function() {
         if (subdivide) {
 
             if (curOverlayNorder<=4) {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
+                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view, index);
             }
 
             if (curOverlayNorder>=3) {
-                this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
+                this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view, index);
             }
 /*
             else {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
+                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view, index);
             }
 */
 
@@ -457,15 +474,15 @@ HpxImageSurvey = (function() {
         // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
         // TODO refactoring : devrait être une méthode de HpxImageSurvey
         if (view.curNorder>=3) {
-            this.redrawHighres(ctx, cornersXYViewMapHighres, view.curNorder);
+            this.redrawHighres(blend, hue, ctx, cornersXYViewMapHighres, view.curNorder);
         }
         else {
-            this.redrawAllsky(ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
+            this.redrawAllsky(blend, hue, ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
         }
 
     };
 
-    HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view) {
+    HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view, index) {
 //////////////////////////////
         var parentTilesToDraw = [];
         var parentTilesToDrawIndex = {};
@@ -504,22 +521,23 @@ HpxImageSurvey = (function() {
         });
 
 //////////////////////////////
-
+        const blend = view.imageSurveys[index].blendingMode;
+        const hue = view.imageSurveys[index].colorCorrection;
         var tSize = this.tileSize || 512;
         // draw parent tiles
         for (var k=0; k<parentTilesToDraw.length; k++) {
             var t = parentTilesToDraw[k];
-            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, view);
+            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, view, index);
         }
 
         // TODO : we could have a pool of HpxKey to prevent object re-creation at each frame
         // draw tiles
         for (var k=0; k<cornersXYViewMap.length; k++) {
-            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, view);
+            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, view, index);
         }
     };
 
-    HpxImageSurvey.prototype.drawAllsky = function(ctx, cornersXYViewMap, norder, view) {
+    HpxImageSurvey.prototype.drawAllsky = function(ctx, cornersXYViewMap, norder, view, index) {
         // for norder deeper than 6, we think it brings nothing to draw the all-sky
         if (this.view.curNorder>6) {
             return;
@@ -542,12 +560,12 @@ HpxImageSurvey = (function() {
         }
 
         for (var k=0; k<hpxKeys.length; k++) {
-            hpxKeys[k].draw(ctx, view);
+            hpxKeys[k].draw(ctx, view, index);
         }
     };
 
     
-    HpxImageSurvey.prototype.redrawAllsky = function(ctx, cornersXYViewMap, fov, norder) {
+    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, ctx, cornersXYViewMap, fov, norder) {
     	// for norder deeper than 6, we think it brings nothing to draw the all-sky
     	if (this.view.curNorder>6) {
     		return;
@@ -589,8 +607,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    			
-    	    this.drawOneTile(ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
     	}
     };
     
@@ -600,7 +617,7 @@ HpxImageSurvey = (function() {
     
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
-    HpxImageSurvey.prototype.redrawHighres = function(ctx, cornersXYViewMap, norder) {
+    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder, blend, hue) {
         
         // DOES THAT FIX THE PROBLEM ???
         if (cornersXYViewMap.length==0) {
@@ -710,7 +727,7 @@ HpxImageSurvey = (function() {
     
         // draw parent tiles
         for (var k=0, len = parentTilesToDraw.length; k<len; k++) {
-        	this.drawOneTile(ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width);
+        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width);
         }
         
         // draw tiles
@@ -724,7 +741,7 @@ HpxImageSurvey = (function() {
                     this.requestRedraw();
         		}
         	}
-        	this.drawOneTile(ctx, img, tilesToDraw[k].corners, img.width, alpha);
+        	this.drawOneTile(blend, hue, ctx, img, tilesToDraw[k].corners, img.width, alpha);
         }
         //*/
     
@@ -751,8 +768,7 @@ HpxImageSurvey = (function() {
     	return Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2);
     }
     
-    HpxImageSurvey.prototype.drawOneTile = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
-        
+    HpxImageSurvey.prototype.drawOneTile = function(blend, hue, ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
         
@@ -763,7 +779,7 @@ HpxImageSurvey = (function() {
     //	var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
     //    				&& round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
     	
-    	drawTexturedTriangle(ctx, newImg,
+    	drawTexturedTriangle(blend, hue, ctx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,
     	        cornersXYView[3].vx, cornersXYView[3].vy,
@@ -772,7 +788,7 @@ HpxImageSurvey = (function() {
     	        0, textureSize-1,
     	        alpha,
                 dx, dy, applyCorrection);
-        drawTexturedTriangle(ctx, newImg,
+        drawTexturedTriangle(blend, hue, ctx, newImg,
         		cornersXYView[1].vx, cornersXYView[1].vy,
         		cornersXYView[3].vx, cornersXYView[3].vy,
         		cornersXYView[2].vx, cornersXYView[2].vy,
@@ -783,7 +799,7 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection);
     };
     
-       HpxImageSurvey.prototype.drawOneTile2 = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
+       HpxImageSurvey.prototype.drawOneTile2 = function(blend, hue, ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
 
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
@@ -796,7 +812,7 @@ HpxImageSurvey = (function() {
     //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
 
         var delta = norder<=3 ? (textureSize<100 ? 0.5 : 0.2) : 0;
-        drawTexturedTriangle2(ctx, newImg,
+        drawTexturedTriangle2(blend, hue, ctx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
@@ -805,7 +821,7 @@ HpxImageSurvey = (function() {
                 0+delta, textureSize-delta,
                 alpha,
                 dx, dy, applyCorrection, norder);
-        drawTexturedTriangle2(ctx, newImg,
+        drawTexturedTriangle2(blend, hue, ctx, newImg,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
                 cornersXYView[2].vx, cornersXYView[2].vy,
@@ -816,7 +832,7 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection, norder);
     };
  
-    function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
+    function drawTexturedTriangle2(blend, hue, ctx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
         dx = dx || 0;
@@ -881,9 +897,14 @@ coeff = 0.02;
              (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
         );
         
+        if (hue != '#000') {
         const colored = compositeHueToLayer(img);
-                    ctx.globalCompositeOperation = this.blendingMode;
-        ctx.drawImage(colored, 0, 0);
+                    ctx.globalCompositeOperation = blend;
+        ctx.drawImage(img, 0, 0);
+    } else {
+        console.log('default color '+hue);
+                ctx.drawImage(img, 0, 0);
+    }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
 
     //    ctx.globalAlpha = 1.0;
@@ -893,7 +914,7 @@ coeff = 0.02;
 
 // Helper method to create off screen composite of color hue with layer
     function compositeHueToLayer(img) {
-        const canvas = new OffScreenCanvas(0, 0, img.width, img.height);
+        const canvas = new OffscreenCanvas(0, 0, img.width, img.height);
         const overCtx = canvas.getContext('2d');
         overCtx.drawImage(img, 0, 0);
         overCtx.globalCompositeOperation = BlendingModeEnum.multiply;

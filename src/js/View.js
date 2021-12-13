@@ -899,7 +899,6 @@ View = (function() {
                 this.flagForceRedraw = false;
                 // Refresh at this point as sky is loaded
                 this.refreshed = true;
-                console.log('refreshed');
             }
         }
         this.stats.update();
@@ -953,16 +952,17 @@ View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        // console.log('rendering tiles');
+        console.log('rendering tiles');
         // Added going through all image surveys with the same routine
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
+            console.log('rendering '+imageSurvey.colorCorrection+' '+imageSurvey.isReady+ ' display '+this.displaySurvey[i]);
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
-                    imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
+                    imageSurvey.draw(imageCtx, this, i, !this.dragging, this.curNorder);
                 }
 
                 else {
-                    imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
+                    imageSurvey.draw(imageCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
     }
@@ -981,12 +981,14 @@ View = (function() {
 
             // redraw image survey
     for (const [i, imageSurvey] of this.imageSurveys.entries()) {
+    const blend = imageSurvey.blendingMode;
+    const hue = imageSurvey.colorCorrection;
             if (imageSurvey.isReady && this.displaySurvey[i]) {
                 // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
                 // TODO refactoring : should be a method of HpxImageSurvey
-                this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
+                this.imageSurvey.redrawAllsky(blend, hue, imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
                 if (this.curNorder>=3) {
-                    this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
+                    this.imageSurvey.redrawHighres(blend, hue, imageCtx, cornersXYViewMapHighres, this.curNorder);
                 }
             }
         }
@@ -1000,22 +1002,22 @@ View = (function() {
             imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, !this.dragging, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, 0, !this.dragging, this.curOverlayNorder);
             }
 
             else {
-                this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, 0, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
             /*
             if (this.fov>50) {
-                this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
+                this.overlayImageSurvey.redrawAllsky("sourceover", "#000", imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
             }
             if (this.curOverlayNorder>=3) {
                 var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
                 if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
                     cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
                 }
-                this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, norderOverlay);
+                this.overlayImageSurvey.redrawHighres("sourceover", "#000", imageCtx, cornersXYViewMapHighres, norderOverlay);
             }
             */
 
@@ -1495,7 +1497,6 @@ View = (function() {
     };
     
     View.prototype.setShowGrid = function(showGrid) {
-        console.log('refreshing view');
         this.showGrid = showGrid;
         this.requestRedraw();
     };
@@ -1573,7 +1574,6 @@ View = (function() {
            
 
         // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        console.log(this.imageSurveys);
         if (this.imageSurveys > 0 && norder<=2 && this.imageSurveys[0].minOrder>2) {
             norder = this.imageSurveys[0].minOrder;
         }
@@ -1653,7 +1653,7 @@ View = (function() {
     
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    View.prototype.setImageSurvey = function(imageSurvey, blendingMode, callback) {
+    View.prototype.setImageSurvey = function(imageSurvey, blendingMode, hue, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -1668,13 +1668,15 @@ View = (function() {
         this.displaySurvey.push(true);
         // Take the default non alpha blending mode or the specified one
         const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
+        // Check the color hue correction
+        const colorHue = (hue) ? hue : "#000";
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            console.log('string image survey'+imageSurvey+' with blending '+blend);
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
+            console.log('string image survey'+imageSurvey+' with blending '+blend + ' hue ' + colorHue);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
             if ( ! newImageSurvey) {
-                console.log('resorting to default image survey');                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
+                                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -1686,19 +1688,17 @@ View = (function() {
         */
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
-            console.log('removing tile buffer');
             buffer.removeTiles(remaining);
         }
 
         newImageSurvey.isReady = false;
-        this.imageSurveys.push(newImageSurvey);
         var idx = this.imageSurveys.length;
-        console.log('idx = '+idx);
-        this.projection.reverseLongitude(this.imageSurveys[idx - 1].longitudeReversed); 
-        
+        this.projection.reverseLongitude(newImageSurvey.longitudeReversed); 
+            
         var self = this;
         newImageSurvey.init(this, function() {
             //self.imageSurvey = newImageSurvey;
+            self.imageSurveys.push(newImageSurvey);
             self.computeNorder();
             newImageSurvey.isReady = true;
             self.requestRedraw();
@@ -1712,7 +1712,7 @@ View = (function() {
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index to place the image survey at
-    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, callback) {
+    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, hue, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -1724,12 +1724,17 @@ View = (function() {
         }
         
         // Take the default non alpha blendmode or the specified one
-        const blend = (blendMode) ? blendingMode : BlendingModeEnum.sourceover;
+        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
+        // Check the color hue correction
+        const colorHue = (hue) ? hue : "#000";
+        // Add to display
+        this.displaySurvey[index] = true;
+        
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -1746,7 +1751,6 @@ View = (function() {
 
         newImageSurvey.isReady = false;
         this.imageSurveys[index] = newImageSurvey;
-
         this.projection.reverseLongitude(this.imageSurveys[index].longitudeReversed); 
         
         var self = this;
@@ -1807,6 +1811,10 @@ View = (function() {
         const toggle = (this.displaySurvey[index]) ? false : true;
         this.displaySurvey[i] = toggle;
         this.requestRedraw();
+    };
+    
+    View.prototype.setColorHueAtIndex = function(index, hue) {
+        this.imageSurveys[index].colorCorrection = hue;
     };
     
     View.prototype.showCatalog = function(show) {

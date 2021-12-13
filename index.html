@@ -15,7 +15,7 @@ Viewport</title>
 <div id='aladin-lite-div' style='width: 100%; height:100%;'></div>
 <script type="text/javascript">
     
-    var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:5.0, target: "Polaris", showZoomControl: false, showFullscreenControl: false, showLayersControl: false, showGotoControl: false, showShareControl: false, showSimbadPointerControl: false, showCooGrid: false, fullScreen: true});
+    var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:5.0, target: "NGC 6188", showZoomControl: false, showFullscreenControl: false, showLayersControl: false, showGotoControl: false, showShareControl: false, showSimbadPointerControl: false, showCooGrid: false, fullScreen: true});
 
     var imageIndex = 0;
 
@@ -38,8 +38,8 @@ Viewport</title>
                                 }
 
                                 // Add a new overlay image
-                                function addSurveylayer(ID, index, blendingMode) {
-                                    aladin.setImageSurvey(ID, index, blendingMode);
+                                function addSurveylayer(ID, index, blendingMode, hue) {
+                                    aladin.setImageSurvey(ID, index, blendingMode, hue);
                                 }
             
             // Adding a non image survey layer
@@ -167,9 +167,14 @@ window.webkit.messageHandlers.update_image.postMessage({
         
 // Testing an overlay survey image        
 setTimeout( function() {
-    addSurveylayer("P/DSS2/color", 1, "overlay"); 
+    addSurveylayer("P/allWISE/color", 1, "overlay", "#F00");
 }, 3000);
-
+// setTimeout( function() {
+//     addSurveylayer("P/allWISE/color", 2, "overlay", "#0f0");
+// }, 6000);
+// setTimeout( function() {
+//     addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 2, "overlay", "#0f0");
+// }, 9000);
         // goToObject('Polaris');
         //                         setTimeout( function() {
         // addMarkers('Polaris', 7, {"objects":[{"id":"* alf UMi","coord":[2.530303955078125,89.264106750488281]},{"id":"* alf UMi B","coord":[2.5100212097167969,89.260887145996094]},{"id":"Gaia DR2 576402619921730176","coord":[2.5752172470092773,89.25811767578125]},{"id":"UCAC3 359-258","coord":[2.5866830348968506,89.262542724609375]},{"id":"UCAC3 359-247","coord":[2.5123193264007568,89.241584777832031]},{"id":"PWP  8","coord":[2.5858445167541504,89.289718627929688]},{"id":"RN  6","coord":[2.6880555152893066,89.278335571289062]}]});

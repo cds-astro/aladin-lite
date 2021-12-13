@@ -75,7 +75,7 @@ HpxKey = (function() {
 
     HpxKey.prototype = {
 
-        draw: function(ctx, view) {
+        draw: function(ctx, view, index) {
 //console.log('Drawing ', this.norder, this.npix);
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
@@ -123,7 +123,9 @@ HpxKey = (function() {
                     w = w / Math.pow(2, this.parente);
                 } 
 
-                this.hips.drawOneTile2(ctx, img, corners, w, null, this.dx, this.dy, true, norder);
+                const blend = view.imageSurveys[index].blendingMode;
+                const hue = view.imageSurveys[index].colorCorrection;
+                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, null, this.dx, this.dy, true, norder);
                 n += 2;
             }
             else if (updateNeededTiles && ! tile) {

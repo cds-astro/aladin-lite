@@ -12,3 +12,8 @@ pub use vertex_array_object::{
     ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
 };
 pub use framebuffer::FrameBufferObject;
+
+pub mod vao1;
+pub use vao1::{
+    ShaderVertexArrayObject1Bound, ShaderVertexArrayObject1BoundRef, VertexArrayObject1,
+};

@@ -71,6 +71,27 @@ pub trait VertexAttribPointerType: std::marker::Sized {
 
         buffer
     }
+
+    fn set_vertex_attrib_pointers(
+        gl: &WebGl2Context,
+        offset_idx: u32,
+        stride: usize,
+        sizes: &[usize],
+        offsets: &[usize],
+    ) {
+        // Attrib pointer to the shader
+        for (idx, (size, offset)) in sizes.iter().zip(offsets.iter()).enumerate() {
+            let idx = (idx as u32) + offset_idx;
+
+            Self::vertex_attrib_pointer_with_i32(
+                gl,
+                idx,
+                *size as i32,
+                stride as i32,
+                *offset as i32,
+            );
+        }
+    }
 }
 
 use js_sys::WebAssembly;

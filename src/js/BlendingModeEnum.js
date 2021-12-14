@@ -1,4 +1,6 @@
-
+/* Contribution by Yuma Antoine Decaux for the UQ 2021 research project for sonifying the dark energy survey map
+All code is explicitely meant to enhance the aladin lite API but extensible for interfacing with other languages
+*/
 
 BlendingModeEnum = {
 sourceover: "source-over",

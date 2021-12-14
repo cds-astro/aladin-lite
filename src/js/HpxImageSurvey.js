@@ -899,10 +899,10 @@ coeff = 0.02;
         
         if (hue != '#000') {
         const colored = compositeHueToLayer(img);
+        console.log('setting blend '+blend);
                     ctx.globalCompositeOperation = blend;
         ctx.drawImage(img, 0, 0);
     } else {
-        console.log('default color '+hue);
                 ctx.drawImage(img, 0, 0);
     }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 

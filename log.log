@@ -1,0 +1,1288 @@
+commit 382b37eafbfdfccf5e9ab41b76e3b131cf12b9da
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Mon Dec 13 23:20:55 2021 +1000
+
+    fixed HPXKey requiring blend and hue for tile rendering in nested parent to child relation
+
+commit f01b433e018b9481121e16c7887705c67468f8f7
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 10 22:23:27 2021 +1000
+
+    Added OffScreenCanvas to background thread compose hue to layer
+
+commit 6b52dbf7a88603536de1152d701db0f9c60bb85d
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Thu Dec 9 11:33:35 2021 +1000
+
+    added observer for refreshed bool in aladin.view
+
+commit 68414183dfa43fba432c389eade9aebcb39e4079
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Wed Dec 8 19:23:18 2021 +1000
+
+    blending multi sky maps working
+
+commit 2b86792ee631d7c89a096ac8e8b2ea494425dac2
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Tue Dec 7 17:04:16 2021 +1000
+
+    debug pass
+
+commit 6891a2023d3e700e2714321d96aae77df7ec8deb
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Mon Dec 6 11:42:05 2021 +1000
+
+    Debug-mode
+
+commit 48d6c321f6bc96e0eef4be66f9c53653caeb0622
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Sat Dec 4 10:34:03 2021 +1000
+
+    Changed setBaseImageLayer call and merged with addImageLayer to cover adding and replacing layers
+
+commit 4d6517712a737789eeb8331fb484618378def474
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 3 21:58:26 2021 +1000
+
+    added toggleShowSurveyAtIndex to turn image survey layer on/off
+
+commit f7abfa9e99f425ca2ac45cbaf55d166a21080ac8
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 3 21:54:58 2021 +1000
+
+    setImageSurveyAtIndex, removeImageSurveyAtIndex and getImageSurveyAtIndex added for multi survey feature
+
+commit 0f0bbdb0fea199d26bab4fe14f88f77ee1373263
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 3 09:53:31 2021 +1000
+
+    added removeImageSurveyAtIndex to splice an element off the list and redraw
+
+commit 331cc28d44a8fbf8a36cabac88c917779754e01c
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 3 09:45:18 2021 +1000
+
+    Change displaySurvey bool to array to reflect each imageSurvey
+
+commit 33a28be937a1560ea642f53e0847f583ae698c2e
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Fri Dec 3 09:11:44 2021 +1000
+
+    modified Downloader.emptyQueue to return remaining urls for TileBuffer selective tile removal
+
+commit f314c78ebb1572e00b214a9238e90ca03be04740
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Wed Dec 1 18:07:11 2021 +1000
+
+    added refreshed bool in View.js to be picked up by Proxy for when all tiles are downloaded
+
+commit 8239e193bd110f157146d553998c66f16566cdce
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Wed Dec 1 17:29:19 2021 +1000
+
+    changed downloader number of simultaneous downloads to 12 from 4
+
+commit 24fb3dcacbd71145eae45e9f43c3a0c76be16d8e
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Wed Dec 1 17:00:15 2021 +1000
+
+    getCanvasSkymapDataURL added for sky map only render
+
+commit 0cf63d60935ec426adf25079e44eda0b5e51b234
+Author: Yuma Antoine Decaux <antoine@oseyeris.com>
+Date:   Wed Dec 1 09:21:56 2021 +1000
+
+    added compile for DES + BlendingModeEnum.js for compositing
+
+commit 64fcc777dee6435e7d98534bb1d232259cb1e5c3
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Mon Aug 24 11:58:58 2020 +0200
+
+    Update release notes
+
+commit 0f74b5e94f77150d7a2a30f8d400e25c0b73e6fb
+Merge: eb0a1f9 5799482
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Mon Aug 24 11:55:41 2020 +0200
+
+    Merge pull request #22 from imbasimba/polyline
+    
+    Polyline improvements
+
+commit 5799482dde6fdf879625df772acdd6b85ad48ffe
+Merge: 416c20c eb0a1f9
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Mon Aug 24 11:53:56 2020 +0200
+
+    Merge branch 'master' into polyline
+
+commit eb0a1f91391e4d2da37e3065b3a6798d7c5980ed
+Merge: 9b7b1ed d0edb74
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Fri Jul 10 17:06:31 2020 +0200
+
+    Merge pull request #40 from tboch/stop-animation
+    
+    Stop animation
+
+commit d0edb74595b0a727cdc925962c42e676f1eb14d7
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Jul 10 17:03:33 2020 +0200
+
+    Add method
+
+commit 1aae84de05c3453eca27f89cb599e3ef38ba58b1
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Jul 10 17:02:54 2020 +0200
+
+    Add  method stopAnimation
+
+commit 9b7b1ed5e332a3f1a3c6ba9972f232cc9ed1b4e7
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Fri Jun 26 16:47:55 2020 +0200
+
+    Update release notes
+    
+    Add remove method in Catalog
+
+commit 3cc98d4add36e256deffc949dd81fc81e434378f
+Merge: 96588f0 2385e95
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Fri Jun 26 16:14:39 2020 +0200
+
+    Merge pull request #37 from tboch/option-delete-individual-source
+    
+    Method remove to delete individual source from a catalogue layer
+
+commit 2385e95d9e4a0b487018c67032f78d211f905bc1
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Jun 26 16:12:36 2020 +0200
+
+    Add remove method to remove an individual Source object
+
+commit af350cbb513e7d8bd1bef43eee2c5ac77d91ca33
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Tue Mar 17 11:43:27 2020 +0100
+
+    Bug fix: disabled localStorage no longer display an error in console
+
+commit 02c56af95051acc8a33be03c48633bbb6af90867
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Wed Mar 11 16:42:35 2020 +0100
+
+    Bug fix: full pinch zoom out is now possible
+
+commit 96588f02f4fe4f22cfde1cb6bb75161f3fea8170
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Wed Jan 29 19:34:41 2020 +0100
+
+    Cleanup: remove unnecessary console.log
+
+commit 1d53b233b26a43765c91086dda5ba76d7fde3a2e
+Merge: 8dc5eca bdc6d42
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Wed Jan 29 19:31:48 2020 +0100
+
+    Merge pull request #30 from tboch/fix-polyline-color
+    
+    Bug fix: enable different colors for multiple polylines in same layer
+
+commit bdc6d422553836768f2f66795f3c3b7fe47c4d19
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Wed Jan 29 19:30:12 2020 +0100
+
+    Bug fix: enable different colors for multiple polylines in same overlay layer
+
+commit 8dc5eca03497f02bf8cde21276fcf42c688c63ae
+Merge: 2b4918c 8d55e86
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Fri Jan 24 09:10:35 2020 +0100
+
+    Merge pull request #28 from tboch/hips-catalogue-filtering
+    
+    Hips catalogue filtering
+
+commit 8d55e8647f3f7b492e7ff8df23d2ae5efad4e2a1
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Jan 24 09:07:55 2020 +0100
+
+    Add filter function option for HiPS catalogues
+
+commit 416c20cecc2386b9cdba37e923246d9497d8b31b
+Author: Henrik Norman <honke.norman@gmail.com>
+Date:   Fri Dec 6 13:54:02 2019 +0100
+
+    Fixed Polyline flickering & added possibility to set line width and color
+
+commit 09ef8418bb33bbf921872ab4cbd5bfcaf1760e15
+Author: Henrik Norman <honke.norman@gmail.com>
+Date:   Thu Dec 5 09:51:58 2019 +0100
+
+    Fixed error when mouse x position is 0
+
+commit 67d9dc627f146e42388528afa5df40aaff6b84ae
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Nov 22 14:50:36 2019 +0100
+
+    Make footprint selection easier
+    
+    We enlarge the selection zone for footprints, as to make selections
+    easier.
+
+commit 2b4918c3530efce6559c82df9b93694f9f263b0f
+Merge: 5a541f4 c228f94
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Fri Nov 22 14:27:29 2019 +0100
+
+    Merge pull request #18 from tboch/fix-missing-tiles
+    
+    Fix missing tiles issue
+
+commit c228f94b2451d9a05a199d36cda03175698c6756
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Fri Nov 22 14:26:04 2019 +0100
+
+    Fix issue https://github.com/cds-astro/aladin-lite/issues/16
+
+commit 5a541f4ba467720f8f0b6cd0a9aa4ecf1c975ffd
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 17:40:45 2019 +0100
+
+    Fix links
+
+commit c85c24c199d36e1dac10f5026d120b9f2876526a
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 17:39:31 2019 +0100
+
+    Add list of portals powered by AL
+
+commit 1fe7f476e17cb641fede5d3a12c78df5e7a243f9
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 17:14:07 2019 +0100
+
+    Update README Contributing section
+
+commit 8f564c381031e805019ba4366233826c1a350d89
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 17:05:40 2019 +0100
+
+    Add logo
+
+commit 17b0b99c49329ebad0a91dd210dac231e4b9ec35
+Merge: 4c5b5ba 89e35f6
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 17:01:00 2019 +0100
+
+    Merge branch 'master' of github.com:cds-astro/aladin-lite
+
+commit 4c5b5ba1f3300d524d4cb53a420d6cd590c9ceb2
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 16:58:59 2019 +0100
+
+    Add Aladin Lite logo
+
+commit 89e35f61a6aafb02e983f0cad8d0b5036a9eb4fa
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:56:33 2019 +0100
+
+    Fix HiPS Rec link
+
+commit 4ca40aec59c1463591e48e0ff8cbded91f3b12b1
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:48:22 2019 +0100
+
+    Update contribution section
+
+commit 06e288f422268949a41d4d46beb45ed1cef22429
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:47:32 2019 +0100
+
+    Update README
+
+commit 092b86626d322949850aa3deb7c8f8d4ee34f4fc
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:10:41 2019 +0100
+
+    Add correct LICENSE
+
+commit d7e76eb2320cacf0c4990315e96702c0d276cc87
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:09:58 2019 +0100
+
+    Delete LICENSE
+
+commit 34be0e845c46f5eb4853c7721aa7e151b292130f
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 16:08:31 2019 +0100
+
+    Remove .project Eclipse file
+
+commit 70ff07cd172adbd732940f4f5d23d0b89c355f0f
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 16:07:34 2019 +0100
+
+    Add LICENSE
+
+commit 154320e2de14c6fdc85dad1dd1a97acaeec03b7a
+Merge: eb377d0 b5f1897
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 15:52:21 2019 +0100
+
+    Merge branch 'master' of github.com:cds-astro/aladin-lite
+
+commit eb377d09a6fc8fb11dfae1389486b6693d16f2d1
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 15:49:08 2019 +0100
+
+    Create README.md
+
+commit f737ece3c6c47d73578c1de347ed62691d3b2a79
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 15:49:35 2019 +0100
+
+    Remove old Eclipse directory
+
+commit b5f18978b839e10f4d94930a1aad2e0097efd08f
+Author: Thomas Boch <tboch@users.noreply.github.com>
+Date:   Thu Oct 31 15:49:08 2019 +0100
+
+    Create README.md
+
+commit 13904608b3cd6bd2462fa87312b1d01160aa8eee
+Author: Thomas Boch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 15:47:12 2019 +0100
+
+    Remove un-needed directories
+
+commit 793f3de16846432367e79fad135b2eaaf29cbc92
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 13:58:39 2019 +0000
+
+    Add documentation on displayFITS
+
+commit 03629aaeed99cac319cf9adcb617217fd1c5ad78
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 31 13:45:45 2019 +0000
+
+    Update release note
+
+commit f3ff47d679a783406375ccd3e09f28caa01e1c3d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:47:45 2019 +0000
+
+    add Chandra HiPS
+
+commit 844ed9aec6e16a17ab2f1ca647b89b7df2a0b745
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:18:44 2019 +0000
+
+commit 22b18640adf6b690e8bbc1bf30319ec4624a7846
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:18:37 2019 +0000
+
+    Add Chandra HiPS preview
+
+commit 37b62c758a6cd15a3d1e90ea5412ffe4d44ea599
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:18:19 2019 +0000
+
+    fix URLs
+
+commit 92860a9dca4d2248b5d91be642d97ccc05671bcc
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:18:08 2019 +0000
+
+commit 095ff167e79303a902c1ac733c05763c822864c2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 4 13:17:54 2019 +0000
+
+commit 574e93eb63dc7f151eafe2cac952d31cea606bdb
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Mar 4 08:05:30 2019 +0000
+
+commit 0918f7a9c5b997217d59f736b6c881da9d7703dc
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Mar 4 08:05:23 2019 +0000
+
+commit 0612de6fb34948bdb0c2b7d7e410ba39e46c2be0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Mar 4 08:05:17 2019 +0000
+
+    remove temporary fix for alasky maintenance
+
+commit dce96483fb4b57bfa094923b00b594289c2f2df2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Feb 14 15:14:37 2019 +0000
+
+    MOC bug fix fow low order (order=0) drawing
+
+commit 545d2bf1161b0026e06a59fcbaf844b80abb52f7
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Feb 14 15:14:14 2019 +0000
+
+    add ALiX plugin
+
+commit 802420b3d0468255a6366b39e57bfec075db5ab6
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Jan 8 08:37:27 2019 +0000
+
+    add option to pixelate canvas or not
+
+commit 9d75f33e4835d374f99730b78afac5c813870117
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Jan 8 08:37:10 2019 +0000
+
+    add script tag to load jquery, as not to depend any more from CDS menu js
+
+commit 8b05041a797c7ee19d7d3b8b8702c326314591fa
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Nov 28 11:19:11 2018 +0000
+
+commit 322a1c8d822a1e63ead3ced0d4f9f484c9eb0dce
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Nov 28 10:55:16 2018 +0000
+
+commit afa7e868b426cb5e5f2150faab14c8d3f2c579b0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Nov 28 10:55:07 2018 +0000
+
+commit 9735c6c7e1e1229e403833799ed4a24123998ed4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Nov 28 10:54:38 2018 +0000
+
+commit 880c2f23ba7027e2b8e39c4fdf5850497d63d4f4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Nov 28 10:54:29 2018 +0000
+
+    bug fix
+
+commit d331eb1ec4096ea3a87f86241cd1ac23e7359868
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 22 08:03:15 2018 +0000
+
+commit 188f964ddc6a30e8c70b22a8790fbfed944fc472
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 22 08:03:06 2018 +0000
+
+commit 7901b62995cdb7f666080211e06b59cff25f084f
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 11 06:31:50 2018 +0000
+
+    add showcase link
+
+commit 92f21157c8a339cf3dd39b2fed8232eafba4d362
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 11 06:15:37 2018 +0000
+
+    addition of dynamic JPEG generation showcase
+
+commit a5d372b323b470757297c7516c61ccd4ff2d380e
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 11 06:15:11 2018 +0000
+
+    support for additional params in HiPS URL (for cuts for instance)
+
+commit 6353926843bfec2b01c0f145ab4f022fd5332b3a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 3 06:33:20 2018 +0000
+
+commit a52f02cd84ae4960c0eacc92233d734e46414404
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 3 06:33:11 2018 +0000
+
+    bug fix for footprints display
+
+commit 5da18249065f0b85a91f1b61d9e60aa39a83554a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Sep 24 14:09:57 2018 +0000
+
+commit b449c81a0428ce69a819d14e3d06c71397340abc
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Sep 24 14:09:14 2018 +0000
+
+    update
+
+commit 03650eb17e57f6b21425ccf709b6afcb51ef7091
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Sep 24 14:09:05 2018 +0000
+
+    add Kepler transits showcase
+
+commit d6c31dc7046644b61bb5cba24fcc7454aa9b5c81
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Sep 24 14:08:52 2018 +0000
+
+commit 01dd416e5e868cb8ddf995d98a99094fb3cde4ff
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 14:24:01 2018 +0000
+
+    Update with new developments
+
+commit f9ca0dc6bf3cab77270e59b6090e1ca1495ce2f4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 14:23:50 2018 +0000
+
+    drawing improvement : no more flickering when zooming in
+
+commit de0910e94193c5316c62f8ac23578e9328e3288f
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 06:53:57 2018 +0000
+
+commit 533f505077503e6b09a844f6164f7649fbdb99a3
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 06:53:41 2018 +0000
+
+    HTTPS URL for font
+
+commit 313328ddea73ed72b247f4b4d0b2f2ea491df6d5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 06:53:28 2018 +0000
+
+    Update: protocol-less URLs
+
+commit 6c40197b9a80366134f105da72ee9dbf7566d061
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 06:52:57 2018 +0000
+
+commit cb75d6373b0bbd9579748eebb61528abb68274b8
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 18 06:52:22 2018 +0000
+
+commit cd4f1ed3ef2fae2e29e516e17d54d7c228084e99
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Sep 5 09:59:38 2018 +0000
+
+commit e91b854b13fac4d1850374eaebfe8f97fdcbadd5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Sep 5 09:59:31 2018 +0000
+
+    Update J-PLUS description and link
+
+commit 042d798cd60b279f49f37254d0fad1fdb8478ee3
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Sep 5 09:59:10 2018 +0000
+
+commit ba5245e5fd0d9b9b0f506226f5244327701321e5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Sep 5 09:58:49 2018 +0000
+
+commit 7fe572e47f71012dab7e75c5b00ef3aa3657afac
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:08:19 2018 +0000
+
+commit e559920a6541c9c3313999f0456372f653c32ca2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:07:58 2018 +0000
+
+commit 0eda182ff2b5551957a5036222d8114dfcae8f77
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:07:39 2018 +0000
+
+commit e246e4fb289ddd7d26b15747c3d5f761d9e5b610
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:07:17 2018 +0000
+
+commit c456f6e0804fb69f1004714a46ab4e48cca63d06
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:06:36 2018 +0000
+
+commit e7f418ebf7ffe6ecb87379a8ef95bbfc09d0f6b5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:05:41 2018 +0000
+
+commit b5c06c518b34718aa6a0a8a1c3137a74c92b12d4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:05:32 2018 +0000
+
+commit b23ac48b33307f1447963599e1621b0dfc6a5701
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:05:23 2018 +0000
+
+commit 6483b2d5c4d961e138c94c22e0a8d69a84455c1c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 07:01:01 2018 +0000
+
+commit 3563899a4e73db79d0e16d79efb3f4a15a23e599
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:58:19 2018 +0000
+
+commit e69a972b27e810f3fa59e8ff3af13ea5e4bb014b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:57:50 2018 +0000
+
+commit be72b77c9ca9212ae95c0f70141bf820102e7983
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:57:43 2018 +0000
+
+commit 766f202279e87b42defe0cd6f1fc93cb39a00394
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:57:26 2018 +0000
+
+commit 17d190c50db249fe3d5562322ced3e3bb7f97c18
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:52:16 2018 +0000
+
+commit 415ee9947038f18cf601107a97eb97be98c87120
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:52:05 2018 +0000
+
+commit 94181d37008a434905ab5ac1a140e46b7a874511
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:51:25 2018 +0000
+
+commit 68e9bd94c9ca5b3b5b8dc979bc2320add610f4ad
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:50:57 2018 +0000
+
+commit 55c27b1da7447fc27cb1aa9022adec555b6ee959
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu May 17 06:50:37 2018 +0000
+
+commit 82f2d6d90beba9d6dda6e77babe3cc516f771d9e
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 6 12:50:57 2018 +0000
+
+commit c133d73e7a0477b3cac17ff70c35bd5f80229013
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 6 12:50:41 2018 +0000
+
+commit e511677cb9aa90dff16a5abe40cfd88b7a301465
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 6 12:50:07 2018 +0000
+
+commit 3b7ea5df0f5d64bb14ba013a98e7dd31e5308c3d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 6 12:49:59 2018 +0000
+
+commit de070411a69f0dfc3e9d4bd3901d7e6da8f5b2de
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 6 12:49:46 2018 +0000
+
+commit e840d741abb4add6cc66a9d2924d85d597d91bc0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Apr 5 15:13:12 2018 +0000
+
+    update target : trifid to M20
+
+commit e604118eea49b78b50752242efafacc8aac5a7a0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Dec 4 14:32:19 2017 +0000
+
+commit d8707c8d65db79087fa51e4c52d993f6e7d5f2b7
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Dec 4 14:05:16 2017 +0000
+
+commit d83cfd62f3d634e9628535f16ff8b1e13cb2688c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 14:47:06 2017 +0000
+
+    Update release notes
+
+commit e7e575f4e3a3f2b93196d9b29d6b430e3cac26a0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 14:46:54 2017 +0000
+
+    improve MOC rendition speed
+
+commit 3945641d6a134a5c47d9417a6982da450c95d427
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 09:35:32 2017 +0000
+
+commit 0020a34725a4bdf5f5e0790a75f86f27f390ff96
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 09:35:24 2017 +0000
+
+commit a88fdd77a1de26bfd50a8a587392e9055a50a9e1
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 09:35:11 2017 +0000
+
+commit 6909dc2ed83f94db9994752c210720448c937cc0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 28 09:34:27 2017 +0000
+
+commit 3a0a50c6dda01fb6e40d7413aab4f3f3517eeeb4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 15 08:07:57 2017 +0000
+
+    add section on ipyaladin
+
+commit 383c2c3f8c6e7d438d7c7a212e34b1d3596282bf
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 8 14:28:51 2017 +0000
+
+    add doc for getRaDec
+
+commit dc6ab49eb35a81171eafba4ca6e069206988e8c6
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 8 14:28:37 2017 +0000
+
+    hack to improve AITOFF display
+
+commit 6254c64349f3aebb57bc025f7a8c8b85fd3b82eb
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 8 14:28:17 2017 +0000
+
+commit fa1a25d95f91145b3707a2eefd0933260ab3a9b0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 8 14:27:09 2017 +0000
+
+    update gotoObject method to allow for success callback
+
+commit b806b2a472f2f112da2fe1beb9e4df827f2b950a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Sep 8 14:24:55 2017 +0000
+
+commit 5ea94003d21d509fe25cb16746afd5ab86981b04
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 7 13:17:44 2017 +0000
+
+    Update release notes
+
+commit 3fb096ef69085f40bedc015768decbfe41be95d3
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 7 13:17:30 2017 +0000
+
+commit 61282a9a23b4f3959b36d924fece47b13c9aee43
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 7 13:17:21 2017 +0000
+
+    add stack logo rule
+
+commit c9caa20a952e953de6aea41bea2311082fe1d329
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Sep 7 13:17:06 2017 +0000
+
+    add stack logos
+
+commit d8246fabc1dd80df11d7e916457b69a94fd9805d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 5 12:43:55 2017 +0000
+
+commit 591ceb0805082bfa30da4a90a750f9a97d7017f6
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 5 12:43:36 2017 +0000
+
+commit 3539d73f4eb5ee3f4609b3db7aaef56e2514b945
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Sep 5 12:43:08 2017 +0000
+
+    add section on mobile apps integration
+
+commit 804d4122b1bf31cdc391a8ab334efcae8d8e8c77
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Aug 28 14:43:36 2017 +0000
+
+    adding J2000d as a coo frame option
+
+commit 4337bda0894afd7da140687f950d3125c6ca9e58
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Aug 28 14:43:19 2017 +0000
+
+    layer labels are now non-selectable
+
+commit d3d299f93c96a1d764c9720fccf4dbdb21a6a09a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Aug 28 14:43:01 2017 +0000
+
+commit 4aefabf81fc119f65b7831f6bde584348a1a1f2a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 14:02:02 2017 +0000
+
+    patch fits.js to add onerror handling
+
+commit 6ffb7790963f06468f007ac20f68c20ccdacf8c9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:53:25 2017 +0000
+
+    update
+
+commit 057abf093bb1646ce4fba3bb028a70ab97aeada2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:52:33 2017 +0000
+
+    update doc for new MOC option
+
+commit a8bdc670ef2399fccd05b25ddce86c6b3952d374
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:52:20 2017 +0000
+
+    2 new features :
+    - all graphical overlay layers are now displayed in the "Overlay layers" panel
+    - MOC adaptativeDisplay feature
+
+commit 533c3fa1ced3dee39e2d70150e68a4e08e834ce2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:51:46 2017 +0000
+
+    bug fix in loadFromMirrors recursive call
+
+commit 22cc2d181d7f80d00dc1d8f285be753d3844b14d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:51:09 2017 +0000
+
+    bug fix: when going full screen, background HTML objects are now hidden
+
+commit c580d0e451d2083664228c47e964a16cee479990
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:50:39 2017 +0000
+
+commit e9f392573f5719879718893dba38198926e287e9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:49:43 2017 +0000
+
+commit 599d1661401b526f1c3c4a6457b7702bd63e1fc4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Aug 25 13:49:33 2017 +0000
+
+commit f11dc7b3385af0a22f0a892afdb0f0217afa3fbb
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jul 13 09:28:47 2017 +0000
+
+commit bb3ec2a73390d638dfff9a143ddb097bd736e65d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jul 13 09:28:41 2017 +0000
+
+commit bdbcfcb09daa2ed0ec18d6983d0a0705ec109420
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jul 13 09:28:33 2017 +0000
+
+commit 8c7e54806fb709f9c774b5ed6864b42700aa5b0e
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Mar 27 09:20:59 2017 +0000
+
+commit 61bbeeeb045a4132a68a9a905565e8b86cce9f14
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Mar 27 06:58:58 2017 +0000
+
+commit 0e1cb7c1455975e65fc7a0d58f0c97b47f5b8079
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:53:39 2017 +0000
+
+    change fov in example
+
+commit 53ebd635d2ccf16972e17d78be51b0e2e0557f9b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:53:06 2017 +0000
+
+    changes related to HTTPS support
+
+commit f186d000d6cb0fe730601ac155835ed40733f11d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:52:49 2017 +0000
+
+    bug fix: for devices with both mouse events and touch events (like Gregory's laptop)
+
+commit 5d8211bbf4cdda4905fb2ee4f3ca9a30fd4d0953
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:48:54 2017 +0000
+
+commit 93ffe12f4f6429659e64216c9de9ad5b5fda8986
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:48:36 2017 +0000
+
+    add static variable to check if in HTTPS mode
+
+commit 955f5d112db546dafda76b65b4b3af9881df83dd
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 24 13:48:14 2017 +0000
+
+    add left margin for style of location box
+
+commit be9489fa836c9f20b3e3411844e04408859a3932
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:27:49 2017 +0000
+
+commit 7426bfb511120f2fddd4085618bcc0b80fbd7f5a
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:27:39 2017 +0000
+
+commit 37f30823bf82615378f86c8faaf43e967f215c06
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:27:20 2017 +0000
+
+commit 9e7359f5e2ec546d26ffdc2b7868aaf6c73cba14
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:27:11 2017 +0000
+
+commit 7da026c4e1323ef3ba146bfd2a698fcf896ffb9c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:27:00 2017 +0000
+
+commit eadef87e9ae68304359672e7eaf02ff531521cc8
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:26:38 2017 +0000
+
+commit 61d232fdf080cdebf378d72b1668305304442417
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:25:16 2017 +0000
+
+commit b520c8786ac4183f988f8a4c8a01092303931ec4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:25:07 2017 +0000
+
+commit 6517879db8d571f27346eed448b5edd779e27111
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:24:58 2017 +0000
+
+commit 93bc6af1f98621379ed399dc507a982d6d3f4e21
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:24:28 2017 +0000
+
+commit 58a64bdb6d383849135cfa495cbc492f6f35c1ff
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:20:25 2017 +0000
+
+    update build script
+
+commit e205c6133a2dab60fbf0affe28377bc866cb1f99
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:20:00 2017 +0000
+
+commit 0eba71171daaf4e96ab558fb1a30a2b25a110c88
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:19:43 2017 +0000
+
+commit 5f8e259dd7d7eef4cf0cd9150c3e5638429b4c05
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 24 13:19:21 2017 +0000
+
+commit a0df8c115b1a7880b34067a4ebe15f04b89d4ba2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue May 3 13:44:43 2016 +0000
+
+commit b038f8545501523825090208e8342ce6039ff195
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue May 3 13:43:15 2016 +0000
+
+commit c4a713c3d65568abe62975c495fe7a376c503a89
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue May 3 13:43:01 2016 +0000
+
+commit bb03cbe5f6ce6273b53b8a22c9794bd3a2a9ccd5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue May 3 13:41:36 2016 +0000
+
+commit 87c0492fc3bf7f694c721d29cbddb4307d2ea559
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue May 3 13:41:19 2016 +0000
+
+commit 430b3c91f9b08ec3932cbc5d06b57df0b30039ac
+Author: wassong <wassong@a4953f11-c647-0410-be41-e911761010fd>
+Date:   Thu Apr 7 13:25:55 2016 +0000
+
+    Optimisation of doParseVOTable function.  The main optimisation is to parse the xml only once, by storing the parsed xml in the $xml variable.
+    Other optimisations are:
+    - compute length of tables once, when used in loops.
+    - creation of fieldKeys table, to get faster access to keys for each cell.
+    - Replace Utils.isNumber by isFinite, to parse each RA and Dec once, instead of 3 times.
+    - Move creation of keyRa and keyDec out of loop, as they are constant.
+
+commit 166afe70c76ea115f4d88ed14250ca95d56b03a2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 16 14:21:40 2015 +0000
+
+    option pour bypasser le proxy HTTP
+
+commit 4371004b31e6a97aaf41fc994e0cc480ac983ca5
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 16 14:17:42 2015 +0000
+
+    option pour bypasser le proxy HTTP
+
+commit 3b057744dedbaa2f1244ff62730819c4b4ff0ca2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Dec 15 08:29:42 2015 +0000
+
+    added CASSIS in list of websites using AL
+
+commit 5729b4b8d5be7cbf32254d127e6401b8cf37f17c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:46:00 2015 +0000
+
+    added cubehelix color map
+
+commit e0bdd5569869dfb6b79040a08d1cfbb9db1d72f2
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:45:51 2015 +0000
+
+    added getShareURL, getEmbedCode, setFov
+
+commit 699f65dd3b2c62081b21144cf90b72c405089698
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:45:13 2015 +0000
+
+    animation update
+
+commit a6162bfc8329d031e2dbb2966fd6c2aba066aa06
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:45:05 2015 +0000
+
+    update with cubehelix color map
+
+commit a85de77ad78345d7956db2bfb6a2ce534dc9e284
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:44:54 2015 +0000
+
+    MOC API example
+
+commit 8dee781e860ffe9678dd9672f63474b842424a72
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Dec 9 08:43:37 2015 +0000
+
+    update with cubehelix color map
+
+commit 2f62608a6245cdd397ba02e87be589fe7873fade
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 16 09:33:22 2015 +0000
+
+    développement pour support MOCs
+
+commit 092005fe24cda222c3c1d1c882d31984cba34b61
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 16 09:33:07 2015 +0000
+
+    ajout doc sur MOC
+
+commit beabd57897a7ce88579ce6859e5b928d2374801b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 16 09:32:55 2015 +0000
+
+    ajout librairie pour parser FITS
+
+commit 902047307261f8b09c10f62aa949f92c95e21226
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 16 09:32:45 2015 +0000
+
+    ajout MOC et astro.fits
+
+commit 9533478877eb16bd47d0773de24f1559829de285
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Oct 16 09:32:34 2015 +0000
+
+commit d68153ace9aa1e65252a1c8828edc39bbe7de392
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 14 13:37:13 2015 +0000
+
+commit 9eb7d01bff1aef14541ace007c2af9fb34d7ae0c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 14 13:37:03 2015 +0000
+
+    new version of jquery.mousewheel
+
+commit f31d1bd5f13632d6f88e2c99c4cb51822cf6ea53
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 14 13:36:51 2015 +0000
+
+    added allowFullZoomout option
+
+commit 3f3fb68c7c989de8feaa6d904fc2888c677ac825
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 14 13:36:40 2015 +0000
+
+    measurement table
+
+commit 10820e1f8de794d248e8147ef3560eb4fe0f09f3
+Author: tboch <thomas.boch@gmail.com>
+Date:   Wed Oct 14 13:36:01 2015 +0000
+
+commit 5e51ae7f6ec42b9e159434c0eae767fee76cb461
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:21:47 2015 +0000
+
+    new examples
+
+commit f4e68c596f023e0d50a271273fa665e327100ba9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:21:32 2015 +0000
+
+    new examples
+
+commit 3c31480a549fe72da0488565621c343337219eda
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:19:43 2015 +0000
+
+    new examples
+
+commit ad65d9d6052017d230df2774de7b0c2fcb7fd954
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:19:29 2015 +0000
+
+commit 490e75be222897f469e4740b0e95c3b04c0c24e1
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:19:19 2015 +0000
+
+    new examples
+
+commit a994c6f0b6c4cba507bcb7ee6105e55746699cd0
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:18:07 2015 +0000
+
+commit 87876189635d9cfd6035dda410ef81e23e865a41
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 14:17:54 2015 +0000
+
+commit 7c269af2d70273a0e2e61df135bb06afb6ee891c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 12:58:57 2015 +0000
+
+    added documentation for A.catalogFromSimbad|NED|VizieR
+    
+    added documentation for catalog option onClick: 'showTable' or 'showPopup'
+
+commit 66b839a9739d8c2e46b2dcfc50b105b790d69c06
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 12:22:40 2015 +0000
+
+    updated with new things
+
+commit bebbda48609d5506864ca80588bfff6fc2e027a4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 12:22:27 2015 +0000
+
+    added class URLBuilder in build scripts
+
+commit 90663cf972e5a8bf43734fdcecfcd63c94d32946
+Author: tboch <thomas.boch@gmail.com>
+Date:   Mon Oct 12 12:21:56 2015 +0000
+
+    added 3 new test pages for easy access to NED, SIMBAD and vizier
+
+commit 78fb17f3fb48748604c569c23ab70ec3f24e5776
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:26:16 2015 +0000
+
+commit f4b3d87769e948c2eaeaef0bd0d4756623b90037
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:25:52 2015 +0000
+
+commit 39458f58ae085a4b570455aee7d55fabd95f7765
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:25:44 2015 +0000
+
+    changed maxWidth
+
+commit a44f3a7c629921ec29ecce9576cdd90612774c82
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:25:29 2015 +0000
+
+    corrected link
+
+commit e70964de67e336120cd8ace9bd4230031b8ce26b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:25:18 2015 +0000
+
+    added Terms of use
+
+commit 6e3f220b478fded18fe585871ddf3bc9945d5a20
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:24:55 2015 +0000
+
+commit 9d9e1d91ac3ae2a529c3f380c8d841bb1edd226c
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 1 14:24:43 2015 +0000
+
+    support ':' dans coordonnées
+
+commit 688ebcfd1f804b262ce394c053730c294377b60f
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:45:31 2015 +0000
+
+commit 87d86dce1b73a500360287aca10e31346cb79aef
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:45:19 2015 +0000
+
+commit 837dbde146bb1f442f40631eede44802e4d01515
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:44:54 2015 +0000
+
+commit 4baa1374287f65f2fa8017b078486a0957b58f52
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:43:34 2015 +0000
+
+commit d32dabc3acbd02aa4a9eb3091e4b2b66bf77f5cc
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:43:22 2015 +0000
+
+commit 0d43710a286d05fa35311c144bb931cd7f8045c9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Apr 17 08:43:11 2015 +0000
+
+commit 170ca26bfb17b019e1d819b806c76ba1d6dfa85b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Mar 6 07:05:56 2015 +0000
+
+commit 380070e6f313c12a7c67e6bac9a69b98a1087fe9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:05:45 2015 +0000
+
+commit 11e7a7eca47f01083f634f26f96c6655b98c902b
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:05:36 2015 +0000
+
+commit cac257b7962d9a9d7f69f4a3286396f3f05b3c00
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:05:15 2015 +0000
+
+commit fbe57b7c5fbc2887a13515bf3d1f4c61d71d8890
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:05:09 2015 +0000
+
+commit 834792c061cac2af25bf9d6487213d814a976fb9
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:04:06 2015 +0000
+
+commit c46b69962a18f44b754ebfc599479f15c9314b68
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:03:55 2015 +0000
+
+commit 72e20e50abe621de059b0e87f1c68696656fbefd
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Feb 27 11:03:42 2015 +0000
+
+commit b8ad268f4fdd486e35a8c52fd1ca7fd328b871e7
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jan 22 14:16:23 2015 +0000
+
+    bug fix : layout sur versions pas toutes récentes de FF
+
+commit e81d79fdb8359bae31c3e5b9bc4646d4b3ff2837
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jan 22 14:16:13 2015 +0000
+
+    bug fix : layout sur versions pas toutes récentes de FF
+
+commit e851b0b8ca46c20f1349af882bb8cddf87aaba2d
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jan 22 14:15:56 2015 +0000
+
+commit 6b18ec0485799aaee4805a29de5fbcdfec830c7e
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Jan 22 14:12:13 2015 +0000
+
+    la coche pour Aladin Lite
+
+commit d5e6596279763cf8ef47115137984c85d0d69916
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Dec 19 11:06:45 2014 +0000
+
+commit 50625c1ce9fc5d91901824ccaa7b859781e87465
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Dec 19 11:03:36 2014 +0000
+
+commit 35d634a06e5efdbad4127a336b2061b0224a30fd
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Dec 19 11:03:18 2014 +0000
+
+commit 52f1dc0ee9945762d8278562c0dc1849a9453d84
+Author: tboch <thomas.boch@gmail.com>
+Date:   Fri Dec 19 10:58:02 2014 +0000
+
+commit 18039d4629346ad708e44e2f60abaaaa97e08366
+Author: tboch <thomas.boch@gmail.com>
+Date:   Tue Dec 16 07:08:45 2014 +0000
+
+commit e37763c990a9c448f750424744b4e7255635dda4
+Author: tboch <thomas.boch@gmail.com>
+Date:   Thu Oct 23 07:07:36 2014 +0000
+
+    changed name to AladinLite

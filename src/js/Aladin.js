@@ -848,6 +848,14 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
         this.view.removeImageSurveyAtIndex(index);
     };
     
+    /* @API
+    @param index: layer to modify the blend mode
+    @param blendMode: the blending mode
+    */
+    Aladin.prototype.setBlendModeAtIndex = function(index, blendMode) {
+        this.view.setBlendModeAtIndex(index, blendMode);
+    };
+    
     // these 3 methods should be merged into a unique "add" method
     Aladin.prototype.addCatalog = function(catalog) {
         this.view.addCatalog(catalog);

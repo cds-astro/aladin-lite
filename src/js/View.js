@@ -1002,11 +1002,11 @@ View = (function() {
             imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, 0, !this.dragging, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
             }
 
             else {
-                this.overlayImageSurvey.draw(imageCtx, this, 0, this.aladin.reduceDeformations, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
             /*
             if (this.fov>50) {
@@ -1892,6 +1892,12 @@ View = (function() {
         this.requestRedraw();
     };
 
+    View.prototype.setSurveyParametersAtIndex = function(index, blendMode, alpha, hue) {
+        this.imageSurveys[index].blendMode = blendMode;
+                        this.imageSurveys[index].alpha = alpha;
+                        this.imageSurveys[index].colorCorrection = hue;
+        this.requestRedraw();
+    };
     View.prototype.addCatalog = function(catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);

@@ -9475,7 +9475,6 @@ HpxImageSurvey = (function() {
     	    }
             this.blendingMode = options.blendingMode;
             this.colorCorrection = options.colorCorrection;
-            console.log('pussy shit fuck'+this.colorCorrection);
             this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
@@ -10309,10 +10308,10 @@ coeff = 0.02;
         
         if (hue != '#000') {
         const colored = compositeHueToLayer(img);
+        console.log('setting blend '+blend);
                     ctx.globalCompositeOperation = blend;
         ctx.drawImage(img, 0, 0);
     } else {
-        console.log('default color '+hue);
                 ctx.drawImage(img, 0, 0);
     }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
@@ -12991,7 +12990,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-13-23:16:41"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-14-11:52:10"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
@@ -14396,7 +14395,9 @@ if ($) {
 }
 
 // TODO: callback function onAladinLiteReady
-
+/* Contribution by Yuma Antoine Decaux for the UQ 2021 research project for sonifying the dark energy survey map
+All code is explicitely meant to enhance the aladin lite API but extensible for interfacing with other languages
+*/
 
 BlendingModeEnum = {
 sourceover: "source-over",

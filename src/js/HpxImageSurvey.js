@@ -64,8 +64,6 @@ HpxImageSurvey = (function() {
     	    else {
     	        this.rootUrl = rootUrl;
     	    }
-            this.blendingMode = options.blendingMode;
-            this.colorCorrection = options.colorCorrection;
             this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
@@ -106,7 +104,7 @@ HpxImageSurvey = (function() {
     	
         this.tileSize = undefined;
     	this.allskyTexture = null;
-    	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
+    	this.alpha = options.alpha || 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
     	this.allskyTextureSize = 0;
         this.lastUpdateDateNeededTiles = 0;
 
@@ -367,17 +365,18 @@ HpxImageSurvey = (function() {
         return null;
     };
 
-    HpxImageSurvey.getSurveyFromId = function(id, blendingMode, hue) {
+    HpxImageSurvey.getSurveyFromId = function(id, blendingMode, hue, alpha) {
         if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
             var survey = HpxImageSurvey.SURVEYS_OBJECTS[id];
             survey.blendingMode = blendingMode;
             survey.colorCorrection = hue;
+            survey.alpha = alpha;
 
             return survey;
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
-            var options = {blendingMode: blendingMode, colorCorrection: hue};
+            var options = {blendingMode: blendingMode, colorCorrection: hue, alpha: alpha};
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }

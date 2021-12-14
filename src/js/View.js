@@ -1712,7 +1712,7 @@ View = (function() {
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index to place the image survey at
-    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, hue, callback) {
+    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -1723,18 +1723,18 @@ View = (function() {
             this.untaintCanvases();
         }
         
-        // Take the default non alpha blendmode or the specified one
-        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-        // Check the color hue correction
-        const colorHue = (hue) ? hue : "#000";
+// survey image parameters
+                const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
+                const colorHue = (hue) ? hue : "#000";
+                const alfa = (alpha) ? alpha : 1.0;
         // Add to display
         this.displaySurvey[index] = true;
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue, alfa);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue, alfa);
                 unknownSurveyId = imageSurvey;
             }
         }
@@ -1898,6 +1898,7 @@ View = (function() {
                         this.imageSurveys[index].colorCorrection = hue;
         this.requestRedraw();
     };
+    
     View.prototype.addCatalog = function(catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);

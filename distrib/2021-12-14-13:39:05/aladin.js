@@ -9473,8 +9473,8 @@ HpxImageSurvey = (function() {
     	    else {
     	        this.rootUrl = rootUrl;
     	    }
-            this.blendingMode = options.blendingMode;
-            this.colorCorrection = options.colorCorrection;
+            // this.blendingMode = options.blendingMode;
+            // this.colorCorrection = options.colorCorrection;
             this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
@@ -11584,11 +11584,11 @@ View = (function() {
             imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, 0, !this.dragging, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
             }
 
             else {
-                this.overlayImageSurvey.draw(imageCtx, this, 0, this.aladin.reduceDeformations, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
             /*
             if (this.fov>50) {
@@ -12474,6 +12474,13 @@ View = (function() {
         this.requestRedraw();
     };
 
+    View.prototype.setSurveyParametersAtIndex = function(index, blendMode, alpha, hue) {
+        this.imageSurveys[index].blendMode = blendMode;
+                        this.imageSurveys[index].alpha = alpha;
+                        this.imageSurveys[index].colorCorrection = hue;
+        this.requestRedraw();
+    };
+    
     View.prototype.addCatalog = function(catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);
@@ -12990,7 +12997,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-14-11:52:10"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-14-13:39:05"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
@@ -13512,6 +13519,14 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
 
     Aladin.prototype.removeImageSurveyAtIndex = function(index) {
         this.view.removeImageSurveyAtIndex(index);
+    };
+    
+    /* @API
+    @param index: layer to modify the blend mode
+    @param blendMode: the blending mode
+    */
+    Aladin.prototype.setBlendModeAtIndex = function(index, blendMode) {
+        this.view.setBlendModeAtIndex(index, blendMode);
     };
     
     // these 3 methods should be merged into a unique "add" method

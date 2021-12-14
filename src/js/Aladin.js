@@ -851,9 +851,10 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     /* @API
     @param index: layer to modify the blend mode
     @param blendMode: the blending mode
+    @param alpha: the opacity of the layer
     */
-    Aladin.prototype.setBlendModeAtIndex = function(index, blendMode) {
-        this.view.setBlendModeAtIndex(index, blendMode);
+    Aladin.prototype.setSurveyParametersAtIndex = function(index, blendMode, hue, alpha) {
+        this.view.setSurveyParametersAtIndex(index, blendMode, hue, alpha);
     };
     
     // these 3 methods should be merged into a unique "add" method
@@ -890,16 +891,16 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     //@param: blendingMode: blending mode for this layer
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, callback) {
+    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         
         /* idx is the last layer (adding) if index is undefined else it's a replacement */
         const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
-        // Blending mode is default or specified
+        // survey image parameters are default or specified
         const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
         const colorHue = (hue) ? hue : "#000";
-        console.log('setting hue as  '+colorHue);
-            console.log('setting survey at index'+idx);
-        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, colorHue, callback);
+        const alfa = (alpha) ? alpha : 1.0;
+        console.log('setting survey at '+idx+' blend mode'+blend+' hue  '+colorHue+' alpha '+alfa);
+        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, colorHue, alfa, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;

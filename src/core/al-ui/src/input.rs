@@ -10,7 +10,7 @@
 //! This can be changed by overriding [`epi::App::max_size_points`].
 
 // Forbid warnings in release builds:
-#![cfg_attr(not(debug_assertions), deny(warnings))]
+//#![cfg_attr(not(debug_assertions), deny(warnings))]
 #![forbid(unsafe_code)]
 #![warn(clippy::all, missing_crate_level_docs, rust_2018_idioms)]
 //#![warn(clippy::all, missing_crate_level_docs)]
@@ -23,7 +23,6 @@ use crate::Gui;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
-//use wasm_bindgen::prelude::*;
 use al_core::log::*;
 
 static AGENT_ID: &str = "egui_text_agent";

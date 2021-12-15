@@ -1,6 +1,6 @@
 use super::format::ImageFormat;
 
-use crate::webgl_ctx::WebGl2Context;
+use crate::webgl_ctx::WebGlContext;
 pub struct Texture2DArray {
     pub textures: Vec<Texture2D>,
 }
@@ -18,7 +18,7 @@ use super::texture::Texture2D;
 use wasm_bindgen::prelude::*;
 impl Texture2DArray {
     pub fn create_empty<F: ImageFormat>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         // The weight of the individual textures
         width: i32,
         // Their height

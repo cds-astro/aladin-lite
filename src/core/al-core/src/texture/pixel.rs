@@ -1,9 +1,9 @@
 use super::image::ArrayBuffer;
 use super::image::{ArrayF32, ArrayI16, ArrayI32, ArrayU8};
 use wasm_bindgen::JsValue;
-use web_sys::WebGl2RenderingContext;
+use crate::webgl_ctx::WebGlRenderingCtx;
 
-use crate::webgl_ctx::WebGl2Context;
+use crate::webgl_ctx::WebGlContext;
 pub trait Pixel:
     AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone
 {
@@ -12,7 +12,7 @@ pub trait Pixel:
 
     const BLACK: Self;
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue>;
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue>;
 }
 
 impl Pixel for [f32; 4] {
@@ -20,15 +20,15 @@ impl Pixel for [f32; 4] {
     type Container = ArrayF32;
     const BLACK: Self = [0.0, 0.0, 0.0, 1.0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(4);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
 
@@ -41,15 +41,15 @@ impl Pixel for [f32; 3] {
     type Container = ArrayF32;
     const BLACK: Self = [0.0, 0.0, 0.0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(3);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
 
@@ -62,15 +62,15 @@ impl Pixel for [f32; 1] {
     type Container = ArrayF32;
     const BLACK: Self = [0.0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(1);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
 
@@ -82,15 +82,15 @@ impl Pixel for [u8; 4] {
     type Container = ArrayU8;
     const BLACK: Self = [0, 0, 0, 255];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Uint8Array::new_with_length(4);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RGBA,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
+            WebGlRenderingCtx::RGBA,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
             Some(&pixels),
         )?;
         let pixels = pixels.to_vec();
@@ -102,15 +102,15 @@ impl Pixel for [u8; 3] {
     type Container = ArrayU8;
     const BLACK: Self = [0, 0, 0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Uint8Array::new_with_length(3);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RGB,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
+            WebGlRenderingCtx::RGB,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
             Some(&pixels),
         )?;
         let pixels = pixels.to_vec();
@@ -122,15 +122,15 @@ impl Pixel for [u8; 1] {
     type Container = ArrayU8;
     const BLACK: Self = [0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Uint8Array::new_with_length(1);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
+            WebGlRenderingCtx::RED_INTEGER,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
             Some(&pixels),
         )?;
 
@@ -142,15 +142,15 @@ impl Pixel for [i16; 1] {
     type Container = ArrayI16;
     const BLACK: Self = [0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int16Array::new_with_length(1);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::SHORT,
+            WebGlRenderingCtx::RED_INTEGER,
+            WebGlRenderingCtx::SHORT,
             Some(&pixels),
         )?;
 
@@ -162,15 +162,15 @@ impl Pixel for [i32; 1] {
     type Container = ArrayI32;
     const BLACK: Self = [0];
 
-    fn read_pixel(gl: &WebGl2Context, x: i32, y: i32) -> Result<Self, JsValue> {
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int32Array::new_with_length(1);
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGl2RenderingContext::RED_INTEGER,
-            WebGl2RenderingContext::INT,
+            WebGlRenderingCtx::RED_INTEGER,
+            WebGlRenderingCtx::INT,
             Some(&pixels),
         )?;
 

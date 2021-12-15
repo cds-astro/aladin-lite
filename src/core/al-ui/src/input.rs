@@ -13,8 +13,8 @@
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 #![forbid(unsafe_code)]
 #![warn(clippy::all, missing_crate_level_docs, rust_2018_idioms)]
-
-use wasm_bindgen::{prelude::*};
+//#![warn(clippy::all, missing_crate_level_docs)]
+use wasm_bindgen::prelude::*;
 
 
 use egui::mutex::Mutex;
@@ -23,7 +23,7 @@ use crate::Gui;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
-use wasm_bindgen::prelude::*;
+//use wasm_bindgen::prelude::*;
 use al_core::log::*;
 
 static AGENT_ID: &str = "egui_text_agent";

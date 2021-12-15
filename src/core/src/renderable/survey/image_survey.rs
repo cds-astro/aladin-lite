@@ -518,8 +518,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
-use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
-use al_core::VertexArrayObject;
+use al_core::VertexArrayObject1;
 pub struct ImageSurvey {
     //color: Color,
     // The image survey texture buffer
@@ -538,7 +537,7 @@ pub struct ImageSurvey {
     /*vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
     ebo: WebGlBuffer,*/
-    vao: VertexArrayObject,
+    vao: VertexArrayObject1,
 
     gl: WebGl2Context,
 
@@ -560,7 +559,7 @@ impl ImageSurvey {
         exec: Rc<RefCell<TaskExecutor>>,
         //_type: ImageSurveyType
     ) -> Result<Self, JsValue> {
-        let mut vao = VertexArrayObject::new(&gl);
+        let mut vao = VertexArrayObject1::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
         // layout (location = 1) in vec2 position;
@@ -963,8 +962,8 @@ impl Draw for ImageSurvey {
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps)
-                .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
+                .bind_vertex_array_object1_ref(&self.vao)
+                .draw_elements_with_i32::<f32>(WebGl2RenderingContext::TRIANGLES,
                         Some(self.num_idx as i32), 
                         WebGl2RenderingContext::UNSIGNED_SHORT, 
                         0
@@ -1044,21 +1043,12 @@ impl HiPS for SimpleHiPS {
     }
 }
 
-/*#[derive(Debug)]
-struct ImageSurveyLayer {
-    opacity: f32,
-    names: Vec<String>,
-    colors: Vec<Color>,
-    name_most_precised_survey: String,
-}*/
-
 #[derive(Debug)]
 struct ImageSurveyMeta {
     color: Color,
     opacity: f32,
 }
 
-type LayerName = String;
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
 type SurveyURL = String;
 pub struct ImageSurveys {
@@ -1195,18 +1185,20 @@ impl ImageSurveys {
                 color::Color::new(0.0, 0.0, 0.0, 0.0)
             };
 
-            let survey = self.surveys.get_mut(name).unwrap();
-            survey.draw::<P>(
-                &self.raytracer,
-                shaders,
-                camera,
-                &meta.color,
-                meta.opacity,
-                &blank_pixel_color,
-                &colormaps,
-            );
+            if meta.opacity > 0.0 {
+                let survey = self.surveys.get_mut(name).unwrap();
+                survey.draw::<P>(
+                    &self.raytracer,
+                    shaders,
+                    camera,
+                    &meta.color,
+                    meta.opacity,
+                    &blank_pixel_color,
+                    &colormaps,
+                );
 
-            idx_survey += 1;
+                idx_survey += 1;
+            }
         }
 
         self.gl.blend_func_separate(

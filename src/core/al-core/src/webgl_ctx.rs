@@ -1,15 +1,27 @@
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use web_sys::WebGl2RenderingContext;
+
+#[cfg(feature = "webgl2")]
+pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
+#[cfg(not(feature = "webgl2"))]
+pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
+
 
 #[derive(Clone)]
-pub struct WebGl2Context {
-    inner: Rc<WebGl2RenderingContext>,
+pub struct WebGlContext {
+    inner: Rc<WebGlRenderingCtx>,
+    pub ext: WebGlExt,
 }
 
-impl WebGl2Context {
-    pub fn new(aladin_div_name: &str) -> Result<WebGl2Context, JsValue> {
+#[derive(Clone)]
+#[cfg(not(feature = "webgl2"))]
+struct WebGlExt {
+    pub angles: web_sys::AngleInstancedArrays,
+}
+
+impl WebGlContext {
+    pub fn new(aladin_div_name: &str) -> Result<WebGlContext, JsValue> {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
 
@@ -23,31 +35,48 @@ impl WebGl2Context {
             .unwrap();
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
-        // Normalize coordinate system to use css pixels.
-        //gl.scale(scale, scale);
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =
             js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
         let gl = Rc::new(
             canvas
-                .get_context_with_context_options("webgl2", context_options.as_ref())?
+                .get_context_with_context_options("webgl", context_options.as_ref())?
                 .unwrap()
-                .dyn_into::<WebGl2RenderingContext>()
+                .dyn_into::<WebGlRenderingCtx>()
                 .unwrap(),
         );
 
-        let _ext = gl.get_extension("EXT_color_buffer_float")?;
+        #[cfg(feature = "webgl2")]
+        let _ext = get_extension(&gl, "EXT_color_buffer_float")?;
+        #[cfg(not(feature = "webgl2"))]
+        let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
 
-        Ok(WebGl2Context { inner: gl })
+        Ok(WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } })
     }
 }
 
-use std::ops::Deref;
-impl Deref for WebGl2Context {
-    type Target = WebGl2RenderingContext;
+fn get_extension<T>(context: &WebGlRenderingCtx, name: &str) -> Result<T, JsValue>
+where
+    T: wasm_bindgen::JsCast,
+{
+    // `unchecked_into` is used here because WebGL extensions aren't actually JS classes
+    // these objects are duck-type representations of the actual Rust classes
+    // https://github.com/rustwasm/wasm-bindgen/pull/1449
+    context
+        .get_extension(name)
+        .ok()
+        .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
+        .ok_or(JsValue::from_str(&format!("Failed to load ext: {}", name)))
+}
 
-    fn deref(&self) -> &WebGl2RenderingContext {
+
+
+use std::ops::Deref;
+impl Deref for WebGlContext {
+    type Target = WebGlRenderingCtx;
+
+    fn deref(&self) -> &WebGlRenderingCtx {
         &self.inner
     }
 }

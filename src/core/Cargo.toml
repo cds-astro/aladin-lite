@@ -43,7 +43,7 @@ version = "0.2.70"
 features = ["serde-serialize"]
 
 [dependencies.web-sys]
-version = "0.3.47"
+version = "0.3.55"
 features = [
   'console',
   'Document',
@@ -59,6 +59,7 @@ features = [
   'WebGlBuffer',
   'WebGlVertexArrayObject',
   'WebGl2RenderingContext',
+  'AngleInstancedArrays',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',

@@ -1,25 +1,25 @@
-use crate::webgl_ctx::WebGl2Context;
+use crate::webgl_ctx::WebGlContext;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
-use web_sys::WebGl2RenderingContext;
+use crate::webgl_ctx::WebGlRenderingCtx;
 static mut AVAILABLE_TEX_UNITS: [Option<u32>; 16] = [
-    Some(WebGl2RenderingContext::TEXTURE0),
-    Some(WebGl2RenderingContext::TEXTURE1),
-    Some(WebGl2RenderingContext::TEXTURE2),
-    Some(WebGl2RenderingContext::TEXTURE3),
-    Some(WebGl2RenderingContext::TEXTURE4),
-    Some(WebGl2RenderingContext::TEXTURE5),
-    Some(WebGl2RenderingContext::TEXTURE6),
-    Some(WebGl2RenderingContext::TEXTURE7),
-    Some(WebGl2RenderingContext::TEXTURE8),
-    Some(WebGl2RenderingContext::TEXTURE9),
-    Some(WebGl2RenderingContext::TEXTURE10),
-    Some(WebGl2RenderingContext::TEXTURE11),
-    Some(WebGl2RenderingContext::TEXTURE12),
-    Some(WebGl2RenderingContext::TEXTURE13),
-    Some(WebGl2RenderingContext::TEXTURE14),
-    Some(WebGl2RenderingContext::TEXTURE15),
+    Some(WebGlRenderingCtx::TEXTURE0),
+    Some(WebGlRenderingCtx::TEXTURE1),
+    Some(WebGlRenderingCtx::TEXTURE2),
+    Some(WebGlRenderingCtx::TEXTURE3),
+    Some(WebGlRenderingCtx::TEXTURE4),
+    Some(WebGlRenderingCtx::TEXTURE5),
+    Some(WebGlRenderingCtx::TEXTURE6),
+    Some(WebGlRenderingCtx::TEXTURE7),
+    Some(WebGlRenderingCtx::TEXTURE8),
+    Some(WebGlRenderingCtx::TEXTURE9),
+    Some(WebGlRenderingCtx::TEXTURE10),
+    Some(WebGlRenderingCtx::TEXTURE11),
+    Some(WebGlRenderingCtx::TEXTURE12),
+    Some(WebGlRenderingCtx::TEXTURE13),
+    Some(WebGlRenderingCtx::TEXTURE14),
+    Some(WebGlRenderingCtx::TEXTURE15),
 ];
 pub struct IdxTextureUnit;
 use wasm_bindgen::JsValue;
@@ -27,7 +27,7 @@ impl IdxTextureUnit {
     pub unsafe fn new() -> Result<u32, JsValue> {
         if let Some(idx_texture_unit) = AVAILABLE_TEX_UNITS.iter().find(|idx| idx.is_some()) {
             let idx_texture_unit = idx_texture_unit.unwrap();
-            let i = (idx_texture_unit - WebGl2RenderingContext::TEXTURE0) as usize;
+            let i = (idx_texture_unit - WebGlRenderingCtx::TEXTURE0) as usize;
             AVAILABLE_TEX_UNITS[i] = None;
             Ok(idx_texture_unit)
         } else {
@@ -36,8 +36,8 @@ impl IdxTextureUnit {
     }
 
     #[allow(dead_code)]
-    fn max_combined_texture_image_units(gl: &WebGl2Context) -> u32 {
-        gl.get_parameter(WebGl2RenderingContext::MAX_COMBINED_TEXTURE_IMAGE_UNITS)
+    fn max_combined_texture_image_units(gl: &WebGlContext) -> u32 {
+        gl.get_parameter(WebGlRenderingCtx::MAX_COMBINED_TEXTURE_IMAGE_UNITS)
             .unwrap()
             .as_f64()
             .unwrap() as u32
@@ -60,7 +60,7 @@ use web_sys::WebGlTexture;
 pub struct Texture2D {
     pub texture: Option<WebGlTexture>,
 
-    gl: WebGl2Context,
+    gl: WebGlContext,
 
     metadata: Option<Texture2DMeta>,
 }
@@ -70,7 +70,7 @@ use super::pixel::PixelType;
 use std::path::Path;
 impl Texture2D {
     pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         name: &'static str,
         src: &P,
         tex_params: &'static [(u32, u32)],
@@ -90,14 +90,25 @@ impl Texture2D {
             let texture = texture.clone();
 
             Closure::wrap(Box::new(move || {
-                gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+                gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
 
                 for (pname, param) in tex_params.iter() {
-                    gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+                    gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
                 }
 
+                #[cfg(feature = "webgl2")]
                 gl.tex_image_2d_with_u32_and_u32_and_html_image_element(
-                    WebGl2RenderingContext::TEXTURE_2D,
+                    WebGlRenderingCtx::TEXTURE_2D,
+                    0,
+                    F::INTERNAL_FORMAT,
+                    F::FORMAT,
+                    F::TYPE,
+                    &image,
+                )
+                .expect("Texture 2D");
+                #[cfg(not(feature = "webgl2"))]
+                gl.tex_image_2d_with_u32_and_u32_and_image(
+                    WebGlRenderingCtx::TEXTURE_2D,
                     0,
                     F::INTERNAL_FORMAT,
                     F::FORMAT,
@@ -136,7 +147,7 @@ impl Texture2D {
     }
 
     pub fn create_from_raw_pixels<F: ImageFormat>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
@@ -144,14 +155,14 @@ impl Texture2D {
     ) -> Result<Texture2D, JsValue> {
         let texture = gl.create_texture();
 
-        gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
 
         for (pname, param) in tex_params.iter() {
-            gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
         }
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-            WebGl2RenderingContext::TEXTURE_2D,
+            WebGlRenderingCtx::TEXTURE_2D,
             0,
             F::INTERNAL_FORMAT,
             width,
@@ -183,15 +194,15 @@ impl Texture2D {
     }
 
     pub fn create_empty_unsized(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2D, JsValue> {
         let texture = gl.create_texture();
 
-        gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
 
         for (pname, param) in tex_params.iter() {
-            gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
         }
 
         let gl = gl.clone();
@@ -207,21 +218,21 @@ impl Texture2D {
     }
 
     pub fn create_empty_with_format<F: ImageFormat>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2D, JsValue> {
         let texture = gl.create_texture();
 
-        gl.bind_texture(WebGl2RenderingContext::TEXTURE_2D, texture.as_ref());
+        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
 
         for (pname, param) in tex_params.iter() {
-            gl.tex_parameteri(WebGl2RenderingContext::TEXTURE_2D, *pname, *param as i32);
+            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
         }
 
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-            WebGl2RenderingContext::TEXTURE_2D,
+            WebGlRenderingCtx::TEXTURE_2D,
             0,
             F::INTERNAL_FORMAT,
             width,
@@ -253,9 +264,9 @@ impl Texture2D {
 
     pub fn attach_to_framebuffer(&self) {
         self.gl.framebuffer_texture_2d(
-            WebGl2RenderingContext::FRAMEBUFFER,
-            WebGl2RenderingContext::COLOR_ATTACHMENT0,
-            WebGl2RenderingContext::TEXTURE_2D,
+            WebGlRenderingCtx::FRAMEBUFFER,
+            WebGlRenderingCtx::COLOR_ATTACHMENT0,
+            WebGlRenderingCtx::TEXTURE_2D,
             self.texture.as_ref(),
             0,
         );
@@ -277,20 +288,20 @@ impl Texture2D {
     }
 
     pub fn active_texture(&self, idx_tex_unit: u8) -> &Self {
-        self.gl.active_texture(WebGl2RenderingContext::TEXTURE0 + idx_tex_unit as u32);
+        self.gl.active_texture(WebGlRenderingCtx::TEXTURE0 + idx_tex_unit as u32);
         self
     }
 
     pub fn bind(&self) -> Texture2DBound {
         self.gl
-            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
+            .bind_texture(WebGlRenderingCtx::TEXTURE_2D, self.texture.as_ref());
 
         Texture2DBound { texture_2d: self }
     }
 
     pub fn bind_mut(&mut self) -> Texture2DBoundMut {
         self.gl
-            .bind_texture(WebGl2RenderingContext::TEXTURE_2D, self.texture.as_ref());
+            .bind_texture(WebGlRenderingCtx::TEXTURE_2D, self.texture.as_ref());
 
         Texture2DBoundMut { texture_2d: self }
     }
@@ -299,7 +310,7 @@ impl Texture2D {
         // Create and bind the framebuffer
         let reader = self.gl.create_framebuffer();
         self.gl
-            .bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, reader.as_ref());
+            .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, reader.as_ref());
 
         // Attach the texture as the first color attachment
         self.attach_to_framebuffer();
@@ -315,27 +326,27 @@ impl Texture2D {
         self.gl.viewport(x, y, *width as i32, *height as i32);
 
         let value = match (*format, *type_) {
-            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                 let val = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RU8(val))
             }
-            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::SHORT) => {
+            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
                 let val = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RI16(val))
             }
-            (WebGl2RenderingContext::RED_INTEGER, WebGl2RenderingContext::INT) => {
+            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
                 let val = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RI32(val))
             }
-            (WebGl2RenderingContext::RED, WebGl2RenderingContext::FLOAT) => {
+            (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
                 let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RF32(val))
             }
-            (WebGl2RenderingContext::RGB, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+            (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                 let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RGBU8(val))
             }
-            (WebGl2RenderingContext::RGBA, WebGl2RenderingContext::UNSIGNED_BYTE) => {
+            (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                 let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                 Ok(PixelType::RGBAU8(val))
             }
@@ -346,7 +357,7 @@ impl Texture2D {
 
         // Unbind the framebuffer
         self.gl
-            .bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
+            .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
         // Delete the framebuffer
         self.gl.delete_framebuffer(reader.as_ref());
 
@@ -393,11 +404,25 @@ impl<'a> Texture2DBound<'a> {
         image: &HtmlImageElement,
     ) {
         let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
-
+        
+        #[cfg(feature = "webgl2")]
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
-                WebGl2RenderingContext::TEXTURE_2D,
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                *format,
+                *type_,
+                &image,
+            )
+            .expect("Sub texture 2d");
+        #[cfg(not(feature = "webgl2"))]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_image(
+                WebGlRenderingCtx::TEXTURE_2D,
                 0,
                 dx,
                 dy,
@@ -421,7 +446,7 @@ impl<'a> Texture2DBound<'a> {
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
-                WebGl2RenderingContext::TEXTURE_2D,
+                WebGlRenderingCtx::TEXTURE_2D,
                 0,
                 dx,
                 dy,
@@ -448,7 +473,7 @@ impl<'a> Texture2DBound<'a> {
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-                WebGl2RenderingContext::TEXTURE_2D,
+                WebGlRenderingCtx::TEXTURE_2D,
                 0,
                 dx,
                 dy,
@@ -480,11 +505,11 @@ impl<'a> Texture2DBoundMut<'a> {
         //let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.unwrap();
         /*self.texture_2d
         .gl
-        .pixel_storei(WebGl2RenderingContext::UNPACK_ALIGNMENT, 1);*/
+        .pixel_storei(WebGlRenderingCtx::UNPACK_ALIGNMENT, 1);*/
         self.texture_2d
             .gl
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                WebGl2RenderingContext::TEXTURE_2D,
+                WebGlRenderingCtx::TEXTURE_2D,
                 0,
                 internal_format as i32,
                 width as i32,
@@ -495,7 +520,7 @@ impl<'a> Texture2DBoundMut<'a> {
                 pixels,
             )
             .expect("Sub texture 2d");
-        //self.texture_2d.gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
+        //self.texture_2d.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
 
         self.texture_2d.metadata = Some(Texture2DMeta {
             format: src_format,

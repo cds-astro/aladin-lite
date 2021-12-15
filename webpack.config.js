@@ -17,6 +17,9 @@ module.exports = {
     experiments: {
         syncWebAssembly: true,
     },
+    performance: {
+        hints: false
+    },
     plugins: [
         //new HtmlWebpackPlugin(),
         new WasmPackPlugin({

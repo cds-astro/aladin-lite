@@ -1,7 +1,8 @@
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
+use web_sys::{WebGlProgram, WebGlShader, WebGlUniformLocation};
 
+use crate::webgl_ctx::WebGlRenderingCtx;
 fn compile_shader(
-    gl: &WebGl2Context,
+    gl: &WebGlContext,
     shader_type: u32,
     source: &str,
 ) -> Result<WebGlShader, String> {
@@ -12,7 +13,7 @@ fn compile_shader(
     gl.compile_shader(&shader);
 
     if gl
-        .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
+        .get_shader_parameter(&shader, WebGlRenderingCtx::COMPILE_STATUS)
         .as_bool()
         .unwrap_or(false)
     {
@@ -25,7 +26,7 @@ fn compile_shader(
 }
 
 fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
-    gl: &WebGl2Context,
+    gl: &WebGlContext,
     shaders: T,
 ) -> Result<WebGlProgram, String> {
     let program = gl
@@ -38,7 +39,7 @@ fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
     gl.link_program(&program);
 
     if gl
-        .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
+        .get_program_parameter(&program, WebGlRenderingCtx::LINK_STATUS)
         .as_bool()
         .unwrap_or(false)
     {
@@ -51,9 +52,9 @@ fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
 }
 
 type UniformLocations = HashMap<String, Option<WebGlUniformLocation>>;
-fn get_active_uniform_locations(gl: &WebGl2Context, program: &WebGlProgram) -> UniformLocations {
+fn get_active_uniform_locations(gl: &WebGlContext, program: &WebGlProgram) -> UniformLocations {
     let num_uniforms = gl
-        .get_program_parameter(program, WebGl2RenderingContext::ACTIVE_UNIFORMS)
+        .get_program_parameter(program, WebGlRenderingCtx::ACTIVE_UNIFORMS)
         .as_f64()
         .unwrap();
 
@@ -76,11 +77,11 @@ pub struct Shader {
     uniform_locations: UniformLocations,
 }
 
-use crate::webgl_ctx::WebGl2Context;
+use crate::webgl_ctx::WebGlContext;
 impl Shader {
-    pub fn new(gl: &WebGl2Context, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
-        let vert_shader = compile_shader(gl, WebGl2RenderingContext::VERTEX_SHADER, &vert_src)?;
-        let frag_shader = compile_shader(gl, WebGl2RenderingContext::FRAGMENT_SHADER, &frag_src)?;
+    pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
+        let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, &vert_src)?;
+        let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, &frag_src)?;
 
         let program = link_program(gl, &[vert_shader, frag_shader])?;
         // Get the active uniforms
@@ -92,7 +93,7 @@ impl Shader {
         })
     }
 
-    pub fn bind<'a>(&'a self, gl: &WebGl2Context) -> ShaderBound<'a> {
+    pub fn bind<'a>(&'a self, gl: &WebGlContext) -> ShaderBound<'a> {
         unsafe { CUR_IDX_TEX_UNIT = 0 };
         gl.use_program(Some(&self.program));
         let gl = gl.clone();
@@ -101,7 +102,7 @@ impl Shader {
 }
 
 pub trait UniformType {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self);
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self);
 
     fn attach_uniform<'a>(name: &str, value: &Self, shader: &ShaderBound<'a>) {
         let location = shader.get_uniform_location(name);
@@ -109,82 +110,82 @@ pub trait UniformType {
     }
 }
 impl UniformType for bool {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value as i32);
     }
 }
 impl UniformType for i32 {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value);
     }
 }
 
 impl UniformType for f32 {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, *value);
     }
 }
 impl UniformType for f64 {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1f(location, *value as f32);
     }
 }
 
 impl UniformType for &[f32] {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1fv_with_f32_array(location, value);
     }
 }
 impl UniformType for &[f64] {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         let values_f32 = value.iter().map(|i| *i as f32).collect::<Vec<_>>();
         gl.uniform1fv_with_f32_array(location, values_f32.as_slice());
     }
 }
 impl UniformType for &[i32] {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1iv_with_i32_array(location, value);
     }
 }
 
 use cgmath::Vector2;
 impl UniformType for Vector2<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform2f(location, value.x, value.y);
     }
 }
 impl UniformType for Vector2<f64> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform2f(location, value.x as f32, value.y as f32);
     }
 }
 
 use cgmath::Vector3;
 impl UniformType for Vector3<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value.x, value.y, value.z);
     }
 }
 impl UniformType for Vector3<f64> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value.x as f32, value.y as f32, value.z as f32);
     }
 }
 
 impl UniformType for [f32; 3] {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform3f(location, value[0], value[1], value[2]);
     }
 }
 
 use cgmath::Vector4;
 impl UniformType for Vector4<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform4f(location, value.x, value.y, value.z, value.w);
     }
 }
 impl UniformType for Vector4<f64> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform4f(
             location,
             value.x as f32,
@@ -197,19 +198,19 @@ impl UniformType for Vector4<f64> {
 
 use cgmath::Matrix2;
 impl UniformType for Matrix2<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform_matrix2fv_with_f32_array(location, false, value.as_ref() as &[f32; 4]);
     }
 }
 
 use cgmath::Matrix4;
 impl UniformType for Matrix4<f32> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform_matrix4fv_with_f32_array(location, false, value.as_ref() as &[f32; 16]);
     }
 }
 impl UniformType for Matrix4<f64> {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         // Cast the matrix
         let mat_f32 = value.cast::<f32>().unwrap();
         gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
@@ -218,7 +219,7 @@ impl UniformType for Matrix4<f64> {
 use super::texture::CUR_IDX_TEX_UNIT;
 use super::texture::Texture2D;
 impl UniformType for Texture2D {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, tex: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Active the texture unit of the texture
         unsafe {
             let tex = tex
@@ -237,7 +238,7 @@ impl UniformType for Texture2D {
 
 pub struct ShaderBound<'a> {
     pub shader: &'a Shader,
-    gl: WebGl2Context,
+    gl: WebGlContext,
 }
 
 use crate::object::{
@@ -278,7 +279,7 @@ impl<'a> ShaderBound<'a> {
         vao.bind_ref(self)
     }
 
-    pub fn unbind(&'a self, gl: &WebGl2Context) -> &'a Shader {
+    pub fn unbind(&'a self, gl: &WebGlContext) -> &'a Shader {
         gl.use_program(None);
         self.shader
     }

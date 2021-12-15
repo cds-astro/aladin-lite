@@ -13,8 +13,8 @@
 //#![cfg_attr(not(debug_assertions), deny(warnings))]
 #![forbid(unsafe_code)]
 #![warn(clippy::all, missing_crate_level_docs, rust_2018_idioms)]
-
-use wasm_bindgen::{prelude::*};
+//#![warn(clippy::all, missing_crate_level_docs)]
+use wasm_bindgen::prelude::*;
 
 
 use egui::mutex::Mutex;

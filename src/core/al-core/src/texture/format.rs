@@ -11,7 +11,7 @@ pub trait ImageFormat {
     const TYPE: u32;
 }
 
-use web_sys::WebGl2RenderingContext;
+use crate::webgl_ctx::WebGlRenderingCtx;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RGB8U;
 impl ImageFormat for RGB8U {
@@ -20,9 +20,9 @@ impl ImageFormat for RGB8U {
     const NUM_CHANNELS: usize = 3;
     const EXT: &'static str = "jpg";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RGB as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGB as i32;
-    const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+    const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -33,9 +33,9 @@ impl ImageFormat for RGBA8U {
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RGBA as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGBA as i32;
-    const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -46,9 +46,9 @@ impl ImageFormat for RGBA32F {
     const NUM_CHANNELS: usize = 4;
     const EXT: &'static str = "png";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RGBA as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGBA32F as i32;
-    const TYPE: u32 = WebGl2RenderingContext::FLOAT;
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA32F as i32;
+    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -59,9 +59,9 @@ impl ImageFormat for RGB32F {
     const NUM_CHANNELS: usize = 3;
     const EXT: &'static str = "jpg";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RGB as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::RGB32F as i32;
-    const TYPE: u32 = WebGl2RenderingContext::FLOAT;
+    const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB32F as i32;
+    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -72,9 +72,9 @@ impl ImageFormat for R32F {
     const NUM_CHANNELS: usize = 1;
     const EXT: &'static str = "fits";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RED as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::R32F as i32;
-    const TYPE: u32 = WebGl2RenderingContext::FLOAT;
+    const FORMAT: u32 = WebGlRenderingCtx::RED as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32F as i32;
+    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -85,9 +85,9 @@ impl ImageFormat for R8UI {
     const NUM_CHANNELS: usize = 1;
     const EXT: &'static str = "fits";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RED_INTEGER as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::R8UI as i32;
-    const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R8UI as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -98,9 +98,9 @@ impl ImageFormat for R16I {
     const NUM_CHANNELS: usize = 1;
     const EXT: &'static str = "fits";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RED_INTEGER as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::R16I as i32;
-    const TYPE: u32 = WebGl2RenderingContext::SHORT;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R16I as i32;
+    const TYPE: u32 = WebGlRenderingCtx::SHORT;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -111,9 +111,9 @@ impl ImageFormat for R32I {
     const NUM_CHANNELS: usize = 1;
     const EXT: &'static str = "fits";
 
-    const FORMAT: u32 = WebGl2RenderingContext::RED_INTEGER as u32;
-    const INTERNAL_FORMAT: i32 = WebGl2RenderingContext::R32I as i32;
-    const TYPE: u32 = WebGl2RenderingContext::INT;
+    const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32I as i32;
+    const TYPE: u32 = WebGlRenderingCtx::INT;
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]

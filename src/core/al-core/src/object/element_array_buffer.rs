@@ -1,9 +1,9 @@
-use web_sys::WebGl2RenderingContext;
+use crate::webgl_ctx::WebGlRenderingCtx;
 use web_sys::WebGlBuffer;
 
 use super::array_buffer::VertexBufferObject;
 
-use crate::webgl_ctx::WebGl2Context;
+use crate::webgl_ctx::WebGlContext;
 
 #[derive(Clone)]
 pub struct ElementArrayBuffer {
@@ -11,19 +11,19 @@ pub struct ElementArrayBuffer {
     // Size of the buffer in number of elements
     len: usize,
 
-    gl: WebGl2Context,
+    gl: WebGlContext,
 }
 
 impl VertexBufferObject for ElementArrayBuffer {
     fn bind(&self) {
         self.gl.bind_buffer(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             Some(self.buffer.as_ref()),
         );
     }
     fn unbind(&self) {
         self.gl
-            .bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
+            .bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, None);
     }
 }
 
@@ -33,14 +33,14 @@ use web_sys::console;
 
 impl ElementArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         usage: u32,
         data: B,
     ) -> ElementArrayBuffer {
         let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer
         gl.bind_buffer(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             Some(buffer.as_ref()),
         );
         // Total length
@@ -49,7 +49,7 @@ impl ElementArrayBuffer {
         T::buffer_data_with_array_buffer_view(
             gl,
             data,
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             usage,
         );
         // Returns an instance that keeps only the buffer
@@ -72,7 +72,7 @@ impl ElementArrayBuffer {
             T::buffer_sub_data_with_i32_and_array_buffer_view(
                 &self.gl,
                 data,
-                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             );
         } else {
             // Reallocation if the new data size exceeds the size of the buffer
@@ -89,7 +89,7 @@ impl ElementArrayBuffer {
             T::buffer_data_with_array_buffer_view(
                 &self.gl,
                 data,
-                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
                 usage,
             );
         }

@@ -1,8 +1,7 @@
-use web_sys::WebGl2RenderingContext;
+use crate::webgl_ctx::WebGlContext;
 use web_sys::WebGlBuffer;
 
 use super::buffer_data::BufferDataStorage;
-use crate::webgl_ctx::WebGl2Context;
 
 pub trait VertexBufferObject {
     fn bind(&self);
@@ -15,7 +14,7 @@ pub trait VertexAttribPointerType: std::marker::Sized {
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView;
     /// Link the vertex attrib to the shader
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
@@ -24,21 +23,21 @@ pub trait VertexAttribPointerType: std::marker::Sized {
 
     /// Pass the vertices data to the buffer
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
     );
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     );
 
     // Initialize the VBO
     fn initialize_buffer<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
@@ -48,12 +47,12 @@ pub trait VertexAttribPointerType: std::marker::Sized {
     ) -> WebGlBuffer {
         let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(buffer.as_ref()));
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
 
         Self::buffer_data_with_array_buffer_view(
             gl,
             data,
-            WebGl2RenderingContext::ARRAY_BUFFER,
+            WebGlRenderingCtx::ARRAY_BUFFER,
             usage,
         );
         // Attrib pointer to the shader
@@ -73,7 +72,7 @@ pub trait VertexAttribPointerType: std::marker::Sized {
     }
 
     fn set_vertex_attrib_pointers(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
@@ -93,7 +92,7 @@ pub trait VertexAttribPointerType: std::marker::Sized {
         }
     }
 }
-
+use crate::webgl_ctx::WebGlRenderingCtx;
 use js_sys::WebAssembly;
 use wasm_bindgen::JsCast;
 impl VertexAttribPointerType for u8 {
@@ -105,7 +104,7 @@ impl VertexAttribPointerType for u8 {
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     ) {
@@ -126,7 +125,7 @@ impl VertexAttribPointerType for u8 {
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
@@ -136,16 +135,26 @@ impl VertexAttribPointerType for u8 {
     }
 
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
         offset: i32,
     ) {
+        #[cfg(feature = "webgl2")]
         gl.vertex_attrib_i_pointer_with_i32(
             idx,
             size,
-            WebGl2RenderingContext::UNSIGNED_BYTE,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
+            stride,
+            offset,
+        );
+        #[cfg(not(feature = "webgl2"))]
+        gl.vertex_attrib_pointer_with_i32(
+            idx,
+            size,
+            WebGlRenderingCtx::UNSIGNED_BYTE,
+            false,
             stride,
             offset,
         );
@@ -162,7 +171,7 @@ impl VertexAttribPointerType for u16 {
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     ) {
@@ -171,7 +180,7 @@ impl VertexAttribPointerType for u16 {
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
@@ -181,16 +190,26 @@ impl VertexAttribPointerType for u16 {
     }
 
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
         offset: i32,
     ) {
+        #[cfg(feature = "webgl2")]
         gl.vertex_attrib_i_pointer_with_i32(
             idx,
             size,
-            WebGl2RenderingContext::UNSIGNED_SHORT,
+            WebGlRenderingCtx::UNSIGNED_SHORT,
+            stride,
+            offset,
+        );
+        #[cfg(not(feature = "webgl2"))]
+        gl.vertex_attrib_pointer_with_i32(
+            idx,
+            size,
+            WebGlRenderingCtx::UNSIGNED_SHORT,
+            false,
             stride,
             offset,
         );
@@ -207,7 +226,7 @@ impl VertexAttribPointerType for u32 {
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     ) {
@@ -216,7 +235,7 @@ impl VertexAttribPointerType for u32 {
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
@@ -226,16 +245,26 @@ impl VertexAttribPointerType for u32 {
     }
 
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
         offset: i32,
     ) {
+        #[cfg(feature = "webgl2")]
         gl.vertex_attrib_i_pointer_with_i32(
             idx,
             size,
-            WebGl2RenderingContext::UNSIGNED_INT,
+            WebGlRenderingCtx::UNSIGNED_INT,
+            stride,
+            offset,
+        );
+        #[cfg(not(feature = "webgl2"))]
+        gl.vertex_attrib_pointer_with_i32(
+            idx,
+            size,
+            WebGlRenderingCtx::UNSIGNED_INT,
+            false,
             stride,
             offset,
         );
@@ -252,7 +281,7 @@ impl VertexAttribPointerType for i32 {
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     ) {
@@ -261,7 +290,7 @@ impl VertexAttribPointerType for i32 {
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
@@ -271,13 +300,23 @@ impl VertexAttribPointerType for i32 {
     }
 
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
         offset: i32,
     ) {
-        gl.vertex_attrib_i_pointer_with_i32(idx, size, WebGl2RenderingContext::INT, stride, offset);
+        #[cfg(feature = "webgl2")]
+        gl.vertex_attrib_i_pointer_with_i32(idx, size, WebGlRenderingCtx::INT, stride, offset);
+        #[cfg(not(feature = "webgl2"))]
+        gl.vertex_attrib_pointer_with_i32(
+            idx,
+            size,
+            WebGlRenderingCtx::INT,
+            false,
+            stride,
+            offset,
+        );
         gl.enable_vertex_attrib_array(idx);
     }
 }
@@ -301,7 +340,7 @@ impl VertexAttribPointerType for f32 {
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
     ) {
@@ -317,7 +356,7 @@ impl VertexAttribPointerType for f32 {
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         data: B,
         target: u32,
         usage: u32,
@@ -327,7 +366,7 @@ impl VertexAttribPointerType for f32 {
     }
 
     fn vertex_attrib_pointer_with_i32(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         idx: u32,
         size: i32,
         stride: i32,
@@ -336,7 +375,7 @@ impl VertexAttribPointerType for f32 {
         gl.vertex_attrib_pointer_with_i32(
             idx,
             size,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             stride,
             offset,
@@ -352,14 +391,17 @@ pub struct ArrayBuffer {
     num_packed_data: usize,
 
     offset_idx: u32,
+    stride: usize,
+    sizes: Box<[usize]>,
+    offsets: Box<[usize]>,
 
-    gl: WebGl2Context,
+    gl: WebGlContext,
 }
 
 use web_sys::console;
 impl ArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
@@ -376,13 +418,21 @@ impl ArrayBuffer {
         // Returns an instance that keeps only the buffer
         ArrayBuffer {
             buffer,
+            
             len,
-
             num_packed_data,
+            
             offset_idx,
+            stride,
+            sizes: sizes.into(),
+            offsets: offsets.into(),
 
             gl,
         }
+    }
+
+    pub fn set_vertex_attrib_pointers<T: VertexAttribPointerType>(&self) {
+        T::set_vertex_attrib_pointers(&self.gl, self.offset_idx, self.stride, &self.sizes, &self.offsets);
     }
 
     pub fn update<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
@@ -395,7 +445,7 @@ impl ArrayBuffer {
             T::buffer_sub_data_with_i32_and_array_buffer_view(
                 &self.gl,
                 data,
-                WebGl2RenderingContext::ARRAY_BUFFER,
+                WebGlRenderingCtx::ARRAY_BUFFER,
             );
         } else {
             console::log_1(
@@ -411,7 +461,7 @@ impl ArrayBuffer {
             T::buffer_data_with_array_buffer_view(
                 &self.gl,
                 data,
-                WebGl2RenderingContext::ARRAY_BUFFER,
+                WebGlRenderingCtx::ARRAY_BUFFER,
                 usage,
             );
         }
@@ -421,13 +471,13 @@ impl ArrayBuffer {
 impl VertexBufferObject for ArrayBuffer {
     fn bind(&self) {
         self.gl.bind_buffer(
-            WebGl2RenderingContext::ARRAY_BUFFER,
+            WebGlRenderingCtx::ARRAY_BUFFER,
             Some(self.buffer.as_ref()),
         );
     }
     fn unbind(&self) {
         self.gl
-            .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+            .bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
     }
 }
 

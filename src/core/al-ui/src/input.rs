@@ -23,7 +23,6 @@ use crate::Gui;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
-
 use al_core::log::*;
 
 static AGENT_ID: &str = "egui_text_agent";

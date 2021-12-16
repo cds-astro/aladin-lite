@@ -84,9 +84,14 @@ impl FrameBufferObject {
         }
     }
 
-    pub fn draw_onto(&self, f: impl FnOnce() -> Result<(), JsValue> ) -> Result<(), JsValue> {
+    pub fn draw_onto(&self, f: impl FnOnce() -> Result<(), JsValue>, cur_fbo: Option<&Self>) -> Result<(), JsValue> {
         // bind the fbo
         self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&self.fbo));
+
+        let w = self.texture.width() as i32;
+        let h = self.texture.height() as i32;
+        self.gl.viewport(0, 0, w, h);
+        self.gl.scissor(0, 0, w, h);
 
         // clear the fbo
         self.gl.clear_color(0.0, 0.0, 0.0, 0.0);
@@ -95,8 +100,9 @@ impl FrameBufferObject {
         // render all the things onto the fbo
         f()?;
 
-        // unbind the fbo
-        self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+        // restore the fbo to its previous state
+        let prev_fbo = cur_fbo.map(|f| &f.fbo);
+        self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, prev_fbo);
 
         Ok(())
     }

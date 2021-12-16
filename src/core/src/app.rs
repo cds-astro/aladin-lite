@@ -518,8 +518,9 @@ impl App {
             let surveys = &mut self.surveys;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
+            let fbo_view = &self.fbo_view;
 
-            self.fbo_view.draw_onto(move || {
+            fbo_view.draw_onto(move || {
                 // Render the scene
                 gl.clear_color(0.08, 0.08, 0.08, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -527,11 +528,12 @@ impl App {
                 surveys.draw::<P>(camera, shaders, colormaps);
 
                 // Draw the catalog
-                catalogs.draw::<P>(&gl, shaders, camera, colormaps)?;
+                catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+
                 grid.draw::<P>(camera, shaders)?;
 
                 Ok(())
-            })?;
+            }, None)?;
 
             // Reset the flags about the user action
             self.camera.reset();
@@ -550,7 +552,7 @@ impl App {
                     ui.draw(&gl, dpi)?;
 
                     Ok(())
-                })?;
+                }, None)?;
             }
         }
 

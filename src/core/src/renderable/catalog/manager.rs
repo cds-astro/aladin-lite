@@ -1,5 +1,6 @@
 use super::source::Source;
 use crate::{shaders::Colormap, ShaderManager};
+use al_core::FrameBufferObject;
 use al_core::{
     resources::Resources,
     shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
@@ -24,8 +25,7 @@ pub struct Manager {
     gl: WebGlContext,
     kernel_texture: Texture2D,
 
-    fbo: Option<WebGlFramebuffer>,
-    fbo_texture: Texture2D,
+    fbo: FrameBufferObject,
 
     // VAOs
     vertex_array_object_screen: VertexArrayObject,
@@ -68,40 +68,6 @@ impl Manager {
                 ),
             ],
         )?;
-        //let _ext = gl.get_extension("EXT_color_buffer_float");
-        // Initialize texture for framebuffer
-        let fbo_texture = Texture2D::create_empty_with_format::<al_core::format::R8UI>(
-            gl,
-            768,
-            768,
-            &[
-                (
-                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                (
-                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                // Prevents s-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_S,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-                // Prevents t-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_T,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-            ],
-        )?;
-        // Create and bind the framebuffer
-        let fbo = gl.create_framebuffer();
-        gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, fbo.as_ref());
-        // attach the texture as the first color attachment
-        fbo_texture.attach_to_framebuffer();
-        // Unbind the framebuffer
-        gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
 
         // Create the VAO for the screen
         let vertex_array_object_screen = {
@@ -136,13 +102,14 @@ impl Manager {
         let catalogs = HashMap::new();
         let kernel_size = Vector2::new(0.0, 0.0);
 
+        let fbo = FrameBufferObject::new(gl, 768, 768).unwrap();
+
         let gl = gl.clone();
         let mut manager = Manager {
             gl,
             kernel_texture,
 
             fbo,
-            fbo_texture,
 
             vertex_array_object_screen,
 
@@ -236,11 +203,12 @@ impl Manager {
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         colormaps: &Colormaps,
+        fbo: &FrameBufferObject,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
 
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(&gl, shaders, self, camera, colormaps)?;
+            catalog.draw::<P>(&gl, shaders, self, camera, colormaps, fbo)?;
         }
 
         gl.disable(WebGl2RenderingContext::BLEND);
@@ -453,24 +421,13 @@ impl Catalog {
         manager: &Manager, // catalog manager
         camera: &CameraViewPort,
         colormaps: &Colormaps,
+        fbo: &FrameBufferObject,
     ) -> Result<(), JsValue> {
         // If the catalog is transparent, simply discard the draw
         if self.alpha > 0_f32 {
             // Render to the FRAMEBUFFER
-            gl.blend_func_separate(
-                WebGl2RenderingContext::SRC_ALPHA,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-            );
-            {
-                // bind the FBO
-                gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, manager.fbo.as_ref());
-                let (fbo_width, fbo_height) = manager.fbo_texture.get_size();
-                // Set the camera
-                gl.viewport(0, 0, fbo_width as i32, fbo_height as i32);
-                gl.scissor(0, 0, fbo_width as i32, fbo_height as i32);
-
+                // Render the scene
+            manager.fbo.draw_onto(|| {
                 gl.clear_color(0.0, 0.0, 0.0, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
@@ -492,16 +449,8 @@ impl Catalog {
                         self.num_instances,
                     );
 
-                // Unbind the FBO
-                gl.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
-            }
-            //gl.disable(WebGl2RenderingContext::BLEND);
-            gl.blend_func_separate(
-                WebGl2RenderingContext::SRC_ALPHA,
-                WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-                WebGl2RenderingContext::ONE,
-                WebGl2RenderingContext::ONE,
-            );
+                Ok(())
+            }, Some(fbo))?;
 
             // Render to the heatmap to the screen
             {
@@ -517,9 +466,9 @@ impl Catalog {
                     ),
                 )?;
                 //self.colormap.get_shader(gl, shaders);
-                shader
-                    .bind(gl)
-                    .attach_uniform("texture_fbo", &manager.fbo_texture) // FBO density texture computed just above
+                let shaderbound = shader.bind(gl);
+                shaderbound
+                    .attach_uniform("texture_fbo", &manager.fbo.texture) // FBO density texture computed just above
                     .attach_uniform("alpha", &self.alpha) // Alpha channel
                     .attach_uniforms_from(&self.colormap)
                     .attach_uniforms_from(colormaps)

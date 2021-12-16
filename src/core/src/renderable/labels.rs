@@ -1,4 +1,4 @@
-use al_core::webgl_ctx::WebGl2Context;
+use al_core::webgl_ctx::WebGlContext;
 use al_core::texture::Texture2D;
 use al_core::text::LetterTexPosition;
 use al_core::VertexArrayObject;
@@ -23,7 +23,7 @@ struct LabelMeta {
 }
 
 pub struct TextRenderManager {
-    gl: WebGl2Context,
+    gl: WebGlContext,
     shader: Shader,
     vao: VertexArrayObject,
 
@@ -49,7 +49,7 @@ use crate::camera::CameraViewPort;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGl2Context, camera: &CameraViewPort) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGlContext, camera: &CameraViewPort) -> Result<Self, JsValue> {
         // Create the VAO for the screen
         let shader = Shader::new(
             &gl,

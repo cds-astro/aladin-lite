@@ -61,7 +61,7 @@ use crate::{
 };
 use al_core::resources::Resources;
 use al_ui::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
-use al_core::{shader::Shader, WebGl2Context};
+use al_core::{shader::Shader, WebGlContext};
 pub use coo_conversion::CooSystem;
 
 use app::App;
@@ -101,7 +101,7 @@ impl WebClient {
         let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
         let resources = resources.into_serde::<Resources>().unwrap();
         panic::set_hook(Box::new(console_error_panic_hook::hook));
-        let gl = WebGl2Context::new(aladin_div_name)?;
+        let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = App::new(&gl, aladin_div_name, shaders, resources)?;

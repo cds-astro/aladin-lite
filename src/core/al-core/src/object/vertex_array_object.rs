@@ -298,14 +298,14 @@ pub mod vao {
             self
         }
     
-        pub fn append_to_instanced_array<B: BufferDataStorage<'a, f32>>(
+        /*pub fn append_to_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
             idx: usize,
             buffer: B,
         ) -> &mut Self {
             self.vao.array_buffer_instanced[idx].append(buffer);
             self
-        }
+        }*/
     
         pub fn unbind(&self) {
             self.vao.gl.bind_vertex_array(None);
@@ -504,7 +504,7 @@ pub mod vao {
             
             for inst_buf in &self.vao.array_buffer_instanced {
                 inst_buf.bind();
-                inst_buf.set_vertex_attrib_pointers::<T>();
+                inst_buf.set_vertex_attrib_pointers();
             }
 
             #[cfg(feature = "webgl2")]
@@ -641,14 +641,14 @@ pub mod vao {
             self
         }
 
-        pub fn append_to_instanced_array<B: BufferDataStorage<'a, f32>>(
+        /*pub fn append_to_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
             idx: usize,
             buffer: B,
         ) -> &mut Self {
             self.vao.array_buffer_instanced[idx].append(buffer);
             self
-        }
+        }*/
 
         pub fn unbind(&self) {
             //self.vao.gl.bind_vertex_array(None);

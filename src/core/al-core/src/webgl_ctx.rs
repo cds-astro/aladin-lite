@@ -11,12 +11,13 @@ pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 #[derive(Clone)]
 pub struct WebGlContext {
     inner: Rc<WebGlRenderingCtx>,
+
+    #[cfg(not(feature = "webgl2"))]
     pub ext: WebGlExt,
 }
 
 #[derive(Clone)]
-#[cfg(not(feature = "webgl2"))]
-struct WebGlExt {
+pub struct WebGlExt {
     pub angles: web_sys::AngleInstancedArrays,
 }
 
@@ -48,9 +49,11 @@ impl WebGlContext {
         );
 
         #[cfg(feature = "webgl2")]
-        let _ext = get_extension(&gl, "EXT_color_buffer_float")?;
+        let _ = get_extension(&gl, "EXT_color_buffer_float")?;
         #[cfg(not(feature = "webgl2"))]
         let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+        #[cfg(not(feature = "webgl2"))]
+        let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
 
         Ok(WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } })
     }

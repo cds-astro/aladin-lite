@@ -1,39 +1,34 @@
 //! Mostly a carbon-copy of `webgl1.rs`.
 
 use {
-    js_sys::WebAssembly,
     wasm_bindgen::{prelude::*, JsCast},
     web_sys::{
-        WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlProgram, WebGlShader,
+        WebGl2RenderingContext, WebGlBuffer,
         WebGlTexture, WebGlVertexArrayObject,
     },
 };
 
-use std::borrow::Cow;
-
-use al_core::log::*;
-use al_core::{shader::Shader, VecData, VertexArrayObject};
+use al_core::{shader::Shader};
 use cgmath::Vector2;
 use egui::{
     self,
     emath::vec2,
     epaint::{Color32, Texture},
 };
-use web_sys::console;
 type Gl = WebGl2RenderingContext;
 
 use al_core::FrameBufferObject;
 pub struct WebGl2Painter {
     pub canvas_id: String,
     pub canvas: web_sys::HtmlCanvasElement,
-    gl: WebGl2Context,
+    gl: WebGlContext,
     shader: Shader,
     /*index_buffer: WebGlBuffer,
     pos_buffer: WebGlBuffer,
     tc_buffer: WebGlBuffer,
     color_buffer: WebGlBuffer,*/
     //vao: VertexArrayObject,
-    vao: WebGlVertexArrayObject,
+    //vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
     ebo: WebGlBuffer,
 
@@ -58,9 +53,9 @@ struct UserTexture {
 }
 
 use al_core::Texture2D;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 impl WebGl2Painter {
-    pub fn new(aladin_lite_div: &str, gl: WebGl2Context) -> Result<WebGl2Painter, JsValue> {
+    pub fn new(aladin_lite_div: &str, gl: WebGlContext) -> Result<WebGl2Painter, JsValue> {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         let canvas = document
@@ -103,8 +98,8 @@ impl WebGl2Painter {
             include_str!("../shaders/main_vertex_100es.glsl"),
             include_str!("../shaders/main_fragment_100es.glsl"),
         )?;
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(&vao));
+        //let vao = gl.create_vertex_array().unwrap();
+        //gl.bind_vertex_array(Some(&vao));
 
         let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
@@ -162,7 +157,7 @@ impl WebGl2Painter {
             unsafe { &js_sys::Uint16Array::view(&data) },
             WebGl2RenderingContext::STREAM_DRAW,
         );
-        gl.bind_vertex_array(None);
+        //gl.bind_vertex_array(None);
 
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
@@ -174,7 +169,7 @@ impl WebGl2Painter {
             gl,
             shader,
 
-            vao,
+            //vao,
             vbo,
             ebo,
             egui_texture,
@@ -322,7 +317,7 @@ impl WebGl2Painter {
 
         let gl = &self.gl;
 
-        self.gl.bind_vertex_array(Some(&self.vao));
+        //self.gl.bind_vertex_array(Some(&self.vao));
 
         // Bind the buffer
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
@@ -393,7 +388,7 @@ impl WebGl2Painter {
             WebGl2RenderingContext::UNSIGNED_SHORT,
             0,
         );
-        self.gl.bind_vertex_array(None);
+        //self.gl.bind_vertex_array(None);
 
         Ok(())
     }
@@ -413,7 +408,6 @@ impl epi::TextureAllocator for WebGl2Painter {
     }
 }
 
-use std::sync::Arc;
 impl egui_web::Painter for WebGl2Painter {
     fn as_tex_allocator(&mut self) -> &mut dyn epi::TextureAllocator {
         self

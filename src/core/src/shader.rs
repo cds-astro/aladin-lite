@@ -1,6 +1,5 @@
 use al_core::shader::Shader;
-use al_core::WebGl2Context;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
+use al_core::WebGlContext;
 
 pub type VertId = Cow<'static, str>;
 pub type FragId = Cow<'static, str>;
@@ -49,7 +48,7 @@ pub struct FileSrc {
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 impl ShaderManager {
-    pub fn new(_gl: &WebGl2Context, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
+    pub fn new(_gl: &WebGlContext, files: Vec<FileSrc>) -> Result<ShaderManager, Error> {
         let src = files
             .into_iter()
             .map(|file| {
@@ -64,7 +63,7 @@ impl ShaderManager {
         })
     }
 
-    pub fn get(&mut self, gl: &WebGl2Context, id: &ShaderId) -> Result<&Shader, Error> {
+    pub fn get(&mut self, gl: &WebGlContext, id: &ShaderId) -> Result<&Shader, Error> {
         let shader = match self.shaders.entry(id.clone()) {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => {
@@ -90,36 +89,36 @@ use crate::projection::*;
 use std::borrow::Cow;
 pub trait GetShader {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader;
 
     fn get_raytracer_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -133,7 +132,7 @@ pub trait GetShader {
             .unwrap()
     }
     fn get_raytracer_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -147,7 +146,7 @@ pub trait GetShader {
             .unwrap()
     }
     fn get_raytracer_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -162,7 +161,7 @@ pub trait GetShader {
     }
 
     fn get_raytracer_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -176,7 +175,7 @@ pub trait GetShader {
             .unwrap()
     }
     fn get_raytracer_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -190,7 +189,7 @@ pub trait GetShader {
             .unwrap()
     }
     fn get_raytracer_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -204,7 +203,7 @@ pub trait GetShader {
             .unwrap()
     }
     fn get_raytracer_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -221,7 +220,7 @@ pub trait GetShader {
 
 impl GetShader for Aitoff {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -235,7 +234,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -249,7 +248,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -263,7 +262,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -277,7 +276,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -291,7 +290,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -305,7 +304,7 @@ impl GetShader for Aitoff {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -321,7 +320,7 @@ impl GetShader for Aitoff {
 }
 impl GetShader for Mollweide {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -335,7 +334,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -349,7 +348,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -363,7 +362,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -377,7 +376,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -391,7 +390,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -405,7 +404,7 @@ impl GetShader for Mollweide {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -421,7 +420,7 @@ impl GetShader for Mollweide {
 }
 impl GetShader for AzimuthalEquidistant {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -435,7 +434,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -449,7 +448,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -463,7 +462,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -477,7 +476,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -491,7 +490,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -505,7 +504,7 @@ impl GetShader for AzimuthalEquidistant {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -521,7 +520,7 @@ impl GetShader for AzimuthalEquidistant {
 }
 impl GetShader for Gnomonic {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -535,7 +534,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -549,7 +548,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -563,7 +562,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -577,7 +576,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -591,7 +590,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -605,7 +604,7 @@ impl GetShader for Gnomonic {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -621,7 +620,7 @@ impl GetShader for Gnomonic {
 }
 impl GetShader for Mercator {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -635,7 +634,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -649,7 +648,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -663,7 +662,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -677,7 +676,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -691,7 +690,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -705,7 +704,7 @@ impl GetShader for Mercator {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -723,7 +722,7 @@ impl GetShader for Mercator {
 use crate::projection::*;
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -737,7 +736,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -751,7 +750,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2color<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -765,7 +764,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -779,7 +778,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2color_integer<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -793,7 +792,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2colormap_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders
@@ -807,7 +806,7 @@ impl GetShader for Orthographic {
             .unwrap()
     }
     fn get_raster_shader_gray2color_unsigned<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> &'a Shader {
         shaders

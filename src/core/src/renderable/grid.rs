@@ -27,7 +27,7 @@ pub struct ProjetedGrid {
 
     num_vertices: usize,
 
-    gl: WebGl2Context,
+    gl: WebGlContext,
     enabled: bool,
     hide_labels: bool,
 
@@ -37,7 +37,7 @@ pub struct ProjetedGrid {
 
 use crate::projection::Projection;
 use crate::ShaderManager;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 use al_core::VecData;
 use wasm_bindgen::JsValue;
 
@@ -46,7 +46,7 @@ use super::labels::RenderManager;
 use super::TextRenderManager;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<ProjetedGrid, JsValue> {
@@ -314,11 +314,11 @@ impl ProjetedGrid {
 use crate::{projection::*, shader::ShaderId, Shader};
 use std::borrow::Cow;
 pub trait GridShaderProjection {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
 impl GridShaderProjection for Aitoff {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -328,7 +328,7 @@ impl GridShaderProjection for Aitoff {
     }
 }
 impl GridShaderProjection for Mollweide {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -338,7 +338,7 @@ impl GridShaderProjection for Mollweide {
     }
 }
 impl GridShaderProjection for Mercator {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -348,7 +348,7 @@ impl GridShaderProjection for Mercator {
     }
 }
 impl GridShaderProjection for Orthographic {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -358,7 +358,7 @@ impl GridShaderProjection for Orthographic {
     }
 }
 impl GridShaderProjection for Gnomonic {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -369,7 +369,7 @@ impl GridShaderProjection for Gnomonic {
 }
 use crate::projection::*;
 impl GridShaderProjection for AzimuthalEquidistant {
-    fn get_grid_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,

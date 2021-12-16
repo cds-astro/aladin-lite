@@ -7,7 +7,7 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
 
 use al_core::resources::Resources;
 use al_ui::hips::SimpleHiPS;
-use al_core::{pixel::PixelType, WebGl2Context};
+use al_core::{pixel::PixelType, WebGlContext};
 
 use cgmath::Vector4;
 
@@ -29,7 +29,7 @@ use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 use al_ui::{Gui, GuiRef};
 pub struct App {
-    pub gl: WebGl2Context,
+    pub gl: WebGlContext,
 
     ui: GuiRef,
 
@@ -105,7 +105,7 @@ use cgmath::InnerSpace;
 use wasm_bindgen::JsCast;
 impl App {
     pub fn new(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         aladin_div_name: &str,
         mut shaders: ShaderManager,
         resources: Resources,

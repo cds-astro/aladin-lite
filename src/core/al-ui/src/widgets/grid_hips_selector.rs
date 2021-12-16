@@ -1,9 +1,6 @@
 use egui::Color32;
 
-use wasm_bindgen_futures;
-use std::sync::{Arc, Mutex};
-
-use crate::{Event, painter::WebGl2Painter};
+use crate::painter::WebGl2Painter;
 
 struct SurveyThumbnailDesc {
     id: &'static str,

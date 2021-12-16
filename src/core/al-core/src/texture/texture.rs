@@ -324,7 +324,7 @@ impl Texture2D {
             ..
         } = self.metadata.as_ref().unwrap();
         self.gl.viewport(x, y, *width as i32, *height as i32);
-
+        #[cfg(feature = "webgl2")]
         let value = match (*format, *type_) {
             (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                 let val = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
@@ -354,7 +354,24 @@ impl Texture2D {
                 "Pixel retrieval not implemented for that texture format.",
             )),
         };
-
+        #[cfg(not(feature = "webgl2"))]
+        let value = match (*format, *type_) {
+            (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
+                let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RF32(val))
+            }
+            (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RGBU8(val))
+            }
+            (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
+                Ok(PixelType::RGBAU8(val))
+            }
+            _ => Err(JsValue::from_str(
+                "Pixel retrieval not implemented for that texture format.",
+            )),
+        };
         // Unbind the framebuffer
         self.gl
             .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);

@@ -38,10 +38,10 @@ impl From<String> for TransferFunction {
         TransferFunction::new(&id)
     }
 }
-use al_core::{shader::UniformType, WebGl2Context};
+use al_core::{shader::UniformType, WebGlContext};
 use web_sys::WebGlUniformLocation;
 impl UniformType for TransferFunction {
-    fn uniform(gl: &WebGl2Context, location: Option<&WebGlUniformLocation>, value: &Self) {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value as i32);
     }
 }

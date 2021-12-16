@@ -34,7 +34,8 @@ features = [
   'WebGlBuffer',
   'WebGlVertexArrayObject',
   'WebGlRenderingContext',
-  'AngleInstancedArrays',
+  'AngleInstancedArrays',     # Enabling instancing features
+  'ExtSRgb',                  # Enabling SRGB8_ALPHA8 internal format
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',

@@ -1,4 +1,3 @@
-use num::iter::{Range, RangeInclusive};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, PartialEq, Default)]
@@ -117,7 +116,6 @@ extern "C" {
 
 
 use wasm_bindgen_futures;
-use std::sync::{Arc, Mutex};
 async fn request_survey_properties(url: String) -> PropertiesParsed {
     let res: Properties = fetch_survey_metadata(url)
         .await

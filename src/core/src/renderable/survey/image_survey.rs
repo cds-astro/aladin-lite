@@ -227,7 +227,7 @@ impl RecomputeRasterizer for UnZoom {
 }
 
 use crate::camera::CameraViewPort;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 
 use crate::projection::Projection;
 
@@ -288,7 +288,7 @@ pub enum Color {
 impl Color {
     pub fn get_raster_shader<'a, P: Projection>(
         &self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
         unsigned_tex: bool,
@@ -322,7 +322,7 @@ impl Color {
 
     pub fn get_raytracer_shader<'a, P: Projection>(
         &self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
         unsigned_tex: bool,
@@ -518,7 +518,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
-use al_core::VertexArrayObject1;
+use al_core::VertexArrayObject;
 pub struct ImageSurvey {
     //color: Color,
     // The image survey texture buffer
@@ -537,9 +537,9 @@ pub struct ImageSurvey {
     /*vao: WebGlVertexArrayObject,
     vbo: WebGlBuffer,
     ebo: WebGlBuffer,*/
-    vao: VertexArrayObject1,
+    vao: VertexArrayObject,
 
-    gl: WebGl2Context,
+    gl: WebGlContext,
 
     //_type: ImageSurveyType,
     /*size_vertices_buf: u32,
@@ -552,14 +552,14 @@ use al_core::pixel::PixelType;
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     fn new(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         config: HiPSConfig,
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
         //_type: ImageSurveyType
     ) -> Result<Self, JsValue> {
-        let mut vao = VertexArrayObject1::new(&gl);
+        let mut vao = VertexArrayObject::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
         // layout (location = 1) in vec2 position;
@@ -962,7 +962,7 @@ impl Draw for ImageSurvey {
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps)
-                .bind_vertex_array_object1_ref(&self.vao)
+                .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_with_i32::<f32>(WebGl2RenderingContext::TRIANGLES,
                         Some(self.num_idx as i32), 
                         WebGl2RenderingContext::UNSIGNED_SHORT, 
@@ -985,7 +985,7 @@ use wasm_bindgen::JsValue;
 pub trait HiPS {
     fn create(
         self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
@@ -1029,7 +1029,7 @@ impl HiPS for SimpleHiPS {
 
     fn create(
         self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
@@ -1058,7 +1058,7 @@ pub struct ImageSurveys {
     most_precise_survey: SurveyURL,
 
     raytracer: RayTracer,
-    gl: WebGl2Context,
+    gl: WebGlContext,
 }
 
 use crate::buffer::{FitsImage, HTMLImage, TileConfigType};
@@ -1071,7 +1071,7 @@ use crate::Resources;
 use crate::buffer::Tile;
 impl ImageSurveys {
     pub fn new<P: Projection>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         system: &CooSystem,
@@ -1213,7 +1213,7 @@ impl ImageSurveys {
     pub fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
         colormaps: &Colormaps,

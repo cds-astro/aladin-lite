@@ -76,10 +76,10 @@ pub struct Gui {
 
     events: Arc<Mutex<Vec<Event>>>,
 }
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 use std::sync::{Arc, Mutex};
 impl Gui {
-    pub fn new(aladin_lite_div: &str, gl: &WebGl2Context) -> Result<GuiRef, JsValue> {
+    pub fn new(aladin_lite_div: &str, gl: &WebGlContext) -> Result<GuiRef, JsValue> {
         let ctx = egui::CtxRef::default();
         let mut painter = WebGl2Painter::new(aladin_lite_div, gl.clone())?;
         let input: egui_web::backend::WebInput = Default::default();
@@ -183,7 +183,7 @@ impl Gui {
         self.events.clone()
     }
 
-    pub fn draw(&mut self, gl: &WebGl2Context, pixels_per_point: f32) -> Result<(), JsValue> {
+    pub fn draw(&mut self, gl: &WebGlContext, pixels_per_point: f32) -> Result<(), JsValue> {
         if let Some(meshes) = self.clipped_meshes.take() {
             gl.enable(WebGl2RenderingContext::BLEND);
             gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha

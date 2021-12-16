@@ -22,12 +22,23 @@ impl Pixel for [f32; 4] {
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(4);
+        #[cfg(feature = "webgl2")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::RGBA32F,
+            WebGlRenderingCtx::FLOAT,
+            Some(&pixels),
+        )?;
+        #[cfg(not(feature = "webgl2"))]
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            web_sys::ExtSRgb::SRGB_ALPHA_EXT,
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
@@ -43,12 +54,23 @@ impl Pixel for [f32; 3] {
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(3);
+        #[cfg(feature = "webgl2")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
-            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::RGB32F,
+            WebGlRenderingCtx::FLOAT,
+            Some(&pixels),
+        )?;
+        #[cfg(not(feature = "webgl2"))]
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            web_sys::ExtSRgb::SRGB_EXT,
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
@@ -64,12 +86,23 @@ impl Pixel for [f32; 1] {
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(1);
+        #[cfg(feature = "webgl2")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
             1,
             1,
             WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::FLOAT,
+            Some(&pixels),
+        )?;
+        #[cfg(not(feature = "webgl2"))]
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            WebGlRenderingCtx::LUMINANCE_ALPHA,
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
@@ -117,6 +150,7 @@ impl Pixel for [u8; 3] {
         Ok([pixels[0], pixels[1], pixels[2]])
     }
 }
+#[cfg(feature = "webgl2")]
 impl Pixel for [u8; 1] {
     type Item = u8;
     type Container = ArrayU8;
@@ -137,6 +171,7 @@ impl Pixel for [u8; 1] {
         Ok([pixels.to_vec()[0]])
     }
 }
+#[cfg(feature = "webgl2")]
 impl Pixel for [i16; 1] {
     type Item = i16;
     type Container = ArrayI16;
@@ -157,6 +192,7 @@ impl Pixel for [i16; 1] {
         Ok([pixels.to_vec()[0]])
     }
 }
+#[cfg(feature = "webgl2")]
 impl Pixel for [i32; 1] {
     type Item = i32;
     type Container = ArrayI32;

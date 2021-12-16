@@ -19,15 +19,15 @@ use egui::{
     epaint::{Color32, Texture},
 };
 use web_sys::console;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 pub struct RenderPass {
-    gl: WebGl2Context,
+    gl: WebGlContext,
     vao: VertexArrayObject,
     shader: Shader,
 }
 
 impl RenderPass {
-    pub fn new(gl: &WebGl2Context, width: i32, height: i32) -> Result<RenderPass, JsValue> {
+    pub fn new(gl: &WebGlContext, width: i32, height: i32) -> Result<RenderPass, JsValue> {
         let shader = Shader::new(
             &gl,
             include_str!("../shaders/passes/post_vertex_100es.glsl"),

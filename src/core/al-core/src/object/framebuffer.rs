@@ -61,11 +61,22 @@ impl FrameBufferObject {
     pub fn resize(&mut self, width: usize, height: usize) {
         if (width, height) != (self.texture.width() as usize, self.texture.height() as usize) {
             let pixels = [0, 0, 0, 0].iter().cloned().cycle().take(4*height*width).collect::<Vec<_>>();
+            #[cfg(feature = "webgl2")]
             self.texture.bind_mut()
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
                     width as i32,
                     height as i32,
                     WebGlRenderingCtx::SRGB8_ALPHA8 as i32,
+                    WebGlRenderingCtx::RGBA,
+                    WebGlRenderingCtx::UNSIGNED_BYTE,
+                    Some(&pixels.as_slice())
+                );
+            #[cfg(not(feature = "webgl2"))]
+            self.texture.bind_mut()
+                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                    width as i32,
+                    height as i32,
+                    web_sys::ExtSRgb::SRGB8_ALPHA8_EXT as i32,
                     WebGlRenderingCtx::RGBA,
                     WebGlRenderingCtx::UNSIGNED_BYTE,
                     Some(&pixels.as_slice())

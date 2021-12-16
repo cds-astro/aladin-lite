@@ -140,14 +140,14 @@ use crate::math::LonLatT;
 use crate::JsValue;
 use crate::{
     async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType},
-    WebGl2Context,
+    WebGlContext,
 };
 use al_core::format::ImageFormat;
 use al_core::image::Image;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array<F: ImageFormat>(
-    gl: &WebGl2Context,
+    gl: &WebGlContext,
     config: &HiPSConfig,
 ) -> Result<Texture2DArray, JsValue> {
     let texture_size = config.get_texture_size();
@@ -187,7 +187,7 @@ use al_core::format::{ImageFormatType, R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         config: HiPSConfig,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<ImageSurveyTextures, JsValue> {

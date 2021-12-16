@@ -1,9 +1,8 @@
 use super::source::Source;
-use crate::projection::*;
 use crate::{shaders::Colormap, ShaderManager};
 use al_core::{
     resources::Resources,
-    format::ImageFormatType, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGl2Context,
+    shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
 use std::collections::HashMap;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
@@ -22,7 +21,7 @@ impl From<Error> for JsValue {
 }
 
 pub struct Manager {
-    gl: WebGl2Context,
+    gl: WebGlContext,
     kernel_texture: Texture2D,
 
     fbo: Option<WebGlFramebuffer>,
@@ -37,7 +36,7 @@ pub struct Manager {
 
 impl Manager {
     pub fn new(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         resources: &Resources,
@@ -233,7 +232,7 @@ impl Manager {
 
     pub fn draw<P: Projection>(
         &self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         colormaps: &Colormaps,
@@ -274,7 +273,7 @@ use crate::renderable::survey::{HEALPixCells, HEALPixCellsInView};
 use crate::shaders::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &mut ShaderManager,
         colormap: Colormap,
         mut sources: Vec<Source>,
@@ -449,7 +448,7 @@ impl Catalog {
 
     fn draw<P: Projection>(
         &self,
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &mut ShaderManager,
         manager: &Manager, // catalog manager
         camera: &CameraViewPort,
@@ -539,7 +538,7 @@ impl Catalog {
     }
 }
 pub trait CatalogShaderProjection {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader;
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
 use crate::shader::ShaderId;
@@ -547,7 +546,7 @@ use std::borrow::Cow;
 use crate::projection::Aitoff;
 
 impl CatalogShaderProjection for Aitoff {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -559,7 +558,7 @@ impl CatalogShaderProjection for Aitoff {
 use crate::projection::Mollweide;
 
 impl CatalogShaderProjection for Mollweide {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -571,7 +570,7 @@ impl CatalogShaderProjection for Mollweide {
 use crate::projection::AzimuthalEquidistant;
 
 impl CatalogShaderProjection for AzimuthalEquidistant {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -583,7 +582,7 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
 use crate::projection::Mercator;
 
 impl CatalogShaderProjection for Mercator {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -595,7 +594,7 @@ impl CatalogShaderProjection for Mercator {
 use crate::projection::Orthographic;
 
 impl CatalogShaderProjection for Orthographic {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,
@@ -609,7 +608,7 @@ impl CatalogShaderProjection for Orthographic {
 }
 use crate::projection::Gnomonic;
 impl CatalogShaderProjection for Gnomonic {
-    fn get_catalog_shader<'a>(gl: &WebGl2Context, shaders: &'a mut ShaderManager) -> &'a Shader {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
             .get(
                 gl,

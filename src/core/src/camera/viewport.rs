@@ -60,11 +60,11 @@ pub struct CameraViewPort {
     time_last_move: Time,
 
     // A reference to the WebGL2 context
-    gl: WebGl2Context,
+    gl: WebGlContext,
     system: CooSystem,
 }
 use crate::coo_conversion::CooSystem;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 
 use crate::{
     projection::Projection,
@@ -75,7 +75,7 @@ use crate::{
 
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
-fn set_canvas_size(gl: &WebGl2Context, width: u32, height: u32) {
+fn set_canvas_size(gl: &WebGlContext, width: u32, height: u32) {
     let canvas = gl
         .canvas()
         .unwrap()
@@ -94,7 +94,7 @@ use crate::math;
 use crate::sphere_geometry::BoundingBox;
 use crate::time::Time;
 impl CameraViewPort {
-    pub fn new<P: Projection>(gl: &WebGl2Context, system: CooSystem) -> CameraViewPort {
+    pub fn new<P: Projection>(gl: &WebGlContext, system: CooSystem) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
         //let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);

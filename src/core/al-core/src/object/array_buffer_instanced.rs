@@ -43,7 +43,7 @@ impl ArrayBufferInstanced {
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
-        _offsets: &[usize],
+        offsets: &[usize],
         usage: u32,
         data: B,
     ) -> ArrayBufferInstanced {
@@ -105,8 +105,24 @@ impl ArrayBufferInstanced {
         }
     }
 
-    pub fn set_vertex_attrib_pointers<T: VertexAttribPointerType>(&self) {
-        T::set_vertex_attrib_pointers(&self.gl, self.offset_idx, self.stride, &self.sizes, &self.offsets);
+    pub fn set_vertex_attrib_pointers(&self) {
+        for (idx, size) in self.sizes.iter().enumerate() {
+            let idx = (idx as u32) + self.offset_idx;
+            self.gl.vertex_attrib_pointer_with_i32(
+                idx,
+                *size as i32,
+                WebGlRenderingCtx::FLOAT,
+                false,
+                self.stride as i32,
+                0,
+            );
+            self.gl.enable_vertex_attrib_array(idx);
+
+            #[cfg(feature = "webgl2")]
+            self.gl.vertex_attrib_divisor(idx, 1);
+            #[cfg(not(feature = "webgl2"))]
+            self.gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
+        }
     }
 
     pub fn update<'a, B: BufferDataStorage<'a, f32>>(&self, buffer: B) {
@@ -124,13 +140,7 @@ impl ArrayBufferInstanced {
     }
 
     // Add some data at the end of the buffer
-    pub fn append<'a, B: BufferDataStorage<'a, f32>>(&mut self, buffer: B) {
-        // Bind the current buffer to another target.
-        self.gl.bind_buffer(
-            WebGlRenderingCtx::COPY_READ_BUFFER,
-            Some(self.buffer.as_ref()),
-        );
-
+    /*pub fn append<'a, B: BufferDataStorage<'a, f32>>(&mut self, buffer: B) {
         // Create the bigger buffer that will contain the new data appended to the old
         // Get the size of the new data to add
         let num_f32_in_appended_buf = buffer.len() as i32;
@@ -153,48 +163,45 @@ impl ArrayBufferInstanced {
             self.usage,
         );
 
-        // Link to the shader
-        for (idx, size) in self.sizes.iter().enumerate() {
-            let idx = (idx as u32) + self.offset_idx;
-            self.gl.vertex_attrib_pointer_with_i32(
-                idx,
-                *size as i32,
-                WebGlRenderingCtx::FLOAT,
-                false,
-                self.stride as i32,
-                0,
+        #[cfg(feature = "webgl2")]
+        {
+            // Bind the current buffer to another target.
+            self.gl.bind_buffer(
+                WebGlRenderingCtx::COPY_READ_BUFFER,
+                Some(self.buffer.as_ref()),
             );
-            self.gl.enable_vertex_attrib_array(idx);
-            #[cfg(feature = "webgl2")]
-            self.gl.vertex_attrib_divisor(idx, 1);
-            #[cfg(not(feature = "webgl2"))]
-            self.gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
+
+            // Link to the shader
+            self.set_vertex_attrib_pointers();
+
+            // Copy the current buffer to the new one
+            self.gl.copy_buffer_sub_data_with_i32_and_i32_and_i32(
+                WebGlRenderingCtx::COPY_READ_BUFFER, // src target
+                WebGlRenderingCtx::ARRAY_BUFFER,     // dest target
+                0,                                        // read offset
+                0,                                        // write offset
+                self.num_bytes_in_buf,                    // number of bytes to copy
+            );
+
+            // Copy the new data at the end of the buffer
+            let buffer = f32::array_buffer_view(buffer);
+            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
+                WebGlRenderingCtx::ARRAY_BUFFER,
+                self.num_bytes_in_buf, // offset in bytes
+                &buffer,
+            );
+            // unbind the buffer of origin
+            self.gl
+                .bind_buffer(WebGlRenderingCtx::COPY_READ_BUFFER, None);            
         }
 
-        // Copy the current buffer to the new one
-        self.gl.copy_buffer_sub_data_with_i32_and_i32_and_i32(
-            WebGlRenderingCtx::COPY_READ_BUFFER, // src target
-            WebGlRenderingCtx::ARRAY_BUFFER,     // dest target
-            0,                                        // read offset
-            0,                                        // write offset
-            self.num_bytes_in_buf,                    // number of bytes to copy
-        );
-
-        // Copy the new data at the end of the buffer
-        let buffer = f32::array_buffer_view(buffer);
-        self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            self.num_bytes_in_buf, // offset in bytes
-            &buffer,
-        );
-        // unbind the buffer of origin
-        self.gl
-            .bind_buffer(WebGlRenderingCtx::COPY_READ_BUFFER, None);
+        #[cfg(not(feature = "webgl2"))]
+        
 
         self.buffer = dest_buf;
         self.num_bytes_in_buf = num_bytes_in_dest_buf;
         self.num_instances = num_bytes_in_dest_buf / self.num_bytes_per_instance;
-    }
+    }*/
 
     // Returns the number of vertices stored in the array buffer
     pub fn num_instances(&self) -> i32 {

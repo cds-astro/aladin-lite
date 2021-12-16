@@ -18,7 +18,7 @@ pub struct Colormaps {
 }
 
 impl Colormaps {
-    pub fn new(gl: &WebGl2Context, rs: &Resources) -> Result<Self, JsValue> {
+    pub fn new(gl: &WebGlContext, rs: &Resources) -> Result<Self, JsValue> {
         let colormaps: HashMap<&str, Colormap> = [
             (
                 "blackwhite",
@@ -167,15 +167,14 @@ pub struct Colormap {
 
 use al_core::resources::Resources;
 use crate::shader::ShaderId;
-use al_core::format::ImageFormatType;
 use al_core::Texture2D;
-use al_core::WebGl2Context;
+use al_core::WebGlContext;
 use std::borrow::Cow;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 impl Colormap {
     pub fn get_catalog_shader<'a>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
     ) -> Result<&'a Shader, JsValue> {
         shaders

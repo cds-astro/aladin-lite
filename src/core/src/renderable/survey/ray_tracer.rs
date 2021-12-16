@@ -2,7 +2,7 @@ use crate::{camera::CameraViewPort, projection::Projection, shader::ShaderManage
 
 use al_core::VecData;
 use al_core::shader::Shader;
-use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGl2Context};
+use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
@@ -11,7 +11,7 @@ pub trait RayTracingProjection {
 use crate::coo_conversion::CooSystem;
 use super::Triangulation;
 fn create_vertices_array<P: Projection>(
-    _gl: &WebGl2Context,
+    _gl: &WebGlContext,
     _camera: &CameraViewPort,
     _system: &CooSystem,
 ) -> (Vec<f32>, Vec<u16>) {
@@ -41,7 +41,7 @@ fn create_vertices_array<P: Projection>(
 use web_sys::WebGl2RenderingContext;
 
 pub struct RayTracer {
-    gl: WebGl2Context,
+    gl: WebGlContext,
 
     vao: VertexArrayObject,
     position_tex: Texture2D,
@@ -79,7 +79,7 @@ fn generate_position<P: Projection>() -> Vec<f32> {
 
 impl RayTracer {
     pub fn new<P: Projection>(
-        gl: &WebGl2Context,
+        gl: &WebGlContext,
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
         system: &CooSystem,

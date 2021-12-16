@@ -74,7 +74,7 @@ impl TileConfigType {
 }
 
 //use super::TileArrayBuffer;
-use crate::WebGl2Context;
+use crate::WebGlContext;
 use std::rc::Rc;
 
 /*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
@@ -146,7 +146,7 @@ use crate::{HiPSFormat, HiPSProperties};
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 impl HiPSConfig {
-    pub fn new(_gl: &WebGl2Context, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
+    pub fn new(_gl: &WebGlContext, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.url.to_string();
         // Define the size of the 2d texture array depending on the
         // characterics of the client

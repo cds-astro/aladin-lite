@@ -106,7 +106,7 @@ impl Texture2D {
                     &image,
                 )
                 .expect("Texture 2D");
-                #[cfg(not(feature = "webgl2"))]
+                #[cfg(feature = "webgl1")]
                 gl.tex_image_2d_with_u32_and_u32_and_image(
                     WebGlRenderingCtx::TEXTURE_2D,
                     0,
@@ -354,7 +354,7 @@ impl Texture2D {
                 "Pixel retrieval not implemented for that texture format.",
             )),
         };
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         let value = match (*format, *type_) {
             (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
                 let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
@@ -435,7 +435,7 @@ impl<'a> Texture2DBound<'a> {
                 &image,
             )
             .expect("Sub texture 2d");
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_u32_and_u32_and_image(

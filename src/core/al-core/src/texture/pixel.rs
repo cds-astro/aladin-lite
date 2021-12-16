@@ -32,7 +32,7 @@ impl Pixel for [f32; 4] {
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
@@ -64,7 +64,7 @@ impl Pixel for [f32; 3] {
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,
@@ -96,7 +96,7 @@ impl Pixel for [f32; 1] {
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.read_pixels_with_opt_array_buffer_view(
             x,
             y,

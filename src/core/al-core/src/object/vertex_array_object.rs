@@ -1,5 +1,6 @@
 #[cfg(feature = "webgl2")]
 pub mod vao {
+    use crate::VertexAttribPointerType;
     use web_sys::WebGlVertexArrayObject;
 
     use crate::object::array_buffer::ArrayBuffer;
@@ -319,7 +320,7 @@ pub mod vao {
     }    
 }
 
-#[cfg(not(feature = "webgl2"))]
+#[cfg(feature = "webgl1")]
 pub mod vao {
     use crate::object::array_buffer::ArrayBuffer;
     use crate::object::array_buffer_instanced::ArrayBufferInstanced;
@@ -467,10 +468,10 @@ pub mod vao {
     }
     use crate::object::array_buffer::VertexBufferObject;
     impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
-        pub fn draw_arrays<T: VertexAttribPointerType>(&self, mode: u32, byte_offset: i32, size: i32) {
+        pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) {
             for buf in &self.vao.array_buffer {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<T>();
+                buf.set_vertex_attrib_pointers::<f32>();
             }
 
             self.vao
@@ -478,10 +479,10 @@ pub mod vao {
                 .draw_arrays(mode, byte_offset, size);
         }
 
-        pub fn draw_elements_with_i32<T: VertexAttribPointerType>(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
+        pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
             for buf in &self.vao.array_buffer {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<T>();
+                buf.set_vertex_attrib_pointers::<f32>();
             }
 
             let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
@@ -490,7 +491,7 @@ pub mod vao {
                 .draw_elements_with_i32(mode, num_elements, type_, byte_offset);
         }
 
-        pub fn draw_elements_instanced_with_i32<T: VertexAttribPointerType>(
+        pub fn draw_elements_instanced_with_i32(
             &self,
             mode: u32,
             offset_instance_idx: i32,
@@ -498,7 +499,7 @@ pub mod vao {
         ) {
             for buf in &self.vao.array_buffer {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<T>();
+                buf.set_vertex_attrib_pointers::<f32>();
             }
 
             
@@ -515,7 +516,7 @@ pub mod vao {
                 offset_instance_idx,
                 num_instances,
             );
-            #[cfg(not(feature = "webgl2"))]
+            #[cfg(feature = "webgl1")]
             self.vao.gl.ext.angles.draw_elements_instanced_angle_with_i32(
                 mode,
                 self.vao.num_elements() as i32,

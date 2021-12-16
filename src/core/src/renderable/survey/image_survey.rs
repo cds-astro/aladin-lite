@@ -963,7 +963,7 @@ impl Draw for ImageSurvey {
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps)
                 .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32::<f32>(WebGl2RenderingContext::TRIANGLES,
+                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
                         Some(self.num_idx as i32), 
                         WebGl2RenderingContext::UNSIGNED_SHORT, 
                         0

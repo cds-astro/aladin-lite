@@ -81,7 +81,7 @@ impl ArrayBufferInstanced {
             gl.enable_vertex_attrib_array(idx);
             #[cfg(feature = "webgl2")]
             gl.vertex_attrib_divisor(idx, 1);
-            #[cfg(not(feature = "webgl2"))]
+            #[cfg(feature = "webgl1")]
             gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
         }
 
@@ -120,7 +120,7 @@ impl ArrayBufferInstanced {
 
             #[cfg(feature = "webgl2")]
             self.gl.vertex_attrib_divisor(idx, 1);
-            #[cfg(not(feature = "webgl2"))]
+            #[cfg(feature = "webgl1")]
             self.gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
         }
     }
@@ -195,7 +195,7 @@ impl ArrayBufferInstanced {
                 .bind_buffer(WebGlRenderingCtx::COPY_READ_BUFFER, None);            
         }
 
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         
 
         self.buffer = dest_buf;

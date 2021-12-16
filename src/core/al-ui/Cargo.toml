@@ -23,7 +23,6 @@ epi = "*"
 egui_web = "*"
 al-core = { path = "../al-core" }
 
-
 [dependencies.wasm-bindgen]
 version = "0.2.70"
 features = ["serde-serialize"]
@@ -42,8 +41,6 @@ features = [
   'WheelEvent',
   'EventTarget',
   'WebGlBuffer',
-  'WebGlVertexArrayObject',
-  'WebGl2RenderingContext',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',
@@ -70,12 +67,26 @@ features = [
 ]
 
 [profile.dev]
-lto = true
-opt-level = 3
+opt-level = 's'
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
 
 [profile.release]
-lto = true
 opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = false
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = false
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = true

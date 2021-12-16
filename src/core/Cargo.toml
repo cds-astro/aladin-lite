@@ -40,6 +40,19 @@ al-core = { path = "./al-core" }
 al-ui = { path = "./al-ui" }
 al-task-exec = { path = "./al-task-exec" }
 
+[features]
+webgl1 = [
+  "al-core/webgl1",
+  "web-sys/WebGlRenderingContext",
+  "web-sys/AngleInstancedArrays",   # Enabling instancing features
+  "web-sys/ExtSRgb"                 # Enabling SRGB8_ALPHA8 internal format
+]
+webgl2 = [
+  "al-core/webgl2",
+  "web-sys/WebGl2RenderingContext",
+  "web-sys/WebGlVertexArrayObject",
+  "web-sys/ExtColorBufferFloat",
+]
 
 [dependencies.wasm-bindgen]
 version = "0.2.70"
@@ -60,9 +73,6 @@ features = [
   'WheelEvent',
   'EventTarget',
   'WebGlBuffer',
-  'WebGlVertexArrayObject',
-  'WebGl2RenderingContext',
-  'AngleInstancedArrays',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',

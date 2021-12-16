@@ -16,7 +16,6 @@
 //#![warn(clippy::all, missing_crate_level_docs)]
 use wasm_bindgen::prelude::*;
 
-
 use egui::mutex::Mutex;
 use crate::Gui;
 

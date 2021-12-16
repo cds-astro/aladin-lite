@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 
 #[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
-#[cfg(not(feature = "webgl2"))]
+#[cfg(feature = "webgl1")]
 pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 
@@ -12,12 +12,13 @@ pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 pub struct WebGlContext {
     inner: Rc<WebGlRenderingCtx>,
 
-    #[cfg(not(feature = "webgl2"))]
+    #[cfg(feature = "webgl1")]
     pub ext: WebGlExt,
 }
 
 #[derive(Clone)]
 pub struct WebGlExt {
+    #[cfg(feature = "webgl1")]
     pub angles: web_sys::AngleInstancedArrays,
 }
 
@@ -40,6 +41,8 @@ impl WebGlContext {
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =
             js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
+        
+        #[cfg(feature = "webgl1")]
         let gl = Rc::new(
             canvas
                 .get_context_with_context_options("webgl", context_options.as_ref())?
@@ -47,15 +50,28 @@ impl WebGlContext {
                 .dyn_into::<WebGlRenderingCtx>()
                 .unwrap(),
         );
+        #[cfg(feature = "webgl2")]
+        let gl = Rc::new(
+            canvas
+                .get_context_with_context_options("webgl2", context_options.as_ref())?
+                .unwrap()
+                .dyn_into::<WebGlRenderingCtx>()
+                .unwrap(),
+        );
 
         #[cfg(feature = "webgl2")]
-        let _ = get_extension(&gl, "EXT_color_buffer_float")?;
-        #[cfg(not(feature = "webgl2"))]
+        let _ = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")?;
+        #[cfg(feature = "webgl1")]
         let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
 
-        Ok(WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } })
+        #[cfg(feature = "webgl1")]
+        let ctx = WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } };
+        #[cfg(feature = "webgl2")]
+        let ctx = WebGlContext { inner: gl };
+
+        Ok(ctx)
     }
 }
 

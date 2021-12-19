@@ -181,11 +181,15 @@ View = (function() {
         
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
+        // Added a black tile canvas below the imageCanvas to do off screen blending
         var a = $(this.aladinDiv);
+                a.find('.aladin-blendCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         
+        // Canvas to do off screen blend modes
+                this.blendCanvas = $("<canvas class='aladin-blendCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
@@ -217,6 +221,7 @@ View = (function() {
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context
+                this.blendCtx = this.blendCanvas.getContext("2d");
         this.imageCtx = this.imageCanvas.getContext("2d");
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
@@ -899,7 +904,6 @@ View = (function() {
         }
         this.stats.update();
 
-
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
         if (imageCtx.start2D) {
@@ -909,7 +913,7 @@ View = (function() {
         // TODO : do not need to clear if fov small enough ?
         imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
         ////////////////////////
-    
+        
         var bkgdColor = this.getBackgroundColor();    
         // fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
@@ -949,12 +953,13 @@ View = (function() {
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
         // Added going through all image surveys with the same routine
+        var blendCtx = this.clearBlendCanvas();        
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
-                    imageSurvey.draw(imageCtx, this, i, !this.dragging, this.curNorder);
+                    imageSurvey.draw(imageCtx, blendCtx, this, i, !this.dragging, this.curNorder);
                 }                else {
-                    imageSurvey.draw(imageCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
+                    imageSurvey.draw(imageCtx, blendCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
     }
@@ -1143,6 +1148,14 @@ View = (function() {
 
     };
 
+    View.prototype.clearBlendCanvas = function() {
+        var blendCtx = this.blendCtx;
+        blendCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+        blendCtx.fillStyle = "#000";
+                        blendCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+                        return blendCtx;
+    };
+    
     View.prototype.forceRedraw = function() {
         this.flagForceRedraw = true;
     };

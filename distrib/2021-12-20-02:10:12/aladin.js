@@ -3062,7 +3062,6 @@ MeasurementTable = (function() {
 
 Color = (function() {
 
-
     Color = {};
     
     Color.curIdx = 0;
@@ -3104,7 +3103,26 @@ Color = (function() {
             return lightLabel; // dark color --> light font
         }
     };
-    
+
+    Color.componentToHex = function(c) {
+      var hex = c.toString(16);
+      return hex.length == 1 ? "0" + hex : hex;
+    };
+
+    Color.rgbToHex =  function(r, g, b) {
+      return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
+    };
+
+    Color.hexToRgb = function(hex) {
+
+      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+
     return Color;
 })();
 
@@ -9211,7 +9229,7 @@ HpxKey = (function() {
 
     HpxKey.prototype = {
 
-        draw: function(ctx, view, index) {
+        draw: function(ctx, bCtx, view, index) {
 // console.log('Drawing ', this.norder, this.npix);
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
@@ -9262,7 +9280,7 @@ HpxKey = (function() {
                 const blend = view.imageSurveys[index].blendingMode;
                 const hue = view.imageSurveys[index].colorCorrection;
                 const alpha = view.imageSurveys[index].alpha;
-                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, alpha, this.dx, this.dy, true, norder);
+                this.hips.drawOneTile2(blend, hue, ctx, bCtx, img, corners, w, alpha, this.dx, this.dy, true, norder);
                 n += 2;
             }
             else if (updateNeededTiles && ! tile) {
@@ -9311,7 +9329,6 @@ HpxKey = (function() {
 
             return this.children;
         },
-
 
 
         getProjViewCorners: function(view) {
@@ -9838,7 +9855,7 @@ HpxImageSurvey = (function() {
      * @param subdivide: should
      *
      */
-    HpxImageSurvey.prototype.draw = function(ctx, view, index, subdivide, curOverlayNorder) {
+    HpxImageSurvey.prototype.draw = function(ctx, bCtx, view, index, subdivide, curOverlayNorder) {
         subdivide = (subdivide===undefined) ? false: subdivide;
 
         var cornersXYViewMapAllsky = view.getVisibleCells(3, this.cooFrame);
@@ -9860,15 +9877,15 @@ HpxImageSurvey = (function() {
         if (subdivide) {
 
             if (curOverlayNorder<=4) {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view, index);
+                this.drawAllsky(ctx, bCtx, cornersXYViewMapAllsky, norder4Display, view, index);
             }
 
             if (curOverlayNorder>=3) {
-                this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view, index);
+                this.drawHighres(ctx, bCtx, cornersXYViewMapHighres, norder4Display, view, index);
             }
 /*
             else {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view, index);
+                this.drawAllsky(ctx, bCtx, cornersXYViewMapAllsky, norder4Display, view, index);
             }
 */
 
@@ -9879,15 +9896,15 @@ HpxImageSurvey = (function() {
         // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
         // TODO refactoring : devrait être une méthode de HpxImageSurvey
         if (view.curNorder>=3) {
-            this.redrawHighres(blend, hue, ctx, cornersXYViewMapHighres, view.curNorder);
+            this.redrawHighres(blend, hue, ctx, bCtx, cornersXYViewMapHighres, view.curNorder);
         }
         else {
-            this.redrawAllsky(blend, hue, ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
+            this.redrawAllsky(blend, hue, ctx, bCtx, cornersXYViewMapAllsky, view.fov, view.curNorder);
         }
 
     };
 
-    HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view, index) {
+    HpxImageSurvey.prototype.drawHighres = function(ctx, bCtx, cornersXYViewMap, norder, view, index) {
 //////////////////////////////
         var parentTilesToDraw = [];
         var parentTilesToDrawIndex = {};
@@ -9929,17 +9946,17 @@ HpxImageSurvey = (function() {
         // draw parent tiles
         for (var k=0; k<parentTilesToDraw.length; k++) {
             var t = parentTilesToDraw[k];
-            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, view, index);
+            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, bCtx, view, index);
         }
 
         // TODO : we could have a pool of HpxKey to prevent object re-creation at each frame
         // draw tiles
         for (var k=0; k<cornersXYViewMap.length; k++) {
-            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, view, index);
+            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, bCtx, view, index);
         }
     };
 
-    HpxImageSurvey.prototype.drawAllsky = function(ctx, cornersXYViewMap, norder, view, index) {
+    HpxImageSurvey.prototype.drawAllsky = function(ctx, bCtx, cornersXYViewMap, norder, view, index) {
         // for norder deeper than 6, we think it brings nothing to draw the all-sky
         if (this.view.curNorder>6) {
             return;
@@ -9962,12 +9979,12 @@ HpxImageSurvey = (function() {
         }
 
         for (var k=0; k<hpxKeys.length; k++) {
-            hpxKeys[k].draw(ctx, view, index);
+            hpxKeys[k].draw(ctx, bCtx, view, index);
         }
     };
 
     
-    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, alpha, ctx, cornersXYViewMap, fov, norder) {
+    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, alpha, ctx, bCtx, cornersXYViewMap, fov, norder) {
     	// for norder deeper than 6, we think it brings nothing to draw the all-sky
     	if (this.view.curNorder>6) {
     		return;
@@ -10009,7 +10026,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, bCtx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
     	}
     };
     
@@ -10019,7 +10036,7 @@ HpxImageSurvey = (function() {
     
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
-    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder) {
+    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, bCtx, cornersXYViewMap, norder) {
         
         // DOES THAT FIX THE PROBLEM ???
         if (cornersXYViewMap.length==0) {
@@ -10129,7 +10146,7 @@ HpxImageSurvey = (function() {
     
         // draw parent tiles
         for (var k=0, len = parentTilesToDraw.length; k<len; k++) {
-        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width, alpha);
+        	this.drawOneTile(blend, hue, ctx, bCtx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width, alpha);
         }
         
         // draw tiles
@@ -10143,7 +10160,7 @@ HpxImageSurvey = (function() {
                     this.requestRedraw();
         		}
         	}
-        	this.drawOneTile(blend, hue, ctx, img, tilesToDraw[k].corners, img.width, alpha);
+        	this.drawOneTile(blend, hue, ctx, bCtx, img, tilesToDraw[k].corners, img.width, alpha);
         }
         //*/
     
@@ -10170,7 +10187,7 @@ HpxImageSurvey = (function() {
     	return Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2);
     }
     
-    HpxImageSurvey.prototype.drawOneTile = function(blend, hue, ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
+    HpxImageSurvey.prototype.drawOneTile = function(blend, hue, ctx, bCtx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
         
@@ -10181,7 +10198,7 @@ HpxImageSurvey = (function() {
     //	var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
     //    				&& round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
     	
-    	drawTexturedTriangle(blend, hue, ctx, newImg,
+    	drawTexturedTriangle(blend, hue, ctx, bCtx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,
     	        cornersXYView[3].vx, cornersXYView[3].vy,
@@ -10190,7 +10207,7 @@ HpxImageSurvey = (function() {
     	        0, textureSize-1,
     	        alpha,
                 dx, dy, applyCorrection);
-        drawTexturedTriangle(blend, hue, ctx, newImg,
+        drawTexturedTriangle(blend, hue, ctx, bCtx, newImg,
         		cornersXYView[1].vx, cornersXYView[1].vy,
         		cornersXYView[3].vx, cornersXYView[3].vy,
         		cornersXYView[2].vx, cornersXYView[2].vy,
@@ -10201,7 +10218,7 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection);
     };
     
-       HpxImageSurvey.prototype.drawOneTile2 = function(blend, hue, ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
+       HpxImageSurvey.prototype.drawOneTile2 = function(blend, hue, ctx, bCtx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
 
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
@@ -10213,7 +10230,7 @@ HpxImageSurvey = (function() {
     //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
 
         var delta = norder<=3 ? (textureSize<100 ? 0.5 : 0.2) : 0;
-        drawTexturedTriangle2(blend, hue, ctx, newImg,
+        drawTexturedTriangle2(blend, hue, ctx, bCtx, newImg,
                 cornersXYView[0].vx, cornersXYView[0].vy,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
@@ -10222,7 +10239,7 @@ HpxImageSurvey = (function() {
                 0+delta, textureSize-delta,
                 alpha,
                 dx, dy, applyCorrection, norder);
-        drawTexturedTriangle2(blend, hue, ctx, newImg,
+        drawTexturedTriangle2(blend, hue, ctx, bCtx, newImg,
                 cornersXYView[1].vx, cornersXYView[1].vy,
                 cornersXYView[3].vx, cornersXYView[3].vy,
                 cornersXYView[2].vx, cornersXYView[2].vy,
@@ -10233,7 +10250,7 @@ HpxImageSurvey = (function() {
                 dx, dy, applyCorrection, norder);
     };
  
-    function drawTexturedTriangle2(blend, hue, ctx, img, x0, y0, x1, y1, x2, y2,
+    function drawTexturedTriangle2(blend, hue, ctx, bCtx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
         dx = dx || 0;
@@ -10249,12 +10266,11 @@ HpxImageSurvey = (function() {
         v0 += dy;
         v1 += dy;
         v2 += dy;
+        
+        // ---- centroid ----        
         var xc = (x0 + x1 + x2) / 3;
         var yc = (y0 + y1 + y2) / 3;
 
-        // ---- centroid ----
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
         ctx.save();
         if (alpha) {
             ctx.globalAlpha = alpha;
@@ -10279,6 +10295,18 @@ coeff = 0.02;
         ctx.closePath();
         ctx.clip();
 
+        bCtx.save();
+        if (alpha) {
+            bCtx.globalAlpha = alpha;
+        }
+        
+        bCtx.beginPath();
+        bCtx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
+        bCtx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
+        bCtx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
+        bCtx.closePath();
+        bCtx.clip();
+
         // this is needed to prevent to see some lines between triangles
         if (applyCorrection) {
             coeff = 0.01;
@@ -10299,14 +10327,24 @@ coeff = 0.02;
         );
         
         if (hue != '#000') {
-        const colored = compositeHueToLayer(img);
+            
+            bCtx.transform(
+                -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
+                 (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
+                 (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
+                -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
+                 (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
+                 (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
+            );
+            
+        var colored = compositeHueToLayer(bCtx, img, hue, dx, dy);
                     ctx.globalCompositeOperation = blend;
                     ctx.globalAlpha = alpha;
         ctx.drawImage(colored, 0, 0);
+        
     } else {
         ctx.globalCompositeOperation = blend;
         ctx.globalAlpha = alpha;
-
                 ctx.drawImage(img, 0, 0);
     }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
@@ -10314,24 +10352,22 @@ coeff = 0.02;
     //    ctx.globalAlpha = 1.0;
 
         ctx.restore();
+        bCtx.restore();
     }
 
 // Helper method to create off screen composite of color hue with layer
-    function compositeHueToLayer(img) {
-        const canvas = new OffscreenCanvas(0, 0, img.width, img.height);
-        const overCtx = canvas.getContext('2d');
-        overCtx.drawImage(img, 0, 0);
-        overCtx.globalCompositeOperation = BlendingModeEnum.multiply;
-        overCtx.fillStyle = this.colorCorrection;
-        overCtx.fillRect(0, 0, img.width, img.height);
-        return overCtx.getImageData(0, 0, img.width, img.height);
-    }
- 
+    function compositeHueToLayer(bCtx, img, hue) {
+                bCtx.drawImage(img, 0, 0);
+                bCtx.fillStyle = hue;
+                bCtx.fillRect();
+                return bCtx.getImageData(0, 0, bCtx.width, bCtx.height);
+            }
+            
     // uses affine texture mapping to draw a textured triangle
     // at screen coordinates [x0, y0], [x1, y1], [x2, y2] from
     // img *pixel* coordinates [u0, v0], [u1, v1], [u2, v2]
     // code from http://www.dhteumeuleu.com/lab/image3D.html
-    function drawTexturedTriangle(ctx, img, x0, y0, x1, y1, x2, y2,
+    function drawTexturedTriangle(ctx, bCtx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection) {
 
@@ -10348,13 +10384,11 @@ coeff = 0.02;
         v0 += dy;
         v1 += dy;
         v2 += dy;
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
-
-
         // ---- centroid ----
+        
         var xc = (x0 + x1 + x2) / 3;
         var yc = (y0 + y1 + y2) / 3;
+
         ctx.save();
         if (alpha) {
         	ctx.globalAlpha = alpha;
@@ -10758,11 +10792,15 @@ View = (function() {
         
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
+        // Added a black tile canvas below the imageCanvas to do off screen blending
         var a = $(this.aladinDiv);
+                a.find('.aladin-blendCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
         
+        // Canvas to do off screen blend modes
+                this.blendCanvas = $("<canvas class='aladin-blendCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
@@ -10794,6 +10832,7 @@ View = (function() {
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context
+                this.blendCtx = this.blendCanvas.getContext("2d");
         this.imageCtx = this.imageCanvas.getContext("2d");
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
@@ -11476,7 +11515,6 @@ View = (function() {
         }
         this.stats.update();
 
-
         var imageCtx = this.imageCtx;
         //////// 1. Draw images ////////
         if (imageCtx.start2D) {
@@ -11486,7 +11524,7 @@ View = (function() {
         // TODO : do not need to clear if fov small enough ?
         imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
         ////////////////////////
-    
+        
         var bkgdColor = this.getBackgroundColor();    
         // fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
@@ -11526,12 +11564,13 @@ View = (function() {
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
         // Added going through all image surveys with the same routine
+        var blendCtx = this.clearBlendCanvas();        
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
-                    imageSurvey.draw(imageCtx, this, i, !this.dragging, this.curNorder);
+                    imageSurvey.draw(imageCtx, blendCtx, this, i, !this.dragging, this.curNorder);
                 }                else {
-                    imageSurvey.draw(imageCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
+                    imageSurvey.draw(imageCtx, blendCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
     }
@@ -11720,6 +11759,14 @@ View = (function() {
 
     };
 
+    View.prototype.clearBlendCanvas = function() {
+        var blendCtx = this.blendCtx;
+        blendCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+        blendCtx.fillStyle = "#000";
+                        blendCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+                        return blendCtx;
+    };
+    
     View.prototype.forceRedraw = function() {
         this.flagForceRedraw = true;
     };
@@ -12946,7 +12993,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-19-16:35:16"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-20-02:10:12"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";

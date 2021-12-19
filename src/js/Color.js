@@ -30,7 +30,6 @@
 
 Color = (function() {
 
-
     Color = {};
     
     Color.curIdx = 0;
@@ -83,6 +82,7 @@ Color = (function() {
     };
 
     Color.hexToRgb = function(hex) {
+
       var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
         r: parseInt(result[1], 16),
@@ -91,7 +91,6 @@ Color = (function() {
       } : null;
     };
 
-    
     return Color;
 })();
 

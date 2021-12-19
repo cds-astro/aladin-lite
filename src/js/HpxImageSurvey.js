@@ -603,7 +603,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, alpha, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
     	}
     };
     

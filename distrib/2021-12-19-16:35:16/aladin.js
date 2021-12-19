@@ -10009,7 +10009,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, alpha, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
     	}
     };
     
@@ -12897,7 +12897,6 @@ if (options.catalogUrls) {
     }
 }
 
-
 this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover, "#000", 1.0);
 
 this.view.showCatalog(options.showCatalog);
@@ -12947,7 +12946,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-17-20:07:28"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-19-16:35:16"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";

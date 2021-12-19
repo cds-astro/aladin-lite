@@ -4083,7 +4083,6 @@ Downloader = (function() {
 	var Downloader = function(view) {
         		this.dlQueue = []; // queue of items being downloaded
         this.urlsInQueue = {};
-        console.log('url queue set');
         
 		this.view = view; // reference to the view to be able to request redraw
 		this.nbDownloads = 0; // number of current downloads
@@ -4116,9 +4115,6 @@ Downloader = (function() {
 	Downloader.prototype.tryDownload = function() {
 	    //if (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
 		while (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
-            if (this.view.refreshed) {
-                this.view.refreshed = false;
-            }
 			this.startDownloadNext();
 		}
 	};
@@ -9216,10 +9212,10 @@ HpxKey = (function() {
     HpxKey.prototype = {
 
         draw: function(ctx, view, index) {
-//console.log('Drawing ', this.norder, this.npix);
+// console.log('Drawing ', this.norder, this.npix);
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
-
+            // console.log('corners ', corners);
             if (corners==null) {
                 return 0;
             }
@@ -9230,7 +9226,7 @@ HpxKey = (function() {
 
             try {
                 if (isTooLarge(corners)) {
-//console.log('too large');
+// console.log('too large');
                     var m = this.drawChildren(ctx, view, MAX_PARENTE);
 
                     // Si aucun sous-losange n'a pu être dessiné, je trace tout de même le père
@@ -9265,7 +9261,8 @@ HpxKey = (function() {
 
                 const blend = view.imageSurveys[index].blendingMode;
                 const hue = view.imageSurveys[index].colorCorrection;
-                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, null, this.dx, this.dy, true, norder);
+                const alpha = view.imageSurveys[index].alpha;
+                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, alpha, this.dx, this.dy, true, norder);
                 n += 2;
             }
             else if (updateNeededTiles && ! tile) {
@@ -9473,8 +9470,6 @@ HpxImageSurvey = (function() {
     	    else {
     	        this.rootUrl = rootUrl;
     	    }
-            // this.blendingMode = options.blendingMode;
-            // this.colorCorrection = options.colorCorrection;
             this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
 
             // make URL absolute
@@ -9515,7 +9510,7 @@ HpxImageSurvey = (function() {
     	
         this.tileSize = undefined;
     	this.allskyTexture = null;
-    	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
+    	this.alpha = options.alpha || 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
     	this.allskyTextureSize = 0;
         this.lastUpdateDateNeededTiles = 0;
 
@@ -9776,17 +9771,18 @@ HpxImageSurvey = (function() {
         return null;
     };
 
-    HpxImageSurvey.getSurveyFromId = function(id, blendingMode, hue) {
+    HpxImageSurvey.getSurveyFromId = function(id, blendingMode, hue, alpha) {
         if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
             var survey = HpxImageSurvey.SURVEYS_OBJECTS[id];
             survey.blendingMode = blendingMode;
             survey.colorCorrection = hue;
+            survey.alpha = alpha;
 
             return survey;
         }
         var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
         if (surveyInfo) {
-            var options = {blendingMode: blendingMode, colorCorrection: hue};
+            var options = {blendingMode: blendingMode, colorCorrection: hue, alpha: alpha};
             if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
                 options.imgFormat = 'png';
             }
@@ -9929,9 +9925,6 @@ HpxImageSurvey = (function() {
             return itemA.order - itemB.order;
         });
 
-//////////////////////////////
-        const blend = view.imageSurveys[index].blendingMode;
-        const hue = view.imageSurveys[index].colorCorrection;
         var tSize = this.tileSize || 512;
         // draw parent tiles
         for (var k=0; k<parentTilesToDraw.length; k++) {
@@ -9974,7 +9967,7 @@ HpxImageSurvey = (function() {
     };
 
     
-    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, ctx, cornersXYViewMap, fov, norder) {
+    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, alpha, ctx, cornersXYViewMap, fov, norder) {
     	// for norder deeper than 6, we think it brings nothing to draw the all-sky
     	if (this.view.curNorder>6) {
     		return;
@@ -10016,7 +10009,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, alpha, dx, dy, true);
     	}
     };
     
@@ -10026,7 +10019,7 @@ HpxImageSurvey = (function() {
     
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
-    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder, blend, hue) {
+    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder) {
         
         // DOES THAT FIX THE PROBLEM ???
         if (cornersXYViewMap.length==0) {
@@ -10136,7 +10129,7 @@ HpxImageSurvey = (function() {
     
         // draw parent tiles
         for (var k=0, len = parentTilesToDraw.length; k<len; k++) {
-        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width);
+        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width, alpha);
         }
         
         // draw tiles
@@ -10212,7 +10205,6 @@ HpxImageSurvey = (function() {
 
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
-
 
         // is the tile a diamond ?
     //  var round = AladinUtils.myRound;
@@ -10308,10 +10300,13 @@ coeff = 0.02;
         
         if (hue != '#000') {
         const colored = compositeHueToLayer(img);
-        console.log('setting blend '+blend);
                     ctx.globalCompositeOperation = blend;
-        ctx.drawImage(img, 0, 0);
+                    ctx.globalAlpha = alpha;
+        ctx.drawImage(colored, 0, 0);
     } else {
+        ctx.globalCompositeOperation = blend;
+        ctx.globalAlpha = alpha;
+
                 ctx.drawImage(img, 0, 0);
     }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
@@ -10616,8 +10611,6 @@ View = (function() {
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
-            // Keeping a tab on completed visual refresh
-            this.refreshed = false;
 
             // new: added multi image survey 
             this.imageSurveys = [];
@@ -11479,8 +11472,6 @@ View = (function() {
             }
             else {
                 this.flagForceRedraw = false;
-                // Refresh at this point as sky is loaded
-                this.refreshed = true;
             }
         }
         this.stats.update();
@@ -11534,49 +11525,17 @@ View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        console.log('rendering tiles');
         // Added going through all image surveys with the same routine
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
-            console.log('rendering '+imageSurvey.colorCorrection+' '+imageSurvey.isReady+ ' display '+this.displaySurvey[i]);
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
                     imageSurvey.draw(imageCtx, this, i, !this.dragging, this.curNorder);
-                }
-
-                else {
+                }                else {
                     imageSurvey.draw(imageCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
     }
-        /*
-        else {
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
-            }
-
-            // redraw image survey
-    for (const [i, imageSurvey] of this.imageSurveys.entries()) {
-    const blend = imageSurvey.blendingMode;
-    const hue = imageSurvey.colorCorrection;
-            if (imageSurvey.isReady && this.displaySurvey[i]) {
-                // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-                // TODO refactoring : should be a method of HpxImageSurvey
-                this.imageSurvey.redrawAllsky(blend, hue, imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
-                if (this.curNorder>=3) {
-                    this.imageSurvey.redrawHighres(blend, hue, imageCtx, cornersXYViewMapHighres, this.curNorder);
-                }
-            }
-        }
-        */
         
-
         // redraw overlay image survey
         // TODO : does not work if different frames 
         // TODO: use HpxImageSurvey.draw method !!
@@ -11585,28 +11544,13 @@ View = (function() {
 
             if (this.aladin.reduceDeformations==null) {
                 this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
-            }
-
-            else {
+            }            else {
                 this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
-            /*
-            if (this.fov>50) {
-                this.overlayImageSurvey.redrawAllsky("sourceover", "#000", imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
-            }
-            if (this.curOverlayNorder>=3) {
-                var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
-                if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
-                    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
-                }
-                this.overlayImageSurvey.redrawHighres("sourceover", "#000", imageCtx, cornersXYViewMapHighres, norderOverlay);
-            }
-            */
 
            imageCtx.globalAlpha = 1.0;
 
         }
-        
         
         // redraw HEALPix grid
         if( this.displayHpxGrid) {
@@ -12236,6 +12180,7 @@ View = (function() {
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     View.prototype.setImageSurvey = function(imageSurvey, blendingMode, hue, callback) {
+
         if (! imageSurvey) {
             return;
         }
@@ -12255,7 +12200,6 @@ View = (function() {
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            console.log('string image survey'+imageSurvey+' with blending '+blend + ' hue ' + colorHue);
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
             if ( ! newImageSurvey) {
                                 newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
@@ -12294,7 +12238,7 @@ View = (function() {
     
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @param index: index to place the image survey at
-    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, hue, callback) {
+    View.prototype.setImageSurveyAtIndex = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         if (! imageSurvey) {
             return;
         }
@@ -12305,35 +12249,32 @@ View = (function() {
             this.untaintCanvases();
         }
         
-        // Take the default non alpha blendmode or the specified one
-        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-        // Check the color hue correction
-        const colorHue = (hue) ? hue : "#000";
         // Add to display
         this.displaySurvey[index] = true;
-        
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blendingMode, hue, alpha);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blendingMode, hue, alpha);
                 unknownSurveyId = imageSurvey;
             }
-        }
-        else {
+        }        else {
             newImageSurvey = imageSurvey;
         }
  
         /* Feature: added filter of remaining urls in download queue to be used to selectively remove tiles        
         */
+        
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
+            console.log('remaining buffers '+remaining.length);
             buffer.removeTiles(remaining);
         }
 
         newImageSurvey.isReady = false;
         this.imageSurveys[index] = newImageSurvey;
         this.projection.reverseLongitude(this.imageSurveys[index].longitudeReversed); 
+        this.lastSurveyIdx = index;
         
         var self = this;
         newImageSurvey.init(this, function() {
@@ -12383,9 +12324,8 @@ View = (function() {
         this.requestRedraw();
     };
     
-    View.prototype.showSurvey = function(show) {
-        this.displaySurvey = show;
-
+    View.prototype.showSurveyAtIndex = function(show, index) {
+        this.displaySurvey[index] = show;
         this.requestRedraw();
     };
     
@@ -12393,10 +12333,6 @@ View = (function() {
         const toggle = (this.displaySurvey[index]) ? false : true;
         this.displaySurvey[i] = toggle;
         this.requestRedraw();
-    };
-    
-    View.prototype.setColorHueAtIndex = function(index, hue) {
-        this.imageSurveys[index].colorCorrection = hue;
     };
     
     View.prototype.showCatalog = function(show) {
@@ -12479,6 +12415,10 @@ View = (function() {
                         this.imageSurveys[index].alpha = alpha;
                         this.imageSurveys[index].colorCorrection = hue;
         this.requestRedraw();
+    };
+    
+    View.prototype.setRefreshed = function() {
+        this.aladin.stateMachine.refreshed += 1;
     };
     
     View.prototype.addCatalog = function(catalog) {
@@ -12711,7 +12651,6 @@ Aladin = (function() {
             return;
         }
 
-
     var self = this;
     
     // if not options was set, try to retrieve them from the query string
@@ -12813,9 +12752,19 @@ this.boxes = [];
 var location = new Location(locationDiv.find('.aladin-location-text'));
         
 // set different options
-        console.log('setting new view');
 this.view = new View(this, location, fovDiv, cooFrame, options.fov);
 this.view.setShowGrid(options.showCooGrid);
+
+// Create a state for the download progress
+this.states = { refreshed: 0};
+const stateHandler = {
+    set(target, property, value) {
+        if (value == this.view.imageSurveys.length) {
+            console.log('all tiles refreshed');
+        }
+    }
+};
+this.stateMachine = new Proxy(this.states, stateHandler);
 
     // retrieve available surveys
         // TODO: replace call with MocServer
@@ -12948,8 +12897,9 @@ if (options.catalogUrls) {
     }
 }
 
-console.log('Setting image survey ' + options.survey);
-this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover);
+
+this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover, "#000", 1.0);
+
 this.view.showCatalog(options.showCatalog);
 
     
@@ -12997,7 +12947,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-14-13:39:05"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-17-20:07:28"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
@@ -13496,8 +13446,9 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
         this.view.showHealpixGrid(show);
     };
     
-    Aladin.prototype.showSurvey = function(show) {
-        this.view.showSurvey(show);
+    Aladin.prototype.showSurvey = function(show, index) {
+        const idx = (index) ? index : 0;
+        this.view.showSurveyAtIndex(show, index);
     };
     
     Aladin.prototype.toggleShowSurveyAtIndex = function(index) {
@@ -13524,9 +13475,10 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     /* @API
     @param index: layer to modify the blend mode
     @param blendMode: the blending mode
+    @param alpha: the opacity of the layer
     */
-    Aladin.prototype.setBlendModeAtIndex = function(index, blendMode) {
-        this.view.setBlendModeAtIndex(index, blendMode);
+    Aladin.prototype.setSurveyParametersAtIndex = function(index, blendMode, hue, alpha) {
+        this.view.setSurveyParametersAtIndex(index, blendMode, hue, alpha);
     };
     
     // these 3 methods should be merged into a unique "add" method
@@ -13563,16 +13515,12 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     //@param: blendingMode: blending mode for this layer
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, callback) {
+    Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         
         /* idx is the last layer (adding) if index is undefined else it's a replacement */
-        const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
-        // Blending mode is default or specified
-        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-        const colorHue = (hue) ? hue : "#000";
-        console.log('setting hue as  '+colorHue);
-            console.log('setting survey at index'+idx);
-        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, colorHue, callback);
+
+        console.log('setting survey at '+index+' blend mode '+blendingMode+' hue '+hue+' alpha '+alpha);
+        this.view.setImageSurveyAtIndex(imageSurvey, index, blendingMode, hue, alpha, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;

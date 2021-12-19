@@ -34,8 +34,6 @@ View = (function() {
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
-            // Keeping a tab on completed visual refresh
-            this.refreshed = false;
 
             // new: added multi image survey 
             this.imageSurveys = [];
@@ -897,8 +895,6 @@ View = (function() {
             }
             else {
                 this.flagForceRedraw = false;
-                // Refresh at this point as sky is loaded
-                this.refreshed = true;
             }
         }
         this.stats.update();
@@ -952,49 +948,17 @@ View = (function() {
 
         var cornersXYViewMapHighres = null;
         // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-        console.log('rendering tiles');
         // Added going through all image surveys with the same routine
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
-            console.log('rendering '+imageSurvey.colorCorrection+' '+imageSurvey.isReady+ ' display '+this.displaySurvey[i]);
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
                     imageSurvey.draw(imageCtx, this, i, !this.dragging, this.curNorder);
-                }
-
-                else {
+                }                else {
                     imageSurvey.draw(imageCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
                 }
         }
     }
-        /*
-        else {
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
-            }
-
-            // redraw image survey
-    for (const [i, imageSurvey] of this.imageSurveys.entries()) {
-    const blend = imageSurvey.blendingMode;
-    const hue = imageSurvey.colorCorrection;
-            if (imageSurvey.isReady && this.displaySurvey[i]) {
-                // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-                // TODO refactoring : should be a method of HpxImageSurvey
-                this.imageSurvey.redrawAllsky(blend, hue, imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
-                if (this.curNorder>=3) {
-                    this.imageSurvey.redrawHighres(blend, hue, imageCtx, cornersXYViewMapHighres, this.curNorder);
-                }
-            }
-        }
-        */
         
-
         // redraw overlay image survey
         // TODO : does not work if different frames 
         // TODO: use HpxImageSurvey.draw method !!
@@ -1003,28 +967,13 @@ View = (function() {
 
             if (this.aladin.reduceDeformations==null) {
                 this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
-            }
-
-            else {
+            }            else {
                 this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
-            /*
-            if (this.fov>50) {
-                this.overlayImageSurvey.redrawAllsky("sourceover", "#000", imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
-            }
-            if (this.curOverlayNorder>=3) {
-                var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
-                if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
-                    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
-                }
-                this.overlayImageSurvey.redrawHighres("sourceover", "#000", imageCtx, cornersXYViewMapHighres, norderOverlay);
-            }
-            */
 
            imageCtx.globalAlpha = 1.0;
 
         }
-        
         
         // redraw HEALPix grid
         if( this.displayHpxGrid) {
@@ -1654,6 +1603,7 @@ View = (function() {
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     View.prototype.setImageSurvey = function(imageSurvey, blendingMode, hue, callback) {
+
         if (! imageSurvey) {
             return;
         }
@@ -1673,7 +1623,6 @@ View = (function() {
         
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            console.log('string image survey'+imageSurvey+' with blending '+blend + ' hue ' + colorHue);
             newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue);
             if ( ! newImageSurvey) {
                                 newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue);
@@ -1723,35 +1672,32 @@ View = (function() {
             this.untaintCanvases();
         }
         
-// survey image parameters
-                const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-                const colorHue = (hue) ? hue : "#000";
-                const alfa = (alpha) ? alpha : 1.0;
         // Add to display
         this.displaySurvey[index] = true;
-        
         var newImageSurvey;
         if (typeof imageSurvey == "string") {
-            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blend, colorHue, alfa);
+            newImageSurvey = HpxImageSurvey.getSurveyFromId(imageSurvey, blendingMode, hue, alpha);
             if ( ! newImageSurvey) {
-                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blend, colorHue, alfa);
+                newImageSurvey = HpxImageSurvey.getSurveyFromId(HpxImageSurvey.DEFAULT_SURVEY_ID, blendingMode, hue, alpha);
                 unknownSurveyId = imageSurvey;
             }
-        }
-        else {
+        }        else {
             newImageSurvey = imageSurvey;
         }
  
         /* Feature: added filter of remaining urls in download queue to be used to selectively remove tiles        
         */
+        
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
+            console.log('remaining buffers '+remaining.length);
             buffer.removeTiles(remaining);
         }
 
         newImageSurvey.isReady = false;
         this.imageSurveys[index] = newImageSurvey;
         this.projection.reverseLongitude(this.imageSurveys[index].longitudeReversed); 
+        this.lastSurveyIdx = index;
         
         var self = this;
         newImageSurvey.init(this, function() {
@@ -1801,9 +1747,8 @@ View = (function() {
         this.requestRedraw();
     };
     
-    View.prototype.showSurvey = function(show) {
-        this.displaySurvey = show;
-
+    View.prototype.showSurveyAtIndex = function(show, index) {
+        this.displaySurvey[index] = show;
         this.requestRedraw();
     };
     
@@ -1811,10 +1756,6 @@ View = (function() {
         const toggle = (this.displaySurvey[index]) ? false : true;
         this.displaySurvey[i] = toggle;
         this.requestRedraw();
-    };
-    
-    View.prototype.setColorHueAtIndex = function(index, hue) {
-        this.imageSurveys[index].colorCorrection = hue;
     };
     
     View.prototype.showCatalog = function(show) {
@@ -1897,6 +1838,10 @@ View = (function() {
                         this.imageSurveys[index].alpha = alpha;
                         this.imageSurveys[index].colorCorrection = hue;
         this.requestRedraw();
+    };
+    
+    View.prototype.setRefreshed = function() {
+        this.aladin.stateMachine.refreshed += 1;
     };
     
     View.prototype.addCatalog = function(catalog) {

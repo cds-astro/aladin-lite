@@ -38,7 +38,6 @@ Aladin = (function() {
             return;
         }
 
-
     var self = this;
     
     // if not options was set, try to retrieve them from the query string
@@ -140,9 +139,19 @@ this.boxes = [];
 var location = new Location(locationDiv.find('.aladin-location-text'));
         
 // set different options
-        console.log('setting new view');
 this.view = new View(this, location, fovDiv, cooFrame, options.fov);
 this.view.setShowGrid(options.showCooGrid);
+
+// Create a state for the download progress
+this.states = { refreshed: 0};
+const stateHandler = {
+    set(target, property, value) {
+        if (value == this.view.imageSurveys.length) {
+            console.log('all tiles refreshed');
+        }
+    }
+};
+this.stateMachine = new Proxy(this.states, stateHandler);
 
     // retrieve available surveys
         // TODO: replace call with MocServer
@@ -275,8 +284,8 @@ if (options.catalogUrls) {
     }
 }
 
-console.log('Setting image survey ' + options.survey);
-this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover);
+this.setImageSurvey(options.survey, 0, BlendingModeEnum.sourceover, "#000", 1.0);
+
 this.view.showCatalog(options.showCatalog);
 
     
@@ -823,8 +832,9 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
         this.view.showHealpixGrid(show);
     };
     
-    Aladin.prototype.showSurvey = function(show) {
-        this.view.showSurvey(show);
+    Aladin.prototype.showSurvey = function(show, index) {
+        const idx = (index) ? index : 0;
+        this.view.showSurveyAtIndex(show, index);
     };
     
     Aladin.prototype.toggleShowSurveyAtIndex = function(index) {
@@ -894,13 +904,9 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         
         /* idx is the last layer (adding) if index is undefined else it's a replacement */
-        const idx = (index === undefined) ? (this.view.imageSurveys.length - 1) : index; 
-        // survey image parameters are default or specified
-        const blend = (blendingMode) ? blendingMode : BlendingModeEnum.sourceover;
-        const colorHue = (hue) ? hue : "#000";
-        const alfa = (alpha) ? alpha : 1.0;
-        console.log('setting survey at '+idx+' blend mode'+blend+' hue  '+colorHue+' alpha '+alfa);
-        this.view.setImageSurveyAtIndex(imageSurvey, idx, blend, colorHue, alfa, callback);
+
+        console.log('setting survey at '+index+' blend mode '+blendingMode+' hue '+hue+' alpha '+alpha);
+        this.view.setImageSurveyAtIndex(imageSurvey, index, blendingMode, hue, alpha, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         if (this.options.log) {
             var id = imageSurvey;

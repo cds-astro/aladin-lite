@@ -519,9 +519,6 @@ HpxImageSurvey = (function() {
             return itemA.order - itemB.order;
         });
 
-//////////////////////////////
-        const blend = view.imageSurveys[index].blendingMode;
-        const hue = view.imageSurveys[index].colorCorrection;
         var tSize = this.tileSize || 512;
         // draw parent tiles
         for (var k=0; k<parentTilesToDraw.length; k++) {
@@ -564,7 +561,7 @@ HpxImageSurvey = (function() {
     };
 
     
-    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, ctx, cornersXYViewMap, fov, norder) {
+    HpxImageSurvey.prototype.redrawAllsky = function(blend, hue, alpha, ctx, cornersXYViewMap, fov, norder) {
     	// for norder deeper than 6, we think it brings nothing to draw the all-sky
     	if (this.view.curNorder>6) {
     		return;
@@ -606,7 +603,7 @@ HpxImageSurvey = (function() {
     	            cornersXYView[i].vy += coeff*diff.y;
     	        }
     	    }
-    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
+    	    this.drawOneTile(blend, hue, ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, alpha, dx, dy, true);
     	}
     };
     
@@ -616,7 +613,7 @@ HpxImageSurvey = (function() {
     
     var drawEven = true;
     // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
-    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder, blend, hue) {
+    HpxImageSurvey.prototype.redrawHighres = function(blend, hue, ctx, cornersXYViewMap, norder) {
         
         // DOES THAT FIX THE PROBLEM ???
         if (cornersXYViewMap.length==0) {
@@ -726,7 +723,7 @@ HpxImageSurvey = (function() {
     
         // draw parent tiles
         for (var k=0, len = parentTilesToDraw.length; k<len; k++) {
-        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width);
+        	this.drawOneTile(blend, hue, ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width, alpha);
         }
         
         // draw tiles
@@ -802,7 +799,6 @@ HpxImageSurvey = (function() {
 
         // apply CM
         var newImg = this.useCors ? this.cm.apply(img) : img;
-
 
         // is the tile a diamond ?
     //  var round = AladinUtils.myRound;
@@ -898,10 +894,13 @@ coeff = 0.02;
         
         if (hue != '#000') {
         const colored = compositeHueToLayer(img);
-        console.log('setting blend '+blend);
                     ctx.globalCompositeOperation = blend;
-        ctx.drawImage(img, 0, 0);
+                    ctx.globalAlpha = alpha;
+        ctx.drawImage(colored, 0, 0);
     } else {
+        ctx.globalCompositeOperation = blend;
+        ctx.globalAlpha = alpha;
+
                 ctx.drawImage(img, 0, 0);
     }
         //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 

@@ -15,7 +15,7 @@ Viewport</title>
 <div id='aladin-lite-div' style='width: 100%; height:100%;'></div>
 <script type="text/javascript">
     
-    var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:5.0, target: "NGC 4676", showZoomControl: false, showFullscreenControl: false, showLayersControl: false, showGotoControl: false, showShareControl: false, showSimbadPointerControl: false, showCooGrid: false, fullScreen: true});
+    var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:5.0, target: "andromeda", showZoomControl: false, showFullscreenControl: false, showLayersControl: false, showGotoControl: false, showShareControl: false, showSimbadPointerControl: false, showCooGrid: false, fullScreen: true, log: true});
 
     var imageIndex = 0;
 
@@ -30,22 +30,27 @@ Viewport</title>
                     });
             }, 3000.0);
             }
-
-// Set the initial survey image (alpha 1.0)        
-                            function setSurvey(hipsID, frame, maxOrder, format, index) {
-                                imageIndex = index;
-                            aladin.setImageSurvey(hipsID);
-                                }
-
+            
+// Set the base image layer, no alpha transparency by default
+            function setBaseImage(hipsID, index) {
+                imageIndex = index;
+                aladin.setBaseImageLayer(hipsID, index, "sourceover", "#000", 1.0);
+            }
+            
                                 // Add a new overlay image
                                 function addSurveylayer(ID, index, blendingMode, hue) {
-                                    aladin.setImageSurvey(ID, index, blendingMode, hue);
+                                        aladin.setImageSurvey(ID, index, blendingMode, hue);
                                 }
             
             // Adding a non image survey layer
                             function setOverlayImageLayer(hipsID, alpha, index) {
                             }
 
+// Changing the image parameters for a given layer
+                            function setSurveyParametersAtIndex(index, blend, hue, alpha) {
+                                aladin.setSurveyParametersAtIndex(index, blend, hue, alpha);
+                            }
+                            
                             function setCustomSurvey(hipsID, hipsName, url, frame, maxOrder, format, index) {
                                 imageIndex = index;
                             // url can be local or remote
@@ -112,7 +117,7 @@ window.webkit.messageHandlers.update_image.postMessage({
 }
 
         function getImage() {
-        const image = aladin.getViewDataURL('image/jpeg');
+        const image = aladin.getCanvasSkymapDataURL('image/jpeg');
         return image;
         }
 
@@ -153,28 +158,12 @@ window.webkit.messageHandlers.update_image.postMessage({
             }
         };
 
-// Adding a proxy when all tiles are downloaded
-        const downloadHandler = {
-            set: function(target, key, value) {
-                console.log('all tiles downloaded');
-            }
-        };
-        
-        // Setting the proxy
-        setTimeout( function() {
-        const downloadProxy = new Proxy(aladin.view, downloadHandler);
-    }, 3000);
-        
 // Testing an overlay survey image        
 setTimeout( function() {
-    addSurveylayer("P/allWISE/color", 1, "lighten", "#F00");
+    // addSurveylayer("P/allWISE/color", 1, "lighten", "#F00");
+        // addSurveylayer("P/2MASS/color", 2, "lighten", "#0f0");
+        //     addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 3, "lighten", "#0f0");
 }, 3000);
-setTimeout( function() {
-    addSurveylayer("P/2MASS/color", 2, "lighten", "#0f0");
-}, 6000);
-// setTimeout( function() {
-//     addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 2, "overlay", "#0f0");
-// }, 9000);
 
 // Various observers
         
@@ -195,8 +184,7 @@ setTimeout( function() {
                                     fovObserver.observe(fovSelector, {
                                                 childList: true
                                             });
-        
-       
+               
 </script>
 </body>
 </html>

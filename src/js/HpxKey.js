@@ -76,10 +76,10 @@ HpxKey = (function() {
     HpxKey.prototype = {
 
         draw: function(ctx, view, index) {
-//console.log('Drawing ', this.norder, this.npix);
+// console.log('Drawing ', this.norder, this.npix);
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
-
+            // console.log('corners ', corners);
             if (corners==null) {
                 return 0;
             }
@@ -90,7 +90,7 @@ HpxKey = (function() {
 
             try {
                 if (isTooLarge(corners)) {
-//console.log('too large');
+// console.log('too large');
                     var m = this.drawChildren(ctx, view, MAX_PARENTE);
 
                     // Si aucun sous-losange n'a pu être dessiné, je trace tout de même le père
@@ -125,7 +125,8 @@ HpxKey = (function() {
 
                 const blend = view.imageSurveys[index].blendingMode;
                 const hue = view.imageSurveys[index].colorCorrection;
-                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, null, this.dx, this.dy, true, norder);
+                const alpha = view.imageSurveys[index].alpha;
+                this.hips.drawOneTile2(blend, hue, ctx, img, corners, w, alpha, this.dx, this.dy, true, norder);
                 n += 2;
             }
             else if (updateNeededTiles && ! tile) {

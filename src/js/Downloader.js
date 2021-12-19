@@ -39,7 +39,6 @@ Downloader = (function() {
 	var Downloader = function(view) {
         		this.dlQueue = []; // queue of items being downloaded
         this.urlsInQueue = {};
-        console.log('url queue set');
         
 		this.view = view; // reference to the view to be able to request redraw
 		this.nbDownloads = 0; // number of current downloads
@@ -72,9 +71,6 @@ Downloader = (function() {
 	Downloader.prototype.tryDownload = function() {
 	    //if (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
 		while (this.dlQueue.length>0 && this.nbDownloads<NB_MAX_SIMULTANEOUS_DL) {
-            if (this.view.refreshed) {
-                this.view.refreshed = false;
-            }
 			this.startDownloadNext();
 		}
 	};

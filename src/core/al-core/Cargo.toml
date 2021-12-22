@@ -22,7 +22,8 @@ features = ["serde-serialize"]
 webgl1 = [
   "web-sys/WebGlRenderingContext",
   "web-sys/AngleInstancedArrays",   # Enabling instancing features
-  "web-sys/ExtSRgb"                 # Enabling SRGB8_ALPHA8 internal format
+  "web-sys/ExtSRgb",                # Enabling SRGB8_ALPHA8 internal format
+  "web-sys/OesTextureFloat"
 ]
 webgl2 = [
   "web-sys/WebGl2RenderingContext",

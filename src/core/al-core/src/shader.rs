@@ -80,6 +80,8 @@ pub struct Shader {
 use crate::webgl_ctx::WebGlContext;
 impl Shader {
     pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
+        crate::log::log(&format!("Compiling shader: {:?}", vert_src));
+
         let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, &vert_src)?;
         let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, &frag_src)?;
 

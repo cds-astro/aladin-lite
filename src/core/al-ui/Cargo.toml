@@ -66,6 +66,19 @@ features = [
   'GpuRenderBundleEncoder'
 ]
 
+[features]
+webgl1 = [
+  "web-sys/WebGlRenderingContext",
+  "web-sys/AngleInstancedArrays",   # Enabling instancing features
+  "web-sys/ExtSRgb",                # Enabling SRGB8_ALPHA8 internal format
+  "web-sys/OesTextureFloat"
+]
+webgl2 = [
+  "web-sys/WebGl2RenderingContext",
+  "web-sys/WebGlVertexArrayObject",
+  "web-sys/ExtColorBufferFloat",
+]
+
 [profile.dev]
 opt-level = 's'
 debug = true

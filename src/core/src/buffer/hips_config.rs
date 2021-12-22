@@ -39,6 +39,14 @@ where
     }
 }
 
+#[cfg(feature = "webgl2")]
+use al_core::format::{
+    R16I,
+    R32I,
+    R8UI
+};
+
+#[cfg(feature = "webgl2")]
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum TileConfigType {
@@ -49,7 +57,18 @@ pub enum TileConfigType {
     R16I { config: TileConfig<R16I> },
     R32I { config: TileConfig<R32I> },
 }
-use al_core::format::{ImageFormatType, R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+#[cfg(feature = "webgl1")]
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum TileConfigType {
+    RGBA8U { config: TileConfig<RGBA8U> },
+    RGB8U { config: TileConfig<RGB8U> },
+    R32F { config: TileConfig<R32F> },
+}
+
+use al_core::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
+
+#[cfg(feature = "webgl2")]
 impl TileConfigType {
     fn format(&self) -> ImageFormatType {
         match self {
@@ -69,6 +88,23 @@ impl TileConfigType {
             TileConfigType::R8UI { config } => config.width,
             TileConfigType::R16I { config } => config.width,
             TileConfigType::R32I { config } => config.width,
+        }
+    }
+}
+#[cfg(feature = "webgl1")]
+impl TileConfigType {
+    fn format(&self) -> ImageFormatType {
+        match self {
+            TileConfigType::RGBA8U { .. } => ImageFormatType::RGBA8U,
+            TileConfigType::RGB8U { .. } => ImageFormatType::RGB8U,
+            TileConfigType::R32F { .. } => ImageFormatType::R32F,
+        }
+    }
+    fn width(&self) -> i32 {
+        match self {
+            TileConfigType::RGBA8U { config } => config.width,
+            TileConfigType::RGB8U { config } => config.width,
+            TileConfigType::R32F { config } => config.width,
         }
     }
 }
@@ -171,18 +207,21 @@ impl HiPSConfig {
                 tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
                 match bitpix {
+                    #[cfg(feature = "webgl2")]
                     8 => {
                         tex_storing_unsigned_int = true;
                         Ok(TileConfigType::R8UI {
                             config: TileConfig::<R8UI>::new(tile_size),
                         })
                     }
+                    #[cfg(feature = "webgl2")]
                     16 => {
                         tex_storing_integers = true;
                         Ok(TileConfigType::R16I {
                             config: TileConfig::<R16I>::new(tile_size),
                         })
                     }
+                    #[cfg(feature = "webgl2")]
                     32 => {
                         tex_storing_integers = true;
                         Ok(TileConfigType::R32I {
@@ -278,12 +317,15 @@ impl HiPSConfig {
                 TileConfigType::R32F { config } => {
                     config.set_default_pixel([blank]);
                 }
+                #[cfg(feature = "webgl2")]
                 TileConfigType::R8UI { config } => {
                     config.set_default_pixel([blank as u8]);
                 }
+                #[cfg(feature = "webgl2")]
                 TileConfigType::R16I { config } => {
                     config.set_default_pixel([blank as i16]);
                 }
+                #[cfg(feature = "webgl2")]
                 TileConfigType::R32I { config } => {
                     config.set_default_pixel([blank as i32]);
                 }

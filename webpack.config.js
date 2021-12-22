@@ -31,7 +31,7 @@ module.exports = {
             // command. Default arguments are `--verbose`.
             args: '',
             // Default arguments are `--typescript --target browser --mode normal`.
-            extraArgs: '-- --features webgl2',
+            extraArgs: '--no-typescript -- --features webgl2',
 
             // Optional array of absolute paths to directories, changes to which
             // will trigger the build.

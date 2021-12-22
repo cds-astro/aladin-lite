@@ -51,10 +51,17 @@ impl TextRenderManager {
     /// Init the buffers, VAO and shader
     pub fn new(gl: WebGlContext, camera: &CameraViewPort) -> Result<Self, JsValue> {
         // Create the VAO for the screen
+        #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/text/text_vertex.glsl"),
-            include_str!("../shaders/text/text_frag.glsl"),
+            include_str!("../shaders/webgl1/text/text_vertex.glsl"),
+            include_str!("../shaders/webgl1/text/text_frag.glsl")
+        )?;
+        #[cfg(feature = "webgl2")]
+        let shader = Shader::new(
+            &gl,
+            include_str!("../shaders/webgl2/text/text_vertex.glsl"),
+            include_str!("../shaders/webgl2/text/text_frag.glsl")
         )?;
         let mut vao = VertexArrayObject::new(&gl);
         let vertices = vec![];

@@ -12,7 +12,11 @@ struct RequestSystem {
 }
 use super::image::ImageRequestType;
 use crate::buffer::image::ImageRequest;
-use al_core::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use al_core::format::{R32F, RGB8U, RGBA8U};
+
+#[cfg(feature = "webgl2")]
+use al_core::format::{R16I, R32I, R8UI};
+
 use std::convert::TryInto;
 impl RequestSystem {
     fn new() -> Self {
@@ -41,6 +45,26 @@ impl RequestSystem {
 
         let free_idx = self.free_slots_idx.pop().unwrap();
 
+        #[cfg(feature = "webgl1")]
+        match format {
+            ImageFormatType::RGBA8U => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::PNGRGBA8UImageReq(
+                    <CompressedImageRequest as ImageRequest<RGBA8U>>::new(),
+                )));
+            }
+            ImageFormatType::RGB8U => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::JPGRGB8UImageReq(
+                    <CompressedImageRequest as ImageRequest<RGB8U>>::new(),
+                )));
+            }
+            ImageFormatType::R32F => {
+                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32FImageReq(
+                    <FitsImageRequest as ImageRequest<R32F>>::new(),
+                )));
+            }
+            _ => unimplemented!(),
+        }
+        #[cfg(feature = "webgl2")]
         match format {
             ImageFormatType::RGBA8U => {
                 self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::PNGRGBA8UImageReq(
@@ -74,6 +98,7 @@ impl RequestSystem {
             }
             _ => unimplemented!(),
         }
+
 
         self.reqs[free_idx].as_mut()
     }

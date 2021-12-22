@@ -3,6 +3,7 @@ use js_sys::Function;
 use std::cell::Cell;
 use std::rc::Rc;
 
+#[cfg(feature = "webgl2")]
 pub enum RetrievedImageType {
     FitsImage_R32F { image: FitsImage<R32F> },
     FitsImage_R32I { image: FitsImage<R32I> },
@@ -12,10 +13,12 @@ pub enum RetrievedImageType {
     JPGImage_RGB8U { image: HTMLImage<RGB8U> },
 }
 
-/*pub enum RequestType {
-    File,
-    HtmlImage,
-}*/
+#[cfg(feature = "webgl1")]
+pub enum RetrievedImageType {
+    FitsImage_R32F { image: FitsImage<R32F> },
+    PNGImage_RGBA8U { image: HTMLImage<RGBA8U> },
+    JPGImage_RGB8U { image: HTMLImage<RGB8U> },
+}
 
 use al_core::format::ImageFormatType;
 pub trait ImageRequest<F>
@@ -34,11 +37,18 @@ where
     fn image(&self, tile_width: i32) -> Result<Self::I, JsValue>;
 }
 
+#[cfg(feature = "webgl2")]
 pub enum ImageRequestType {
     FitsR32FImageReq(FitsImageRequest),
     FitsR32IImageReq(FitsImageRequest),
     FitsR16IImageReq(FitsImageRequest),
     FitsR8UIImageReq(FitsImageRequest),
+    PNGRGBA8UImageReq(CompressedImageRequest),
+    JPGRGB8UImageReq(CompressedImageRequest),
+}
+#[cfg(feature = "webgl1")]
+pub enum ImageRequestType {
+    FitsR32FImageReq(FitsImageRequest),
     PNGRGBA8UImageReq(CompressedImageRequest),
     JPGRGB8UImageReq(CompressedImageRequest),
 }
@@ -54,12 +64,15 @@ impl ImageRequestType {
             ImageRequestType::FitsR32FImageReq(r) => {
                 <FitsImageRequest as ImageRequest<R32F>>::send(r, success, fail, url)
             }
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR32IImageReq(r) => {
                 <FitsImageRequest as ImageRequest<R32I>>::send(r, success, fail, url)
             }
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR16IImageReq(r) => {
                 <FitsImageRequest as ImageRequest<R16I>>::send(r, success, fail, url)
             }
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR8UIImageReq(r) => {
                 <FitsImageRequest as ImageRequest<R8UI>>::send(r, success, fail, url)
             }
@@ -77,12 +90,15 @@ impl ImageRequestType {
             ImageRequestType::FitsR32FImageReq(r) => Ok(RetrievedImageType::FitsImage_R32F {
                 image: r.image(tile_width)?,
             }),
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR32IImageReq(r) => Ok(RetrievedImageType::FitsImage_R32I {
                 image: r.image(tile_width)?,
             }),
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR16IImageReq(r) => Ok(RetrievedImageType::FitsImage_R16I {
                 image: r.image(tile_width)?,
             }),
+            #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR8UIImageReq(r) => Ok(RetrievedImageType::FitsImage_R8UI {
                 image: r.image(tile_width)?,
             }),
@@ -312,7 +328,13 @@ pub struct CompressedImageRequest {
     image: web_sys::HtmlImageElement,
 }
 
-use al_core::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use al_core::format::{R32F, RGB8U, RGBA8U};
+#[cfg(feature = "webgl2")]
+use al_core::format::{
+    R16I,
+    R32I,
+    R8UI
+};
 trait CompressedImageFormat: ImageFormat {}
 impl CompressedImageFormat for RGBA8U {}
 impl CompressedImageFormat for RGB8U {}
@@ -442,6 +464,7 @@ impl FitsImageFormat for R32F {
         }
     }
 }
+#[cfg(feature = "webgl2")]
 impl FitsImageFormat for R32I {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::I32(data) = fits_data {
@@ -451,6 +474,7 @@ impl FitsImageFormat for R32I {
         }
     }
 }
+#[cfg(feature = "webgl2")]
 impl FitsImageFormat for R16I {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::I16(data) = fits_data {
@@ -460,6 +484,7 @@ impl FitsImageFormat for R16I {
         }
     }
 }
+#[cfg(feature = "webgl2")]
 impl FitsImageFormat for R8UI {
     fn extract_image_from_fits(fits_data: fitsrs::DataType<'_>, width: i32) -> ImageBuffer<Self> {
         if let DataType::U8(data) = fits_data {

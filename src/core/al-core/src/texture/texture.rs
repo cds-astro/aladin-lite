@@ -3,46 +3,6 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
 use crate::webgl_ctx::WebGlRenderingCtx;
-static mut AVAILABLE_TEX_UNITS: [Option<u32>; 16] = [
-    Some(WebGlRenderingCtx::TEXTURE0),
-    Some(WebGlRenderingCtx::TEXTURE1),
-    Some(WebGlRenderingCtx::TEXTURE2),
-    Some(WebGlRenderingCtx::TEXTURE3),
-    Some(WebGlRenderingCtx::TEXTURE4),
-    Some(WebGlRenderingCtx::TEXTURE5),
-    Some(WebGlRenderingCtx::TEXTURE6),
-    Some(WebGlRenderingCtx::TEXTURE7),
-    Some(WebGlRenderingCtx::TEXTURE8),
-    Some(WebGlRenderingCtx::TEXTURE9),
-    Some(WebGlRenderingCtx::TEXTURE10),
-    Some(WebGlRenderingCtx::TEXTURE11),
-    Some(WebGlRenderingCtx::TEXTURE12),
-    Some(WebGlRenderingCtx::TEXTURE13),
-    Some(WebGlRenderingCtx::TEXTURE14),
-    Some(WebGlRenderingCtx::TEXTURE15),
-];
-pub struct IdxTextureUnit;
-use wasm_bindgen::JsValue;
-impl IdxTextureUnit {
-    pub unsafe fn new() -> Result<u32, JsValue> {
-        if let Some(idx_texture_unit) = AVAILABLE_TEX_UNITS.iter().find(|idx| idx.is_some()) {
-            let idx_texture_unit = idx_texture_unit.unwrap();
-            let i = (idx_texture_unit - WebGlRenderingCtx::TEXTURE0) as usize;
-            AVAILABLE_TEX_UNITS[i] = None;
-            Ok(idx_texture_unit)
-        } else {
-            Err(JsValue::from_str("No available tex units found"))
-        }
-    }
-
-    #[allow(dead_code)]
-    fn max_combined_texture_image_units(gl: &WebGlContext) -> u32 {
-        gl.get_parameter(WebGlRenderingCtx::MAX_COMBINED_TEXTURE_IMAGE_UNITS)
-            .unwrap()
-            .as_f64()
-            .unwrap() as u32
-    }
-}
 
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 

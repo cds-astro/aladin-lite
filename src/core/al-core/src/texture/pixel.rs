@@ -38,7 +38,7 @@ impl Pixel for [f32; 4] {
             y,
             1,
             1,
-            web_sys::ExtSRgb::SRGB_ALPHA_EXT,
+            WebGlRenderingCtx::RGBA,
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;
@@ -70,7 +70,7 @@ impl Pixel for [f32; 3] {
             y,
             1,
             1,
-            web_sys::ExtSRgb::SRGB_EXT,
+            WebGlRenderingCtx::RGB,
             WebGlRenderingCtx::FLOAT,
             Some(&pixels),
         )?;

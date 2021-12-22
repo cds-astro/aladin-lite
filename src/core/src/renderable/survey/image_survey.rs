@@ -1,6 +1,13 @@
 use crate::buffer::Texture;
 use crate::healpix_cell::HEALPixCell;
-use al_core::{VecData, format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U}, image::ImageBuffer};
+use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
+#[cfg(feature = "webgl2")]
+use al_core::format::{
+    R16I,
+    R32I,
+    R8UI
+};
+
 use al_ui::hips::HiPSProperties;
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
@@ -1364,6 +1371,7 @@ impl ImageSurveys {
                                     missing,
                                 );
                             }
+                            #[cfg(feature = "webgl2")]
                             TileConfigType::R8UI { config } => {
                                 let missing_tile_image = config.get_default_tile();
                                 textures.push::<Rc<ImageBuffer<R8UI>>>(
@@ -1373,6 +1381,7 @@ impl ImageSurveys {
                                     missing,
                                 );
                             }
+                            #[cfg(feature = "webgl2")]
                             TileConfigType::R16I { config } => {
                                 let missing_tile_image = config.get_default_tile();
                                 textures.push::<Rc<ImageBuffer<R16I>>>(
@@ -1382,6 +1391,7 @@ impl ImageSurveys {
                                     missing,
                                 );
                             }
+                            #[cfg(feature = "webgl2")]
                             TileConfigType::R32I { config } => {
                                 let missing_tile_image = config.get_default_tile();
                                 textures.push::<Rc<ImageBuffer<R32I>>>(
@@ -1405,6 +1415,7 @@ impl ImageSurveys {
                                 );
                                 textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
                             }
+                            #[cfg(feature = "webgl2")]
                             RetrievedImageType::FitsImage_R32I { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,
@@ -1413,6 +1424,7 @@ impl ImageSurveys {
                                 );
                                 textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
                             }
+                            #[cfg(feature = "webgl2")]
                             RetrievedImageType::FitsImage_R16I { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,
@@ -1421,6 +1433,7 @@ impl ImageSurveys {
                                 );
                                 textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
                             }
+                            #[cfg(feature = "webgl2")]
                             RetrievedImageType::FitsImage_R8UI { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,

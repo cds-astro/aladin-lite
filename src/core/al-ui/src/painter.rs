@@ -1,10 +1,15 @@
 //! Mostly a carbon-copy of `webgl1.rs`.
 
+#[cfg(feature = "webgl2")]
+pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
+#[cfg(feature = "webgl1")]
+pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
+
 use {
     wasm_bindgen::{prelude::*, JsCast},
     web_sys::{
-        WebGl2RenderingContext, WebGlBuffer,
-        WebGlTexture, WebGlVertexArrayObject,
+        WebGlBuffer,
+        WebGlTexture,
     },
 };
 
@@ -15,7 +20,6 @@ use egui::{
     emath::vec2,
     epaint::{Color32, Texture},
 };
-type Gl = WebGl2RenderingContext;
 
 use al_core::FrameBufferObject;
 pub struct WebGl2Painter {
@@ -73,45 +77,50 @@ impl WebGl2Painter {
             &gl,
             &[
                 (
-                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                    WebGl2RenderingContext::LINEAR,
+                    WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                    WebGlRenderingCtx::LINEAR,
                 ),
                 (
-                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                    WebGl2RenderingContext::LINEAR,
+                    WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                    WebGlRenderingCtx::LINEAR,
                 ),
                 // Prevents s-coordinate wrapping (repeating)
                 (
-                    WebGl2RenderingContext::TEXTURE_WRAP_S,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                    WebGlRenderingCtx::TEXTURE_WRAP_S,
+                    WebGlRenderingCtx::CLAMP_TO_EDGE,
                 ),
                 // Prevents t-coordinate wrapping (repeating)
                 (
-                    WebGl2RenderingContext::TEXTURE_WRAP_T,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                    WebGlRenderingCtx::TEXTURE_WRAP_T,
+                    WebGlRenderingCtx::CLAMP_TO_EDGE,
                 ),
             ],
         )?;
 
+        #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/main_vertex_100es.glsl"),
-            include_str!("../shaders/main_fragment_100es.glsl"),
+            include_str!("../shaders/webgl1/main_vertex_100es.glsl"),
+            include_str!("../shaders/webgl1/main_fragment_100es.glsl")
         )?;
-        //let vao = gl.create_vertex_array().unwrap();
-        //gl.bind_vertex_array(Some(&vao));
+        #[cfg(feature = "webgl2")]
+        let shader = Shader::new(
+            &gl,
+            include_str!("../shaders/webgl2/main_vertex_100es.glsl"),
+            include_str!("../shaders/webgl2/main_fragment_100es.glsl")
+        )?;
 
         let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&vbo));
 
         let data = vec![
             -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
             -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
         ];
         gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
+            WebGlRenderingCtx::ARRAY_BUFFER,
             unsafe { &js_sys::Float32Array::view(&data) },
-            WebGl2RenderingContext::STREAM_DRAW,
+            WebGlRenderingCtx::STREAM_DRAW,
         );
 
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
@@ -119,7 +128,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             0,
             2,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             0,
@@ -130,7 +139,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             1,
             2,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             (2 * num_bytes_per_f32) as i32,
@@ -141,7 +150,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             2,
             4,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             (4 * num_bytes_per_f32) as i32,
@@ -150,17 +159,17 @@ impl WebGl2Painter {
 
         let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, Some(&ebo));
         let data = vec![0_u16, 1, 2];
         gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             unsafe { &js_sys::Uint16Array::view(&data) },
-            WebGl2RenderingContext::STREAM_DRAW,
+            WebGlRenderingCtx::STREAM_DRAW,
         );
         //gl.bind_vertex_array(None);
 
-        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, None);
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
+        gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, None);
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
         let fbo = FrameBufferObject::new(&gl, canvas.width() as usize, canvas.height() as usize)?;
 
         Ok(WebGl2Painter {
@@ -256,22 +265,22 @@ impl WebGl2Painter {
                     user_texture.size.1 as i32,
                     &[
                         (
-                            WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                            WebGl2RenderingContext::LINEAR,
+                            WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                            WebGlRenderingCtx::LINEAR,
                         ),
                         (
-                            WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                            WebGl2RenderingContext::LINEAR,
+                            WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                            WebGlRenderingCtx::LINEAR,
                         ),
                         // Prevents s-coordinate wrapping (repeating)
                         (
-                            WebGl2RenderingContext::TEXTURE_WRAP_S,
-                            WebGl2RenderingContext::CLAMP_TO_EDGE,
+                            WebGlRenderingCtx::TEXTURE_WRAP_S,
+                            WebGlRenderingCtx::CLAMP_TO_EDGE,
                         ),
                         // Prevents t-coordinate wrapping (repeating)
                         (
-                            WebGl2RenderingContext::TEXTURE_WRAP_T,
-                            WebGl2RenderingContext::CLAMP_TO_EDGE,
+                            WebGlRenderingCtx::TEXTURE_WRAP_T,
+                            WebGlRenderingCtx::CLAMP_TO_EDGE,
                         ),
                     ],
                     Some(&pixels),
@@ -320,11 +329,11 @@ impl WebGl2Painter {
         //self.gl.bind_vertex_array(Some(&self.vao));
 
         // Bind the buffer
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&self.vbo));
         gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
+            WebGlRenderingCtx::ARRAY_BUFFER,
             unsafe { &js_sys::Float32Array::view(&vertices) },
-            WebGl2RenderingContext::STREAM_DRAW,
+            WebGlRenderingCtx::STREAM_DRAW,
         );
 
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
@@ -332,7 +341,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             0,
             2,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             0,
@@ -343,7 +352,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             1,
             2,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             (2 * num_bytes_per_f32) as i32,
@@ -354,7 +363,7 @@ impl WebGl2Painter {
         gl.vertex_attrib_pointer_with_i32(
             2,
             4,
-            WebGl2RenderingContext::FLOAT,
+            WebGlRenderingCtx::FLOAT,
             false,
             8 * num_bytes_per_f32,
             (4 * num_bytes_per_f32) as i32,
@@ -362,13 +371,13 @@ impl WebGl2Painter {
         gl.enable_vertex_attrib_array(2);
 
         gl.bind_buffer(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             Some(&self.ebo),
         );
         gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
             unsafe { &js_sys::Uint16Array::view(&mesh.indices) },
-            WebGl2RenderingContext::STREAM_DRAW,
+            WebGlRenderingCtx::STREAM_DRAW,
         );
 
         let shader = self.shader.bind(&self.gl);
@@ -382,10 +391,10 @@ impl WebGl2Painter {
 
         // The raster vao is bound at the lib.rs level
         self.gl.draw_elements_with_i32(
-            //WebGl2RenderingContext::LINES,
-            WebGl2RenderingContext::TRIANGLES,
+            //WebGlRenderingCtx::LINES,
+            WebGlRenderingCtx::TRIANGLES,
             mesh.indices.len() as i32,
-            WebGl2RenderingContext::UNSIGNED_SHORT,
+            WebGlRenderingCtx::UNSIGNED_SHORT,
             0,
         );
         //self.gl.bind_vertex_array(None);
@@ -441,9 +450,13 @@ impl egui_web::Painter for WebGl2Painter {
             pixels.push(srgba.b());
             pixels.push(srgba.a());
         }
-        let internal_format = Gl::SRGB8_ALPHA8;
-        let src_format = Gl::RGBA;
-        let src_type = Gl::UNSIGNED_BYTE;
+        #[cfg(feature = "webgl1")]
+        let internal_format = WebGlRenderingCtx::RGBA;
+        #[cfg(feature = "webgl2")]
+        let internal_format = WebGlRenderingCtx::SRGB8_ALPHA8;
+
+        let src_format = WebGlRenderingCtx::RGBA;
+        let src_type = WebGlRenderingCtx::UNSIGNED_BYTE;
         let gl = &self.gl;
         self.egui_texture
             .bind_mut()
@@ -472,8 +485,8 @@ impl egui_web::Painter for WebGl2Painter {
         self.upload_user_textures();
 
         /* Draw the ui */
-        self.gl.enable(Gl::SCISSOR_TEST);
-        self.gl.disable(Gl::CULL_FACE); // egui is not strict about winding order.
+        self.gl.enable(WebGlRenderingCtx::SCISSOR_TEST);
+        self.gl.disable(WebGlRenderingCtx::CULL_FACE); // egui is not strict about winding order.
 
         let canvas_width = self.canvas.width();
         let canvas_height = self.canvas.height();
@@ -516,8 +529,8 @@ impl egui_web::Painter for WebGl2Painter {
         }
 
 
-        self.gl.disable(Gl::SCISSOR_TEST);
-        self.gl.enable(Gl::CULL_FACE);
+        self.gl.disable(WebGlRenderingCtx::SCISSOR_TEST);
+        self.gl.enable(WebGlRenderingCtx::CULL_FACE);
 
         /* End draw the ui */
 

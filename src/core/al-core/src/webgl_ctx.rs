@@ -64,7 +64,7 @@ impl WebGlContext {
         #[cfg(feature = "webgl1")]
         let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
         #[cfg(feature = "webgl1")]
-        let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
+        let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
 
         #[cfg(feature = "webgl1")]
         let ctx = WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } };

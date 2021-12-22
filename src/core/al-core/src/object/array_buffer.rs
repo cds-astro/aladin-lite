@@ -149,7 +149,7 @@ impl VertexAttribPointerType for u8 {
             stride,
             offset,
         );
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.vertex_attrib_pointer_with_i32(
             idx,
             size,
@@ -204,7 +204,7 @@ impl VertexAttribPointerType for u16 {
             stride,
             offset,
         );
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.vertex_attrib_pointer_with_i32(
             idx,
             size,
@@ -259,7 +259,7 @@ impl VertexAttribPointerType for u32 {
             stride,
             offset,
         );
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.vertex_attrib_pointer_with_i32(
             idx,
             size,
@@ -308,7 +308,7 @@ impl VertexAttribPointerType for i32 {
     ) {
         #[cfg(feature = "webgl2")]
         gl.vertex_attrib_i_pointer_with_i32(idx, size, WebGlRenderingCtx::INT, stride, offset);
-        #[cfg(not(feature = "webgl2"))]
+        #[cfg(feature = "webgl1")]
         gl.vertex_attrib_pointer_with_i32(
             idx,
             size,

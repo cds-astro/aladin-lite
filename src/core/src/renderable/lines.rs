@@ -39,10 +39,17 @@ impl RasterizedLinesRenderManager {
     /// Init the buffers, VAO and shader
     pub fn new(gl: WebGl2Context, camera: &CameraViewPort) -> Result<Self, JsValue> {
         // Create the VAO for the screen
+        #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/line/line_vertex.glsl"),
-            include_str!("../shaders/line/line_frag.glsl"),
+            include_str!("../shaders/webgl1/line/line_vertex.glsl"),
+            include_str!("../shaders/webgl1/line/line_frag.glsl")
+        )?;
+        #[cfg(feature = "webgl2")]
+        let shader = Shader::new(
+            &gl,
+            include_str!("../shaders/webgl2/line/line_vertex.glsl"),
+            include_str!("../shaders/webgl2/line/line_frag.glsl")
         )?;
         let mut vao = VertexArrayObject::new(&gl);
 

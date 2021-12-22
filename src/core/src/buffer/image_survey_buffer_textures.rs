@@ -183,7 +183,15 @@ fn create_texture_array<F: ImageFormat>(
 }
 
 use super::Tile;
-use al_core::format::{ImageFormatType, R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use al_core::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
+
+#[cfg(feature = "webgl2")]
+use al_core::format::{
+    R16I,
+    R32I,
+    R8UI
+};
+
 use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
@@ -199,6 +207,7 @@ impl ImageSurveyTextures {
 
         let textures = HashMap::with_capacity(size);
 
+        #[cfg(feature = "webgl2")]
         let texture_2d_array = match config.format() {
             ImageFormatType::RGBA32F => unimplemented!(),
             ImageFormatType::RGB32F => unimplemented!(),
@@ -209,7 +218,14 @@ impl ImageSurveyTextures {
             ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
             ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
         };
-
+        #[cfg(feature = "webgl1")]
+        let texture_2d_array = match config.format() {
+            ImageFormatType::RGBA32F => unimplemented!(),
+            ImageFormatType::RGB32F => unimplemented!(),
+            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &config)?),
+            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &config)?),
+            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
+        };
         // The root textures have not been loaded
         let ready = false;
         let num_root_textures_available = 0;

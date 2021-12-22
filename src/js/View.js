@@ -51,12 +51,17 @@ import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
-import { loadShaders } from './Shaders.js';
+import { loadShadersWebGL2 } from './ShadersWebGL2.js';
 // Import kernel image
 import kernel from '../core/img/kernel.png';
 import colormaps from '../core/img/colormaps/colormaps.png';
 
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
+
+function checkForWebGL2Support() {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    return gl;
+}
 
 export let View = (function() {
 
@@ -70,9 +75,13 @@ export let View = (function() {
             this.popup = new Popup(this.aladinDiv, this);
 
             this.createCanvases();
+            // Check whether a webgl2 context is available
+            //const webGL2Supported = checkForWebGL2Support();
+            const webGL2Supported = true;
+            this.webGL2Supported = webGL2Supported;
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too
-            let shaders = loadShaders();
+            const shaders = webGL2Supported ? loadShadersWebGL2() : loadShadersWebGL1();
         
             let resources = {
                 'kernel': kernel,
@@ -81,14 +90,14 @@ export let View = (function() {
 
             try {
                 // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+                // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
                 this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
             } catch(e) {
                 // For browsers not supporting WebGL2:
                 // 1. Print the original exception message in the console
                 console.log(e)
                 // 2. Add a more explicite message to the end user
-                alert("WebGL2 is not supported by default in your browser. If you're using Safari, you can enable it by checking:\nDeveloper Menu > Experimental Features > WebGL2. You will have to reload the page afterwards.")
-                // TODO: 3. propose a another possibility to the user: a button to run aladin lite v2 instead
+                alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite")
             }
 
             this.location = location;
@@ -295,7 +304,7 @@ export let View = (function() {
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext("webgl2");
+        this.imageCtx = this.imageCanvas.getContext(this.webGL2Supported ? "webgl2" : "webgl");
         this.aladin.webglAPI.resize(this.width, this.height);
         
         this.catalogCtx = this.catalogCanvas.getContext("2d");
@@ -1383,16 +1392,6 @@ export let View = (function() {
         requestAnimFrame(this.redraw.bind(this));
 
     };
-
-    /*View.prototype.drawGridLabels = function (text) {
-        //let ctx = this.imageCanvas.getContext("webgl2");
-        //var c = document.getElementById("myCanvas");
-        //var ctx = c.getContext("2d");
-        
-        this.reticleCtx.font = "30px Verdana";
-        this.reticleCtx.fillText(text, 200, 50);
-        //ctx.font = "30px Verdana";
-    }*/
 
     View.prototype.forceRedraw = function() {
         this.flagForceRedraw = true;

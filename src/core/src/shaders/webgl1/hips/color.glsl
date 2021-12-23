@@ -23,11 +23,11 @@ uniform int tex_storing_fits;
 vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);
     if (idx_texture == 0) {
-        return texture(tex1, uv.xy);
+        return texture2D(tex1, uv.xy);
     } else if (idx_texture == 1) {
-        return texture(tex2, uv.xy);
+        return texture2D(tex2, uv.xy);
     } else if (idx_texture == 2) {
-        return texture(tex3, uv.xy);
+        return texture2D(tex3, uv.xy);
     } else {
         return vec4(0.0, 1.0, 1.0, 1.0);
     }

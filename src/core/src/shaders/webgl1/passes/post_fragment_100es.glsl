@@ -1,15 +1,7 @@
-#ifdef WEBGL2
-    #version 300 es
-    precision mediump float;
+precision mediump float;
 
-    in vec2 v_tc;
-    out vec4 color;
-#else
-    precision mediump float;
-    
-    varying vec2 v_tc;
-    varying vec4 color;
-#endif
+varying vec2 v_tc;
+varying vec4 color;
 
 uniform sampler2D fbo_tex;
 

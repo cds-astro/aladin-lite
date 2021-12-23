@@ -1,17 +1,8 @@
-#ifdef WEBGL2
-    #version 300 es
-    precision highp float;
+precision highp float;
 
-    in vec4 v_rgba;
-    in vec2 v_tc;
-    out vec4 color;
-#else
-    precision highp float;
-
-    varying vec4 v_rgba;
-    varying vec2 v_tc;
-    varying vec4 color;
-#endif
+varying vec4 v_rgba;
+varying vec2 v_tc;
+varying vec4 color;
 
 uniform sampler2D u_sampler_font;
 

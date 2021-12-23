@@ -1,8 +1,5 @@
-#version 300 es
 precision highp float;
 precision highp sampler2D;
-precision highp usampler2D;
-precision highp isampler2D;
 precision highp int;
 
 in vec2 out_clip_pos;
@@ -66,7 +63,7 @@ uniform sampler2D position_tex;
 uniform mat4 model;
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
-    vec3 n = texture(position_tex, uv).rgb;
+    vec3 n = texture2D(position_tex, uv).rgb;
 
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 

@@ -1,20 +1,20 @@
-const float TWICE_PI = 6.28318530718f;
-const float PI = 3.141592653589793f;
-const float FOUR_OVER_PI = 1.27323954474f;
-const float TRANSITION_Z = 0.66666666666f;
-const float TRANSITION_Z_INV = 1.5f;
+const float TWICE_PI = 6.28318530718;
+const float PI = 3.141592653589793;
+const float FOUR_OVER_PI = 1.27323954474;
+const float TRANSITION_Z = 0.66666666666;
+const float TRANSITION_Z_INV = 1.5;
 
 int quarter(vec2 p) {
-    int x_neg = int(p.x < 0.0f);
-    int y_neg = int(p.y < 0.0f);
+    int x_neg = int(p.x < 0.0);
+    int y_neg = int(p.y < 0.0);
     int q = (x_neg + y_neg) | (y_neg << 1);
     return q;
 }
 
 float xpm1(vec2 p) {
-    bool x_neg = (p.x < 0.0f);
+    bool x_neg = (p.x < 0.0);
     //debug_assert!(x_neg <= 1);
-    bool y_neg = (p.y < 0.0f);
+    bool y_neg = (p.y < 0.0);
     //debug_assert!(y_neg <= 1);
     // The purpose it to have the same numerical precision for each base cell
     // by avoiding subtraction by 1 or 3 or 5 or 7
@@ -23,9 +23,9 @@ float xpm1(vec2 p) {
     float x02 = lon * FOUR_OVER_PI;
     //debug_assert!(0.0 <= x02 && x02 <= 2.0);
     if (x_neg != y_neg) { // Could be replaced by a sign copy from (x_neg ^ y_neg) << 32
-        return 1.0f - x02;
+        return 1.0 - x02;
     } else {
-        return x02 - 1.0f;
+        return x02 - 1.0;
     }
 }
 
@@ -33,20 +33,20 @@ float one_minus_z_pos(vec3 p) {
     //debug_assert!(z > 0.0);
     float d2 = dot(p.xy, p.xy); // z = sqrt(1 - d2) AND sqrt(1 - x) = 1 - x / 2 - x^2 / 8 - x^3 / 16 - 5 x^4/128 - 7 * x^5/256
 
-    if (d2 < 1e-1f) { // <=> dec > 84.27 deg
-        return d2 * (0.5f + d2 * (0.125f + d2 * (0.0625f + d2 * (0.0390625f + d2 * 0.02734375f))));
+    if (d2 < 1e-1) { // <=> dec > 84.27 deg
+        return d2 * (0.5 + d2 * (0.125 + d2 * (0.0625 + d2 * (0.0390625 + d2 * 0.02734375))));
     }
-    return 1.0f - p.z;
+    return 1.0 - p.z;
 }
 
 float one_minus_z_neg(vec3 p) {
     //debug_assert!(z < 0.0);
     float d2 = dot(p.xy, p.xy); // z = sqrt(1 - d2) AND sqrt(1 - x) = 1 - x / 2 - x^2 / 8 - x^3 / 16 - 5 x^4/128 - 7 * x^5/256
-    if (d2 < 1e-1f) { // <=> dec < -84.27 deg
+    if (d2 < 1e-1) { // <=> dec < -84.27 deg
         // 0.5 * d2 + 0.125 * d2 * d2
-        return d2 * (0.5f + d2 * (0.125f + d2 * (0.0625f + d2 * (0.0390625f + d2 * 0.02734375f))));
+        return d2 * (0.5 + d2 * (0.125 + d2 * (0.0625 + d2 * (0.0390625 + d2 * 0.02734375))));
     }
-    return p.z + 1.0f;
+    return p.z + 1.0;
 }
 
 // Z-Order curve projection.
@@ -77,7 +77,7 @@ struct HashDxDy {
 uniform sampler2D ang2pixd;
 HashDxDy hash_with_dxdy2(vec2 radec) {
     vec2 aa = vec2(radec.x/TWICE_PI + 1.0, (radec.y/PI) + 0.5);
-    vec3 v = texture(ang2pixd, aa).rgb;
+    vec3 v = texture2D(ang2pixd, aa).rgb;
     return HashDxDy(
         int(v.x * 255.0),
         v.y,
@@ -113,23 +113,23 @@ HashDxDy hash_with_dxdy(int depth, vec3 p) {
     //   we can go as deep as depth 24 (or maybe 25)
     
     int nside = 1 << depth;
-    float half_nside = float(nside) * 0.5f;
+    float half_nside = float(nside) * 0.5;
 
     float x_pm1 = xpm1(p.xy);
     int q = quarter(p.xy);
 
     int d0h = 0;
-    vec2 p_proj = vec2(0.f);
+    vec2 p_proj = vec2(0.0);
     if (p.z > TRANSITION_Z) {
         // North polar cap, Collignon projection.
         // - set the origin to (PI/4, 0)
-        float sqrt_3_one_min_z = sqrt(3.0f * one_minus_z_pos(p));
-        p_proj = vec2(x_pm1 * sqrt_3_one_min_z, 2.0f - sqrt_3_one_min_z);
+        float sqrt_3_one_min_z = sqrt(3.0 * one_minus_z_pos(p));
+        p_proj = vec2(x_pm1 * sqrt_3_one_min_z, 2.0 - sqrt_3_one_min_z);
         d0h = q;
     } else if (p.z < -TRANSITION_Z) {
         // South polar cap, Collignon projection
         // - set the origin to (PI/4, -PI/2)
-        float sqrt_3_one_min_z = sqrt(3.0f * one_minus_z_neg(p));
+        float sqrt_3_one_min_z = sqrt(3.0 * one_minus_z_neg(p));
         p_proj = vec2(x_pm1 * sqrt_3_one_min_z, sqrt_3_one_min_z);
         d0h = q + 8;
     } else {

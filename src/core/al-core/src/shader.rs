@@ -71,7 +71,6 @@ fn get_active_uniform_locations(gl: &WebGlContext, program: &WebGlProgram) -> Un
 }
 
 use std::collections::HashMap;
-use std::thread::current;
 pub struct Shader {
     pub program: WebGlProgram,
     uniform_locations: UniformLocations,
@@ -80,7 +79,7 @@ pub struct Shader {
 use crate::webgl_ctx::WebGlContext;
 impl Shader {
     pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
-        crate::log::log(&format!("Compiling shader: {:?}", vert_src));
+        crate::log::log(&format!("Compiling shader: {:?}\n{:?}", vert_src, frag_src));
 
         let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, &vert_src)?;
         let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, &frag_src)?;

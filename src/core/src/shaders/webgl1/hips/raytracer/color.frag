@@ -1,19 +1,9 @@
-#ifdef WEBGL2
-    #version 300 es
-    in vec3 out_vert_pos;
-    in vec2 out_clip_pos;
-    out vec4 out_frag_color;
-#else
-    varying vec3 out_vert_pos;
-    varying vec2 out_clip_pos;
-    varying vec4 out_frag_color;
-#endif
-
 precision highp float;
 precision highp sampler2D;
-precision highp usampler2D;
-precision highp isampler2D;
 precision highp int;
+
+varying vec3 out_vert_pos;
+varying vec2 out_clip_pos;
 
 uniform int user_action;
 
@@ -95,7 +85,7 @@ void main() {
     vec3 n = vec3(0.0);
     if(current_depth < 2) {
         vec2 uv = out_clip_pos * 0.5 + 0.5;
-        n = texture(position_tex, uv).rgb;
+        n = texture2D(position_tex, uv).rgb;
     } else {
         float x = out_clip_pos.x;
         float y = out_clip_pos.y;
@@ -115,5 +105,5 @@ void main() {
 
     // Get the HEALPix cell idx and the uv in the texture
     vec4 c = get_tile_color(frag_pos);
-    out_frag_color = vec4(c.rgb, opacity * c.a);
+    gl_FragColor = vec4(c.rgb, opacity * c.a);
 }

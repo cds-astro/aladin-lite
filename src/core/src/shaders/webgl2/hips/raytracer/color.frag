@@ -1,13 +1,13 @@
 #version 300 es
-in vec3 out_vert_pos;
-in vec2 out_clip_pos;
-out vec4 out_frag_color;
-
 precision highp float;
 precision highp sampler2D;
 precision highp usampler2D;
 precision highp isampler2D;
 precision highp int;
+
+in vec3 out_vert_pos;
+in vec2 out_clip_pos;
+out vec4 out_frag_color;
 
 uniform int user_action;
 

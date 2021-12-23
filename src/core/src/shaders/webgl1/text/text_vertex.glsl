@@ -1,17 +1,8 @@
-#ifdef WEBGL2
-  #version 300 es
-  layout (location = 0) in vec2 pos;
-  layout (location = 1) in vec2 tx;
+attribute vec2 pos;
+attribute vec2 tx;
 
-  out vec4 v_rgba;
-  out vec2 v_tc;
-#else
-  attribute vec2 pos;
-  attribute vec2 tx;
-
-  varying vec4 v_rgba;
-  varying vec2 v_tc;
-#endif
+varying vec4 v_rgba;
+varying vec2 v_tc;
 
 uniform vec2 u_screen_size;
 uniform vec4 u_color;

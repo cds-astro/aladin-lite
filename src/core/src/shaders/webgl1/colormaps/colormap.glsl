@@ -8,5 +8,5 @@ vec4 colormap_f(float x) {
     x = mix(x, 1.0 - x, float(reversed));
     float id = (float(colormap_id) + 0.5) / float(num_colormaps);
 
-    return texture(colormaps, vec2(x, id));
+    return texture2D(colormaps, vec2(x, id));
 }

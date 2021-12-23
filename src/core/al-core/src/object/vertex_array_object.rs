@@ -485,6 +485,8 @@ pub mod vao {
                 buf.set_vertex_attrib_pointers::<f32>();
             }
 
+            let e = self.vao.element_array_buffer.as_ref().unwrap();
+            e.bind();
             let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
             self.vao
                 .gl

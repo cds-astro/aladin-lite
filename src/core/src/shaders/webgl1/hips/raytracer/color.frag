@@ -24,44 +24,73 @@ uniform float current_time; // current time in ms
 @import ./healpix;
 
 uniform float opacity;
-
-int binary_search_tile(int uniq) {
-    int l = 0;
-    int r = num_tiles - 1;
-
-    while (l < r) {
-        int a = (l + r) / 2;
-        Tile tile = textures_tiles[a];
-        if(tile.uniq == uniq) {
-            return a;
-        } else if(tile.uniq < uniq) {
-            l = a + 1;
-        } else {
-            r = a - 1;
+/*
+Tile binary_search_tile( int key ) {
+  int off = 0;
+  int size = num_tiles;
+  if( size==12 ){ if( textures_tiles[7] <=  key ){ off+=7; size=5; } else size=6; }
+  if( size==11 ){ if( textures_tiles[6] <=  key ){ off+=6; size=5; } else size=5; }
+  if( size==10 ){ if( textures_tiles[6] <=  key ){ off+=6; size=4; } else size=5; }
+  if( size==9 ){ if( textures_tiles[5] <=  key ){ off+=5; size=4; } else size=4; }
+  if( size==8 ){ if( textures_tiles[5] <=  key ){ off+=5; size=3; } else size=4; }
+  if( size==7 ){ if( textures_tiles[4] <=  key ){ off+=4; size=3; } else size=3; }
+  if( size==6 ){ if( textures_tiles[4] <=  key ){ off+=4; size=2; } else size=3; }
+  if( size==5 ){ if( textures_tiles[3] <=  key ){ off+=3; size=2; } else size=2; }
+  if( size==4 ){ if( textures_tiles[3] <=  key ){ off+=3; size=1; } else size=2; }
+  if( size==3 ){ if( textures_tiles[2] <=  key ){ off+=2; size=1; } else size=1; }
+  if( size==2 ){ if( textures_tiles[2] <=  key ){ off+=2; size=0; } else size=1; }
+  if( size==1 ){ if( textures_tiles[1] <=  key ){ off+=1;         }              }
+  return textures_tiles[0]==key;
+}
+*/
+Tile get_tile(int idx) {
+    for(int i = 0; i < 12; i++) {
+        if( i == idx ) {
+            return textures_tiles[i];
         }
     }
+}
 
-    return l;
+Tile binary_search_tile(int uniq) {
+    int l = 0;
+    int r = 12 - 1;
+    for (int v = 0; v >= 0; v++) {
+        int mid = (l + r) / 2;
+
+        Tile tile = get_tile(mid);
+        if(tile.uniq == uniq) {
+            return tile;
+        } else if(tile.uniq < uniq) {
+            l = mid + 1;
+        } else {
+            r = mid - 1;
+        }
+
+        // before exiting the loop
+        if (l >= r) {
+            return get_tile(l);
+        }
+    }
 }
 
 vec4 get_tile_color(vec3 pos) {
-    int d = current_depth;
-
-    while (d >= 0) {
-        HashDxDy result = hash_with_dxdy(d, pos.zxy);
+    //int d = current_depth;
+    int d = 0;
+    //while (d >= 0) {
+        float delta = asin(pos.y);
+        float theta = atan(pos.x, pos.z);
+        HashDxDy result = hash_with_dxdy(vec2(theta, delta));
         
         int idx = result.idx;
         vec2 uv = vec2(result.dy, result.dx);
-
-        int uniq = (16 << (d << 1)) | idx;
-        int tile_idx = binary_search_tile(uniq);
-        Tile tile = textures_tiles[tile_idx];
+        int uniq = 16*int(pow(2.0, float(d)*2.0)) + idx; 
+        Tile tile = binary_search_tile(uniq);
 
         if(tile.uniq == uniq) {
-            int idx_texture = tile.texture_idx >> 6;
-            int off = tile.texture_idx & 0x3F;
-            float idx_row = float(off >> 3); // in [0; 7]
-            float idx_col = float(off & 0x7); // in [0; 7]
+            int idx_texture = tile.texture_idx / 64;
+            int off = int(mod(float(tile.texture_idx), 64.0));
+            float idx_row = float(off / 8); // in [0; 7]
+            float idx_col = mod(float(off), 8.0); // in [0; 7]
 
             vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
             vec3 UV = vec3(offset, float(idx_texture));
@@ -72,11 +101,11 @@ vec4 get_tile_color(vec3 pos) {
             return color;
         }
 
-        d = d - 1;
-    }
+    //    d = d - 1;
+    //}
 }
 
-const float duration = 500.f; // 500ms
+const float duration = 500.0; // 500ms
 uniform int max_depth; // max depth of the HiPS
 
 uniform sampler2D position_tex;

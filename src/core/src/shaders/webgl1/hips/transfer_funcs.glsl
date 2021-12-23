@@ -13,6 +13,9 @@ float log_f(float x, float min_value, float max_value) {
     return log(a*y + 1.0)/log(a);
 }
 
+float asinh(float x) {
+    return log(x + sqrt(x*x + 1.0));
+}
 float asinh_f(float x, float min_value, float max_value) {
     float d = linear_f(x, min_value, max_value);
     return asinh(10.0*d)/3.0;

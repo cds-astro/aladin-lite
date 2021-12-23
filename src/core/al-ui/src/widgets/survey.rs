@@ -166,7 +166,8 @@ enum TransferFunction {
     ASINH,
     LINEAR,
     POW,
-    SIN
+    LOG,
+    SQRT
 }
 
 pub enum Color {
@@ -260,8 +261,9 @@ impl SurveyWidget {
                 let transfer = match self.transfer_func.as_ref().unwrap() {
                     TransferFunction::ASINH => String::from("asinh"),
                     TransferFunction::LINEAR => String::from("linear"),
-                    TransferFunction::POW => String::from("pow"),
-                    TransferFunction::SIN => String::from("sin"),
+                    TransferFunction::POW => String::from("pow2"),
+                    TransferFunction::LOG => String::from("log"),
+                    TransferFunction::SQRT => String::from("sqrt"),
                 };
 
                 HiPSColor::Grayscale2Color {
@@ -276,8 +278,9 @@ impl SurveyWidget {
                 let transfer = match self.transfer_func.as_ref().unwrap() {
                     TransferFunction::ASINH => String::from("asinh"),
                     TransferFunction::LINEAR => String::from("linear"),
-                    TransferFunction::POW => String::from("pow"),
-                    TransferFunction::SIN => String::from("sin"),
+                    TransferFunction::POW => String::from("pow2"),
+                    TransferFunction::LOG => String::from("log"),
+                    TransferFunction::SQRT => String::from("sqrt"),
                 };
 
                 HiPSColor::Grayscale2Colormap {
@@ -399,8 +402,8 @@ impl SurveyWidget {
 
                                     if ui.selectable_value(
                                         t,
-                                        TransferFunction::SIN,
-                                        "sin",
+                                        TransferFunction::LOG,
+                                        "log",
                                     ).clicked() {
                                         *update_survey = true;
                                     }
@@ -416,7 +419,15 @@ impl SurveyWidget {
                                     if ui.selectable_value(
                                         t,
                                         TransferFunction::POW, 
-                                        "pow"
+                                        "pow2"
+                                    ).clicked() {
+                                        *update_survey = true;
+                                    }
+
+                                    if ui.selectable_value(
+                                        t,
+                                        TransferFunction::SQRT, 
+                                        "sqrt"
                                     ).clicked() {
                                         *update_survey = true;
                                     }
@@ -428,7 +439,8 @@ impl SurveyWidget {
                                     TransferFunction::ASINH => plot(ui, |x| x.asinh()),
                                     TransferFunction::LINEAR => plot(ui, |x| x),
                                     TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
-                                    TransferFunction::SIN => plot(ui, |x| x.sin())
+                                    TransferFunction::SQRT => plot(ui, |x| x.sqrt()),
+                                    TransferFunction::LOG => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                 }
                             });
                         }

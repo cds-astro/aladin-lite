@@ -186,21 +186,21 @@ pub fn xyzw_to_radec<S: BaseFloat>(v: &cgmath::Vector4<S>) -> (Angle<S>, Angle<S
 }
 
 #[inline]
+pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
+    Vector3::<S>::new(
+        delta.cos() * theta.sin(),
+        delta.sin(),
+        delta.cos() * theta.cos(),
+    )
+}
+
+#[inline]
 pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<S> {
     Vector4::<S>::new(
         delta.cos() * theta.sin(),
         delta.sin(),
         delta.cos() * theta.cos(),
         S::one(),
-    )
-}
-
-#[inline]
-pub fn radec_to_xyz<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
-    Vector3::<S>::new(
-        delta.cos() * theta.sin(),
-        delta.sin(),
-        delta.cos() * theta.cos(),
     )
 }
 

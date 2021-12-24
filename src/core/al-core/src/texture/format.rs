@@ -27,6 +27,18 @@ impl ImageFormat for RGB8U {
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RGBA8U;
+#[cfg(feature = "webgl2")]
+impl ImageFormat for RGBA8U {
+    type P = [u8; 4];
+
+    const NUM_CHANNELS: usize = 4;
+    const EXT: &'static str = "png";
+
+    const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
+    const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
+}
+#[cfg(feature = "webgl1")]
 impl ImageFormat for RGBA8U {
     type P = [u8; 4];
 

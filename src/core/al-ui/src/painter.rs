@@ -451,11 +451,10 @@ impl egui_web::Painter for WebGl2Painter {
             pixels.push(srgba.a());
         }
         #[cfg(feature = "webgl1")]
-        let internal_format = WebGlRenderingCtx::RGBA;
+        let (src_format, src_internal_format) = (WebGlRenderingCtx::RGBA, web_sys::ExtSRgb::SRGB8_ALPHA8_EXT);
         #[cfg(feature = "webgl2")]
-        let internal_format = WebGlRenderingCtx::SRGB8_ALPHA8;
+        let (src_format, src_internal_format) = (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::SRGB8_ALPHA8);
 
-        let src_format = WebGlRenderingCtx::RGBA;
         let src_type = WebGlRenderingCtx::UNSIGNED_BYTE;
         let gl = &self.gl;
         self.egui_texture
@@ -463,7 +462,7 @@ impl egui_web::Painter for WebGl2Painter {
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
                 texture.width as i32,
                 texture.height as i32,
-                internal_format as i32,
+                src_internal_format as i32,
                 src_format,
                 src_type,
                 Some(&pixels),

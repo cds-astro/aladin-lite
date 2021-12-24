@@ -7,10 +7,10 @@ struct HashDxDy {
     float dy;
 };
 
-uniform sampler2D ang2pixd;
+uniform sampler2D u_ang2pixd;
 HashDxDy hash_with_dxdy(vec2 radec) {
-    vec2 uv = vec2(radec.x/TWICE_PI + 1.0, (radec.y/PI) + 0.5);
-    vec3 v = texture2D(ang2pixd, uv).rgb;
+    vec2 uv = vec2(radec.x/TWICE_PI, radec.y/PI) + 0.5;
+    vec3 v = texture2D(u_ang2pixd, uv).rgb;
 
     return HashDxDy(
         int(v.x * 255.0),

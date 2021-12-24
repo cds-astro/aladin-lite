@@ -1,5 +1,5 @@
-precision highp float;
-precision highp int;
+precision mediump float;
+precision mediump int;
 
 attribute vec2 pos_clip_space;
 varying vec2 out_clip_pos;

@@ -1,11 +1,8 @@
-precision highp float;
-precision highp sampler2D;
-precision highp int;
+precision mediump float;
+precision mediump sampler2D;
+precision mediump int;
 
-in vec2 out_clip_pos;
-out vec4 out_frag_color;
-
-uniform int user_action;
+varying vec2 out_clip_pos;
 
 struct Tile {
     int uniq; // Healpix cell
@@ -14,38 +11,66 @@ struct Tile {
     float empty;
 };
 
-uniform int current_depth;
-
 uniform Tile textures_tiles[12];
-
-uniform float current_time; // current time in ms
 
 @import ../color;
 @import ./healpix;
 
 uniform float opacity;
 
-vec4 get_tile_color(vec3 pos) {
-    HashDxDy result = hash_with_dxdy(0, pos.zxy);
-    int idx = result.idx;
-    vec2 uv = vec2(result.dy, result.dx);
-
-    Tile tile = textures_tiles[idx];
-
-    int idx_texture = tile.texture_idx >> 6;
-    int off = tile.texture_idx & 0x3F;
-    float idx_row = float(off >> 3); // in [0; 7]
-    float idx_col = float(off & 0x7); // in [0; 7]
-
-    vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
-    vec3 UV = vec3(offset, float(idx_texture));
-
-    vec4 color = mix(get_color_from_grayscale_texture(UV), blank_color, tile.empty);
-    return color;
+Tile get_tile(int idx) {
+    for(int i = 0; i < 12; i++) {
+        if( i == idx ) {
+            return textures_tiles[i];
+        }
+    }
 }
 
-const float duration = 500.f; // 500ms
-uniform int max_depth; // max depth of the HiPS
+Tile binary_search_tile(int uniq) {
+    int l = 0;
+    int r = 11;
+    for (int v = 0; v >= 0; v++) {
+        int mid = (l + r) / 2;
+
+        Tile tile = get_tile(mid);
+        if(tile.uniq == uniq) {
+            return tile;
+        } else if(tile.uniq < uniq) {
+            l = mid + 1;
+        } else {
+            r = mid - 1;
+        }
+
+        // before exiting the loop
+        if (l >= r) {
+            return get_tile(l);
+        }
+    }
+}
+
+vec4 get_tile_color(vec3 pos) {
+    float delta = asin(pos.y);
+    float theta = atan(pos.x, pos.z);
+    HashDxDy result = hash_with_dxdy(vec2(theta, delta));
+    return vec4(float(result.idx)/12., result.dx, result.dy, 1.0);
+    int idx = result.idx;
+    vec2 uv = vec2(result.dy, result.dx);
+    int uniq = 16 + idx; 
+    Tile tile = binary_search_tile(uniq);
+
+    if(tile.uniq == uniq) {
+        int idx_texture = tile.texture_idx / 64;
+        int off = int(mod(float(tile.texture_idx), 64.0));
+        float idx_row = float(off / 8); // in [0; 7]
+        float idx_col = mod(float(off), 8.0); // in [0; 7]
+
+        vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
+        vec3 UV = vec3(offset, float(idx_texture));
+
+        vec4 color = mix(get_color_from_grayscale_texture(UV), blank_color, tile.empty);
+        return color;
+    }
+}
 
 uniform sampler2D position_tex;
 uniform mat4 model;
@@ -56,6 +81,6 @@ void main() {
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     vec4 c = get_tile_color(frag_pos);
-    out_frag_color = c;
-    out_frag_color.a = out_frag_color.a * opacity;
+    c.a = c.a * opacity;
+    gl_FragColor = c;
 }

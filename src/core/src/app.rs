@@ -525,7 +525,7 @@ impl App {
                 gl.clear_color(0.08, 0.08, 0.08, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                //surveys.draw::<P>(camera, shaders, colormaps);
+                surveys.draw::<P>(camera, shaders, colormaps);
 
                 // Draw the catalog
                 catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;

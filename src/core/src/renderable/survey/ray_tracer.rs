@@ -225,7 +225,7 @@ impl RayTracer {
         #[cfg(feature = "webgl1")]
         shader
             .attach_uniform("position_tex", &self.position_tex)
-            .attach_uniform("ang2pix_tex", &self.ang2pix_tex)
+            .attach_uniform("u_ang2pixd", &self.ang2pix_tex)
             .bind_vertex_array_object_ref(&self.vao)
                 .draw_elements_with_i32(
                     WebGl2RenderingContext::TRIANGLES, 

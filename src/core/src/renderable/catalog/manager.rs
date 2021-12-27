@@ -80,12 +80,35 @@ impl Manager {
 
             let mut vao = VertexArrayObject::new(gl);
             //let shader = Colormap::get_catalog_shader(gl, shaders)?;
+            #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 // Store the screen and uv of the billboard in a VBO
                 .add_array_buffer(
                     4 * std::mem::size_of::<f32>(),
                     &[2, 2],
                     &[0, 2 * std::mem::size_of::<f32>()],
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(&vertices),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(indices.as_ref()),
+                )
+                // Unbind the buffer
+                .unbind();
+            #[cfg(feature = "webgl1")]
+            vao.bind_for_update()
+                // Store the screen and uv of the billboard in a VBO
+                .add_array_buffer(
+                    2,
+                    "position",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(&vertices),
+                )
+                .add_array_buffer(
+                    2,
+                    "uv",
                     WebGl2RenderingContext::STATIC_DRAW,
                     VecData(&vertices),
                 )
@@ -213,7 +236,6 @@ impl Manager {
 
         gl.disable(WebGl2RenderingContext::BLEND);
 
-
         Ok(())
     }
 }
@@ -265,6 +287,7 @@ impl Catalog {
             let mut vao = VertexArrayObject::new(gl);
 
             //let shader = Orthographic::get_catalog_shader(gl, shaders);
+            #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 // Store the UV and the offsets of the billboard in a VBO
                 .add_array_buffer(
@@ -287,8 +310,44 @@ impl Catalog {
                     WebGl2RenderingContext::STATIC_DRAW,
                     VecData(indices.as_ref()),
                 )
-                // Unbind the buffer
-                .unbind();
+            // Unbind the buffer
+            .unbind();
+            #[cfg(feature = "webgl1")]
+            vao.bind_for_update()
+                // Store the UV and the offsets of the billboard in a VBO
+                .add_array_buffer(
+                    2,
+                    "offset",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(vertices.as_ref()),
+                )
+                .add_array_buffer(
+                    2,
+                    "uv",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(vertices.as_ref()),
+                )
+                // Store the cartesian position of the center of the source in the a instanced VBO
+                .add_instanced_array_buffer(
+                    3,
+                    "center",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData(&sources),
+                )
+                .add_instanced_array_buffer(
+                    2,
+                    "center_lonlat",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData(&sources),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(indices.as_ref()),
+                )
+            // Unbind the buffer
+            .unbind();
+
             vao
         };
         let max_density = 1.0;

@@ -580,11 +580,61 @@ impl ImageSurvey {
 
         let vertices = vec![0.0; MAX_NUM_INDICES_TO_DRAW];
         let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
                 13 * std::mem::size_of::<f32>(),
                 &[2, 2, 3, 3, 1, 1, 1],
                 &[0, 2 * std::mem::size_of::<f32>(), 4 * std::mem::size_of::<f32>(), 7 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>(), 12 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<u16>(&indices),
+            ).unbind();
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            .add_array_buffer(
+                2,
+                "lonlat",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                2,
+                "ndc_pos",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                3,
+                "uv_start",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                3,
+                "uv_end",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                1,
+                "time_tile_received",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                1,
+                "m0",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            .add_array_buffer(
+                1,
+                "m1",
                 WebGl2RenderingContext::STREAM_DRAW,
                 VecData::<f32>(&vertices),
             )

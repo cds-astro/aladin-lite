@@ -397,7 +397,7 @@ pub struct ArrayBuffer {
 
     gl: WebGlContext,
 }
-
+use crate::shader::ShaderBound;
 use web_sys::console;
 impl ArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
@@ -433,6 +433,19 @@ impl ArrayBuffer {
 
     pub fn set_vertex_attrib_pointers<T: VertexAttribPointerType>(&self) {
         T::set_vertex_attrib_pointers(&self.gl, self.offset_idx, self.stride, &self.sizes, &self.offsets);
+    }
+
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+        let loc = shader.get_attrib_location(&self.gl, location) as u32;
+
+        assert_eq!(self.sizes.len(), 1);
+        T::vertex_attrib_pointer_with_i32(
+            &self.gl,
+            loc,
+            *self.sizes.first().unwrap() as i32,
+            0,
+            0,
+        );
     }
 
     pub fn update<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(

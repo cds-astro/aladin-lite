@@ -182,6 +182,7 @@ impl RayTracer {
 
         let mut vao = VertexArrayObject::new(&gl);
         // layout (location = 0) in vec2 pos_clip_space;
+        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
                 2 * std::mem::size_of::<f32>(),
@@ -197,7 +198,21 @@ impl RayTracer {
             )
         // Unbind the buffer
         .unbind();
-
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            .add_array_buffer(
+                2,
+                "pos_clip_space",
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData::<f32>(&vertices),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData::<u16>(&idx),
+            )
+        // Unbind the buffer
+        .unbind();
         // create position data
         let data = generate_xyz_position::<P>();
         let position_tex = create_f32_texture_from_raw(&gl, 2048, 2048, &data);

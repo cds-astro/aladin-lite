@@ -335,6 +335,8 @@ pub mod vao {
         element_array_buffer: Option<ElementArrayBuffer>,
 
         idx: u32, // Number of vertex attributes
+        attributes: Vec<&'static str>,
+        inst_attributes: Vec<&'static str>,
 
         gl: WebGlContext,
     }
@@ -348,12 +350,16 @@ pub mod vao {
 
             let idx = 0;
 
+            let attributes = vec![];
+            let inst_attributes = vec![];
+
             let gl = gl.clone();
             VertexArrayObject {
                 array_buffer,
                 array_buffer_instanced,
                 element_array_buffer,
-
+                attributes,
+                inst_attributes,
                 idx,
 
                 gl,
@@ -376,11 +382,11 @@ pub mod vao {
         // to add some buffers and or draw the buffers
         pub fn bind_ref<'a, 'b>(
             &'a self,
-            _shader: &'b ShaderBound<'b>,
+            shader: &'b ShaderBound<'b>,
         ) -> ShaderVertexArrayObjectBoundRef<'a, 'b> {
             //self.gl.bind_vertex_array(Some(self.vao.as_ref()));
 
-            ShaderVertexArrayObjectBoundRef { vao: self, _shader }
+            ShaderVertexArrayObjectBoundRef { vao: self, shader }
         }
 
         // No need to bind a shader here
@@ -464,14 +470,14 @@ pub mod vao {
     use crate::webgl_ctx::WebGlRenderingCtx;
     pub struct ShaderVertexArrayObjectBoundRef<'a, 'b> {
         vao: &'a VertexArrayObject,
-        _shader: &'b ShaderBound<'b>,
+        shader: &'b ShaderBound<'b>,
     }
     use crate::object::array_buffer::VertexBufferObject;
     impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
         pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) {
-            for buf in &self.vao.array_buffer {
+            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<f32>();
+                buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
             self.vao
@@ -480,9 +486,9 @@ pub mod vao {
         }
 
         pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
-            for buf in &self.vao.array_buffer {
+            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<f32>();
+                buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
             let e = self.vao.element_array_buffer.as_ref().unwrap();
@@ -499,26 +505,16 @@ pub mod vao {
             offset_instance_idx: i32,
             num_instances: i32,
         ) {
-            for buf in &self.vao.array_buffer {
+            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
                 buf.bind();
-                buf.set_vertex_attrib_pointers::<f32>();
+                buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            
-            for inst_buf in &self.vao.array_buffer_instanced {
+            for (inst_buf, attr) in self.vao.array_buffer_instanced.iter().zip(self.vao.inst_attributes.iter()) {
                 inst_buf.bind();
-                inst_buf.set_vertex_attrib_pointers();
+                inst_buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            #[cfg(feature = "webgl2")]
-            self.vao.gl.draw_elements_instanced_with_i32(
-                mode,
-                self.vao.num_elements() as i32,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                offset_instance_idx,
-                num_instances,
-            );
-            #[cfg(feature = "webgl1")]
             self.vao.gl.ext.angles.draw_elements_instanced_angle_with_i32(
                 mode,
                 self.vao.num_elements() as i32,
@@ -550,24 +546,24 @@ pub mod vao {
         /// Precondition: self must be bound
         pub fn add_array_buffer<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
-            stride: usize,
-            sizes: &[usize],
-            offsets: &[usize],
+            size: usize,
+            attr: &'static str,
             usage: u32,
             data: B,
         ) -> &mut Self {
             let array_buffer = ArrayBuffer::new(
                 &self.vao.gl,
                 self.vao.idx,
-                stride,
-                sizes,
-                offsets,
+                0,
+                &[size],
+                &[0],
                 usage,
                 data,
             );
 
             // Update the number of vertex attrib
-            self.vao.idx += sizes.len() as u32;
+            self.vao.idx += 1;
+            self.vao.attributes.push(attr);
 
             self.vao.array_buffer.push(array_buffer);
 
@@ -577,24 +573,24 @@ pub mod vao {
         /// Precondition: self must be bound
         pub fn add_instanced_array_buffer<B: BufferDataStorage<'a, f32>>(
             &mut self,
-            stride: usize,
-            sizes: &[usize],
-            offsets: &[usize],
+            size: usize,
+            attr: &'static str,
             usage: u32,
             data: B,
         ) -> &mut Self {
             let array_buffer = ArrayBufferInstanced::new(
                 &self.vao.gl,
                 self.vao.idx,
-                stride,
-                sizes,
-                offsets,
+                0,
+                &[size],
+                &[0],
                 usage,
                 data,
             );
 
             // Update the number of vertex attrib
-            self.vao.idx += sizes.len() as u32;
+            self.vao.idx += 1;
+            self.vao.inst_attributes.push(attr);
 
             self.vao.array_buffer_instanced.push(array_buffer);
 
@@ -663,5 +659,4 @@ pub mod vao {
             self.unbind();
         }
     }
-
 }

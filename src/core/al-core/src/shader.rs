@@ -100,6 +100,10 @@ impl Shader {
         let gl = gl.clone();
         ShaderBound { shader: self, gl }
     }
+
+    pub fn get_attrib_location(&self, gl: &WebGlContext, name: &str) -> i32 {
+        gl.get_attrib_location(&self.program, name)
+    }
 }
 
 pub trait UniformType {
@@ -283,6 +287,10 @@ impl<'a> ShaderBound<'a> {
     pub fn unbind(&'a self, gl: &WebGlContext) -> &'a Shader {
         gl.use_program(None);
         self.shader
+    }
+
+    pub fn get_attrib_location(&self, gl: &WebGlContext, name: &str) -> i32 {
+        self.shader.get_attrib_location(gl, name)
     }
 }
 

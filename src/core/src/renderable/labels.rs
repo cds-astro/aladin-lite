@@ -66,11 +66,31 @@ impl TextRenderManager {
         let mut vao = VertexArrayObject::new(&gl);
         let vertices = vec![];
         let indices = vec![];
+        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
                 4 * std::mem::size_of::<f32>(),
                 &[2, 2],
                 &[0, 2 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices)
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<u16>(&indices),
+            );
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            .add_array_buffer(
+                2,
+                "pos",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&vertices)
+            )
+            .add_array_buffer(
+                2,
+                "tx",
                 WebGl2RenderingContext::STREAM_DRAW,
                 VecData::<f32>(&vertices)
             )

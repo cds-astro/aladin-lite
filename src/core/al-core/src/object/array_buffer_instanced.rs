@@ -36,6 +36,7 @@ impl VertexBufferObject for ArrayBufferInstanced {
 
 use super::array_buffer::VertexAttribPointerType;
 use super::buffer_data::BufferDataStorage;
+use crate::shader::ShaderBound;
 
 impl ArrayBufferInstanced {
     pub fn new<'a, B: BufferDataStorage<'a, f32>>(
@@ -123,6 +124,19 @@ impl ArrayBufferInstanced {
             #[cfg(feature = "webgl1")]
             self.gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
         }
+    }
+
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+        let loc = shader.get_attrib_location(&self.gl, location) as u32;
+
+        assert_eq!(self.sizes.len(), 1);
+        T::vertex_attrib_pointer_with_i32(
+            &self.gl,
+            loc,
+            *self.sizes.first().unwrap() as i32,
+            0,
+            0,
+        );
     }
 
     pub fn update<'a, B: BufferDataStorage<'a, f32>>(&self, buffer: B) {

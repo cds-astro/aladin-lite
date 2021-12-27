@@ -96,12 +96,12 @@ impl ImageFormat for R32F {
     #[cfg(feature = "webgl2")]
     const FORMAT: u32 = WebGlRenderingCtx::RED as u32;
     #[cfg(feature = "webgl1")]
-    const FORMAT: u32 = WebGlRenderingCtx::LUMINANCE_ALPHA as u32;
+    const FORMAT: u32 = WebGlRenderingCtx::LUMINANCE as u32;
 
     #[cfg(feature = "webgl2")]
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32F as i32;
     #[cfg(feature = "webgl1")]
-    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE_ALPHA as i32;
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
     
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 }

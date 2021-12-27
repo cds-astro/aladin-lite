@@ -44,12 +44,29 @@ impl RenderPass {
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         let indices = vec![0u8, 1, 2, 1, 3, 2];
         let mut vao = VertexArrayObject::new(&gl);
+        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             // positions and texcoords buffers
             .add_array_buffer(
                 2 * std::mem::size_of::<f32>(),
                 &[2],
                 &[0],
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData(&positions),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData(&indices),
+            )
+        // Unbind the buffer
+        .unbind();
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            // positions and texcoords buffers
+            .add_array_buffer(
+                2,
+                "a_pos",
                 WebGl2RenderingContext::STATIC_DRAW,
                 VecData(&positions),
             )

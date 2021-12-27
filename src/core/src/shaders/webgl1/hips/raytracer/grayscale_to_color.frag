@@ -52,7 +52,7 @@ vec4 get_tile_color(vec3 pos) {
     float delta = asin(pos.y);
     float theta = atan(pos.x, pos.z);
     HashDxDy result = hash_with_dxdy(vec2(theta, delta));
-    return vec4(float(result.idx)/12., result.dx, result.dy, 1.0);
+    //return vec4(float(result.idx)/12., result.dx, result.dy, 1.0);
     int idx = result.idx;
     vec2 uv = vec2(result.dy, result.dx);
     int uniq = 16 + idx; 

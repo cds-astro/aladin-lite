@@ -27,14 +27,11 @@ pub struct WebGl2Painter {
     pub canvas: web_sys::HtmlCanvasElement,
     gl: WebGlContext,
     shader: Shader,
-    /*index_buffer: WebGlBuffer,
+
     pos_buffer: WebGlBuffer,
     tc_buffer: WebGlBuffer,
-    color_buffer: WebGlBuffer,*/
-    //vao: VertexArrayObject,
-    //vao: WebGlVertexArrayObject,
-    vbo: WebGlBuffer,
-    ebo: WebGlBuffer,
+    color_buffer: WebGlBuffer,
+    index_buffer: WebGlBuffer,
 
     fbo: FrameBufferObject,
 
@@ -110,20 +107,13 @@ impl WebGl2Painter {
             include_str!("../shaders/webgl2/main_fragment_100es.glsl")
         )?;
 
-        let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&vbo));
+        let pos_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let tc_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let color_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        //gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&pos_buffer));
+        
 
-        let data = vec![
-            -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-            -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-        ];
-        gl.buffer_data_with_array_buffer_view(
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            unsafe { &js_sys::Float32Array::view(&data) },
-            WebGlRenderingCtx::STREAM_DRAW,
-        );
-
-        let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
+        /*let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 pos;
         gl.vertex_attrib_pointer_with_i32(
             0,
@@ -155,11 +145,11 @@ impl WebGl2Painter {
             8 * num_bytes_per_f32,
             (4 * num_bytes_per_f32) as i32,
         );
-        gl.enable_vertex_attrib_array(2);
+        gl.enable_vertex_attrib_array(2);*/
 
-        let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let index_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         // Bind the buffer
-        gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, Some(&ebo));
+        /*gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
         let data = vec![0_u16, 1, 2];
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
@@ -170,6 +160,7 @@ impl WebGl2Painter {
 
         gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, None);
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
+        */
         let fbo = FrameBufferObject::new(&gl, canvas.width() as usize, canvas.height() as usize)?;
 
         Ok(WebGl2Painter {
@@ -179,8 +170,11 @@ impl WebGl2Painter {
             shader,
 
             //vao,
-            vbo,
-            ebo,
+            pos_buffer,
+            tc_buffer,
+            color_buffer,
+
+            index_buffer,
             egui_texture,
             egui_texture_version: None,
             user_textures: Default::default(),
@@ -311,17 +305,20 @@ impl WebGl2Painter {
         screen_size_points: &egui::Vec2,
     ) -> Result<(), JsValue> {
         //debug_assert!(mesh.is_valid());
-        let mut vertices = Vec::with_capacity(8 * mesh.vertices.len());
+        let mut positions = Vec::with_capacity(2 * mesh.vertices.len());
+        let mut texcoords = Vec::with_capacity(2 * mesh.vertices.len());
+        let mut colors = Vec::with_capacity(4 * mesh.vertices.len());
+
         //let mut colors: Vec<u8> = Vec::with_capacity(4 * mesh.vertices.len());
         for v in &mesh.vertices {
-            vertices.push(v.pos.x);
-            vertices.push(v.pos.y);
-            vertices.push(v.uv.x);
-            vertices.push(v.uv.y);
-            vertices.push((v.color[0] as f32) / 255.0);
-            vertices.push((v.color[1] as f32) / 255.0);
-            vertices.push((v.color[2] as f32) / 255.0);
-            vertices.push((v.color[3] as f32) / 255.0);
+            positions.push(v.pos.x);
+            positions.push(v.pos.y);
+            texcoords.push(v.uv.x);
+            texcoords.push(v.uv.y);
+            colors.push((v.color[0] as f32));
+            colors.push((v.color[1] as f32));
+            colors.push((v.color[2] as f32));
+            colors.push((v.color[3] as f32));
         }
 
         let gl = &self.gl;
@@ -329,50 +326,65 @@ impl WebGl2Painter {
         //self.gl.bind_vertex_array(Some(&self.vao));
 
         // Bind the buffer
-        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&self.vbo));
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&self.pos_buffer));
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingCtx::ARRAY_BUFFER,
-            unsafe { &js_sys::Float32Array::view(&vertices) },
+            unsafe { &js_sys::Float32Array::view(&positions) },
             WebGlRenderingCtx::STREAM_DRAW,
         );
 
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 pos;
+        let pos_loc = self.shader.get_attrib_location(gl, "pos") as u32;
         gl.vertex_attrib_pointer_with_i32(
-            0,
+            pos_loc,
             2,
             WebGlRenderingCtx::FLOAT,
             false,
-            8 * num_bytes_per_f32,
+            0,
             0,
         );
-        gl.enable_vertex_attrib_array(0);
+        gl.enable_vertex_attrib_array(pos_loc);
 
         // layout (location = 1) in vec2 tx;
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&self.tc_buffer));
+        gl.buffer_data_with_array_buffer_view(
+            WebGlRenderingCtx::ARRAY_BUFFER,
+            unsafe { &js_sys::Float32Array::view(&texcoords) },
+            WebGlRenderingCtx::STREAM_DRAW,
+        );
+        let tx_loc = self.shader.get_attrib_location(gl, "tx") as u32;
         gl.vertex_attrib_pointer_with_i32(
-            1,
+            tx_loc,
             2,
             WebGlRenderingCtx::FLOAT,
             false,
-            8 * num_bytes_per_f32,
-            (2 * num_bytes_per_f32) as i32,
+            0,
+            0,
         );
-        gl.enable_vertex_attrib_array(1);
+        gl.enable_vertex_attrib_array(tx_loc);
 
         // layout (location = 2) in vec4 color;
+        gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&self.color_buffer));
+        gl.buffer_data_with_array_buffer_view(
+            WebGlRenderingCtx::ARRAY_BUFFER,
+            unsafe { &js_sys::Float32Array::view(&colors) },
+            WebGlRenderingCtx::STREAM_DRAW,
+        );
+        let color_loc = self.shader.get_attrib_location(gl, "color") as u32;
         gl.vertex_attrib_pointer_with_i32(
-            2,
+            color_loc,
             4,
             WebGlRenderingCtx::FLOAT,
             false,
-            8 * num_bytes_per_f32,
-            (4 * num_bytes_per_f32) as i32,
+            0,
+            0,
         );
-        gl.enable_vertex_attrib_array(2);
+        gl.enable_vertex_attrib_array(color_loc);
 
         gl.bind_buffer(
             WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
-            Some(&self.ebo),
+            Some(&self.index_buffer),
         );
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,
@@ -451,7 +463,7 @@ impl egui_web::Painter for WebGl2Painter {
             pixels.push(srgba.a());
         }
         #[cfg(feature = "webgl1")]
-        let (src_format, src_internal_format) = (WebGlRenderingCtx::RGBA, web_sys::ExtSRgb::SRGB8_ALPHA8_EXT);
+        let (src_format, src_internal_format) = (web_sys::ExtSRgb::SRGB_ALPHA_EXT, web_sys::ExtSRgb::SRGB_ALPHA_EXT);
         #[cfg(feature = "webgl2")]
         let (src_format, src_internal_format) = (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::SRGB8_ALPHA8);
 

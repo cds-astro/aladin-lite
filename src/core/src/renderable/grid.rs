@@ -56,6 +56,7 @@ impl ProjetedGrid {
             let vertices = vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
             let indices = vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
 
+            #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 .add_array_buffer(
                     2 * std::mem::size_of::<f32>(),
@@ -69,7 +70,19 @@ impl ProjetedGrid {
                     WebGl2RenderingContext::STATIC_DRAW,
                     VecData(&indices),
                 );
-            
+            #[cfg(feature = "webgl1")]
+            vao.bind_for_update()
+                .add_array_buffer(
+                    2,
+                    "position",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(&vertices),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    VecData(&indices),
+                );
             vao
         };
 
@@ -77,6 +90,7 @@ impl ProjetedGrid {
             let mut vao = VertexArrayObject::new(gl);
             let vertices= vec![];
             // layout (location = 0) in vec2 ndc_pos;
+            #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 .add_array_buffer(
                     2 * std::mem::size_of::<f32>(),
@@ -85,7 +99,15 @@ impl ProjetedGrid {
                     WebGl2RenderingContext::STREAM_DRAW,
                     VecData::<f32>(&vertices),
                 );
-            
+            #[cfg(feature = "webgl1")]
+            vao.bind_for_update()
+                .add_array_buffer(
+                    2,
+                    "ndc_pos",
+                    WebGl2RenderingContext::STREAM_DRAW,
+                    VecData::<f32>(&vertices),
+                );
+
             vao
         };
 

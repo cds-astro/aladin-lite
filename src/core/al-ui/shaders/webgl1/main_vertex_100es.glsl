@@ -28,6 +28,6 @@ void main() {
                      1.0 - 2.0 * pos.y / u_screen_size.y,
                      0.0,
                      1.0);
-  v_rgba = color;
+  v_rgba = linear_from_srgba(color);
   v_tc = tx;
 }

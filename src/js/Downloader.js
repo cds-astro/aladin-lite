@@ -30,7 +30,7 @@
  *****************************************************************************/
 
 Downloader = (function() {
-	var NB_MAX_SIMULTANEOUS_DL = 12;
+	var NB_MAX_SIMULTANEOUS_DL = 8;
 	// TODO : le fading ne marche pas bien actuellement
 	var FADING_ENABLED = false;
 	var FADING_DURATION = 700; // in milliseconds

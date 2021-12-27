@@ -38,8 +38,8 @@ Viewport</title>
             }
             
                                 // Add a new overlay image
-                                function addSurveylayer(ID, index, blendingMode, hue) {
-                                        aladin.setImageSurvey(ID, index, blendingMode, hue);
+                                function addSurveylayer(ID, index, blendingMode, hue, alpha) {
+                                        aladin.setImageSurvey(ID, index, blendingMode, hue, alpha);
                                 }
             
             // Adding a non image survey layer
@@ -117,7 +117,7 @@ window.webkit.messageHandlers.update_image.postMessage({
 }
 
         function getImage() {
-        const image = aladin.getCanvasSkymapDataURL('image/jpeg');
+        const image = aladin.getSkymapDataURL('image/jpeg');
         return image;
         }
 
@@ -160,9 +160,9 @@ window.webkit.messageHandlers.update_image.postMessage({
 
 // Testing an overlay survey image        
 setTimeout( function() {
-    addSurveylayer("P/allWISE/color", 1, "lighten", "#ff0000");
-        // addSurveylayer("P/2MASS/color", 2, "lighten", "#0f0");
-        //     addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 3, "lighten", "#0f0");
+    addSurveylayer("P/allWISE/color", 1, "lighten", "#ff0000", 1.0);
+        addSurveylayer("P/2MASS/color", 2, "lighten", "#0f0");
+            addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 3, "lighten", "#00f");
 }, 3000);
 
 // Various observers

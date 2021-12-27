@@ -226,15 +226,17 @@ View = (function() {
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
         
+        this.blendCtx.canvas.width = this.width;        
         this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;
         this.reticleCtx.canvas.width = this.width;
 
-        
+        this.blendCtx.canvas.height = this.height;    
         this.imageCtx.canvas.height = this.height;
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
 
+        pixelateCanvasContext(this.blendCtx, this.aladin.options.pixelateCanvas);
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
         // change logo
@@ -871,6 +873,34 @@ View = (function() {
         return 'rgb(' + r + ',' + g + ',' + b + ')';
     };
 
+    /**
+     * Return the color of the lowest intensity pixel 
+     * in teh current color map of the current background image HiPS at given index
+     */
+    View.prototype.getBackgroundColorAtIndex = function(index) {
+        var white = 'rgb(255, 255, 255)';
+        var black = 'rgb(0, 0, 0)';
+
+        if (! this.imageSurveys[index]) {
+            return black;
+        }
+
+        var cm = this.imageSurveys[index].getColorMap();
+        if (!cm) {
+            return black;
+        }
+        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
+            return cm.reversed ? white : black;
+        }
+
+        var idx = cm.reversed ? 255 : 0;
+        var r = ColorMap.MAPS[cm.mapName].r[idx];
+        var g = ColorMap.MAPS[cm.mapName].g[idx];
+        var b = ColorMap.MAPS[cm.mapName].b[idx];
+
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    };
+
     View.prototype.getViewParams = function() {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
         return {
@@ -914,7 +944,7 @@ View = (function() {
         imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
         ////////////////////////
         
-        var bkgdColor = this.getBackgroundColor();    
+        var bkgdColor = this.getBackgroundColorAtIndex(0);    
         // fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
             if (this.fov>=60) {
@@ -957,6 +987,7 @@ View = (function() {
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
+
                     imageSurvey.draw(imageCtx, blendCtx, this, i, !this.dragging, this.curNorder);
                 }                else {
                     imageSurvey.draw(imageCtx, blendCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
@@ -971,9 +1002,9 @@ View = (function() {
             imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, blendCtx, this, -1, !this.dragging, this.curOverlayNorder);
             }            else {
-                this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, blendCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
 
            imageCtx.globalAlpha = 1.0;
@@ -1703,7 +1734,6 @@ View = (function() {
         
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
-            console.log('remaining buffers '+remaining.length);
             buffer.removeTiles(remaining);
         }
 

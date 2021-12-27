@@ -76,7 +76,7 @@ HpxKey = (function() {
     HpxKey.prototype = {
 
         draw: function(ctx, bCtx, view, index) {
-// console.log('Drawing ', this.norder, this.npix);
+
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
             // console.log('corners ', corners);
@@ -91,7 +91,7 @@ HpxKey = (function() {
             try {
                 if (isTooLarge(corners)) {
 // console.log('too large');
-                    var m = this.drawChildren(ctx, view, MAX_PARENTE);
+                    var m = this.drawChildren(ctx, bCtx, view, index, MAX_PARENTE);
 
                     // Si aucun sous-losange n'a pu être dessiné, je trace tout de même le père
                     if( m>0 ) {
@@ -100,6 +100,7 @@ HpxKey = (function() {
                 }
             }
             catch(e) {
+                // console.log('error '+e);
                 return 0;
             }
 
@@ -126,6 +127,7 @@ HpxKey = (function() {
                 const blend = view.imageSurveys[index].blendingMode;
                 const hue = view.imageSurveys[index].colorCorrection;
                 const alpha = view.imageSurveys[index].alpha;
+
                 this.hips.drawOneTile2(blend, hue, ctx, bCtx, img, corners, w, alpha, this.dx, this.dy, true, norder);
                 n += 2;
             }
@@ -140,7 +142,7 @@ HpxKey = (function() {
             return n;
         },
 
-        drawChildren: function(ctx, view, maxParente) {
+        drawChildren: function(ctx, bCtx, view, index, maxParente) {
             var n=0;
             var limitOrder = 13 //13; // corresponds to NSIDE=8192, current HealpixJS limit
             if ( this.width>1 && this.norder<limitOrder && this.parente<maxParente ) {
@@ -149,7 +151,7 @@ HpxKey = (function() {
                     for ( var i=0; i<4; i++ ) {
 //console.log(i);
                         if ( children[i]!=null ) {
-                            n += children[i].draw(ctx , view, maxParente);
+                            n += children[i].draw(ctx, bCtx, view, index, maxParente);
                         }
                     }
                 }

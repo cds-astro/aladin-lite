@@ -1,0 +1,2 @@
+ColorMap.js:        if (img.cmSig==this.sig) {
+ColorMap.js:        img.cmSig = this.sig;

@@ -1,0 +1,24 @@
+healpix.min.js
+
+AladinUtils.js:    	ipixToIpix: function(npixIn, norderIn, norderOut) {
+AladinUtils.js:    		var npixOut = [];
+HealpixCache.js:    	var npix = HealpixIndex.nside2Npix(8);
+HealpixCache.js:    	for (var ipix=0; ipix<npix; ipix++) {
+HpxImageSurvey.js:    HpxImageSurvey.prototype.getTileURL = function(norder, npix) {
+HpxImageSurvey.js:    	var dirIdx = Math.floor(npix/10000)*10000;
+HpxImageSurvey.js:    	return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + "." + this.imgFormat  + (this.additionalParams ? ('?' + this.additionalParams) : '');;
+HpxKey.js:    var HpxKey = function(norder, npix, hips, width, height, dx, dy, allskyTexture, allskyTextureSize) {
+HpxKey.js:        this.npix = npix;
+HpxKey.js:        var hpxKey = new HpxKey(father.norder+1, father.npix*4 + childNb, father.hips, father.width/2, father.height/2,
+HpxKey.js:// console.log('Drawing ', this.norder, this.npix);
+HpxKey.js:            var npix = this.ancestor==null ? this.npix : this.ancestor.npix;
+HpxKey.js:            var url = this.hips.getTileURL(norder, npix);
+HpxKey.js:            corners = HealpixCache.corners_nest(this.npix, this.nside);
+ProgressiveCat.js:        // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
+ProgressiveCat.js:        getTileURL: function(norder, npix) {
+ProgressiveCat.js:            var dirIdx = Math.floor(npix/10000)*10000;
+ProgressiveCat.js:            return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + ".tsv";
+View.js:        var npix = HealpixIndex.nside2Npix(nside);
+View.js:            for (var ipix=0; ipix<npix; ipix++) {
+View.js:        var npix = HealpixIndex.nside2Npix(nside);
+View.js:            for (var ipix=0; ipix<npix; ipix++) {

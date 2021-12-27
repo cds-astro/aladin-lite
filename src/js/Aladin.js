@@ -903,8 +903,6 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         
-        /* idx is the last layer (adding) if index is undefined else it's a replacement */
-
         console.log('setting survey at '+index+' blend mode '+blendingMode+' hue '+hue+' alpha '+alpha);
         this.view.setImageSurveyAtIndex(imageSurvey, index, blendingMode, hue, alpha, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
@@ -1335,6 +1333,27 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
         return this.view.getCanvasDataURL(options.format, options.width, options.height);
     }
 
+   /**
+    * Return the skymap view as a data URL (base64-formatted string)
+    * Parameters:
+    * - options (optional): object with attributs
+    *     * format (optional): 'image/png' or 'image/jpeg'
+    *     * width: width in pixels of the image to output
+    *     * height: height in pixels of the image to output
+    *
+    * @API
+   */
+   Aladin.prototype.getSkymapDataURL = function(options) {
+       var options = options || {};
+       // support for old API signature
+       if (typeof options !== 'object') {
+           var imgFormat = options;
+           options = {format: imgFormat};
+       }
+
+       return this.view.getCanvasSkymapDataURL(options.format, options.width, options.height);
+   }
+   
     /**
      * Return the current view WCS as a key-value dictionary
      * Can be useful in coordination with getViewDataURL

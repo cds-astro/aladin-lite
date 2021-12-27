@@ -400,6 +400,7 @@ HpxImageSurvey = (function() {
         }
     	var self = this;
     	img.onload = function() {
+            console.log('loaded image');
     		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
     	    self.allskyTextureSize = img.width/27;
             self.allskyTexture = img;
@@ -830,6 +831,7 @@ HpxImageSurvey = (function() {
     function drawTexturedTriangle2(blend, hue, ctx, bCtx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
+
         dx = dx || 0;
         dy = dy || 0;
 
@@ -849,10 +851,13 @@ HpxImageSurvey = (function() {
         var yc = (y0 + y1 + y2) / 3;
 
         ctx.save();
+        bCtx.save();
+        
         if (alpha) {
             ctx.globalAlpha = alpha;
+            bCtx.globalAlpha = alpha;
         }
-
+        
 /*
         var coeff = 0.01; // default value
         if (applyCorrection) {
@@ -872,11 +877,6 @@ coeff = 0.02;
         ctx.closePath();
         ctx.clip();
 
-        bCtx.save();
-        if (alpha) {
-            bCtx.globalAlpha = alpha;
-        }
-        
         bCtx.beginPath();
         bCtx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
         bCtx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
@@ -904,7 +904,7 @@ coeff = 0.02;
         );
         
         if (hue != '#000') {
-            
+
             bCtx.transform(
                 -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
                  (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
@@ -914,11 +914,19 @@ coeff = 0.02;
                  (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
             );
             
-        var colored = compositeHueToLayer(bCtx, img, hue, dx, dy);
+        compositeHueToLayer(bCtx, img, hue);
+        var overlay = $(this.document.getElementById('aladin-lite-div')).children()[5];
                     ctx.globalCompositeOperation = blend;
                     ctx.globalAlpha = alpha;
-        ctx.drawImage(colored, 0, 0);
-        
+        ctx.drawImage(overlay, 0, 0);
+
+                bCtx.globalCompositeOperation = BlendingModeEnum.sourceover;
+        bCtx.globalAlpha = 1.0;
+        bCtx.fillStyle = "#000";
+                        bCtx.fillRect(0, 0, img.width, img.height);
+                        // ctx.globalCompositeOperation = blend;
+                        // ctx.globalAlpha = alpha;
+                        //         ctx.drawImage(img, 0, 0);
     } else {
         ctx.globalCompositeOperation = blend;
         ctx.globalAlpha = alpha;
@@ -929,15 +937,19 @@ coeff = 0.02;
     //    ctx.globalAlpha = 1.0;
 
         ctx.restore();
-        bCtx.restore();
+                bCtx.restore();
     }
 
+    function onlyUnique(value, index, self) {
+      return self.indexOf(value) === index;
+    }
+    
 // Helper method to create off screen composite of color hue with layer
     function compositeHueToLayer(bCtx, img, hue) {
                 bCtx.drawImage(img, 0, 0);
+                        bCtx.globalCompositeOperation = BlendingModeEnum.multiply;
                 bCtx.fillStyle = hue;
-                bCtx.fillRect();
-                return bCtx.getImageData(0, 0, bCtx.width, bCtx.height);
+                bCtx.fillRect(0, 0, img.width, img.height);
             }
             
     // uses affine texture mapping to draw a textured triangle

@@ -4092,7 +4092,7 @@ HiPSDefinition = (function() {
  *****************************************************************************/
 
 Downloader = (function() {
-	var NB_MAX_SIMULTANEOUS_DL = 12;
+	var NB_MAX_SIMULTANEOUS_DL = 8;
 	// TODO : le fading ne marche pas bien actuellement
 	var FADING_ENABLED = false;
 	var FADING_DURATION = 700; // in milliseconds
@@ -9230,7 +9230,7 @@ HpxKey = (function() {
     HpxKey.prototype = {
 
         draw: function(ctx, bCtx, view, index) {
-// console.log('Drawing ', this.norder, this.npix);
+
             var n = 0; // number of traced triangles
             var corners = this.getProjViewCorners(view);
             // console.log('corners ', corners);
@@ -9245,7 +9245,7 @@ HpxKey = (function() {
             try {
                 if (isTooLarge(corners)) {
 // console.log('too large');
-                    var m = this.drawChildren(ctx, view, MAX_PARENTE);
+                    var m = this.drawChildren(ctx, bCtx, view, index, MAX_PARENTE);
 
                     // Si aucun sous-losange n'a pu être dessiné, je trace tout de même le père
                     if( m>0 ) {
@@ -9254,6 +9254,7 @@ HpxKey = (function() {
                 }
             }
             catch(e) {
+                // console.log('error '+e);
                 return 0;
             }
 
@@ -9280,6 +9281,7 @@ HpxKey = (function() {
                 const blend = view.imageSurveys[index].blendingMode;
                 const hue = view.imageSurveys[index].colorCorrection;
                 const alpha = view.imageSurveys[index].alpha;
+
                 this.hips.drawOneTile2(blend, hue, ctx, bCtx, img, corners, w, alpha, this.dx, this.dy, true, norder);
                 n += 2;
             }
@@ -9294,7 +9296,7 @@ HpxKey = (function() {
             return n;
         },
 
-        drawChildren: function(ctx, view, maxParente) {
+        drawChildren: function(ctx, bCtx, view, index, maxParente) {
             var n=0;
             var limitOrder = 13 //13; // corresponds to NSIDE=8192, current HealpixJS limit
             if ( this.width>1 && this.norder<limitOrder && this.parente<maxParente ) {
@@ -9303,7 +9305,7 @@ HpxKey = (function() {
                     for ( var i=0; i<4; i++ ) {
 //console.log(i);
                         if ( children[i]!=null ) {
-                            n += children[i].draw(ctx , view, maxParente);
+                            n += children[i].draw(ctx, bCtx, view, index, maxParente);
                         }
                     }
                 }
@@ -9823,6 +9825,7 @@ HpxImageSurvey = (function() {
         }
     	var self = this;
     	img.onload = function() {
+            console.log('loaded image');
     		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
     	    self.allskyTextureSize = img.width/27;
             self.allskyTexture = img;
@@ -10253,6 +10256,7 @@ HpxImageSurvey = (function() {
     function drawTexturedTriangle2(blend, hue, ctx, bCtx, img, x0, y0, x1, y1, x2, y2,
                                         u0, v0, u1, v1, u2, v2, alpha,
                                         dx, dy, applyCorrection, norder) {
+
         dx = dx || 0;
         dy = dy || 0;
 
@@ -10272,10 +10276,13 @@ HpxImageSurvey = (function() {
         var yc = (y0 + y1 + y2) / 3;
 
         ctx.save();
+        bCtx.save();
+        
         if (alpha) {
             ctx.globalAlpha = alpha;
+            bCtx.globalAlpha = alpha;
         }
-
+        
 /*
         var coeff = 0.01; // default value
         if (applyCorrection) {
@@ -10295,11 +10302,6 @@ coeff = 0.02;
         ctx.closePath();
         ctx.clip();
 
-        bCtx.save();
-        if (alpha) {
-            bCtx.globalAlpha = alpha;
-        }
-        
         bCtx.beginPath();
         bCtx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
         bCtx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
@@ -10327,7 +10329,7 @@ coeff = 0.02;
         );
         
         if (hue != '#000') {
-            
+
             bCtx.transform(
                 -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
                  (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
@@ -10337,11 +10339,19 @@ coeff = 0.02;
                  (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
             );
             
-        var colored = compositeHueToLayer(bCtx, img, hue, dx, dy);
+        compositeHueToLayer(bCtx, img, hue);
+        var overlay = $(this.document.getElementById('aladin-lite-div')).children()[5];
                     ctx.globalCompositeOperation = blend;
                     ctx.globalAlpha = alpha;
-        ctx.drawImage(colored, 0, 0);
-        
+        ctx.drawImage(overlay, 0, 0);
+
+                bCtx.globalCompositeOperation = BlendingModeEnum.sourceover;
+        bCtx.globalAlpha = 1.0;
+        bCtx.fillStyle = "#000";
+                        bCtx.fillRect(0, 0, img.width, img.height);
+                        // ctx.globalCompositeOperation = blend;
+                        // ctx.globalAlpha = alpha;
+                        //         ctx.drawImage(img, 0, 0);
     } else {
         ctx.globalCompositeOperation = blend;
         ctx.globalAlpha = alpha;
@@ -10352,15 +10362,19 @@ coeff = 0.02;
     //    ctx.globalAlpha = 1.0;
 
         ctx.restore();
-        bCtx.restore();
+                bCtx.restore();
     }
 
+    function onlyUnique(value, index, self) {
+      return self.indexOf(value) === index;
+    }
+    
 // Helper method to create off screen composite of color hue with layer
     function compositeHueToLayer(bCtx, img, hue) {
                 bCtx.drawImage(img, 0, 0);
+                        bCtx.globalCompositeOperation = BlendingModeEnum.multiply;
                 bCtx.fillStyle = hue;
-                bCtx.fillRect();
-                return bCtx.getImageData(0, 0, bCtx.width, bCtx.height);
+                bCtx.fillRect(0, 0, img.width, img.height);
             }
             
     // uses affine texture mapping to draw a textured triangle
@@ -10837,15 +10851,17 @@ View = (function() {
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
         
+        this.blendCtx.canvas.width = this.width;        
         this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;
         this.reticleCtx.canvas.width = this.width;
 
-        
+        this.blendCtx.canvas.height = this.height;    
         this.imageCtx.canvas.height = this.height;
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
 
+        pixelateCanvasContext(this.blendCtx, this.aladin.options.pixelateCanvas);
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
         // change logo
@@ -11482,6 +11498,34 @@ View = (function() {
         return 'rgb(' + r + ',' + g + ',' + b + ')';
     };
 
+    /**
+     * Return the color of the lowest intensity pixel 
+     * in teh current color map of the current background image HiPS at given index
+     */
+    View.prototype.getBackgroundColorAtIndex = function(index) {
+        var white = 'rgb(255, 255, 255)';
+        var black = 'rgb(0, 0, 0)';
+
+        if (! this.imageSurveys[index]) {
+            return black;
+        }
+
+        var cm = this.imageSurveys[index].getColorMap();
+        if (!cm) {
+            return black;
+        }
+        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
+            return cm.reversed ? white : black;
+        }
+
+        var idx = cm.reversed ? 255 : 0;
+        var r = ColorMap.MAPS[cm.mapName].r[idx];
+        var g = ColorMap.MAPS[cm.mapName].g[idx];
+        var b = ColorMap.MAPS[cm.mapName].b[idx];
+
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    };
+
     View.prototype.getViewParams = function() {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
         return {
@@ -11525,7 +11569,7 @@ View = (function() {
         imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
         ////////////////////////
         
-        var bkgdColor = this.getBackgroundColor();    
+        var bkgdColor = this.getBackgroundColorAtIndex(0);    
         // fill with background of the same color than the first color map value (lowest intensity)
         if (this.projectionMethod==ProjectionEnum.SIN) {
             if (this.fov>=60) {
@@ -11568,6 +11612,7 @@ View = (function() {
         for (const [i, imageSurvey] of this.imageSurveys.entries()) {
         if (imageSurvey && imageSurvey.isReady && this.displaySurvey[i]) {
                 if (this.aladin.reduceDeformations==null) {
+
                     imageSurvey.draw(imageCtx, blendCtx, this, i, !this.dragging, this.curNorder);
                 }                else {
                     imageSurvey.draw(imageCtx, blendCtx, this, i, this.aladin.reduceDeformations, this.curNorder);
@@ -11582,9 +11627,9 @@ View = (function() {
             imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
 
             if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, -1, !this.dragging, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, blendCtx, this, -1, !this.dragging, this.curOverlayNorder);
             }            else {
-                this.overlayImageSurvey.draw(imageCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
+                this.overlayImageSurvey.draw(imageCtx, blendCtx, this, -1, this.aladin.reduceDeformations, this.curOverlayNorder);
             }
 
            imageCtx.globalAlpha = 1.0;
@@ -12314,7 +12359,6 @@ View = (function() {
         
                 var remaining = this.downloader.emptyQueue();
         for (buffer of this.tileBuffers) {
-            console.log('remaining buffers '+remaining.length);
             buffer.removeTiles(remaining);
         }
 
@@ -12993,7 +13037,7 @@ this.view.showCatalog(options.showCatalog);
 };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "2021-12-20-02:10:12"; // will be filled by the build.sh script
+    Aladin.VERSION = "2021-12-27-20:12:38"; // will be filled by the build.sh script
     
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
@@ -13563,8 +13607,6 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey, index, blendingMode, hue, alpha, callback) {
         
-        /* idx is the last layer (adding) if index is undefined else it's a replacement */
-
         console.log('setting survey at '+index+' blend mode '+blendingMode+' hue '+hue+' alpha '+alpha);
         this.view.setImageSurveyAtIndex(imageSurvey, index, blendingMode, hue, alpha, callback);
         this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
@@ -13995,6 +14037,27 @@ lonlat = CooConversion.GalacticToJ2000(lonlat);
         return this.view.getCanvasDataURL(options.format, options.width, options.height);
     }
 
+   /**
+    * Return the skymap view as a data URL (base64-formatted string)
+    * Parameters:
+    * - options (optional): object with attributs
+    *     * format (optional): 'image/png' or 'image/jpeg'
+    *     * width: width in pixels of the image to output
+    *     * height: height in pixels of the image to output
+    *
+    * @API
+   */
+   Aladin.prototype.getSkymapDataURL = function(options) {
+       var options = options || {};
+       // support for old API signature
+       if (typeof options !== 'object') {
+           var imgFormat = options;
+           options = {format: imgFormat};
+       }
+
+       return this.view.getCanvasSkymapDataURL(options.format, options.width, options.height);
+   }
+   
     /**
      * Return the current view WCS as a key-value dictionary
      * Can be useful in coordination with getViewDataURL

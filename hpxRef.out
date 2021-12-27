@@ -27,7 +27,7 @@
  * ## Notations
  * 
  * <pre>
- * theta :  colatitude (pi/2 - delta)                [0 , pi]
+ * theta :  latitude (pi/2 - delta)                [0 , pi]
  * phi   :  longitude (alpha)                        [0, 2 pi)
  * t     :  coord. of x-axis in spherical projection [0, 2 pi)
  * u     :  coord. of y-axis in spherical projection [-pi/2, pi/2]

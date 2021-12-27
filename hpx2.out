@@ -1,0 +1,55 @@
+export function order2nside(order: number) {
+export function nside2order(nside: number) {
+export function nside2npix(nside: number) {
+export function vec2pix_nest(nside: number, v: V3) {
+export function vec2pix_ring(nside: number, v: V3) {
+export function ang2pix_nest(nside: number, theta: number, phi: number) {
+export function ang2pix_ring(nside: number, theta: number, phi: number) {
+export function nest2ring(nside: number, ipix: number) {
+export function ring2nest(nside: number, ipix: number) {
+export function ring2fxy(nside: number, ipix: number) {
+export function pix2vec_nest(nside: number, ipix: number) {
+export function pix2ang_nest(nside: number, ipix: number) {
+export function pix2vec_ring(nside: number, ipix: number) {
+export function pix2ang_ring(nside: number, ipix: number) {
+export function query_disc_inclusive_nest(nside: number, v: V3, radius: number, cb: (ipix: number) => void) {
+export function query_disc_inclusive_ring(nside: number, v: V3, radius: number, cb_ring: (ipix: number) => void) {
+export function max_pixrad(nside: number) {
+function angle(a: V3, b: V3) {
+function tu2vec(t: number, u: number): V3 {
+function distance2(a: V3, b: V3) {
+function walk_ring_around(nside: number, i: number, a0: number, theta: number, r: number, cb: (ipix: number) => void) {
+function center_t(nside: number, i: number, t: number) {
+function walk_ring(nside: number, i: number, cb: (ipix: number) => void) {
+function fxy_compare(a: FXY, b: FXY) {
+function right_next_pixel(nside: number, { f, x, y }: FXY) {
+export function corners_nest(nside: number, ipix: number) {
+export function corners_ring(nside: number, ipix: number) {
+export function nside2pixarea(nside: number) {
+export function nside2resol(nside: number) {
+export function pixcoord2vec_nest(nside: number, ipix: number, ne: number, nw: number) {
+export function pixcoord2vec_ring(nside: number, ipix: number, ne: number, nw: number) {
+function za2pix_nest(nside: number, z: number, a: number) {
+export function tu2fxy(nside: number, t: number, u: number) {
+function wrap(A: number, B: number) {
+function sigma(z: number): number {
+export function za2tu(z: number, a: number) {
+export function tu2za(t: number, u: number) {
+function vec2za(X: number, Y: number, z: number) {
+function za2vec(z: number, a: number): V3 {
+export function ang2vec(theta: number, phi: number) {
+export function vec2ang(v: V3) {
+function tu2fpq(t: number, u: number) {
+export function fxy2nest(nside: number, f: number, x: number, y: number) {
+export function bit_combine(x: number, y: number) {
+export function bit_decombine(p: number) {
+function nest2fxy(nside: number, ipix: number) {
+function fxy2ring(nside: number, f: number, x: number, y: number) {
+export function fxy2tu(nside: number, f: number, x: number, y: number) {
+export function orderpix2uniq(order: number, ipix: number): number {
+export function uniq2orderpix(uniq: number) {
+function ilog2(x: number) {
+const sign: (A: number) => number = (<any>Math).sign || function (A: number) {
+function square(A: number) {
+function clip(Z: number, A: number, B: number) {
+function assert(condition: boolean) {

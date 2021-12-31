@@ -1,5 +1,6 @@
+
 #### `abs()`
-#### `add(number)`
+#### `.add(number)` +
 #### `and(number)`
 #### `bitLength()`
 #### `compare(number)`

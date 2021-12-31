@@ -1,0 +1,33 @@
+./HealpixCache.js:    	var hpxIdx = new HealpixIndex(8);
+./HealpixCache.js:    	var npix = HealpixIndex.nside2Npix(8);
+./HealpixCache.js:    		HealpixCache.hpxIdxCache = new HealpixIndex(nside);
+./View.js:        var npix = HealpixIndex.nside2Npix(nside);
+./View.js:            var hpxIdx = new HealpixIndex(nside);
+./View.js:        var npix = HealpixIndex.nside2Npix(nside);
+./View.js:            var hpxIdx = new HealpixIndex(nside);
+./View.js:        var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
+./View.js:        // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
+./View.js:        if (norder>HealpixIndex.ORDER_MAX) {
+./View.js:            norder = HealpixIndex.ORDER_MAX;
+./View.js:        if (overlayNorder>HealpixIndex.ORDER_MAX) {
+./View.js:            overlayNorder = HealpixIndex.ORDER_MAX;
+
+
+
+instantiated HealpixIndex
+./HealpixCache.js:    HealpixCache.hpxIdxCache = null;
+./HealpixCache.js:    	var hpxIdx = new HealpixIndex(8);
+./HealpixCache.js:    	hpxIdx.init();
+./HealpixCache.js:            corners =  hpxIdx.corners_nest(ipix, 1);
+./HealpixCache.js:    	HealpixCache.hpxIdxCache = hpxIdx;
+./HealpixCache.js:    		HealpixCache.hpxIdxCache = new HealpixIndex(nside);
+./HealpixCache.js:    		HealpixCache.hpxIdxCache.init();
+./HealpixCache.js:    	return HealpixCache.hpxIdxCache.corners_nest(ipix, 1);
+./View.js:            var hpxIdx = new HealpixIndex(nside);
+./View.js:            hpxIdx.init();
+./View.js:            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
+./View.js:            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
+./View.js:            var hpxIdx = new HealpixIndex(nside);
+./View.js:            hpxIdx.init();
+./View.js:            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
+./View.js:            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);

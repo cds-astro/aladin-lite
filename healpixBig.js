@@ -7,16 +7,12 @@ const PI_8 = Math.PI / 8;
 HealpixIndex = (function() {
 
     function HealpixIndex(t) {
-    "use strict";
     this.Nside = t;
-    this.NS_MAX = 8388608;
-        this.ORDER_MAX = 23;
-        console.log('order '+this.ORDER_MAX);
+    this.NS_MAX = 16777216;
+        this.ORDER_MAX = 24;
     }
     
         HealpixIndex.prototype.init = function() {
-            "use strict";
-            
         };
         
     HealpixIndex.prototype.order2nside = function(order) {
@@ -27,7 +23,7 @@ HealpixIndex = (function() {
         return ilog2(nside);
     };
 
-    HealpixIndex.prototype.nside2npix = function(nside) {
+    HealpixIndex.prototype.nside2Npix = function(nside) {
         return 12 * nside * nside;
     };
 
@@ -51,7 +47,12 @@ HealpixIndex = (function() {
         return nest2ring(nside, za2pix_nest(nside, z, phi));
     };
 
-    HealpixIndex.prototype.nest2ring = function(nside, ipix) {
+    HealpixIndex.prototype.nest2Ring = function(nside, ipix) {
+        const { f, x, y } = nest2fxy(nside, ipix);
+        return fxy2ring(nside, f, x, y);
+    };
+    
+    nest2ring = function(nside, ipix) {
         const { f, x, y } = nest2fxy(nside, ipix);
         return fxy2ring(nside, f, x, y);
     };
@@ -63,8 +64,16 @@ HealpixIndex = (function() {
         const { f, x, y } = ring2fxy(nside, ipix);
         return fxy2nest(nside, f, x, y);
     };
+    
+    ring2nest = function(nside, ipix) {
+        if (nside == 1) {
+            return ipix;
+        }
+        const { f, x, y } = ring2fxy(nside, ipix);
+        return fxy2nest(nside, f, x, y);
+    };
 
-    HealpixIndex.prototype.ring2fxy = function(nside, ipix) {
+    ring2fxy = function(nside, ipix) {
         const polar_lim = 2 * nside * (nside - 1);
         if (ipix < polar_lim) { // north polar cap
             var i = Math.floor((Math.sqrt(1 + 2 * ipix) + 1) / 2);
@@ -72,41 +81,47 @@ HealpixIndex = (function() {
             var f = Math.floor(j / i);
             var k = j % i;
             var x = nside - i + k;
-            const y = nside - 1n - k;
+            const y = nside - 1 - k;
             return { f, x, y };
         }
         if (ipix < polar_lim + 8 * nside * nside) { // equatorial belt
             const k = ipix - polar_lim;
-            const ring = 4n * nside;
-            const i = nside - k / ring;
-            const s = i % 2n == 0 ? 1n : 0n;
-            const j = 2n * (k % ring) + s;
-            const jj = j - 4n * nside;
-            const ii = i + 5n * nside - 1n;
-            const pp = (ii + jj) / 2n;
-            const qq = (ii - jj) / 2n;
-            const PP = pp / nside;
-            const QQ = qq / nside;
-            const V = 5n - (PP + QQ);
-            const H = PP - QQ + 4n;
-            const f = 4n * V + (H >> 1n) % 4n;
+            const ring = 4 * nside;
+            const i = nside - Math.floor(k / ring);
+            const s = i % 2 == 0 ? 1 : 0;
+            const j = 2 * (k % ring) + s;
+            const jj = j - 4 * nside;
+            const ii = i + 5 * nside - 1;
+            const pp = (ii + jj) / 2;
+            const qq = (ii - jj) / 2;
+            const PP = Math.floor(pp / nside);
+            const QQ = Math.floor(qq / nside);
+            const V = 5 - (PP + QQ);
+            const H = PP - QQ + 4;
+            const f = 4 * V + (H >> 1) % 4;
             const x = pp % nside;
             const y = qq % nside;
             return { f, x, y };
         }
         else { // south polar cap
-            const p = 12n * nside * nside - ipix - 1n;
-            const i = (Math.sqrt(1n + 2n * p) + 1n) / 2n;
-            const j = p - 2n * i * (i - 1n);
-            const f = 11n - j / i;
+            const p = 12 * nside * nside - ipix - 1;
+            const i = Math.floor((Math.sqrt(1 + 2 * p) + 1) / 2);
+            const j = p - 2 * i * (i - 1);
+            const f = 11 - Math.floor(j / i);
             const k = j % i;
-            const x = i - k - 1n;
+            const x = i - k - 1;
             const y = k;
             return { f, x, y };
         }
     };
     
     HealpixIndex.prototype.pix2vec_nest = function(nside, ipix) {
+        const { f, x, y } = nest2fxy(nside, ipix);
+        const { t, u } = fxy2tu(nside, f, x, y);
+        const { z, a } = tu2za(t, u);
+        return za2vec(z, a);
+    };
+    pix2vec_nest = function(nside, ipix) {
         const { f, x, y } = nest2fxy(nside, ipix);
         const { t, u } = fxy2tu(nside, f, x, y);
         const { z, a } = tu2za(t, u);
@@ -185,7 +200,7 @@ HealpixIndex = (function() {
         const unit = PI_4 / nside;
         return angle(
             tu2vec(unit, nside * unit),
-            tu2vec(unit, (nside + 1n) * unit),
+            tu2vec(unit, (nside + 1) * unit),
         );
     };
 
@@ -273,7 +288,7 @@ HealpixIndex = (function() {
         }
         --y;
         if (y == -1) {
-            switch (f / 4) {
+            switch (Math.floor(f / 4)) {
                 case 0:
                     f = 4 + (f + 1) % 4;
                     y = nside - 1;
@@ -310,6 +325,22 @@ HealpixIndex = (function() {
         return xyzs;
     };
     
+    corners_nest = function(nside, ipix) {
+        const { f, x, y } = nest2fxy(nside, ipix);
+        const { t, u } = fxy2tu(nside, f, x, y);
+        const d = PI_4 / nside;
+        var xyzs = [];
+        for (const [tt, uu] of [
+            [0, d],
+            [-d, 0],
+            [0, -d],
+            [d, 0],
+        ]) {
+            const { z, a } = tu2za(t + tt, u + uu);
+            xyzs.push(za2vec(z, a));
+        }
+        return xyzs;
+    };
     HealpixIndex.prototype.corners_ring = function(nside, ipix) {
         return corners_nest(nside, ring2nest(nside, ipix));
     };
@@ -342,10 +373,10 @@ HealpixIndex = (function() {
         return fxy2nest(nside, f, x, y);
     };
 
-    HealpixIndex.prototype.tu2fxy = function(nside, t, u) {
+    tu2fxy = function(nside, t, u) {
         const { f, p, q } = tu2fpq(t, u);
-        const x = clip(nside * p, 0, nside - 1);
-        const y = clip(nside * q, 0, nside - 1);
+        const x = clip(Math.floor(nside * p), 0, nside - 1);
+        const y = clip(Math.floor(nside * q), 0, nside - 1);
         return { f, x, y };
     };
 
@@ -364,7 +395,7 @@ HealpixIndex = (function() {
     /**
      * HEALPix spherical projection.
      */
-    HealpixIndex.prototype.za2tu = function(z, a) {
+    za2tu = function(z, a) {
         if (Math.abs(z) <= 2 / 3) { // equatorial belt
             const t = a;
             const u = 3 * PI_8 * z;
@@ -382,7 +413,7 @@ HealpixIndex = (function() {
     /**
      * Inverse HEALPix spherical projection.
      */
-    HealpixIndex.prototype.tu2za = function(t, u) {
+    tu2za = function(t, u) {
         const abs_u = Math.abs(u);
         if (abs_u >= PI_2) { // error
             return { z: sign(u), a: 0 };
@@ -457,8 +488,8 @@ HealpixIndex = (function() {
     };
 
     // f, p, q -> nest index
-    HealpixIndex.prototype.fxy2nest = function(nside, f, x, y) {
-        return f * nside * nside + bit_combine(x, y);
+    fxy2nest = function(nside, f, x, y) {
+        return BigInt(f) * BigInt(nside) * BigInt(nside) + bit_combine(x, y);
     };
 
     // x = (...x2 x1 x0)_2 <- in binary
@@ -469,11 +500,14 @@ HealpixIndex = (function() {
 n = 25
 s = ' | '.join(['x & 1'] + [f'(x & BigInt(0x{2 ** (i+1):x}) | y & BigInt(0x{2 ** i:x})) << {i + 1}n' for i in range(n)] + [f'y & BigInt(0x{2**n:x}) << {n+1}n'])
 */
-    HealpixIndex.prototype.bit_combine = function(x, y) {
-        assert(x < (1 << 26n));
-        assert(y < (1 << 25n));
+    bit_combine = function(x, y) {
+        var x = BigInt(x);
+        var y = BigInt(y);
+        assert(x < (1n << 26n));
+        assert(y < (1n << 25n));
+
         return (
-            x & 1 | (x & BigInt(0x2) | y & BigInt(0x1)) << 1n | (x & BigInt(0x4) | y & BigInt(0x2)) << 2n | (x & BigInt(0x8) | y & BigInt(0x4)) << 3n | (x & BigInt(0x10) | y & BigInt(0x8)) << 4n | (x & BigInt(0x20) | y & BigInt(0x10)) << 5n | (x & BigInt(0x40) | y & BigInt(0x20)) << 6n | (x & BigInt(0x80) | y & BigInt(0x40)) << 7n | (x & BigInt(0x100) | y & BigInt(0x80)) << 8n | (x & BigInt(0x200) | y & BigInt(0x100)) << 9n | (x & BigInt(0x400) | y & BigInt(0x200)) << 10n | (x & BigInt(0x800) | y & BigInt(0x400)) << 11n | (x & BigInt(0x1000) | y & BigInt(0x800)) << 12n | (x & BigInt(0x2000) | y & BigInt(0x1000)) << 13n | (x & BigInt(0x4000) | y & BigInt(0x2000)) << 14n | (x & BigInt(0x8000) | y & BigInt(0x4000)) << 15n | (x & BigInt(0x10000) | y & BigInt(0x8000)) << 16n | (x & BigInt(0x20000) | y & BigInt(0x10000)) << 17n | (x & BigInt(0x40000) | y & BigInt(0x20000)) << 18n | (x & BigInt(0x80000) | y & BigInt(0x40000)) << 19n | (x & BigInt(0x100000) | y & BigInt(0x80000)) << 20n | (x & BigInt(0x200000) | y & BigInt(0x100000)) << 21n | (x & BigInt(0x400000) | y & BigInt(0x200000)) << 22n | (x & BigInt(0x800000) | y & BigInt(0x400000)) << 23n | (x & BigInt(0x1000000) | y & BigInt(0x800000)) << 24n | (x & BigInt(0x2000000) | y & BigInt(0x1000000)) << 25n | y & BigInt(0x2000000) << 26n
+            x & 1n | (x & BigInt(0x2) | y & BigInt(0x1)) << 1n | (x & BigInt(0x4) | y & BigInt(0x2)) << 2n | (x & BigInt(0x8) | y & BigInt(0x4)) << 3n | (x & BigInt(0x10) | y & BigInt(0x8)) << 4n | (x & BigInt(0x20) | y & BigInt(0x10)) << 5n | (x & BigInt(0x40) | y & BigInt(0x20)) << 6n | (x & BigInt(0x80) | y & BigInt(0x40)) << 7n | (x & BigInt(0x100) | y & BigInt(0x80)) << 8n | (x & BigInt(0x200) | y & BigInt(0x100)) << 9n | (x & BigInt(0x400) | y & BigInt(0x200)) << 10n | (x & BigInt(0x800) | y & BigInt(0x400)) << 11n | (x & BigInt(0x1000) | y & BigInt(0x800)) << 12n | (x & BigInt(0x2000) | y & BigInt(0x1000)) << 13n | (x & BigInt(0x4000) | y & BigInt(0x2000)) << 14n | (x & BigInt(0x8000) | y & BigInt(0x4000)) << 15n | (x & BigInt(0x10000) | y & BigInt(0x8000)) << 16n | (x & BigInt(0x20000) | y & BigInt(0x10000)) << 17n | (x & BigInt(0x40000) | y & BigInt(0x20000)) << 18n | (x & BigInt(0x80000) | y & BigInt(0x40000)) << 19n | (x & BigInt(0x100000) | y & BigInt(0x80000)) << 20n | (x & BigInt(0x200000) | y & BigInt(0x100000)) << 21n | (x & BigInt(0x400000) | y & BigInt(0x200000)) << 22n | (x & BigInt(0x800000) | y & BigInt(0x400000)) << 23n | (x & BigInt(0x1000000) | y & BigInt(0x800000)) << 24n | (x & BigInt(0x2000000) | y & BigInt(0x1000000)) << 25n | y & BigInt(0x2000000) << 26n
         );
     };
 
@@ -481,10 +515,11 @@ s = ' | '.join(['x & 1'] + [f'(x & BigInt(0x{2 ** (i+1):x}) | y & BigInt(0x{2 **
     // y = (...y2 y1 y0)_2
     // p = (...y2 x2 y1 x1 y0 x0)_2
     // returns x, y
-    HealpixIndex.prototype.bit_decombine = function(p) {
+    bit_decombine = function(p) {
         assert(p <= 0x1fffffffffffff);
         // (python)
         // ' | '.join(f'(p & BigInt(0x{2**(2*i):x})) >> {i}n' for i in range(26))
+        var p = BigInt(p);
 const x = ((p & BigInt(0x1)) >> 0n | (p & BigInt(0x4)) >> 1n | (p & BigInt(0x10)) >> 2n | (p & BigInt(0x40)) >> 3n | (p & BigInt(0x100)) >> 4n | (p & BigInt(0x400)) >> 5n | (p & BigInt(0x1000)) >> 6n | (p & BigInt(0x4000)) >> 7n | (p & BigInt(0x10000)) >> 8n | (p & BigInt(0x40000)) >> 9n | (p & BigInt(0x100000)) >> 10n | (p & BigInt(0x400000)) >> 11n | (p & BigInt(0x1000000)) >> 12n | (p & BigInt(0x4000000)) >> 13n | (p & BigInt(0x10000000)) >> 14n | (p & BigInt(0x40000000)) >> 15n | (p & BigInt(0x100000000)) >> 16n | (p & BigInt(0x400000000)) >> 17n | (p & BigInt(0x1000000000)) >> 18n | (p & BigInt(0x4000000000)) >> 19n | (p & BigInt(0x10000000000)) >> 20n | (p & BigInt(0x40000000000)) >> 21n | (p & BigInt(0x100000000000)) >> 22n | (p & BigInt(0x400000000000)) >> 23n | (p & BigInt(0x1000000000000)) >> 24n | (p & BigInt(0x4000000000000)) >> 25n);
                 // (python)
         // ' | '.join(f'(p & BigInt(0x{2**(2*i + 1):x})) >> {i+1}n' for i in range(25))
@@ -496,14 +531,18 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
     // x: north east index in base pixel
     // y: north west index in base pixel
     function nest2fxy(nside, ipix) {
+        var ipix = Number(ipix);
+
         const nside2 = nside * nside;
-        const f = ipix / nside2; // base pixel index
+        const f = Math.floor(ipix / nside2); // base pixel index
         const k = ipix % nside2;             // nested pixel index in base pixel
         const { x, y } = bit_decombine(k);
         return { f, x, y };
     };
 
     function fxy2ring(nside, f, x, y) {
+        var nside = BigInt(nside);
+        var f = BigInt(f);
         const f_row = f / 4n; // {0 .. 2}
         const f1 = f_row + 2n;            // {2 .. 4}
         const v = x + y;
@@ -533,14 +572,16 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
     };
 
     // f, x, y -> spherical projection
-    HealpixIndex.prototype.fxy2tu = function(nside, f, x, y) {
-        const f_row = f / 4n;
-        const f1 = f_row + 2n;
-        const f2 = 2n * (f % 4n) - (f_row % 2n) + 1n;
+    fxy2tu = function(nside, f, x, y) {
+        var x = Number(x);
+        var y = Number(y);
+        const f_row = Math.floor(f / 4);
+        const f1 = f_row + 2;
+        const f2 = 2 * (f % 4) - (f_row % 2) + 1;
         const v = x + y;
         const h = x - y;
-        const i = f1 * nside - v - 1n;
-        const k = (f2 * nside + h + (8n * nside));
+        const i = f1 * nside - v - 1;
+        const k = (f2 * nside + h + (8 * nside));
         const t = k / nside * PI_4;
         const u = PI_2 - i / nside * PI_4;
         return { t, u };
@@ -554,7 +595,7 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
          * - see section 3.2 in http://healpix.sourceforge.net/pdf/intro.pdf
          * - see section 2.3.1 in http://ivoa.net/documents/MOC/
          */
-        return 4n * ((1n << (2n * order)) - 1n) + ipix;
+        return 4n * ((1n << (2n * BigInt(order))) - 1n) + BigInt(ipix);
     };
 
     HealpixIndex.prototype.uniq2orderpix = function(uniq) {
@@ -564,6 +605,7 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
          * Inverse of `orderpix2uniq`.
          */
         assert(uniq <= 0x1fffffffffffff);
+        var uniq = BigInt(uniq);
         let order = 0n;
         let l = (uniq >> 2n) + 1n;
         while (l >= 4n) {
@@ -571,7 +613,7 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
             ++order;
         }
         const ipix = uniq - (((1n << (2n * order)) - 1n) << 2n);
-        return { order, ipix };
+        return {order:  order, ipix: ipix };
     };
 
     function ilog2(x) {
@@ -598,4 +640,130 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
     };
 
     return HealpixIndex;
-});
+})();
+
+h = new HealpixIndex(8);
+    const tests = require('./tests.json');
+
+    // for (const c of k) {
+    //     var s = c.args;
+    //     var r = c.expected;
+    //     console.log('expected '+ r + ' ' +h.ang2pix_nest.apply(this, s));
+    // }
+    
+    var funcs = [];
+    for (k in tests) {
+        funcs.push(k);
+    }
+
+    var testFuncs = {
+    vec2pix_nest: function(h, args) {
+    return h.vec2pix_nest.apply(this, args);
+    },
+    vec2pix_ring: function(h, args) {
+    return h.vec2pix_ring.apply(this, args);
+    },
+    ang2pix_nest: function(h, args) {
+    return h.ang2pix_nest.apply(this, args);
+    },
+    ang2pix_ring: function(h, args) {
+    return h.ang2pix_ring.apply(this, args);
+    },
+    nest2Ring: function(h, args) {
+    return h.nest2Ring.apply(this, args);
+    },
+    ring2nest: function(h, args) {
+    return h.ring2nest.apply(this, args);
+    },
+    pix2vec_nest: function(h, args) {
+    return h.pix2vec_nest.apply(this, args);
+    },
+    pix2vec_ring: function(h, args) {
+    return h.pix2vec_ring.apply(this, args);
+    },
+    nside2pixarea: function(h, args) {
+    return h.nside2pixarea.apply(this, args);
+    },
+    nside2resol: function(h, args) {
+    return h.nside2resol.apply(this, args);
+    },
+    max_pixrad: function(h, args) {
+    return h.max_pixrad.apply(this, args);
+    },
+    corners_nest: function(h, args) {
+    return h.corners_nest.apply(this, args);
+    },
+    corners_ring: function(h, args) {
+    return h.corners_ring.apply(this, args);
+    },
+    orderpix2uniq: function(h, args) {
+    return h.orderpix2uniq.apply(this, args);
+    },
+    uniq2orderpix: function(h, args) {
+    return h.uniq2orderpix.apply(this, args);
+    },
+    nside2order: function(h, args) {
+    return h.nside2order.apply(this, args);
+    }
+    };
+
+    // console.log('var testFuncs = {');
+    // for (f of funcs) {
+    //     console.log(f+': function(h, args) {\n'+'return h.'+f+'.apply(this, args);\n},');
+    // }
+    
+    function equals(a, b) {
+
+        if (typeof a === 'number' || typeof a === 'bigint') {
+            return a == b;
+        } else if (a.constructor == Object){
+            for (k in a) {
+                if (a[k] != b[k]) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            for (var c = 0; c < e.length; ++c) {
+                if (a[c].length === 'undefined') {
+                    if (Math.abs(a[c] - e[c]) > 10e-4) {
+                        return false;
+                    }
+                } else {
+                    for (var i = 0; i < a[c].length; ++i) {
+                        if (Math.abs(a[c][i] - e[c][i]) > 10e-5) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+        }
+    };
+
+    var start = Date.now();
+    var total = 0;
+    
+    
+    for (f in testFuncs) {
+        console.log(f);
+        var cases = tests[f];
+        var count = 0;
+        for (t of cases) {
+            total ++;
+            var a = t.args;
+            var e = t.expected;
+            if (equals(testFuncs[f](h, a), e)) {
+                continue;
+        }else {
+            if (count == 0) {
+                        console.log('expected \n'+e+'\ngot\n'+testFuncs[f](h, a));
+                    }
+                                count ++;
+        }
+        }
+        console.log('mismatch '+count);
+        count = 0;
+    }
+    var end = Date.now();
+    console.log('made '+total+' comparisons in '+((end-start)/1000)+' seconds');

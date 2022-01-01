@@ -35,7 +35,7 @@ View = (function() {
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
 
-            // new: added multi image survey 
+            // new: aladindded multi image survey 
             this.imageSurveys = [];
             this.createCanvases();
             this.location = location;
@@ -1255,7 +1255,7 @@ View = (function() {
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
             var polar = Utils.radecToPolar(lonlat[0], lonlat[1]);
-            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
+            ipixCenter = hpxIdx.ang2pix_nest(nside, polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
 
         }

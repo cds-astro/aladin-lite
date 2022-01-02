@@ -47,7 +47,7 @@ HealpixIndex = (function() {
         return nest2ring(nside, za2pix_nest(nside, z, phi));
     };
 
-    HealpixIndex.prototype.nest2Ring = function(nside, ipix) {
+    HealpixIndex.prototype.nest2ring = function(nside, ipix) {
         const { f, x, y } = nest2fxy(nside, ipix);
         return fxy2ring(nside, f, x, y);
     };
@@ -669,8 +669,8 @@ h = new HealpixIndex(8);
     ang2pix_ring: function(h, args) {
     return h.ang2pix_ring.apply(this, args);
     },
-    nest2Ring: function(h, args) {
-    return h.nest2Ring.apply(this, args);
+    nest2ring: function(h, args) {
+    return h.nest2ring.apply(this, args);
     },
     ring2nest: function(h, args) {
     return h.ring2nest.apply(this, args);

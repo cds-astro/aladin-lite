@@ -14,20 +14,3 @@
 
 
 
-instantiated HealpixIndex
-./HealpixCache.js:    HealpixCache.hpxIdxCache = null;
-./HealpixCache.js:    	var hpxIdx = new HealpixIndex(8);
-./HealpixCache.js:    	hpxIdx.init();
-./HealpixCache.js:            corners =  hpxIdx.corners_nest(ipix, 1);
-./HealpixCache.js:    	HealpixCache.hpxIdxCache = hpxIdx;
-./HealpixCache.js:    		HealpixCache.hpxIdxCache = new HealpixIndex(nside);
-./HealpixCache.js:    		HealpixCache.hpxIdxCache.init();
-./HealpixCache.js:    	return HealpixCache.hpxIdxCache.corners_nest(ipix, 1);
-./View.js:            var hpxIdx = new HealpixIndex(nside);
-./View.js:            hpxIdx.init();
-./View.js:            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
-./View.js:            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
-./View.js:            var hpxIdx = new HealpixIndex(nside);
-./View.js:            hpxIdx.init();
-./View.js:            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
-./View.js:            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);

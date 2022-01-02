@@ -4,76 +4,66 @@ const PI_2 = Math.PI / 2;
 const PI_4 = Math.PI / 4;
 const PI_8 = Math.PI / 8;
 
-HealpixIndex = (function() {
+class HealpixIndex {
+"use strict";
 
-    function HealpixIndex(t) {
-    this.Nside = t;
-    this.NS_MAX = 16777216;
-        this.ORDER_MAX = 24;
+static NS_MAX = 16777216;
+    static ORDER_MAX = 24;
+
+    constructor(nside) {
+    this.Nside = nside;
     }
     
-        HealpixIndex.prototype.init = function() {
-        };
-        
-    HealpixIndex.prototype.order2nside = function(order) {
+    static order2nside(order) {
         return 1 << order;
-    };
+    }
 
-    HealpixIndex.prototype.nside2order = function(nside) {
-        return ilog2(nside);
-    };
+static nside2order(nside) {
+        return HealpixIndex.ilog2(nside);
+    }
 
-    HealpixIndex.prototype.nside2Npix = function(nside) {
+static nside2Npix(nside) {
         return 12 * nside * nside;
-    };
+    }
 
-    HealpixIndex.prototype.vec2pix_nest = function(nside, v) {
-        const { z, a } = vec2za(v[0], v[1], v[2]);
-        return za2pix_nest(nside, z, a);
-    };
+    static vec2pix_nest(nside, v) {
+        const { z, a } = HealpixIndex.vec2za(v[0], v[1], v[2]);
+        return HealpixIndex.za2pix_nest(nside, z, a);
+    }
 
-    HealpixIndex.prototype.vec2pix_ring = function(nside, v) {
-        const { z, a } = vec2za(v[0], v[1], v[2]);
-        return nest2ring(nside, za2pix_nest(nside, z, a));
-    };
+static vec2pix_ring(nside, v) {
+        const { z, a } = HealpixIndex.vec2za(v[0], v[1], v[2]);
+        return HealpixIndex.nest2ring(nside, HealpixIndex.za2pix_nest(nside, z, a));
+    }
 
-    HealpixIndex.prototype.ang2pix_nest = function(nside, theta, phi) {
+static ang2pix_nest(nside, theta, phi) {
         const z = Math.cos(theta);
-        return za2pix_nest(nside, z, phi);
-    };
+        return HealpixIndex.za2pix_nest(nside, z, phi);
+    }
 
-    HealpixIndex.prototype.ang2pix_ring = function(nside, theta, phi) {
+    ang2pix_nest(theta, phi) {
+            const z = Math.cos(theta);
+            return HealpixIndex.za2pix_nest(this.nside, z, phi);
+        }
+static ang2pix_ring(nside, theta, phi) {
         const z = Math.cos(theta);
-        return nest2ring(nside, za2pix_nest(nside, z, phi));
-    };
+        return HealpixIndex.nest2ring(nside, HealpixIndex.za2pix_nest(nside, z, phi));
+    }
 
-    HealpixIndex.prototype.nest2ring = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        return fxy2ring(nside, f, x, y);
-    };
+    static nest2ring(nside, ipix) {
+        const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
+        return HealpixIndex.fxy2ring(nside, f, x, y);
+    }
     
-    nest2ring = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        return fxy2ring(nside, f, x, y);
-    };
-
-    HealpixIndex.prototype.ring2nest = function(nside, ipix) {
+static ring2nest(nside, ipix) {
         if (nside == 1) {
             return ipix;
         }
-        const { f, x, y } = ring2fxy(nside, ipix);
-        return fxy2nest(nside, f, x, y);
-    };
+        const { f, x, y } = HealpixIndex.ring2fxy(nside, ipix);
+        return HealpixIndex.fxy2nest(nside, f, x, y);
+    }
     
-    ring2nest = function(nside, ipix) {
-        if (nside == 1) {
-            return ipix;
-        }
-        const { f, x, y } = ring2fxy(nside, ipix);
-        return fxy2nest(nside, f, x, y);
-    };
-
-    ring2fxy = function(nside, ipix) {
+    static ring2fxy(nside, ipix) {
         const polar_lim = 2 * nside * (nside - 1);
         if (ipix < polar_lim) { // north polar cap
             var i = Math.floor((Math.sqrt(1 + 2 * ipix) + 1) / 2);
@@ -113,51 +103,45 @@ HealpixIndex = (function() {
             const y = k;
             return { f, x, y };
         }
-    };
+    }
     
-    HealpixIndex.prototype.pix2vec_nest = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const { z, a } = tu2za(t, u);
-        return za2vec(z, a);
-    };
-    pix2vec_nest = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const { z, a } = tu2za(t, u);
-        return za2vec(z, a);
-    };
-
-    HealpixIndex.prototype.pix2ang_nest = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const { z, a } = tu2za(t, u);
+    static pix2vec_nest(nside, ipix) {
+        const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
+        const { t, u } = HealpixIndex.fxy2tu(nside, f, x, y);
+        const { z, a } = HealpixIndex.tu2za(t, u);
+        return HealpixIndex.za2vec(z, a);
+    }
+    
+    static pix2ang_nest(nside, ipix) {
+        const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
+        const { t, u } = HealpixIndex.fxy2tu(nside, f, x, y);
+        const { z, a } = HealpixIndex.tu2za(t, u);
         return { theta: Math.acos(z), phi: a };
+    }
+
+static pix2vec_ring(nside, ipix) {
+        return HealpixIndex.pix2vec_nest(nside, HealpixIndex.ring2nest(nside, ipix));
     };
 
-    HealpixIndex.prototype.pix2vec_ring = function(nside, ipix) {
-        return pix2vec_nest(nside, ring2nest(nside, ipix));
-    };
-
-    HealpixIndex.prototype.pix2ang_ring = function(nside, ipix) {
-        return pix2ang_nest(nside, ring2nest(nside, ipix));
+static pix2ang_ring(nside, ipix) {
+        return HealpixIndex.pix2ang_nest(nside, HealpixIndex.ring2nest(nside, ipix));
     };
 
     // TODO: cleanup
-    HealpixIndex.prototype.query_disc_inclusive_nest = function(nside, v, radius, cb) {
+    static query_disc_inclusive_nest(nside, v, radius, cb) {
         if (radius > PI_2) {
             throw new Error(`query_disc: radius must < PI/2`);
         }
-        const pixrad = max_pixrad(nside);
+        const pixrad = HealpixIndex.max_pixrad(nside);
         const d = PI_4 / nside;
-        const { z: z0, a: a0 } = vec2za(v[0], v[1], v[2]); // z0 = cos(theta)
+        const { z: z0, a: a0 } = HealpixIndex.vec2za(v[0], v[1], v[2]); // z0 = cos(theta)
         const sin_t = Math.sqrt(1n - z0 * z0);
         const cos_r = Math.cos(radius); // r := radius 
         const sin_r = Math.sin(radius);
         const z1 = z0 * cos_r + sin_t * sin_r; // cos(theta - r)
         const z2 = z0 * cos_r - sin_t * sin_r; // cos(theta + r)
-        const u1 = za2tu(z1, 0).u;
-        const u2 = za2tu(z2, 0).u;
+        const u1 = HealpixIndex.za2tu(z1, 0).u;
+        const u2 = HealpixIndex.za2tu(z2, 0).u;
         const cover_north_pole = sin_t * cos_r - z0 * sin_r < 0; // sin(theta - r) < 0
         const cover_south_pole = sin_t * cos_r + z0 * sin_r < 0; // sin(theta - r) < 0
         let i1 = Math.floor((PI_2 - u1) / d);
@@ -165,109 +149,109 @@ HealpixIndex = (function() {
         if (cover_north_pole) {
             ++i1;
             for (let i = 1; i <= i1; ++i)
-                walk_ring(nside, i, cb);
+                HealpixIndex.walk_ring(nside, i, cb);
             ++i1;
         }
         if (i1 == 0) {
-            walk_ring(nside, 1, cb);
+            HealpixIndex.walk_ring(nside, 1, cb);
             i1 = 2;
         }
         if (cover_south_pole) {
             --i2;
             for (let i = i2; i <= 4 * nside - 1; ++i)
-                walk_ring(nside, i, cb);
+                HealpixIndex.walk_ring(nside, i, cb);
             --i2;
         }
         if (i2 == 4n * nside) {
-            walk_ring(nside, 4n * nside - 1, cb);
+            HealpixIndex.walk_ring(nside, 4n * nside - 1, cb);
             i2 = 4n * nside - 2n;
         }
         const theta = Math.acos(z0);
         for (let i = i1; i <= i2; ++i)
-            walk_ring_around(nside, i, a0, theta, radius + pixrad, function(ipix) {
-                if (angle(pix2vec_nest(nside, ipix), v) <= radius + pixrad)
+            HealpixIndex.walk_ring_around(nside, i, a0, theta, radius + pixrad, function(ipix) {
+                if (HealpixIndex.angle(HealpixIndex.pix2vec_nest(nside, ipix), v) <= radius + pixrad)
                     cb(ipix);
             });
-    };
+    }
 
-    HealpixIndex.prototype.query_disc_inclusive_ring = function(nside, v, radius, cb_ring) {
-        return query_disc_inclusive_nest(nside, v, radius, function(ipix) {
+static query_disc_inclusive_ring(nside, v, radius, cb_ring) {
+        return HealpixIndex.query_disc_inclusive_nest(nside, v, radius, function(ipix) {
             cb_ring(nest2ring(nside, ipix));
         });
-    };
+    }
 
-    HealpixIndex.prototype.max_pixrad = function(nside) {
+static max_pixrad(nside) {
         const unit = PI_4 / nside;
-        return angle(
-            tu2vec(unit, nside * unit),
-            tu2vec(unit, (nside + 1) * unit),
+        return HealpixIndex.angle(
+            HealpixIndex.tu2vec(unit, nside * unit),
+            HealpixIndex.tu2vec(unit, (nside + 1) * unit),
         );
-    };
+    }
 
-    function angle(a, b) {
-        return 2 * Math.asin(Math.sqrt(distance2(a, b)) / 2);
-    };
+static angle(a, b) {
+        return 2 * Math.asin(Math.sqrt(HealpixIndex.distance2(a, b)) / 2);
+    }
 
-    function tu2vec(t, u) {
-        const { z, a } = tu2za(t, u);
-        return za2vec(z, a);
-    };
+static tu2vec(t, u) {
+        const { z, a } = HealpixIndex.tu2za(t, u);
+        return HealpixIndex.za2vec(z, a);
+    }
 
-    function distance2(a, b) {
+static distance2(a, b) {
         const dx = a[0] - b[0];
         const dy = a[1] - b[1];
         const dz = a[2] - b[2];
         return dx * dx + dy * dy  + dz * dz;
-    };
+    }
 
-    function walk_ring_around(nside, i, a0, theta, r, cb) {
+static walk_ring_around(nside, i, a0, theta, r, cb) {
         if (theta < r || theta + r > PI)
             return walk_ring(nside, i, cb);
         const u = PI_4 * (2n - i / nside);
-        const z = tu2za(PI_4, u).z;
+        const z = HealpixIndex.tu2za(PI_4, u).z;
         const st = Math.sin(theta);
         const ct = Math.cos(theta);
         const sr = Math.sin(r);
         const cr = Math.cos(r);
         const w = Math.atan2(
-            Math.sqrt(-square(z - ct * cr) / (square(st) * sr * sr) + 1) * sr,
+            Math.sqrt(-HealpixIndex.square(z - ct * cr) / (square(st) * sr * sr) + 1) * sr,
             (-z * ct + cr) / st
         );
         if (w >= PI)
-            return walk_ring(nside, i, cb);
-        const t1 = center_t(nside, i, za2tu(z, wrap(a0 - w, PI2)).t);
-        const t2 = center_t(nside, i, za2tu(z, wrap(a0 + w, PI2)).t);
-        const begin = tu2fxy(nside, t1, u);
-        const end = right_next_pixel(nside, tu2fxy(nside, t2, u));
-        for (let s = begin; !fxy_compare(s, end); s = right_next_pixel(nside, s)) {
-            cb(fxy2nest(nside, s.f, s.x, s.y));
+            return HealpixIndex.walk_ring(nside, i, cb);
+        const t1 = HealpixIndex.center_t(nside, i, za2tu(z, HealpixIndex.wrap(a0 - w, PI2)).t);
+        const t2 = HealpixIndex.center_t(nside, i, HealpixIndex.za2tu(z, wrap(a0 + w, PI2)).t);
+        const begin = HealpixIndex.tu2fxy(nside, t1, u);
+        const end = HealpixIndex.right_next_pixel(nside, HealpixIndex.tu2fxy(nside, t2, u));
+        for (let s = begin; !HealpixIndex.fxy_compare(s, end); s = HealpixIndex.right_next_pixel(nside, s)) {
+            cb(HealpixIndex.fxy2nest(nside, s.f, s.x, s.y));
         }
-    };
+    }
 
-    function center_t(nside, i, t) {
+static center_t(nside, i, t) {
         var d = PI_4 / nside;
         t /= d;
         t = (((t + i % 2) >> 1) << 1) + 1 - i % 2;
         t *= d;
         return t;
-    };
+    }
 
-    function walk_ring(nside, i, cb) {
+static walk_ring(nside, i, cb) {
         const u = PI_4 * (2 - i / nside);
         const t = PI_4 * (1 + (1 - i % 2) / nside);
-        const begin = tu2fxy(nside, t, u);
+        const begin = HealpixIndex.tu2fxy(nside, t, u);
         let s = begin;
         do {
-            cb(fxy2nest(nside, s.f, s.x, s.y));
-            s = right_next_pixel(nside, s);
-        } while (!fxy_compare(s, begin))
-    };
+            cb(HealpixIndex.fxy2nest(nside, s.f, s.x, s.y));
+            s = HealpixIndex.right_next_pixel(nside, s);
+        } while (!HealpixIndex.fxy_compare(s, begin))
+    }
 
-    function fxy_compare(a, b) {
+static fxy_compare(a, b) {
         return a.x == b.x && a.y == b.y && a.f == b.f;
-    };
+    }
 
-    function right_next_pixel(nside, { f, x, y}) {
+static right_next_pixel(nside, { f, x, y}) {
         ++x;
         if (x == nside) {
             switch (Math.floor(f / 4)) {
@@ -306,96 +290,96 @@ HealpixIndex = (function() {
             }
         }
         return { f, x, y };
-    };
-
-    HealpixIndex.prototype.corners_nest = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const d = PI_4 / nside;
-        var xyzs = [];
-        for (const [tt, uu] of [
-            [0, d],
-            [-d, 0],
-            [0, -d],
-            [d, 0],
-        ]) {
-            const { z, a } = tu2za(t + tt, u + uu);
-            xyzs.push(za2vec(z, a));
-        }
-        return xyzs;
-    };
-    
-    corners_nest = function(nside, ipix) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const d = PI_4 / nside;
-        var xyzs = [];
-        for (const [tt, uu] of [
-            [0, d],
-            [-d, 0],
-            [0, -d],
-            [d, 0],
-        ]) {
-            const { z, a } = tu2za(t + tt, u + uu);
-            xyzs.push(za2vec(z, a));
-        }
-        return xyzs;
-    };
-    HealpixIndex.prototype.corners_ring = function(nside, ipix) {
-        return corners_nest(nside, ring2nest(nside, ipix));
-    };
-
-    // pixel area
-    HealpixIndex.prototype.nside2pixarea = function(nside) {
-        return PI / (3 * nside * nside); //$$
-    };
-
-    // average pixel size
-    HealpixIndex.prototype.nside2resol = function(nside) {
-        return Math.sqrt(PI / 3) / nside;
-    };
-
-    HealpixIndex.prototype.pixcoord2vec_nest = function(nside, ipix, ne, nw) {
-        const { f, x, y } = nest2fxy(nside, ipix);
-        const { t, u } = fxy2tu(nside, f, x, y);
-        const d = PI_4 / nside;
-        const { z, a } = tu2za(t + d * (ne - nw), u + d * (ne + nw - 1));
-        return za2vec(z, a);
-    };
-
-    HealpixIndex.prototype.pixcoord2vec_ring = function(nside, ipix, ne, nw) {
-        return pixcoord2vec_nest(nside, ring2nest(nside, ipix), ne, nw);
     }
 
-    function za2pix_nest(nside, z, a) {
-        const { t, u } = za2tu(z, a);
-        const { f, x, y } = tu2fxy(nside, t, u);
-        return fxy2nest(nside, f, x, y);
-    };
+static corners_nest(nside, ipix) {
+        const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
+        const { t, u } = HealpixIndex.fxy2tu(nside, f, x, y);
+        const d = PI_4 / nside;
+        var xyzs = [];
+        for (const [tt, uu] of [
+            [0, d],
+            [-d, 0],
+            [0, -d],
+            [d, 0],
+        ]) {
+            const { z, a } = HealpixIndex.tu2za(t + tt, u + uu);
+            xyzs.push(HealpixIndex.za2vec(z, a));
+        }
+        return xyzs;
+    }
+    
+corners_nest(ipix) {
+            const { f, x, y } = HealpixIndex.nest2fxy(this.nside, ipix);
+            const { t, u } = HealpixIndex.fxy2tu(this.nside, f, x, y);
+            const d = PI_4 / this.nside;
+            var xyzs = [];
+            for (const [tt, uu] of [
+                [0, d],
+                [-d, 0],
+                [0, -d],
+                [d, 0],
+            ]) {
+                const { z, a } = HealpixIndex.tu2za(t + tt, u + uu);
+                xyzs.push(HealpixIndex.za2vec(z, a));
+            }
+            return xyzs;
+        }
+        
+static corners_ring(nside, ipix) {
+        return HealpixIndex.corners_nest(nside, HealpixIndex.ring2nest(nside, ipix));
+    }
 
-    tu2fxy = function(nside, t, u) {
-        const { f, p, q } = tu2fpq(t, u);
-        const x = clip(Math.floor(nside * p), 0, nside - 1);
-        const y = clip(Math.floor(nside * q), 0, nside - 1);
+    // pixel area
+static nside2pixarea(nside) {
+        return PI / (3 * nside * nside); //$$
+    }
+
+    // average pixel size
+static nside2resol(nside) {
+        return Math.sqrt(PI / 3) / nside;
+    }
+
+static pixcoord2vec_nest(nside, ipix, ne, nw) {
+        const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
+        const { t, u } = HealpixIndex.fxy2tu(nside, f, x, y);
+        const d = PI_4 / nside;
+        const { z, a } = HealpixIndex.tu2za(t + d * (ne - nw), u + d * (ne + nw - 1));
+        return HealpixIndex.za2vec(z, a);
+    }
+
+static pixcoord2vec_ring(nside, ipix, ne, nw) {
+        return HealpixIndex.pixcoord2vec_nest(nside, HealpixIndex.ring2nest(nside, ipix), ne, nw);
+    }
+
+static za2pix_nest(nside, z, a) {
+        const { t, u } = HealpixIndex.za2tu(z, a);
+        const { f, x, y } = HealpixIndex.tu2fxy(nside, t, u);
+        return HealpixIndex.fxy2nest(nside, f, x, y);
+    }
+
+static tu2fxy(nside, t, u) {
+        const { f, p, q } = HealpixIndex.tu2fpq(t, u);
+        const x = HealpixIndex.clip(Math.floor(nside * p), 0, nside - 1);
+        const y = HealpixIndex.clip(Math.floor(nside * q), 0, nside - 1);
         return { f, x, y };
-    };
+    }
 
-    function wrap(A, B) {
+static wrap(A, B) {
         return A < 0 ? B - (-A % B) : A % B;
-    };
+    }
 
-
-    function sigma(z) {
+static sigma(z) {
         if (z < 0)
-            return -sigma(-z);
+            return -HealpixIndex.sigma(-z);
         else
             return 2 - Math.sqrt(3 * (1 - z));
-    };
+    }
 
     /**
      * HEALPix spherical projection.
      */
-    za2tu = function(z, a) {
+static za2tu(z, a) {
         if (Math.abs(z) <= 2 / 3) { // equatorial belt
             const t = a;
             const u = 3 * PI_8 * z;
@@ -403,20 +387,20 @@ HealpixIndex = (function() {
         }
         else { // polar caps
             const p_t = a % (PI_2);
-            const sigma_z = sigma(z);
+            const sigma_z = HealpixIndex.sigma(z);
             const t = a - (Math.abs(sigma_z) - 1) * (p_t - PI_4);
             const u = PI_4 * sigma_z;
             return { t, u };
         }
-    };
+    }
 
     /**
      * Inverse HEALPix spherical projection.
      */
-    tu2za = function(t, u) {
+static tu2za(t, u) {
         const abs_u = Math.abs(u);
         if (abs_u >= PI_2) { // error
-            return { z: sign(u), a: 0 };
+            return { z: HealpixIndex.sign(u), a: 0 };
         }
         if (abs_u <= Math.PI / 4) { // equatorial belt
             const z = 8 / (3 * PI) * u;
@@ -426,13 +410,13 @@ HealpixIndex = (function() {
         else { // polar caps
             const t_t = t % (Math.PI / 2);
             const a = t - (abs_u - PI_4) / (abs_u - PI_2) * (t_t - PI_4);
-            const z = sign(u) * (1 - 1 / 3 * square(2 - 4 * abs_u / PI));
+            const z = HealpixIndex.sign(u) * (1 - 1 / 3 * HealpixIndex.square(2 - 4 * abs_u / PI));
             return { z, a };
         }
-    };
+    }
 
     // (x, y, z) -> (z = cos(theta), phi)
-    function vec2za(X, Y, z) {
+static vec2za(X, Y, z) {
         const r2 = X * X + Y * Y;
         if (r2 == 0)
             return { z: z < 0 ? -1 : 1, a: 0 };
@@ -441,40 +425,39 @@ HealpixIndex = (function() {
             z /= Math.sqrt(z * z + r2);
             return { z, a };
         }
-    };
+    }
 
     // (z = cos(theta), phi) -> (x, y, z)
-    function za2vec(z, a) {
+static za2vec(z, a) {
         const sin_theta = Math.sqrt(1 - z * z);
         const X = sin_theta * Math.cos(a);
         const Y = sin_theta * Math.sin(a);
         return [X, Y, z];
-    };
+    }
 
-
-    HealpixIndex.prototype.ang2vec = function(theta, phi) {
+static ang2vec(theta, phi) {
         const z = Math.cos(theta);
         return za2vec(z, phi);
-    };
+    }
 
-    HealpixIndex.prototype.vec2ang = function(v) {
+static vec2ang(v) {
         const { z, a } = vec2za(v[0], v[1], v[2]);
         return { theta: Math.acos(z), phi: a };
-    };
+    }
 
     // spherical projection -> f, p, q
     // f: base pixel index
     // p: coord in north east axis of base pixel
     // q: coord in north west axis of base pixel
-    function tu2fpq(t, u) {
+static tu2fpq(t, u) {
         t /= PI_4;
         u /= PI_4;
-        t = wrap(t, 8);
+        t = HealpixIndex.wrap(t, 8);
         t += -4;
         u += 5;
-        const pp = clip((u + t) / 2, 0, 5);
+        const pp = HealpixIndex.clip((u + t) / 2, 0, 5);
         const PP = Math.floor(pp);
-        const qq = clip((u - t) / 2, 3 - PP, 6 - PP);
+        const qq = HealpixIndex.clip((u - t) / 2, 3 - PP, 6 - PP);
         const QQ = Math.floor(qq);
         const V = 5 - (PP + QQ);
         if (V < 0) { // clip
@@ -485,12 +468,12 @@ HealpixIndex = (function() {
         const p = pp % 1;
         const q = qq % 1;
         return { f, p, q };
-    };
+    }
 
     // f, p, q -> nest index
-    fxy2nest = function(nside, f, x, y) {
-        return BigInt(f) * BigInt(nside) * BigInt(nside) + bit_combine(x, y);
-    };
+static fxy2nest(nside, f, x, y) {
+        return BigInt(f) * BigInt(nside) * BigInt(nside) + HealpixIndex.bit_combine(x, y);
+    }
 
     // x = (...x2 x1 x0)_2 <- in binary
     // y = (...y2 y1 y0)_2
@@ -500,23 +483,23 @@ HealpixIndex = (function() {
 n = 25
 s = ' | '.join(['x & 1'] + [f'(x & BigInt(0x{2 ** (i+1):x}) | y & BigInt(0x{2 ** i:x})) << {i + 1}n' for i in range(n)] + [f'y & BigInt(0x{2**n:x}) << {n+1}n'])
 */
-    bit_combine = function(x, y) {
+static bit_combine(x, y) {
         var x = BigInt(x);
         var y = BigInt(y);
-        assert(x < (1n << 26n));
-        assert(y < (1n << 25n));
+        HealpixIndex.assert(x < (1n << 26n));
+        HealpixIndex.assert(y < (1n << 25n));
 
         return (
             x & 1n | (x & BigInt(0x2) | y & BigInt(0x1)) << 1n | (x & BigInt(0x4) | y & BigInt(0x2)) << 2n | (x & BigInt(0x8) | y & BigInt(0x4)) << 3n | (x & BigInt(0x10) | y & BigInt(0x8)) << 4n | (x & BigInt(0x20) | y & BigInt(0x10)) << 5n | (x & BigInt(0x40) | y & BigInt(0x20)) << 6n | (x & BigInt(0x80) | y & BigInt(0x40)) << 7n | (x & BigInt(0x100) | y & BigInt(0x80)) << 8n | (x & BigInt(0x200) | y & BigInt(0x100)) << 9n | (x & BigInt(0x400) | y & BigInt(0x200)) << 10n | (x & BigInt(0x800) | y & BigInt(0x400)) << 11n | (x & BigInt(0x1000) | y & BigInt(0x800)) << 12n | (x & BigInt(0x2000) | y & BigInt(0x1000)) << 13n | (x & BigInt(0x4000) | y & BigInt(0x2000)) << 14n | (x & BigInt(0x8000) | y & BigInt(0x4000)) << 15n | (x & BigInt(0x10000) | y & BigInt(0x8000)) << 16n | (x & BigInt(0x20000) | y & BigInt(0x10000)) << 17n | (x & BigInt(0x40000) | y & BigInt(0x20000)) << 18n | (x & BigInt(0x80000) | y & BigInt(0x40000)) << 19n | (x & BigInt(0x100000) | y & BigInt(0x80000)) << 20n | (x & BigInt(0x200000) | y & BigInt(0x100000)) << 21n | (x & BigInt(0x400000) | y & BigInt(0x200000)) << 22n | (x & BigInt(0x800000) | y & BigInt(0x400000)) << 23n | (x & BigInt(0x1000000) | y & BigInt(0x800000)) << 24n | (x & BigInt(0x2000000) | y & BigInt(0x1000000)) << 25n | y & BigInt(0x2000000) << 26n
         );
-    };
+    }
 
     // x = (...x2 x1 x0)_2 <- in binary
     // y = (...y2 y1 y0)_2
     // p = (...y2 x2 y1 x1 y0 x0)_2
     // returns x, y
-    bit_decombine = function(p) {
-        assert(p <= 0x1fffffffffffff);
+static bit_decombine(p) {
+        HealpixIndex.assert(p <= 0x1fffffffffffff);
         // (python)
         // ' | '.join(f'(p & BigInt(0x{2**(2*i):x})) >> {i}n' for i in range(26))
         var p = BigInt(p);
@@ -525,22 +508,22 @@ const x = ((p & BigInt(0x1)) >> 0n | (p & BigInt(0x4)) >> 1n | (p & BigInt(0x10)
         // ' | '.join(f'(p & BigInt(0x{2**(2*i + 1):x})) >> {i+1}n' for i in range(25))
 const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)) >> 3n | (p & BigInt(0x80)) >> 4n | (p & BigInt(0x200)) >> 5n | (p & BigInt(0x800)) >> 6n | (p & BigInt(0x2000)) >> 7n | (p & BigInt(0x8000)) >> 8n | (p & BigInt(0x20000)) >> 9n | (p & BigInt(0x80000)) >> 10n | (p & BigInt(0x200000)) >> 11n | (p & BigInt(0x800000)) >> 12n | (p & BigInt(0x2000000)) >> 13n | (p & BigInt(0x8000000)) >> 14n | (p & BigInt(0x20000000)) >> 15n | (p & BigInt(0x80000000)) >> 16n | (p & BigInt(0x200000000)) >> 17n | (p & BigInt(0x800000000)) >> 18n | (p & BigInt(0x2000000000)) >> 19n | (p & BigInt(0x8000000000)) >> 20n | (p & BigInt(0x20000000000)) >> 21n | (p & BigInt(0x80000000000)) >> 22n | (p & BigInt(0x200000000000)) >> 23n | (p & BigInt(0x800000000000)) >> 24n | (p & BigInt(0x2000000000000)) >> 25n);
         return { x, y };
-    };
+    }
 
     // f: base pixel index
     // x: north east index in base pixel
     // y: north west index in base pixel
-    function nest2fxy(nside, ipix) {
+static nest2fxy(nside, ipix) {
         var ipix = Number(ipix);
 
         const nside2 = nside * nside;
         const f = Math.floor(ipix / nside2); // base pixel index
         const k = ipix % nside2;             // nested pixel index in base pixel
-        const { x, y } = bit_decombine(k);
+        const { x, y } = HealpixIndex.bit_decombine(k);
         return { f, x, y };
-    };
+    }
 
-    function fxy2ring(nside, f, x, y) {
+static fxy2ring(nside, f, x, y) {
         var nside = BigInt(nside);
         var f = BigInt(f);
         const f_row = f / 4n; // {0 .. 2}
@@ -569,10 +552,10 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
             const ipix = 12n * nside * nside - 2n * i_i * (i_i - 1n) - i_j;
             return ipix;
         }
-    };
+    }
 
     // f, x, y -> spherical projection
-    fxy2tu = function(nside, f, x, y) {
+static fxy2tu = function(nside, f, x, y) {
         var x = Number(x);
         var y = Number(y);
         const f_row = Math.floor(f / 4);
@@ -585,9 +568,9 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
         const t = k / nside * PI_4;
         const u = PI_2 - i / nside * PI_4;
         return { t, u };
-    };
+    }
 
-    HealpixIndex.prototype.orderpix2uniq = function(order, ipix) {
+static orderpix2uniq(order, ipix) {
         /**
          * Pack `(order, ipix)` into a `uniq` integer.
          * 
@@ -596,15 +579,15 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
          * - see section 2.3.1 in http://ivoa.net/documents/MOC/
          */
         return 4n * ((1n << (2n * BigInt(order))) - 1n) + BigInt(ipix);
-    };
+    }
 
-    HealpixIndex.prototype.uniq2orderpix = function(uniq) {
+static uniq2orderpix(uniq) {
         /**
          * Unpack `uniq` integer into `(order, ipix)`.
          * 
          * Inverse of `orderpix2uniq`.
          */
-        assert(uniq <= 0x1fffffffffffff);
+        HealpixIndex.assert(uniq <= 0x1fffffffffffff);
         var uniq = BigInt(uniq);
         let order = 0n;
         let l = (uniq >> 2n) + 1n;
@@ -614,33 +597,32 @@ const y = ((p & BigInt(0x2)) >> 1n | (p & BigInt(0x8)) >> 2n | (p & BigInt(0x20)
         }
         const ipix = uniq - (((1n << (2n * order)) - 1n) << 2n);
         return {order:  order, ipix: ipix };
-    };
+    }
 
-    function ilog2(x) {
+static ilog2(x) {
     return x.toString(2).length - 1;
-    };
+    }
 
-    var sign = Math.sign || function (A) {
+static sign(A) {
         return A > 0 ? 1 : (A < 0 ? -1 : 0);
-    };
+    }
 
-    function square(A) {
+static square(A) {
         return A * A;
-    };
+    }
 
-    function clip(Z, A, B) {
+static clip(Z, A, B) {
         return Z < A ? A : (Z > B ? B : Z);
-    };
+    }
 
-    function assert(condition) {
+static assert(condition) {
         console.assert(condition)
         if (!condition) {
             debugger;
         }
-    };
+    }
 
-    return HealpixIndex;
-})();
+}
 
 h = new HealpixIndex(8);
     const tests = require('./tests.json');
@@ -658,52 +640,52 @@ h = new HealpixIndex(8);
 
     var testFuncs = {
     vec2pix_nest: function(h, args) {
-    return h.vec2pix_nest.apply(this, args);
+    return HealpixIndex.vec2pix_nest.apply(this, args);
     },
     vec2pix_ring: function(h, args) {
-    return h.vec2pix_ring.apply(this, args);
+    return HealpixIndex.vec2pix_ring.apply(this, args);
     },
     ang2pix_nest: function(h, args) {
-    return h.ang2pix_nest.apply(this, args);
+    return HealpixIndex.ang2pix_nest.apply(this, args);
     },
     ang2pix_ring: function(h, args) {
-    return h.ang2pix_ring.apply(this, args);
+    return HealpixIndex.ang2pix_ring.apply(this, args);
     },
     nest2ring: function(h, args) {
-    return h.nest2ring.apply(this, args);
+    return HealpixIndex.nest2ring.apply(this, args);
     },
     ring2nest: function(h, args) {
-    return h.ring2nest.apply(this, args);
+    return HealpixIndex.ring2nest.apply(this, args);
     },
     pix2vec_nest: function(h, args) {
-    return h.pix2vec_nest.apply(this, args);
+    return HealpixIndex.pix2vec_nest.apply(this, args);
     },
     pix2vec_ring: function(h, args) {
-    return h.pix2vec_ring.apply(this, args);
+    return HealpixIndex.pix2vec_ring.apply(this, args);
     },
     nside2pixarea: function(h, args) {
-    return h.nside2pixarea.apply(this, args);
+    return HealpixIndex.nside2pixarea.apply(this, args);
     },
     nside2resol: function(h, args) {
-    return h.nside2resol.apply(this, args);
+    return HealpixIndex.nside2resol.apply(this, args);
     },
     max_pixrad: function(h, args) {
-    return h.max_pixrad.apply(this, args);
+    return HealpixIndex.max_pixrad.apply(this, args);
     },
     corners_nest: function(h, args) {
-    return h.corners_nest.apply(this, args);
+    return HealpixIndex.corners_nest.apply(this, args);
     },
     corners_ring: function(h, args) {
-    return h.corners_ring.apply(this, args);
+    return HealpixIndex.corners_ring.apply(this, args);
     },
     orderpix2uniq: function(h, args) {
-    return h.orderpix2uniq.apply(this, args);
+    return HealpixIndex.orderpix2uniq.apply(this, args);
     },
     uniq2orderpix: function(h, args) {
-    return h.uniq2orderpix.apply(this, args);
+    return HealpixIndex.uniq2orderpix.apply(this, args);
     },
     nside2order: function(h, args) {
-    return h.nside2order.apply(this, args);
+    return HealpixIndex.nside2order.apply(this, args);
     }
     };
 
@@ -743,8 +725,8 @@ h = new HealpixIndex(8);
 
     var start = Date.now();
     var total = 0;
-    
-    
+
+
     for (f in testFuncs) {
         console.log(f);
         var cases = tests[f];

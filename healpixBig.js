@@ -616,7 +616,7 @@ static clip(Z, A, B) {
     }
 
 static assert(condition) {
-        console.assert(condition)
+    console.assert(condition);
         if (!condition) {
             debugger;
         }

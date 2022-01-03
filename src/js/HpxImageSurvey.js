@@ -877,12 +877,12 @@ coeff = 0.02;
         ctx.closePath();
         ctx.clip();
 
-        bCtx.beginPath();
-        bCtx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
-        bCtx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
-        bCtx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
-        bCtx.closePath();
-        bCtx.clip();
+        // bCtx.beginPath();
+        // bCtx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
+        // bCtx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
+        // bCtx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
+        // bCtx.closePath();
+        // bCtx.clip();
 
         // this is needed to prevent to see some lines between triangles
         if (applyCorrection) {
@@ -903,41 +903,35 @@ coeff = 0.02;
              (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
         );
         
-        if (hue != '#000') {
+        if (hue != '#000') { // Drawing an overlay image
+        // bCtx.transform(
+        //     -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
+        //     (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
+        //     (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
+        //     -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
+        //     (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
+        //     (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
+        // );
 
-            bCtx.transform(
-                -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
-                 (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
-                 (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
-                -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
-                 (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
-                 (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
-            );
-            
+        // Draw the overlay image onto the blendCanvas 
         compositeHueToLayer(bCtx, img, hue);
+        
+        // get the blendCanvas
         var overlay = $(this.document.getElementById('aladin-lite-div')).children()[5];
-                    ctx.globalCompositeOperation = blend;
-                    ctx.globalAlpha = alpha;
-        ctx.drawImage(overlay, 0, 0);
 
-                bCtx.globalCompositeOperation = BlendingModeEnum.sourceover;
-        bCtx.globalAlpha = 1.0;
-        bCtx.fillStyle = "#000";
-                        bCtx.fillRect(0, 0, img.width, img.height);
-                        // ctx.globalCompositeOperation = blend;
-                        // ctx.globalAlpha = alpha;
-                        //         ctx.drawImage(img, 0, 0);
-    } else {
-        ctx.globalCompositeOperation = blend;
+        ctx.globalCompositeOperation = "lighten";
         ctx.globalAlpha = alpha;
-                ctx.drawImage(img, 0, 0);
+        ctx.drawImage(overlay, 0, 0);
+        
+        // clear the blendCanvas so it is ready to take another image
+        bCtx.clearRect(0, 0, bCtx.canvas.width, bCtx.canvas.height);
+        
+    } else { // Drawing the base survey (assuming the hue is #000 ???)
+        ctx.globalCompositeOperation = blend;
+        ctx.drawImage(img, 0, 0);
     }
-        //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
-
-    //    ctx.globalAlpha = 1.0;
-
         ctx.restore();
-                bCtx.restore();
+        bCtx.restore();
     }
 
     function onlyUnique(value, index, self) {

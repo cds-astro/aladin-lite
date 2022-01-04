@@ -1250,12 +1250,12 @@ View = (function() {
                 radius *= 1.1;
             }
 
-
-
-            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
+            // pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
+            
+                        pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0);
             // add central pixel at index 0
             var polar = Utils.radecToPolar(lonlat[0], lonlat[1]);
-            ipixCenter = hpxIdx.ang2pix_nest(nside, polar.theta, polar.phi);
+            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
 
         }

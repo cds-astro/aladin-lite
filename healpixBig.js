@@ -1,14 +1,31 @@
+var SpatialVector = require('./SpatialVector');
+var Utils = require('./Utils');
 const PI2 = 2 * Math.PI;
 const PI = Math.PI;
 const PI_2 = Math.PI / 2;
 const PI_4 = Math.PI / 4;
 const PI_8 = Math.PI / 8;
+const NSIDELIST = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216];
+
 
 class HealpixIndex {
 "use strict";
 
 static NS_MAX = 16777216;
-    static ORDER_MAX = 24;
+static ORDER_MAX = 24;
+
+
+static NS_MAX() {
+    return this.NS_MAX;
+}
+
+static ORDER_MAX() {
+    return this.ORDER_MAX;
+}
+
+static NSIDELIST() {
+    return NSIDELIST;
+}
 
     constructor(nside) {
     this.Nside = nside;
@@ -43,8 +60,9 @@ static ang2pix_nest(nside, theta, phi) {
 
     ang2pix_nest(theta, phi) {
             const z = Math.cos(theta);
-            return HealpixIndex.za2pix_nest(this.nside, z, phi);
+            return HealpixIndex.za2pix_nest(this.Nside, z, phi);
         }
+        
 static ang2pix_ring(nside, theta, phi) {
         const z = Math.cos(theta);
         return HealpixIndex.nest2ring(nside, HealpixIndex.za2pix_nest(nside, z, phi));
@@ -174,6 +192,53 @@ static pix2ang_ring(nside, ipix) {
             });
     }
 
+    queryDisc(v, radius, cb) {
+        var nside = this.Nside;
+        if (radius > PI_2) {
+            throw new Error(`query_disc: radius must < PI/2`);
+        }
+        const pixrad = HealpixIndex.max_pixrad(nside);
+        const d = PI_4 / nside;
+        const { z: z0, a: a0 } = HealpixIndex.vec2za(v.x, v.y, v.z); // z0 = cos(theta)
+        const sin_t = Math.sqrt(1n - z0 * z0);
+        const cos_r = Math.cos(radius); // r := radius 
+        const sin_r = Math.sin(radius);
+        const z1 = z0 * cos_r + sin_t * sin_r; // cos(theta - r)
+        const z2 = z0 * cos_r - sin_t * sin_r; // cos(theta + r)
+        const u1 = HealpixIndex.za2tu(z1, 0).u;
+        const u2 = HealpixIndex.za2tu(z2, 0).u;
+        const cover_north_pole = sin_t * cos_r - z0 * sin_r < 0; // sin(theta - r) < 0
+        const cover_south_pole = sin_t * cos_r + z0 * sin_r < 0; // sin(theta - r) < 0
+        let i1 = Math.floor((PI_2 - u1) / d);
+        let i2 = Math.floor((PI_2 - u2) / d + 1);
+        if (cover_north_pole) {
+            ++i1;
+            for (let i = 1; i <= i1; ++i)
+                HealpixIndex.walk_ring(nside, i, cb);
+            ++i1;
+        }
+        if (i1 == 0) {
+            HealpixIndex.walk_ring(nside, 1, cb);
+            i1 = 2;
+        }
+        if (cover_south_pole) {
+            --i2;
+            for (let i = i2; i <= 4 * nside - 1; ++i)
+                HealpixIndex.walk_ring(nside, i, cb);
+            --i2;
+        }
+        if (i2 == 4 * nside) {
+            HealpixIndex.walk_ring(nside, 4 * nside - 1, cb);
+            i2 = 4 * nside - 2;
+        }
+        const theta = Math.acos(z0);
+        for (let i = i1; i <= i2; ++i)
+            HealpixIndex.walk_ring_around(nside, i, a0, theta, radius + pixrad, function(ipix) {
+                if (HealpixIndex.angle(HealpixIndex.pix2vec_nest(nside, ipix), v) <= radius + pixrad)
+                    cb(ipix);
+            });
+    }
+    
 static query_disc_inclusive_ring(nside, v, radius, cb_ring) {
         return HealpixIndex.query_disc_inclusive_nest(nside, v, radius, function(ipix) {
             cb_ring(nest2ring(nside, ipix));
@@ -198,9 +263,9 @@ static tu2vec(t, u) {
     }
 
 static distance2(a, b) {
-        const dx = a[0] - b[0];
-        const dy = a[1] - b[1];
-        const dz = a[2] - b[2];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dz = a.z - b.z;
         return dx * dx + dy * dy  + dz * dz;
     }
 
@@ -292,7 +357,7 @@ static right_next_pixel(nside, { f, x, y}) {
         return { f, x, y };
     }
 
-static corners_nest(nside, ipix) {
+static corners_nest(ipix, nside) {
         const { f, x, y } = HealpixIndex.nest2fxy(nside, ipix);
         const { t, u } = HealpixIndex.fxy2tu(nside, f, x, y);
         const d = PI_4 / nside;
@@ -310,9 +375,9 @@ static corners_nest(nside, ipix) {
     }
     
 corners_nest(ipix) {
-            const { f, x, y } = HealpixIndex.nest2fxy(this.nside, ipix);
-            const { t, u } = HealpixIndex.fxy2tu(this.nside, f, x, y);
-            const d = PI_4 / this.nside;
+            const { f, x, y } = HealpixIndex.nest2fxy(this.Nside, ipix);
+            const { t, u } = HealpixIndex.fxy2tu(this.Nside, f, x, y);
+            const d = PI_4 / this.Nside;
             var xyzs = [];
             for (const [tt, uu] of [
                 [0, d],
@@ -432,7 +497,7 @@ static za2vec(z, a) {
         const sin_theta = Math.sqrt(1 - z * z);
         const X = sin_theta * Math.cos(a);
         const Y = sin_theta * Math.sin(a);
-        return [X, Y, z];
+        return new SpatialVector(X, Y, z);
     }
 
 static ang2vec(theta, phi) {
@@ -622,130 +687,11 @@ static assert(condition) {
         }
     }
 
+    static calculateNSide(s) {
+        for (var i = 0, n = s * s, a = 180 / Constants.PI, e = 3600 * 3600 * 4 * Constants.PI * a * a, h = Utils.castToInt(e / n), r = h / 12, o = Math.sqrt(r), c = HealpixIndex.NS_MAX, u = 0, p = 0; HealpixIndex.NSIDELIST.length > p; p++)
+            if ((c >= Math.abs(o - HealpixIndex.NSIDELIST[p]) && ((c = Math.abs(o - HealpixIndex.NSIDELIST[p])), (i = HealpixIndex.NSIDELIST[p]), (u = p)), o > i && HealpixIndex.NS_MAX > o && (i = HealpixIndex.NSIDELIST[u + 1]), o > HealpixIndex.NS_MAX))
+                return console.log("nside cannot be bigger than " + HealpixIndex.NS_MAX), HealpixIndex.NS_MAX;
+        return i;
+    }
+    
 }
-
-h = new HealpixIndex(8);
-    const tests = require('./tests.json');
-
-    // for (const c of k) {
-    //     var s = c.args;
-    //     var r = c.expected;
-    //     console.log('expected '+ r + ' ' +h.ang2pix_nest.apply(this, s));
-    // }
-    
-    var funcs = [];
-    for (k in tests) {
-        funcs.push(k);
-    }
-
-    var testFuncs = {
-    vec2pix_nest: function(h, args) {
-    return HealpixIndex.vec2pix_nest.apply(this, args);
-    },
-    vec2pix_ring: function(h, args) {
-    return HealpixIndex.vec2pix_ring.apply(this, args);
-    },
-    ang2pix_nest: function(h, args) {
-    return HealpixIndex.ang2pix_nest.apply(this, args);
-    },
-    ang2pix_ring: function(h, args) {
-    return HealpixIndex.ang2pix_ring.apply(this, args);
-    },
-    nest2ring: function(h, args) {
-    return HealpixIndex.nest2ring.apply(this, args);
-    },
-    ring2nest: function(h, args) {
-    return HealpixIndex.ring2nest.apply(this, args);
-    },
-    pix2vec_nest: function(h, args) {
-    return HealpixIndex.pix2vec_nest.apply(this, args);
-    },
-    pix2vec_ring: function(h, args) {
-    return HealpixIndex.pix2vec_ring.apply(this, args);
-    },
-    nside2pixarea: function(h, args) {
-    return HealpixIndex.nside2pixarea.apply(this, args);
-    },
-    nside2resol: function(h, args) {
-    return HealpixIndex.nside2resol.apply(this, args);
-    },
-    max_pixrad: function(h, args) {
-    return HealpixIndex.max_pixrad.apply(this, args);
-    },
-    corners_nest: function(h, args) {
-    return HealpixIndex.corners_nest.apply(this, args);
-    },
-    corners_ring: function(h, args) {
-    return HealpixIndex.corners_ring.apply(this, args);
-    },
-    orderpix2uniq: function(h, args) {
-    return HealpixIndex.orderpix2uniq.apply(this, args);
-    },
-    uniq2orderpix: function(h, args) {
-    return HealpixIndex.uniq2orderpix.apply(this, args);
-    },
-    nside2order: function(h, args) {
-    return HealpixIndex.nside2order.apply(this, args);
-    }
-    };
-
-    // console.log('var testFuncs = {');
-    // for (f of funcs) {
-    //     console.log(f+': function(h, args) {\n'+'return h.'+f+'.apply(this, args);\n},');
-    // }
-    
-    function equals(a, b) {
-
-        if (typeof a === 'number' || typeof a === 'bigint') {
-            return a == b;
-        } else if (a.constructor == Object){
-            for (k in a) {
-                if (a[k] != b[k]) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            for (var c = 0; c < e.length; ++c) {
-                if (a[c].length === 'undefined') {
-                    if (Math.abs(a[c] - e[c]) > 10e-4) {
-                        return false;
-                    }
-                } else {
-                    for (var i = 0; i < a[c].length; ++i) {
-                        if (Math.abs(a[c][i] - e[c][i]) > 10e-5) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            }
-        }
-    };
-
-    var start = Date.now();
-    var total = 0;
-
-
-    for (f in testFuncs) {
-        console.log(f);
-        var cases = tests[f];
-        var count = 0;
-        for (t of cases) {
-            total ++;
-            var a = t.args;
-            var e = t.expected;
-            if (equals(testFuncs[f](h, a), e)) {
-                continue;
-        }else {
-            if (count == 0) {
-                        console.log('expected \n'+e+'\ngot\n'+testFuncs[f](h, a));
-                    }
-                                count ++;
-        }
-        }
-        console.log('mismatch '+count);
-        count = 0;
-    }
-    var end = Date.now();
-    console.log('made '+total+' comparisons in '+((end-start)/1000)+' seconds');

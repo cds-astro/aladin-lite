@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "@babel/preset-env": "^7.16.7",
+    "babel-cli": "^6.26.0",
     "lessc": "^1.0.2"
+  },
+  "devDependencies": {
+    "webpack-cli": "^4.9.1"
   }
 }

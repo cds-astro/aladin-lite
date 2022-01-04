@@ -50,11 +50,12 @@ HealpixCache = (function() {
     HealpixCache.init = function() {
     	// pre-compute corners position for nside=8
     	var hpxIdx = new HealpixIndex(8);
-    	hpxIdx.init();
+        hpxIdx.init();
     	var npix = HealpixIndex.nside2Npix(8);
         var corners;
     	for (var ipix=0; ipix<npix; ipix++) {
             corners =  hpxIdx.corners_nest(ipix, 1);
+            console.log('corners '+corners[0]);
     		HealpixCache.staticCache.corners.nside8.push(corners);
     	}
     	
@@ -70,7 +71,7 @@ HealpixCache = (function() {
     	
     	if (nside != HealpixCache.lastNside) {
     		HealpixCache.hpxIdxCache = new HealpixIndex(nside);
-    		HealpixCache.hpxIdxCache.init();
+            HealpixCache.hpxIdxCache.init();
     		HealpixCache.lastNside = nside;
     	}
     	

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="./aladin.css" />
+<script type='text/javascript' src='jquery.js' charset='utf-8'></script>
+<script type='text/javascript' src='./aladin.js' charset='utf-8'></script>
+    <title>
+Viewport</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="aladin based AstreOS sonification">
+<meta charset="UTF-8">
+</head>
+
+<body>
+<div id='aladin-lite-div' style='width: 100%; height:100%;'></div>
+<script type="text/javascript">
+    
+    var aladin = A.aladin('#aladin-lite-div', {survey: "P/HST/V", fov:5, target: "NGC 1952", showZoomControl: false, showFullscreenControl: false, showLayersControl: false, showGotoControl: false, showShareControl: false, showSimbadPointerControl: false, showCooGrid: false, fullScreen: true, log: true});
+
+    var imageIndex = 0;
+
+    // Setting the function attached to observed mutations
+        function sendImage() { 
+            console.log("about to send image");
+            setTimeout( function() {
+                const image = getImage();
+        window.webkit.messageHandlers.get_image.postMessage({
+        image:image,
+            "index": imageIndex
+                    });
+            }, 3000.0);
+            }
+            
+// Set the base image layer, no alpha transparency by default
+            function setBaseImage(hipsID, index) {
+                imageIndex = index;
+                aladin.setBaseImageLayer(hipsID, index, "sourceover", "#000", 1.0); // Should this be "source-over"?
+            }
+            
+                                // Add a new overlay image
+                                function addSurveylayer(ID, index, blendingMode, hue, alpha) {
+                                        aladin.setImageSurvey(ID, index, blendingMode, hue, alpha);
+                                }
+            
+            // Adding a non image survey layer
+                            function setOverlayImageLayer(hipsID, alpha, index) {
+                            }
+
+// Changing the image parameters for a given layer
+                            function setSurveyParametersAtIndex(index, blend, hue, alpha) {
+                                aladin.setSurveyParametersAtIndex(index, blend, hue, alpha);
+                            }
+                            
+                            function setCustomSurvey(hipsID, hipsName, url, frame, maxOrder, format, index) {
+                                imageIndex = index;
+                            // url can be local or remote
+                            aladin.setImageSurvey(aladin.createImageSurvey(hipsID, hipsName, url, frame, maxOrder, {imgFormat: format}));
+                            }
+                            
+        function setFOV(fov) {
+        aladin.setFov(fov);
+}
+
+        function getInfo() {
+        const raDec = aladin.getRaDec();
+        // const size = aladin.getSize();
+        // const output = raDec.concat(size);
+        // const fov = aladin.getFov();
+        // output.push(fov);
+        var output = aladin.getFovCorners();
+        output.push(raDec);
+        window.webkit.messageHandlers.get_info.postMessage({
+        info:output
+                    });
+        }
+
+        function goToPosition(ra, dec) {
+            aladin.gotoRaDec(ra, dec);
+        }
+
+        function goToObject(objectName) {
+            console.log('requesting object to aladin');
+        aladin.gotoObject(objectName, {success: function() { 
+            console.log('success in getting object');
+            sendImage();
+window.webkit.messageHandlers.go_to_object.postMessage({
+"msg" : objectName+" found",
+    "result" : "true"
+            });
+            // addCatalog(objectName);
+        }, 
+        error: function() {
+window.webkit.messageHandlers.go_to_object.postMessage({
+"msg" : "cannot resolve object "+objectname,
+    "result" : "false"
+            });
+}
+        });
+        }
+
+        function updateImage() {
+                        setTimeout( function() {
+                            const image = getImage();
+window.webkit.messageHandlers.update_image.postMessage({
+"image" : image,
+    "index": imageIndex
+            });
+    }, 3000);
+}
+        
+function updateImageAtIndex(index) {
+                            const image = getImage();
+window.webkit.messageHandlers.update_image.postMessage({
+"image" : image,
+    "index": index
+            });
+}
+
+        function getImage() {
+        const image = aladin.getSkymapDataURL('image/jpeg');
+        return image;
+        }
+
+        function addCatalog(objectName) {
+        const url = 'https://cdsxmatch.u-strasbg.fr/QueryCat/QueryCat?catName=SIMBAD&mode=cone&pos='+objectName+'&r=50arcmin&format=votable&limit=3000';
+        var cat = A.catalogFromURL(url, {
+        sourceSize:12,
+         color: '#cc99bb',
+         displayLabel: true,
+         labelColumn: 'main_id',
+         labelColor: '#ae4',
+         labelFont: '9px sans-serif'
+        });
+        console.log("adding catalog from aladin");
+        aladin.addCatalog(cat);
+        }
+
+        // define function triggered when  a source is hovered
+        var currentHover = '';
+        aladin.on('objectHovered', function(object) {
+            if (object) {
+                const detected = object.data.name;
+        if (detected.localeCompare(currentHover) != 0) {
+        currentHover = detected;
+        window.webkit.messageHandlers.object_detect.postMessage({
+        "object" : detected
+                    });
+        }
+            }
+        });
+
+        function addMarkers(catName, count, sources) {
+            var cat = A.catalog({name: catName, sourceSize: count});
+                        aladin.addCatalog(cat);
+            for (const s of sources.objects) {
+                console.log('adding '+s.id);
+                cat.addSources([A.marker(s.coord[0], s.coord[1], {popupTitle: s.id})]);
+            }
+        };
+
+// Testing an overlay survey image        
+setTimeout( function() {
+    // aladin.setImageSurvey(aladin.createImageSurvey("P/HST/wideV", "P/HST/wideV", "http://alasky.u-strasbg.fr/2MASS/Color/", 'equatorial', 13, {imgFormat: 'png'}), 0, "source-over", "#000", 1.0);
+    addSurveylayer("P/allWISE/W1", 1, "source-over", "#ff0000", 1.0);
+        // addSurveylayer("P/2MASS/color", 2, "lighten", "#0f0");
+            // addSurveylayer("P/PanSTARRS/DR1/color-z-zg-g", 3, "lighten", "#00f");
+}, 3000);
+
+// Various observers
+        
+        let canvas = document.querySelector('#aladin-lite-div');
+        let canvasObserver = new MutationObserver(updateImage);        
+            canvasObserver.observe(canvas, {
+                        childList: true
+                    });
+                    
+                    let locationSelector = document.querySelector('.aladin-location');
+                    let locationObserver = new MutationObserver(updateImage);
+                        locationObserver.observe(locationSelector, {
+                                    childList: true
+                                });
+
+                                let fovSelector = document.querySelector('.aladin-fov');
+                                let fovObserver = new MutationObserver(updateImage);
+                                    fovObserver.observe(fovSelector, {
+                                                childList: true
+                                            });
+               
+</script>
+</body>
+</html>

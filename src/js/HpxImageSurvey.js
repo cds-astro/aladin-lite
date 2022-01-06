@@ -388,6 +388,7 @@ HpxImageSurvey = (function() {
    
     
     HpxImageSurvey.prototype.getTileURL = function(norder, npix) {
+        console.log('norder '+norder+' npix '+npix);
     	var dirIdx = Math.floor(npix/10000)*10000;
     	return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + "." + this.imgFormat  + (this.additionalParams ? ('?' + this.additionalParams) : '');;
     };

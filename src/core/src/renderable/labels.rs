@@ -243,10 +243,17 @@ impl RenderManager for TextRenderManager {
     }
 
     fn end_frame(&mut self) {
-        // update to the GPU
-        self.vao.bind_for_update()
-            .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
-            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
+    // update to the GPU
+    #[cfg(feature = "webgl2")]
+    self.vao.bind_for_update()
+        .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+        .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
+    #[cfg(feature = "webgl1")]
+    self.vao.bind_for_update()
+        .update_array("pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+        .update_array("tx", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+        .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
+
     }
 
     fn draw(&mut self, window_size: &Vector2<f32>) -> Result<(), JsValue> {

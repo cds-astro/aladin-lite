@@ -328,38 +328,33 @@ pub mod vao {
     use crate::object::element_array_buffer::ElementArrayBuffer;
     
     use crate::webgl_ctx::WebGlContext;    
+    use std::collections::HashMap;
 
     pub struct VertexArrayObject {
-        array_buffer: Vec<ArrayBuffer>,
-        array_buffer_instanced: Vec<ArrayBufferInstanced>,
+        array_buffer: HashMap<&'static str, ArrayBuffer>,
+        array_buffer_instanced: HashMap<&'static str, ArrayBufferInstanced>,
         element_array_buffer: Option<ElementArrayBuffer>,
 
         idx: u32, // Number of vertex attributes
-        attributes: Vec<&'static str>,
-        inst_attributes: Vec<&'static str>,
 
         gl: WebGlContext,
     }
 
     impl VertexArrayObject {
         pub fn new(gl: &WebGlContext) -> VertexArrayObject {
-            let array_buffer = vec![];
-            let array_buffer_instanced = vec![];
+            let array_buffer = HashMap::new();
+            let array_buffer_instanced = HashMap::new();
 
             let element_array_buffer = None;
 
             let idx = 0;
-
-            let attributes = vec![];
-            let inst_attributes = vec![];
 
             let gl = gl.clone();
             VertexArrayObject {
                 array_buffer,
                 array_buffer_instanced,
                 element_array_buffer,
-                attributes,
-                inst_attributes,
+
                 idx,
 
                 gl,
@@ -407,7 +402,7 @@ pub mod vao {
         }
 
         pub fn num_instances(&self) -> i32 {
-            self.array_buffer_instanced[0].num_instances()
+            self.array_buffer_instanced.values().next().unwrap().num_instances()
         }
     }
 
@@ -428,11 +423,14 @@ pub mod vao {
     impl<'a, 'b> ShaderVertexArrayObjectBound<'a, 'b> {
         pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer[idx].update(usage, array_data);
+            self.vao.array_buffer.get_mut(attr)
+                .unwrap()
+                .update(usage, array_data);
+
             self
         }
 
@@ -449,10 +447,12 @@ pub mod vao {
 
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced[idx].update(array_data);
+            self.vao.array_buffer_instanced.get_mut(attr)
+                .unwrap()
+                .update(array_data);
             self
         }
 
@@ -475,7 +475,7 @@ pub mod vao {
     use crate::object::array_buffer::VertexBufferObject;
     impl<'a, 'b> ShaderVertexArrayObjectBoundRef<'a, 'b> {
         pub fn draw_arrays(&self, mode: u32, byte_offset: i32, size: i32) {
-            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
+            for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
@@ -486,7 +486,7 @@ pub mod vao {
         }
 
         pub fn draw_elements_with_i32(&self, mode: u32, num_elements: Option<i32>, type_: u32, byte_offset: i32) {
-            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
+            for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
@@ -505,12 +505,12 @@ pub mod vao {
             offset_instance_idx: i32,
             num_instances: i32,
         ) {
-            for (buf, attr) in self.vao.array_buffer.iter().zip(self.vao.attributes.iter()) {
+            for (attr, buf) in self.vao.array_buffer.iter() {
                 buf.bind();
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            for (inst_buf, attr) in self.vao.array_buffer_instanced.iter().zip(self.vao.inst_attributes.iter()) {
+            for (attr, inst_buf) in self.vao.array_buffer_instanced.iter() {
                 inst_buf.bind();
                 inst_buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
@@ -563,9 +563,8 @@ pub mod vao {
 
             // Update the number of vertex attrib
             self.vao.idx += 1;
-            self.vao.attributes.push(attr);
 
-            self.vao.array_buffer.push(array_buffer);
+            self.vao.array_buffer.insert(attr, array_buffer);
 
             self
         }
@@ -590,9 +589,8 @@ pub mod vao {
 
             // Update the number of vertex attrib
             self.vao.idx += 1;
-            self.vao.inst_attributes.push(attr);
 
-            self.vao.array_buffer_instanced.push(array_buffer);
+            self.vao.array_buffer_instanced.insert(attr, array_buffer);
 
             self
         }
@@ -612,11 +610,14 @@ pub mod vao {
 
         pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer[idx].update(usage, array_data);
+            self.vao.array_buffer.get_mut(attr)
+                .unwrap()
+                .update(usage, array_data);
+
             self
         }
 
@@ -633,10 +634,13 @@ pub mod vao {
 
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced[idx].update(array_data);
+            self.vao.array_buffer_instanced.get_mut(attr)
+                .unwrap()
+                .update(array_data);
+
             self
         }
 

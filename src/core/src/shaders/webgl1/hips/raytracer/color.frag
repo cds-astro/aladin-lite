@@ -54,7 +54,7 @@ Tile get_tile(int idx) {
 Tile binary_search_tile(int uniq) {
     int l = 0;
     int r = 11;
-    for (int v = 0; v >= 0; v++) {
+    for (int v = 0; v <= 5; v++) {
         int mid = (l + r) / 2;
 
         Tile tile = get_tile(mid);
@@ -77,27 +77,25 @@ vec4 get_tile_color(vec3 pos) {
     float delta = asin(pos.y);
     float theta = atan(pos.x, pos.z);
     HashDxDy result = hash_with_dxdy(vec2(theta, delta));
+    //return vec4(float(result.idx)/12., result.dx, result.dy, 1.0);
 
     int idx = result.idx;
-    vec2 uv = vec2(result.dy, result.dx);
+    vec2 uv = vec2(clamp(result.dy, 0.0, 1.0), result.dx);
     int uniq = 16 + idx; 
     Tile tile = binary_search_tile(uniq);
 
-    if(tile.uniq == uniq) {
-        int idx_texture = tile.texture_idx / 64;
-        int off = int(mod(float(tile.texture_idx), 64.0));
-        float idx_row = float(off / 8); // in [0; 7]
-        float idx_col = mod(float(off), 8.0); // in [0; 7]
+    int idx_texture = tile.texture_idx / 64;
+    int off = tile.texture_idx - idx_texture * 64;
 
-        vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
-        vec3 UV = vec3(offset, float(idx_texture));
+    int idx_row = off / 8; // in [0; 7]
+    int idx_col = off - idx_row * 8; // in [0; 7]
 
-        vec4 color = get_color_from_texture(UV);
-        color.a = mix(color.a, blank_color.a, tile.empty);
-        
-        return color;
-    }
+    vec2 offset = (vec2(float(idx_col), float(idx_row)) + uv)*0.125;
+    vec3 UV = vec3(offset, float(idx_texture));
 
+    vec4 color = get_color_from_texture(UV);
+    color.a = mix(color.a, blank_color.a, tile.empty);
+    return color;
 }
 
 uniform sampler2D position_tex;

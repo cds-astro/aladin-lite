@@ -278,8 +278,14 @@ impl Catalog {
 
         let vertex_array_object_catalog = {
             let vertices = vec![
-                -0.5_f32, -0.5_f32, 0.0_f32, 0.0_f32, 0.5_f32, -0.5_f32, 1.0_f32, 0.0_f32, 0.5_f32,
-                0.5_f32, 1.0_f32, 1.0_f32, -0.5_f32, 0.5_f32, 0.0_f32, 1.0_f32,
+                -0.5_f32, -0.5_f32,
+                0.0_f32, 0.0_f32,
+                0.5_f32, -0.5_f32,
+                1.0_f32, 0.0_f32,
+                0.5_f32, 0.5_f32,
+                1.0_f32, 1.0_f32,
+                -0.5_f32, 0.5_f32,
+                0.0_f32, 1.0_f32,
             ];
 
             let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
@@ -307,7 +313,7 @@ impl Catalog {
                 )
                 // Set the element buffer
                 .add_element_buffer(
-                    WebGl2RenderingContext::STATIC_DRAW,
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
                     VecData(indices.as_ref()),
                 )
             // Unbind the buffer
@@ -342,7 +348,7 @@ impl Catalog {
                 )
                 // Set the element buffer
                 .add_element_buffer(
-                    WebGl2RenderingContext::STATIC_DRAW,
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
                     VecData(indices.as_ref()),
                 )
             // Unbind the buffer
@@ -432,6 +438,7 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
+    #[cfg(feature = "webgl2")]
     fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
         let HEALPixCells {
             depth: _,
@@ -472,6 +479,45 @@ impl Catalog {
             .bind_for_update()
             .update_instanced_array(0, VecData(&current_sources));
     }
+
+    #[cfg(feature = "webgl1")]
+    fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
+        let HEALPixCells {
+            depth: _,
+            ref cells,
+        } = cells;
+        let mut current_sources: Vec<f32> = vec![];
+        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
+
+        self.max_density = self.compute_max_density::<P>(
+            crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
+        );
+
+        // depth < 7
+        for cell in cells {
+            let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
+
+            for c in cell.get_children_cells(delta_depth as u8) {
+                // Define the total number of sources being in this kernel depth tile
+                let sources_in_cell = self.indices.get_source_indices(&c);
+                let num_sources_in_kernel_cell =
+                    (sources_in_cell.end - sources_in_cell.start) as usize;
+                if num_sources_in_kernel_cell > 0 {
+                    let num_sources = ((num_sources_in_kernel_cell as f32) / num_sources_in_fov)
+                        * MAX_SOURCES_PER_CATALOG;
+
+                    let sources =
+                        self.indices
+                            .get_k_sources(&self.sources, &c, num_sources as usize, 0);
+                    current_sources.extend(sources);
+                }
+            }
+        }
+
+        // Update the vertex buffer
+        self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
+    }
+
 
     fn draw<P: Projection>(
         &self,

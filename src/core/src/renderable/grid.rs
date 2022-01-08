@@ -232,8 +232,12 @@ impl ProjetedGrid {
             let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
             self.size_vertices_buf = vertices.len();
             
+            #[cfg(feature = "webgl2")]
             self.vao.bind_for_update()
                 .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&vertices));
+            #[cfg(feature = "webgl1")]
+            self.vao.bind_for_update()
+                .update_array("ndc_pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&vertices));
 
             self.text_renderer.end_frame();
         }

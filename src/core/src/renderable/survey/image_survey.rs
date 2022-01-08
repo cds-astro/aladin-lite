@@ -394,7 +394,7 @@ impl SendUniforms for Color {
 const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 // Each cell has 4 vertices
 pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
-// There is 13 floats per vertices (lonlat, pos, uv_start, uv_end, time_start, m0, m1) = 2 + 2 + 3 + 3 + 1 + 1 + 1 = 13
+// There is 13 floats per vertex (lonlat, pos, uv_start, uv_end, time_start, m0, m1) = 2 + 2 + 3 + 3 + 1 + 1 + 1 = 13
 const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 13;
 const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
 
@@ -408,6 +408,7 @@ pub type IdxVerticesVec = Vec<u16>;
 // This method only computes the vertex positions
 // of a HEALPix cell and append them
 // to lonlats and positions vectors
+#[cfg(feature = "webgl2")]
 fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
     vertices: &mut Vec<f32>,
     idx_positions: &mut IdxVerticesVec,
@@ -522,6 +523,102 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
         }
     }
 }
+use cgmath::Vector2;
+#[cfg(feature = "webgl1")]
+fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
+    lonlat: &mut Vec<f32>,
+    position: &mut Vec<f32>,
+    uv_start: &mut Vec<f32>,
+    uv_end: &mut Vec<f32>,
+    time_tile_received: &mut Vec<f32>,
+    m0: &mut Vec<f32>,
+    m1: &mut Vec<f32>,
+
+    idx_positions: &mut IdxVerticesVec,
+
+    cell: &HEALPixCell,
+    sphere_sub: &SphereSubdivided,
+
+    uv_0: &TileUVW,
+    uv_1: &TileUVW,
+    miss_0: f32,
+    miss_1: f32,
+
+    alpha: f32,
+
+    camera: &CameraViewPort,
+) {
+    let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
+
+    let n_segments_by_side: usize = 1 << num_subdivision;
+    let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
+
+    let n_vertices_per_segment = n_segments_by_side + 1;
+
+    let off_idx_vertices = (lonlat.len() / 2) as u16;
+    //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
+    for i in 0..n_vertices_per_segment {
+        for j in 0..n_vertices_per_segment {
+            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+
+            let hj0 = (j as f32) / (n_segments_by_side as f32);
+            let hi0 = (i as f32) / (n_segments_by_side as f32);
+
+            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+
+            let uv_s_vertex_0 = Vector3::new(
+                uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                uv_0[TileCorner::BottomLeft].z,
+            );
+
+            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
+            let uv_e_vertex_0 = Vector3::new(
+                uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                uv_1[TileCorner::BottomLeft].z,
+            );
+
+            let (lon, lat) = (ll[id_vertex_0].lon().0, ll[id_vertex_0].lat().0);
+            let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
+            // The projection is defined whatever the projection is
+            // because this code is executed for small fovs (~<100deg depending
+            // of the projection).
+            let ndc_pos = if let Some(ndc_pos) = P::model_to_ndc_space(&model_pos, camera) {
+                ndc_pos
+            } else {
+                Vector2::new(1.0, 0.0)
+            };
+
+            lonlat.extend([lon as f32, lat as f32]);
+            position.extend([ndc_pos.x as f32, ndc_pos.y as f32]);
+            uv_start.extend([uv_s_vertex_0.x as f32, uv_s_vertex_0.y as f32, uv_s_vertex_0.z as f32]);
+            uv_end.extend([uv_e_vertex_0.x as f32, uv_e_vertex_0.y as f32, uv_e_vertex_0.z as f32]);
+            time_tile_received.push(alpha);
+            m0.push(miss_0);
+            m1.push(miss_1);
+        }
+    }
+
+    for i in 0..n_segments_by_side {
+        for j in 0..n_segments_by_side {
+            let idx_0 = (j + i * n_vertices_per_segment) as u16;
+            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+
+            idx_positions.push(off_idx_vertices + idx_0);
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_2);
+
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_3);
+            idx_positions.push(off_idx_vertices + idx_2);
+        }
+    }
+}
 
 // This method computes positions and UVs of a healpix cells
 use crate::cdshealpix;
@@ -534,23 +631,40 @@ pub struct ImageSurvey {
     view: HEALPixCellsInView,
 
     // The projected vertices data
+    // For WebGL2 wasm, the data are interleaved
+    #[cfg(feature = "webgl2")]
     vertices: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 0) in vec2 lonlat;
+    lonlat: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 1) in vec2 position;
+    position: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 2) in vec3 uv_start;
+    uv_start: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 3) in vec3 uv_end;
+    uv_end: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 4) in float time_tile_received;
+    time_tile_received: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 5) in float m0;
+    m0: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    // layout (location = 6) in float m1;
+    m1: Vec<f32>,
+    
     idx_vertices: Vec<u16>,
 
     num_idx: usize,
 
     sphere_sub: SphereSubdivided,
     
-    /*vao: WebGlVertexArrayObject,
-    vbo: WebGlBuffer,
-    ebo: WebGlBuffer,*/
     vao: VertexArrayObject,
 
     gl: WebGlContext,
-
-    //_type: ImageSurveyType,
-    /*size_vertices_buf: u32,
-    size_idx_vertices_buf: u32,*/
 }
 use crate::camera::UserAction;
 use crate::math::LonLatT;
@@ -558,6 +672,7 @@ use crate::utils;
 use al_core::pixel::PixelType;
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
+    #[cfg(feature = "webgl2")]
     fn new(
         gl: &WebGlContext,
         camera: &CameraViewPort,
@@ -575,11 +690,10 @@ impl ImageSurvey {
         // layout (location = 4) in float time_tile_received;
         // layout (location = 5) in float m0;
         // layout (location = 6) in float m1;
-        //let vertices = vec![];
-        //let indices = vec![];
-
-        let vertices = vec![0.0; MAX_NUM_INDICES_TO_DRAW];
-        let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        //let vertices = vec![0.0; MAX_NUM_FLOATS_TO_DRAW];
+        //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
+        let vertices = vec![];
+        let idx_vertices = vec![];
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
@@ -592,161 +706,8 @@ impl ImageSurvey {
             // Set the element buffer
             .add_element_buffer(
                 WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<u16>(&indices),
+                VecData::<u16>(&idx_vertices),
             ).unbind();
-        #[cfg(feature = "webgl1")]
-        vao.bind_for_update()
-            .add_array_buffer(
-                2,
-                "lonlat",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                2,
-                "ndc_pos",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                3,
-                "uv_start",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                3,
-                "uv_end",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                1,
-                "time_tile_received",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                1,
-                "m0",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            .add_array_buffer(
-                1,
-                "m1",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices),
-            )
-            // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<u16>(&indices),
-            ).unbind();
-        // Unbind the buffer
-        /*let vao = gl.create_vertex_array().unwrap();
-                gl.bind_vertex_array(Some(&vao));
-        
-                let vbo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-                gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vbo));
-        
-                let data = vec![0.0_f32; MAX_NUM_FLOATS_TO_DRAW];
-                let size_vertices_buf = MAX_NUM_FLOATS_TO_DRAW as u32;
-                gl.buffer_data_with_array_buffer_view(
-                    WebGl2RenderingContext::ARRAY_BUFFER,
-                    unsafe { &js_sys::Float32Array::view(&data) },
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                );
-         
-                let num_bytes_per_f32 = mem::size_of::<f32>() as i32;
-                 // layout (location = 0) in vec2 lonlat;
-                gl.vertex_attrib_pointer_with_i32(
-                    0,
-                    2,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    0,
-                );
-                gl.enable_vertex_attrib_array(0);
-        
-                 // layout (location = 1) in vec2 position;
-                gl.vertex_attrib_pointer_with_i32(
-                    1,
-                    2,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (2 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(1);
-        
-                 // layout (location = 2) in vec3 uv_start;
-                gl.vertex_attrib_pointer_with_i32(
-                    2,
-                    3,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (4 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(2);
-        
-                 // layout (location = 3) in vec3 uv_end;
-                gl.vertex_attrib_pointer_with_i32(
-                    3,
-                    3,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (7 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(3);
-        
-                 // layout (location = 4) in float time_tile_received;
-                gl.vertex_attrib_pointer_with_i32(
-                    4,
-                    1,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (10 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(4);
-        
-                 // layout (location = 5) in float m0;
-                gl.vertex_attrib_pointer_with_i32(
-                    5,
-                    1,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (11 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(5);
-        
-                 // layout (location = 6) in float m1;
-                gl.vertex_attrib_pointer_with_i32(
-                    6,
-                    1,
-                    WebGl2RenderingContext::FLOAT,
-                    false,
-                    13 * num_bytes_per_f32,
-                    (12 * num_bytes_per_f32) as i32,
-                );
-                gl.enable_vertex_attrib_array(6);
-        
-                let ebo = gl.create_buffer().ok_or("failed to create buffer").unwrap();
-                // Bind the buffer
-                gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&ebo));
-                let data = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
-                let size_idx_vertices_buf = MAX_NUM_INDICES_TO_DRAW as u32;
-                gl.buffer_data_with_array_buffer_view(
-                    WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-                    unsafe { &js_sys::Uint16Array::view(&data) },
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                );
-                gl.bind_vertex_array(None);*/
 
         let num_idx = MAX_NUM_INDICES_TO_DRAW;
         let sphere_sub = SphereSubdivided {};
@@ -756,9 +717,6 @@ impl ImageSurvey {
         let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
 
         let gl = gl.clone();
-
-        let vertices = vec![];
-        let idx_vertices = vec![];
 
         Ok(ImageSurvey {
             //color,
@@ -771,16 +729,122 @@ impl ImageSurvey {
 
             sphere_sub,
             vao,
-            //ebo,
-            //vbo,
 
             gl,
             vertices,
             idx_vertices,
+        })
+    }
 
-            //_type,
-            /*size_vertices_buf,
-            size_idx_vertices_buf,*/
+    #[cfg(feature = "webgl1")]
+    fn new(
+        gl: &WebGlContext,
+        camera: &CameraViewPort,
+        config: HiPSConfig,
+        //color: Color,
+        exec: Rc<RefCell<TaskExecutor>>,
+        //_type: ImageSurveyType
+    ) -> Result<Self, JsValue> {
+        let mut vao = VertexArrayObject::new(&gl);
+
+        // layout (location = 0) in vec2 lonlat;
+        // layout (location = 1) in vec2 position;
+        // layout (location = 2) in vec3 uv_start;
+        // layout (location = 3) in vec3 uv_end;
+        // layout (location = 4) in float time_tile_received;
+        // layout (location = 5) in float m0;
+        // layout (location = 6) in float m1;
+        let lonlat = vec![];
+        let position = vec![];
+        let uv_start = vec![];
+        let uv_end = vec![];
+        let time_tile_received = vec![];
+        let m0 = vec![];
+        let m1 = vec![];
+        let idx_vertices = vec![];
+
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            .add_array_buffer(
+                2,
+                "lonlat",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&lonlat),
+            )
+            .add_array_buffer(
+                2,
+                "ndc_pos",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&position),
+            )
+            .add_array_buffer(
+                3,
+                "uv_start",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&uv_start),
+            )
+            .add_array_buffer(
+                3,
+                "uv_end",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&uv_end),
+            )
+            .add_array_buffer(
+                1,
+                "time_tile_received",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&time_tile_received),
+            )
+            .add_array_buffer(
+                1,
+                "m0",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&m0),
+            )
+            .add_array_buffer(
+                1,
+                "m1",
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<f32>(&m1),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::STREAM_DRAW,
+                VecData::<u16>(&idx_vertices),
+            ).unbind();
+
+        let num_idx = MAX_NUM_INDICES_TO_DRAW;
+        let sphere_sub = SphereSubdivided {};
+
+        let textures = ImageSurveyTextures::new(gl, config, exec)?;
+        let conf = textures.config();
+        let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
+
+        let gl = gl.clone();
+
+        Ok(ImageSurvey {
+            //color,
+            // The image survey texture buffer
+            textures,
+            // Keep track of the cells in the FOV
+            view,
+
+            num_idx,
+
+            sphere_sub,
+            vao,
+
+            gl,
+
+            lonlat,
+            position,
+            uv_start,
+            uv_end,
+            time_tile_received,
+            m0,
+            m1,
+            
+            idx_vertices,
         })
     }
 
@@ -813,13 +877,12 @@ impl ImageSurvey {
         }
     }
 
+    #[cfg(feature = "webgl2")]
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
         self.vertices.clear();
         self.idx_vertices.clear();
-        //let mut vertices = vec![];
-        //let mut idx_vertices = vec![];
 
         let survey_config = self.textures.config();
 
@@ -844,52 +907,64 @@ impl ImageSurvey {
             );
         }
         self.num_idx = self.idx_vertices.len();
-        /*self.gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.vbo));
-        self.gl.bind_buffer(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            Some(&self.ebo),
-        );*/
-
 
         let mut vao = self.vao.bind_for_update();
         vao.update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
             .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));
+    }
 
-        /*let buf_vertices = unsafe { js_sys::Float32Array::view(&self.vertices) };
-        if self.vertices.len() > self.size_vertices_buf as usize {
-            self.size_vertices_buf = self.vertices.len() as u32;
+    #[cfg(feature = "webgl1")]
+    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
+        let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
-            self.gl.buffer_data_with_array_buffer_view(
-                WebGl2RenderingContext::ARRAY_BUFFER,
-                &buf_vertices,
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-            );
-        } else {
-            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-                WebGl2RenderingContext::ARRAY_BUFFER,
-                0,
-                &buf_vertices,
+        self.lonlat.clear();
+        self.position.clear();
+        self.uv_start.clear();
+        self.uv_end.clear();
+        self.time_tile_received.clear();
+        self.m0.clear();
+        self.m1.clear();
+        self.idx_vertices.clear();
+
+        let survey_config = self.textures.config();
+
+        for (cell, state) in textures.iter() {
+            let uv_0 = TileUVW::new(cell, &state.starting_texture, survey_config);
+            let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
+            let start_time = state.ending_texture.start_time();
+            let miss_0 = state.starting_texture.is_missing() as f32;
+            let miss_1 = state.ending_texture.is_missing() as f32;
+
+            add_vertices_grid::<P, T>(
+                &mut self.lonlat,
+                &mut self.position,
+                &mut self.uv_start,
+                &mut self.uv_end,
+                &mut self.time_tile_received,
+                &mut self.m0,
+                &mut self.m1,
+                &mut self.idx_vertices,
+                &cell,
+                &self.sphere_sub,
+                &uv_0,
+                &uv_1,
+                miss_0,
+                miss_1,
+                start_time.as_millis(),
+                camera,
             );
         }
-
         self.num_idx = self.idx_vertices.len();
-        let buf_idx = unsafe { js_sys::Uint16Array::view(&self.idx_vertices) };
-        
 
-        if self.idx_vertices.len() > self.size_idx_vertices_buf as usize {
-            self.size_idx_vertices_buf = self.idx_vertices.len() as u32;
-            self.gl.buffer_data_with_array_buffer_view(
-                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-                &buf_idx,
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-            );
-        } else {
-            self.gl.buffer_sub_data_with_i32_and_array_buffer_view(
-                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-                0,
-                &buf_idx,
-            );
-        }*/
+        let mut vao = self.vao.bind_for_update();
+        vao.update_array("lonlat", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.lonlat))
+            .update_array("position", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.position))
+            .update_array("uv_start", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.uv_start))
+            .update_array("uv_end", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.uv_end))
+            .update_array("time_tile_received", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.time_tile_received))
+            .update_array("m0", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.m0))
+            .update_array("m1", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.m1))
+            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));
     }
 
     fn refresh_view(&mut self, camera: &CameraViewPort) {

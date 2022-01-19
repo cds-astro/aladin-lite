@@ -1,8 +1,6 @@
 precision mediump float;
 precision mediump int;
 
-attribute vec2 lonlat;
-//layout (location = 1) in vec3 position;
 attribute vec2 ndc_pos;
 attribute vec3 uv_start;
 attribute vec3 uv_end;

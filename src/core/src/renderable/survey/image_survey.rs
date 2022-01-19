@@ -526,7 +526,6 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 use cgmath::Vector2;
 #[cfg(feature = "webgl1")]
 fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
-    lonlat: &mut Vec<f32>,
     position: &mut Vec<f32>,
     uv_start: &mut Vec<f32>,
     uv_end: &mut Vec<f32>,
@@ -555,7 +554,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (lonlat.len() / 2) as u16;
+    let off_idx_vertices = (position.len() / 2) as u16;
     //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
@@ -581,7 +580,6 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                 uv_1[TileCorner::BottomLeft].z,
             );
 
-            let (lon, lat) = (ll[id_vertex_0].lon().0, ll[id_vertex_0].lat().0);
             let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
             // The projection is defined whatever the projection is
             // because this code is executed for small fovs (~<100deg depending
@@ -592,7 +590,6 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                 Vector2::new(1.0, 0.0)
             };
 
-            lonlat.extend([lon as f32, lat as f32]);
             position.extend([ndc_pos.x as f32, ndc_pos.y as f32]);
             uv_start.extend([uv_s_vertex_0.x as f32, uv_s_vertex_0.y as f32, uv_s_vertex_0.z as f32]);
             uv_end.extend([uv_e_vertex_0.x as f32, uv_e_vertex_0.y as f32, uv_e_vertex_0.z as f32]);
@@ -635,25 +632,22 @@ pub struct ImageSurvey {
     #[cfg(feature = "webgl2")]
     vertices: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 0) in vec2 lonlat;
-    lonlat: Vec<f32>,
-    #[cfg(feature = "webgl1")]
-    // layout (location = 1) in vec2 position;
+    // layout (location = 0) in vec2 position;
     position: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 2) in vec3 uv_start;
+    // layout (location = 1) in vec3 uv_start;
     uv_start: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 3) in vec3 uv_end;
+    // layout (location = 2) in vec3 uv_end;
     uv_end: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 4) in float time_tile_received;
+    // layout (location = 3) in float time_tile_received;
     time_tile_received: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 5) in float m0;
+    // layout (location = 4) in float m0;
     m0: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 6) in float m1;
+    // layout (location = 5) in float m1;
     m1: Vec<f32>,
     
     idx_vertices: Vec<u16>,
@@ -694,18 +688,17 @@ impl ImageSurvey {
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
         let vertices = vec![];
         let idx_vertices = vec![];
-        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
                 13 * std::mem::size_of::<f32>(),
                 &[2, 2, 3, 3, 1, 1, 1],
                 &[0, 2 * std::mem::size_of::<f32>(), 4 * std::mem::size_of::<f32>(), 7 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>(), 12 * std::mem::size_of::<f32>()],
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&vertices),
             )
             // Set the element buffer
             .add_element_buffer(
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&idx_vertices),
             ).unbind();
 
@@ -754,7 +747,6 @@ impl ImageSurvey {
         // layout (location = 4) in float time_tile_received;
         // layout (location = 5) in float m0;
         // layout (location = 6) in float m1;
-        let lonlat = vec![];
         let position = vec![];
         let uv_start = vec![];
         let uv_end = vec![];
@@ -763,53 +755,46 @@ impl ImageSurvey {
         let m1 = vec![];
         let idx_vertices = vec![];
 
-        #[cfg(feature = "webgl1")]
         vao.bind_for_update()
             .add_array_buffer(
                 2,
-                "lonlat",
-                WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&lonlat),
-            )
-            .add_array_buffer(
-                2,
                 "ndc_pos",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&position),
             )
             .add_array_buffer(
                 3,
                 "uv_start",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&uv_start),
             )
             .add_array_buffer(
                 3,
                 "uv_end",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&uv_end),
             )
             .add_array_buffer(
                 1,
                 "time_tile_received",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&time_tile_received),
             )
             .add_array_buffer(
                 1,
                 "m0",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&m0),
             )
             .add_array_buffer(
                 1,
                 "m1",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&m1),
             )
             // Set the element buffer
             .add_element_buffer(
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&idx_vertices),
             ).unbind();
 
@@ -836,7 +821,6 @@ impl ImageSurvey {
 
             gl,
 
-            lonlat,
             position,
             uv_start,
             uv_end,
@@ -909,15 +893,14 @@ impl ImageSurvey {
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
-        vao.update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
-            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));
+        vao.update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
+            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
 
     #[cfg(feature = "webgl1")]
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
-        self.lonlat.clear();
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -936,7 +919,6 @@ impl ImageSurvey {
             let miss_1 = state.ending_texture.is_missing() as f32;
 
             add_vertices_grid::<P, T>(
-                &mut self.lonlat,
                 &mut self.position,
                 &mut self.uv_start,
                 &mut self.uv_end,
@@ -957,14 +939,13 @@ impl ImageSurvey {
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
-        vao.update_array("lonlat", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.lonlat))
-            .update_array("position", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.position))
-            .update_array("uv_start", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.uv_start))
-            .update_array("uv_end", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.uv_end))
-            .update_array("time_tile_received", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.time_tile_received))
-            .update_array("m0", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.m0))
-            .update_array("m1", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.m1))
-            .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.idx_vertices));
+        vao.update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
+            .update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
+            .update_array("uv_end", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_end))
+            .update_array("time_tile_received", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.time_tile_received))
+            .update_array("m0", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m0))
+            .update_array("m1", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m1))
+            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
 
     fn refresh_view(&mut self, camera: &CameraViewPort) {
@@ -986,18 +967,6 @@ impl ImageSurvey {
     #[inline]
     pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
-    }
-}
-
-impl Drop for ImageSurvey {
-    fn drop(&mut self) {
-        //drop(self.textures);
-
-        // Drop the vertex arrays
-        /*self.gl.delete_buffer(Some(&self.vbo));
-        self.gl.delete_buffer(Some(&self.ebo));
-
-        self.gl.delete_vertex_array(Some(&self.vao));*/
     }
 }
 

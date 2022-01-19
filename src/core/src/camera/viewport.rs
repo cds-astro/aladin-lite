@@ -453,6 +453,7 @@ impl SendUniforms for CameraViewPort {
         shader
             .attach_uniforms_from(&self.last_user_action)
             .attach_uniform("to_icrs", &self.system.to_icrs_j2000::<f32>())
+            .attach_uniform("to_galactic", &self.system.to_gal::<f32>())
             .attach_uniform("model", &self.w2m)
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip

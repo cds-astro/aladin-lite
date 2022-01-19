@@ -8,6 +8,7 @@ uniform vec4 color;
 uniform mat4 model;
 uniform mat4 inv_model;
 uniform mat4 to_icrs;
+uniform mat4 to_galactic;
 uniform float czf;
 
 uniform float meridians[20];
@@ -114,7 +115,7 @@ void main() {
     vec3 pos_world = clip2world_gnomonic(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = normalize(vec3(transpose(to_icrs) * model * vec4(pos_world, 1.f)));
+    vec3 pos_model = normalize(vec3(to_galactic * model * vec4(pos_world, 1.f)));
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);
 }

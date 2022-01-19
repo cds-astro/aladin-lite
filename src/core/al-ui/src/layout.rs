@@ -27,50 +27,50 @@ impl LayerLayout {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
-        egui::Frame::popup(ui.style())
-            .stroke(egui::Stroke::none())
-            .show(ui, |ui| {
+        egui::Window::new("Aladin Lite v3")
+            .collapsible(true)
+            .show(ui.ctx(), |ui| {
                 ui.set_max_width(270.0);
                 //use super::View as _;
                 self.ui(ui, events.clone());
-            });
 
-        let mut new_survey_added = false;
-        self.s_select_w.show(ui, &mut self.survey_name_selected, &mut new_survey_added);
-        
-        if new_survey_added {
-            let s_id_selected = self.survey_name_selected.clone();
-            let s_list = self.surveys.clone();
-            let events = events.clone();
-            let fut = async move {
-                let url = format!("https://alaskybis.u-strasbg.fr/{}", s_id_selected);
-                let new_survey = SurveyWidget::new(url).await;
-                let mut can_surveys_be_added = true;
-                // check if the new survey is compatible with the ones already pushed
-                for s in s_list.lock().unwrap().iter() {
-                    match s.color() {
-                        Color::Color(_) => (),
-                        _ => {
-                            can_surveys_be_added = false;
-                            break;
+                let mut new_survey_added = false;
+                self.s_select_w.show(ui, &mut self.survey_name_selected, &mut new_survey_added);
+                
+                if new_survey_added {
+                    let s_id_selected = self.survey_name_selected.clone();
+                    let s_list = self.surveys.clone();
+                    let events = events.clone();
+                    let fut = async move {
+                        let url = format!("https://alaskybis.u-strasbg.fr/{}", s_id_selected);
+                        let new_survey = SurveyWidget::new(url).await;
+                        let mut can_surveys_be_added = true;
+                        // check if the new survey is compatible with the ones already pushed
+                        for s in s_list.lock().unwrap().iter() {
+                            match s.color() {
+                                Color::Color(_) => (),
+                                _ => {
+                                    can_surveys_be_added = false;
+                                    break;
+                                }
+                            }
                         }
-                    }
+        
+                        if can_surveys_be_added {
+                            // get the SimpleHiPS from the SurveyWidget
+                            let mut image_surveys = vec![new_survey.get_hips_config()];
+                            for survey in s_list.lock().unwrap().iter() {
+                                image_surveys.push(survey.get_hips_config());
+                            }
+        
+                            events.lock().unwrap().push(Event::ImageSurveys(image_surveys));
+                            s_list.lock().unwrap().push(new_survey);
+                        }
+                    };
+        
+                    wasm_bindgen_futures::spawn_local(fut);
                 }
-
-                if can_surveys_be_added {
-                    // get the SimpleHiPS from the SurveyWidget
-                    let mut image_surveys = vec![new_survey.get_hips_config()];
-                    for survey in s_list.lock().unwrap().iter() {
-                        image_surveys.push(survey.get_hips_config());
-                    }
-
-                    events.lock().unwrap().push(Event::ImageSurveys(image_surveys));
-                    s_list.lock().unwrap().push(new_survey);
-                }
-            };
-
-            wasm_bindgen_futures::spawn_local(fut);
-        }
+            });
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {

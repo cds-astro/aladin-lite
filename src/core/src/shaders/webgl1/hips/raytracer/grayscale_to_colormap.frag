@@ -1,9 +1,9 @@
-precision highp float;
-precision highp sampler2D;
-precision highp int;
+precision mediump float;
+precision mediump sampler2D;
+precision mediump int;
 
-in vec2 out_clip_pos;
-out vec4 out_frag_color;
+varying vec3 out_vert_pos;
+varying vec2 out_clip_pos;
 
 uniform int user_action;
 
@@ -15,36 +15,64 @@ struct Tile {
 };
 
 uniform int current_depth;
+uniform Tile textures_tiles[192];
+uniform int num_tiles;
 
-uniform Tile textures_tiles[12];
-
-uniform float opacity;
 uniform float current_time; // current time in ms
-struct TileColor {
-    Tile tile;
-    vec4 color;
-    bool found;
-};
 
 @import ../color;
 @import ./healpix;
 
+uniform float opacity;
 uniform float first_survey;
 
+Tile get_tile(int idx) {
+    for(int i = 0; i < 12; i++) {
+        if( i == idx ) {
+            return textures_tiles[i];
+        }
+    }
+}
+
+Tile binary_search_tile(int uniq) {
+    int l = 0;
+    int r = 11;
+    for (int v = 0; v <= 5; v++) {
+        int mid = (l + r) / 2;
+
+        Tile tile = get_tile(mid);
+        if(tile.uniq == uniq) {
+            return tile;
+        } else if(tile.uniq < uniq) {
+            l = mid + 1;
+        } else {
+            r = mid - 1;
+        }
+
+        // before exiting the loop
+        if (l >= r) {
+            return get_tile(l);
+        }
+    }
+}
+
 vec4 get_tile_color(vec3 pos) {
-    HashDxDy result = hash_with_dxdy(0, pos.zxy);
+    float delta = asin(pos.y);
+    float theta = atan(pos.x, pos.z);
+    HashDxDy result = hash_with_dxdy(vec2(theta, delta));
 
     int idx = result.idx;
-    vec2 uv = vec2(result.dy, result.dx);
+    vec2 uv = vec2(clamp(result.dy, 0.0, 1.0), result.dx);
+    int uniq = 16 + idx; 
+    Tile tile = binary_search_tile(uniq);
 
-    Tile tile = textures_tiles[idx];
+    int idx_texture = tile.texture_idx / 64;
+    int off = tile.texture_idx - idx_texture * 64;
 
-    int idx_texture = tile.texture_idx >> 6;
-    int off = tile.texture_idx & 0x3F;
-    float idx_row = float(off >> 3); // in [0; 7]
-    float idx_col = float(off & 0x7); // in [0; 7]
+    int idx_row = off / 8; // in [0; 7]
+    int idx_col = off - idx_row * 8; // in [0; 7]
 
-    vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
+    vec2 offset = (vec2(float(idx_col), float(idx_row)) + uv)*0.125;
     vec3 UV = vec3(offset, float(idx_texture));
 
     vec4 c = get_colormap_from_grayscale_texture(UV);
@@ -68,6 +96,7 @@ void main() {
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     vec4 c = get_tile_color(frag_pos);
-    out_frag_color = c;
-    out_frag_color.a = out_frag_color.a * opacity;
+    c.a = c.a * opacity;
+
+    gl_FragColor = c;
 }

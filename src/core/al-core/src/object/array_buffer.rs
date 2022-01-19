@@ -436,12 +436,12 @@ impl ArrayBuffer {
     }
 
     pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
-        let loc = shader.get_attrib_location(&self.gl, location) as u32;
+        let loc = shader.get_attrib_location(&self.gl, location);
 
         assert_eq!(self.sizes.len(), 1);
         T::vertex_attrib_pointer_with_i32(
             &self.gl,
-            loc,
+            loc as u32,
             *self.sizes.first().unwrap() as i32,
             0,
             0,

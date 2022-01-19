@@ -52,8 +52,10 @@ pub struct RayTracer {
 }
 use cgmath::{InnerSpace, Vector2};
 use std::mem;
+
+const SIZE_POSITION_TEX: usize = 2048;
 fn generate_xyz_position<P: Projection>() -> Vec<f32> {
-    let (w, h) = (2048.0, 2048.0);
+    let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
     for y in 0..(h as u32) {
         for x in 0..(w as u32) {
@@ -82,7 +84,7 @@ fn generate_xyz_position<P: Projection>() -> Vec<f32> {
 }
 
 fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
-    let (w, h) = (2048.0, 2048.0);
+    let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
     for y in 0..(h as u32) {
         for x in 0..(w as u32) {
@@ -112,13 +114,13 @@ fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
 }
 use cgmath::Rad;
 fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
-    let (w, h) = (2048.0, 2048.0);
+    let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
     for y in 0..(h as u32) {
         for x in 0..(w as u32) {
             let xy = Vector2::new(x, y);
             let lonlat = LonLatT::new(
-                Rad(((xy.x as f64) / (w as f64)) * std::f64::consts::PI * 2.0).into(),
+                Rad(((xy.x as f64) / (w as f64)) * std::f64::consts::PI * 2.0 + std::f64::consts::PI).into(),
                 Rad((2.0 * ((xy.y as f64) / (h as f64)) - 1.0) * std::f64::consts::FRAC_PI_2).into(),
             );
             let (idx, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
@@ -215,13 +217,13 @@ impl RayTracer {
         .unbind();
         // create position data
         let data = generate_xyz_position::<P>();
-        let position_tex = create_f32_texture_from_raw(&gl, 2048, 2048, &data);
+        let position_tex = create_f32_texture_from_raw(&gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data);
 
         // create ang2pix texture for webgl1 app
         #[cfg(feature = "webgl1")]
         let ang2pix_tex = {
             let data = generate_hash_dxdy::<P>(0);
-            create_f32_texture_from_raw(&gl, 2048, 2048, &data)
+            create_f32_texture_from_raw(&gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data)
         };
 
         let gl = gl.clone();

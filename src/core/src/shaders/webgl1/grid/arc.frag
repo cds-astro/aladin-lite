@@ -1,13 +1,12 @@
-#version 300 es
-precision highp float;
+precision mediump float;
 
-out vec4 c;
-in vec2 pos_clip;
+varying vec2 pos_clip;
 
 uniform vec4 color;
 uniform mat4 model;
 uniform mat4 inv_model;
 uniform mat4 to_icrs;
+uniform mat4 to_galactic;
 uniform float czf;
 
 uniform float meridians[20];
@@ -55,7 +54,7 @@ float d_isolon(vec3 pos_model, float theta) {
     float d = abs(dot(n, pos_model));
 
     vec3 h_model = normalize(pos_model - n*d);
-    vec3 h_world = vec3(inv_model * to_icrs * vec4(h_model, 1.f));
+    vec3 h_world = vec3(inv_model * to_icrs * vec4(h_model, 1.0));
 
     // Project to screen x and h and compute the distance
     // between the two
@@ -77,7 +76,7 @@ float grid_alpha(vec3 p) {
 
     float m = 0.0;
     float mdist = 10.0;
-    for (int i = 0; i < num_meridians; i++) {
+    for (int i = 0; i < 20; i++) {
         float tmp = meridians[i];
         if (tmp > PI) {
             tmp -= 2.0 * PI;
@@ -87,15 +86,21 @@ float grid_alpha(vec3 p) {
             mdist = d;
             m = tmp;
         }
+        if(i == num_meridians - 1) {
+            break;
+        }
     }
 
     float par = 0.0;
     float pdist = 10.0;
-    for (int i = 0; i < num_parallels; i++) {
+    for (int i = 0; i < 10; i++) {
         float d = abs(delta - parallels[i]);
         if (d < pdist) {
             pdist = d;
             par = parallels[i];
+        }
+        if(i == num_parallels - 1) {
+            break;
         }
     }
 
@@ -114,12 +119,12 @@ float grid_alpha(vec3 p) {
 }
 
 void main() {
-    vec4 transparency = vec4(0.f, 0.f, 0.f, 0.f);
+    vec4 transparency = vec4(0.0);
 
     vec3 pos_world = clip2world_arc(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = vec3(transpose(to_icrs) * model * vec4(pos_world, 1.f));
+    vec3 pos_model = vec3(to_galactic * model * vec4(pos_world, 1.0));
     float alpha = grid_alpha(pos_model);
-    c = mix(color, transparency, alpha);
+    gl_FragColor = mix(color, transparency, alpha);
 }

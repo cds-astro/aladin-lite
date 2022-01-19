@@ -31,7 +31,13 @@ pub struct TextRenderManager {
     text_size: f32,
     letters: HashMap<char, LetterTexPosition>,
 
+    #[cfg(feature = "webgl2")]
     vertices: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    pos: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    tx: Vec<f32>,
+
     indices: Vec<u16>,
     labels: Vec<LabelMeta>,
 
@@ -64,7 +70,13 @@ impl TextRenderManager {
             include_str!("../shaders/webgl2/text/text_frag.glsl")
         )?;
         let mut vao = VertexArrayObject::new(&gl);
+        #[cfg(feature = "webgl2")]
         let vertices = vec![];
+        #[cfg(feature = "webgl1")]
+        let pos = vec![];
+        #[cfg(feature = "webgl1")]
+        let tx = vec![];
+
         let indices = vec![];
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
@@ -86,13 +98,13 @@ impl TextRenderManager {
                 2,
                 "pos",
                 WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices)
+                VecData::<f32>(&pos)
             )
             .add_array_buffer(
                 2,
                 "tx",
                 WebGl2RenderingContext::STREAM_DRAW,
-                VecData::<f32>(&vertices)
+                VecData::<f32>(&tx)
             )
             // Set the element buffer
             .add_element_buffer(
@@ -142,7 +154,12 @@ impl TextRenderManager {
                 font_texture,
                 font,
                 text_size,
+                #[cfg(feature = "webgl2")]
                 vertices: vec![],
+                #[cfg(feature = "webgl1")]
+                pos: vec![],
+                #[cfg(feature = "webgl1")]
+                tx: vec![],
                 indices: vec![],
                 labels,
             }
@@ -187,16 +204,34 @@ impl TextRenderManager {
                 let u4 = (l.x_min as f32)/(f_tex_size.0 as f32);
                 let v4 = (l.y_min as f32 + l.h as f32)/(f_tex_size.1 as f32);
 
+                #[cfg(feature = "webgl2")]
                 let num_vertices = (self.vertices.len() / 4) as u16;
+                #[cfg(feature = "webgl1")]
+                let num_vertices = (self.pos.len() / 2) as u16;
 
                 let xmin = l.bounds.xmin;
                 let ymin = l.bounds.ymin + (l.h as f32);
 
+                #[cfg(feature = "webgl2")]
                 self.vertices.extend([
                     x_pos + x_offset + xmin, y_pos - ymin, u1, v1,
                     x_pos + x_offset + (l.w as f32) + xmin, y_pos - ymin, u2, v2,
                     x_pos + x_offset + (l.w as f32) + xmin, y_pos + (l.h as f32) - ymin, u3, v3,
                     x_pos + x_offset + xmin, y_pos + (l.h as f32) - ymin, u4, v4
+                ]);
+                #[cfg(feature = "webgl1")]
+                self.pos.extend([
+                    x_pos + x_offset + xmin, y_pos - ymin,
+                    x_pos + x_offset + (l.w as f32) + xmin, y_pos - ymin,
+                    x_pos + x_offset + (l.w as f32) + xmin, y_pos + (l.h as f32) - ymin,
+                    x_pos + x_offset + xmin, y_pos + (l.h as f32) - ymin
+                ]);
+                #[cfg(feature = "webgl1")]
+                self.tx.extend([
+                    u1, v1,
+                    u2, v2,
+                    u3, v3,
+                    u4, v4
                 ]);
                 self.indices.extend([
                     num_vertices, num_vertices + 2, num_vertices + 1,
@@ -236,7 +271,13 @@ impl TextRenderManager {
 
 impl RenderManager for TextRenderManager {
     fn begin_frame(&mut self) {
+        #[cfg(feature = "webgl2")]
         self.vertices.clear();
+        #[cfg(feature = "webgl1")]
+        self.pos.clear();
+        #[cfg(feature = "webgl1")]
+        self.tx.clear();
+
         self.indices.clear();
 
         self.labels.clear();
@@ -250,8 +291,8 @@ impl RenderManager for TextRenderManager {
         .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
     #[cfg(feature = "webgl1")]
     self.vao.bind_for_update()
-        .update_array("pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
-        .update_array("tx", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
+        .update_array("pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.pos))
+        .update_array("tx", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.tx))
         .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
 
     }

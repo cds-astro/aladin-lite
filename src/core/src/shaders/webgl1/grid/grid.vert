@@ -1,9 +1,8 @@
-#version 300 es
-precision highp float;
+precision mediump float;
 
-layout (location = 0) in vec2 position;
+attribute vec2 position;
 
-out vec2 pos_clip;
+varying vec2 pos_clip;
 
 uniform vec2 ndc_to_clip;
 uniform float czf;

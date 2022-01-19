@@ -7,6 +7,7 @@ in vec2 pos_clip;
 uniform vec4 color;
 uniform mat4 model;
 uniform mat4 to_icrs;
+uniform mat4 to_galactic;
 uniform mat4 inv_model;
 uniform float czf;
 
@@ -135,7 +136,7 @@ void main() {
     vec3 pos_world = clip2world_aitoff(pos_clip);
     pos_world = check_inversed_longitude(pos_world);
 
-    vec3 pos_model = vec3(transpose(to_icrs) * model * vec4(pos_world, 1.f));
+    vec3 pos_model = vec3(to_galactic * model * vec4(pos_world, 1.f));
 
     float alpha = grid_alpha(pos_model);
     c = mix(color, transparency, alpha);

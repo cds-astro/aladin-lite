@@ -144,7 +144,7 @@ impl Gui {
             let response = egui::CentralPanel::default()
                 .frame(f)
                 .show(&self.ctx, |ui| {
-                    egui::containers::panel::SidePanel::left(
+                    /*egui::containers::panel::SidePanel::left(
                         "Menu"
                     )
                     .resizable(false)
@@ -166,7 +166,7 @@ impl Gui {
                                 //do_stuff();
                             }
                         });
-                    });
+                    });*/
 
                     layout.show(ui, events);
                 });

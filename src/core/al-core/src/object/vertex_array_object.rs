@@ -615,7 +615,7 @@ pub mod vao {
             array_data: B,
         ) -> &mut Self {
             self.vao.array_buffer.get_mut(attr)
-                .unwrap()
+                .expect(&format!("attr: {:?}", attr))
                 .update(usage, array_data);
 
             self

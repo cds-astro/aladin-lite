@@ -249,7 +249,6 @@ pub struct Catalog {
     strength: f32,
     sources: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
-    max_density: f32,
 }
 
 use crate::healpix_cell::HEALPixCell;
@@ -274,6 +273,9 @@ impl Catalog {
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
         let num_instances = sources.len() as i32;
+        
+        //let source = 
+
         let sources = unsafe { utils::flatten_vec(sources) };
 
         let vertex_array_object_catalog = {
@@ -356,8 +358,7 @@ impl Catalog {
 
             vao
         };
-        let max_density = 1.0;
-        let mut catalog = Self {
+        Self {
             alpha,
             strength,
             colormap,
@@ -365,40 +366,6 @@ impl Catalog {
             indices,
             sources,
             vertex_array_object_catalog,
-            max_density,
-        };
-        catalog.set_max_density::<P>(view, camera);
-        catalog
-    }
-
-    fn set_max_density<P: Projection>(
-        &mut self,
-        view: &HEALPixCellsInView,
-        camera: &CameraViewPort,
-    ) {
-        let HEALPixCells { depth: _, cells } = view.get_cells();
-
-        let cells = cells
-            .iter()
-            .map(|&cell| {
-                let d = cell.depth();
-                if d > 7 {
-                    cell.ancestor(d - 7)
-                } else {
-                    cell
-                }
-            })
-            // This will delete the doublons if there is
-            .collect::<HashSet<_>>();
-
-        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-
-        //self.max_density = self.compute_max_density::<P>(camera.depth_precise(config) + 5.0);
-        let d_kernel = depth_from_pixels_on_screen(camera, 32);
-        self.max_density = self.compute_max_density::<P>(d_kernel);
-        if num_sources_in_fov > MAX_SOURCES_PER_CATALOG {
-            let d = MAX_SOURCES_PER_CATALOG / num_sources_in_fov;
-            self.max_density *= d * d;
         }
     }
 
@@ -412,18 +379,6 @@ impl Catalog {
 
     pub fn set_alpha(&mut self, alpha: f32) {
         self.alpha = alpha;
-    }
-
-    fn compute_max_density<P: Projection>(&self, d: f32) -> f32 {
-        let d0 = d.floor() as usize;
-        let d1 = d0 + 1;
-        let lambda = d - (d0 as f32);
-        let max_density_d0 = self.indices.max_density(d0) as f32;
-        let max_density_d1 = self.indices.max_density(d1) as f32;
-
-        let max_density = (1_f32 - lambda) * max_density_d0 + lambda * max_density_d1;
-
-        max_density
     }
 
     fn get_total_num_sources_in_fov(&self, cells: &HashSet<HEALPixCell>) -> usize {
@@ -446,10 +401,6 @@ impl Catalog {
         } = cells;
         let mut current_sources = vec![];
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-
-        self.max_density = self.compute_max_density::<P>(
-            crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
-        );
 
         // depth < 7
         for cell in cells {
@@ -488,10 +439,6 @@ impl Catalog {
         } = cells;
         let mut current_sources: Vec<f32> = vec![];
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-
-        self.max_density = self.compute_max_density::<P>(
-            crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen(camera, 32),
-        );
 
         // depth < 7
         for cell in cells {
@@ -546,7 +493,6 @@ impl Catalog {
                     .attach_uniform("strength", &self.strength) // Strengh of the kernel
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("kernel_size", &manager.kernel_size)
-                    .attach_uniform("max_density", &self.max_density)
                     .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
                     .draw_elements_instanced_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

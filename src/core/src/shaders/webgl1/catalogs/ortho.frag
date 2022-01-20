@@ -7,7 +7,6 @@ in vec3 out_p;
 out vec4 color;
 
 uniform sampler2D kernel_texture;
-uniform float max_density; // max number of sources in a kernel sized HEALPix cell at the current depth
 uniform float fov;
 uniform float strength;
 void main() {

@@ -1,10 +1,7 @@
-#version 300 es
 precision lowp float;
 
-in vec2 out_uv;
-in vec3 out_p;
-
-out vec4 color;
+varying vec2 out_uv;
+varying vec3 out_p;
 
 uniform sampler2D kernel_texture;
 uniform float fov;
@@ -14,6 +11,8 @@ void main() {
         discard;
     }
 
-    color = texture(kernel_texture, out_uv) / max(log2(fov*100.0), 1.0);
+    vec4 color = texture(kernel_texture, out_uv) / max(log2(fov*100.0), 1.0);
     color.r *= strength;
+
+    gl_FragColor = color;
 }

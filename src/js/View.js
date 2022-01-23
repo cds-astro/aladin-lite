@@ -80,7 +80,7 @@ export let View = (function() {
             this.createCanvases();
             // Check whether a webgl2 context is available
             //const webGL2Supported = checkForWebGL2Support();
-            const webGL2Supported = true;
+            const webGL2Supported = false;
             this.webGL2Supported = webGL2Supported;
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too

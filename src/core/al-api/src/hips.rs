@@ -21,20 +21,18 @@ impl IntoIterator for CompositeHiPS {
 }
 
 #[derive(Deserialize, Debug)]
-/// The JSON image survey object
 pub struct SimpleHiPS {
-    /// All that is found in the properties file of the HiPS
+    /// The HiPS metadata
     pub properties: HiPSProperties,
 
-    /// The color of the HiPS, can be a direct map to one color, a colormap or the color images
-    /// for compressed JPG/PNG tiles
+    /// Color config
     pub color: HiPSColor,
 
     // Blending config
     pub blend_cfg: BlendCfg,
     pub opacity: f32,
 
-    /// Layer name in which the survey will be placed in
+    /// Layer name
     pub layer: String,
 }
 

@@ -84,7 +84,7 @@ vec4 get_tile_color(vec3 pos) {
     return color;
 }
 
-const float duration = 500.f; // 500ms
+const float duration = 500.0; // 500ms
 uniform int max_depth; // max depth of the HiPS
 
 uniform sampler2D position_tex;

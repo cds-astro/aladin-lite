@@ -124,7 +124,7 @@ fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
                 Rad((2.0 * ((xy.y as f64) / (h as f64)) - 1.0) * std::f64::consts::FRAC_PI_2).into(),
             );
             let (idx, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
-            data.extend(&[(idx as f32) / 255.0, dx as f32, dy as f32]);
+            data.extend(&[(idx as f32), dx as f32, dy as f32]);
         }
     }
 

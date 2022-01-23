@@ -1,6 +1,6 @@
-precision mediump float;
-precision mediump sampler2D;
-precision mediump int;
+precision highp float;
+precision highp sampler2D;
+precision highp int;
 
 varying vec3 out_vert_pos;
 varying vec2 out_clip_pos;
@@ -61,7 +61,9 @@ vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(vec2(theta, delta));
 
     int idx = result.idx;
-    vec2 uv = vec2(clamp(result.dy, 0.0, 1.0), result.dx);
+    vec2 uv = vec2(result.dy, result.dx);
+    //return vec4(uv, 1.0, 1.0);
+
     int uniq = 16 + idx; 
     Tile tile = binary_search_tile(uniq);
 
@@ -71,11 +73,11 @@ vec4 get_tile_color(vec3 pos) {
     int idx_row = off / 8; // in [0; 7]
     int idx_col = off - idx_row * 8; // in [0; 7]
 
-    vec2 offset = (vec2(float(idx_col), float(idx_row)) + uv)*0.125;
-    vec3 UV = vec3(offset, float(idx_texture));
-
+    vec2 offset = (vec2(idx_col, idx_row) + uv) * 0.125;
+    vec3 UV = vec3(offset.x, offset.y, 0.0);
+    return vec4(UV, 1.0);
     vec4 color = get_color_from_texture(UV);
-    color.a = mix(color.a, blank_color.a, tile.empty);
+    //color.a = mix(color.a, blank_color.a, tile.empty);
     return color;
 }
 

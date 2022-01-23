@@ -1144,17 +1144,32 @@ impl HiPS for SimpleHiPS {
     }
 }
 
+use al_api::blend::BlendCfg;
 #[derive(Debug)]
 struct ImageSurveyMeta {
+    url: SurveyURL,
     color: Color,
     opacity: f32,
+    blend_cfg: BlendCfg,
+}
+
+impl ImageSurveyMeta {
+    fn visible(&self) -> bool {
+        self.opacity > 0.0
+    }
+}
+
+impl PartialEq for ImageSurveyMeta {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+    }
 }
 
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
 type SurveyURL = String;
 pub struct ImageSurveys {
     surveys: HashMap<SurveyURL, ImageSurvey>,
-    meta: HashMap<SurveyURL, ImageSurveyMeta>,
+    meta: Vec<ImageSurveyMeta>,
 
     most_precise_survey: SurveyURL,
 
@@ -1178,7 +1193,7 @@ impl ImageSurveys {
         system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
-        let meta = HashMap::new();
+        let meta = Vec::new();
 
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
@@ -1211,7 +1226,6 @@ impl ImageSurveys {
         &mut self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        _rs: &Resources,
         system: &CooSystem,
     ) {
         // Recompute the raytracer
@@ -1230,28 +1244,14 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
     }
 
-    /*pub fn set_opacity_layer(&mut self, _layer: &str, opacity: f32) -> Result<(), JsValue> {
-        if let Some(layer) = self.layers.get_mut(layer) {
-            layer.opacity = opacity;
+    /*pub fn set_opacity_layer(&mut self, url: &str, blending: BlendingOption) -> Result<(), JsValue> {
+        if let Some(layer) = self.meta.get_mut(url) {
+            layer.blending = blending;
             Ok(())
         } else {
-            Err(JsValue::from_str(&format!("layer {} not found", layer)))
+            Err(JsValue::from_str(&format!("layer {} not found", url)))
         }
     }*/
-    /*
-    pub fn move_image_surveys_layer_forward(&mut self, _layer: &str) -> Result<(), JsValue> {
-        let pos = self.ordered_layer_names.iter().position(|l| l == layer);
-
-        if let Some(pos) = pos {
-            let forward_pos = self.ordered_layer_names.len() - 1;
-            self.ordered_layer_names.swap(pos, forward_pos);
-
-            Ok(())
-        } else {
-            Err(JsValue::from_str(&format!("layer {} not found", layer)))
-        }
-    }
-    */
 
     pub fn draw<P: Projection>(
         &mut self,
@@ -1260,7 +1260,6 @@ impl ImageSurveys {
         colormaps: &Colormaps,
     ) {
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
-        //let raytracing = true;
 
         if raytracing {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -1270,35 +1269,36 @@ impl ImageSurveys {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
-        // The base layer
-        self.gl
-            .blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE);
-        let mut idx_survey = 0;
-    
-        for (name, meta) in &self.meta {
-            // Enable the blending for the following HiPSes
-            let blank_pixel_color = if idx_survey == 0 {
-                // The very first survey has the blending disabled
-                self.gl.disable(WebGl2RenderingContext::BLEND);
-                color::Color::new(0.0, 0.0, 0.0, 1.0)
-            } else {
-                self.gl.enable(WebGl2RenderingContext::BLEND);
-                color::Color::new(0.0, 0.0, 0.0, 0.0)
-            };
+        // The first layer must be paint independently of its alpha channel
 
-            if meta.opacity > 0.0 {
-                let survey = self.surveys.get_mut(name).unwrap();
-                survey.draw::<P>(
-                    &self.raytracer,
-                    shaders,
-                    camera,
-                    &meta.color,
-                    meta.opacity,
-                    &blank_pixel_color,
-                    &colormaps,
-                );
+        self.gl.enable(WebGl2RenderingContext::BLEND);
 
-                idx_survey += 1;
+        al_core::log::log(&format!("plott"));
+        for meta in self.meta.iter() {
+            al_core::log::log(&format!("{:?}", meta.url));
+            if meta.visible() {
+                let ImageSurveyMeta {
+                    color,
+                    opacity,
+                    url,
+                    blend_cfg
+                } = meta;
+
+                let survey = self.surveys.get_mut(url).unwrap();
+                let blank_pixel_color = color::Color::new(0.0, 0.0, 0.0, 0.0);
+                let raytracer = &self.raytracer;
+
+                blend_cfg.active_blend_cfg(&self.gl, || {
+                    survey.draw::<P>(
+                        raytracer,
+                        shaders,
+                        camera,
+                        color,
+                        *opacity,
+                        &blank_pixel_color,
+                        &colormaps,
+                    );
+                });
             }
         }
 
@@ -1319,23 +1319,6 @@ impl ImageSurveys {
         exec: Rc<RefCell<TaskExecutor>>,
         colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
-        // Limit the number of HiPS received to 4
-        // The number of texture units accepted by the large majority of machine
-        // is 16.
-        // One survey needs 3 textures units where one 4096x4096 texture will be associated to each
-        // of them.
-        // Therefore 4 surveys needs 4*3=12 texture units.
-        // 2 other texture units is needed:
-        // - one for the source kernel png
-        // - one storing the position of each vertices
-        // In total there is 12+2=14 texture units taken which limits the number of simultaneous surveys
-        // plotted to 4.
-        let num_surveys = hipses.len();
-        if num_surveys > 4 {
-            return Err(JsValue::from_str(
-                "Cannot load more than 4 different surveys!",
-            ));
-        }
         al_core::log::log(&format!("list of surveys {:?}", hipses.len()));
 
         let mut new_survey_ids = Vec::new();
@@ -1354,8 +1337,8 @@ impl ImageSurveys {
                 .collect();
             self.meta = self
                 .meta
-                .drain()
-                .filter(|(name, _)| current_needed_surveys.contains(name))
+                .drain(..)
+                .filter(|m| current_needed_surveys.contains(&m.url))
                 .collect();
         }
         // Create the new surveys
@@ -1371,18 +1354,35 @@ impl ImageSurveys {
             };
 
             let color = hips.color(colormaps);
+            let blend_cfg: BlendCfg = hips.blend_cfg.clone();
+            let opacity = hips.opacity;
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
                 self.surveys.insert(url.clone(), survey);
                 new_survey_ids.push(url.clone());
-            }
 
-            self.meta.insert(url, ImageSurveyMeta {
-                opacity: 1.0,
-                color,
-            });
+                // Update the meta of the survey, whether it is new or is already present
+                self.meta.push(ImageSurveyMeta {
+                    url: url,
+                    blend_cfg,
+                    color,
+                    opacity
+                });
+            } else {
+                // Update for the meta by searching it
+                let m = self.meta.iter_mut()
+                    .find(|m| m.url == url)
+                    .unwrap();
+
+                *m = ImageSurveyMeta {
+                    url: url,
+                    blend_cfg,
+                    color,
+                    opacity
+                };
+            }
         }
 
         //crate::log(&format!("layers {:?}", self.layers));

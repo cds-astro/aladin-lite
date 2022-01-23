@@ -46,12 +46,16 @@ vec4 get_tile_color(vec3 pos) {
     vec2 offset = (vec2(idx_col, idx_row) + uv)*0.125;
     vec3 UV = vec3(offset, float(idx_texture));
 
-    vec4 c = get_colormap_from_grayscale_texture(UV);
+    vec4 color = get_colormap_from_grayscale_texture(UV);
     // handle empty tiles
-    vec4 c1 = mix(c, blank_color, tile.empty);
-    vec4 c2 = mix(c, colormap_f(0.0), tile.empty);
+    //vec4 c1 = mix(c, blank_color, tile.empty);
+    //vec4 c2 = mix(c, colormap_f(0.0), tile.empty);
+    //vec4 color = mix(c1, c2, first_survey);
+    
+    // For empty tiles we set the alpha of the pixel to 0.0
+    // so that what is behind will be plotted
+    color.a *= (1.0 - tile.empty);
 
-    vec4 color = mix(c1, c2, first_survey);
     return color;
 }
 

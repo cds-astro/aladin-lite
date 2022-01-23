@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, PartialEq, Default)]
@@ -105,7 +107,7 @@ impl PropertiesParsed {
         self.hips_tile_format.contains("fits")
     }
 }
-use egui::Color32;
+use egui::{Color32, InnerResponse, Response};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/js/hpxImageSurvey.js")]
@@ -113,7 +115,6 @@ extern "C" {
     #[wasm_bindgen(catch, js_name = fetchSurveyMetadata)]
     async fn fetch_survey_metadata(url: String) -> Result<JsValue, JsValue>;
 }
-
 
 use wasm_bindgen_futures;
 async fn request_survey_properties(url: String) -> PropertiesParsed {
@@ -189,8 +190,11 @@ pub struct SurveyWidget {
 
     pub update_survey: bool,
 
-    // Edition mode
+    /* Edition mode */
     color: Color,
+    // Additive or opaque blending options
+    blend_cfg: BlendCfg,
+    opacity: f32,
     // In case of a fits HiPS
     transfer_func: Option<TransferFunction>,
     // In case of a fits HiPS
@@ -200,6 +204,10 @@ pub struct SurveyWidget {
 
 use cgmath::num_traits::Pow;
 
+use crate::painter::WebGlRenderingCtx;
+use al_api::blend::{
+    BlendCfg, BlendFactor, BlendFunc
+};
 use crate::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
@@ -230,6 +238,12 @@ impl SurveyWidget {
             None
         };
 
+        let blend_cfg = BlendCfg {
+            src_color_factor: BlendFactor::SrcAlpha,
+            dst_color_factor: BlendFactor::OneMinusSrcAlpha,
+            func: BlendFunc::FuncAdd,
+        };
+        let opacity = 1.0;
         Self {
             url,
             properties,
@@ -242,6 +256,8 @@ impl SurveyWidget {
 
             // edition mode
             color,
+            blend_cfg,
+            opacity,
             transfer_func,
             cutouts,
             cut_range
@@ -323,9 +339,12 @@ impl SurveyWidget {
                 }
             }
         };
+
         let hips = SimpleHiPS {
             layer: String::from("base"),
             color: color,
+            blend_cfg: self.blend_cfg.clone(),
+            opacity: self.opacity,
             properties: HiPSProperties {
                 url: self.url.clone(),
                 max_order,
@@ -462,9 +481,71 @@ impl SurveyWidget {
                                 self.update_survey = true;
                             }
                         }
+
+                        ui.separator();
+
+                        blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut self.update_survey);
                     });
         }
     }
+}
+
+fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, update_parent: &mut bool) {
+    ui.group(|ui| {
+        ui.label("Blending:");
+        let mut value_selected = false;
+
+        ui.horizontal(|ui| {
+            egui::ComboBox::from_label("Src Color")
+                .selected_text(format!("{:?}", blend.src_color_factor))
+                .show_ui(ui, |ui| {
+                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked() {
+                        *update_parent = true;
+                    }
+                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked() {
+                        *update_parent = true;
+                    }
+                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::One, "One").clicked() {
+                        *update_parent = true;
+                    }
+                });
+            egui::ComboBox::from_label("Dst Color")
+                .selected_text(format!("{:?}", blend.dst_color_factor))
+                .show_ui(ui, |ui| {
+                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked() {
+                        *update_parent = true;
+                    }
+    
+                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked() {
+                        *update_parent = true;
+                    }
+    
+                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::One, "One").clicked() {
+                        *update_parent = true;
+                    }
+                });
+        });
+    
+        egui::ComboBox::from_label("Blend Func")
+        .selected_text(format!("{:?}", blend.func))
+        .show_ui(ui, |ui| {
+            
+            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add").clicked();
+            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract").clicked();
+            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
+            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::Min, "Min").clicked();
+            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::Max, "Max").clicked();
+        });
+    
+        value_selected |= ui.add(
+            egui::widgets::Slider::new(opacity, 0.0..=1.0)
+                .text("Alpha")
+        ).changed();
+
+        if value_selected {
+            *update_parent = true;
+        }
+    });
 }
 
 fn plot(ui: &mut egui::Ui, f: impl Fn(f32) -> f32) {

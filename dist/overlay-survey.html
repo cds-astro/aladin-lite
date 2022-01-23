@@ -10,7 +10,6 @@
 <body>
 
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
-
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
@@ -20,15 +19,18 @@
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {survey: 'P/Mellinger/color', fov: 110, target: '0 0', showCooGrid: true});
+
         (async () => {
             let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
+            console.log("VTSS: ", vtss)
             vtss.properties.format = {
                 Image: { format: 'png' }
             };
             vtss.color = "Color";
+            vtss.blending = {
+                Opaque: { opacity: 1.0 }
+            }
             aladin.setImageSurvey(vtss, "overlay");
-            aladin.setOpacityLayer(1.0, "overlay");
-
         })();
 
         //aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', '', 'galactic', 3, {imgFormat: 'png'}));

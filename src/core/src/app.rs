@@ -602,7 +602,6 @@ impl App {
         self.surveys.set_projection::<P>(
             &self.camera,
             &mut self.shaders,
-            &self.resources,
             &self.system,
         );
 

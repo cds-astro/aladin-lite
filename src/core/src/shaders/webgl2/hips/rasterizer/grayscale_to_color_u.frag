@@ -25,6 +25,10 @@ vec4 get_color(vec3 uv, float empty) {
 void main() {
     vec4 color_start = get_color(frag_uv_start, m_start);
     vec4 color_end = get_color(frag_uv_end, m_end);
+    /*vec4 color_start = get_color_from_grayscale_texture(frag_uv_start);
+    color_start.a *= (1.0 - m_start);
+    vec4 color_end = get_color_from_grayscale_texture(frag_uv_end);
+    color_end.a *= (1.0 - m_end);*/
 
     out_frag_color = mix(color_start, color_end, frag_blending_factor);
     out_frag_color.a = out_frag_color.a * opacity;

@@ -1,3 +1,4 @@
+use al_api::blend::BlendCfg;
 use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct CompositeHiPS {
@@ -22,6 +23,8 @@ pub struct SimpleHiPS {
     /// The color of the HiPS, can be a direct map to one color, a colormap or the color images
     /// for compressed JPG/PNG tiles
     pub color: HiPSColor,
+    pub blend_cfg: BlendCfg,
+    pub opacity: f32,
     /// Layer name in which the survey will be placed in
     pub layer: String,
 }

@@ -29,7 +29,7 @@ vec4 get_pixels(vec3 uv) {
     } else if (idx_texture == 2) {
         return texture(tex3, uv.xy);
     } else {
-        return vec4(0.0, 1.0, 1.0, 1.0);
+        return vec4(0.0, 0.0, 0.0, 1.0);
     }
 }
 
@@ -46,39 +46,33 @@ vec4 get_color_from_texture(vec3 UV) {
 uniform vec4 blank_color;
 
 vec4 get_colormap_from_grayscale_texture(vec3 UV) {
-    vec3 uv = UV;
     // FITS data pixels are reversed along the y axis
-    if (tex_storing_fits == 1) {
-        uv = reverse_uv(uv);
-    }
+    vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
 
     float x = get_pixels(uv).r;
-    if (x == blank) {
-        return blank_color;
-    } else {
+    //if (x == blank) {
+    //    return blank_color;
+    //} else {
         float alpha = x * scale + offset;
-        float h = transfer_func(H, alpha, min_value, max_value);
+        alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return colormap_f(h);
-    }
+        return mix(colormap_f(alpha), vec4(0.0), float(alpha == 0.0));
+    //}
 }
 
 uniform vec3 C;
 uniform float K;
 vec4 get_color_from_grayscale_texture(vec3 UV) {
-    vec3 uv = UV;
     // FITS data pixels are reversed along the y axis
-    if (tex_storing_fits == 1) {
-        uv = reverse_uv(uv);
-    }
+    vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
 
     float x = get_pixels(uv).r;
-    if (x == blank) {
-        return blank_color;
-    } else {
+    //if (x == blank) {
+    //    return blank_color;
+    //} else {
         float alpha = x * scale + offset;
-        float h = transfer_func(H, alpha, min_value, max_value);
+        alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return vec4(C * K * h, 1.0);
-    }
+        return mix(vec4(C * K * alpha, 1.0), vec4(0.0), float(alpha == 0.0));
+    //}
 }

@@ -10,6 +10,7 @@ edition = "2018"
 [workspace]
 members = [
     "al-core",
+    "al-api",
     "al-task-exec",
     "al-ui"
 ]
@@ -39,11 +40,13 @@ fontdue = "*"
 al-core = { path = "./al-core" }
 al-ui = { path = "./al-ui" }
 al-task-exec = { path = "./al-task-exec" }
+al-api = { path = "./al-api" }
 
 [features]
 webgl1 = [
   "al-core/webgl1",
   "al-ui/webgl1",
+  "al-api/webgl1",
   "web-sys/WebGlRenderingContext",
   "web-sys/AngleInstancedArrays",   # Enabling instancing features
   "web-sys/ExtSRgb",                # Enabling SRGB8_ALPHA8 internal format
@@ -52,6 +55,7 @@ webgl1 = [
 webgl2 = [
   "al-core/webgl2",
   "al-ui/webgl2",
+  "al-api/webgl2",
   "web-sys/WebGl2RenderingContext",
   "web-sys/WebGlVertexArrayObject",
   "web-sys/ExtColorBufferFloat",

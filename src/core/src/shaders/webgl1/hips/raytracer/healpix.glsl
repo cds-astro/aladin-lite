@@ -13,7 +13,7 @@ HashDxDy hash_with_dxdy(vec2 radec) {
     vec3 v = texture2D(u_ang2pixd, uv).rgb;
 
     return HashDxDy(
-        int(v.x * 255.0),
+        int(v.x),
         v.y,
         v.z
     );

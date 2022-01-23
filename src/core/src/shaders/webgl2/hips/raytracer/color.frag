@@ -71,7 +71,9 @@ vec4 get_tile_color(vec3 pos) {
             vec3 UV = vec3(offset, float(idx_texture));
 
             vec4 color = get_color_from_texture(UV);
-            color.a = mix(color.a, blank_color.a, tile.empty);
+            // For empty tiles we set the alpha of the pixel to 0.0
+            // so that what is behind will be plotted
+            color.a *= (1.0 - tile.empty);
             
             return color;
         }
@@ -79,9 +81,6 @@ vec4 get_tile_color(vec3 pos) {
         d = d - 1;
     }
 }
-
-const float duration = 500.f; // 500ms
-uniform int max_depth; // max depth of the HiPS
 
 uniform sampler2D position_tex;
 uniform mat4 model;

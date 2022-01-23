@@ -161,12 +161,6 @@ impl Manager {
 
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
-
-        // Append the new sources to the existing instanced vbo
-        /*let sources: Vec<f32> = unsafe { flatten_vec(sources) };
-        self.vertex_array_object_catalog.bind_for_update()
-            .append_to_instanced_array(0, VecData(&sources));
-        */
         self.catalogs.insert(name, catalog);
 
         // At this point, all the sources memory will be deallocated here
@@ -247,7 +241,12 @@ pub struct Catalog {
     indices: SourceIndices,
     alpha: f32,
     strength: f32,
+    #[cfg(feature = "webgl2")]
     sources: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    center: Vec<f32>,
+    #[cfg(feature = "webgl1")]
+    center_lonlat: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
 }
 
@@ -275,8 +274,17 @@ impl Catalog {
         let num_instances = sources.len() as i32;
         
         //let source = 
-
+        #[cfg(feature = "webgl2")]
         let sources = unsafe { utils::flatten_vec(sources) };
+        #[cfg(feature = "webgl1")]
+        let (center, center_lonlat) = sources.into_iter()
+            .map(|s| {
+                ((s.x, s.y, s.z), (s.lon, s.lat))
+            }).unzip();
+        #[cfg(feature = "webgl1")]
+        let center = unsafe { utils::flatten_vec(center) };
+        #[cfg(feature = "webgl1")]
+        let center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
 
         let vertex_array_object_catalog = {
             let vertices = vec![
@@ -340,13 +348,13 @@ impl Catalog {
                     3,
                     "center",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&sources),
+                    VecData(&center),
                 )
                 .add_instanced_array_buffer(
                     2,
                     "center_lonlat",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&sources),
+                    VecData(&center_lonlat),
                 )
                 // Set the element buffer
                 .add_element_buffer(
@@ -364,7 +372,13 @@ impl Catalog {
             colormap,
             num_instances,
             indices,
+            #[cfg(feature = "webgl2")]
             sources,
+            #[cfg(feature = "webgl1")]
+            center,
+            #[cfg(feature = "webgl1")]
+            center_lonlat,
+
             vertex_array_object_catalog,
         }
     }
@@ -393,45 +407,6 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    #[cfg(feature = "webgl2")]
-    fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
-        let HEALPixCells {
-            depth: _,
-            ref cells,
-        } = cells;
-        let mut current_sources = vec![];
-        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-
-        // depth < 7
-        for cell in cells {
-            let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
-
-            for c in cell.get_children_cells(delta_depth as u8) {
-                // Define the total number of sources being in this kernel depth tile
-                let sources_in_cell = self.indices.get_source_indices(&c);
-                let num_sources_in_kernel_cell =
-                    (sources_in_cell.end - sources_in_cell.start) as usize;
-                if num_sources_in_kernel_cell > 0 {
-                    let num_sources = ((num_sources_in_kernel_cell as f32) / num_sources_in_fov)
-                        * MAX_SOURCES_PER_CATALOG;
-
-                    let sources =
-                        self.indices
-                            .get_k_sources(&self.sources, &c, num_sources as usize, 0);
-                    current_sources.extend(sources);
-                }
-            }
-        }
-
-        // Update the vertex buffer
-        self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
-
-        self.vertex_array_object_catalog
-            .bind_for_update()
-            .update_instanced_array(0, VecData(&current_sources));
-    }
-
-    #[cfg(feature = "webgl1")]
     fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
         let HEALPixCells {
             depth: _,
@@ -463,6 +438,24 @@ impl Catalog {
 
         // Update the vertex buffer
         self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
+        #[cfg(feature = "webgl1")]
+        {
+            let (center, center_lonlat) = current_sources.into_iter()
+                .map(|s| {
+                    ((s.x, s.y, s.z), (s.lon, s.lat))
+                }).unzip();
+            let center = unsafe { utils::flatten_vec(center) };
+            let center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
+            self.vertex_array_object_catalog
+                .bind_for_update()
+                    .update_instanced_array("center", VecData(&center))
+                    .update_instanced_array("center_lonlat", VecData(&center_lonlat));
+        }
+
+        #[cfg(feature = "webgl2")]
+        self.vertex_array_object_catalog
+            .bind_for_update()
+            .update_instanced_array(0, VecData(&current_sources));
     }
 
 

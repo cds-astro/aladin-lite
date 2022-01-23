@@ -27,8 +27,6 @@ uniform float current_time; // current time in ms
 @import ../color_u;
 @import ./healpix;
 
-uniform float first_survey;
-
 vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
 

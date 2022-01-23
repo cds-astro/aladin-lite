@@ -43,8 +43,6 @@ vec4 get_color_from_texture(vec3 UV) {
     return get_pixels(UV);
 }
 
-uniform vec4 blank_color;
-
 vec4 get_colormap_from_grayscale_texture(vec3 UV) {
     // FITS data pixels are reversed along the y axis
     vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));

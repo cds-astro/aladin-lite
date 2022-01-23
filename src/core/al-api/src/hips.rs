@@ -73,7 +73,7 @@ pub enum HiPSColor {
     Grayscale2Color {
         color: [f32; 3],
         transfer: String,
-        k: f32, // contribution of the component
+        k: f32,
     },
     Color,
 }

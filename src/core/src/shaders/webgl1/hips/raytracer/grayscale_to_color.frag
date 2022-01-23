@@ -75,7 +75,7 @@ vec4 get_tile_color(vec3 pos) {
     vec3 UV = vec3(offset, float(idx_texture));
 
     vec4 color = get_color_from_grayscale_texture(UV);
-    color.a = mix(color.a, blank_color.a, tile.empty);
+    color.a *= (1.0 - float(tile.empty));
     return color;
 }
 

@@ -12,14 +12,9 @@ varying float m_end;
 
 uniform float opacity;
 
-uniform float first_survey;
-
 vec4 get_color(vec3 uv, float empty) {
     vec4 c = get_colormap_from_grayscale_texture(uv);
-    vec4 c1 = mix(c, blank_color, empty);
-    vec4 c2 = mix(c, colormap_f(0.0), empty);
-
-    vec4 color = mix(c1, c2, first_survey);
+    vec4 color = mix(c, vec4(0.0), empty);
     return color;
 }
 

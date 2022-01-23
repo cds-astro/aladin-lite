@@ -251,7 +251,6 @@ trait Draw {
         camera: &CameraViewPort,
         color: &Color,
         opacity: f32,
-        blank_pixel_color: &color::Color,
         colormaps: &Colormaps,
     );
 }
@@ -980,7 +979,6 @@ impl Draw for ImageSurvey {
         camera: &CameraViewPort,
         color: &Color,
         opacity: f32,
-        blank_pixel_color: &color::Color,
         colormaps: &Colormaps,
     ) {
         if !self.textures.is_ready() {
@@ -1006,8 +1004,6 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("blank_color", &blank_pixel_color)
-                .attach_uniform("first_survey", &blank_pixel_color.alpha)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
@@ -1057,8 +1053,6 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("blank_color", &blank_pixel_color)
-                .attach_uniform("first_survey", &blank_pixel_color.alpha)
                 .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
@@ -1285,7 +1279,6 @@ impl ImageSurveys {
                 } = meta;
 
                 let survey = self.surveys.get_mut(url).unwrap();
-                let blank_pixel_color = color::Color::new(0.0, 0.0, 0.0, 0.0);
                 let raytracer = &self.raytracer;
 
                 blend_cfg.active_blend_cfg(&self.gl, || {
@@ -1295,7 +1288,6 @@ impl ImageSurveys {
                         camera,
                         color,
                         *opacity,
-                        &blank_pixel_color,
                         &colormaps,
                     );
                 });

@@ -24,7 +24,6 @@ uniform float current_time; // current time in ms
 @import ./healpix;
 
 uniform float opacity;
-uniform float first_survey;
 
 Tile get_tile(int idx) {
     for(int i = 0; i < 12; i++) {
@@ -77,10 +76,7 @@ vec4 get_tile_color(vec3 pos) {
 
     vec4 c = get_colormap_from_grayscale_texture(UV);
     // handle empty tiles
-    vec4 c1 = mix(c, blank_color, tile.empty);
-    vec4 c2 = mix(c, colormap_f(0.0), tile.empty);
-
-    vec4 color = mix(c1, c2, first_survey);
+    vec4 color = mix(c, vec4(0.0), tile.empty);
     return color;
 }
 

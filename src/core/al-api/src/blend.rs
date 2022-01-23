@@ -49,7 +49,9 @@ pub enum BlendFunc {
     FuncAdd = WebGlRenderingCtx::FUNC_ADD as isize,
     FuncSubstract = WebGlRenderingCtx::FUNC_SUBTRACT as isize,
     FuncReverseSubstract = WebGlRenderingCtx::FUNC_REVERSE_SUBTRACT as isize,
+    #[cfg(feature = "webgl2")]
     Min = WebGlRenderingCtx::MIN as isize,
+    #[cfg(feature = "webgl2")]
     Max = WebGlRenderingCtx::MAX as isize
 }
 
@@ -107,7 +109,9 @@ impl fmt::Display for BlendFunc {
             BlendFunc::FuncAdd => "Add",
             BlendFunc::FuncSubstract => "Subtract",
             BlendFunc::FuncReverseSubstract => "Reverse Subtract",
+            #[cfg(feature = "webgl2")]
             BlendFunc::Min => "Min",
+            #[cfg(feature = "webgl2")]
             BlendFunc::Max => "Max",
         };
         write!(f, "{}", str)

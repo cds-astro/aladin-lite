@@ -171,13 +171,11 @@ enum TransferFunction {
     SQRT
 }
 
-pub enum Color {
-    Image,
-    Color(egui::Color32),
-    Colormap {
-        reversed: bool,
-        name: String,
-    }
+#[derive(PartialEq)]
+enum ColorOption {
+    RGB,
+    Color,
+    Colormap,
 }
 
 pub struct SurveyWidget {
@@ -187,17 +185,21 @@ pub struct SurveyWidget {
     pub visible: bool,
     edition_mode: bool,
     quit: bool,
-
+    color_option: ColorOption,
     pub update_survey: bool,
 
     /* Edition mode */
-    color: Color,
-    // Additive or opaque blending options
+    // Color panel
+    color_cfg: HiPSColor,
+    color: Color32,
+    k: f32,
+    colormap: String,
+    reversed: bool,
+    // Blending panel
     blend_cfg: BlendCfg,
     opacity: f32,
-    // In case of a fits HiPS
+    // FITS specific panel
     transfer_func: Option<TransferFunction>,
-    // In case of a fits HiPS
     cutouts: Option<[f32; 2]>,
     cut_range: std::ops::RangeInclusive<f32>
 }
@@ -226,17 +228,22 @@ impl SurveyWidget {
         };
 
        
-        let color = if properties.is_fits_image() {
-            Color::Color(Color32::RED)
+        let color_cfg = if properties.is_fits_image() {
+            HiPSColor::Grayscale2Color {
+                color: [1.0, 0.0, 0.0],
+                transfer: "asinh".to_string(),
+                k: 1.0,
+            }
         } else {
-            Color::Image
+            HiPSColor::Color
         };
 
-        let transfer_func = if properties.is_fits_image() {
-            Some(TransferFunction::ASINH)
-        } else {
-            None
-        };
+        let k = 1.0;
+        let color = Color32::RED;
+        let colormap = String::from("blackwhite");
+        let reversed = false;
+
+        let transfer_func = Some(TransferFunction::ASINH);
 
         let blend_cfg = BlendCfg {
             src_color_factor: BlendFactor::SrcAlpha,
@@ -244,18 +251,26 @@ impl SurveyWidget {
             func: BlendFunc::FuncAdd,
         };
         let opacity = 1.0;
+        let is_grayscale_image = properties.is_fits_image();
         Self {
             url,
             properties,
 
             quit: false,
-            visible: false,
+            visible: true,
             edition_mode: false,
 
             update_survey: false,
-
+            color_option: if is_grayscale_image { ColorOption::Color } else { ColorOption::RGB },
             // edition mode
-            color,
+            // Color
+            color_cfg, // color config
+            color, // color
+            k, // strength color
+            colormap,
+            reversed,
+            
+
             blend_cfg,
             opacity,
             transfer_func,
@@ -264,49 +279,11 @@ impl SurveyWidget {
         }
     }
 
-    pub fn color(&self) -> &Color {
+    /*pub fn color(&self) -> &HiPSColor {
         &self.color
-    }
+    }*/
 
     pub fn get_hips_config(&self) -> SimpleHiPS {
-        let color = match &self.color {
-            Color::Image => {
-                HiPSColor::Color
-            },
-            Color::Color(c) => {
-                let transfer = match self.transfer_func.as_ref().unwrap() {
-                    TransferFunction::ASINH => String::from("asinh"),
-                    TransferFunction::LINEAR => String::from("linear"),
-                    TransferFunction::POW => String::from("pow2"),
-                    TransferFunction::LOG => String::from("log"),
-                    TransferFunction::SQRT => String::from("sqrt"),
-                };
-
-                HiPSColor::Grayscale2Color {
-                    color: [(c.r() as f32)/255.0, (c.g() as f32)/255.0, (c.b() as f32)/255.0],
-                    transfer,
-                    k: 1.0
-                }
-            },
-            Color::Colormap {
-                reversed, name
-            } => {
-                let transfer = match self.transfer_func.as_ref().unwrap() {
-                    TransferFunction::ASINH => String::from("asinh"),
-                    TransferFunction::LINEAR => String::from("linear"),
-                    TransferFunction::POW => String::from("pow2"),
-                    TransferFunction::LOG => String::from("log"),
-                    TransferFunction::SQRT => String::from("sqrt"),
-                };
-
-                HiPSColor::Grayscale2Colormap {
-                    reversed: *reversed,
-                    colormap: name.to_string(),
-                    transfer,
-                }
-            }
-        };
-
         let props = &self.properties;
         let max_order = props.hips_order;
         let frame = Frame {
@@ -340,11 +317,17 @@ impl SurveyWidget {
             }
         };
 
+        let opacity = if !self.visible {
+            0.0
+        } else {
+            self.opacity
+        };
+
         let hips = SimpleHiPS {
             layer: String::from("base"),
-            color: color,
+            color: self.color_cfg.clone(),
             blend_cfg: self.blend_cfg.clone(),
-            opacity: self.opacity,
+            opacity: opacity,
             properties: HiPSProperties {
                 url: self.url.clone(),
                 max_order,
@@ -373,14 +356,14 @@ impl SurveyWidget {
             .show(ui, |ui| {
                 ui.set_max_width(270.0);
                 let edition_mode = self.edition_mode;
-                let visible = self.visible;
                 let mut info = false;
 
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut self.quit, true, "❌");
                     ui.selectable_value(&mut info,true, "ℹ");
                     ui.selectable_value(&mut self.edition_mode, !edition_mode, "🖊");
-                    if ui.selectable_value(&mut self.visible, !visible, "👁").clicked() {
+                    let v = self.visible;
+                    if ui.selectable_value(&mut self.visible, !v, "👁").clicked() {
                         self.update_survey = true;
                     }
                 });
@@ -394,20 +377,8 @@ impl SurveyWidget {
                 .show(ui, |ui| {
                     let mut ui_changed = false;
                     ui.vertical_centered(|ui| {
-                        ui.group(|ui| {
-                            ui.horizontal(|ui| {
-                                match &mut self.color {
-                                    Color::Color(c) => {
-                                        ui.label("Color picker");
-                                        ui_changed |= ui.color_edit_button_srgba(c).changed();
-                                    },
-                                    Color::Image => (),
-                                    _ => todo!()
-                                    //Color::Colormap => todo!()
-                                };
-                            });
-                        });
-    
+                        self.color_picker_widget(ui, &mut ui_changed);
+
                         ui.group(|ui| {
                             if let Some(t) = &mut self.transfer_func {
                                 egui::Grid::new("").show(ui, |ui| {
@@ -473,69 +444,146 @@ impl SurveyWidget {
     
                             ui.separator();
                             blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut ui_changed);
-    
-                            if ui_changed {
-                                self.update_survey = true;
-                            }
                     });
+                    if ui_changed {
+                        self.update_survey = true;
+                    }
                 });
         }
     }
+
+    fn color_picker_widget(&mut self, ui: &mut egui::Ui, ui_changed: &mut bool) {
+        ui.group(|ui| {
+            ui.horizontal(|ui| {
+                if !self.properties.is_fits_image() {
+                    *ui_changed |= ui.selectable_value(
+                        &mut self.color_option,
+                        ColorOption::RGB,
+                        "RGB"
+                    ).clicked();
+                }
+
+                *ui_changed |= ui.selectable_value(
+                    &mut self.color_option,
+                    ColorOption::Colormap,
+                    "Colormap"
+                ).clicked();
+        
+                *ui_changed |= ui.selectable_value(
+                    &mut self.color_option,
+                    ColorOption::Color,
+                    "Color"
+                ).clicked();
+            });
+
+            let transfer = match self.transfer_func.as_ref().unwrap() {
+                TransferFunction::ASINH => String::from("asinh"),
+                TransferFunction::LINEAR => String::from("linear"),
+                TransferFunction::POW => String::from("pow2"),
+                TransferFunction::LOG => String::from("log"),
+                TransferFunction::SQRT => String::from("sqrt"),
+            };
+
+            match self.color_option {
+                ColorOption::Color => {
+                    ui.label("Color picker");
+                    *ui_changed |= ui.color_edit_button_srgba(&mut self.color).changed();
+                    *ui_changed |= ui.add(
+                        egui::widgets::Slider::new(&mut self.k, 0.0..=2.0)
+                            .text("Strength"),
+                    ).changed();
+                    self.color_cfg = HiPSColor::Grayscale2Color {
+                        color: [
+                            (self.color.r() as f32)/255.0,
+                            (self.color.g() as f32)/255.0,
+                            (self.color.b() as f32)/255.0
+                        ],
+                        transfer,
+                        k: self.k
+                    };
+                },
+                ColorOption::Colormap => {
+                    egui::ComboBox::from_label("Colormap")
+                    .selected_text(format!("{:?}", self.colormap))
+                    .show_ui(ui, |ui| {
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "blackwhite".to_string(), "blackwhite").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "blues".to_string(), "blues").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "parula".to_string(), "parula").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "rainbow".to_string(), "rainbow").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "RdBu".to_string(), "RdBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "RdYiBu".to_string(), "RdYiBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "redtemperature".to_string(), "redtemperature").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "spectral".to_string(), "spectral").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "summer".to_string(), "summer").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "YIGnBu".to_string(), "YIGnBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, "YIOrBr".to_string(), "YIOrBr").clicked();
+                    });
+
+                    *ui_changed |= ui.add(egui::Checkbox::new(&mut self.reversed, "Reversed")).changed();
+
+                    self.color_cfg = HiPSColor::Grayscale2Colormap {
+                        colormap: self.colormap.clone(),
+                        transfer,
+                        reversed: self.reversed,
+                    };
+                },
+                ColorOption::RGB => {
+                    self.color_cfg = HiPSColor::Color;
+                }
+            }
+        });
+    }
 }
+
+
 
 fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, update_parent: &mut bool) {
     ui.group(|ui| {
         ui.label("Blending:");
-        let mut value_selected = false;
+        let mut ui_changed = false;
 
         ui.horizontal(|ui| {
             egui::ComboBox::from_label("Src Color")
                 .selected_text(format!("{:?}", blend.src_color_factor))
                 .show_ui(ui, |ui| {
-                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked() {
-                        *update_parent = true;
-                    }
-                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked() {
-                        *update_parent = true;
-                    }
-                    if ui.selectable_value(&mut blend.src_color_factor, BlendFactor::One, "One").clicked() {
-                        *update_parent = true;
-                    }
+                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked();
+                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked();
+                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::One, "One").clicked();
                 });
             egui::ComboBox::from_label("Dst Color")
                 .selected_text(format!("{:?}", blend.dst_color_factor))
                 .show_ui(ui, |ui| {
-                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked() {
-                        *update_parent = true;
-                    }
-    
-                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked() {
-                        *update_parent = true;
-                    }
-    
-                    if ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::One, "One").clicked() {
-                        *update_parent = true;
-                    }
+                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked();
+                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked();
+                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::One, "One").clicked();
                 });
         });
     
+        #[cfg(feature = "webgl2")]
         egui::ComboBox::from_label("Blend Func")
         .selected_text(format!("{:?}", blend.func))
         .show_ui(ui, |ui| {
-            
-            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add").clicked();
-            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract").clicked();
-            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
-            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::Min, "Min").clicked();
-            value_selected |= ui.selectable_value(&mut blend.func, BlendFunc::Max, "Max").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::Min, "Min").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::Max, "Max").clicked();
+        });
+        #[cfg(feature = "webgl1")]
+        egui::ComboBox::from_label("Blend Func")
+        .selected_text(format!("{:?}", blend.func))
+        .show_ui(ui, |ui| {
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract").clicked();
+            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
         });
     
-        value_selected |= ui.add(
+        ui_changed |= ui.add(
             egui::widgets::Slider::new(opacity, 0.0..=1.0)
                 .text("Alpha")
         ).changed();
 
-        if value_selected {
+        if ui_changed {
             *update_parent = true;
         }
     });

@@ -15,7 +15,6 @@ use crate::Event;
 
 use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
-use crate::widgets::survey::Color;
 impl LayerLayout {
     pub fn new(ui_backend: &mut WebGl2Painter) -> Result<Self, JsValue> {
         let survey_grid_widget = SurveyGrid::new(ui_backend)?;
@@ -44,7 +43,7 @@ impl LayerLayout {
                     let fut = async move {
                         let url = format!("https://alaskybis.u-strasbg.fr/{}", s_id_selected);
                         let new_survey = SurveyWidget::new(url).await;
-                        let mut can_surveys_be_added = true;
+                        /*let mut can_surveys_be_added = true;
                         // check if the new survey is compatible with the ones already pushed
                         for s in s_list.lock().unwrap().iter() {
                             match s.color() {
@@ -54,9 +53,9 @@ impl LayerLayout {
                                     break;
                                 }
                             }
-                        }
+                        }*/
         
-                        if can_surveys_be_added {
+                        //if can_surveys_be_added {
                             // get the SimpleHiPS from the SurveyWidget
                             let mut image_surveys = vec![new_survey.get_hips_config()];
                             for survey in s_list.lock().unwrap().iter() {
@@ -65,7 +64,7 @@ impl LayerLayout {
         
                             events.lock().unwrap().push(Event::ImageSurveys(image_surveys));
                             s_list.lock().unwrap().push(new_survey);
-                        }
+                        //}
                     };
         
                     wasm_bindgen_futures::spawn_local(fut);
@@ -102,9 +101,7 @@ impl LayerLayout {
         if update_viewed_surveys {
             let mut image_surveys = vec![];
             for survey in surveys.iter() {
-                //if survey.visible {
-                    image_surveys.push(survey.get_hips_config());
-                //}
+                image_surveys.push(survey.get_hips_config());
             }
 
             events.lock().unwrap()
@@ -146,7 +143,6 @@ impl LayerLayout {
             }
         }*/
     }
-
 }
 
 fn doc_link_label<'a>(title: &'a str, search_term: &'a str) -> impl egui::Widget + 'a {

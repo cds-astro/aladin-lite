@@ -75,9 +75,9 @@ vec4 get_tile_color(vec3 pos) {
 
     vec2 offset = (vec2(idx_col, idx_row) + uv) * 0.125;
     vec3 UV = vec3(offset.x, offset.y, 0.0);
-    return vec4(UV, 1.0);
+    
     vec4 color = get_color_from_texture(UV);
-    //color.a = mix(color.a, blank_color.a, tile.empty);
+    color.a *= (1.0 - float(tile.empty));
     return color;
 }
 

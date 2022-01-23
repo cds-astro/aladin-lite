@@ -60,8 +60,9 @@ use crate::{
     time::DeltaTime,
 };
 use al_core::resources::Resources;
-use al_ui::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 use al_core::{shader::Shader, WebGlContext};
+use al_api::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
+
 pub use coo_conversion::CooSystem;
 
 use app::App;

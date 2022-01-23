@@ -1,14 +1,13 @@
 use al_core;
 
 mod painter;
-use hips::SimpleHiPS;
+use al_api::hips::SimpleHiPS;
 use painter::WebGl2Painter;
 
 mod input;
 pub use input::GuiRef;
 
 mod layout;
-pub mod hips;
 pub mod widgets;
 
 use egui;

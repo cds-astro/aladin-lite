@@ -140,8 +140,9 @@ use crate::math::LonLatT;
 use crate::JsValue;
 use crate::{
     async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType},
-    WebGlContext,
 };
+use al_core::WebGlContext;
+
 use al_core::format::ImageFormat;
 use al_core::image::Image;
 use web_sys::WebGl2RenderingContext;

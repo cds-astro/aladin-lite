@@ -208,7 +208,7 @@ use crate::painter::WebGlRenderingCtx;
 use al_api::blend::{
     BlendCfg, BlendFactor, BlendFunc
 };
-use crate::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
+use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -392,100 +392,93 @@ impl SurveyWidget {
             egui::Frame::popup(ui.style())
                 .stroke(egui::Stroke::none())
                 .show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            match &mut self.color {
-                                Color::Color(c) => {
-                                    ui.label("Color picker");
-                                    if ui.color_edit_button_srgba(c).changed() {
-                                        self.update_survey = true;
-                                    }
-                                },
-                                Color::Image => (),
-                                _ => todo!()
-                                //Color::Colormap => todo!()
-                            };
+                    let mut ui_changed = false;
+                    ui.vertical_centered(|ui| {
+                        ui.group(|ui| {
+                            ui.horizontal(|ui| {
+                                match &mut self.color {
+                                    Color::Color(c) => {
+                                        ui.label("Color picker");
+                                        ui_changed |= ui.color_edit_button_srgba(c).changed();
+                                    },
+                                    Color::Image => (),
+                                    _ => todo!()
+                                    //Color::Colormap => todo!()
+                                };
+                            });
                         });
-
-                        if let Some(t) = &mut self.transfer_func {
-                            let update_survey = &mut self.update_survey;
-                            ui.separator();
-                            ui.group(|ui| {
-                                ui.horizontal(|ui| {
-                                    if ui.selectable_value(
-                                        t,
-                                        TransferFunction::ASINH, 
-                                        "asinh"
-                                    ).clicked() {
-                                        *update_survey = true;
+    
+                        ui.group(|ui| {
+                            if let Some(t) = &mut self.transfer_func {
+                                egui::Grid::new("").show(ui, |ui| {
+                                    // Plot widget
+                                    match t {
+                                        TransferFunction::ASINH => plot(ui, |x| x.asinh()),
+                                        TransferFunction::LINEAR => plot(ui, |x| x),
+                                        TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
+                                        TransferFunction::SQRT => plot(ui, |x| x.sqrt()),
+                                        TransferFunction::LOG => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                     }
-
-                                    if ui.selectable_value(
-                                        t,
-                                        TransferFunction::LOG,
-                                        "log",
-                                    ).clicked() {
-                                        *update_survey = true;
-                                    }
-
-                                    if ui.selectable_value(
-                                        t,
-                                        TransferFunction::LINEAR,
-                                        "linear",
-                                    ).clicked() {
-                                        *update_survey = true;
-                                    }
-
-                                    if ui.selectable_value(
-                                        t,
-                                        TransferFunction::POW, 
-                                        "pow2"
-                                    ).clicked() {
-                                        *update_survey = true;
-                                    }
-
-                                    if ui.selectable_value(
-                                        t,
-                                        TransferFunction::SQRT, 
-                                        "sqrt"
-                                    ).clicked() {
-                                        *update_survey = true;
-                                    }
+        
+                                    // Selection of the transfer function
+                                    ui.vertical(|ui| {
+                                        ui_changed |= ui.selectable_value(
+                                            t,
+                                            TransferFunction::ASINH, 
+                                            "asinh"
+                                        ).clicked();
+        
+                                        ui_changed |= ui.selectable_value(
+                                            t,
+                                            TransferFunction::LOG,
+                                            "log",
+                                        ).clicked();
+        
+                                        ui_changed |= ui.selectable_value(
+                                            t,
+                                            TransferFunction::LINEAR,
+                                            "linear",
+                                        ).clicked();
+        
+                                        ui_changed |= ui.selectable_value(
+                                            t,
+                                            TransferFunction::POW, 
+                                            "pow2"
+                                        ).clicked();
+        
+                                        ui_changed |= ui.selectable_value(
+                                            t,
+                                            TransferFunction::SQRT, 
+                                            "sqrt"
+                                        ).clicked();
+                                    });
+                                    ui.end_row();
                                 });
-
-                                ui.separator();
-                                ui.label("Transfer function");
-                                match t {
-                                    TransferFunction::ASINH => plot(ui, |x| x.asinh()),
-                                    TransferFunction::LINEAR => plot(ui, |x| x),
-                                    TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
-                                    TransferFunction::SQRT => plot(ui, |x| x.sqrt()),
-                                    TransferFunction::LOG => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
+                                }
+        
+                                if let Some(c) = &mut self.cutouts {
+                                    ui.separator();
+                                    ui.label("Cutouts:");
+                                    ui_changed |= ui.add(
+                                        egui::widgets::Slider::new(&mut c[0], self.cut_range.clone())
+                                            .text("left")
+                                    ).changed();
+        
+                                    ui_changed |= ui.add(
+                                        egui::widgets::Slider::new(&mut c[1], self.cut_range.clone())
+                                            .text("right"),
+                                    ).changed();
                                 }
                             });
-                        }
-
-                        if let Some(c) = &mut self.cutouts {
+    
                             ui.separator();
-                            ui.label("Cutouts:");
-                            if ui.add(
-                                egui::widgets::Slider::new(&mut c[0], self.cut_range.clone())
-                                    .text("left")
-                            ).changed() {
+                            blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut ui_changed);
+    
+                            if ui_changed {
                                 self.update_survey = true;
                             }
-
-                            if ui.add(
-                                egui::widgets::Slider::new(&mut c[1], self.cut_range.clone())
-                                    .text("right"),
-                            ).changed() {
-                                self.update_survey = true;
-                            }
-                        }
-
-                        ui.separator();
-
-                        blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut self.update_survey);
                     });
+                });
         }
     }
 }
@@ -559,6 +552,7 @@ fn plot(ui: &mut egui::Ui, f: impl Fn(f32) -> f32) {
         Plot::new(
             "Transfer function"
         )
+        .width(100.0)
         .legend(egui::widgets::plot::Legend::default())
         .allow_drag(false)
         .allow_zoom(false)

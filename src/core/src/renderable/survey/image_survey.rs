@@ -8,7 +8,7 @@ use al_core::format::{
     R8UI
 };
 
-use al_ui::hips::HiPSProperties;
+use al_api::hips::HiPSProperties;
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,

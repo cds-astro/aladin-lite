@@ -1,4 +1,9 @@
-use al_api::blend::BlendCfg;
+use al_core::WebGlContext;
+
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+
+use super::blend::BlendCfg;
 use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct CompositeHiPS {
@@ -20,11 +25,15 @@ impl IntoIterator for CompositeHiPS {
 pub struct SimpleHiPS {
     /// All that is found in the properties file of the HiPS
     pub properties: HiPSProperties,
+
     /// The color of the HiPS, can be a direct map to one color, a colormap or the color images
     /// for compressed JPG/PNG tiles
     pub color: HiPSColor,
+
+    // Blending config
     pub blend_cfg: BlendCfg,
     pub opacity: f32,
+
     /// Layer name in which the survey will be placed in
     pub layer: String,
 }

@@ -5,9 +5,12 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         labels::{RenderManager, TextRenderManager},
     }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
-use al_core::resources::Resources;
-use al_ui::hips::SimpleHiPS;
-use al_core::{pixel::PixelType, WebGlContext};
+use al_core::{
+    resources::Resources,
+    pixel::PixelType, WebGlContext
+};
+
+use al_api::hips::SimpleHiPS;
 
 use cgmath::Vector4;
 
@@ -522,7 +525,7 @@ impl App {
 
             fbo_view.draw_onto(move || {
                 // Render the scene
-                gl.clear_color(0.08, 0.08, 0.08, 1.0);
+                gl.clear_color(0.00, 0.00, 0.00, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
                 surveys.draw::<P>(camera, shaders, colormaps);

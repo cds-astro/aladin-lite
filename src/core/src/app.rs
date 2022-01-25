@@ -670,7 +670,6 @@ impl App {
 
     pub fn resize<P: Projection>(&mut self, width: f32, height: f32) {
         let dpi = self.camera.get_dpi();
-        
 
         let canvas = self.gl
             .canvas()
@@ -853,10 +852,6 @@ impl App {
     }
 
     pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
-        let dpi = self.camera.get_dpi();
-        
-        let sx = (sx as f32) * dpi;
-        let sy = (sy as f32) * dpi;
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.

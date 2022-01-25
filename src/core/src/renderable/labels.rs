@@ -84,12 +84,12 @@ impl TextRenderManager {
                 4 * std::mem::size_of::<f32>(),
                 &[2, 2],
                 &[0, 2 * std::mem::size_of::<f32>()],
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&vertices)
             )
             // Set the element buffer
             .add_element_buffer(
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&indices),
             );
         #[cfg(feature = "webgl1")]
@@ -97,22 +97,21 @@ impl TextRenderManager {
             .add_array_buffer(
                 2,
                 "pos",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&pos)
             )
             .add_array_buffer(
                 2,
                 "tx",
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&tx)
             )
             // Set the element buffer
             .add_element_buffer(
-                WebGl2RenderingContext::STREAM_DRAW,
+                WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&indices),
             );
-        let dpi = camera.get_dpi();
-        let text_size = 17.0 * dpi;
+        let text_size = 17.0;
         let Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
 
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
@@ -279,22 +278,20 @@ impl RenderManager for TextRenderManager {
         self.tx.clear();
 
         self.indices.clear();
-
         self.labels.clear();
     }
 
     fn end_frame(&mut self) {
-    // update to the GPU
-    #[cfg(feature = "webgl2")]
-    self.vao.bind_for_update()
-        .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&self.vertices))
-        .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
-    #[cfg(feature = "webgl1")]
-    self.vao.bind_for_update()
-        .update_array("pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.pos))
-        .update_array("tx", WebGl2RenderingContext::STREAM_DRAW, VecData(&self.tx))
-        .update_element_array(WebGl2RenderingContext::STREAM_DRAW, VecData(&self.indices));
-
+        // update to the GPU
+        #[cfg(feature = "webgl2")]
+        self.vao.bind_for_update()
+            .update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
+            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
+        #[cfg(feature = "webgl1")]
+        self.vao.bind_for_update()
+            .update_array("pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.pos))
+            .update_array("tx", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.tx))
+            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
     }
 
     fn draw(&mut self, window_size: &Vector2<f32>) -> Result<(), JsValue> {
@@ -321,7 +318,6 @@ impl RenderManager for TextRenderManager {
                     );
             }
         }
-
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
 

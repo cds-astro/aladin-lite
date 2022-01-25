@@ -96,7 +96,7 @@ impl ProjetedGrid {
                     2 * std::mem::size_of::<f32>(),
                     &[2],
                     &[0],
-                    WebGl2RenderingContext::STREAM_DRAW,
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
                     VecData::<f32>(&vertices),
                 );
             #[cfg(feature = "webgl1")]
@@ -104,7 +104,7 @@ impl ProjetedGrid {
                 .add_array_buffer(
                     2,
                     "ndc_pos",
-                    WebGl2RenderingContext::STREAM_DRAW,
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
                     VecData::<f32>(&vertices),
                 );
 
@@ -234,10 +234,10 @@ impl ProjetedGrid {
             
             #[cfg(feature = "webgl2")]
             self.vao.bind_for_update()
-                .update_array(0, WebGl2RenderingContext::STREAM_DRAW, VecData(&vertices));
+                .update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
             #[cfg(feature = "webgl1")]
             self.vao.bind_for_update()
-                .update_array("ndc_pos", WebGl2RenderingContext::STREAM_DRAW, VecData(&vertices));
+                .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
 
             self.text_renderer.end_frame();
         }
@@ -684,6 +684,8 @@ impl Label {
             rot
         };
 
+        // Do the screen -> ndc final tranformation
+        let position = crate::projection::screen_to_ndc_space(&position, camera);
         Some(Label {
             position,
             content,
@@ -744,6 +746,7 @@ impl Label {
             rot
         };
 
+        let position = crate::projection::screen_to_ndc_space(&position, camera);
         Some(Label {
             position,
             content,

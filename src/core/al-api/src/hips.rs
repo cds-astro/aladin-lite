@@ -29,11 +29,17 @@ pub struct SimpleHiPS {
     pub color: HiPSColor,
 
     // Blending config
+    #[serde(default)]
     pub blend_cfg: BlendCfg,
+    #[serde(default = "default_opacity")]
     pub opacity: f32,
 
     /// Layer name
     pub layer: String,
+}
+
+fn default_opacity() -> f32 {
+    1.0
 }
 
 #[derive(Deserialize, Debug)]

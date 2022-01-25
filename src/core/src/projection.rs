@@ -23,7 +23,9 @@ pub fn screen_to_ndc_space(
     let window_size = camera.get_screen_size();
     let window_size = Vector2::new(window_size.x as f64, window_size.y as f64);
     // Change of origin
-    let origin = pos_screen_space - window_size / 2.0;
+    let dpi = camera.get_dpi() as f64;
+    let origin = pos_screen_space * dpi - window_size / 2.0;
+
 
     // Scale to fit in [-1, 1]
     let pos_normalized_device = Vector2::new(
@@ -39,13 +41,14 @@ pub fn ndc_to_screen_space(
     camera: &CameraViewPort,
 ) -> Vector2<f64> {
     let window_size = camera.get_screen_size();
+    let dpi = camera.get_dpi() as f64;
 
     let pos_screen_space = Vector2::new(
         (pos_normalized_device.x * 0.5 + 0.5) * (window_size.x as f64),
         (0.5 - pos_normalized_device.y * 0.5) * (window_size.y as f64),
     );
 
-    pos_screen_space
+    pos_screen_space / dpi
 }
 
 #[allow(dead_code)]
@@ -65,14 +68,7 @@ pub fn clip_to_screen_space(
     camera: &CameraViewPort,
 ) -> Vector2<f64> {
     let pos_normalized_device = clip_to_ndc_space(pos_clip_space, camera);
-
-    let window_size = camera.get_screen_size();
-    let pos_screen_space = Vector2::new(
-        (pos_normalized_device.x * 0.5 + 0.5) * (window_size.x as f64),
-        (0.5 - pos_normalized_device.y * 0.5) * (window_size.y as f64),
-    );
-
-    pos_screen_space
+    ndc_to_screen_space(&pos_normalized_device, camera)
 }
 
 #[allow(dead_code)]
@@ -81,7 +77,6 @@ pub fn screen_to_clip_space(
     camera: &CameraViewPort,
 ) -> Vector2<f64> {
     let pos_normalized_device = screen_to_ndc_space(pos_screen_space, camera);
-
     ndc_to_clip_space(&pos_normalized_device, camera)
 }
 
@@ -121,8 +116,8 @@ pub trait Projection:
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
         // Change the screen position according to the dpi
-        let dpi = camera.get_dpi();
-        let pos_screen_space = *pos_screen_space * (dpi as f64);
+        //let dpi = camera.get_dpi();
+        let pos_screen_space = *pos_screen_space;
         let pos_normalized_device = screen_to_ndc_space(&pos_screen_space, camera);
 
         let ndc_to_clip = camera.get_ndc_to_clip();

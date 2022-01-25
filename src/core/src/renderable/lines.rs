@@ -17,8 +17,6 @@ pub struct RasterizedLinesRenderManager {
     shader: Shader,
     vao: VertexArrayObject,
 
-    dpi: f32,
-
     vertices: Vec<f32>,
     indices: Vec<u16>,
     meta: Vec<LineMeta>,
@@ -71,13 +69,11 @@ impl RasterizedLinesRenderManager {
                 // Unbind the buffer
                 .unbind();
         let meta = vec![];
-        let dpi = camera.get_dpi();
         Ok(
             Self {
                 gl,
                 shader,
                 vao,
-                dpi,
                 meta,
                 vertices: vec![],
                 indices: vec![],

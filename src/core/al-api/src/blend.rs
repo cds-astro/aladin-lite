@@ -17,6 +17,16 @@ pub struct BlendCfg {
     pub func: BlendFunc,
 }
 
+impl Default for BlendCfg {
+    fn default() -> Self {
+        Self {
+            src_color_factor: BlendFactor::SrcAlpha,
+            dst_color_factor: BlendFactor::OneMinusConstantAlpha,
+            func: BlendFunc::FuncAdd,
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[derive(PartialEq)]

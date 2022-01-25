@@ -496,11 +496,11 @@ impl App {
         &self,
         x: f64,
         y: f64,
-        layer: &str,
+        base_url: &str,
     ) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world::<P>(&pos) {
-            self.surveys.read_pixel(&lonlat, layer)
+            self.surveys.read_pixel(&lonlat, base_url)
         } else {
             Err(JsValue::from_str(&format!(
                 "{:?} is out of projection",

@@ -1910,19 +1910,6 @@ export let View = (function() {
         }
     }
 
-    /*View.prototype.addImageSurveyLayer = function(layer) {
-        if (!(layer instanceof ImageSurveyLayer)) {
-            throw "Except an ImageSurveyLayer object";
-        }
-
-        let surveys = [];
-        for (let survey of layer.getSurveys()) {
-            surveys.push(survey);
-        }
-        console.log("set layer: ", layer);
-        this.aladin.webglAPI.addImageSurveyLayer(layer.name, surveys);
-    };*/
-
     var unknownSurveyId = undefined;
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     View.prototype.addImageSurvey = function(survey, layer) {

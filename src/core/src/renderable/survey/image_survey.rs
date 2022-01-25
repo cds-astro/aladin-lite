@@ -1207,8 +1207,8 @@ impl ImageSurveys {
         }
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>, _layer: &str) -> Result<PixelType, JsValue> {
-        if let Some(survey) = self.surveys.values().next() {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, url: &str) -> Result<PixelType, JsValue> {
+        if let Some(survey) = self.surveys.get(url) {
             // Read the pixel from the first survey of layer
             survey.read_pixel(pos)
         } else {

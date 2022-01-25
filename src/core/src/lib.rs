@@ -220,7 +220,6 @@ impl WebClient {
     /// ```javascript
     /// let al = new Aladin.wasmLibs.webgl.WebClient(...);
     /// const panstarrs = {
-    ///     layer: 'base',
     ///     properties: {
     ///         url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
     ///
@@ -836,10 +835,10 @@ impl WebClient {
     ///
     /// * `x` - The x screen coordinate in pixels
     /// * `y` - The y screen coordinate in pixels
-    /// * `layer` - The name of the layer to read the pixel from.
+    /// * `base_url` - The base url of the survey identifying it
     #[wasm_bindgen(js_name = readPixel)]
-    pub fn read_pixel(&self, x: f64, y: f64, layer: &str) -> Result<JsValue, JsValue> {
-        let pixel = self.projection.read_pixel(&self.app, x, y, layer)?;
+    pub fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<JsValue, JsValue> {
+        let pixel = self.projection.read_pixel(&self.app, x, y, base_url)?;
         Ok(pixel.into())
     }
 }

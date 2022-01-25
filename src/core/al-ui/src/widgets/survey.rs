@@ -324,7 +324,6 @@ impl SurveyWidget {
         };
 
         let hips = SimpleHiPS {
-            layer: String::from("base"),
             color: self.color_cfg.clone(),
             blend_cfg: self.blend_cfg.clone(),
             opacity: opacity,

@@ -164,14 +164,14 @@ impl ProjectionType {
         Ok(())
     }
 
-    pub fn read_pixel(&self, app: &App, x: f64, y: f64, layer: &str) -> Result<PixelType, JsValue> {
+    pub fn read_pixel(&self, app: &App, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue> {
         let p = match self {
-            ProjectionType::Aitoff => app.read_pixel::<Aitoff>(x, y, layer)?,
-            ProjectionType::MollWeide => app.read_pixel::<Mollweide>(x, y, layer)?,
-            ProjectionType::Ortho => app.read_pixel::<Orthographic>(x, y, layer)?,
-            ProjectionType::Arc => app.read_pixel::<AzimuthalEquidistant>(x, y, layer)?,
-            ProjectionType::Gnomonic => app.read_pixel::<Gnomonic>(x, y, layer)?,
-            ProjectionType::Mercator => app.read_pixel::<Mercator>(x, y, layer)?,
+            ProjectionType::Aitoff => app.read_pixel::<Aitoff>(x, y, base_url)?,
+            ProjectionType::MollWeide => app.read_pixel::<Mollweide>(x, y, base_url)?,
+            ProjectionType::Ortho => app.read_pixel::<Orthographic>(x, y, base_url)?,
+            ProjectionType::Arc => app.read_pixel::<AzimuthalEquidistant>(x, y, base_url)?,
+            ProjectionType::Gnomonic => app.read_pixel::<Gnomonic>(x, y, base_url)?,
+            ProjectionType::Mercator => app.read_pixel::<Mercator>(x, y, base_url)?,
         };
 
         Ok(p)

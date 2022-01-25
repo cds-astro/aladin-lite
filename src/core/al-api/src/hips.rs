@@ -26,6 +26,7 @@ pub struct SimpleHiPS {
     pub properties: HiPSProperties,
 
     /// Color config
+    #[serde(default)]
     pub color: HiPSColor,
 
     // Blending config
@@ -33,9 +34,6 @@ pub struct SimpleHiPS {
     pub blend_cfg: BlendCfg,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
-
-    /// Layer name
-    pub layer: String,
 }
 
 fn default_opacity() -> f32 {
@@ -80,4 +78,14 @@ pub enum HiPSColor {
         k: f32,
     },
     Color,
+}
+
+impl Default for HiPSColor {
+    fn default() -> Self {
+        HiPSColor::Grayscale2Color {
+            color: [1.0, 0.0, 0.0],
+            transfer: String::from("asinh"),
+            k: 1.0
+        }
+    }
 }

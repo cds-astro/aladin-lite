@@ -208,7 +208,6 @@ export let HpxImageSurvey = (function() {
                 maxCutout: parseFloat(cuts[1]),
             },
             color: color,
-            layer: "base",
         };
     }
 

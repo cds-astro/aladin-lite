@@ -122,8 +122,8 @@ impl CameraViewPort {
             .unwrap()
             .as_f64()
             .unwrap() as f32;
-        //let dpi = window.device_pixel_ratio() as f32;
-        let dpi = 1.5;
+        let dpi = window.device_pixel_ratio() as f32;
+        //let dpi = 1.5;
         set_canvas_size(&gl, width as u32, height as u32);
         //gl.scissor(0, 0, width as i32, height as i32);
 

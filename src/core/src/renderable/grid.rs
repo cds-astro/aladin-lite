@@ -330,7 +330,7 @@ impl ProjetedGrid {
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
 
-            self.text_renderer.draw(&camera.get_screen_size())?;  
+            self.text_renderer.draw(camera)?;  
         }
 
         Ok(())
@@ -684,8 +684,6 @@ impl Label {
             rot
         };
 
-        // Do the screen -> ndc final tranformation
-        let position = crate::projection::screen_to_ndc_space(&position, camera);
         Some(Label {
             position,
             content,
@@ -746,7 +744,6 @@ impl Label {
             rot
         };
 
-        let position = crate::projection::screen_to_ndc_space(&position, camera);
         Some(Label {
             position,
             content,

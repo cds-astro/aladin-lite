@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub trait RenderManager {
     fn begin_frame(&mut self);
     fn end_frame(&mut self);
-    fn draw(&mut self, window_size: &Vector2<f32>) -> Result<(), JsValue>;
+    fn draw(&mut self, camera: &CameraViewPort) -> Result<(), JsValue>;
 }
 
 use cgmath::Matrix2;
@@ -111,7 +111,7 @@ impl TextRenderManager {
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&indices),
             );
-        let text_size = 17.0;
+        let text_size = 12.0;
         let Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
 
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
@@ -294,7 +294,7 @@ impl RenderManager for TextRenderManager {
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
     }
 
-    fn draw(&mut self, window_size: &Vector2<f32>) -> Result<(), JsValue> {
+    fn draw(&mut self, camera: &CameraViewPort) -> Result<(), JsValue> {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 
@@ -302,13 +302,14 @@ impl RenderManager for TextRenderManager {
             let shader = self.shader.bind(&self.gl);
             shader
                 .attach_uniform("u_sampler_font", &self.font_texture) // Font letters texture
-                .attach_uniform("u_screen_size", window_size);
+                .attach_uniform("u_screen_size", &camera.get_screen_size());
             for label in self.labels.iter() {
                 shader
                     .attach_uniform("u_color", &label.color) // Strengh of the kernel
                     .attach_uniform("u_screen_pos", &label.screen_pos)
                     .attach_uniform("u_rot", &label.rot)
                     .attach_uniform("u_scale", &label.scale)
+                    .attach_uniform("u_dpi", &camera.get_dpi())
                     .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

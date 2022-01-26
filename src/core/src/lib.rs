@@ -19,12 +19,15 @@ extern crate num_traits;
 extern crate rand;
 extern crate serde_json;
 extern crate fontdue;
+#[macro_use]
+extern crate enum_dispatch;
 
 use std::panic;
 
 #[macro_use]
 mod utils;
 
+use projection::*;
 use wasm_bindgen::prelude::*;
 
 mod app;
@@ -41,7 +44,6 @@ pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 mod healpix_cell;
 mod line;
 mod math;
-mod projection_type;
 mod renderable;
 mod rotation;
 mod shader;
@@ -67,13 +69,11 @@ pub use coo_conversion::CooSystem;
 
 use app::App;
 use cgmath::{Vector2, Vector4};
-use projection_type::ProjectionType;
 
 #[wasm_bindgen]
 pub struct WebClient {
     // The app
-    app: App,
-    projection: ProjectionType,
+    app: AppType,
 
     // The time between the previous and the current
     // frame
@@ -84,6 +84,8 @@ use crate::shader::FileSrc;
 use crate::transfert_function::TransferFunction;
 
 use crate::color::Color;
+use crate::app::AppTrait;
+use crate::app::AppType;
 #[wasm_bindgen]
 impl WebClient {
     /// Create the Aladin Lite webgl backend
@@ -105,14 +107,12 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-        let app = App::new(&gl, aladin_div_name, shaders, resources)?;
+        let app = AppType::OrthoApp(App::<Orthographic>::new(&gl, aladin_div_name, shaders, resources)?);
 
         let dt = DeltaTime::zero();
-        let projection = ProjectionType::Ortho;
 
         let webclient = WebClient {
             app,
-            projection,
 
             dt,
         };
@@ -133,8 +133,7 @@ impl WebClient {
 
         // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
-        self.projection.update(
-            &mut self.app,
+        self.app.update(
             // Time of the previous frame rendering
             self.dt,
             // Force the update of some elements:
@@ -152,7 +151,7 @@ impl WebClient {
     /// * `width` - The width in pixels of the view
     /// * `height` - The height in pixels of the view
     pub fn resize(&mut self, width: f32, height: f32) -> Result<(), JsValue> {
-        self.projection.resize(&mut self.app, width, height);
+        self.app.resize(width, height);
         Ok(())
     }
 
@@ -164,7 +163,7 @@ impl WebClient {
     ///
     /// * `force` - Force the rendering of the frame
     pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
-        self.projection.draw(&mut self.app, force)?;
+        self.app.draw(force)?;
 
         Ok(())
     }
@@ -175,10 +174,30 @@ impl WebClient {
     ///
     /// * `name` - Can be aitoff, mollweide, arc, sinus, tan or mercator
     #[wasm_bindgen(js_name = setProjection)]
-    pub fn set_projection(&mut self, name: String) -> Result<(), JsValue> {
-        self.projection.set_projection(&mut self.app, name)?;
+    pub fn set_projection(mut self, projection: String) -> Result<WebClient, JsValue> {
+        match projection.as_str() {
+            "aitoff" => {
+                self.app = AppType::AitoffApp(self.app.set_projection::<Aitoff>());
+            },
+            "sinus" => {
+                self.app = AppType::OrthoApp(self.app.set_projection::<Orthographic>());
+            },
+            "mollweide" => {
+                self.app = AppType::MollweideApp(self.app.set_projection::<Mollweide>());
+            },
+            "arc" => {
+                self.app = AppType::ArcApp(self.app.set_projection::<AzimuthalEquidistant>());
+            },
+            "tan" => {
+                self.app = AppType::TanApp(self.app.set_projection::<Gnomonic>());
+            },
+            "mercator" => {
+                self.app = AppType::MercatorApp(self.app.set_projection::<Mercator>());
+            },
+            _ => return Err(format!("{} is not a valid projection name. aitoff, arc, sinus, tan, mollweide and mercator are accepted", projection).into()),
+        }
 
-        Ok(())
+        Ok(self)
     }
 
     /// Reverse the longitude axis
@@ -188,8 +207,7 @@ impl WebClient {
     /// * `reversed` - set it to `false` for planetary surveys, `true` for spatial ones
     #[wasm_bindgen(js_name = setLongitudeReversed)]
     pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
-        self.projection
-            .set_longitude_reversed(&mut self.app, reversed);
+        self.app.set_longitude_reversed(reversed);
 
         Ok(())
     }
@@ -317,23 +335,23 @@ impl WebClient {
         alpha: f32,
     ) -> Result<(), JsValue> {
         let color = Color::new(red, green, blue, alpha);
-        self.projection.set_grid_color(&mut self.app, color);
+        self.app.set_grid_color(color);
 
         Ok(())
     }
 
     /// Enable the rendering of the equatorial grid
     #[wasm_bindgen(js_name = enableGrid)]
-    pub fn enable_grid(&mut self) -> Result<(), JsValue> {
-        self.projection.enable_grid(&mut self.app);
+    pub fn show_grid(&mut self) -> Result<(), JsValue> {
+        self.app.show_grid();
 
         Ok(())
     }
 
     /// Disable the rendering of the equatorial grid
     #[wasm_bindgen(js_name = disableGrid)]
-    pub fn disable_grid(&mut self) -> Result<(), JsValue> {
-        self.projection.disable_grid(&mut self.app);
+    pub fn hide_grid(&mut self) -> Result<(), JsValue> {
+        self.app.hide_grid();
 
         Ok(())
     }
@@ -341,7 +359,7 @@ impl WebClient {
     /// Enable the rendering of the equatorial grid labels
     #[wasm_bindgen(js_name = hideGridLabels)]
     pub fn enable_grid_labels(&mut self) -> Result<(), JsValue> {
-        self.projection.hide_grid_labels(&mut self.app);
+        self.app.hide_grid_labels();
 
         Ok(())
     }
@@ -349,7 +367,7 @@ impl WebClient {
     /// Disable the rendering of the equatorial grid labels
     #[wasm_bindgen(js_name = showGridLabels)]
     pub fn disable_grid_labels(&mut self) -> Result<(), JsValue> {
-        self.projection.show_grid_labels(&mut self.app);
+        self.app.show_grid_labels();
 
         Ok(())
     }
@@ -359,7 +377,7 @@ impl WebClient {
     /// Returns either ICRSJ2000 or GAL
     #[wasm_bindgen(js_name = cooSystem)]
     pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
-        Ok(self.app.system)
+        Ok(*self.app.get_coo_system())
     }
 
     /// Set the coordinate system for the view
@@ -369,7 +387,7 @@ impl WebClient {
     /// * `coo_system` - The coordinate system
     #[wasm_bindgen(js_name = setCooSystem)]
     pub fn set_coo_system(&mut self, coo_system: CooSystem) -> Result<(), JsValue> {
-        self.projection.set_coo_system(&mut self.app, coo_system);
+        self.app.set_coo_system(coo_system);
 
         Ok(())
     }
@@ -427,7 +445,7 @@ impl WebClient {
         //let fov = fov as f32;
         let fov = ArcDeg(fov).into();
 
-        self.projection.start_zooming_to(&mut self.app, fov);
+        self.app.start_zooming_to(fov);
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
@@ -441,7 +459,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = setRotationAroundCenter)]
     pub fn rotate_around_center(&mut self, theta: f64) -> Result<(), JsValue> {
         let theta = ArcDeg(theta);
-        self.projection.rotate_around_center(&mut self.app, theta);
+        self.app.rotate_around_center(theta);
 
         Ok(())
     }
@@ -461,7 +479,7 @@ impl WebClient {
     /// the sinus would be 180 degrees.
     #[wasm_bindgen(js_name = getMaxFieldOfView)]
     pub fn get_max_fov(&mut self) -> f64 {
-        self.projection.get_max_fov(&mut self.app)
+        self.app.get_max_fov()
     }
 
     /// Get the clip zoom factor of the view
@@ -487,7 +505,7 @@ impl WebClient {
     pub fn set_center(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        self.projection.set_center(&mut self.app, location);
+        self.app.set_center(&location);
 
         Ok(())
     }
@@ -499,7 +517,7 @@ impl WebClient {
     /// The angles are given in degrees.
     #[wasm_bindgen(js_name = getCenter)]
     pub fn get_center(&self) -> Result<Box<[f64]>, JsValue> {
-        let center = self.projection.get_center(&self.app);
+        let center = self.app.get_center();
 
         let lon_deg: ArcDeg<f64> = center.lon().into();
         let lat_deg: ArcDeg<f64> = center.lat().into();
@@ -510,7 +528,7 @@ impl WebClient {
     /// Rest the north pole orientation to the top of the screen
     #[wasm_bindgen(js_name = resetNorthOrientation)]
     pub fn reset_north_orientation(&mut self) {
-        self.projection.reset_north_orientation(&mut self.app);
+        self.app.reset_north_orientation();
     }
 
     /// Move to a location
@@ -528,7 +546,7 @@ impl WebClient {
         // Check if the user is giving galactic coordinates
         // so that we can convert them to icrs
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.projection.start_moving_to(&mut self.app, location);
+        self.app.start_moving_to(&location);
 
         Ok(())
     }
@@ -543,8 +561,7 @@ impl WebClient {
     /// * `s2y` - The y screen coordinate in pixels of the goal point
     #[wasm_bindgen(js_name = goFromTo)]
     pub fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) -> Result<(), JsValue> {
-        self.projection
-            .go_from_to(&mut self.app, s1x, s1y, s2x, s2y);
+        self.app.go_from_to(s1x, s1y, s2x, s2y);
 
         Ok(())
     }
@@ -561,7 +578,7 @@ impl WebClient {
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        if let Some(screen_pos) = self.projection.world_to_screen(&self.app, &lonlat)? {
+        if let Some(screen_pos) = self.app.world_to_screen(&lonlat)? {
             Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
         } else {
             Ok(None)
@@ -577,7 +594,7 @@ impl WebClient {
     /// * `sources` - An array of sources
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
-        let screen_positions = self.projection.world_to_screen_vec(&self.app, &sources)?;
+        let screen_positions = self.app.world_to_screen_vec(&sources)?;
         Ok(screen_positions.into_boxed_slice())
     }
 
@@ -589,9 +606,7 @@ impl WebClient {
     /// * `pos_y` - The y screen coordinate in pixels
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
-        if let Some(lonlat) = self
-            .projection
-            .screen_to_world(&self.app, &Vector2::new(pos_x, pos_y))
+        if let Some(lonlat) = self.app.screen_to_world(&Vector2::new(pos_x, pos_y))
         {
             let lon_deg: ArcDeg<f64> = lonlat.lon().into();
             let lat_deg: ArcDeg<f64> = lonlat.lat().into();
@@ -642,7 +657,7 @@ impl WebClient {
         };
 
         let target_fov = ArcDeg(target_fov).into();
-        self.projection.start_zooming_to(&mut self.app, target_fov);
+        self.app.start_zooming_to(target_fov);
 
         Ok(())
     }
@@ -657,7 +672,7 @@ impl WebClient {
     ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = posOnUi)]
     pub fn screen_position_on_ui(&mut self) -> bool {
-        self.app.pos_over_ui()
+        self.app.over_ui()
     }
 
     /// Add a catalog rendered as a heatmap.
@@ -674,8 +689,7 @@ impl WebClient {
         data: JsValue,
         colormap: String,
     ) -> Result<(), JsValue> {
-        self.projection
-            .add_catalog(&mut self.app, name_catalog, data, colormap);
+        self.app.add_catalog(name_catalog, data, colormap);
 
         Ok(())
     }
@@ -712,9 +726,7 @@ impl WebClient {
         name_catalog: String,
         colormap: String,
     ) -> Result<(), JsValue> {
-        let colormap = self.app.colormaps.get(&colormap);
-        self.projection
-            .set_catalog_colormap(&mut self.app, name_catalog, colormap)?;
+        self.set_catalog_colormap(name_catalog, colormap)?;
 
         Ok(())
     }
@@ -730,13 +742,12 @@ impl WebClient {
     ///
     /// If the catalog has not been found
     #[wasm_bindgen(js_name = setCatalogOpacity)]
-    pub fn set_heatmap_opacity(
+    pub fn set_catalog_opacity(
         &mut self,
         name_catalog: String,
         opacity: f32,
     ) -> Result<(), JsValue> {
-        self.projection
-            .set_heatmap_opacity(&mut self.app, name_catalog, opacity)?;
+        self.app.set_catalog_opacity(name_catalog, opacity)?;
 
         Ok(())
     }
@@ -757,8 +768,7 @@ impl WebClient {
         name_catalog: String,
         strength: f32,
     ) -> Result<(), JsValue> {
-        self.projection
-            .set_kernel_strength(&mut self.app, name_catalog, strength)?;
+        self.app.set_kernel_strength(name_catalog, strength)?;
 
         Ok(())
     }
@@ -786,9 +796,8 @@ impl WebClient {
         lon2: f64,
         lat2: f64,
     ) -> Result<Box<[f64]>, JsValue> {
-        let vertices = self
-            .projection
-            .project_line(&self.app, lon1, lat1, lon2, lat2);
+        let vertices = self.app
+            .project_line(lon1, lat1, lon2, lat2);
 
         let vertices = vertices
             .into_iter()
@@ -838,7 +847,7 @@ impl WebClient {
     /// * `base_url` - The base url of the survey identifying it
     #[wasm_bindgen(js_name = readPixel)]
     pub fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<JsValue, JsValue> {
-        let pixel = self.projection.read_pixel(&self.app, x, y, base_url)?;
+        let pixel = self.app.read_pixel(x, y, base_url)?;
         Ok(pixel.into())
     }
 }

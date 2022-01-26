@@ -31,7 +31,10 @@ struct S {
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 use al_ui::{Gui, GuiRef};
-pub struct App {
+pub struct App<P>
+where
+    P: Projection,
+{
     pub gl: WebGlContext,
 
     ui: GuiRef,
@@ -70,6 +73,8 @@ pub struct App {
 
     pub system: CooSystem,
     pub colormaps: Colormaps,
+
+    p: std::marker::PhantomData<P>,
 }
 
 use cgmath::{Vector2, Vector3};
@@ -106,13 +111,30 @@ use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
 use wasm_bindgen::JsCast;
-impl App {
-    pub fn new(
-        gl: &WebGlContext,
-        aladin_div_name: &str,
-        mut shaders: ShaderManager,
-        resources: Resources,
-    ) -> Result<Self, JsValue> {
+
+use crate::projection::*;
+type OrthoApp = App<Orthographic>;
+type AitoffApp = App<Aitoff>;
+type MollweideApp = App<Mollweide>;
+type ArcApp = App<AzimuthalEquidistant>;
+type TanApp = App<Gnomonic>;
+type MercatorApp = App<Mercator>;
+
+#[enum_dispatch]
+pub enum AppType {
+    OrthoApp,
+    AitoffApp,
+    MollweideApp,
+    ArcApp,
+    TanApp,
+    MercatorApp
+}
+
+impl<P> App<P>
+where
+    P: Projection
+{
+    pub fn new(gl: &WebGlContext, aladin_div_name: &str, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
@@ -167,7 +189,7 @@ impl App {
         let ui = Gui::new(aladin_div_name, &gl)?;
 
 
-        let app = App {
+        Ok(App {
             gl,
             ui,
             
@@ -204,23 +226,8 @@ impl App {
             system,
 
             colormaps,
-        };
-
-        Ok(app)
-    }
-
-    pub fn pos_over_ui(&self) -> bool {
-        self.ui.lock().pos_over_ui()
-    }
-
-    pub fn is_catalog_loaded(&mut self) -> bool {
-        if self.catalog_loaded {
-            self.catalog_loaded = false;
-
-            true
-        } else {
-            false
-        }
+            p: std::marker::PhantomData
+        })
     }
 
     fn look_for_new_tiles(&mut self) {
@@ -282,7 +289,7 @@ impl App {
     // - copying textures to GPU
     // Return true when a task is complete. This always lead
     // to a redraw of aladin lite
-    fn run_tasks<P: Projection>(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
+    fn run_tasks(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         let tasks_time = (dt.0 * 0.5).min(8.3);
         let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
@@ -318,15 +325,95 @@ impl App {
 
         Ok(tiles_available)
     }
+}
 
-    pub fn is_ready(&self) -> Result<bool, JsValue> {
+#[enum_dispatch(AppType)]
+pub trait AppTrait {
+    // View
+    fn is_ready(&self) -> Result<bool, JsValue>;
+    fn resize(&mut self, width: f32, height: f32);
+    fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue>;
+    fn draw(&mut self, force_render: bool) -> Result<(), JsValue>;
+
+    // Survey
+    fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue>;
+    fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
+    fn set_projection<Q: Projection>(self) -> App<Q>;
+    fn set_longitude_reversed(&mut self, reversed: bool);
+
+    // Catalog
+    fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
+    fn is_catalog_loaded(&mut self) -> bool;
+    fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue>;
+    fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue>;
+    fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
+    
+    // Grid
+    fn set_grid_color(&mut self, color: Color);
+    fn show_grid_labels(&mut self);
+    fn hide_grid_labels(&mut self);
+    fn show_grid(&mut self);
+    fn hide_grid(&mut self);
+
+    // Coo System
+    fn set_coo_system(&mut self, coo_system: CooSystem);
+
+    // Localization
+    fn press_left_button_mouse(&mut self, sx: f32, sy: f32);
+    fn release_left_button_mouse(&mut self, sx: f32, sy: f32);
+
+    fn set_center(&mut self, lonlat: &LonLatT<f64>);
+    fn start_moving_to(&mut self, lonlat: &LonLatT<f64>);
+    fn rotate_around_center(&mut self, theta: ArcDeg<f64>);
+    fn start_zooming_to(&mut self, fov: Angle<f64>);
+    fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64);
+    fn reset_north_orientation(&mut self);
+
+    // Accessors
+    fn get_center(&self) -> LonLatT<f64>;
+    fn get_clip_zoom_factor(&self) -> f64;
+    fn get_fov(&self) -> f64;
+    fn get_rotation_around_center(&self) -> &Angle<f64>;
+    fn get_gl_canvas(&self) -> Option<js_sys::Object>;
+    fn get_max_fov(&self) -> f64;
+    fn get_coo_system(&self) -> &CooSystem;
+
+    // Utils
+    fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
+    fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
+    fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
+    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
+
+    // UI
+    fn over_ui(&self) -> bool;
+}
+
+impl<P> AppTrait for App<P>
+where
+    P: Projection
+{
+    fn over_ui(&self) -> bool {
+        self.ui.lock().pos_over_ui()
+    }
+
+    fn is_catalog_loaded(&mut self) -> bool {
+        if self.catalog_loaded {
+            self.catalog_loaded = false;
+
+            true
+        } else {
+            false
+        }
+    }
+
+    fn is_ready(&self) -> Result<bool, JsValue> {
         let res = self.surveys.is_ready();
 
         Ok(res)
     }
 
-    pub fn update<P: Projection>(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
-        let available_tiles = self.run_tasks::<P>(dt)?;
+    fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
+        let available_tiles = self.run_tasks(dt)?;
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
         // Check if there is an move animation to do
@@ -482,24 +569,24 @@ impl App {
     }
 
 
-    pub fn reset_north_orientation<P: Projection>(&mut self) {
+    fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
         self.camera.set_rotation_around_center::<P>(Angle(0.0));
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
-        let center = self.get_center::<P>();
-        self.set_center::<P>(&center);
+        let center = self.get_center();
+        self.set_center(&center);
     }
 
-    pub fn read_pixel<P: Projection>(
+    fn read_pixel(
         &self,
         x: f64,
         y: f64,
         base_url: &str,
     ) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
-        if let Some(lonlat) = self.screen_to_world::<P>(&pos) {
+        if let Some(lonlat) = self.screen_to_world(&pos) {
             self.surveys.read_pixel(&lonlat, base_url)
         } else {
             Err(JsValue::from_str(&format!(
@@ -510,7 +597,7 @@ impl App {
     }
 
 
-    pub fn draw<P: Projection>(&mut self, force_render: bool) -> Result<(), JsValue> {
+    fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
         let scene_redraw = self.rendering | force_render;
         if scene_redraw {
             let shaders = &mut self.shaders;
@@ -569,7 +656,7 @@ impl App {
         Ok(())
     }
 
-    pub fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
+    fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
@@ -600,9 +687,9 @@ impl App {
         Ok(())
     }*/
 
-    pub fn set_projection<P: Projection>(&mut self) {
-        self.camera.set_projection::<P>();
-        self.surveys.set_projection::<P>(
+    fn set_projection<Q: Projection>(mut self) -> App<Q> {
+        self.camera.set_projection::<Q>();
+        self.surveys.set_projection::<Q>(
             &self.camera,
             &mut self.shaders,
             &self.system,
@@ -610,13 +697,47 @@ impl App {
 
         self.look_for_new_tiles();
         self.request_redraw = true;
+
+        App {
+            p: std::marker::PhantomData,
+            gl: self.gl,
+            ui: self.ui,
+            colormaps: self.colormaps,
+            system: self.system,
+            fbo_ui: self.fbo_ui,
+            fbo_view: self.fbo_view,
+            final_rendering_pass: self.final_rendering_pass,
+            manager: self.manager,
+            exec: self.exec,
+            resources: self.resources,
+            move_animation: self.move_animation,
+            zoom_animation: self.zoom_animation,
+            inertial_move_animation: self.inertial_move_animation,
+            prev_cam_position: self.prev_cam_position,
+            prev_center: self.prev_center,
+            out_of_fov: self.out_of_fov,
+            tasks_finished: self.tasks_finished,
+            catalog_loaded: self.catalog_loaded,
+            shaders: self.shaders,
+            camera: self.camera,
+            downloader: self.downloader,
+            surveys: self.surveys,
+            time_start_blending: self.time_start_blending,
+            request_redraw: self.request_redraw,
+            rendering: self.rendering,
+            grid: self.grid
+        }
     }
 
-    pub fn get_max_fov<P: Projection>(&self) -> f64 {
+    fn get_coo_system(&self) -> &CooSystem {
+        &self.system
+    }
+
+    fn get_max_fov(&self) -> f64 {
         P::aperture_start().0
     }
 
-    pub fn set_longitude_reversed<P: Projection>(&mut self, reversed: bool) {
+    fn set_longitude_reversed(&mut self, reversed: bool) {
         self.camera.set_longitude_reversed(reversed);
         self.surveys.set_longitude_reversed::<P>(
             reversed,
@@ -631,14 +752,7 @@ impl App {
         self.request_redraw = true;
     }
 
-    /*pub fn set_opacity_layer(&mut self, layer_name: &str, opacity: f32) -> Result<(), JsValue> {
-        self.surveys.set_opacity_layer(layer_name, opacity)?;
-        self.request_redraw = true;
-
-        Ok(())
-    }*/
-
-    pub fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
+    fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
         let c = self.colormaps.get(&colormap);
@@ -668,7 +782,7 @@ impl App {
             });
     }
 
-    pub fn resize<P: Projection>(&mut self, width: f32, height: f32) {
+    fn resize(&mut self, width: f32, height: f32) {
         let dpi = self.camera.get_dpi();
 
         let canvas = self.gl
@@ -692,11 +806,13 @@ impl App {
         self.manager.set_kernel_size(&self.camera);
     }
 
-    pub fn set_catalog_colormap(
+    fn set_catalog_colormap(
         &mut self,
         name: String,
-        colormap: Colormap,
+        colormap: String,
     ) -> Result<(), JsValue> {
+        let colormap = self.colormaps.get(&colormap);
+
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -708,7 +824,7 @@ impl App {
         Ok(())
     }
 
-    pub fn set_heatmap_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
+    fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -720,7 +836,7 @@ impl App {
         Ok(())
     }
 
-    pub fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
+    fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -732,32 +848,32 @@ impl App {
         Ok(())
     }
 
-    pub fn set_grid_color(&mut self, color: Color) {
+    fn set_grid_color(&mut self, color: Color) {
         self.grid.set_color(color);
         self.request_redraw = true;
     }
 
-    pub fn enable_grid<P: Projection>(&mut self) {
+    fn show_grid(&mut self) {
         self.grid.enable::<P>(&self.camera);
         self.request_redraw = true;
     }
 
-    pub fn hide_grid_labels(&mut self) {
+    fn hide_grid_labels(&mut self) {
         self.grid.hide_labels(&self.camera);
         self.request_redraw = true;
     }
 
-    pub fn show_grid_labels(&mut self) {
+    fn show_grid_labels(&mut self) {
         self.grid.show_labels();
         self.request_redraw = true;
     }
 
-    pub fn disable_grid(&mut self) {
+    fn hide_grid(&mut self) {
         self.grid.disable(&self.camera);
         self.request_redraw = true;
     }
 
-    pub fn set_coo_system<P: Projection>(&mut self, coo_system: CooSystem) {
+    fn set_coo_system(&mut self, coo_system: CooSystem) {
         //let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
         //let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
 
@@ -777,7 +893,7 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub fn world_to_screen<P: Projection>(
+    fn world_to_screen(
         &self,
         lonlat: &LonLatT<f64>,
     ) -> Result<Option<Vector2<f64>>, String> {
@@ -791,7 +907,7 @@ impl App {
     /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    pub fn world_to_screen_vec<P: Projection>(
+    fn world_to_screen_vec(
         &self,
         sources: &Vec<JsValue>,
     ) -> Result<Vec<f64>, JsValue> {
@@ -818,7 +934,7 @@ impl App {
         Ok(res)
     }
 
-    pub fn screen_to_world<P: Projection>(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
+    fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         if let Some(model_pos) = P::screen_to_model_space(&pos, &self.camera) {
             //let model_pos = self.system.system_to_icrs_coo(model_pos);
             Some(model_pos.lonlat())
@@ -827,7 +943,7 @@ impl App {
         }
     }
 
-    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
+    fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
 
         let xyz: Vector4<_> = lonlat.vector();
@@ -844,14 +960,14 @@ impl App {
         self.inertial_move_animation = None;
     }
 
-    pub fn press_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    fn press_left_button_mouse(&mut self, sx: f32, sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
         self.move_animation = None;
         self.out_of_fov = false;
     }
 
-    pub fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.
@@ -891,7 +1007,7 @@ impl App {
         });
     }
 
-    pub fn start_moving_to<P: Projection>(&mut self, lonlat: &LonLatT<f64>) {
+    fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
         let goal_pos: Vector4<f64> = lonlat.vector();
 
@@ -907,7 +1023,7 @@ impl App {
         });
     }
 
-    pub fn rotate_around_center<P: Projection>(&mut self, theta: ArcDeg<f64>) {
+    fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
         self.camera.set_rotation_around_center::<P>(theta.into());
         // New tiles can be needed and some tiles can be removed
         self.look_for_new_tiles();
@@ -915,18 +1031,18 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub fn get_rotation_around_center(&self) -> &Angle<f64> {
+    fn get_rotation_around_center(&self) -> &Angle<f64> {
         self.camera.get_rotation_around_center()
     }
 
-    pub fn start_zooming_to<P: Projection>(&mut self, fov: Angle<f64>) {
+    fn start_zooming_to(&mut self, fov: Angle<f64>) {
         // For the moment, no animation is triggered.
         // The fov is directly set
         self.camera.set_aperture::<P>(fov);
         self.look_for_new_tiles();
     }
 
-    pub fn project_line<P: Projection>(
+    fn project_line(
         &self,
         lon1: f64,
         lat1: f64,
@@ -939,7 +1055,7 @@ impl App {
         line::project::<P>(&v1, &v2, &self.camera)
     }
 
-    pub fn go_from_to<P: Projection>(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
+    fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
             if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
                 let r = self.camera.get_final_rotation();
@@ -966,20 +1082,20 @@ impl App {
     }
 
     // Accessors
-    pub fn get_center<P: Projection>(&self) -> LonLatT<f64> {
+    fn get_center(&self) -> LonLatT<f64> {
         self.camera.get_center().lonlat()
     }
 
-    pub fn get_clip_zoom_factor(&self) -> f64 {
+    fn get_clip_zoom_factor(&self) -> f64 {
         self.camera.get_clip_zoom_factor()
     }
 
-    pub fn get_fov(&self) -> f64 {
+    fn get_fov(&self) -> f64 {
         let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
     }
 
-    pub fn get_gl_canvas(&self) -> Option<js_sys::Object> {
+    fn get_gl_canvas(&self) -> Option<js_sys::Object> {
         self.gl.canvas()
     }
 }

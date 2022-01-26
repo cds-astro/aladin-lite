@@ -705,7 +705,6 @@ export let View = (function() {
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        let webglAPI = view.aladin.webglAPI;
         let p = null;
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
@@ -882,9 +881,9 @@ export let View = (function() {
             view.realDragging = true;
 
             //webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
-            webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
+            view.aladin.webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
             //webglAPI.setCenter(pos2[0], pos2[1]);
-            let viewCenter = webglAPI.getCenter();
+            let viewCenter = view.aladin.webglAPI.getCenter();
             view.viewCenter.lon = viewCenter[0];
             view.viewCenter.lat = viewCenter[1];
 
@@ -1995,7 +1994,7 @@ export let View = (function() {
         }
         // Change the projection here
         this.projection.setProjection(this.projectionMethod);
-        this.aladin.webglAPI.setProjection(projectionName);
+        this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName);
 
         this.requestRedraw();
     };

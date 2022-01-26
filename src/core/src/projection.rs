@@ -8,11 +8,7 @@
 
 // World space
 use crate::camera::CameraViewPort;
-
-use num_traits::FloatConst;
-trait MyFloat: cgmath::BaseFloat + FloatConst {}
-impl MyFloat for f32 {}
-impl MyFloat for f64 {}
+use crate::num_traits::FloatConst;
 
 #[allow(dead_code)]
 pub fn screen_to_ndc_space(
@@ -100,6 +96,7 @@ use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjec
 use crate::shader::GetShader;
 use cgmath::InnerSpace;
 use cgmath::Vector4;
+#[enum_dispatch(ProjectionType)]
 pub trait Projection:
     GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
 {
@@ -967,8 +964,17 @@ impl Projection for Mercator {
     const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
-mod tests {
+/*#[enum_dispatch]
+enum ProjectionType {
+    Orthographic,
+    Aitoff,
+    Mollweide,
+    AzimuthalEquidistant,
+    Gnomonic,
+    Mercator,
+}*/
 
+mod tests {
     #[test]
     fn generate_maps() {
         use super::*;

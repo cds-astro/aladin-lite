@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq)]
-#[repr(C)]
+#[repr(C, packed)]
 pub struct Source {
     pub x: f32,
     pub y: f32,

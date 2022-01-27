@@ -241,7 +241,7 @@ pub struct Catalog {
     indices: SourceIndices,
     alpha: f32,
     strength: f32,
-    #[cfg(feature = "webgl2")]
+    current_sources: Vec<f32>,
     sources: Vec<f32>,
     #[cfg(feature = "webgl1")]
     center: Vec<f32>,
@@ -272,12 +272,8 @@ impl Catalog {
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
         let num_instances = sources.len() as i32;
-        
-        //let source = 
-        #[cfg(feature = "webgl2")]
-        let sources = unsafe { utils::flatten_vec(sources) };
         #[cfg(feature = "webgl1")]
-        let (center, center_lonlat) = sources.into_iter()
+        let (center, center_lonlat) = sources.iter()
             .map(|s| {
                 ((s.x, s.y, s.z), (s.lon, s.lat))
             }).unzip();
@@ -286,7 +282,9 @@ impl Catalog {
         #[cfg(feature = "webgl1")]
         let center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
 
+        let sources = unsafe { utils::flatten_vec(sources) };
         let vertex_array_object_catalog = {
+            #[cfg(feature = "webgl2")]
             let vertices = vec![
                 -0.5_f32, -0.5_f32,
                 0.0_f32, 0.0_f32,
@@ -295,6 +293,20 @@ impl Catalog {
                 0.5_f32, 0.5_f32,
                 1.0_f32, 1.0_f32,
                 -0.5_f32, 0.5_f32,
+                0.0_f32, 1.0_f32,
+            ];
+            #[cfg(feature = "webgl1")]
+            let offset = vec![
+                -0.5_f32, -0.5_f32,
+                0.5_f32, -0.5_f32,
+                0.5_f32, 0.5_f32,
+                -0.5_f32, 0.5_f32,
+            ];
+            #[cfg(feature = "webgl1")]
+            let uv = vec![
+                0.0_f32, 0.0_f32,
+                1.0_f32, 0.0_f32,
+                1.0_f32, 1.0_f32,
                 0.0_f32, 1.0_f32,
             ];
 
@@ -335,13 +347,13 @@ impl Catalog {
                     2,
                     "offset",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(vertices.as_ref()),
+                    VecData(offset.as_ref()),
                 )
                 .add_array_buffer(
                     2,
                     "uv",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(vertices.as_ref()),
+                    VecData(uv.as_ref()),
                 )
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
@@ -366,13 +378,14 @@ impl Catalog {
 
             vao
         };
+        let current_sources: Vec<f32> = vec![];
         Self {
             alpha,
             strength,
             colormap,
             num_instances,
             indices,
-            #[cfg(feature = "webgl2")]
+            current_sources,
             sources,
             #[cfg(feature = "webgl1")]
             center,
@@ -412,9 +425,9 @@ impl Catalog {
             depth: _,
             ref cells,
         } = cells;
-        let mut current_sources: Vec<f32> = vec![];
         let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
-
+        // reset the sources in the frame
+        self.current_sources.clear();
         // depth < 7
         for cell in cells {
             let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
@@ -431,33 +444,41 @@ impl Catalog {
                     let sources =
                         self.indices
                             .get_k_sources(&self.sources, &c, num_sources as usize, 0);
-                    current_sources.extend(sources);
+                    self.current_sources.extend(sources);
                 }
             }
         }
+        //self.current_sources.shrink_to_fit();
 
         // Update the vertex buffer
-        self.num_instances = (current_sources.len() / Source::num_f32()) as i32;
+        self.num_instances = (self.current_sources.len() / Source::num_f32()) as i32;
         #[cfg(feature = "webgl1")]
         {
-            let (center, center_lonlat) = current_sources.into_iter()
+            /*let mut copy = self.current_sources.clone();
+            let sources_packed_f32 = unsafe {
+                Vec::from_raw_parts(
+                    copy.as_mut_ptr() as *mut [f32; Source::num_f32()],
+                    self.num_instances as usize,
+                    self.num_instances as usize
+                )
+            };
+            let (center, center_lonlat) = sources_packed_f32.into_iter()
                 .map(|s| {
-                    ((s.x, s.y, s.z), (s.lon, s.lat))
+                    ((s[0], s[1], s[2]), (s[3], s[4]))
                 }).unzip();
-            let center = unsafe { utils::flatten_vec(center) };
-            let center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
+            self.center = unsafe { utils::flatten_vec(center) };
+            self.center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
             self.vertex_array_object_catalog
                 .bind_for_update()
-                    .update_instanced_array("center", VecData(&center))
-                    .update_instanced_array("center_lonlat", VecData(&center_lonlat));
+                    .update_instanced_array("center", VecData(&self.center))
+                    .update_instanced_array("center_lonlat", VecData(&self.center_lonlat));*/
         }
 
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
-            .update_instanced_array(0, VecData(&current_sources));
+            .update_instanced_array(0, VecData(&self.current_sources));
     }
-
 
     fn draw<P: Projection>(
         &self,

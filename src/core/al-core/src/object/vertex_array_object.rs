@@ -250,7 +250,6 @@ pub mod vao {
     
             // Update the number of vertex attrib
             self.vao.idx += sizes.len() as u32;
-    
             self.vao.array_buffer_instanced.push(array_buffer);
     
             self
@@ -263,7 +262,6 @@ pub mod vao {
             data: B,
         ) -> &mut Self {
             let element_buffer = ElementArrayBuffer::new(&self.vao.gl, usage, data);
-    
             self.vao.element_array_buffer = Some(element_buffer);
     
             self
@@ -480,8 +478,7 @@ pub mod vao {
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            self.vao
-                .gl
+            self.vao.gl
                 .draw_arrays(mode, byte_offset, size);
         }
 
@@ -534,7 +531,6 @@ pub mod vao {
             self.unbind();
         }
     }
-
 
     // Struct defined when only the Vertex Array Object is
     // defined
@@ -638,7 +634,7 @@ pub mod vao {
             array_data: B,
         ) -> &mut Self {
             self.vao.array_buffer_instanced.get_mut(attr)
-                .unwrap()
+                .expect(&format!("attr: {:?}", attr))
                 .update(array_data);
 
             self

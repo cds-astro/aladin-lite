@@ -1,13 +1,12 @@
-#version 300 es
 precision lowp float;
 precision lowp sampler2D;
 
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec2 uv;
+attribute vec2 position;
+attribute vec2 uv;
 
-out vec2 out_uv;
+varying vec2 out_uv;
 
 void main() {
-    gl_Position = vec4(position, 0.f, 1.f);
+    gl_Position = vec4(position, 0.0, 1.0);
     out_uv = uv;
 }

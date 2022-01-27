@@ -71,6 +71,8 @@ impl ArrayBufferInstanced {
         // Link to the shader
         for (idx, size) in sizes.iter().enumerate() {
             let idx = (idx as u32) + offset_idx;
+            //crate::log::log(&format("IDX LOC {:?}", idx));
+
             gl.vertex_attrib_pointer_with_i32(
                 idx,
                 *size as i32,
@@ -87,7 +89,6 @@ impl ArrayBufferInstanced {
         }
 
         let num_packed_data = sizes.len();
-
         let gl = gl.clone();
         // Returns an instance that keeps only the buffer
         ArrayBufferInstanced {
@@ -130,6 +131,7 @@ impl ArrayBufferInstanced {
         let loc = shader.get_attrib_location(&self.gl, location) as u32;
 
         assert_eq!(self.sizes.len(), 1);
+        //crate::log::log(&format("{:?}", loc));
         T::vertex_attrib_pointer_with_i32(
             &self.gl,
             loc,

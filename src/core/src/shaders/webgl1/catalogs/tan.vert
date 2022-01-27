@@ -12,8 +12,8 @@ uniform vec2 ndc_to_clip;
 uniform float czf;
 uniform vec2 kernel_size;
 
-out vec2 out_uv;
-out vec3 out_p;
+varying vec2 out_uv;
+varying vec3 out_p;
 
 @import ../hips/projection;
 

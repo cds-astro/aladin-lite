@@ -71,7 +71,6 @@ where
     fbo_view: FrameBufferObject,
     pub fbo_ui: FrameBufferObject,
 
-    pub system: CooSystem,
     pub colormaps: Colormaps,
 
     p: std::marker::PhantomData<P>,
@@ -148,19 +147,17 @@ where
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
-        let system = CooSystem::ICRSJ2000;
-
         // The tile buffer responsible for the tile requests
         let downloader = TileDownloader::new();
 
-        let camera = CameraViewPort::new::<Orthographic>(&gl, system);
+        let camera = CameraViewPort::new::<Orthographic>(&gl, CooSystem::ICRSJ2000);
         let screen_size = &camera.get_screen_size();
 
         let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
         let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders, &system);
+        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
 
         let time_start_blending = Time::now();
 
@@ -176,7 +173,6 @@ where
         let inertial_move_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
-        let _start_render_time = Time::now();
         let rendering = true;
         let prev_cam_position = camera.get_center().truncate();
         let prev_center = Vector3::new(0.0, 1.0, 0.0);
@@ -223,7 +219,6 @@ where
 
             tasks_finished,
             catalog_loaded,
-            system,
 
             colormaps,
             p: std::marker::PhantomData
@@ -692,7 +687,6 @@ where
         self.surveys.set_projection::<Q>(
             &self.camera,
             &mut self.shaders,
-            &self.system,
         );
 
         self.look_for_new_tiles();
@@ -703,7 +697,6 @@ where
             gl: self.gl,
             ui: self.ui,
             colormaps: self.colormaps,
-            system: self.system,
             fbo_ui: self.fbo_ui,
             fbo_view: self.fbo_view,
             final_rendering_pass: self.final_rendering_pass,
@@ -730,7 +723,7 @@ where
     }
 
     fn get_coo_system(&self) -> &CooSystem {
-        &self.system
+        &self.camera.get_system()
     }
 
     fn get_max_fov(&self) -> f64 {
@@ -744,7 +737,6 @@ where
             &self.camera,
             &mut self.shaders,
             &self.resources,
-            &self.system,
         );
 
         self.look_for_new_tiles();
@@ -877,7 +869,6 @@ where
         //let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
         //let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
 
-        self.system = coo_system;
         self.camera.set_coo_system::<P>(coo_system);
 
         /*if icrs2gal {

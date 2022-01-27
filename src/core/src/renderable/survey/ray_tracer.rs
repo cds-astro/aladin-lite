@@ -15,7 +15,6 @@ use super::Triangulation;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGlContext,
     _camera: &CameraViewPort,
-    _system: &CooSystem,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
@@ -178,9 +177,8 @@ impl RayTracer {
         gl: &WebGlContext,
         camera: &CameraViewPort,
         _shaders: &mut ShaderManager,
-        system: &CooSystem,
     ) -> RayTracer {
-        let (vertices, idx) = create_vertices_array::<P>(gl, camera, system);
+        let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
         let mut vao = VertexArrayObject::new(&gl);
         // layout (location = 0) in vec2 pos_clip_space;

@@ -1184,7 +1184,6 @@ impl ImageSurveys {
         gl: &WebGlContext,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        system: &CooSystem,
     ) -> Self {
         let surveys = HashMap::new();
         let meta = Vec::new();
@@ -1194,7 +1193,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders, system);
+        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
         let gl = gl.clone();
         let most_precise_survey = String::new();
         ImageSurveys {
@@ -1220,10 +1219,9 @@ impl ImageSurveys {
         &mut self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
-        system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
     pub fn set_longitude_reversed<P: Projection>(
@@ -1232,10 +1230,9 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         _rs: &Resources,
-        system: &CooSystem,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders, system);
+        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
     /*pub fn set_opacity_layer(&mut self, url: &str, blending: BlendingOption) -> Result<(), JsValue> {
@@ -1267,9 +1264,7 @@ impl ImageSurveys {
 
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
-        al_core::log::log(&format!("plott"));
         for meta in self.meta.iter() {
-            al_core::log::log(&format!("{:?}", meta.url));
             if meta.visible() {
                 let ImageSurveyMeta {
                     color,

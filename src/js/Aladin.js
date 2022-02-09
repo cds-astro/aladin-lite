@@ -367,8 +367,7 @@ export let Aladin = (function () {
 
         // initialize the Vue components
         if (typeof Vue != "undefined") {
-            //Vue.component("layers", Layers)
-            this.discoverytree = new DiscoveryTree(this);
+            //this.discoverytree = new DiscoveryTree(this);
         }
 
         this.view.redraw();

@@ -1851,14 +1851,19 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);
 };
 
+function checkForWebGL2Support() {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    return gl;
+}
 
-A.init = Promise.all([import('@fxpineau/healpix'), import('../core/pkg')]).then(async (values) => {
-    let [hpxAPI, webglAPI] = values;
+A.init = Promise.all([import('@fxpineau/healpix'), import('../core/pkg-webgl1'), import('../core/pkg-webgl2')]).then(async (values) => {
+    let [hpxAPI, webgl1API, webgl2API] = values;
 
     // HEALPix library
     Aladin.wasmLibs.hpx = hpxAPI;
     // WebGL library
-    Aladin.wasmLibs.webgl = webglAPI;
+
+    Aladin.wasmLibs.webgl = checkForWebGL2Support() ? webgl2API : webgl1API;
 });
 
 // this is ugly for sure and there must be a better way using Webpack magic

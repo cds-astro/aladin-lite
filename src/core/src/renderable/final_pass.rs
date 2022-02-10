@@ -16,7 +16,7 @@ use cgmath::Vector2;
 use egui::{
     self,
     emath::vec2,
-    epaint::{Color32, Texture},
+    epaint::Color32,
 };
 use web_sys::console;
 use al_core::WebGlContext;

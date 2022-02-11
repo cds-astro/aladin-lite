@@ -51,20 +51,8 @@ import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
-
-import { loadShadersWebGL1 } from './ShadersWebGL1.js';
-import { loadShadersWebGL2 } from './ShadersWebGL2.js';
-
-// Import kernel image
-import kernel from '../core/img/kernel.png';
-import colormaps from '../core/img/colormaps/colormaps.png';
-
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
-
-function checkForWebGL2Support() {
-    const gl = document.createElement('canvas').getContext('webgl2');
-    return gl;
-}
+import { WebGLCtx } from "./WebGL.js";
 
 export let View = (function() {
 
@@ -72,28 +60,17 @@ export let View = (function() {
     function View (aladin, location, fovDiv, cooFrame, zoom) {
             this.aladin = aladin;
             // Add a reference to the WebGL API
-            //this.webglAPI = aladin.webglAPI;
             this.options = aladin.options;
             this.aladinDiv = this.aladin.aladinDiv;
             this.popup = new Popup(this.aladinDiv, this);
-
+            this.webGL2Support = WebGLCtx.checkForWebGL2Support();
             this.createCanvases();
-            // Check whether a webgl2 context is available
-            const webGL2Supported = checkForWebGL2Support();
-            this.webGL2Supported = webGL2Supported;
             // Init the WebGL context
             // At this point, the view has been created so the image canvas too
-            const shaders = webGL2Supported ? loadShadersWebGL2() : loadShadersWebGL1();
-        
-            let resources = {
-                'kernel': kernel,
-                'colormaps': colormaps,
-            };
-
             try {
                 // Start our Rust application. You can find `WebClient` in `src/lib.rs`
                 // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-                this.aladin.webglAPI = new Aladin.wasmLibs.webgl.WebClient(this.aladinDiv.id, shaders, resources);
+                this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
             } catch(e) {
                 // For browsers not supporting WebGL2:
                 // 1. Print the original exception message in the console
@@ -306,7 +283,7 @@ export let View = (function() {
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext(this.webGL2Supported ? "webgl2" : "webgl");
+        this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
         this.aladin.webglAPI.resize(this.width, this.height);
         
         this.catalogCtx = this.catalogCanvas.getContext("2d");

@@ -964,16 +964,6 @@ impl Projection for Mercator {
     const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
-/*#[enum_dispatch]
-enum ProjectionType {
-    Orthographic,
-    Aitoff,
-    Mollweide,
-    AzimuthalEquidistant,
-    Gnomonic,
-    Mercator,
-}*/
-
 mod tests {
     #[test]
     fn generate_maps() {

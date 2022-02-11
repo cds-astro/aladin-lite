@@ -54,6 +54,7 @@ import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
+import { WebGLCtx } from "./WebGL.js";
 
 export let Aladin = (function () {
 
@@ -1851,19 +1852,13 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);
 };
 
-function checkForWebGL2Support() {
-    const gl = document.createElement('canvas').getContext('webgl2');
-    return gl;
-}
-
-A.init = Promise.all([import('@fxpineau/healpix'), import('../core/pkg-webgl1'), import('../core/pkg-webgl2')]).then(async (values) => {
-    let [hpxAPI, webgl1API, webgl2API] = values;
-
+A.init = import('@fxpineau/healpix').then(async (hpxAPI) => {
     // HEALPix library
     Aladin.wasmLibs.hpx = hpxAPI;
     // WebGL library
-
-    Aladin.wasmLibs.webgl = checkForWebGL2Support() ? webgl2API : webgl1API;
+    let webgl = await WebGLCtx();
+    console.log("Init WebGL");
+    Aladin.wasmLibs.webgl = webgl;
 });
 
 // this is ugly for sure and there must be a better way using Webpack magic

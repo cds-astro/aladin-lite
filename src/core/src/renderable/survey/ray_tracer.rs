@@ -52,7 +52,7 @@ pub struct RayTracer {
 use cgmath::{InnerSpace, Vector2};
 use std::mem;
 
-const SIZE_POSITION_TEX: usize = 1024;
+const SIZE_POSITION_TEX: usize = 2048;
 fn generate_xyz_position<P: Projection>() -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];

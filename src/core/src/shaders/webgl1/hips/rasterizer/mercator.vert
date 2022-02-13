@@ -1,7 +1,7 @@
 precision mediump float;
 precision mediump int;
 
-attribute vec2 ndc_pos;
+attribute vec3 position;
 attribute vec3 uv_start;
 attribute vec3 uv_end;
 attribute float time_tile_received;
@@ -16,6 +16,7 @@ varying float m_end;
 
 uniform mat4 inv_model;
 uniform vec2 ndc_to_clip;
+uniform float czf;
 
 // current time in ms
 uniform float current_time;
@@ -23,12 +24,12 @@ uniform float current_time;
 @import ../projection;
 
 void main() {
-    /*
-    vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    
+    vec3 world_pos = vec3(inv_model * vec4(position, 1.0));
     world_pos = check_inversed_longitude(world_pos);
 
     vec2 ndc_pos = world2clip_mercator(world_pos) / (ndc_to_clip * czf);
-    */
+    
     gl_Position = vec4(ndc_pos, 0.0, 1.0);
 
     frag_uv_start = uv_start;

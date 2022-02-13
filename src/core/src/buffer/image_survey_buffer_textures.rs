@@ -358,21 +358,20 @@ impl ImageSurveyTextures {
         let texture_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
 
-        if let Some(texture) = self.textures.get_mut(&texture_cell) {
-            texture.register_available_tile(cell, &self.config);
+        let texture = self.textures
+            .get_mut(&texture_cell)
+            .expect("Textures written have to be in the textures collection");
 
-            if texture_cell.is_root() && texture.is_available() {
-                self.num_root_textures_available += 1;
-                assert!(self.num_root_textures_available <= 12);
-                //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
+        texture.register_available_tile(cell, &self.config);
 
-                if self.num_root_textures_available == 12 {
-                    self.ready = true;
-                }
+        if texture_cell.is_root() && texture.is_available() {
+            self.num_root_textures_available += 1;
+            assert!(self.num_root_textures_available <= 12);
+            //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
+
+            if self.num_root_textures_available == 12 {
+                self.ready = true;
             }
-        } else {
-            // Textures written have to be in the textures collection
-            unreachable!();
         }
     }
 
@@ -514,26 +513,6 @@ impl ImageSurveyTextures {
             )))
         }
     }
-
-    /*// This is called when the HiPS changes
-    pub fn clear(&mut self) -> Result<(), JsValue> {
-        // Size i.e. the num of textures is the same
-        // no matter the HiPS config
-        self.heap.clear();
-
-        for texture in self.textures.values() {
-            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
-        }
-        self.textures.clear();
-
-        self.ready = false;
-        self.num_root_textures_available = 0;
-
-        let texture_2d_array = create_texture_array(&self.gl, &self.config)?;
-        self.texture_2d_array = Rc::new(texture_2d_array);
-
-        Ok(())
-    }*/
 
     /// Accessors
     pub fn get(&self, texture_cell: &HEALPixCell) -> Option<&Texture> {

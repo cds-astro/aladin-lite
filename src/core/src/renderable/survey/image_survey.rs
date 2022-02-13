@@ -431,7 +431,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (vertices.len() / 13) as u16;
+    let off_idx_vertices = (vertices.len() / 12) as u16;
     //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
@@ -465,10 +465,9 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
             if let Some(ndc_pos) = P::model_to_ndc_space(&model_pos, camera) {
                 vertices.extend(
                     [
-                        lon as f32,
-                        lat as f32,
-                        ndc_pos.x as f32,
-                        ndc_pos.y as f32,
+                        model_pos.x as f32,
+                        model_pos.y as f32,
+                        model_pos.z as f32,
                         uv_s_vertex_0.x,
                         uv_s_vertex_0.y,
                         uv_s_vertex_0.z,
@@ -485,9 +484,8 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                 //valid[i][j] = false;
                 vertices.extend(
                     [
-                        lon as f32,
-                        lat as f32,
                         1.0,
+                        0.0,
                         0.0,
                         uv_s_vertex_0.x,
                         uv_s_vertex_0.y,
@@ -553,7 +551,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     let n_vertices_per_segment = n_segments_by_side + 1;
 
-    let off_idx_vertices = (position.len() / 2) as u16;
+    let off_idx_vertices = (position.len() / 3) as u16;
     //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
@@ -589,7 +587,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                 Vector2::new(1.0, 0.0)
             };
 
-            position.extend([ndc_pos.x as f32, ndc_pos.y as f32]);
+            position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
             uv_start.extend([uv_s_vertex_0.x as f32, uv_s_vertex_0.y as f32, uv_s_vertex_0.z as f32]);
             uv_end.extend([uv_e_vertex_0.x as f32, uv_e_vertex_0.y as f32, uv_e_vertex_0.z as f32]);
             time_tile_received.push(alpha);
@@ -631,7 +629,7 @@ pub struct ImageSurvey {
     #[cfg(feature = "webgl2")]
     vertices: Vec<f32>,
     #[cfg(feature = "webgl1")]
-    // layout (location = 0) in vec2 position;
+    // layout (location = 0) in vec3 position;
     position: Vec<f32>,
     #[cfg(feature = "webgl1")]
     // layout (location = 1) in vec3 uv_start;
@@ -677,7 +675,7 @@ impl ImageSurvey {
         let mut vao = VertexArrayObject::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
-        // layout (location = 1) in vec2 position;
+        // layout (location = 1) in vec3 position;
         // layout (location = 2) in vec3 uv_start;
         // layout (location = 3) in vec3 uv_end;
         // layout (location = 4) in float time_tile_received;
@@ -689,9 +687,9 @@ impl ImageSurvey {
         let idx_vertices = vec![];
         vao.bind_for_update()
             .add_array_buffer(
-                13 * std::mem::size_of::<f32>(),
-                &[2, 2, 3, 3, 1, 1, 1],
-                &[0, 2 * std::mem::size_of::<f32>(), 4 * std::mem::size_of::<f32>(), 7 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>(), 12 * std::mem::size_of::<f32>()],
+                12 * std::mem::size_of::<f32>(),
+                &[3, 3, 3, 1, 1, 1],
+                &[0, 3 * std::mem::size_of::<f32>(), 6 * std::mem::size_of::<f32>(), 9 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>()],
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&vertices),
             )
@@ -740,7 +738,7 @@ impl ImageSurvey {
         let mut vao = VertexArrayObject::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
-        // layout (location = 1) in vec2 position;
+        // layout (location = 1) in vec3 position;
         // layout (location = 2) in vec3 uv_start;
         // layout (location = 3) in vec3 uv_end;
         // layout (location = 4) in float time_tile_received;
@@ -756,8 +754,8 @@ impl ImageSurvey {
 
         vao.bind_for_update()
             .add_array_buffer(
-                2,
-                "ndc_pos",
+                3,
+                "position",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&position),
             )
@@ -938,7 +936,7 @@ impl ImageSurvey {
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
-        vao.update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
+        vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
             .update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
             .update_array("uv_end", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_end))
             .update_array("time_tile_received", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.time_tile_received))
@@ -987,7 +985,6 @@ impl Draw for ImageSurvey {
             return;
         }
 
-
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
         //let raytracing = true;
         if raytracing {
@@ -1033,16 +1030,16 @@ impl Draw for ImageSurvey {
         let recompute_positions = new_cells_added;
         {
             let recompute_vertices =
-                recompute_positions | self.textures.is_there_available_tiles() | camera.has_moved();
+                recompute_positions | self.textures.is_there_available_tiles();
             
-                let shader = color
-                .get_raster_shader::<P>(
-                    &self.gl,
-                    shaders,
-                    self.textures.config.tex_storing_integers,
-                    self.textures.config.tex_storing_unsigned_int,
-                )
-                .bind(&self.gl);
+            let shader = color
+            .get_raster_shader::<P>(
+                &self.gl,
+                shaders,
+                self.textures.config.tex_storing_integers,
+                self.textures.config.tex_storing_unsigned_int,
+            )
+            .bind(&self.gl);
 
             //self.gl.bind_vertex_array(Some(&self.vao));
             

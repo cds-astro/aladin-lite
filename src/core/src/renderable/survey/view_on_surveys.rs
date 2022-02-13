@@ -163,7 +163,7 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
     let depth_offset_texture = log_2(num_pixels);
     // The depth of the texture corresponds to the depth of a pixel
     // minus the offset depth of the texture
-    let mut depth_texture = depth_pixel - (depth_offset_texture as f32);
+    let mut depth_texture = depth_pixel - (depth_offset_texture as f32) - 1.0;
     if depth_texture < 0.0 {
         depth_texture = 0.0;
     }

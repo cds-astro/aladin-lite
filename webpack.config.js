@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
+//const { VueLoaderPlugin } = require('vue-loader')
 
 var ROOT_PATH = path.resolve(__dirname);
 var SHADER_PATH = path.resolve(ROOT_PATH, 'src/core/src/shaders');
@@ -70,7 +70,7 @@ module.exports = {
           TextDecoder: ['text-encoding', 'TextDecoder'],
           TextEncoder: ['text-encoding', 'TextEncoder']
         }),
-        new VueLoaderPlugin()
+        //new VueLoaderPlugin()
     ],
     devServer:{
         static: 'dist'
@@ -95,10 +95,10 @@ module.exports = {
                   'css-loader',
                 ]
             },
-            {
+            /*{
                 test: /\.vue$/,
                 loader: 'vue-loader'
-            },
+            },*/
         ],
     },
     mode: 'production',

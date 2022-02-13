@@ -307,8 +307,8 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
+        _size: &Vector2<i32>,
     ) {
-        let _size = self.get_size();
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
@@ -425,8 +425,9 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
+        size: &Vector2<i32>,
     ) {
-        self.image.tex_sub_image_3d(textures, offset);
+        self.image.tex_sub_image_3d(textures, offset, size);
     }
 
     // The size of the image

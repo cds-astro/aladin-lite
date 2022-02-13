@@ -283,7 +283,8 @@ where
             idx_slice,
         );
 
-        //let image = Box::new(image) as Box<dyn Image>;
+        //let max_size_to_cpy = 64;
+
         ImageTile2GpuTask {
             offset,
             image,
@@ -291,9 +292,11 @@ where
         }
     }
 
-    pub fn tex_sub(&self) {
+    pub fn tex_sub(&self) -> bool {
+        let size = self.image.get_size();
         self.image
-            .tex_sub_image_3d(&self.texture_array, &self.offset);
+            .tex_sub_image_3d(&self.texture_array, &self.offset, &size);
+        true
     }
 }
 
@@ -305,8 +308,11 @@ where
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
-        self.tex_sub();
-
-        Poll::Ready(())
+        let finished = self.tex_sub();
+        if finished {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
+        }
     }
 }

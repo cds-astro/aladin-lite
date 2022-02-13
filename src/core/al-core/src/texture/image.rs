@@ -173,6 +173,7 @@ pub trait Image {
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
+        size: &Vector2<i32>,
     );
 
     // The size of the image
@@ -195,9 +196,10 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
+        size: &Vector2<i32>,
     ) {
         let image = &**self;
-        image.tex_sub_image_3d(textures, offset);
+        image.tex_sub_image_3d(textures, offset, size);
     }
 
     fn get_size(&self) -> &Vector2<i32> {
@@ -235,14 +237,15 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
+        size: &Vector2<i32>,
     ) {
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                 offset.x,
                 offset.y,
-                self.size.x,
-                self.size.y,
+                size.x,
+                size.y,
                 Some(self.buf.as_ref()),
             );
     }

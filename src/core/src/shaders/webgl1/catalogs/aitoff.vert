@@ -3,7 +3,6 @@ precision lowp float;
 attribute vec2 offset;
 attribute vec2 uv;
 attribute vec3 center;
-attribute vec2 center_lonlat;
 
 uniform float current_time;
 uniform mat4 model;

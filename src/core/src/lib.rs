@@ -445,7 +445,7 @@ impl WebClient {
         //let fov = fov as f32;
         let fov = ArcDeg(fov).into();
 
-        self.app.start_zooming_to(fov);
+        self.app.set_fov(fov);
         //self.projection.set_fov(&mut self.app, ArcDeg(fov).into());
 
         Ok(())
@@ -645,6 +645,8 @@ impl WebClient {
     ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = registerWheelEvent)]
     pub fn wheel_event_callback(&mut self, delta: f64) -> Result<(), JsValue> {
+        // todo: move that in the javascript section
+        // events do have nothing to do in the core
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {
@@ -657,7 +659,7 @@ impl WebClient {
         };
 
         let target_fov = ArcDeg(target_fov).into();
-        self.app.start_zooming_to(target_fov);
+        self.app.set_fov(target_fov);
 
         Ok(())
     }

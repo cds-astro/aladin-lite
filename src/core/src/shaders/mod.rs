@@ -195,7 +195,7 @@ impl SendUniforms for Colormaps {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniform("colormaps", &self.tex)
-            .attach_uniform("num_colormaps", &(self.colormaps.len() as i32));
+            .attach_uniform("num_colormaps", &(self.colormaps.len() as f32));
 
         shader
     }
@@ -203,7 +203,7 @@ impl SendUniforms for Colormaps {
 
 impl SendUniforms for Colormap {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap_id", &self.id);
+        shader.attach_uniform("colormap_id", &(self.id as f32));
 
         shader
     }

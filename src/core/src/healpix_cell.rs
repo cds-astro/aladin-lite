@@ -147,24 +147,7 @@ impl Ord for HEALPixCell {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct HEALPixCellUniqOrd<'a> {
-    cell: &'a HEALPixCell,
-}
 
-impl<'a> PartialOrd for HEALPixCellUniqOrd<'a> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let u1 = self.cell.uniq();
-        let u2 = other.cell.uniq();
-
-        u1.partial_cmp(&u2)
-    }
-}
-impl<'a> Ord for HEALPixCellUniqOrd<'a> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(&other).unwrap()
-    }
-}
 pub struct SphereSubdivided;
 
 impl SphereSubdivided {

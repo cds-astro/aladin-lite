@@ -79,9 +79,9 @@ impl RecomputeRasterizer for Move {
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
-        let mut textures = TexturesToDraw::new(cells_to_draw.len());
+        let mut textures = TexturesToDraw::new(view.num_of_cells());
 
-        for cell in cells_to_draw.iter() {
+        for cell in cells_to_draw {
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
@@ -124,9 +124,9 @@ impl RecomputeRasterizer for Zoom {
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
-        let mut textures = TexturesToDraw::new(cells_to_draw.len());
+        let mut textures = TexturesToDraw::new(view.num_of_cells());
 
-        for cell in cells_to_draw.iter() {
+        for cell in cells_to_draw {
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
@@ -173,19 +173,20 @@ impl RecomputeRasterizer for UnZoom {
         let max_depth = survey.config().get_max_depth();
 
         // We do not draw the parent cells if the depth has not decreased by at least one
-        let cells_to_draw = if depth < max_depth && view.has_depth_decreased_while_unzooming(camera)
+        let cells_to_draw = /*if depth < max_depth && view.has_depth_decreased_while_unzooming(camera)
         {
             Cow::Owned(crate::renderable::survey::view_on_surveys::get_cells_in_camera(
                 depth + 1,
                 camera,
             ))
-        } else {
-            Cow::Borrowed(view.get_cells())
-        };
+        } else {*/
+            //Cow::Borrowed(&view.get_cells())
+            view.get_cells();
+        //};
 
-        let mut textures = TexturesToDraw::new(cells_to_draw.len());
+        let mut textures = TexturesToDraw::new(view.num_of_cells());
 
-        for cell in cells_to_draw.iter() {
+        for cell in cells_to_draw {
             let parent_cell = cell.parent();
 
             if survey.contains(&parent_cell) {
@@ -371,10 +372,11 @@ impl SendUniforms for Color {
                 param,
                 reversed,
             } => {
+                let reversed = *reversed as u8 as f32;
                 shader
                     .attach_uniforms_from(colormap)
                     .attach_uniforms_from(param)
-                    .attach_uniform("reversed", reversed);
+                    .attach_uniform("reversed", &reversed);
             }
             Color::Grayscale2Color { color, k, param } => {
                 shader
@@ -829,6 +831,10 @@ impl ImageSurvey {
         })
     }
 
+    fn reset_frame(&mut self) {
+        self.view.reset_frame();
+    }
+
     pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<PixelType, JsValue> {
         // Get the array of textures from that survey
         let pos_tex = self
@@ -1001,7 +1007,7 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
+                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps);
@@ -1026,11 +1032,9 @@ impl Draw for ImageSurvey {
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
 
-        let new_cells_added = self.view.is_there_new_cells_added();
-        let recompute_positions = new_cells_added;
+        let new_cells_in_fov = self.view.is_there_new_cells_added();
         {
-            let recompute_vertices =
-                recompute_positions | self.textures.is_there_available_tiles();
+            let recompute_vertices = new_cells_in_fov | self.textures.is_there_available_tiles();
             
             let shader = color
             .get_raster_shader::<P>(
@@ -1050,7 +1054,7 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("current_depth", &(self.view.get_cells().get_depth() as i32))
+                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps)
@@ -1200,6 +1204,12 @@ impl ImageSurveys {
 
             raytracer,
             gl,
+        }
+    }
+
+    pub fn reset_frame(&mut self) {
+        for survey in self.surveys.values_mut() {
+            survey.reset_frame();
         }
     }
 

@@ -4,7 +4,6 @@ precision lowp float;
 layout (location = 0) in vec2 offset;
 layout (location = 1) in vec2 uv;
 layout (location = 2) in vec3 center;
-layout (location = 3) in vec2 center_lonlat;
 
 uniform float current_time;
 uniform mat4 inv_model;

@@ -4,10 +4,6 @@ pub struct Source {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-
-    pub lon: f32,
-    pub lat: f32,
-    //pub mag: f32,
 }
 
 impl Source {
@@ -18,8 +14,12 @@ impl Source {
 
 impl Eq for Source {}
 
+use cgmath::Vector3;
+
 use crate::math;
 use crate::angle::Angle;
+use crate::math::LonLat;
+
 impl Source {
     pub fn new(lon: Angle<f32>, lat: Angle<f32> /*, mag: f32*/) -> Source {
         let world_pos = math::radec_to_xyz(lon, lat);
@@ -28,18 +28,20 @@ impl Source {
         let y = world_pos.y;
         let z = world_pos.z;
 
-        let lon = lon.0;
-        let lat = lat.0;
-
         Source {
             x,
             y,
             z,
 
-            lon,
-            lat,
+            //lon,
+            //lat,
             //mag
         }
+    }
+
+    pub fn lonlat(&self) -> (f32, f32) {
+        let lonlat = Vector3::new(self.x, self.y, self.z).lonlat();
+        (lonlat.0.0, lonlat.1.0)
     }
 }
 

@@ -8,6 +8,7 @@ pub mod texture;
 pub mod webgl_ctx;
 #[macro_use]
 pub mod log;
+pub use log::log;
 
 pub use texture::format;
 pub use texture::image;

@@ -235,6 +235,7 @@ impl UniformType for Texture2D {
             gl.uniform1i(location, CUR_IDX_TEX_UNIT as i32);
 
             CUR_IDX_TEX_UNIT += 1;
+            crate::log(&format!("idx tex unit {:?}", CUR_IDX_TEX_UNIT));
         };
 
 

@@ -36,6 +36,5 @@ pub fn unmortonize(mut x: u64) -> (u32, u32) {
 
 pub unsafe fn flatten_vec<I, O>(mut v: Vec<I>) -> Vec<O> {
     let new_len = v.len() * std::mem::size_of::<I>() / std::mem::size_of::<O>();
-    v.set_len(new_len);
-    std::mem::transmute(v)
+    Vec::from_raw_parts(v.as_mut_ptr() as *mut O, new_len, new_len)
 }

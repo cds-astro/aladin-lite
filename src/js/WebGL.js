@@ -35,12 +35,12 @@ export let WebGLCtx = (function() {
 })();
 
 function checkForWebGL2Support() {        
-    const gl = document
+    /*const gl = document
         .createElement('canvas')
         .getContext('webgl2');
-    return gl;
+    return gl;*/
     // Run WebGL1 version only
-    //return false;
+    return false;
 }
 
 

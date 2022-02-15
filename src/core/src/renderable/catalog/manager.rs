@@ -190,9 +190,8 @@ impl Manager {
         let cells = if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
             HEALPixCells::allsky(0)
         } else {
-            let HEALPixCells { mut depth, cells } = view.get_cells();
-            let cells = cells
-                .iter()
+            let mut depth = 0;
+            let cells = view.get_cells()
                 .map(|&cell| {
                     let d = cell.depth();
                     if d > 7 {
@@ -223,7 +222,7 @@ impl Manager {
         fbo: &FrameBufferObject,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
-
+        al_core::log("draw catalogs");
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, camera, colormaps, fbo)?;
         }
@@ -243,13 +242,9 @@ pub struct Catalog {
     strength: f32,
     current_sources: Vec<f32>,
     sources: Vec<f32>,
-    #[cfg(feature = "webgl1")]
-    center: Vec<f32>,
-    #[cfg(feature = "webgl1")]
-    center_lonlat: Vec<f32>,
     vertex_array_object_catalog: VertexArrayObject,
 }
-
+use al_core::SliceData;
 use crate::healpix_cell::HEALPixCell;
 use crate::{camera::CameraViewPort, utils, projection::Projection};
 use cgmath::Vector2;
@@ -272,15 +267,6 @@ impl Catalog {
         let strength = 1_f32;
         let indices = SourceIndices::new(&mut sources);
         let num_instances = sources.len() as i32;
-        #[cfg(feature = "webgl1")]
-        let (center, center_lonlat) = sources.iter()
-            .map(|s| {
-                ((s.x, s.y, s.z), (s.lon, s.lat))
-            }).unzip();
-        #[cfg(feature = "webgl1")]
-        let center = unsafe { utils::flatten_vec(center) };
-        #[cfg(feature = "webgl1")]
-        let center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
 
         let sources = unsafe { utils::flatten_vec(sources) };
         let vertex_array_object_catalog = {
@@ -296,14 +282,14 @@ impl Catalog {
                 0.0_f32, 1.0_f32,
             ];
             #[cfg(feature = "webgl1")]
-            let offset = vec![
+            let offset = [
                 -0.5_f32, -0.5_f32,
                 0.5_f32, -0.5_f32,
                 0.5_f32, 0.5_f32,
                 -0.5_f32, 0.5_f32,
             ];
             #[cfg(feature = "webgl1")]
-            let uv = vec![
+            let uv = [
                 0.0_f32, 0.0_f32,
                 1.0_f32, 0.0_f32,
                 1.0_f32, 1.0_f32,
@@ -328,8 +314,8 @@ impl Catalog {
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
                     std::mem::size_of::<Source>(),
-                    &[3, 2],
-                    &[0, 3 * std::mem::size_of::<f32>()],
+                    &[3],
+                    &[0],
                     WebGl2RenderingContext::DYNAMIC_DRAW,
                     VecData(&sources),
                 )
@@ -347,26 +333,20 @@ impl Catalog {
                     2,
                     "offset",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(offset.as_ref()),
+                    SliceData(&offset as &[f32]),
                 )
                 .add_array_buffer(
                     2,
                     "uv",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(uv.as_ref()),
+                    SliceData(&uv as &[f32]),
                 )
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
                     3,
                     "center",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&center),
-                )
-                .add_instanced_array_buffer(
-                    2,
-                    "center_lonlat",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&center_lonlat),
+                    VecData(&sources),
                 )
                 // Set the element buffer
                 .add_element_buffer(
@@ -387,10 +367,6 @@ impl Catalog {
             indices,
             current_sources,
             sources,
-            #[cfg(feature = "webgl1")]
-            center,
-            #[cfg(feature = "webgl1")]
-            center_lonlat,
 
             vertex_array_object_catalog,
         }
@@ -453,27 +429,10 @@ impl Catalog {
         // Update the vertex buffer
         self.num_instances = (self.current_sources.len() / Source::num_f32()) as i32;
         #[cfg(feature = "webgl1")]
-        {
-            /*let mut copy = self.current_sources.clone();
-            let sources_packed_f32 = unsafe {
-                Vec::from_raw_parts(
-                    copy.as_mut_ptr() as *mut [f32; Source::num_f32()],
-                    self.num_instances as usize,
-                    self.num_instances as usize
-                )
-            };
-            let (center, center_lonlat) = sources_packed_f32.into_iter()
-                .map(|s| {
-                    ((s[0], s[1], s[2]), (s[3], s[4]))
-                }).unzip();
-            self.center = unsafe { utils::flatten_vec(center) };
-            self.center_lonlat = unsafe { utils::flatten_vec(center_lonlat) };
-            self.vertex_array_object_catalog
-                .bind_for_update()
-                    .update_instanced_array("center", VecData(&self.center))
-                    .update_instanced_array("center_lonlat", VecData(&self.center_lonlat));*/
-        }
-
+        self.vertex_array_object_catalog
+            .bind_for_update()
+            .update_instanced_array("center", VecData(&self.current_sources));
+        
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
@@ -492,7 +451,7 @@ impl Catalog {
         // If the catalog is transparent, simply discard the draw
         if self.alpha > 0_f32 {
             // Render to the FRAMEBUFFER
-                // Render the scene
+            // Render the scene
             manager.fbo.draw_onto(|| {
                 gl.clear_color(0.0, 0.0, 0.0, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -537,7 +496,7 @@ impl Catalog {
                     .attach_uniform("alpha", &self.alpha) // Alpha channel
                     .attach_uniforms_from(&self.colormap)
                     .attach_uniforms_from(colormaps)
-                    .attach_uniform("reversed", &false)
+                    .attach_uniform("reversed", &0.0)
                     .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,

@@ -108,18 +108,6 @@ impl VertexAttribPointerType for u8 {
         data: B,
         target: u32,
     ) {
-        /*let mem = wasm_bindgen::memory()
-            .unchecked_ref::<WebAssembly::Memory>()
-            .buffer();
-        let mem = Self::ArrayBufferView::new(&mem);
-        let ptr = (data.ptr() as u32) / (std::mem::size_of::<Self>() as u32);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length(
-            target,
-            0 as i32,
-            &mem,
-            ptr,
-            data.len() as u32
-        );*/
         let data = Self::array_buffer_view(data);
         gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
     }

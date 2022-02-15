@@ -237,9 +237,7 @@ where
                 let textures = survey.get_textures();
                 let view = survey.get_view();
 
-                let texture_cells_in_fov = view.get_cells();
-
-                for texture_cell in texture_cells_in_fov.iter() {
+                for texture_cell in view.get_cells() {
                     for cell in texture_cell.get_tile_cells(&textures.config()) {
                         let already_available = textures.contains_tile(&cell);
                         let is_cell_new = view.is_new(&cell);
@@ -360,7 +358,7 @@ pub trait AppTrait {
     fn set_center(&mut self, lonlat: &LonLatT<f64>);
     fn start_moving_to(&mut self, lonlat: &LonLatT<f64>);
     fn rotate_around_center(&mut self, theta: ArcDeg<f64>);
-    fn start_zooming_to(&mut self, fov: Angle<f64>);
+    fn set_fov(&mut self, fov: Angle<f64>);
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64);
     fn reset_north_orientation(&mut self);
 
@@ -441,7 +439,7 @@ where
         }
 
         // Check if there is an zoom animation to do
-        if let Some(ZoomAnimation {
+        /*if let Some(ZoomAnimation {
             time_start_anim,
             start_fov,
             goal_fov,
@@ -474,7 +472,7 @@ where
             if err < thresh {
                 self.zoom_animation = None;
             }
-        }
+        }*/
 
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -501,7 +499,6 @@ where
 
             self.camera.rotate::<P>(&axis, d);
             self.look_for_new_tiles();
-
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
             // speed
@@ -647,6 +644,8 @@ where
             self.final_rendering_pass.draw_on_screen(&self.fbo_view);
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
         }
+
+        self.surveys.reset_frame();
 
         Ok(())
     }
@@ -996,6 +995,10 @@ where
             axis,
             time_start_anim: Time::now(),
         });
+
+        self.look_for_new_tiles();
+
+        self.request_redraw = true;
     }
 
     fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
@@ -1026,11 +1029,13 @@ where
         self.camera.get_rotation_around_center()
     }
 
-    fn start_zooming_to(&mut self, fov: Angle<f64>) {
+    fn set_fov(&mut self, fov: Angle<f64>) {
         // For the moment, no animation is triggered.
         // The fov is directly set
         self.camera.set_aperture::<P>(fov);
         self.look_for_new_tiles();
+
+        self.request_redraw = true;
     }
 
     fn project_line(

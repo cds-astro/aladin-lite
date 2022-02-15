@@ -210,9 +210,9 @@ const fn num_bits<T>() -> usize {
 }
 
 #[inline]
-pub fn log_2(x: i32) -> i8 {
+pub fn log_2(x: i32) -> u8 {
     assert!(x > 0);
-    (num_bits::<i32>() as u32 - x.leading_zeros() - 1) as i8
+    (num_bits::<i32>() as u32 - x.leading_zeros() - 1) as u8
 }
 
 /// Compute the negative branch of the lambert fonction (W_{-1})

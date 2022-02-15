@@ -127,18 +127,32 @@ impl ArrayBufferInstanced {
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn set_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
         let loc = shader.get_attrib_location(&self.gl, location) as u32;
 
         assert_eq!(self.sizes.len(), 1);
         //crate::log::log(&format("{:?}", loc));
-        T::vertex_attrib_pointer_with_i32(
+        /*T::vertex_attrib_pointer_with_i32(
             &self.gl,
             loc,
             *self.sizes.first().unwrap() as i32,
             0,
             0,
+        );*/
+        self.gl.vertex_attrib_pointer_with_i32(
+            loc,
+            *self.sizes.first().unwrap() as i32,
+            WebGlRenderingCtx::FLOAT,
+            false,
+            self.stride as i32,
+            0,
         );
+        self.gl.enable_vertex_attrib_array(loc);
+
+        #[cfg(feature = "webgl2")]
+        self.gl.vertex_attrib_divisor(loc, 1);
+        #[cfg(feature = "webgl1")]
+        self.gl.ext.angles.vertex_attrib_divisor_angle(loc, 1);
     }
 
     pub fn update<'a, B: BufferDataStorage<'a, f32>>(&self, buffer: B) {

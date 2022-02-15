@@ -22,7 +22,7 @@ module.exports = {
     },
     plugins: [
         //new HtmlWebpackPlugin(),
-        // Webgl1 app
+        // WebGL1 app
         new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "src/core"),
             // Check https://rustwasm.github.io/wasm-pack/book/commands/build.html for
@@ -66,7 +66,7 @@ module.exports = {
             // pluginLogLevel: 'info'
         }),
         // WebGL2 app
-        new WasmPackPlugin({
+        /*new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "src/core"),
             // Check https://rustwasm.github.io/wasm-pack/book/commands/build.html for
             // the available set of arguments.
@@ -107,7 +107,7 @@ module.exports = {
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
             // pluginLogLevel: 'info'
-        }),
+        }),*/
         // Have this example work in Edge which doesn't ship `TextEncoder` or
         // `TextDecoder` at this time.
         new webpack.ProvidePlugin({

@@ -13,7 +13,8 @@ impl SourceIndices {
         let mut healpix_idx: Box<[Option<Range<u32>>]> = vec![None; 196608].into_boxed_slice();
 
         for (idx_source, s) in sources.iter().enumerate() {
-            let idx = healpix::nested::hash(7, s.lon as f64, s.lat as f64) as usize;
+            let (lon, lat) = s.lonlat();
+            let idx = healpix::nested::hash(7, lon as f64, lat as f64) as usize;
 
             if let Some(ref mut healpix_idx) = &mut healpix_idx[idx] {
                 healpix_idx.end += 1;

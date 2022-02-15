@@ -152,8 +152,11 @@ impl Stream for BuildCatalogIndex {
                 let mut rng = StdRng::seed_from_u64(0);
                 // Get the chunk to sort
                 (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
-                    let idx1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
-                    let idx2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
+                    let (s1_lon, s1_lat) = s1.lonlat();
+                    let (s2_lon, s2_lat) = s2.lonlat();
+
+                    let idx1 = healpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
+                    let idx2 = healpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
 
                     let ordering = idx1.partial_cmp(&idx2).unwrap();
                     match ordering {
@@ -194,8 +197,11 @@ impl Stream for BuildCatalogIndex {
                     } else {
                         let s1 = &self.sources[self.j];
                         let s2 = &self.sources[self.i];
-                        let p1 = healpix::nested::hash(7, s1.lon as f64, s1.lat as f64);
-                        let p2 = healpix::nested::hash(7, s2.lon as f64, s2.lat as f64);
+                        let (s1_lon, s1_lat) = s1.lonlat();
+                        let (s2_lon, s2_lat) = s2.lonlat();
+
+                        let p1 = healpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
+                        let p2 = healpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
                         if p1 <= p2 {
                             let v = self.sources[self.j].clone();
                             self.j += 1;

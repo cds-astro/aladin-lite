@@ -299,9 +299,8 @@ where
     }
 
     pub fn tex_sub(&self) -> bool {
-        let size = self.image.get_size();
         self.image
-            .tex_sub_image_3d(&self.texture_array, &self.offset, &size);
+            .tex_sub_image_3d(&self.texture_array, &self.offset);
         true
     }
 }

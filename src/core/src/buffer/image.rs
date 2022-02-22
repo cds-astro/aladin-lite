@@ -297,17 +297,12 @@ where
 {
     type T = F;
 
-    /*fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self {
-        unimplemented!()
-    }*/
-
     fn tex_sub_image_3d(
         &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-        _size: &Vector2<i32>,
     ) {
         textures[offset.z as usize]
             .bind()
@@ -384,18 +379,20 @@ pub struct FitsImage<F>
 where
     F: FitsImageFormat,
 {
+    // Fits header properties
     pub blank: Option<f32>,
     pub bzero: f32,
     pub bscale: f32,
 
-    layout: std::alloc::Layout,
-
-    aligned_raw_bytes_ptr: *mut u8,
-    aligned_data_raw_bytes_ptr: *const u8,
-    num_pixels: usize,
+    // Tile size
     size: Vector2<i32>,
 
-    format: std::marker::PhantomData<F>
+    // Aligned allocation layout
+    layout: std::alloc::Layout,
+    // Raw pointer to the fits in memory
+    aligned_raw_bytes_ptr: *mut u8,
+    // Raw pointer to the data part of the fits
+    aligned_data_raw_bytes_ptr: *const F::Type,
 }
 
 impl<F> FitsImage<F>
@@ -454,15 +451,18 @@ where
         };
 
         Ok(Self {
+            // Metadata fits header properties
             blank,
             bzero,
             bscale,
-            layout,
+            // Tile size
             size: Vector2::new(size, size),
-            num_pixels,
+
+            // Allocation info of the layout
+            layout,
             aligned_raw_bytes_ptr,
-            aligned_data_raw_bytes_ptr: data.as_ptr() as *const _,
-            format: std::marker::PhantomData,
+
+            aligned_data_raw_bytes_ptr: data.as_ptr(),
         })
     }
 }
@@ -474,43 +474,20 @@ where
 {
     type T = F;
 
-    /*fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> FitsImage<F> {
-        let size_buf = (width * width * (Self::T::NUM_CHANNELS as i32)) as usize;
-
-        let pixels = pixel_fill
-            .as_ref()
-            .iter()
-            .cloned()
-            .cycle()
-            .take(size_buf)
-            .collect::<Vec<_>>();
-
-        let image = ImageBuffer::<Self::T>::new(&pixels[..], width);
-
-        FitsImage {
-            blank: None,
-            bzero: 0.0,
-            bscale: 1.0,
-            image,
-        }
-    }*/
-
     fn tex_sub_image_3d(
         &self,
         // The texture array
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-        size: &Vector2<i32>,
     ) {
+        let num_pixels = self.size.x * self.size.y;
         let slice_raw_bytes = unsafe {
             std::slice::from_raw_parts(
                 self.aligned_data_raw_bytes_ptr as *const _, 
-                self.num_pixels
+                num_pixels as usize
             )
         };
-
-        //self.image.tex_sub_image_3d(textures, offset, size);
 
         let array = unsafe { F::view(slice_raw_bytes) };
         textures[offset.z as usize]
@@ -518,8 +495,8 @@ where
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
                 offset.x,
                 offset.y,
-                size.x,
-                size.y,
+                self.size.x,
+                self.size.y,
                 Some(array.as_ref()),
             );
     }

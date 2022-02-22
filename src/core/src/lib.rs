@@ -646,7 +646,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = registerWheelEvent)]
     pub fn wheel_event_callback(&mut self, delta: f64) -> Result<(), JsValue> {
         // todo: move that in the javascript section
-        // events do have nothing to do in the core
+        // events code do have nothing to do in the core
         let zooming = delta > 0.0;
         let cur_fov = self.app.get_fov();
         let target_fov = if zooming {

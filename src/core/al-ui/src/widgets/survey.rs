@@ -125,7 +125,6 @@ async fn request_survey_properties(url: String) -> PropertiesParsed {
         .map_err(|e| JsValue::from_str(&e.to_string()))
         .unwrap();
 
-    al_core::log::log(&format!("{:?}", res));
     let cuts: Vec<_> = res.hips_pixel_cut.split(" ").collect();
 
     let cuts = if cuts.len() != 2 {
@@ -337,8 +336,6 @@ impl SurveyWidget {
                 format,
             }
         };
-
-        al_core::log::log(&format!("{:?}", hips));
 
         hips
     }

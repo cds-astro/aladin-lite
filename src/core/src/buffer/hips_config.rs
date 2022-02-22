@@ -32,10 +32,10 @@ where
 
     #[inline]
     pub fn set_default_pixel(&mut self, pixel_fill: <F as ImageFormat>::P) {
-        if pixel_fill != self.pixel_fill {
+        /*if pixel_fill != self.pixel_fill {
             self.default = Rc::new(ImageBuffer::<F>::allocate(self.width, &pixel_fill));
             self.pixel_fill = pixel_fill;
-        }
+        }*/
     }
 }
 
@@ -266,7 +266,7 @@ impl HiPSConfig {
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
         let num_tile_per_side_texture = (texture_size / tile_size) as usize;
 
-        let delta_depth = math::log_2(num_tile_per_side_texture as i32) as u8;
+        let delta_depth = crate::math::log_2_unchecked(num_tile_per_side_texture) as u8;
         let num_tiles_per_texture = num_tile_per_side_texture * num_tile_per_side_texture;
 
         let max_depth_texture = max_depth_tile - delta_depth;

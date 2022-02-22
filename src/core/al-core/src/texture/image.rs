@@ -159,13 +159,30 @@ where
             format: std::marker::PhantomData,
         }
     }
+
+    pub fn allocate(
+        width: i32,
+        pixel_fill: &<<Self as Image>::T as ImageFormat>::P,
+    ) -> ImageBuffer<T> {
+        let size_buf = (width * width * (T::NUM_CHANNELS as i32)) as usize;
+
+        let pixels = pixel_fill
+            .as_ref()
+            .iter()
+            .cloned()
+            .cycle()
+            .take(size_buf)
+            .collect::<Vec<_>>();
+
+        ImageBuffer::<T>::new(&pixels[..], width)
+    }
 }
 
 use super::Texture2DArray;
 pub trait Image {
     type T: ImageFormat;
 
-    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self;
+    //fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self;
 
     fn tex_sub_image_3d(
         &self,
@@ -186,9 +203,9 @@ where
 {
     type T = I::T;
 
-    fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self {
+    /*fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self {
         Rc::new(I::allocate(width, pixel_fill))
-    }
+    }*/
 
     fn tex_sub_image_3d(
         &self,
@@ -213,23 +230,6 @@ where
     I: ImageFormat,
 {
     type T = I;
-
-    fn allocate(
-        width: i32,
-        pixel_fill: &<<Self as Image>::T as ImageFormat>::P,
-    ) -> ImageBuffer<Self::T> {
-        let size_buf = (width * width * (Self::T::NUM_CHANNELS as i32)) as usize;
-
-        let pixels = pixel_fill
-            .as_ref()
-            .iter()
-            .cloned()
-            .cycle()
-            .take(size_buf)
-            .collect::<Vec<_>>();
-
-        ImageBuffer::<Self::T>::new(&pixels[..], width)
-    }
 
     fn tex_sub_image_3d(
         &self,

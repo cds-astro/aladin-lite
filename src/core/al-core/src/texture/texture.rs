@@ -446,7 +446,6 @@ impl<'a> Texture2DBound<'a> {
         pixels: Option<&[u8]>,
     ) {
         let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
-
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(

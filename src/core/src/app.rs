@@ -184,7 +184,6 @@ where
         let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let ui = Gui::new(aladin_div_name, &gl)?;
 
-
         Ok(App {
             gl,
             ui,
@@ -229,52 +228,64 @@ where
         // Move the views of the different active surveys
         self.surveys.refresh_views(&self.camera);
         // Loop over the surveys
-        let mut tiles = Vec::new();
+        let mut not_available_tiles = Vec::new();
         for (survey_id, survey) in self.surveys.iter_mut() {
-            let already_available_cells = {
-                let mut already_available_cells = HashSet::new();
+            //let num_cells = survey.get_view().num_of_cells();
+            //let delta_depth = survey.get_textures().config().delta_depth();
+            //let num_tiles = num_cells * (1 << (2 * delta_depth));
+            //let mut already_available_tiles = Vec::with_capacity(num_tiles);
 
-                let textures = survey.get_textures();
-                let view = survey.get_view();
+            let mut tile_cells = survey.get_view().get_cells()
+                .map(|texture_cell| {
+                    texture_cell.get_tile_cells(survey.get_textures().config())
+                })
+                .flatten()
+                .collect::<Vec<_>>();
 
-                for texture_cell in view.get_cells() {
-                    for cell in texture_cell.get_tile_cells(&textures.config()) {
-                        let already_available = textures.contains_tile(&cell);
-                        let is_cell_new = view.is_new(&cell);
+            if survey.get_view().get_depth() >= 3 {
+                let tile_cells_ancestor = tile_cells.iter()
+                    .map(|tile_cell| {
+                        tile_cell.ancestor(3)
+                    })
+                    .collect::<HashSet<_>>();
+            
+                tile_cells.extend(tile_cells_ancestor);
+            }
 
-                        if already_available {
-                            // Remove and append the texture with an updated
-                            // time_request
-                            if is_cell_new {
-                                // New cells are
-                                self.time_start_blending = Time::now();
-                            }
-                            already_available_cells.insert((cell, is_cell_new));
-                        } else {
-                            // Submit the request to the buffer
-                            let format = textures.config().format();
-                            let root_url = survey_id.clone();
-                            let tile = Tile {
-                                root_url,
-                                format,
-                                cell,
-                            };
+            for tile_cell in tile_cells {
+                let already_available = survey.get_textures().contains_tile(&tile_cell);
+                let is_tile_new = survey.get_view().is_new(&tile_cell);
 
-                            tiles.push(tile);
-                        }
-                    }
+                if already_available {
+                    // Remove and append the texture with an updated
+                    // time_request
+                    //if is_tile_new {
+                        // The viewport has new cells. So we can potentially do
+                        // some GPU blending between tiles.
+                        // Thus, we update the uniform
+                    //    self.time_start_blending = Time::now();
+                    //}
+
+                    survey.get_textures_mut()
+                        .update_priority(&tile_cell);
+
+                    //already_available_tiles.push((tile_cell, is_tile_new));
+                } else {
+                    // Submit the request to the buffer
+                    let format = survey.get_textures().config().format();
+                    let root_url = survey_id.clone();
+                    let tile = Tile {
+                        root_url,
+                        format,
+                        cell: tile_cell,
+                    };
+
+                    not_available_tiles.push(tile);
                 }
-
-                already_available_cells
-            };
-            let textures = survey.get_textures_mut();
-
-            for (cell, is_new_cell) in already_available_cells {
-                textures.update_priority(&cell, is_new_cell);
             }
         }
         // Launch the new tile requests
-        self.downloader.request_tiles(tiles);
+        self.downloader.request_tiles(not_available_tiles);
     }
 
     // Run async tasks:
@@ -356,9 +367,10 @@ pub trait AppTrait {
     fn release_left_button_mouse(&mut self, sx: f32, sy: f32);
 
     fn set_center(&mut self, lonlat: &LonLatT<f64>);
+    fn set_fov(&mut self, fov: Angle<f64>);
+
     fn start_moving_to(&mut self, lonlat: &LonLatT<f64>);
     fn rotate_around_center(&mut self, theta: ArcDeg<f64>);
-    fn set_fov(&mut self, fov: Angle<f64>);
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64);
     fn reset_north_orientation(&mut self);
 

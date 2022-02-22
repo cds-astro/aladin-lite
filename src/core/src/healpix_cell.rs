@@ -80,7 +80,7 @@ impl HEALPixCell {
 
     // Returns the tile cells being contained into self
     #[inline]
-    pub fn get_tile_cells(&self, config: &HiPSConfig) -> HEALPixTilesIter {
+    pub fn get_tile_cells(&self, config: &HiPSConfig) -> impl Iterator<Item=HEALPixCell> {
         let delta_depth = config.delta_depth();
         self.get_children_cells(delta_depth)
     }
@@ -94,7 +94,29 @@ impl HEALPixCell {
         let depth_children = depth + delta_depth;
         HEALPixTilesIter::new(depth_children, first_idx..last_idx)
     }
+
+    #[inline]
+    pub fn allsky(depth: u8) -> impl Iterator<Item=HEALPixCell> {
+        let npix = 12 << ((depth as usize) << 1);
+        (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
+    }
 }
+
+pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;
+pub const ALLSKY_HPX_CELLS_D0: &'static [HEALPixCell; NUM_HPX_TILES_DEPTH_ZERO] = &[
+    HEALPixCell(0, 0),
+    HEALPixCell(0, 1),
+    HEALPixCell(0, 2),
+    HEALPixCell(0, 3),
+    HEALPixCell(0, 4),
+    HEALPixCell(0, 5),
+    HEALPixCell(0, 6),
+    HEALPixCell(0, 7),
+    HEALPixCell(0, 8),
+    HEALPixCell(0, 9),
+    HEALPixCell(0, 10),
+    HEALPixCell(0, 11),
+];
 
 use std::ops::Range;
 

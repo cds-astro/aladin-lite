@@ -137,7 +137,6 @@ impl RequestSystem {
                                     TileResolved::Found { image, time_req }
                                 } else {
                                     let err = image.err().unwrap();
-                                    al_core::log!(err);
                                     TileResolved::Missing { time_req }
                                 }
                             }

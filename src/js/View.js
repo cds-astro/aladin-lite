@@ -90,7 +90,7 @@ export let View = (function() {
             this.fov_limit = 180.0;
             
             this.healpixGrid = new HealpixGrid(this.imageCanvas);
-
+            this.then = Date.now();
             
             var lon, lat;
             lon = lat = 0;
@@ -173,7 +173,8 @@ export let View = (function() {
             this.pinchZoomParameters = {
                 isPinching: false, // true if a pinch zoom is ongoing
                 initialFov: undefined,
-                initialDistance: undefined
+                initialDistance: undefined,
+                initialAccDelta: 0.0,
             };
 
             // two-fingers rotation
@@ -899,8 +900,32 @@ export let View = (function() {
             }*/
             // The value of the field of view is determined
             // inside the backend
-            view.aladin.webglAPI.registerWheelEvent(delta);
-            view.updateZoomState();
+            const si = 500000.0;
+            const alpha = 40.0;
+            let off = 0.00001 * delta;
+
+            //if (zooming) {
+                view.pinchZoomParameters.initialAccDelta += off;
+                // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
+                //new_fov = Math.max(2e-10, new_fov);
+            //} else {
+                if (view.pinchZoomParameters.initialAccDelta <= 0.0) {
+                    view.pinchZoomParameters.initialAccDelta = 1e-3;
+                }
+                //new_fov = Math.min(1000.0, new_fov);
+            //};
+
+            let new_fov = si / Math.pow(view.pinchZoomParameters.initialAccDelta, alpha);
+            if (new_fov > 1000.0) {
+                new_fov = 1000.0;
+                view.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+            } 
+            if (new_fov < 2e-10) {
+                new_fov = 2e-10;
+                view.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+            } 
+
+            view.setZoom(new_fov);
 
             if (! view.debounceProgCatOnZoom) {
                 var self = view;
@@ -1041,334 +1066,345 @@ export let View = (function() {
      * redraw the whole view
      */
     View.prototype.redraw = function() {
-
-        var saveNeedRedraw = this.needRedraw;
-        var now = Date.now();
-        var dt = now - this.prev;
-
-        this.ready = this.aladin.webglAPI.isReady();
-        if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
-            try {
-                console.log("sdfff ", this.imageSurveysToSet)
-                this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
-            } catch(e) {
-                console.warn(e)
-            }
-
-            this.imageSurveysToSet = null;
-            this.firstHiPS = false;
-        }
-
-        try {
-            this.aladin.webglAPI.update(dt, this.needRedraw);
-        } catch(e) {
-            console.error(e)
-        }
-        // This is called at each frame
-        // Better way is to give this function
-        // to Rust so that the backend executes it
-        // only when necessary, i.e. during the zoom
-        // animation
-        updateFovDiv(this);
-        // check whether a catalog has been parsed and
-        // is ready to be plot
-        let catReady = this.aladin.webglAPI.isCatalogLoaded();
-        if (catReady) {
-            var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
-            (typeof callbackFn === 'function') && callbackFn();
-        }
-
-        try {
-            this.aladin.webglAPI.render(this.needRedraw);
-        } catch(e) {
-            console.error("Error: ", e);
-        }
-
-        var imageCtx = this.imageCtx;
-        //////// 1. Draw images ////////
-        /*if (imageCtx.start2D) {
-            imageCtx.start2D();
-        }*/
-        //// clear canvas ////
-        // TODO : do not need to clear if fov small enough ?
-        /*imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-        ////////////////////////
+        // request another frame
     
-        var bkgdColor = this.getBackgroundColor();    
-        // fill with background of the same color than the first color map value (lowest intensity)
-        if (this.projectionMethod==ProjectionEnum.SIN) {
-            if (this.fov>=60) {
-                imageCtx.fillStyle = bkgdColor;
-                imageCtx.beginPath();
-                var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-                imageCtx.arc(this.cx, this.cy, maxCxCy * this.zoomFactor, 0, 2*Math.PI, true);
-                imageCtx.fill();
-            }
-            // pour eviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
-            else {
-                imageCtx.fillStyle = bkgdColor;
-                imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-            }
-        }
-        else if (this.projectionMethod==ProjectionEnum.AITOFF) {
-            if (imageCtx.ellipse) {
-                imageCtx.fillStyle = bkgdColor;
-                imageCtx.beginPath();
-                imageCtx.ellipse(this.cx, this.cy, 2.828*this.cx*this.zoomFactor, this.cx*this.zoomFactor*1.414, 0, 0, 2*Math.PI);
-                imageCtx.fill();
-            }
-        }*/
-        /*if (imageCtx.finish2D) {
-            imageCtx.finish2D();
-        }*/
+        requestAnimationFrame(this.redraw.bind(this));
+    
+        // calc elapsed time since last loop
+    
+        this.now = Date.now();
+        let elapsed = this.now - this.then;
+        // if enough time has elapsed, draw the next frame
+        const fpsInterval = 1000/60;
+        //if (elapsed > fpsInterval) {
+    
+            // Get ready for next frame by setting then=now, but also adjust for your
+            // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
+            this.then = this.now - (elapsed % fpsInterval);
+    
+            // Put your drawing code here
+            var saveNeedRedraw = this.needRedraw;
 
-        
-        this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
-        // do we have to redo that every time? Probably not
-        //this.projection.setProjection(this.projectionMethod);
-
-
-        // ************* Draw allsky tiles (low resolution) *****************
-
-        var cornersXYViewMapHighres = null;
-        // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
-
-        /*if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
-                if (this.aladin.reduceDeformations==null) {
-                    this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
+            this.ready = this.aladin.webglAPI.isReady();
+            if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
+                try {
+                    this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
+                } catch(e) {
+                    console.warn(e)
                 }
-
-                else {
-                    this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
-                }
-        }*/
-        /*
-        else {
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
+    
+                this.imageSurveysToSet = null;
+                this.firstHiPS = false;
+            }
+            //var now_update = Date.now();
+            try {
+                //var dt = now_update - this.prev;
+                this.aladin.webglAPI.update(elapsed, this.needRedraw);
+            } catch(e) {
+                console.error(e)
+            }
+            // This is called at each frame
+            // Better way is to give this function
+            // to Rust so that the backend executes it
+            // only when necessary, i.e. during the zoom
+            // animation
+            updateFovDiv(this);
+            // check whether a catalog has been parsed and
+            // is ready to be plot
+            let catReady = this.aladin.webglAPI.isCatalogLoaded();
+            if (catReady) {
+                var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
+                (typeof callbackFn === 'function') && callbackFn();
             }
 
-            // redraw image survey
-            if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
-                // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-                // TODO refactoring : should be a method of HpxImageSurvey
-                this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
-                if (this.curNorder>=3) {
-                    this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
-                }
+            try {
+                this.aladin.webglAPI.render(this.needRedraw);
+            } catch(e) {
+                console.error("Error: ", e);
             }
-        }
-        */
-        
-
-        // redraw overlay image survey
-        // TODO : does not work if different frames 
-        // TODO: use HpxImageSurvey.draw method !!
-        if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
-            /*imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
-
-            if (this.aladin.reduceDeformations==null) {
-                this.overlayImageSurvey.draw(imageCtx, this, !this.dragging, this.curOverlayNorder);
-            }
-
-            else {
-                this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curOverlayNorder);
+    
+            var imageCtx = this.imageCtx;
+            //////// 1. Draw images ////////
+            /*if (imageCtx.start2D) {
+                imageCtx.start2D();
             }*/
-            /*
-            if (this.fov>50) {
-                this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
-            }
-            if (this.curOverlayNorder>=3) {
-                var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
-                if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
-                    cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
-                }
-                this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, norderOverlay);
-            }
-            */
-
-           //imageCtx.globalAlpha = 1.0;
-
-        }
-        
-        // redraw HEALPix grid
-        if( this.displayHpxGrid) {
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
-            }
-            this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-            if (cornersXYViewMapHighres && this.curNorder>3) {
-                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
-            }
-            else {
-                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapAllsky, this.fov, 3);
-            }
-        }
-        
-        // redraw coordinates grid
-        /*if (this.showGrid) {
-            if (this.cooGrid==null) {
-                this.cooGrid = new CooGrid();
-            }
-            
-            this.cooGrid.redraw(this.gridCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-        }*/
-         
-
-
-        ///*
-        ////// 2. Draw catalogues////////
-        var catalogCtx = this.catalogCtx;
-
-        var catalogCanvasCleared = false;
-        if (this.mustClearCatalog) {
-            catalogCtx.clearRect(0, 0, this.width, this.height);
-            catalogCanvasCleared = true;
-            this.mustClearCatalog = false;
-        }
-        if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-              // TODO : do not clear every time
             //// clear canvas ////
-            if (! catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-            for (var i=0; i<this.catalogs.length; i++) {
-                var cat = this.catalogs[i];
-                //console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-                cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-            }
-        }
-        // draw popup catalog
-        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
-            if (! catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-            this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-        }
-
-        ////// 3. Draw overlays////////
-        var overlayCtx = this.catalogCtx;
-        if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-            if (! catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-            for (var i=0; i<this.overlays.length; i++) {
-                this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-            }
-        }
+            // TODO : do not need to clear if fov small enough ?
+            /*imageCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+            ////////////////////////
         
-
-        // draw MOCs
-        var mocCtx = this.catalogCtx;
-        if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
-            if (! catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-            for (var i=0; i<this.mocs.length; i++) {
-                this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-            }
-        }
-
-        //*/
-        if (this.mode==View.SELECT) {
-            mustRedrawReticle = true;
-        }
-        
-        ////// 4. Draw reticle ///////
-        // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        var reticleCtx = this.reticleCtx;
-        if (this.mustRedrawReticle || this.mode==View.SELECT) {
-            reticleCtx.clearRect(0, 0, this.width, this.height);
-        }
-        if (this.displayReticle) {
-            
-            if (! this.reticleCache) {
-                // build reticle image
-                var c = document.createElement('canvas');
-                var s = this.options.reticleSize;
-                c.width = s;
-                c.height = s;
-                var ctx = c.getContext('2d');
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = this.options.reticleColor;
-                ctx.beginPath();
-                ctx.moveTo(s/2, s/2+(s/2-1));
-                ctx.lineTo(s/2, s/2+2);
-                ctx.moveTo(s/2, s/2-(s/2-1));
-                ctx.lineTo(s/2, s/2-2);
-                
-                ctx.moveTo(s/2+(s/2-1), s/2);
-                ctx.lineTo(s/2+2,  s/2);
-                ctx.moveTo(s/2-(s/2-1), s/2);
-                ctx.lineTo(s/2-2,  s/2);
-                
-                ctx.stroke();
-                
-                this.reticleCache = c;
-            }
-                
-            reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
-            
-            
-            this.mustRedrawReticle = false;
-        }
-        /*
-        ////// 5. Draw all-sky ring /////
-        if (this.projectionMethod==ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
-                    imageCtx.strokeStyle = this.aladin.options['allskyRingColor'];
-                    var ringWidth = this.aladin.options['allskyRingWidth'];
-                    imageCtx.lineWidth = ringWidth;
+            var bkgdColor = this.getBackgroundColor();    
+            // fill with background of the same color than the first color map value (lowest intensity)
+            if (this.projectionMethod==ProjectionEnum.SIN) {
+                if (this.fov>=60) {
+                    imageCtx.fillStyle = bkgdColor;
                     imageCtx.beginPath();
                     var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-                    imageCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) * this.zoomFactor, 0, 2*Math.PI, true);
-                    imageCtx.stroke();
-        }
-
-        
-        // draw selection box
-        if (this.mode==View.SELECT && this.dragging) {
-            reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
-            var w = this.dragx - this.selectStartCoo.x;
-            var h =  this.dragy - this.selectStartCoo.y;
+                    imageCtx.arc(this.cx, this.cy, maxCxCy * this.zoomFactor, 0, 2*Math.PI, true);
+                    imageCtx.fill();
+                }
+                // pour eviter les losanges blancs qui apparaissent quand les tuiles sont en attente de chargement
+                else {
+                    imageCtx.fillStyle = bkgdColor;
+                    imageCtx.fillRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+                }
+            }
+            else if (this.projectionMethod==ProjectionEnum.AITOFF) {
+                if (imageCtx.ellipse) {
+                    imageCtx.fillStyle = bkgdColor;
+                    imageCtx.beginPath();
+                    imageCtx.ellipse(this.cx, this.cy, 2.828*this.cx*this.zoomFactor, this.cx*this.zoomFactor*1.414, 0, 0, 2*Math.PI);
+                    imageCtx.fill();
+                }
+            }*/
+            /*if (imageCtx.finish2D) {
+                imageCtx.finish2D();
+            }*/
+    
             
-            reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
-        }
-        */
-        
-         // TODO : is this the right way?
-         if (saveNeedRedraw==this.needRedraw) {
-             this.needRedraw = false;
-         }
+            this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+            // do we have to redo that every time? Probably not
+            //this.projection.setProjection(this.projectionMethod);
+    
+    
+            // ************* Draw allsky tiles (low resolution) *****************
+    
+            var cornersXYViewMapHighres = null;
+            // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
+    
+            /*if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+                    if (this.aladin.reduceDeformations==null) {
+                        this.imageSurvey.draw(imageCtx, this, !this.dragging, this.curNorder);
+                    }
+    
+                    else {
+                        this.imageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curNorder);
+                    }
+            }*/
+            /*
+            else {
+                var cornersXYViewMapAllsky = this.getVisibleCells(3);
+                var cornersXYViewMapHighres = null;
+                if (this.curNorder>=3) {
+                    if (this.curNorder==3) {
+                        cornersXYViewMapHighres = cornersXYViewMapAllsky;
+                    }
+                    else {
+                        cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+                    }
+                }
+    
+                // redraw image survey
+                if (this.imageSurvey && this.imageSurvey.isReady && this.displaySurvey) {
+                    // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
+                    // TODO refactoring : should be a method of HpxImageSurvey
+                    this.imageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curNorder);
+                    if (this.curNorder>=3) {
+                        this.imageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, this.curNorder);
+                    }
+                }
+            }
+            */
+            
+    
+            // redraw overlay image survey
+            // TODO : does not work if different frames 
+            // TODO: use HpxImageSurvey.draw method !!
+            if (this.overlayImageSurvey && this.overlayImageSurvey.isReady) {
+                /*imageCtx.globalAlpha = this.overlayImageSurvey.getAlpha();
+    
+                if (this.aladin.reduceDeformations==null) {
+                    this.overlayImageSurvey.draw(imageCtx, this, !this.dragging, this.curOverlayNorder);
+                }
+    
+                else {
+                    this.overlayImageSurvey.draw(imageCtx, this, this.aladin.reduceDeformations, this.curOverlayNorder);
+                }*/
+                /*
+                if (this.fov>50) {
+                    this.overlayImageSurvey.redrawAllsky(imageCtx, cornersXYViewMapAllsky, this.fov, this.curOverlayNorder);
+                }
+                if (this.curOverlayNorder>=3) {
+                    var norderOverlay = Math.min(this.curOverlayNorder, this.overlayImageSurvey.maxOrder);
+                    if ( cornersXYViewMapHighres==null || norderOverlay != this.curNorder ) {
+                        cornersXYViewMapHighres = this.getVisibleCells(norderOverlay);
+                    }
+                    this.overlayImageSurvey.redrawHighres(imageCtx, cornersXYViewMapHighres, norderOverlay);
+                }
+                */
+    
+               //imageCtx.globalAlpha = 1.0;
+    
+            }
+            
+            // redraw HEALPix grid
+            if( this.displayHpxGrid) {
+                var cornersXYViewMapAllsky = this.getVisibleCells(3);
+                var cornersXYViewMapHighres = null;
+                if (this.curNorder>=3) {
+                    if (this.curNorder==3) {
+                        cornersXYViewMapHighres = cornersXYViewMapAllsky;
+                    }
+                    else {
+                        cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+                    }
+                }
+                this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
+                if (cornersXYViewMapHighres && this.curNorder>3) {
+                    this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+                }
+                else {
+                    this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapAllsky, this.fov, 3);
+                }
+            }
+            
+            // redraw coordinates grid
+            /*if (this.showGrid) {
+                if (this.cooGrid==null) {
+                    this.cooGrid = new CooGrid();
+                }
+                
+                this.cooGrid.redraw(this.gridCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+            }*/
+             
+    
+    
+            ///*
+            ////// 2. Draw catalogues////////
+            var catalogCtx = this.catalogCtx;
+    
+            var catalogCanvasCleared = false;
+            if (this.mustClearCatalog) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+                this.mustClearCatalog = false;
+            }
+            if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+                  // TODO : do not clear every time
+                //// clear canvas ////
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+                for (var i=0; i<this.catalogs.length; i++) {
+                    var cat = this.catalogs[i];
+                    //console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                    cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                }
+            }
+            // draw popup catalog
+            if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+                this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
+    
+            ////// 3. Draw overlays////////
+            var overlayCtx = this.catalogCtx;
+            if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+                for (var i=0; i<this.overlays.length; i++) {
+                    this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                }
+            }
+            
+    
+            // draw MOCs
+            var mocCtx = this.catalogCtx;
+            if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+                for (var i=0; i<this.mocs.length; i++) {
+                    this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+                }
+            }
+    
+            //*/
+            if (this.mode==View.SELECT) {
+                mustRedrawReticle = true;
+            }
+            
+            ////// 4. Draw reticle ///////
+            // TODO: reticle should be placed in a static DIV, no need to waste a canvas
+            var reticleCtx = this.reticleCtx;
+            if (this.mustRedrawReticle || this.mode==View.SELECT) {
+                reticleCtx.clearRect(0, 0, this.width, this.height);
+            }
+            if (this.displayReticle) {
+                
+                if (! this.reticleCache) {
+                    // build reticle image
+                    var c = document.createElement('canvas');
+                    var s = this.options.reticleSize;
+                    c.width = s;
+                    c.height = s;
+                    var ctx = c.getContext('2d');
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = this.options.reticleColor;
+                    ctx.beginPath();
+                    ctx.moveTo(s/2, s/2+(s/2-1));
+                    ctx.lineTo(s/2, s/2+2);
+                    ctx.moveTo(s/2, s/2-(s/2-1));
+                    ctx.lineTo(s/2, s/2-2);
+                    
+                    ctx.moveTo(s/2+(s/2-1), s/2);
+                    ctx.lineTo(s/2+2,  s/2);
+                    ctx.moveTo(s/2-(s/2-1), s/2);
+                    ctx.lineTo(s/2-2,  s/2);
+                    
+                    ctx.stroke();
+                    
+                    this.reticleCache = c;
+                }
+                    
+                reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
+                
+                
+                this.mustRedrawReticle = false;
+            }
+            /*
+            ////// 5. Draw all-sky ring /////
+            if (this.projectionMethod==ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
+                        imageCtx.strokeStyle = this.aladin.options['allskyRingColor'];
+                        var ringWidth = this.aladin.options['allskyRingWidth'];
+                        imageCtx.lineWidth = ringWidth;
+                        imageCtx.beginPath();
+                        var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
+                        imageCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) * this.zoomFactor, 0, 2*Math.PI, true);
+                        imageCtx.stroke();
+            }
+    
+            
+            // draw selection box
+            if (this.mode==View.SELECT && this.dragging) {
+                reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
+                var w = this.dragx - this.selectStartCoo.x;
+                var h =  this.dragy - this.selectStartCoo.y;
+                
+                reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
+            }
+            */
+            
+             // TODO : is this the right way?
+             if (saveNeedRedraw==this.needRedraw) {
+                 this.needRedraw = false;
+             }
+    
+    
+            // objects lookup
+            if (!this.dragging) {
+                this.updateObjectsLookup();
+            }
+        //}
 
-
-        // objects lookup
-        if (!this.dragging) {
-            this.updateObjectsLookup();
-        }
-
-        // execute 'positionChanged' and 'zoomChanged' callbacks
-        //this.executeCallbacksThrottled();
-        this.prev = now;
-        requestAnimFrame(this.redraw.bind(this));
-
+        //this.prev = now_update;
     };
 
     View.prototype.forceRedraw = function() {

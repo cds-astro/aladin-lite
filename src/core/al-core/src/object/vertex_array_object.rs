@@ -171,14 +171,14 @@ pub mod vao {
         pub fn draw_elements_instanced_with_i32(
             &self,
             mode: u32,
-            offset_instance_idx: i32,
+            offset_element_idx: i32,
             num_instances: i32,
         ) {
             self.vao.gl.draw_elements_instanced_with_i32(
                 mode,
                 self.vao.num_elements() as i32,
                 WebGl2RenderingContext::UNSIGNED_SHORT,
-                offset_instance_idx,
+                offset_element_idx,
                 num_instances,
             );
         }
@@ -499,7 +499,7 @@ pub mod vao {
         pub fn draw_elements_instanced_with_i32(
             &self,
             mode: u32,
-            offset_instance_idx: i32,
+            offset_element_idx: i32,
             num_instances: i32,
         ) {
             for (attr, buf) in self.vao.array_buffer.iter() {
@@ -507,23 +507,21 @@ pub mod vao {
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
+            let e = self.vao.element_array_buffer.as_ref().unwrap();
+            e.bind();
+
             for (attr, inst_buf) in self.vao.array_buffer_instanced.iter() {
                 inst_buf.bind();
                 inst_buf.set_vertex_attrib_pointers();
             }
 
-            let e = self.vao.element_array_buffer.as_ref().unwrap();
-            e.bind();
-
             self.vao.gl.ext.angles.draw_elements_instanced_angle_with_i32(
                 mode,
                 self.vao.num_elements() as i32,
                 WebGlRenderingCtx::UNSIGNED_SHORT,
-                offset_instance_idx,
+                offset_element_idx,
                 num_instances,
             );
-
-            //e.unbind();
         }
 
         pub fn unbind(&self) {

@@ -6,6 +6,7 @@ use al_core::{
     shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
 use std::collections::HashMap;
+use std::iter::FromIterator;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
 
 #[derive(Debug)]
@@ -187,29 +188,30 @@ impl Manager {
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
-        let cells = if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
-            HEALPixCells::allsky(0)
-        } else {
-            let mut depth = 0;
-            let cells = view.get_cells()
-                .map(|&cell| {
-                    let d = cell.depth();
-                    if d > 7 {
-                        depth = 7;
-                        cell.ancestor(d - 7)
-                    } else {
-                        depth = d;
-                        cell
-                    }
-                })
-                // This will delete the doublons if there is
-                .collect::<HashSet<_>>();
+        if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
+            let cells = crate::healpix_cell::ALLSKY_HPX_CELLS_D0;
 
-            HEALPixCells { cells, depth }
-        };
+            for catalog in self.catalogs.values_mut() {
+                catalog.update::<P>(cells, camera);
+            }
+        } else {            
+            let cells = Vec::from_iter(
+                view.get_cells()
+                    .map(|&cell| {
+                        let d = cell.depth();
+                        if d > 7 {
+                            cell.ancestor(d - 7)
+                        } else {
+                            cell
+                        }
+                    })
+                    // This will delete the doublons if there is
+                    .collect::<HashSet<_>>()
+                );
 
-        for catalog in self.catalogs.values_mut() {
-            catalog.update::<P>(&cells, camera);
+            for catalog in self.catalogs.values_mut() {
+                catalog.update::<P>(&cells, camera);
+            }
         }
     }
 
@@ -234,6 +236,7 @@ impl Manager {
 }
 
 use super::catalog::SourceIndices;
+use std::ops::Range;
 pub struct Catalog {
     colormap: Colormap,
     num_instances: i32,
@@ -252,7 +255,7 @@ use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen;
-use crate::renderable::survey::{HEALPixCells, HEALPixCellsInView};
+use crate::renderable::survey::HEALPixCellsInView;
 use crate::shaders::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
@@ -313,7 +316,7 @@ impl Catalog {
                 )
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
-                    std::mem::size_of::<Source>(),
+                    3 * std::mem::size_of::<f32>(),
                     &[3],
                     &[0],
                     WebGl2RenderingContext::DYNAMIC_DRAW,
@@ -321,7 +324,7 @@ impl Catalog {
                 )
                 // Set the element buffer
                 .add_element_buffer(
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    WebGl2RenderingContext::STATIC_DRAW,
                     VecData(indices.as_ref()),
                 )
             // Unbind the buffer
@@ -350,7 +353,7 @@ impl Catalog {
                 )
                 // Set the element buffer
                 .add_element_buffer(
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    WebGl2RenderingContext::STATIC_DRAW,
                     VecData(indices.as_ref()),
                 )
             // Unbind the buffer
@@ -358,7 +361,7 @@ impl Catalog {
 
             vao
         };
-        let current_sources: Vec<f32> = vec![];
+        let current_sources = vec![];
         Self {
             alpha,
             strength,
@@ -384,11 +387,11 @@ impl Catalog {
         self.alpha = alpha;
     }
 
-    fn get_total_num_sources_in_fov(&self, cells: &HashSet<HEALPixCell>) -> usize {
+    fn get_total_num_sources_in_fov(&self, cells: &[HEALPixCell]) -> usize {
         let mut total_sources = 0;
 
         for cell in cells {
-            let sources_idx = self.indices.get_source_indices(&cell);
+            let sources_idx = self.indices.get_source_indices(cell);
             total_sources += (sources_idx.end - sources_idx.start) as usize;
         }
 
@@ -396,12 +399,8 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &HEALPixCells, camera: &CameraViewPort) {
-        let HEALPixCells {
-            depth: _,
-            ref cells,
-        } = cells;
-        let num_sources_in_fov = self.get_total_num_sources_in_fov(&cells) as f32;
+    fn update<P: Projection>(&mut self, cells: &[HEALPixCell], camera: &CameraViewPort) {
+        let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
         self.current_sources.clear();
         // depth < 7
@@ -459,7 +458,7 @@ impl Catalog {
                 let shader = P::get_catalog_shader(gl, shaders);
                 let shader_bound = shader.bind(gl);
 
-                shader_bound
+                let vao_bound = shader_bound
                     .attach_uniforms_from(camera)
                     // Attach catalog specialized uniforms
                     .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
@@ -470,8 +469,9 @@ impl Catalog {
                     .draw_elements_instanced_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
                         0,
-                        self.num_instances,
+                        self.num_instances as i32,
                     );
+                
 
                 Ok(())
             }, Some(fbo))?;

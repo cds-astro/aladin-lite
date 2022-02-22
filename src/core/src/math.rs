@@ -209,10 +209,23 @@ const fn num_bits<T>() -> usize {
     std::mem::size_of::<T>() * 8
 }
 
+use num::traits::PrimInt;
+use num::traits::Zero;
 #[inline]
-pub fn log_2(x: i32) -> u8 {
-    assert!(x > 0);
-    (num_bits::<i32>() as u32 - x.leading_zeros() - 1) as u8
+pub fn log_2_checked<T>(x: T) -> u32
+where
+    T: PrimInt + Zero
+{
+    assert!(x > T::zero());
+    num_bits::<T>() as u32 - x.leading_zeros() - 1
+}
+
+#[inline]
+pub fn log_2_unchecked<T>(x: T) -> u32
+where
+    T: PrimInt
+{
+    num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 
 /// Compute the negative branch of the lambert fonction (W_{-1})

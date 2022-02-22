@@ -66,12 +66,6 @@ use al_core::Texture2DArray;
 use std::collections::HashMap;
 
 use crate::time::Time;
-impl From<(HEALPixCell, Time)> for TextureCellItem {
-    fn from(input: (HEALPixCell, Time)) -> Self {
-        let (cell, time_request) = input;
-        TextureCellItem::new(cell, time_request)
-    }
-}
 use std::collections::BinaryHeap;
 struct HEALPixCellHeap(BinaryHeap<TextureCellItem>);
 
@@ -92,7 +86,7 @@ impl HEALPixCellHeap {
             .drain()
             // Remove the cell
             .filter(|texture_node| texture_node.cell != item.cell)
-            // Collect to a new binary heap that do not have cell anymore
+            // Collect to a new binary heap that does not have cell anymore
             .collect::<BinaryHeap<_>>();
 
         self.push(item);
@@ -193,6 +187,7 @@ use al_core::format::{
     R8UI
 };
 
+use crate::healpix_cell::NUM_HPX_TILES_DEPTH_ZERO;
 use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
@@ -203,9 +198,8 @@ impl ImageSurveyTextures {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
-        assert!(size >= 12);
-        let heap = HEALPixCellHeap::with_capacity(size - 12);
-
+        assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
+        let heap = HEALPixCellHeap::with_capacity(size - NUM_HPX_TILES_DEPTH_ZERO);
         let textures = HashMap::with_capacity(size);
 
         #[cfg(feature = "webgl2")]
@@ -281,26 +275,22 @@ impl ImageSurveyTextures {
                     assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
-                    if let Some(mut texture) = self.textures.remove(&oldest_texture.cell) {
-                        // Clear and assign it to texture_cell
-                        texture.replace(
-                            &texture_cell,
-                            time_request,
-                            &self.config,
-                            &mut self.exec.borrow_mut(),
-                        );
+                    let mut texture = self.textures.remove(&oldest_texture.cell)
+                        .expect("Texture (oldest one) has not been found in the buffer of textures");
+                    // Clear and assign it to texture_cell
+                    texture.replace(
+                        &texture_cell,
+                        time_request,
+                        &self.config,
+                        &mut self.exec.borrow_mut(),
+                    );
 
-                        texture
-                    } else {
-                        // The hashmap must contain the texture by construction
-                        unreachable!()
-                    }
+                    texture
                 } else {
                     // The heap buffer is not full, let's create a new
                     // texture with an unique idx
                     // The idx is computed based on the current size of the buffer
-                    let root_texture_off_idx = 12;
-                    let idx = root_texture_off_idx + self.heap.len();
+                    let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
                     let texture =
                         Texture::new(&self.config, &texture_cell, idx as i32, time_request);
@@ -337,7 +327,6 @@ impl ImageSurveyTextures {
                 self.texture_2d_array.clone(),
                 &self.config,
             );
-            //task.tex_sub();
 
             let tile = tile;
             exec_ref
@@ -366,10 +355,10 @@ impl ImageSurveyTextures {
 
         if texture_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;
-            assert!(self.num_root_textures_available <= 12);
+            assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
             //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
 
-            if self.num_root_textures_available == 12 {
+            if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
                 self.ready = true;
             }
         }
@@ -385,9 +374,8 @@ impl ImageSurveyTextures {
     fn is_heap_full(&self) -> bool {
         // Check that there are no more than num_textures
         // textures in the buffer
-        let root_texture_off_idx = 12;
         let num_textures_heap = self.heap.len();
-        let full_heap = num_textures_heap == (self.size - root_texture_off_idx);
+        let full_heap = num_textures_heap == (self.size - NUM_HPX_TILES_DEPTH_ZERO);
         full_heap
     }
 
@@ -426,7 +414,7 @@ impl ImageSurveyTextures {
 
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
-    pub fn update_priority(&mut self, cell: &HEALPixCell, new_fov_cell: bool) {
+    pub fn update_priority(&mut self, cell: &HEALPixCell/*, new_fov_cell: bool*/) {
         assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
@@ -435,25 +423,23 @@ impl ImageSurveyTextures {
             return;
         }
 
-        if let Some(texture) = self.textures.get_mut(&texture_cell) {
-            // Reset the time the tile has been received if it is a new cell present in the fov
-            if new_fov_cell {
-                texture.update_start_time(Time::now());
-            }
+        let texture = self.textures.get_mut(&texture_cell)
+            .expect("Texture cell has not been found while the buffer contains one of its tile!");
+        // Reset the time the tile has been received if it is a new cell present in the fov
+        //if new_fov_cell {
+        //    texture.update_start_time(Time::now());
+        //}
 
-            // MAYBE WE DO NOT NEED TO UPDATE THE TIME REQUEST IN THE BHEAP
-            // BECAUSE IT INTRODUCES UNECESSARY CODE COMPLEXITY
-            // Root textures are always in the buffer
-            // But other textures can be removed thanks to the heap
-            // data-structure. We have to update the time_request of the texture
-            // and push it again in the heap to update its position.
-            let mut tex_cell_item: TextureCellItem = texture.into();
-            tex_cell_item.time_request = Time::now();
+        // MAYBE WE DO NOT NEED TO UPDATE THE TIME REQUEST IN THE BHEAP
+        // BECAUSE IT INTRODUCES UNECESSARY CODE COMPLEXITY
+        // Root textures are always in the buffer
+        // But other textures can be removed thanks to the heap
+        // data-structure. We have to update the time_request of the texture
+        // and push it again in the heap to update its position.
+        let mut tex_cell_item: TextureCellItem = texture.into();
+        tex_cell_item.time_request = Time::now();
 
-            self.heap.update_entry(tex_cell_item);
-        } else {
-            unreachable!();
-        }
+        self.heap.update_entry(tex_cell_item);
     }
 
     pub fn get_pixel_position_in_texture(
@@ -545,7 +531,7 @@ impl ImageSurveyTextures {
 
     // Get the textures in the buffer
     // The resulting array is uniq sorted
-    fn get_allsky_textures(&self) -> [&Texture; 12] {
+    fn get_allsky_textures(&self) -> [&Texture; NUM_HPX_TILES_DEPTH_ZERO] {
         assert!(self.is_ready());
         /*let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
@@ -598,8 +584,6 @@ impl SendUniforms for ImageSurveyTextures {
                 }
             }
             let num_tiles = textures.len() as i32;
-
-            al_core::log!(num_tiles);
             shader
                 .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)

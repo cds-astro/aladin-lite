@@ -9,14 +9,16 @@ use al_core::format::{
 };
 
 use al_api::hips::HiPSProperties;
-pub struct TextureToDraw<'a> {
+pub struct TextureToDraw<'a, 'b> {
+    pub cell: &'b HEALPixCell,
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
 }
 
-impl<'a> TextureToDraw<'a> {
-    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureToDraw<'a> {
+impl<'a, 'b> TextureToDraw<'a, 'b> {
+    fn new(cell: &'b HEALPixCell, starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureToDraw<'a, 'b> {
         TextureToDraw {
+            cell,
             starting_texture,
             ending_texture,
         }
@@ -24,28 +26,28 @@ impl<'a> TextureToDraw<'a> {
 }
 
 use std::collections::{HashMap, HashSet};
-pub struct TexturesToDraw<'a>(HashMap<HEALPixCell, TextureToDraw<'a>>);
+pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
 
-impl<'a> TexturesToDraw<'a> {
-    fn new(cap: usize) -> TexturesToDraw<'a> {
-        let states = HashMap::with_capacity(cap);
+impl<'a, 'b> TexturesToDraw<'a, 'b> {
+    fn new(capacity: usize) -> TexturesToDraw<'a, 'b> {
+        let states = Vec::with_capacity(capacity);
 
         TexturesToDraw(states)
     }
 }
 
-impl<'a> core::ops::Deref for TexturesToDraw<'a> {
-    type Target = HashMap<HEALPixCell, TextureToDraw<'a>>;
+impl<'a, 'b> core::ops::Deref for TexturesToDraw<'a, 'b> {
+    type Target = Vec<TextureToDraw<'a, 'b>>;
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
-impl<'a> core::ops::DerefMut for TexturesToDraw<'a> {
+impl<'a, 'b> core::ops::DerefMut for TexturesToDraw<'a, 'b> {
     fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
         &mut self.0
     }
-}
+} 
 
 use crate::healpix_cell::SphereSubdivided;
 pub trait RecomputeRasterizer {
@@ -53,13 +55,13 @@ pub trait RecomputeRasterizer {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
+    fn get_textures_from_survey<'a, 'b>(
         camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        view: &'b HEALPixCellsInView,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a>;
+    ) -> TexturesToDraw<'a, 'b>;
 
     fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8;
 }
@@ -73,11 +75,11 @@ impl RecomputeRasterizer for Move {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
+    fn get_textures_from_survey<'a, 'b>(
         _camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
+    ) -> TexturesToDraw<'a, 'b> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
@@ -88,9 +90,8 @@ impl RecomputeRasterizer for Move {
                 let ending_cell_in_tex = survey.get(cell).unwrap();
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
@@ -99,9 +100,8 @@ impl RecomputeRasterizer for Move {
                 let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
                 let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
@@ -118,11 +118,11 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
+    fn get_textures_from_survey<'a, 'b>(
         _camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
+    ) -> TexturesToDraw<'a, 'b> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
@@ -133,9 +133,8 @@ impl RecomputeRasterizer for Zoom {
                 let ending_cell_in_tex = survey.get(cell).unwrap();
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
@@ -144,9 +143,8 @@ impl RecomputeRasterizer for Zoom {
                 let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
                 let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
@@ -164,11 +162,11 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
+    fn get_textures_from_survey<'a, 'b>(
         camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
+    ) -> TexturesToDraw<'a, 'b> {
         let depth = view.get_depth();
         let max_depth = survey.config().get_max_depth();
 
@@ -189,7 +187,7 @@ impl RecomputeRasterizer for UnZoom {
         for cell in cells_to_draw {
             let parent_cell = cell.parent();
 
-            if survey.contains(&parent_cell) {
+            /*if survey.contains(&parent_cell) {
                 let starting_cell = if survey.contains(&cell) {
                     *cell
                 } else {
@@ -198,9 +196,8 @@ impl RecomputeRasterizer for UnZoom {
                 let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
                 let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let starting_cell = if survey.contains(&cell) {
@@ -214,9 +211,28 @@ impl RecomputeRasterizer for UnZoom {
                 let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
                 let ending_cell_in_tex = survey.get(&ending_cell).unwrap();
 
-                textures.insert(
-                    *cell,
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                );
+            }*/
+            if survey.contains(cell) {
+                let parent_cell = survey.get_nearest_parent(cell);
+
+                let ending_cell_in_tex = survey.get(cell).unwrap();
+                let starting_cell_in_tex = survey.get(&cell).unwrap();
+
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                );
+            } else {
+                let parent_cell = survey.get_nearest_parent(cell);
+                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
+
+                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
+                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
+
+                textures.push(
+                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
@@ -404,15 +420,13 @@ use std::mem;
 
 use crate::renderable::survey::uv::{TileCorner, TileUVW};
 
-pub type IdxVerticesVec = Vec<u16>;
-
 // This method only computes the vertex positions
 // of a HEALPix cell and append them
 // to lonlats and positions vectors
 #[cfg(feature = "webgl2")]
 fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
     vertices: &mut Vec<f32>,
-    idx_positions: &mut IdxVerticesVec,
+    idx_positions: &mut Vec<u16>,
 
     cell: &HEALPixCell,
     sphere_sub: &SphereSubdivided,
@@ -532,7 +546,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
     m0: &mut Vec<f32>,
     m1: &mut Vec<f32>,
 
-    idx_positions: &mut IdxVerticesVec,
+    idx_positions: &mut Vec<u16>,
 
     cell: &HEALPixCell,
     sphere_sub: &SphereSubdivided,
@@ -648,7 +662,7 @@ pub struct ImageSurvey {
     #[cfg(feature = "webgl1")]
     // layout (location = 5) in float m1;
     m1: Vec<f32>,
-    
+
     idx_vertices: Vec<u16>,
 
     num_idx: usize,
@@ -656,7 +670,6 @@ pub struct ImageSurvey {
     sphere_sub: SphereSubdivided,
     
     vao: VertexArrayObject,
-
     gl: WebGlContext,
 }
 use crate::camera::UserAction;
@@ -873,17 +886,17 @@ impl ImageSurvey {
 
         let survey_config = self.textures.config();
 
-        for (cell, state) in textures.iter() {
-            let uv_0 = TileUVW::new(cell, &state.starting_texture, survey_config);
-            let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
-            let start_time = state.ending_texture.start_time();
-            let miss_0 = state.starting_texture.is_missing() as f32;
-            let miss_1 = state.ending_texture.is_missing() as f32;
+        for TextureToDraw { cell, starting_texture, ending_texture } in textures.iter() {
+            let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
+            let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
+            let start_time = ending_texture.start_time();
+            let miss_0 = starting_texture.is_missing() as f32;
+            let miss_1 = ending_texture.is_missing() as f32;
 
             add_vertices_grid::<P, T>(
                 &mut self.vertices,
                 &mut self.idx_vertices,
-                &cell,
+                cell,
                 &self.sphere_sub,
                 &uv_0,
                 &uv_1,
@@ -914,12 +927,12 @@ impl ImageSurvey {
 
         let survey_config = self.textures.config();
 
-        for (cell, state) in textures.iter() {
-            let uv_0 = TileUVW::new(cell, &state.starting_texture, survey_config);
-            let uv_1 = TileUVW::new(cell, &state.ending_texture, survey_config);
-            let start_time = state.ending_texture.start_time();
-            let miss_0 = state.starting_texture.is_missing() as f32;
-            let miss_1 = state.ending_texture.is_missing() as f32;
+        for TextureToDraw { cell, starting_texture, ending_texture } in textures.iter() {
+            let uv_0 = TileUVW::new(cell, &starting_texture, survey_config);
+            let uv_1 = TileUVW::new(cell, &ending_texture, survey_config);
+            let start_time = ending_texture.start_time();
+            let miss_0 = starting_texture.is_missing() as f32;
+            let miss_1 = ending_texture.is_missing() as f32;
 
             add_vertices_grid::<P, T>(
                 &mut self.position,

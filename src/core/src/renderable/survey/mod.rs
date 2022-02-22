@@ -11,6 +11,5 @@ use ray_tracer::RayTracer;
 mod triangulation;
 use triangulation::Triangulation;
 pub mod view_on_surveys;
-pub use view_on_surveys::HEALPixCells;
 pub use view_on_surveys::HEALPixCellsInView;
 

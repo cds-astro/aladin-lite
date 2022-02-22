@@ -169,12 +169,14 @@ export let View = (function() {
             this.dragy = null;
             this.needRedraw = true;
 
+            const si = 500000.0;
+            const alpha = 40.0;
             // zoom pinching
             this.pinchZoomParameters = {
                 isPinching: false, // true if a pinch zoom is ongoing
                 initialFov: undefined,
                 initialDistance: undefined,
-                initialAccDelta: 0.0,
+                initialAccDelta: Math.pow(si / 180.0, 1.0/alpha)
             };
 
             // two-fingers rotation
@@ -904,16 +906,11 @@ export let View = (function() {
             const alpha = 40.0;
             let off = 0.00001 * delta;
 
-            //if (zooming) {
-                view.pinchZoomParameters.initialAccDelta += off;
-                // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
-                //new_fov = Math.max(2e-10, new_fov);
-            //} else {
-                if (view.pinchZoomParameters.initialAccDelta <= 0.0) {
-                    view.pinchZoomParameters.initialAccDelta = 1e-3;
-                }
-                //new_fov = Math.min(1000.0, new_fov);
-            //};
+            view.pinchZoomParameters.initialAccDelta += off;
+
+            if (view.pinchZoomParameters.initialAccDelta <= 0.0) {
+                view.pinchZoomParameters.initialAccDelta = 1e-3;
+            }
 
             let new_fov = si / Math.pow(view.pinchZoomParameters.initialAccDelta, alpha);
             if (new_fov > 1000.0) {
@@ -1749,14 +1746,50 @@ export let View = (function() {
     };
 
     View.prototype.increaseZoom = function() {
-        for (let i = 0; i < 5; i++) {
-            this.aladin.webglAPI.registerWheelEvent(0.01);
+        const si = 500000.0;
+        const alpha = 40.0;
+        const amount = 0.015;
+
+        this.pinchZoomParameters.initialAccDelta += amount;
+
+        if (this.pinchZoomParameters.initialAccDelta <= 0.0) {
+            this.pinchZoomParameters.initialAccDelta = 1e-3;
         }
+
+        let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
+        if (new_fov > 1000.0) {
+            new_fov = 1000.0;
+            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        } 
+        if (new_fov < 2e-10) {
+            new_fov = 2e-10;
+            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        } 
+
+        this.setZoom(new_fov);
     }
     View.prototype.decreaseZoom = function() {
-        for (let i = 0; i < 5; i++) {
-            this.aladin.webglAPI.registerWheelEvent(-0.01);
+        const si = 500000.0;
+        const alpha = 40.0;
+        const amount = 0.015;
+
+        this.pinchZoomParameters.initialAccDelta -= amount;
+
+        if (this.pinchZoomParameters.initialAccDelta <= 0.0) {
+            this.pinchZoomParameters.initialAccDelta = 1e-3;
         }
+
+        let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
+        if (new_fov > 1000.0) {
+            new_fov = 1000.0;
+            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        } 
+        if (new_fov < 2e-10) {
+            new_fov = 2e-10;
+            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        } 
+
+        this.setZoom(new_fov);
     }
     View.prototype.setShowGrid = function(showGrid) {
         this.showGrid = showGrid;

@@ -643,35 +643,6 @@ impl WebClient {
     ///
     /// * `delta` - The delta coming from the wheel event. This is
     ///   used to know if we are zooming or not.
-    #[wasm_bindgen(js_name = registerWheelEvent)]
-    pub fn wheel_event_callback(&mut self, delta: f64) -> Result<(), JsValue> {
-        // todo: move that in the javascript section
-        // events code do have nothing to do in the core
-        let zooming = delta > 0.0;
-        let cur_fov = self.app.get_fov();
-        let target_fov = if zooming {
-            let fov = cur_fov / 1.10;
-            // max fov: 2e-10 deg = 2e-10*3600*10e6 µas = 0.72µas
-            fov.max(2e-10 as f64)
-        } else {
-            let fov = cur_fov * 1.10;
-            fov.min(1000.0)
-        };
-
-        let target_fov = ArcDeg(target_fov).into();
-        self.app.set_fov(target_fov);
-
-        Ok(())
-    }
-
-    /// Signal the backend when a wheel event has been registered
-    ///
-    /// The field of view is changed accordingly
-    ///
-    /// # Arguments
-    ///
-    /// * `delta` - The delta coming from the wheel event. This is
-    ///   used to know if we are zooming or not.
     #[wasm_bindgen(js_name = posOnUi)]
     pub fn screen_position_on_ui(&mut self) -> bool {
         self.app.over_ui()

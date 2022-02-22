@@ -26,15 +26,12 @@ pub fn unmortonize(mut x: u64) -> (u32, u32) {
     (x as u32, y as u32)
 }
 
-//use crate::healpix_cell::HEALPixCell;
-/*pub fn _nested(cell: &HEALPixCell) -> u64 {
-    let depth = cell.0;
-    let idx = cell.1;
+pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
+    let len = s.len();
+    let in_slice_ptr = Box::into_raw(s);
 
-    idx << (2*(29 - (depth as i8)))
-}*/
-
-pub unsafe fn flatten_vec<I, O>(mut v: Vec<I>) -> Vec<O> {
-    let new_len = v.len() * std::mem::size_of::<I>() / std::mem::size_of::<O>();
-    Vec::from_raw_parts(v.as_mut_ptr() as *mut O, new_len, new_len)
+    let new_len = len * std::mem::size_of::<I>() / std::mem::size_of::<O>();
+    let out_slice_ptr = std::slice::from_raw_parts_mut(in_slice_ptr as *mut O, new_len);
+    
+    Box::from_raw(out_slice_ptr)
 }

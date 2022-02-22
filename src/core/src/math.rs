@@ -9,28 +9,28 @@ pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
 
 use num_traits::Float;
 #[inline]
-pub fn asinc_positive<T: Float>(mut x: f64) -> f64 {
+pub fn asinc_positive(x: f64) -> f64 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.asin() / x
     } else {
         // If a is mall, use Taylor expension of asin(a) / a
         // a = 1e-4 => a^4 = 1.e-16
-        x *= x;
-        1.0 + x * (1.0 + x * 9.0 / 20.0) / 6.0
+        let x2 = x*x;
+        1.0 + x2/6.0 + x2*x2*0.075
     }
 }
 
 #[inline]
-pub fn sinc_positive(mut x: f64) -> f64 {
+pub fn sinc_positive(x: f64) -> f64 {
     assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.sin() / x
     } else {
         // If a is mall, use Taylor expension of asin(a) / a
         // a = 1e-4 => a^4 = 1.e-16
-        x *= x;
-        1.0 - x * (1.0 - x / 20.0) / 6.0
+        let x2 = x*x;
+        1.0 - x2/6.0 + x2*x2*0.075
     }
 }
 

@@ -741,7 +741,7 @@ impl Projection for AzimuthalEquidistant {
                 .sqrt();
             if pos_world_space.z > 0.0 {
                 // Angular distance < PI/2, angular distance = asin(r)
-                r = math::asinc_positive::<f64>(r);
+                r = math::asinc_positive(r);
             } else {
                 // Angular distance > PI/2, angular distance = acos(x)
                 r = pos_world_space.z.acos() / r;

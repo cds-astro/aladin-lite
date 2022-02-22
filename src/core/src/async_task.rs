@@ -12,7 +12,7 @@ pub use crate::shaders::Colormap;
 pub enum TaskResult {
     TableParsed {
         name: String,
-        sources: Vec<Source>,
+        sources: Box<[Source]>,
         colormap: Colormap,
     },
     TileSentToGPU {

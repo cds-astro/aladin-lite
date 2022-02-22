@@ -72,12 +72,14 @@ impl Manager {
 
         // Create the VAO for the screen
         let vertex_array_object_screen = {
-            let vertices = vec![
-                -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
-                1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
+            let vertices = [
+                -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32,
+                1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32,
+                1.0_f32, 1.0_f32, 1.0_f32, 1.0_f32,
+                -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
 
-            let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
+            let indices = [0_u16, 1, 2, 0, 2, 3];
 
             let mut vao = VertexArrayObject::new(gl);
             //let shader = Colormap::get_catalog_shader(gl, shaders)?;
@@ -89,12 +91,12 @@ impl Manager {
                     &[2, 2],
                     &[0, 2 * std::mem::size_of::<f32>()],
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
+                    SliceData(&vertices),
                 )
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(indices.as_ref()),
+                    SliceData(indices.as_ref()),
                 )
                 // Unbind the buffer
                 .unbind();
@@ -105,18 +107,18 @@ impl Manager {
                     2,
                     "position",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
+                    SliceData(vertices.as_ref()),
                 )
                 .add_array_buffer(
                     2,
                     "uv",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
+                    SliceData(vertices.as_ref()),
                 )
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(indices.as_ref()),
+                    SliceData(indices.as_ref()),
                 )
                 // Unbind the buffer
                 .unbind();
@@ -150,7 +152,7 @@ impl Manager {
     pub fn add_catalog<P: Projection>(
         &mut self,
         name: String,
-        sources: Vec<Source>,
+        sources: Box<[Source]>,
         colormap: Colormap,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
@@ -224,11 +226,9 @@ impl Manager {
         fbo: &FrameBufferObject,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
-        al_core::log("draw catalogs");
         for catalog in self.catalogs.values() {
             catalog.draw::<P>(&gl, shaders, self, camera, colormaps, fbo)?;
         }
-
         gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
@@ -244,7 +244,7 @@ pub struct Catalog {
     alpha: f32,
     strength: f32,
     current_sources: Vec<f32>,
-    sources: Vec<f32>,
+    sources: Box<[f32]>,
     vertex_array_object_catalog: VertexArrayObject,
 }
 use al_core::SliceData;
@@ -262,19 +262,28 @@ impl Catalog {
         gl: &WebGlContext,
         shaders: &mut ShaderManager,
         colormap: Colormap,
-        mut sources: Vec<Source>,
+        sources: Box<[Source]>,
         view: &HEALPixCellsInView,
         camera: &CameraViewPort,
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
-        let indices = SourceIndices::new(&mut sources);
+        let indices = SourceIndices::new(&sources);
         let num_instances = sources.len() as i32;
 
-        let sources = unsafe { utils::flatten_vec(sources) };
+        let sources = unsafe {
+            let num_sources = sources.len();
+            let source_slice_ptr = Box::into_raw(sources);
+            let new_len = num_sources * Source::num_f32();
+
+            let f32_slice_ptr = std::slice::from_raw_parts_mut(source_slice_ptr as *mut f32, new_len);
+
+            Box::from_raw(f32_slice_ptr)
+        };
+
         let vertex_array_object_catalog = {
             #[cfg(feature = "webgl2")]
-            let vertices = vec![
+            let vertices = [
                 -0.5_f32, -0.5_f32,
                 0.0_f32, 0.0_f32,
                 0.5_f32, -0.5_f32,
@@ -312,7 +321,7 @@ impl Catalog {
                     &[2, 2],
                     &[0, 2 * std::mem::size_of::<f32>()],
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(vertices.as_ref()),
+                    SliceData(vertices.as_ref()),
                 )
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
@@ -320,7 +329,7 @@ impl Catalog {
                     &[3],
                     &[0],
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&sources),
+                    SliceData(sources.as_ref()),
                 )
                 // Set the element buffer
                 .add_element_buffer(
@@ -349,7 +358,7 @@ impl Catalog {
                     3,
                     "center",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData(&sources),
+                    SliceData(sources.as_ref()),
                 )
                 // Set the element buffer
                 .add_element_buffer(

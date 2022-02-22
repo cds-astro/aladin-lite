@@ -9,7 +9,7 @@ pub struct SourceIndices {
 use super::source::Source;
 
 impl SourceIndices {
-    pub fn new(sources: &mut [Source]) -> Self {
+    pub fn new(sources: &[Source]) -> Self {
         let mut healpix_idx: Box<[Option<Range<u32>>]> = vec![None; 196608].into_boxed_slice();
 
         for (idx_source, s) in sources.iter().enumerate() {

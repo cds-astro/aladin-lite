@@ -779,7 +779,7 @@ where
 
                 TaskResult::TableParsed {
                     name,
-                    sources: results,
+                    sources: results.into_boxed_slice(),
                     colormap: c,
                 }
             });

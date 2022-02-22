@@ -228,6 +228,18 @@ where
     num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 
+use std::ops::BitAnd;
+use std::ops::Sub;
+use std::cmp::PartialEq;
+use num::One;
+#[inline]
+pub fn is_power_of_two<T>(x: T) -> bool
+where
+    T: BitAnd<Output=T> + One + Zero + Sub<Output=T> + PartialEq + Copy
+{
+    x.bitand(x - T::one()) == T::zero()
+}
+
 /// Compute the negative branch of the lambert fonction (W_{-1})
 /// defined for x in [-1/e; 0[
 /// This paper: https://doi.org/10.1016/S0378-4754(00)00172-5

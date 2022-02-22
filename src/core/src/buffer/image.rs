@@ -380,7 +380,7 @@ where
     F: FitsImageFormat,
 {
     // Fits header properties
-    pub blank: Option<f32>,
+    pub blank: f32,
     pub bzero: f32,
     pub bscale: f32,
 
@@ -445,9 +445,9 @@ where
         };
 
         let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
-            Some(*blank as f32)
+            *blank as f32
         } else {
-            Some(std::f32::NAN)
+            std::f32::NAN
         };
 
         Ok(Self {

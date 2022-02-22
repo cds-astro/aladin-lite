@@ -15,7 +15,7 @@ where
     F: ImageFormat,
 {
     fn new(width: i32) -> TileConfig<F> {
-        assert!(is_power_of_two(width as usize));
+        assert!(math::is_power_of_two(width as usize));
         let pixel_fill = <<F as ImageFormat>::P as Pixel>::BLACK;
         let default = Rc::new(ImageBuffer::<F>::allocate(width, &pixel_fill));
         TileConfig {
@@ -28,14 +28,6 @@ where
     #[inline]
     pub fn get_default_tile(&self) -> Rc<ImageBuffer<F>> {
         self.default.clone()
-    }
-
-    #[inline]
-    pub fn set_default_pixel(&mut self, pixel_fill: <F as ImageFormat>::P) {
-        /*if pixel_fill != self.pixel_fill {
-            self.default = Rc::new(ImageBuffer::<F>::allocate(self.width, &pixel_fill));
-            self.pixel_fill = pixel_fill;
-        }*/
     }
 }
 
@@ -172,11 +164,6 @@ pub struct HiPSConfig {
     pub size_tile_uv: f32,
 }
 
-#[inline]
-fn is_power_of_two(x: usize) -> bool {
-    x & (x - 1) == 0
-}
-
 use crate::math;
 use crate::{HiPSFormat, HiPSProperties};
 use wasm_bindgen::JsValue;
@@ -307,31 +294,10 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: Option<f32>) {
+    pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: f32) {
         self.scale = bscale;
         self.offset = bzero;
-        if let Some(blank) = blank {
-            self.blank = blank;
-
-            match &mut self.tile_config {
-                TileConfigType::R32F { config } => {
-                    config.set_default_pixel([blank]);
-                }
-                #[cfg(feature = "webgl2")]
-                TileConfigType::R8UI { config } => {
-                    config.set_default_pixel([blank as u8]);
-                }
-                #[cfg(feature = "webgl2")]
-                TileConfigType::R16I { config } => {
-                    config.set_default_pixel([blank as i16]);
-                }
-                #[cfg(feature = "webgl2")]
-                TileConfigType::R32I { config } => {
-                    config.set_default_pixel([blank as i32]);
-                }
-                _ => unreachable!(),
-            }
-        }
+        self.blank = blank;
     }
 
     #[inline]

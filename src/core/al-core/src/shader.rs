@@ -233,7 +233,6 @@ impl UniformType for Texture2D {
                 .bind();
 
             gl.uniform1i(location, CUR_IDX_TEX_UNIT as i32);
-
             CUR_IDX_TEX_UNIT += 1;
         };
 

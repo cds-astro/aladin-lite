@@ -60,7 +60,7 @@ impl FrameBufferObject {
 
     pub fn resize(&mut self, width: usize, height: usize) {
         if (width, height) != (self.texture.width() as usize, self.texture.height() as usize) {
-            let pixels = [0, 0, 0, 0].iter().cloned().cycle().take(4*height*width).collect::<Vec<_>>();
+            //let pixels = [0, 0, 0, 0].iter().cloned().cycle().take(4*height*width).collect::<Vec<_>>();
             #[cfg(feature = "webgl2")]
             self.texture.bind_mut()
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
@@ -69,7 +69,7 @@ impl FrameBufferObject {
                     WebGlRenderingCtx::SRGB8_ALPHA8 as i32,
                     WebGlRenderingCtx::RGBA,
                     WebGlRenderingCtx::UNSIGNED_BYTE,
-                    Some(&pixels.as_slice())
+                    None
                 );
             #[cfg(feature = "webgl1")]
             self.texture.bind_mut()
@@ -79,12 +79,12 @@ impl FrameBufferObject {
                     WebGlRenderingCtx::RGBA as i32,
                     WebGlRenderingCtx::RGBA,
                     WebGlRenderingCtx::UNSIGNED_BYTE,
-                    Some(&pixels.as_slice())
+                    None
                 );
         }
     }
 
-    pub fn draw_onto(&self, f: impl FnOnce() -> Result<(), JsValue>, cur_fbo: Option<&Self>) -> Result<(), JsValue> {
+    pub fn bind(&self) {
         // bind the fbo
         self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&self.fbo));
 
@@ -92,6 +92,11 @@ impl FrameBufferObject {
         let h = self.texture.height() as i32;
         self.gl.viewport(0, 0, w, h);
         self.gl.scissor(0, 0, w, h);
+    }
+
+    pub fn draw_onto(&self, f: impl FnOnce() -> Result<(), JsValue>, cur_fbo: Option<&Self>) -> Result<(), JsValue> {
+        // bind the fbo
+        self.bind();
 
         // clear the fbo
         self.gl.clear_color(0.0, 0.0, 0.0, 0.0);
@@ -101,8 +106,11 @@ impl FrameBufferObject {
         f()?;
 
         // restore the fbo to its previous state
-        let prev_fbo = cur_fbo.map(|f| &f.fbo);
-        self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, prev_fbo);
+        if let Some(prev_fbo) = cur_fbo {
+            prev_fbo.bind();
+        } else {
+            self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+        }
 
         Ok(())
     }

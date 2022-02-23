@@ -33,6 +33,7 @@ use cgmath::Vector4;
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> Vec<HEALPixCell> {
     if let Some(vertices) = camera.get_vertices() {
         let inside = camera.get_center().truncate();
+        // Prefer to query from_polygon with depth >= 2
         let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
 
         coverage

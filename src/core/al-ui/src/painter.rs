@@ -33,8 +33,6 @@ pub struct WebGl2Painter {
     color_buffer: WebGlBuffer,
     index_buffer: WebGlBuffer,
 
-    fbo: FrameBufferObject,
-
     egui_texture: Texture2D,
     egui_texture_version: Option<u64>,
 
@@ -161,8 +159,6 @@ impl WebGl2Painter {
         gl.bind_buffer(WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER, None);
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
         */
-        let fbo = FrameBufferObject::new(&gl, canvas.width() as usize, canvas.height() as usize)?;
-
         Ok(WebGl2Painter {
             canvas_id: canvas_id.to_owned(),
             canvas,
@@ -178,8 +174,6 @@ impl WebGl2Painter {
             egui_texture,
             egui_texture_version: None,
             user_textures: Default::default(),
-
-            fbo,
         })
     }
 

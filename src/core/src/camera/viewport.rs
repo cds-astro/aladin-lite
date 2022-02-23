@@ -202,7 +202,7 @@ impl CameraViewPort {
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(
+        /*self.vertices.set_fov::<P>(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
@@ -212,7 +212,7 @@ impl CameraViewPort {
         );
         self.is_allsky = !P::is_included_inside_projection(
             &crate::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
-        );
+        );*/
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {

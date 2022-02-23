@@ -78,6 +78,18 @@ impl Manager {
                 1.0_f32, 1.0_f32, 1.0_f32, 1.0_f32,
                 -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
+            let position = [
+                -1.0_f32, -1.0_f32,
+                1.0_f32, -1.0_f32,
+                1.0_f32, 1.0_f32,
+                -1.0_f32, 1.0_f32,
+            ];
+            let uv = [
+                0.0_f32, 0.0_f32,
+                1.0_f32, 0.0_f32,
+                1.0_f32, 1.0_f32,
+                0.0_f32, 1.0_f32,
+            ];
 
             let indices = [0_u16, 1, 2, 0, 2, 3];
 
@@ -107,13 +119,13 @@ impl Manager {
                     2,
                     "position",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    SliceData(vertices.as_ref()),
+                    SliceData(position.as_ref()),
                 )
                 .add_array_buffer(
                     2,
                     "uv",
                     WebGl2RenderingContext::STATIC_DRAW,
-                    SliceData(vertices.as_ref()),
+                    SliceData(uv.as_ref()),
                 )
                 // Set the element buffer
                 .add_element_buffer(
@@ -271,15 +283,7 @@ impl Catalog {
         let indices = SourceIndices::new(&sources);
         let num_instances = sources.len() as i32;
 
-        let sources = unsafe {
-            let num_sources = sources.len();
-            let source_slice_ptr = Box::into_raw(sources);
-            let new_len = num_sources * Source::num_f32();
-
-            let f32_slice_ptr = std::slice::from_raw_parts_mut(source_slice_ptr as *mut f32, new_len);
-
-            Box::from_raw(f32_slice_ptr)
-        };
+        let sources = unsafe { utils::transmute_boxed_slice(sources) };
 
         let vertex_array_object_catalog = {
             #[cfg(feature = "webgl2")]
@@ -308,7 +312,7 @@ impl Catalog {
                 0.0_f32, 1.0_f32,
             ];
 
-            let indices: Vec<u16> = vec![0, 1, 2, 0, 2, 3];
+            let indices = [0_u16, 1, 2, 0, 2, 3];
 
             let mut vao = VertexArrayObject::new(gl);
 
@@ -334,36 +338,36 @@ impl Catalog {
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(indices.as_ref()),
+                    SliceData(indices.as_ref()),
                 )
             // Unbind the buffer
             .unbind();
             #[cfg(feature = "webgl1")]
             vao.bind_for_update()
-                // Store the UV and the offsets of the billboard in a VBO
-                .add_array_buffer(
-                    2,
-                    "offset",
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    SliceData(&offset as &[f32]),
-                )
-                .add_array_buffer(
-                    2,
-                    "uv",
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    SliceData(&uv as &[f32]),
-                )
-                // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
                     3,
                     "center",
                     WebGl2RenderingContext::DYNAMIC_DRAW,
                     SliceData(sources.as_ref()),
                 )
+                // Store the UV and the offsets of the billboard in a VBO
+                .add_array_buffer(
+                    2,
+                    "offset",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    SliceData(offset.as_ref()),
+                )
+                .add_array_buffer(
+                    2,
+                    "uv",
+                    WebGl2RenderingContext::STATIC_DRAW,
+                    SliceData(uv.as_ref()),
+                )
+                // Store the cartesian position of the center of the source in the a instanced VBO
                 // Set the element buffer
                 .add_element_buffer(
                     WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(indices.as_ref()),
+                    SliceData(indices.as_ref()),
                 )
             // Unbind the buffer
             .unbind();
@@ -440,7 +444,7 @@ impl Catalog {
         self.vertex_array_object_catalog
             .bind_for_update()
             .update_instanced_array("center", VecData(&self.current_sources));
-        
+
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
@@ -467,7 +471,7 @@ impl Catalog {
                 let shader = P::get_catalog_shader(gl, shaders);
                 let shader_bound = shader.bind(gl);
 
-                let vao_bound = shader_bound
+                shader_bound
                     .attach_uniforms_from(camera)
                     // Attach catalog specialized uniforms
                     .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
@@ -475,13 +479,11 @@ impl Catalog {
                     .attach_uniform("current_time", &utils::get_current_time())
                     .attach_uniform("kernel_size", &manager.kernel_size)
                     .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
-                    .draw_elements_instanced_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        0,
-                        self.num_instances as i32,
-                    );
-                
-
+                        .draw_elements_instanced_with_i32(
+                            WebGl2RenderingContext::TRIANGLES,
+                            0,
+                            self.num_instances as i32,
+                        );
                 Ok(())
             }, Some(fbo))?;
 
@@ -507,12 +509,12 @@ impl Catalog {
                     .attach_uniforms_from(colormaps)
                     .attach_uniform("reversed", &0.0)
                     .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
-                    .draw_elements_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        None,
-                        WebGl2RenderingContext::UNSIGNED_SHORT,
-                        0
-                    );
+                        .draw_elements_with_i32(
+                            WebGl2RenderingContext::TRIANGLES,
+                            None,
+                            WebGl2RenderingContext::UNSIGNED_SHORT,
+                            0
+                        );
             }
         }
 

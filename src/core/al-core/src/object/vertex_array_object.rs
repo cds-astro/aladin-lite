@@ -507,13 +507,13 @@ pub mod vao {
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            let e = self.vao.element_array_buffer.as_ref().unwrap();
-            e.bind();
-
             for (attr, inst_buf) in self.vao.array_buffer_instanced.iter() {
                 inst_buf.bind();
-                inst_buf.set_vertex_attrib_pointers();
+                inst_buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
+
+            let e = self.vao.element_array_buffer.as_ref().unwrap();
+            e.bind();
 
             self.vao.gl.ext.angles.draw_elements_instanced_angle_with_i32(
                 mode,

@@ -69,7 +69,22 @@ impl ArrayBufferInstanced {
             usage,
         );
         // Link to the shader
-        for (idx, size) in sizes.iter().enumerate() {
+        let idx = offset_idx;
+
+        f32::vertex_attrib_pointer_with_i32(
+            &gl,
+            idx,
+            *sizes.first().unwrap() as i32,
+            0,
+            0,
+        );
+        gl.enable_vertex_attrib_array(idx);
+
+        #[cfg(feature = "webgl2")]
+        gl.vertex_attrib_divisor(idx, 1);
+        #[cfg(feature = "webgl1")]
+        gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
+        /*for (idx, size) in sizes.iter().enumerate() {
             let idx = (idx as u32) + offset_idx;
             //crate::log::log(&format("IDX LOC {:?}", idx));
 
@@ -86,7 +101,8 @@ impl ArrayBufferInstanced {
             gl.vertex_attrib_divisor(idx, 1);
             #[cfg(feature = "webgl1")]
             gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
-        }
+        }*/
+
 
         let num_packed_data = sizes.len();
         let gl = gl.clone();
@@ -107,52 +123,30 @@ impl ArrayBufferInstanced {
         }
     }
 
-    pub fn set_vertex_attrib_pointers(&self) {
-        for (idx, size) in self.sizes.iter().enumerate() {
-            let idx = (idx as u32) + self.offset_idx;
-            self.gl.vertex_attrib_pointer_with_i32(
-                idx,
-                *size as i32,
-                WebGlRenderingCtx::FLOAT,
-                false,
-                self.stride as i32,
-                0,
-            );
-            self.gl.enable_vertex_attrib_array(idx);
-
-            #[cfg(feature = "webgl2")]
-            self.gl.vertex_attrib_divisor(idx, 1);
-            #[cfg(feature = "webgl1")]
-            self.gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
-        }
-    }
-
-    pub fn set_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
-        let loc = shader.get_attrib_location(&self.gl, location) as u32;
-
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+        let loc = shader.get_attrib_location(&self.gl, location);
         assert_eq!(self.sizes.len(), 1);
         //crate::log::log(&format("{:?}", loc));
-        /*T::vertex_attrib_pointer_with_i32(
-            &self.gl,
-            loc,
-            *self.sizes.first().unwrap() as i32,
-            0,
-            0,
-        );*/
         self.gl.vertex_attrib_pointer_with_i32(
-            loc,
+            loc as u32,
             *self.sizes.first().unwrap() as i32,
             WebGlRenderingCtx::FLOAT,
             false,
             self.stride as i32,
             0,
         );
-        self.gl.enable_vertex_attrib_array(loc);
+        self.gl.enable_vertex_attrib_array(loc as u32);
 
         #[cfg(feature = "webgl2")]
-        self.gl.vertex_attrib_divisor(loc, 1);
+        self.gl.vertex_attrib_divisor(loc as u32, 1);
         #[cfg(feature = "webgl1")]
-        self.gl.ext.angles.vertex_attrib_divisor_angle(loc, 1);
+        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 1);
+    }
+
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+        let loc = shader.get_attrib_location(&self.gl, location);
+        
+        self.gl.disable_vertex_attrib_array(loc as u32);
     }
 
     pub fn update<'a, B: BufferDataStorage<'a, f32>>(&self, buffer: B) {

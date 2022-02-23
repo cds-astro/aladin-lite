@@ -419,10 +419,6 @@ impl ArrayBuffer {
         }
     }
 
-    pub fn set_vertex_attrib_pointers<T: VertexAttribPointerType>(&self) {
-        T::set_vertex_attrib_pointers(&self.gl, self.offset_idx, self.stride, &self.sizes, &self.offsets);
-    }
-
     pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
         let loc = shader.get_attrib_location(&self.gl, location);
 
@@ -434,6 +430,16 @@ impl ArrayBuffer {
             0,
             0,
         );
+
+        #[cfg(feature = "webgl2")]
+        self.gl.vertex_attrib_divisor(loc as u32, 0);
+        #[cfg(feature = "webgl1")]
+        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 0);
+    }
+
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+        let loc = shader.get_attrib_location(&self.gl, location);
+        self.gl.disable_vertex_attrib_array(loc as u32);
     }
 
     pub fn update<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(

@@ -77,6 +77,8 @@ pub struct Gui {
 }
 use al_core::WebGlContext;
 use std::sync::{Arc, Mutex};
+use egui::Pos2;
+use cgmath::Vector2;
 impl Gui {
     pub fn new(aladin_lite_div: &str, gl: &WebGlContext) -> Result<GuiRef, JsValue> {
         let ctx = egui::CtxRef::default();
@@ -91,7 +93,7 @@ impl Gui {
         let gui = Self {
             ctx,
             painter,
-
+            
             input,
             layout,
             clipped_meshes: None,
@@ -167,10 +169,11 @@ impl Gui {
                         });
                     });*/
 
-                    layout.show(ui, events);
+                    layout.show(ui, events)
                 });
             
-            self.mouse_on_ui = !response.response.hovered();
+            self.mouse_on_ui = response.inner.contains(self.cur_mouse_pos);
+            al_core::log(&format!("mouse: {:?}", self.mouse_on_ui));
         }
         self.painter.upload_egui_texture(&self.ctx.texture());
 

@@ -13,6 +13,7 @@ pub struct LayerLayout {
 use crate::widgets::SurveyGrid;
 use crate::Event;
 
+use egui::InnerResponse;
 use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
 impl LayerLayout {
@@ -25,8 +26,8 @@ impl LayerLayout {
         })
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {
-        egui::Window::new("Aladin Lite v3")
+    pub fn show(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) -> egui::Rect {
+        let response = egui::Window::new("Aladin Lite v3")
             .collapsible(true)
             .show(ui.ctx(), |ui| {
                 ui.set_max_width(270.0);
@@ -70,6 +71,9 @@ impl LayerLayout {
                     wasm_bindgen_futures::spawn_local(fut);
                 }
             });
+        response.unwrap()
+            .response
+            .rect
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, events: Arc<Mutex<Vec<Event>>>) {

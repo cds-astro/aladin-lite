@@ -491,6 +491,7 @@ export let View = (function() {
             if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
+
             // zoom pinching
             if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
                 view.dragging = false;
@@ -522,7 +523,7 @@ export let View = (function() {
                 view.dragy = xymouse.y;
             }
 
-
+            console.log("AAAA")
             view.dragging = true;
             if (view.mode==View.PAN) {
                 view.setCursor('move');
@@ -689,8 +690,8 @@ export let View = (function() {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
             p = xymouse;
-            if(view.aladin.webglAPI.posOnUi()) {
 
+            if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
 
@@ -766,7 +767,6 @@ export let View = (function() {
             if (! view.dragging) {
                 return;
             }
-
             //var xoffset, yoffset;
             var s1, s2;
             if (e.originalEvent && e.originalEvent.targetTouches) {

@@ -954,8 +954,8 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
 
             push_touches(&mut *runner_lock, egui::TouchPhase::Start, &event);
             runner_lock.needs_repaint.set_true();
-            event.stop_propagation();
-            event.prevent_default();
+            //event.stop_propagation();
+            //event.prevent_default();
         }) as Box<dyn FnMut(_)>);
         canvas.add_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref())?;
         closure.forget();
@@ -978,8 +978,10 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
 
             push_touches(&mut *runner_lock, egui::TouchPhase::Move, &event);
             runner_lock.needs_repaint.set_true();
-            event.stop_propagation();
-            event.prevent_default();
+            runner_lock.cur_mouse_pos = pos;
+
+            //event.stop_propagation();
+            //event.prevent_default();
         }) as Box<dyn FnMut(_)>);
         canvas.add_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref())?;
         closure.forget();
@@ -1008,8 +1010,8 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
 
                 push_touches(&mut *runner_lock, egui::TouchPhase::End, &event);
                 runner_lock.needs_repaint.set_true();
-                event.stop_propagation();
-                event.prevent_default();
+                //event.stop_propagation();
+                //event.prevent_default();
 
                 // Finally, focus or blur on agent to toggle keyboard
                 manipulate_agent(&runner_lock, runner_lock.input.latest_touch_pos);

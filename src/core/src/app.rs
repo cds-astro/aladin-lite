@@ -638,6 +638,7 @@ where
         {
             let mut ui = self.ui.lock();
             let dpi  = self.camera.get_dpi();
+            //al_core::log(&format!("dpi {:?}", dpi));
             ui_redraw = ui.redraw_needed();
             if ui_redraw {
                 let gl = self.gl.clone();

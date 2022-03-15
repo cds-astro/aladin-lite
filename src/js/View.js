@@ -904,7 +904,11 @@ export let View = (function() {
             // inside the backend
             const si = 500000.0;
             const alpha = 40.0;
-            let off = 0.00001 * delta;
+            let off = 0.003;
+
+            if (delta < 0.0) {
+                off = -0.003;
+            }
 
             view.pinchZoomParameters.initialAccDelta += off;
 
@@ -1062,22 +1066,17 @@ export let View = (function() {
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function() {
-        // request another frame
-    
-        requestAnimationFrame(this.redraw.bind(this));
-    
+    View.prototype.redraw = function() {    
         // calc elapsed time since last loop
     
         this.now = Date.now();
-        let elapsed = this.now - this.then;
+        const elapsed = this.now - this.then;
         // if enough time has elapsed, draw the next frame
-        const fpsInterval = 1000/60;
+        //const fpsInterval = 1000/60;
         //if (elapsed > fpsInterval) {
     
             // Get ready for next frame by setting then=now, but also adjust for your
             // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-            this.then = this.now - (elapsed % fpsInterval);
     
             // Put your drawing code here
             var saveNeedRedraw = this.needRedraw;
@@ -1400,8 +1399,9 @@ export let View = (function() {
                 this.updateObjectsLookup();
             }
         //}
-
-        //this.prev = now_update;
+        this.then = this.now;
+        // request another frame
+        requestAnimFrame(this.redraw.bind(this));
     };
 
     View.prototype.forceRedraw = function() {

@@ -569,10 +569,10 @@ use crate::buffer::TextureUniforms;
 use al_core::log::*;
 use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
+    /*
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         if self.is_ready() {
             // Send the textures
-            //let textures = self.get_allsky_textures();
             let textures = self.get_textures();
             let mut num_textures = 0;
             for texture in textures.iter() {
@@ -582,6 +582,25 @@ impl SendUniforms for ImageSurveyTextures {
                     shader.attach_uniforms_from(&texture_uniforms);
                     num_textures += 1;
                 }
+            }
+            let num_tiles = textures.len() as i32;
+            shader
+                .attach_uniform("num_tiles", &num_tiles)
+                .attach_uniforms_from(&self.config)
+                .attach_uniforms_from(&*self.texture_2d_array);
+        }
+
+        shader
+    }
+    */
+    // Send only the allsky textures
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        if self.is_ready() {
+            // Send the textures
+            let textures = self.get_allsky_textures();
+            for (idx, texture) in textures.iter().enumerate() {
+                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
+                shader.attach_uniforms_from(&texture_uniforms);
             }
             let num_tiles = textures.len() as i32;
             shader

@@ -78,7 +78,7 @@ uniform sampler2D position_tex;
 uniform mat4 model;
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
-    vec3 n = texture(position_tex, uv).rgb;
+    //vec3 n = texture(position_tex, uv).rgb;
     //vec3 n = normalize(out_world_pos);
     /*} else {
         float x = out_clip_pos.x;
@@ -98,6 +98,6 @@ void main() {
     //vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     // Get the HEALPix cell idx and the uv in the texture
-    vec4 c = get_tile_color(frag_pos);
+    vec4 c = get_tile_color(normalize(frag_pos));
     out_frag_color = vec4(c.rgb, opacity * c.a);
 }

@@ -5,6 +5,7 @@ precision highp usampler2D;
 precision highp isampler2D;
 precision highp int;
 
+in vec3 frag_pos;
 in vec2 out_clip_pos;
 out vec4 out_frag_color;
 
@@ -59,12 +60,12 @@ vec4 get_tile_color(vec3 pos) {
 uniform sampler2D position_tex;
 uniform mat4 model;
 void main() {
-    vec2 uv = out_clip_pos * 0.5 + 0.5;
+    /*vec2 uv = out_clip_pos * 0.5 + 0.5;
     vec3 n = texture(position_tex, uv).rgb;
 
-    vec3 frag_pos = vec3(model * vec4(n, 1.0));
+    vec3 frag_pos = vec3(model * vec4(n, 1.0));*/
 
-    vec4 c = get_tile_color(frag_pos);
+    vec4 c = get_tile_color(normalize(frag_pos));
     out_frag_color = c;
     out_frag_color.a = out_frag_color.a * opacity;
 }

@@ -18,17 +18,20 @@ vec3 linear_from_srgb(vec3 srgb) {
     return mix(higher, lower, vec3(cutoff));
 }
 
+const vec3 gamma_f = vec3(0.45454545454);
 // 0-1 linear  from  0-255 sRGBA
 vec4 linear_from_srgba(vec4 srgba) {
-    return vec4(linear_from_srgb(srgba.rgb), srgba.a / 255.0);
+    return vec4(pow(linear_from_srgb(srgba.rgb), gamma_f), srgba.a / 255.0);
 }
 
 void main() {
   gl_Position = vec4(
-                     2.0 * pos.x / u_screen_size.x - 1.0,
-                     1.0 - 2.0 * pos.y / u_screen_size.y,
-                     0.0,
-                     1.0);
+    2.0 * pos.x / u_screen_size.x - 1.0,
+    1.0 - 2.0 * pos.y / u_screen_size.y,
+    0.0,
+    1.0
+  );
   v_rgba = linear_from_srgba(color);
+  //v_rgba = color;
   v_tc = tx;
 }

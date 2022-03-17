@@ -59,8 +59,6 @@ impl WebGlContext {
                 .unwrap(),
         );
 
-        #[cfg(feature = "webgl2")]
-        let _ = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")?;
         #[cfg(feature = "webgl1")]
         let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
         #[cfg(feature = "webgl1")]
@@ -90,8 +88,6 @@ where
         .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
         .ok_or(JsValue::from_str(&format!("Failed to load ext: {}", name)))
 }
-
-
 
 use std::ops::Deref;
 impl Deref for WebGlContext {

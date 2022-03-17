@@ -486,7 +486,7 @@ where
             }
         }*/
 
-        /*if let Some(InertiaAnimation {
+        if let Some(InertiaAnimation {
             time_start_anim,
             d0,
             axis,
@@ -518,7 +518,7 @@ where
             if d < thresh {
                 self.inertial_move_animation = None;
             }
-        }*/
+        }
 
         {
             // Newly available tiles must lead to

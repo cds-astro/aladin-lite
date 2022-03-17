@@ -525,7 +525,7 @@ impl Triangulation {
         let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
         let children = root.split();
 
-        let depth = 3;
+        let depth = 5;
         let mut first = false;
         recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth, &mut first);
         recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth, &mut first);

@@ -6,6 +6,7 @@ precision highp isampler2D;
 precision highp int;
 
 in vec2 out_clip_pos;
+in vec3 frag_pos;
 out vec4 out_frag_color;
 
 uniform int user_action;
@@ -94,7 +95,7 @@ void main() {
         );
     }*/
 
-    vec3 frag_pos = vec3(model * vec4(n, 1.0));
+    //vec3 frag_pos = vec3(model * vec4(n, 1.0));
 
     // Get the HEALPix cell idx and the uv in the texture
     vec4 c = get_tile_color(frag_pos);

@@ -486,7 +486,7 @@ where
             }
         }*/
 
-        if let Some(InertiaAnimation {
+        /*if let Some(InertiaAnimation {
             time_start_anim,
             d0,
             axis,
@@ -518,7 +518,7 @@ where
             if d < thresh {
                 self.inertial_move_animation = None;
             }
-        }
+        }*/
 
         {
             // Newly available tiles must lead to
@@ -603,7 +603,12 @@ where
 
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
         let scene_redraw = self.rendering | force_render;
-        if scene_redraw {
+        let mut ui = self.ui.lock();
+        let dpi  = self.camera.get_dpi();
+        //al_core::log(&format!("dpi {:?}", dpi));
+        let ui_redraw = ui.redraw_needed();
+
+        if scene_redraw | ui_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
             let camera = &self.camera;
@@ -614,7 +619,7 @@ where
             let colormaps = &self.colormaps;
             let fbo_view = &self.fbo_view;
 
-            fbo_view.draw_onto(move || {
+            //fbo_view.draw_onto(move || {
                 // Render the scene
                 gl.clear_color(0.00, 0.00, 0.00, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -626,37 +631,27 @@ where
 
                 grid.draw::<P>(camera, shaders)?;
 
-                Ok(())
-            }, None)?;
+            /*    Ok(())
+            }, None)?;*/
+
+            //let gl = self.gl.clone();
+
+            //self.fbo_ui.draw_onto(move || {
+                ui.draw(&gl, dpi)?;
+
+            //    Ok(())
+            //}, None)?;
 
             // Reset the flags about the user action
             self.camera.reset();
         }
 
-        // Tell if the ui has been redrawn
-        let mut ui_redraw = false;
-        {
-            let mut ui = self.ui.lock();
-            let dpi  = self.camera.get_dpi();
-            //al_core::log(&format!("dpi {:?}", dpi));
-            ui_redraw = ui.redraw_needed();
-            if ui_redraw {
-                let gl = self.gl.clone();
-
-                self.fbo_ui.draw_onto(move || {
-                    ui.draw(&gl, dpi)?;
-
-                    Ok(())
-                }, None)?;
-            }
-        }
-
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen
-        if scene_redraw || ui_redraw {
+        /*if scene_redraw || ui_redraw {
             self.final_rendering_pass.draw_on_screen(&self.fbo_view);
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
-        }
+        }*/
 
         self.surveys.reset_frame();
 

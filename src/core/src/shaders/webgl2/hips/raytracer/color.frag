@@ -5,7 +5,6 @@ precision highp usampler2D;
 precision highp isampler2D;
 precision highp int;
 
-in vec3 out_vert_pos;
 in vec2 out_clip_pos;
 out vec4 out_frag_color;
 
@@ -21,8 +20,6 @@ struct Tile {
 uniform int current_depth;
 uniform Tile textures_tiles[12];
 uniform int num_tiles;
-
-uniform float current_time; // current time in ms
 
 @import ../color;
 @import ./healpix;
@@ -81,6 +78,7 @@ uniform mat4 model;
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
     vec3 n = texture(position_tex, uv).rgb;
+    //vec3 n = normalize(out_world_pos);
     /*} else {
         float x = out_clip_pos.x;
         float y = out_clip_pos.y;

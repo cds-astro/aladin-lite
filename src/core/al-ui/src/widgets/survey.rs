@@ -127,9 +127,7 @@ async fn request_survey_properties(url: String) -> PropertiesParsed {
 
     let cuts: Vec<_> = res.hips_pixel_cut.split(" ").collect();
 
-    let cuts = if cuts.len() != 2 {
-        None
-    } else {
+    let cuts = {
         let (c0, c1) = (cuts[0].parse::<f32>(), cuts[1].parse::<f32>());
         if c0.is_err() || c1.is_err() {
             None

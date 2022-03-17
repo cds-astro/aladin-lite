@@ -51,16 +51,16 @@ float one_minus_z_neg(vec3 p) {
 
 // Z-Order curve projection.
 int ij2z(int i, int j) {
-    int i1 = i | (j << 16);
+    int i4 = i | (j << 2);
 
-    int j1 = (i1 ^ (i1 >> 8)) & 0x0000FF00;
+    /*int j1 = (i1 ^ (i1 >> 8)) & 0x0000FF00;
     int i2 = i1 ^ j1 ^ (j1 << 8);
 
     int j2 = (i2 ^ (i2 >> 4)) & 0x00F000F0;
     int i3 = i2 ^ j2 ^ (j2 << 4);
 
     int j3 = (i3 ^ (i3 >> 2)) & 0x0C0C0C0C;
-    int i4 = i3 ^ j3 ^ (j3 << 2);
+    int i4 = i3 ^ j3 ^ (j3 << 2);*/
 
     int j4 = (i4 ^ (i4 >> 1)) & 0x22222222;
     int i5 = i4 ^ j4 ^ (j4 << 1);
@@ -170,7 +170,7 @@ HashDxDy hash_with_dxdy(int depth, vec3 p) {
     int j = int(y);
 
     return HashDxDy(
-        (d0h << (depth << 1)) | ij2z(i, j),
+        (d0h << (depth << 1)) + ij2z(i, j),
         x - float(i),
         y - float(j)
     );

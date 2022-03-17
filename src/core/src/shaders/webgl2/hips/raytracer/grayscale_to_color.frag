@@ -21,8 +21,6 @@ uniform int current_depth;
 
 uniform Tile textures_tiles[12];
 
-uniform float current_time; // current time in ms
-
 @import ../color;
 @import ./healpix;
 
@@ -50,11 +48,9 @@ vec4 get_tile_color(vec3 pos) {
     return color;
 }
 
-const float duration = 500.f; // 500ms
-uniform int max_depth; // max depth of the HiPS
-
 uniform sampler2D position_tex;
 uniform mat4 model;
+
 void main() {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
     vec3 n = texture(position_tex, uv).rgb;

@@ -263,23 +263,6 @@ impl TileRequest {
         self.req.image(tile_width)
     }
 }
-
-impl Drop for TileRequest {
-    fn drop(&mut self) {
-        self.req.send(None, None, "").unwrap();
-        /*self.ready = true;
-        self.resolved.set(ResolvedStatus::NotResolved);
-        self.closures = [
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-        ];*/
-    }
-}
-
 /* ------------------------------------------------------ */
 
 pub struct HTMLImage<F>

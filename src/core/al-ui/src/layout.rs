@@ -81,9 +81,8 @@ impl LayerLayout {
         ui.separator();
         let surveys = &mut *self.surveys.lock().unwrap();
         let mut update_viewed_surveys = false;
-        for idx in (0..surveys.len()).rev() {
-            surveys[idx].show(ui);
 
+        for idx in (0..surveys.len()).rev() {
             if surveys[idx].update_survey {
                 update_viewed_surveys = true;
             }
@@ -92,6 +91,10 @@ impl LayerLayout {
                 surveys.remove(idx);
                 update_viewed_surveys = true;
             }
+        }
+
+        for idx in 0..surveys.len() {
+            surveys[idx].show(ui);
         }
 
         // TODO: check if you can add a new survey

@@ -99,6 +99,7 @@ impl Manager {
             vao.bind_for_update()
                 // Store the screen and uv of the billboard in a VBO
                 .add_array_buffer(
+                    "vertices",
                     4 * std::mem::size_of::<f32>(),
                     &[2, 2],
                     &[0, 2 * std::mem::size_of::<f32>()],
@@ -321,6 +322,7 @@ impl Catalog {
             vao.bind_for_update()
                 // Store the UV and the offsets of the billboard in a VBO
                 .add_array_buffer(
+                    "vertices",
                     4 * std::mem::size_of::<f32>(),
                     &[2, 2],
                     &[0, 2 * std::mem::size_of::<f32>()],
@@ -329,6 +331,7 @@ impl Catalog {
                 )
                 // Store the cartesian position of the center of the source in the a instanced VBO
                 .add_instanced_array_buffer(
+                    "center",
                     3 * std::mem::size_of::<f32>(),
                     &[3],
                     &[0],
@@ -448,7 +451,7 @@ impl Catalog {
         #[cfg(feature = "webgl2")]
         self.vertex_array_object_catalog
             .bind_for_update()
-            .update_instanced_array(0, VecData(&self.current_sources));
+            .update_instanced_array("center", VecData(&self.current_sources));
     }
 
     fn draw<P: Projection>(

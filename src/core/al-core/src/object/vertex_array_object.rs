@@ -9,9 +9,11 @@ pub mod vao {
     use crate::object::element_array_buffer::ElementArrayBuffer;
 
     use crate::webgl_ctx::WebGlContext;
+    use std::collections::HashMap;
+
     pub struct VertexArrayObject {
-        array_buffer: Vec<ArrayBuffer>,
-        array_buffer_instanced: Vec<ArrayBufferInstanced>,
+        array_buffer: HashMap<&'static str, ArrayBuffer>,
+        array_buffer_instanced: HashMap<&'static str, ArrayBufferInstanced>,
         element_array_buffer: Option<ElementArrayBuffer>,
     
         idx: u32, // Number of vertex attributes
@@ -28,8 +30,8 @@ pub mod vao {
                 .ok_or("failed to create the vertex array buffer")
                 .unwrap();
     
-            let array_buffer = vec![];
-            let array_buffer_instanced = vec![];
+            let array_buffer = HashMap::new();
+            let array_buffer_instanced = HashMap::new();
     
             let element_array_buffer = None;
     
@@ -89,7 +91,7 @@ pub mod vao {
         }
     
         pub fn num_instances(&self) -> i32 {
-            self.array_buffer_instanced[0].num_instances()
+            self.array_buffer_instanced.values().next().unwrap().num_instances()
         }
     }
     
@@ -110,11 +112,13 @@ pub mod vao {
     impl<'a, 'b> ShaderVertexArrayObjectBound<'a, 'b> {
         pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer[idx].update(usage, array_data);
+            self.vao.array_buffer.get_mut(attr)
+                .unwrap()
+                .update(usage, array_data);
             self
         }
     
@@ -131,10 +135,12 @@ pub mod vao {
     
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced[idx].update(array_data);
+            self.vao.array_buffer_instanced.get_mut(attr)
+                .unwrap()
+                .update(array_data);
             self
         }
     
@@ -205,6 +211,7 @@ pub mod vao {
         /// Precondition: self must be bound
         pub fn add_array_buffer<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
+            attr: &'static str,
             stride: usize,
             sizes: &[usize],
             offsets: &[usize],
@@ -224,14 +231,40 @@ pub mod vao {
             // Update the number of vertex attrib
             self.vao.idx += sizes.len() as u32;
     
-            self.vao.array_buffer.push(array_buffer);
+            self.vao.array_buffer.insert(attr, array_buffer);
     
+            self
+        }
+
+        pub fn add_array_buffer_single<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
+            &mut self,
+            size: usize,
+            attr: &'static str,
+            usage: u32,
+            data: B,
+        ) -> &mut Self {
+            let array_buffer = ArrayBuffer::new(
+                &self.vao.gl,
+                self.vao.idx,
+                0,
+                &[size],
+                &[0],
+                usage,
+                data,
+            );
+
+            // Update the number of vertex attrib
+            self.vao.idx += 1;
+
+            self.vao.array_buffer.insert(attr, array_buffer);
+
             self
         }
     
         /// Precondition: self must be bound
         pub fn add_instanced_array_buffer<B: BufferDataStorage<'a, f32>>(
             &mut self,
+            attr: &'static str,
             stride: usize,
             sizes: &[usize],
             offsets: &[usize],
@@ -247,14 +280,14 @@ pub mod vao {
                 usage,
                 data,
             );
-    
+
             // Update the number of vertex attrib
             self.vao.idx += sizes.len() as u32;
-            self.vao.array_buffer_instanced.push(array_buffer);
-    
+            self.vao.array_buffer_instanced.insert(attr, array_buffer);
+
             self
         }
-    
+
         /// Precondition: self must be bound
         pub fn add_element_buffer<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
@@ -269,11 +302,13 @@ pub mod vao {
     
         pub fn update_array<T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer[idx].update(usage, array_data);
+            self.vao.array_buffer.get_mut(attr)
+                .unwrap()
+                .update(usage, array_data);
             self
         }
     
@@ -290,10 +325,12 @@ pub mod vao {
     
         pub fn update_instanced_array<B: BufferDataStorage<'a, f32>>(
             &mut self,
-            idx: usize,
+            attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced[idx].update(array_data);
+            self.vao.array_buffer_instanced.get_mut(attr)
+                .unwrap()
+                .update(array_data);
             self
         }
     

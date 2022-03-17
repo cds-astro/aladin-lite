@@ -14,7 +14,7 @@ use crate::coo_conversion::CooSystem;
 use super::Triangulation;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGlContext,
-    _camera: &CameraViewPort,
+    camera: &CameraViewPort,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
@@ -31,7 +31,7 @@ fn create_vertices_array<P: Projection>(
             // Cast all the double into float
             // simple precision because this buffer
             // is sent to the GPU
-            vec![pos_clip_space.x as f32, pos_clip_space.y as f32]
+            vec![pos_clip_space.x as f32, pos_clip_space.y as f32/*, pos_world_space.x as f32, pos_world_space.y as f32, pos_world_space.z as f32*/]
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -185,12 +185,20 @@ impl RayTracer {
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
+                "vertices",
                 2 * std::mem::size_of::<f32>(),
                 &[2],
                 &[0],
                 WebGl2RenderingContext::STATIC_DRAW,
                 VecData::<f32>(&vertices),
             )
+            /*.add_array_buffer(
+                5 * std::mem::size_of::<f32>(),
+                &[2, 3],
+                &[0, 2 * std::mem::size_of::<f32>()],
+                WebGl2RenderingContext::STATIC_DRAW,
+                VecData::<f32>(&vertices),
+            )*/
             // Set the element buffer
             .add_element_buffer(
                 WebGl2RenderingContext::STATIC_DRAW,

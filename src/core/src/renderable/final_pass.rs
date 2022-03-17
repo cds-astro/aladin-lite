@@ -48,6 +48,7 @@ impl RenderPass {
         vao.bind_for_update()
             // positions and texcoords buffers
             .add_array_buffer(
+                "vertices",
                 2 * std::mem::size_of::<f32>(),
                 &[2],
                 &[0],

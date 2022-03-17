@@ -9,16 +9,14 @@ use al_core::format::{
 };
 
 use al_api::hips::HiPSProperties;
-pub struct TextureToDraw<'a, 'b> {
-    pub cell: &'b HEALPixCell,
+pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
 }
 
-impl<'a, 'b> TextureToDraw<'a, 'b> {
-    fn new(cell: &'b HEALPixCell, starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureToDraw<'a, 'b> {
+impl<'a> TextureToDraw<'a> {
+    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureToDraw<'a> {
         TextureToDraw {
-            cell,
             starting_texture,
             ending_texture,
         }
@@ -26,44 +24,41 @@ impl<'a, 'b> TextureToDraw<'a, 'b> {
 }
 
 use std::collections::{HashMap, HashSet};
-pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
+pub struct TexturesToDraw<'a>(Vec<TextureToDraw<'a>>);
 
-impl<'a, 'b> TexturesToDraw<'a, 'b> {
-    fn new(capacity: usize) -> TexturesToDraw<'a, 'b> {
+impl<'a> TexturesToDraw<'a> {
+    fn new(capacity: usize) -> TexturesToDraw<'a> {
         let states = Vec::with_capacity(capacity);
 
         TexturesToDraw(states)
     }
 }
 
-impl<'a, 'b> core::ops::Deref for TexturesToDraw<'a, 'b> {
-    type Target = Vec<TextureToDraw<'a, 'b>>;
+impl<'a> core::ops::Deref for TexturesToDraw<'a> {
+    type Target = Vec<TextureToDraw<'a>>;
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0
     }
 }
-impl<'a, 'b> core::ops::DerefMut for TexturesToDraw<'a, 'b> {
+impl<'a> core::ops::DerefMut for TexturesToDraw<'a> {
     fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
         &mut self.0
     }
 } 
 
-use crate::healpix_cell::SphereSubdivided;
 pub trait RecomputeRasterizer {
     // Returns:
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
+    fn get_textures_from_survey<'a>(
         camera: &CameraViewPort,
-        view: &'b HEALPixCellsInView,
+        view: &HEALPixCellsInView,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b>;
-
-    fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8;
+    ) -> TexturesToDraw<'a>;
 }
 
 pub struct Move;
@@ -75,11 +70,11 @@ impl RecomputeRasterizer for Move {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
+    fn get_textures_from_survey<'a>(
         _camera: &CameraViewPort,
-        view: &'b HEALPixCellsInView,
+        view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
+    ) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
@@ -91,7 +86,7 @@ impl RecomputeRasterizer for Move {
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
@@ -101,15 +96,20 @@ impl RecomputeRasterizer for Move {
                 let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
 
         textures
     }
-    fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8 {
-        sphere_sub.get_num_subdivide::<P>(cell)
+}
+
+fn num_subdivision(depth: u8) -> u8 {
+    if depth < 5 {
+        std::cmp::min(5 - depth, 3)
+    } else {
+        0
     }
 }
 
@@ -118,11 +118,11 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
+    fn get_textures_from_survey<'a>(
         _camera: &CameraViewPort,
-        view: &'b HEALPixCellsInView,
+        view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
+    ) -> TexturesToDraw<'a> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
@@ -134,7 +134,7 @@ impl RecomputeRasterizer for Zoom {
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
@@ -144,16 +144,12 @@ impl RecomputeRasterizer for Zoom {
                 let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
 
         textures
-    }
-
-    fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8 {
-        sphere_sub.get_num_subdivide::<P>(cell)
     }
 }
 
@@ -162,11 +158,11 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a, 'b>(
+    fn get_textures_from_survey<'a>(
         camera: &CameraViewPort,
-        view: &'b HEALPixCellsInView,
+        view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
+    ) -> TexturesToDraw<'a> {
         let depth = view.get_depth();
         let max_depth = survey.config().get_max_depth();
 
@@ -222,7 +218,7 @@ impl RecomputeRasterizer for UnZoom {
                 let starting_cell_in_tex = survey.get(&cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
@@ -232,7 +228,7 @@ impl RecomputeRasterizer for UnZoom {
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
 
                 textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
+                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             }
         }
@@ -240,14 +236,19 @@ impl RecomputeRasterizer for UnZoom {
         textures
     }
 
-    fn num_subdivision<P: Projection>(cell: &HEALPixCell, sphere_sub: &SphereSubdivided) -> u8 {
-        let num_subdivision = sphere_sub.get_num_subdivide::<P>(cell);
+    /*fn num_subdivision(depth: u8) -> u8 {
+        let num_subdivision = if depth < 5 {
+            std::cmp::min(5 - depth, 3)
+        } else {
+            0
+        };
+
         if num_subdivision <= 1 {
             0
         } else {
             num_subdivision - 1
         }
-    }
+    }*/
 }
 
 use crate::camera::CameraViewPort;
@@ -423,7 +424,7 @@ use crate::renderable::survey::uv::{TileCorner, TileUVW};
 // This method only computes the vertex positions
 // of a HEALPix cell and append them
 // to lonlats and positions vectors
-#[cfg(feature = "webgl2")]
+/*#[cfg(feature = "webgl2")]
 fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
     vertices: &mut Vec<f32>,
     idx_positions: &mut Vec<u16>,
@@ -535,21 +536,22 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
             idx_positions.push(off_idx_vertices + idx_2);
         }
     }
-}
+}*/
 use cgmath::Vector2;
-#[cfg(feature = "webgl1")]
-fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
-    position: &mut Vec<f32>,
+//#[cfg(feature = "webgl1")]
+fn add_vertices_grid(
+    depth: u8,
+    //position: &mut Vec<f32>,
     uv_start: &mut Vec<f32>,
     uv_end: &mut Vec<f32>,
     time_tile_received: &mut Vec<f32>,
     m0: &mut Vec<f32>,
     m1: &mut Vec<f32>,
 
-    idx_positions: &mut Vec<u16>,
+    //idx_positions: &mut Vec<u16>,
 
-    cell: &HEALPixCell,
-    sphere_sub: &SphereSubdivided,
+    //cell: &HEALPixCell,
+    //sphere_sub: &SphereSubdivided,
 
     uv_0: &TileUVW,
     uv_1: &TileUVW,
@@ -560,15 +562,11 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
 
     camera: &CameraViewPort,
 ) {
-    let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
+    let num_subdivision = num_subdivision(depth);
+    let n_segments_by_side: usize = 1 + (num_subdivision as usize);
+    let n_vertices_per_segment = 2 + (num_subdivision as usize);
 
-    let n_segments_by_side: usize = 1 << num_subdivision;
-    let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-
-    let n_vertices_per_segment = n_segments_by_side + 1;
-
-    let off_idx_vertices = (position.len() / 3) as u16;
-    //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
+    let off_idx_vertices = (uv_start.len() / 2) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -593,39 +591,11 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
                 uv_1[TileCorner::BottomLeft].z,
             );
 
-            let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
-            // The projection is defined whatever the projection is
-            // because this code is executed for small fovs (~<100deg depending
-            // of the projection).
-            let ndc_pos = if let Some(ndc_pos) = P::model_to_ndc_space(&model_pos, camera) {
-                ndc_pos
-            } else {
-                Vector2::new(1.0, 0.0)
-            };
-
-            position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
             uv_start.extend([uv_s_vertex_0.x as f32, uv_s_vertex_0.y as f32, uv_s_vertex_0.z as f32]);
             uv_end.extend([uv_e_vertex_0.x as f32, uv_e_vertex_0.y as f32, uv_e_vertex_0.z as f32]);
             time_tile_received.push(alpha);
             m0.push(miss_0);
             m1.push(miss_1);
-        }
-    }
-
-    for i in 0..n_segments_by_side {
-        for j in 0..n_segments_by_side {
-            let idx_0 = (j + i * n_vertices_per_segment) as u16;
-            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
-
-            idx_positions.push(off_idx_vertices + idx_0);
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_2);
-
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_3);
-            idx_positions.push(off_idx_vertices + idx_2);
         }
     }
 }
@@ -642,32 +612,30 @@ pub struct ImageSurvey {
 
     // The projected vertices data
     // For WebGL2 wasm, the data are interleaved
-    #[cfg(feature = "webgl2")]
-    vertices: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl2")]
+    //vertices: Vec<f32>,
+    //#[cfg(feature = "webgl1")]
     // layout (location = 0) in vec3 position;
     position: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl1")]
     // layout (location = 1) in vec3 uv_start;
     uv_start: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl1")]
     // layout (location = 2) in vec3 uv_end;
     uv_end: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl1")]
     // layout (location = 3) in float time_tile_received;
     time_tile_received: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl1")]
     // layout (location = 4) in float m0;
     m0: Vec<f32>,
-    #[cfg(feature = "webgl1")]
+    //#[cfg(feature = "webgl1")]
     // layout (location = 5) in float m1;
     m1: Vec<f32>,
 
     idx_vertices: Vec<u16>,
 
     num_idx: usize,
-
-    sphere_sub: SphereSubdivided,
     
     vao: VertexArrayObject,
     gl: WebGlContext,
@@ -698,15 +666,58 @@ impl ImageSurvey {
         // layout (location = 6) in float m1;
         //let vertices = vec![0.0; MAX_NUM_FLOATS_TO_DRAW];
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
-        let vertices = vec![];
+        
+        //let vertices = vec![];
+        let position = vec![];
+        let uv_start = vec![];
+        let uv_end = vec![];
+        let time_tile_received = vec![];
+        let m0 = vec![];
+        let m1 = vec![];
         let idx_vertices = vec![];
         vao.bind_for_update()
-            .add_array_buffer(
+            /*.add_array_buffer(
                 12 * std::mem::size_of::<f32>(),
                 &[3, 3, 3, 1, 1, 1],
                 &[0, 3 * std::mem::size_of::<f32>(), 6 * std::mem::size_of::<f32>(), 9 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>()],
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&vertices),
+            )*/
+            .add_array_buffer_single(
+                3,
+                "position",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&position),
+            )
+            .add_array_buffer_single(
+                3,
+                "uv_start",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&uv_start),
+            )
+            .add_array_buffer_single(
+                3,
+                "uv_end",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&uv_end),
+            )
+            .add_array_buffer_single(
+                1,
+                "time_tile_received",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&time_tile_received),
+            )
+            .add_array_buffer_single(
+                1,
+                "m0",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&m0),
+            )
+            .add_array_buffer_single(
+                1,
+                "m1",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&m1),
             )
             // Set the element buffer
             .add_element_buffer(
@@ -715,7 +726,6 @@ impl ImageSurvey {
             ).unbind();
 
         let num_idx = MAX_NUM_INDICES_TO_DRAW;
-        let sphere_sub = SphereSubdivided {};
 
         let textures = ImageSurveyTextures::new(gl, config, exec)?;
         let conf = textures.config();
@@ -732,11 +742,18 @@ impl ImageSurvey {
 
             num_idx,
 
-            sphere_sub,
             vao,
 
             gl,
-            vertices,
+            //vertices,
+
+            position,
+            uv_start,
+            uv_end,
+            time_tile_received,
+            m0,
+            m1,
+
             idx_vertices,
         })
     }
@@ -859,25 +876,22 @@ impl ImageSurvey {
         texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)
     }
 
-    pub fn set_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn set_uvs(&mut self, camera: &CameraViewPort) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_vertices::<P, UnZoom>(camera);
+                self.update_uvs::<UnZoom>(camera);
             }
             UserAction::Zooming => {
-                self.update_vertices::<P, Zoom>(camera);
+                self.update_uvs::<Zoom>(camera);
             }
-            UserAction::Moving => {
-                self.update_vertices::<P, Move>(camera);
-            }
-            UserAction::Starting => {
-                self.update_vertices::<P, Move>(camera);
+            _ => {
+                self.update_uvs::<Move>(camera);
             }
         }
     }
 
-    #[cfg(feature = "webgl2")]
+    /*#[cfg(feature = "webgl2")]
     fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
 
@@ -911,39 +925,40 @@ impl ImageSurvey {
         let mut vao = self.vao.bind_for_update();
         vao.update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
-    }
+    }*/
 
-    #[cfg(feature = "webgl1")]
-    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
-        let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
-
-        self.position.clear();
+    //#[cfg(feature = "webgl1")]
+    fn update_uvs<T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
+        //self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
         self.time_tile_received.clear();
         self.m0.clear();
         self.m1.clear();
-        self.idx_vertices.clear();
+        //self.idx_vertices.clear();
+
+        let textures = T::get_textures_from_survey(camera, &self.view, &self.textures);
 
         let survey_config = self.textures.config();
-
-        for TextureToDraw { cell, starting_texture, ending_texture } in textures.iter() {
+        let depth = self.view.get_depth();
+        for (TextureToDraw { starting_texture, ending_texture }, cell) in textures.iter().zip(self.view.get_cells()) {
             let uv_0 = TileUVW::new(cell, &starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, &ending_texture, survey_config);
             let start_time = ending_texture.start_time();
             let miss_0 = starting_texture.is_missing() as f32;
             let miss_1 = ending_texture.is_missing() as f32;
 
-            add_vertices_grid::<P, T>(
-                &mut self.position,
+            add_vertices_grid(
+                depth,
+                //&mut self.position,
                 &mut self.uv_start,
                 &mut self.uv_end,
                 &mut self.time_tile_received,
                 &mut self.m0,
                 &mut self.m1,
-                &mut self.idx_vertices,
-                &cell,
-                &self.sphere_sub,
+                //&mut self.idx_vertices,
+                //&cell,
+                //&self.sphere_sub,
                 &uv_0,
                 &uv_1,
                 miss_0,
@@ -955,12 +970,59 @@ impl ImageSurvey {
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
-        vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
-            .update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
+        vao.update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
             .update_array("uv_end", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_end))
             .update_array("time_tile_received", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.time_tile_received))
             .update_array("m0", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m0))
-            .update_array("m1", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m1))
+            .update_array("m1", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m1));
+            //.update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
+    }
+
+    fn set_positions(&mut self) {
+        self.position.clear();
+        self.idx_vertices.clear();
+        let depth = self.view.get_depth();
+
+        let num_subdivision = num_subdivision(depth);
+        let n_segments_by_side = 1 + num_subdivision as usize;
+        let n_vertices_per_segment = 2 + num_subdivision as usize;
+
+        for cell in self.view.get_cells() {
+            let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
+
+            // Indices overwritten
+            let off_idx_vertices = (self.position.len() / 3) as u16;
+
+            // Positions overwritten
+            for i in 0..n_vertices_per_segment {
+                for j in 0..n_vertices_per_segment {
+                    let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+
+                    let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
+                    self.position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
+                }
+            }
+
+            for i in 0..n_segments_by_side {
+                for j in 0..n_segments_by_side {
+                    let idx_0 = (j + i * n_vertices_per_segment) as u16;
+                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+                    let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+                    let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+        
+                    self.idx_vertices.push(off_idx_vertices + idx_0);
+                    self.idx_vertices.push(off_idx_vertices + idx_1);
+                    self.idx_vertices.push(off_idx_vertices + idx_2);
+        
+                    self.idx_vertices.push(off_idx_vertices + idx_1);
+                    self.idx_vertices.push(off_idx_vertices + idx_3);
+                    self.idx_vertices.push(off_idx_vertices + idx_2);
+                }
+            }
+        }
+
+        let mut vao = self.vao.bind_for_update();
+        vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
 
@@ -1045,48 +1107,47 @@ impl Draw for ImageSurvey {
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
 
-        let new_cells_in_fov = self.view.is_there_new_cells_added();
-        {
-            let recompute_vertices = new_cells_in_fov | self.textures.is_there_available_tiles();
-            
-            let shader = color
-            .get_raster_shader::<P>(
-                &self.gl,
-                shaders,
-                self.textures.config.tex_storing_integers,
-                self.textures.config.tex_storing_unsigned_int,
-            )
-            .bind(&self.gl);
+        let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles();
+        
+        let shader = color
+        .get_raster_shader::<P>(
+            &self.gl,
+            shaders,
+            self.textures.config.tex_storing_integers,
+            self.textures.config.tex_storing_unsigned_int,
+        )
+        .bind(&self.gl);
 
-            //self.gl.bind_vertex_array(Some(&self.vao));
-            
-            if recompute_vertices {
-                self.set_vertices::<P>(camera);
-            }
-            shader
-                .attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.textures)
-                .attach_uniforms_from(color)
-                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
-                .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniforms_from(colormaps)
-                .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
-                        Some(self.num_idx as i32), 
-                        WebGl2RenderingContext::UNSIGNED_SHORT, 
-                        0
-                    );
-
-            // The raster vao is bound at the lib.rs level
-            /*self.gl.draw_elements_with_i32(
-                //WebGl2RenderingContext::LINES,
-                WebGl2RenderingContext::TRIANGLES,
-                self.num_idx as i32,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                0,
-            );*/
+        //self.gl.bind_vertex_array(Some(&self.vao));
+        
+        if recompute_vertices {
+            self.set_positions();
+            self.set_uvs(camera);
         }
+
+        shader
+            .attach_uniforms_from(camera)
+            .attach_uniforms_from(&self.textures)
+            .attach_uniforms_from(color)
+            .attach_uniform("current_depth", &(self.view.get_depth() as i32))
+            .attach_uniform("current_time", &utils::get_current_time())
+            .attach_uniform("opacity", &opacity)
+            .attach_uniforms_from(colormaps)
+            .bind_vertex_array_object_ref(&self.vao)
+            .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
+                Some(self.num_idx as i32), 
+                WebGl2RenderingContext::UNSIGNED_SHORT, 
+                0
+            );
+
+        // The raster vao is bound at the lib.rs level
+        /*self.gl.draw_elements_with_i32(
+            //WebGl2RenderingContext::LINES,
+            WebGl2RenderingContext::TRIANGLES,
+            self.num_idx as i32,
+            WebGl2RenderingContext::UNSIGNED_SHORT,
+            0,
+        );*/
     }
 }
 

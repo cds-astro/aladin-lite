@@ -1069,8 +1069,7 @@ export let View = (function() {
     View.prototype.redraw = function() {    
         // calc elapsed time since last loop
     
-        this.now = Date.now();
-        const elapsed = this.now - this.then;
+        //this.now = Date.now();
         // if enough time has elapsed, draw the next frame
         //const fpsInterval = 1000/60;
         //if (elapsed > fpsInterval) {
@@ -1095,7 +1094,7 @@ export let View = (function() {
             //var now_update = Date.now();
             try {
                 //var dt = now_update - this.prev;
-                this.aladin.webglAPI.update(elapsed, this.needRedraw);
+                this.aladin.webglAPI.update(Date.now() - this.then, this.needRedraw);
             } catch(e) {
                 console.error(e)
             }
@@ -1399,7 +1398,7 @@ export let View = (function() {
                 this.updateObjectsLookup();
             }
         //}
-        this.then = this.now;
+        this.then = Date.now();
         // request another frame
         requestAnimFrame(this.redraw.bind(this));
     };

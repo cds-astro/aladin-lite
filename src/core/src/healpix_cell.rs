@@ -168,36 +168,3 @@ impl Ord for HEALPixCell {
         self.partial_cmp(&other).unwrap()
     }
 }
-
-
-pub struct SphereSubdivided;
-
-impl SphereSubdivided {
-    // Get the number of subdivision necessary for the given cell
-    pub fn get_num_subdivide<P: Projection>(&self, cell: &HEALPixCell) -> u8 {
-        let HEALPixCell(depth, _idx) = *cell;
-        let num_sub = if depth < 5 {
-            // Get the 3 depth cells contained in it and add
-            // each of them individually to the buffer
-            /*let idx_off = (idx << (2*(5 - depth))) as usize;
-            let idx_off2 = ((idx + 1) << (2*(5 - depth))) as usize;
-
-            let num_sub_d3_cells = self.0[idx_off..idx_off2].iter().max();
-            *num_sub_d3_cells.unwrap() + (5 - depth)*/
-            std::cmp::min(5 - depth, 3)
-        } else {
-            /*let idx_d3 = cell.idx() >> (2*(depth - 6));
-            let num_sub_d3 = self[idx_d3 as usize];
-
-            if depth > num_sub_d3 + 6 {
-                0
-            } else {
-                num_sub_d3 - (depth - 6)
-            }*/
-            0
-        };
-        num_sub
-
-        //std::cmp::min(num_sub, 3)
-    }
-}

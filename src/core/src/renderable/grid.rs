@@ -59,6 +59,7 @@ impl ProjetedGrid {
             #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 .add_array_buffer(
+                    "position",
                     2 * std::mem::size_of::<f32>(),
                     &[2],
                     &[0],
@@ -93,6 +94,7 @@ impl ProjetedGrid {
             #[cfg(feature = "webgl2")]
             vao.bind_for_update()
                 .add_array_buffer(
+                    "ndc_pos",
                     2 * std::mem::size_of::<f32>(),
                     &[2],
                     &[0],
@@ -234,7 +236,7 @@ impl ProjetedGrid {
             
             #[cfg(feature = "webgl2")]
             self.vao.bind_for_update()
-                .update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
+                .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
             #[cfg(feature = "webgl1")]
             self.vao.bind_for_update()
                 .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));

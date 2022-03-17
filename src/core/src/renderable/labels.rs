@@ -81,6 +81,7 @@ impl TextRenderManager {
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer(
+                "vertices",
                 4 * std::mem::size_of::<f32>(),
                 &[2, 2],
                 &[0, 2 * std::mem::size_of::<f32>()],
@@ -285,7 +286,7 @@ impl RenderManager for TextRenderManager {
         // update to the GPU
         #[cfg(feature = "webgl2")]
         self.vao.bind_for_update()
-            .update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
+            .update_array("vertices", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
         #[cfg(feature = "webgl1")]
         self.vao.bind_for_update()

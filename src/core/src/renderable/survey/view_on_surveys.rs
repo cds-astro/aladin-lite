@@ -1,8 +1,6 @@
 use crate::healpix_cell::HEALPixCell;
 use std::collections::{HashMap, HashSet};
 
-use std::collections::hash_set::Iter;
-
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
     let width = camera.get_screen_size().x;
@@ -11,8 +9,8 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
     let angle_per_pixel = aperture / width;
 
     let two_power_two_times_depth_pixel =
-        (std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel));
-    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
+        std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
+    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).ceil() as u32;
 
     //let survey_max_depth = conf.get_max_depth();
     // The depth of the texture

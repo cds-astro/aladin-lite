@@ -5,7 +5,6 @@ precision highp usampler2D;
 precision highp isampler2D;
 precision highp int;
 
-in vec3 out_vert_pos;
 in vec2 out_clip_pos;
 out vec4 out_frag_color;
 
@@ -22,7 +21,6 @@ uniform int current_depth;
 
 uniform Tile textures_tiles[12];
 
-uniform float current_time; // current time in ms
 struct TileColor {
     Tile tile;
     vec4 color;
@@ -55,9 +53,6 @@ vec4 get_tile_color(vec3 pos) {
     color.a *= (1.0 - tile.empty);
     return color;
 }
-
-const float duration = 500.f; // 500ms
-uniform int max_depth; // max depth of the HiPS
 
 uniform sampler2D position_tex;
 uniform mat4 model;

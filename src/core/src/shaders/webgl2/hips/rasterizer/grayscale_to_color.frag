@@ -18,6 +18,7 @@ uniform float opacity;
 
 vec4 get_color(vec3 uv, float empty) {
     vec4 color = mix(get_color_from_grayscale_texture(uv), vec4(0.0), empty);
+    //vec4 color = get_color_from_grayscale_texture(uv);
     return color;
 }
 

@@ -280,6 +280,7 @@ impl WebClient {
             })
             .collect::<Result<Vec<_>, _>>();
         let surveys = surveys?;
+        al_core::log::log(&format!("num surveys {:?}", surveys.len()));
         self.app.set_image_surveys(surveys)?;
 
         Ok(())

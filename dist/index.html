@@ -35,7 +35,9 @@
   let aladin;
   A.init.then(() => {
       // Start up Aladin Lite
-      aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: true});
+        (async () => {
+            aladin = await A.aladin('#aladin-lite-div', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: true});
+        })();
   });
 </script>
 

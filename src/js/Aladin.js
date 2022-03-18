@@ -323,18 +323,17 @@ export let Aladin = (function () {
                     });
                 } else {
                     const survey = await Aladin.createImageSurvey(options.survey, "base");
+                    console.log("jdjdj", survey);
                     this.setImageSurvey(survey, "base");
                 }
             })();
         }
         this.view.showCatalog(options.showCatalog);
 
-
         var aladin = this;
         $(aladinDiv).find('.aladin-frameChoice').change(function () {
             aladin.setFrame($(this).val());
         });
-
 
         $(aladinDiv).find('.aladin-target-form').submit(function () {
             aladin.gotoObject($(this).find('input').val(), function () {
@@ -931,18 +930,11 @@ export let Aladin = (function () {
         return survey;
     }
 
-    Aladin.prototype.setImageSurvey = function (survey, layer) {
-        let layerName;
-        if (layer) {
-            layerName = layer;
-        } else {
-            layerName = "base";
-        }
-
-        this.view.setImageSurvey(survey, layerName);
+    Aladin.prototype.setImageSurvey = function (survey, layer = "base") {
+        this.view.setImageSurvey(survey, layer);
     };
 
-    Aladin.prototype.setImageSurveysLayer = function (surveys, layer) {
+    /*Aladin.prototype.setImageSurveysLayer = function (surveys, layer) {
         let layerName;
         if (layer) {
             layerName = layer;
@@ -976,25 +968,19 @@ export let Aladin = (function () {
             layerName = "base";
         }
         this.view.addImageSurvey(survey, layerName);
-    };
+    };*/
 
-    Aladin.prototype.setOpacityLayer = function(opacity, layer) {
-        let layerName;
-        if (layer) {
-            layerName = layer;
-        } else {
-            layerName = "base";
-        }
+    Aladin.prototype.setOpacityLayer = function(opacity, layer = "base") {
         this.webglAPI.setOpacityLayer(opacity, layer)
     }
 
     // @api
-    Aladin.prototype.setBaseImageSurveysLayer = function (surveys) {
+    /*Aladin.prototype.setBaseImageSurveysLayer = function (surveys) {
         this.view.setImageSurveysLayer(surveys, 'base');
     };
     Aladin.prototype.setBaseImageSurvey = function (survey) {
         this.view.setImageSurvey(survey, 'base');
-    };
+    };*/
     /*
     // @api
     Aladin.prototype.getOverlayImageLayer = function () {
@@ -1500,8 +1486,8 @@ let A = {};
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
 //@API
-A.aladin = function (divSelector, options) {
-    return new Aladin($(divSelector)[0], options);
+A.aladin = async function (divSelector, options) {
+    return await new Aladin($(divSelector)[0], options);
 };
 
 /*//@API

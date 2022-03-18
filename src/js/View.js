@@ -1063,7 +1063,7 @@ export let View = (function() {
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function() {    
+    View.prototype.redraw = function() {
         // calc elapsed time since last loop
     
         //this.now = Date.now();
@@ -1077,7 +1077,7 @@ export let View = (function() {
             // Put your drawing code here
             var saveNeedRedraw = this.needRedraw;
 
-            this.ready = this.aladin.webglAPI.isReady();
+            /*this.ready = this.aladin.webglAPI.isReady();
             if (this.imageSurveysToSet !== null && (this.firstHiPS || this.ready)) {
                 try {
                     this.aladin.webglAPI.setImageSurveys(this.imageSurveysToSet);
@@ -1087,7 +1087,7 @@ export let View = (function() {
     
                 this.imageSurveysToSet = null;
                 this.firstHiPS = false;
-            }
+            }*/
             //var now_update = Date.now();
             try {
                 //var dt = now_update - this.prev;
@@ -1152,15 +1152,12 @@ export let View = (function() {
             /*if (imageCtx.finish2D) {
                 imageCtx.finish2D();
             }*/
-    
-            
+
             this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
             // do we have to redo that every time? Probably not
             //this.projection.setProjection(this.projectionMethod);
-    
-    
-            // ************* Draw allsky tiles (low resolution) *****************
-    
+
+            // ************* Draw allsky tiles (low resolution) *****************    
             var cornersXYViewMapHighres = null;
             // Pour traitement des DEFORMATIONS --> TEMPORAIRE, draw deviendra la methode utilisee systematiquement
     
@@ -1951,29 +1948,44 @@ export let View = (function() {
     }
 
     var unknownSurveyId = undefined;
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    /*// @param imageSurvey : HpxImageSurvey object or image survey identifier
     View.prototype.addImageSurvey = function(survey, layer) {
         // We wait for the HpxImageSurvey to complete
         // Register to the view
-        const url = survey.properties.url;
         survey.layer = layer;
 
-        this.imageSurveys.get(layer).set(url, survey);
+        this.imageSurveys.set(layer, survey);
         // Then we send the current surveys to the backend
         this.setHiPS();
-    };
+    };*/
 
     View.prototype.setImageSurvey = function(survey, layer) {
-        const url = survey.properties.url;
-        survey.layer = layer;
-        
-        this.imageSurveys.set(layer, new Map());
-        this.imageSurveys.get(layer).set(url, survey);
-        // Then we send the current surveys to the backend
-        this.setHiPS();
+        if ( this.imageSurveys.has(layer) ) {
+            return;
+        }
+
+        this.imageSurveys.set(layer, survey);
+        //while (!this.aladin.webglAPI.isReady()) {}
+
+        let hpxImageSurveyArray = Array.from(this.imageSurveys.values());
+        hpxImageSurveyArray.sort( function(a, b) { return a.IdxSurvey - b.IdxSurvey });
+
+        console.log("JJJ, ", hpxImageSurveyArray);
+
+        let surveyArray = [];
+
+        hpxImageSurveyArray.forEach(element => {
+            console.log("eeeze", element.survey); surveyArray.push(element.survey)
+        });
+        console.log("sdsdf", surveyArray);
+        try {
+            this.aladin.webglAPI.setImageSurveys(surveyArray);
+        } catch(e) {
+            console.log(e)
+        }
     };
 
-    View.prototype.setImageSurveysLayer = function(surveys, layer) {
+    /*View.prototype.setImageSurveysLayer = function(surveys, layer) {
         this.imageSurveys.set(layer, new Map());
 
         surveys.forEach(survey => {
@@ -1985,28 +1997,17 @@ export let View = (function() {
 
         // Then we send the current surveys to the backend
         this.setHiPS();
-    };
+    };*/
 
-    View.prototype.removeImageSurveysLayer = function (layer) {
+    /*View.prototype.removeImageSurveysLayer = function (layer) {
         this.imageSurveys.delete(layer);
 
         this.setHiPS();
-    };
+    };*/
 
-    View.prototype.moveImageSurveysLayerForward = function(layer) {
+    /*View.prototype.moveImageSurveysLayerForward = function(layer) {
         this.aladin.webglAPI.moveImageSurveysLayerForward(layer);
-    }
-
-    View.prototype.setHiPS = function() {
-        let surveys = [];
-        for (let layer of this.imageSurveys.values()) {
-            for (let survey of layer.values()) {
-                surveys.push(survey);
-            }
-        }
-
-        this.imageSurveysToSet = surveys;
-    };
+    }*/
 
     View.prototype.requestRedraw = function() {
         this.needRedraw = true;

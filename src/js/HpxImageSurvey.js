@@ -30,6 +30,8 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 
+var HpxImageSurveyIdx = 0;
+
 export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
@@ -37,6 +39,7 @@ export let HpxImageSurvey = (function() {
      *  
      */
     let HpxImageSurvey = function(rootURLOrId) {
+        this.survey = null;
         if (!rootURLOrId) {
             throw 'An hosting survey URL or an ID (i.e. DSS2/red) must be given';
         }
@@ -54,6 +57,8 @@ export let HpxImageSurvey = (function() {
             return json;
         };
 
+        this.IdxSurvey = HpxImageSurveyIdx;
+
         // If an HiPS id has been given
         let url = null;
         if (!isUrl) {
@@ -62,7 +67,7 @@ export let HpxImageSurvey = (function() {
             const id = rootURLOrId;
             const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
 
-            return (async () => {
+            (async () => {
                 let metadata = await request(MOCServerUrl);
 
                 // We get the property here
@@ -85,8 +90,8 @@ export let HpxImageSurvey = (function() {
                     }
                 }
                 // Let is build the survey object
-                const survey = HpxImageSurvey.parseSurveyProperties(metadata);
-                return survey
+                this.survey = HpxImageSurvey.parseSurveyProperties(metadata);
+                HpxImageSurveyIdx += 1;
             })();
         } else {
             // Fetch the properties of the survey
@@ -109,7 +114,7 @@ export let HpxImageSurvey = (function() {
             url = rootURL + '/properties';
 
 
-            return (async () => {
+            (async () => {
                 console.log("properties url", url);
                 let metadata = await fetch(url)
                     .then((response) => response.text());
@@ -124,10 +129,9 @@ export let HpxImageSurvey = (function() {
                 // Set the service url if not found
                 metadata.hips_service_url = rootURLOrId;
                 // Let is build the survey object
-                const survey = HpxImageSurvey.parseSurveyProperties(metadata);
+                this.survey = HpxImageSurvey.parseSurveyProperties(metadata);
                 console.log("survey ", survey);
-
-                return survey
+                HpxImageSurveyIdx += 1;
             })();
         }
     };

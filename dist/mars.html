@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', { target: '240 +10.65', cooFrame: 'j2000d', fov: 90, showFrame: false, showLayersControl: false, showGotoControl: false, fullScreen: true});
+        
+        (async () => {
+            let mars = await A.createImageSurvey("https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/");
+            console.log("mars: ", mars)
+            aladin.setBaseImageSurvey(mars);
+        })();
+
+        var c = document.createElement('canvas'); c.width = c.height = 11; var ctx = c.getContext('2d'); ctx.beginPath(); ctx.arc(5, 5, 4, 0, 2 * Math.PI, false); ctx.closePath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2; ctx.stroke();
+
+        var geoFeatures = A.catalog({shape: c, labelColumn: 'name', displayLabel: true, labelColor: '#fff', labelFont: '14px sans-serif'});
+        aladin.addCatalog(geoFeatures);
+
+        geoFeatures.addSources(A.source(226.2, 18.65, {name: 'Olympus Mons'}));
+        geoFeatures.addSources(A.source(70.5, -42.4, {name: 'Hellas Planitia'}));
+        geoFeatures.addSources(A.source(250.4, 40.5, {name: 'Alba Mons'}));
+        geoFeatures.addSources(A.source(-59.2, -13.9, {name: 'Valles Marineris'}));
+        geoFeatures.addSources(A.source(147.21, 25.02, {name: 'Elysium Mons'}));
+        geoFeatures.addSources(A.source(316.0, -49.7, {name: 'Argyre Basin'}));
+        geoFeatures.addSources(A.source(32.53, 70, {name: 'Vastitas Borealis'}));
+        geoFeatures.addSources(A.source(-112.58, 1.57, {name: 'Tharsis Montes'}));
+        geoFeatures.addSources(A.source(298, 25, {name: 'Outflow channels'}));
+        geoFeatures.addSources(A.source(30, 19.79, {name: 'Arabia Terra'}));
+        geoFeatures.addSources(A.source(70.5, -42.4, {name: 'Hellas Basin'}));
+        geoFeatures.addSources(A.source(280, 45, {name: 'Tempe Terra'}));
+        geoFeatures.addSources(A.source(87, 12.9, {name: 'Isidis Basin'}));
+        geoFeatures.addSources(A.source(117.5, 46.7, {name: 'Utopia Basin'}));
+        geoFeatures.addSources(A.source(350, -45, {name: 'Noachis Terra'}));
+
+        var landingSites = A.catalog({sourceSize: 16}); aladin.addCatalog(landingSites);
+
+        landingSites.addSources([A.marker(-47.95, 22.27, {popupTitle: 'Viking 1', popupDesc: 'Landing date: July 20, 1976 11:53:06'})]);
+        landingSites.addSources([A.marker(-125.7, 68.22, {popupTitle: 'Phoenix', popupDesc: 'Landing date: May 25, 2008 23:53:44 UTC'})]);
+        landingSites.addSources([A.marker(-33.22, 19.13, {popupTitle: 'Pathfinder', popupDesc: 'Landing date: July 4, 1997 16:56:55 UTC'})]);
+        landingSites.addSources([A.marker(354.4734, -1.9462, {popupTitle: 'Opportunity', popupDesc: 'Landing date: January 25, 2004, 05:05 UTC'})]);
+        landingSites.addSources([A.marker(-225.71, 47.64, {popupTitle: 'Viking 2', popupDesc: 'Landing date: September 3, 1976 22:37:50'})]);
+        landingSites.addSources([A.marker(175.472636, -14.5684, {popupTitle: 'Spirit', popupDesc: 'Landing date: January 4, 2004, 04:35 UTC '})]);
+        landingSites.addSources([A.marker(137.4417, -4.5895, {popupTitle: 'Curiosity', popupDesc: 'Landing date: August 6, 2012, 05:17 UTC '})]) 
+        //aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', '', 'galactic', 3, {imgFormat: 'png'}));
+    });
+</script>
+</body>
+</html>

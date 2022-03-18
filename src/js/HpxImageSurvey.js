@@ -121,6 +121,8 @@ export let HpxImageSurvey = (function() {
                 if (!metadata) {
                     throw 'no surveys matching';
                 }
+                // Set the service url if not found
+                metadata.hips_service_url = rootURLOrId;
                 // Let is build the survey object
                 const survey = HpxImageSurvey.parseSurveyProperties(metadata);
                 console.log("survey ", survey);

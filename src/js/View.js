@@ -242,7 +242,6 @@ export let View = (function() {
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
 
-
         //a.find('.aladin-webglCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
@@ -267,14 +266,13 @@ export let View = (function() {
     // The WebGL backend is resized
     View.prototype.fixLayoutDimensions = function() {
         Utils.cssScale = undefined;
-        
+
         var computedWidth = $(this.aladinDiv).width();
         var computedHeight = $(this.aladinDiv).height();
 
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
-        
-        
+
         this.cx = this.width/2;
         this.cy = this.height/2;
         
@@ -282,7 +280,6 @@ export let View = (function() {
         this.smallestDim = Math.min(this.width, this.height);
         this.ratio = this.largestDim/this.smallestDim;
 
-        
         this.mouseMoveIncrement = 160/this.largestDim;
 
         // reinitialize 2D context

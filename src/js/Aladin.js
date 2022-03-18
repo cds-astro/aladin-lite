@@ -326,7 +326,6 @@ export let Aladin = (function () {
                     this.setImageSurvey(survey, "base");
                 }
             })();
-
         }
         this.view.showCatalog(options.showCatalog);
 

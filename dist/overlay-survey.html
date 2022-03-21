@@ -18,15 +18,18 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {survey: 'P/Mellinger/color', fov: 110, target: '0 0', showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {fov: 110, target: '0 0'});
 
         (async () => {
+            let mellinger = await A.createImageSurvey("CDS/P/Mellinger/color");
             let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
-            console.log("VTSS: ", vtss)
             vtss.properties.format = {
                 Image: { format: 'png' }
             };
-            vtss.color = "Color";
+            vtss.color = "color";
+            vtss.opacity = 1.0;
+
+            aladin.setImageSurvey(mellinger, "base");
             aladin.setImageSurvey(vtss, "overlay");
         })();
 

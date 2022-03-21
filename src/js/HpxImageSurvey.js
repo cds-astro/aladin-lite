@@ -30,8 +30,6 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 
-var HpxImageSurveyIdx = 0;
-
 export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
@@ -57,8 +55,6 @@ export let HpxImageSurvey = (function() {
             return json;
         };
 
-        this.IdxSurvey = HpxImageSurveyIdx;
-
         // If an HiPS id has been given
         let url = null;
         if (!isUrl) {
@@ -67,7 +63,7 @@ export let HpxImageSurvey = (function() {
             const id = rootURLOrId;
             const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
 
-            (async () => {
+            return (async () => {
                 let metadata = await request(MOCServerUrl);
 
                 // We get the property here
@@ -90,8 +86,7 @@ export let HpxImageSurvey = (function() {
                     }
                 }
                 // Let is build the survey object
-                this.survey = HpxImageSurvey.parseSurveyProperties(metadata);
-                HpxImageSurveyIdx += 1;
+                return HpxImageSurvey.parseSurveyProperties(metadata);
             })();
         } else {
             // Fetch the properties of the survey
@@ -114,7 +109,7 @@ export let HpxImageSurvey = (function() {
             url = rootURL + '/properties';
 
 
-            (async () => {
+            return (async () => {
                 console.log("properties url", url);
                 let metadata = await fetch(url)
                     .then((response) => response.text());
@@ -129,9 +124,7 @@ export let HpxImageSurvey = (function() {
                 // Set the service url if not found
                 metadata.hips_service_url = rootURLOrId;
                 // Let is build the survey object
-                this.survey = HpxImageSurvey.parseSurveyProperties(metadata);
-                console.log("survey ", survey);
-                HpxImageSurveyIdx += 1;
+                return HpxImageSurvey.parseSurveyProperties(metadata);
             })();
         }
     };
@@ -149,14 +142,14 @@ export let HpxImageSurvey = (function() {
                 }
             };
             color = {
-                Grayscale2Color: {
+                grayscale2Color: {
                     color: [1.0, 1.0, 1.0],
                     k: 1.0,
                     transfer: "asinh"
                 }
             };
         } else {
-            color = "Color";
+            color = "color";
 
             if (hipsTileFormat.indexOf('png') >= 0) {
                 tileFormat = {
@@ -214,6 +207,11 @@ export let HpxImageSurvey = (function() {
                 maxCutout: parseFloat(cuts[1]),
             },
             color: color,
+            blendCfg: {
+                srcColorFactor: "SrcAlpha",
+                dstColorFactor: "OneMinusSrcAlpha",
+                func: "FuncAdd",
+            }
         };
     }
 
@@ -223,6 +221,7 @@ export let HpxImageSurvey = (function() {
         }
     
         let survey = await new HpxImageSurvey(idOrRootUrl);
+        console.log("survey111", survey)
         return survey;
     };
 

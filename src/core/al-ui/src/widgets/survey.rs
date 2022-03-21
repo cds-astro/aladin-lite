@@ -324,6 +324,7 @@ impl SurveyWidget {
             color: self.color_cfg.clone(),
             blend_cfg: self.blend_cfg.clone(),
             opacity: opacity,
+            layer: self.url.clone(),
             properties: HiPSProperties {
                 url: self.url.clone(),
                 max_order,

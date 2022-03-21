@@ -83,7 +83,7 @@ export let View = (function() {
             this.fovDiv = fovDiv;
             this.mustClearCatalog = true;
             this.mustRedrawReticle = true;
-            this.imageSurveysToSet = [];
+            //this.imageSurveysToSet = [];
             this.mode = View.PAN;
             
             this.minFOV = this.maxFOV = null; // by default, no restriction
@@ -125,7 +125,7 @@ export let View = (function() {
             }
             
             // current reference image survey displayed
-            this.imageSurveys = new Map();
+            this.imageSurveys = [];
             // current catalogs displayed
             this.catalogs = [];
             // a dedicated catalog for the popup
@@ -366,8 +366,8 @@ export let View = (function() {
     View.prototype.getCanvasDataURL = function(imgType, width, height) {
         imgType = imgType || "image/png"; 
         var c = document.createElement('canvas');
-        width = width || this.width;
-        height = height || this.height;
+        width = width || this.width;
+        height = height || this.height;
         c.width = width;
         c.height = height;
         var ctx = c.getContext('2d');
@@ -714,8 +714,6 @@ export let View = (function() {
                 return;
             }
 
-
-
             if (!view.dragging || hasTouchEvents) {
                 // update location box
                 updateLocation(view, xymouse.x, xymouse.y);
@@ -865,7 +863,6 @@ export let View = (function() {
 
 
             //console.log(view.viewCenter);
-
             view.requestRedraw();
         }); //// endof mousemove ////
         
@@ -1959,29 +1956,24 @@ export let View = (function() {
         this.setHiPS();
     };*/
 
-    View.prototype.setImageSurvey = function(survey, layer) {
-        if ( this.imageSurveys.has(layer) ) {
-            return;
+    View.prototype.setImageSurvey = function(survey, layer = "base") {
+        let copiedSurvey = JSON.parse(JSON.stringify(survey));
+        // Set the layer name
+        copiedSurvey.layer = layer;
+
+        // Check whether this layer already exist
+        const idxSurveyFound = this.imageSurveys.findIndex(s => s.layer == layer);
+        if (idxSurveyFound == -1) {
+            this.imageSurveys.push(copiedSurvey);
+        } else {
+            // find the survey by layer and erase it by the new value
+            this.imageSurveys[ idxSurveyFound ] = copiedSurvey;
         }
 
-        this.imageSurveys.set(layer, survey);
-        //while (!this.aladin.webglAPI.isReady()) {}
-
-        let hpxImageSurveyArray = Array.from(this.imageSurveys.values());
-        hpxImageSurveyArray.sort( function(a, b) { return a.IdxSurvey - b.IdxSurvey });
-
-        console.log("JJJ, ", hpxImageSurveyArray);
-
-        let surveyArray = [];
-
-        hpxImageSurveyArray.forEach(element => {
-            console.log("eeeze", element.survey); surveyArray.push(element.survey)
-        });
-        console.log("sdsdf", surveyArray);
         try {
-            this.aladin.webglAPI.setImageSurveys(surveyArray);
+            this.aladin.webglAPI.setImageSurveys(this.imageSurveys);
         } catch(e) {
-            console.log(e)
+            console.log("Error setting a survey: ", e)
         }
     };
 

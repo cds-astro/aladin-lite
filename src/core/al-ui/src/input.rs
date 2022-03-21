@@ -858,6 +858,7 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                             pressed: true,
                             modifiers,
                         });
+                    runner_lock.mouse_pressed = true;
                 }
                 paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0).unwrap();
             }
@@ -880,8 +881,11 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                 .raw
                 .events
                 .push(egui::Event::PointerMoved(pos));
-            runner_lock.needs_repaint.set_true();
+            if runner_lock.mouse_pressed || runner_lock.mouse_on_ui {
+                runner_lock.needs_repaint.set_true();
+            }
             runner_lock.cur_mouse_pos = pos;
+
             event.stop_propagation();
             event.prevent_default();
         }) as Box<dyn FnMut(_)>);
@@ -907,6 +911,7 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                         pressed: false,
                         modifiers,
                     });
+                runner_lock.mouse_pressed = false;
                 runner_lock.needs_repaint.set_true();
                 manipulate_agent(&runner_lock, runner_lock.input.latest_touch_pos);
             }

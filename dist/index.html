@@ -22,11 +22,7 @@
   }
 </style>
 
-<div id="aladin-lite-div" style="width: 1024px; height: 768px">
-  <div id="ui" class="ui">
-    <!--<discovery-tree id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>-->
-  </div>
-</div>
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
 <div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
@@ -34,10 +30,7 @@
 <script type="text/javascript">
   let aladin;
   A.init.then(() => {
-      // Start up Aladin Lite
-        (async () => {
-            aladin = await A.aladin('#aladin-lite-div', {target: 'M51', fov: 180, survey: 'P/DSS2/color', fullScreen: true});
-        })();
+        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'M51', fov: 180, fullScreen: true});
   });
 </script>
 

@@ -21,9 +21,13 @@ impl IntoIterator for CompositeHiPS {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct SimpleHiPS {
     /// The HiPS metadata
     pub properties: HiPSProperties,
+
+    /// Layer name
+    pub layer: String,
 
     /// Color config
     #[serde(default)]
@@ -66,6 +70,7 @@ pub enum HiPSFormat {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum HiPSColor {
     Grayscale2Colormap {
         colormap: String,

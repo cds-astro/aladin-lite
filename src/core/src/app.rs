@@ -602,13 +602,11 @@ where
 
 
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
-        let scene_redraw = self.rendering | force_render;
+        /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();
-        let dpi  = self.camera.get_dpi();
         //al_core::log(&format!("dpi {:?}", dpi));
-        let ui_redraw = ui.redraw_needed();
 
-        if scene_redraw | ui_redraw {
+        if scene_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
             let camera = &self.camera;
@@ -619,7 +617,7 @@ where
             let colormaps = &self.colormaps;
             let fbo_view = &self.fbo_view;
 
-            //fbo_view.draw_onto(move || {
+            fbo_view.draw_onto(move || {
                 // Render the scene
                 gl.clear_color(0.00, 0.00, 0.00, 1.0);
                 gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -631,27 +629,66 @@ where
 
                 grid.draw::<P>(camera, shaders)?;
 
-            /*    Ok(())
-            }, None)?;*/
-
-            //let gl = self.gl.clone();
-
-            //self.fbo_ui.draw_onto(move || {
-                ui.draw(&gl, dpi)?;
-
-            //    Ok(())
-            //}, None)?;
+                Ok(())
+            }, None)?;
 
             // Reset the flags about the user action
             self.camera.reset();
         }
 
+        let gl = self.gl.clone();
+
+        let ui_redraw = ui.redraw_needed();
+        if ui_redraw {
+            let dpi  = self.camera.get_dpi();
+
+            self.fbo_ui.draw_onto(move || {
+                ui.draw(&gl, dpi)?;
+
+                Ok(())
+            }, None)?;
+        }
+
         // If neither of the scene or the ui has been redraw then do nothing
         // otherwise, redraw both fbos on the screen
-        /*if scene_redraw || ui_redraw {
+        if scene_redraw || ui_redraw {
             self.final_rendering_pass.draw_on_screen(&self.fbo_view);
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
-        }*/
+        }
+
+        self.surveys.reset_frame();*/
+
+        let scene_redraw = self.rendering | force_render;
+        let mut ui = self.ui.lock();
+        //al_core::log(&format!("dpi {:?}", dpi));
+        let ui_redraw = ui.redraw_needed();
+
+        if scene_redraw || ui_redraw {
+            let shaders = &mut self.shaders;
+            let gl = self.gl.clone();
+            let camera = &self.camera;
+
+            let grid = &mut self.grid;
+            let surveys = &mut self.surveys;
+            let catalogs = &self.manager;
+            let colormaps = &self.colormaps;
+            let fbo_view = &self.fbo_view;
+            // Render the scene
+            gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+            surveys.draw::<P>(camera, shaders, colormaps);
+
+            // Draw the catalog
+            catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+            grid.draw::<P>(camera, shaders)?;
+
+            let dpi  = self.camera.get_dpi();
+            ui.draw(&gl, dpi)?;
+
+            // Reset the flags about the user action
+            self.camera.reset();
+        }
 
         self.surveys.reset_frame();
 

@@ -71,6 +71,7 @@ pub struct Gui {
     clipped_meshes: Option<Vec<egui::ClippedMesh>>,
 
     pub mouse_on_ui: bool,
+    pub mouse_pressed: bool,
     pub cur_mouse_pos: egui::Pos2,
 
     events: Arc<Mutex<Vec<Event>>>,
@@ -99,6 +100,7 @@ impl Gui {
             clipped_meshes: None,
 
             mouse_on_ui,
+            mouse_pressed: false,
             cur_mouse_pos,
 
             needs_repaint: Default::default(),

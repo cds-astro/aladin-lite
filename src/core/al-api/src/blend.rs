@@ -11,6 +11,7 @@ pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Deserialize, Debug)]
 #[derive(Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct BlendCfg {
     pub src_color_factor: BlendFactor,
     pub dst_color_factor: BlendFactor,

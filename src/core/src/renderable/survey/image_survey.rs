@@ -1346,6 +1346,7 @@ impl ImageSurveys {
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
         for meta in self.meta.iter() {
+            al_core::log::log(&format!("META {:?}", meta));
             if meta.visible() {
                 let ImageSurveyMeta {
                     color,
@@ -1369,6 +1370,7 @@ impl ImageSurveys {
                 });
             }
         }
+        al_core::log::log(&format!("\n"));
 
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -1387,8 +1389,6 @@ impl ImageSurveys {
         exec: Rc<RefCell<TaskExecutor>>,
         colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
-        al_core::log::log(&format!("list of surveys {:?}", hipses.len()));
-
         let mut new_survey_ids = Vec::new();
         {
             let mut current_needed_surveys = HashSet::new();
@@ -1401,7 +1401,7 @@ impl ImageSurveys {
             self.surveys = self
                 .surveys
                 .drain()
-                .filter(|(name, _)| current_needed_surveys.contains(name))
+                .filter(|(_, m)| current_needed_surveys.contains(&m.textures.config().root_url))
                 .collect();
             self.meta = self
                 .meta
@@ -1411,6 +1411,8 @@ impl ImageSurveys {
         }
         // Create the new surveys
         let mut max_depth_among_surveys = 0;
+
+        self.meta.clear();
         for hips in hipses.into_iter() {
             let url = {
                 let HiPSProperties { url, max_order, .. } = &hips.properties;
@@ -1424,37 +1426,22 @@ impl ImageSurveys {
             let color = hips.color(colormaps);
             let blend_cfg: BlendCfg = hips.blend_cfg.clone();
             let opacity = hips.opacity;
+
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
                 // create the survey
                 let survey = hips.create(gl, camera, self, exec.clone())?;
                 self.surveys.insert(url.clone(), survey);
                 new_survey_ids.push(url.clone());
-
-                // Update the meta of the survey, whether it is new or is already present
-                self.meta.push(ImageSurveyMeta {
-                    url: url,
-                    blend_cfg,
-                    color,
-                    opacity
-                });
-            } else {
-                // Update for the meta by searching it
-                let m = self.meta.iter_mut()
-                    .find(|m| m.url == url)
-                    .unwrap();
-
-                *m = ImageSurveyMeta {
-                    url: url,
-                    blend_cfg,
-                    color,
-                    opacity
-                };
             }
+            self.meta.push(ImageSurveyMeta {
+                url: url,
+                blend_cfg,
+                color,
+                opacity
+            });
         }
-
-        //crate::log(&format!("layers {:?}", self.layers));
-        al_core::log::log(&format!("list of surveys {:?} {:?} {:?}", self.surveys.keys(), self.meta, self.most_precise_survey));
+        al_core::log::log(&format!("list of surveys {:?} {:?}", self.surveys.keys(), self.meta));
 
         Ok(new_survey_ids)
     }

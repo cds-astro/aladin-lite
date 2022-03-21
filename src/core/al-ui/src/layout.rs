@@ -58,10 +58,13 @@ impl LayerLayout {
         
                         //if can_surveys_be_added {
                             // get the SimpleHiPS from the SurveyWidget
-                            let mut image_surveys = vec![new_survey.get_hips_config()];
+                            let mut image_surveys = vec![];
                             for survey in s_list.lock().unwrap().iter() {
                                 image_surveys.push(survey.get_hips_config());
                             }
+
+                            // Push to the queue the new image survey
+                            image_surveys.push(new_survey.get_hips_config());
         
                             events.lock().unwrap().push(Event::ImageSurveys(image_surveys));
                             s_list.lock().unwrap().push(new_survey);

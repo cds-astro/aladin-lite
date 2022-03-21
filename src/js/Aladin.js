@@ -304,6 +304,7 @@ export let Aladin = (function () {
             }
         }
 
+        
         // Add the image layers
         // For that we check the survey key of options
         // It can be given as a single string or an array of strings
@@ -323,11 +324,11 @@ export let Aladin = (function () {
                     });
                 } else {
                     const survey = await Aladin.createImageSurvey(options.survey, "base");
-                    console.log("jdjdj", survey);
                     this.setImageSurvey(survey, "base");
                 }
             })();
         }
+        
         this.view.showCatalog(options.showCatalog);
 
         var aladin = this;
@@ -390,7 +391,6 @@ export let Aladin = (function () {
     Aladin.DEFAULT_OPTIONS = {
         target: "0 +0",
         cooFrame: "J2000",
-        survey: "P/DSS2/color",
         fov: 60,
         showReticle: true,
         showZoomControl: true,
@@ -931,6 +931,7 @@ export let Aladin = (function () {
     }
 
     Aladin.prototype.setImageSurvey = function (survey, layer = "base") {
+        console.log("SETIMAGESURVEY")
         this.view.setImageSurvey(survey, layer);
     };
 
@@ -1486,8 +1487,8 @@ let A = {};
 // This facade allows for more flexibility as objects can be updated/renamed harmlessly
 
 //@API
-A.aladin = async function (divSelector, options) {
-    return await new Aladin($(divSelector)[0], options);
+A.aladin = function (divSelector, options) {
+    return new Aladin($(divSelector)[0], options);
 };
 
 /*//@API
@@ -1702,11 +1703,10 @@ Aladin.prototype.displayFITS = function (url, layerName, options, successCallbac
                 // downloading the base tiles of the other surveys loading!
                 // This has to be fixed in the backend but a fast fix is just to wait
                 // before setting a new image survey
-                
-                    self.setImageSurvey(survey, layerName)
-                    // set transparency
-                    self.setOpacityLayer(transparency, layerName)
 
+                self.setImageSurvey(survey, layerName)
+                // set transparency
+                //self.setOpacityLayer(transparency, layerName)
             })();
         }
     });

@@ -240,6 +240,81 @@ impl UniformType for Texture2D {
     }
 }
 
+use al_api::color::Color;
+impl UniformType for Color {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+    }
+}
+impl<'a> UniformType for &'a Color {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+    }
+}
+
+use al_api::hips::TransferFunction;
+impl SendUniforms for TransferFunction {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader.attach_uniform("H", self);
+
+        shader
+    }
+}
+
+impl UniformType for TransferFunction {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform1i(location, *value as i32);
+    }
+}
+
+use al_api::hips::GrayscaleParameter;
+impl SendUniforms for GrayscaleParameter {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader
+            .attach_uniforms_from(&self.h)
+            .attach_uniform("min_value", &self.min_value)
+            .attach_uniform("max_value", &self.max_value);
+
+        shader
+    }
+}
+use al_api::colormap::Colormap;
+use al_api::hips::HiPSColor;
+impl SendUniforms for HiPSColor {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        match self {
+            HiPSColor::Color => (),
+            HiPSColor::Grayscale2Colormap {
+                colormap,
+                param,
+                reversed,
+            } => {
+                let reversed = *reversed as u8 as f32;
+                shader
+                    .attach_uniforms_from(colormap)
+                    .attach_uniforms_from(param)
+                    .attach_uniform("reversed", &reversed);
+            }
+            HiPSColor::Grayscale2Color { color, k, param } => {
+                shader
+                    .attach_uniforms_from(param)
+                    .attach_uniform("C", color)
+                    .attach_uniform("K", k);
+            }
+        }
+
+        shader
+    }
+}
+
+impl SendUniforms for Colormap {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader.attach_uniform("colormap_id", &((*self as i32) as  f32));
+
+        shader
+    }
+}
+
 pub struct ShaderBound<'a> {
     pub shader: &'a Shader,
     gl: WebGlContext,

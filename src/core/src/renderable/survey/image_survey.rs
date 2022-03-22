@@ -273,25 +273,9 @@ trait Draw {
     );
 }
 
-#[derive(Clone, Debug)]
-pub struct GrayscaleParameter {
-    h: TransferFunction,
-    min_value: f32,
-    max_value: f32,
-}
-
 use al_core::shader::{Shader, ShaderBound};
-impl SendUniforms for GrayscaleParameter {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader
-            .attach_uniforms_from(&self.h)
-            .attach_uniform("min_value", &self.min_value)
-            .attach_uniform("max_value", &self.max_value);
 
-        shader
-    }
-}
-
+/*
 /// List of the different type of surveys
 #[derive(Clone, Debug)]
 pub enum Color {
@@ -308,16 +292,16 @@ pub enum Color {
         param: GrayscaleParameter,
     },
 }
-
-impl Color {
+*/
+//impl Color {
     pub fn get_raster_shader<'a, P: Projection>(
-        &self,
+        color: &HiPSColor,
         gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
         unsigned_tex: bool,
     ) -> &'a Shader {
-        match self {
+        match color {
             Color::Colored => P::get_raster_shader_color(gl, shaders),
             Color::Grayscale2Colormap { .. } => {
                 if unsigned_tex {
@@ -345,13 +329,13 @@ impl Color {
     }
 
     pub fn get_raytracer_shader<'a, P: Projection>(
-        &self,
+        color: &HiPSColor,
         gl: &WebGlContext,
         shaders: &'a mut ShaderManager,
         integer_tex: bool,
         unsigned_tex: bool,
     ) -> &'a Shader {
-        match self {
+        match color {
             Color::Colored => P::get_raytracer_shader_color(gl, shaders),
             Color::Grayscale2Colormap { .. } => {
                 if unsigned_tex {
@@ -377,35 +361,7 @@ impl Color {
             }
         }
     }
-}
-
-use al_core::shader::SendUniforms;
-impl SendUniforms for Color {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        match self {
-            Color::Colored => (),
-            Color::Grayscale2Colormap {
-                colormap,
-                param,
-                reversed,
-            } => {
-                let reversed = *reversed as u8 as f32;
-                shader
-                    .attach_uniforms_from(colormap)
-                    .attach_uniforms_from(param)
-                    .attach_uniform("reversed", &reversed);
-            }
-            Color::Grayscale2Color { color, k, param } => {
-                shader
-                    .attach_uniforms_from(param)
-                    .attach_uniform("C", color)
-                    .attach_uniform("K", k);
-            }
-        }
-
-        shader
-    }
-}
+//}
 
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
@@ -650,11 +606,14 @@ impl ImageSurvey {
     fn new(
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        config: HiPSConfig,
+        hips: SimpleHiPS,
         //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
         //_type: ImageSurveyType
     ) -> Result<Self, JsValue> {
+        let SimpleHiPS { properties, .. } = self;
+        let config = HiPSConfig::new(gl, &properties)?;
+
         let mut vao = VertexArrayObject::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
@@ -1152,7 +1111,7 @@ impl Draw for ImageSurvey {
 }
 
 use wasm_bindgen::JsValue;
-pub trait HiPS {
+//pub trait HiPS {
     fn create(
         self,
         gl: &WebGlContext,
@@ -1160,14 +1119,14 @@ pub trait HiPS {
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<ImageSurvey, JsValue>;
-    fn color(&self, colormaps: &Colormaps) -> Color;
-}
+    //fn color(&self, colormaps: &Colormaps) -> HiPSColor;
+//}
 
 use crate::{HiPSColor, SimpleHiPS};
 use std::cell::RefCell;
 use std::rc::Rc;
 impl HiPS for SimpleHiPS {
-    fn color(&self, colormaps: &Colormaps) -> Color {
+    /*fn color(&self, colormaps: &Colormaps) -> Color {
         let color = match self.color.clone() {
             HiPSColor::Color => Color::Colored,
             HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
@@ -1195,44 +1154,12 @@ impl HiPS for SimpleHiPS {
         };
 
         color
-    }
+    }*/
 
-    fn create(
-        self,
-        gl: &WebGlContext,
-        camera: &CameraViewPort,
-        surveys: &ImageSurveys,
-        exec: Rc<RefCell<TaskExecutor>>,
-    ) -> Result<ImageSurvey, JsValue> {
-        let SimpleHiPS { properties, .. } = self;
-
-        let config = HiPSConfig::new(gl, &properties)?;
-        let survey = ImageSurvey::new(gl, camera, config, exec)?;
-
-        Ok(survey)
-    }
 }
 
 use al_api::blend::BlendCfg;
-#[derive(Debug)]
-struct ImageSurveyMeta {
-    url: SurveyURL,
-    color: Color,
-    opacity: f32,
-    blend_cfg: BlendCfg,
-}
-
-impl ImageSurveyMeta {
-    fn visible(&self) -> bool {
-        self.opacity > 0.0
-    }
-}
-
-impl PartialEq for ImageSurveyMeta {
-    fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-    }
-}
+use al_api::hips::ImageSurveyMeta;
 
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
 type SurveyURL = String;
@@ -1252,6 +1179,20 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::coo_conversion::CooSystem;
 use crate::shaders::Colormaps;
 use crate::Resources;
+
+fn active_blend_cfg(gl: &WebGlContext, blendCfg: &BlendCfg, f: impl FnOnce() -> ()) {
+    gl.blend_equation(self.func.gl());
+    gl.blend_func_separate(
+        self.src_color_factor.gl(),
+        self.dst_color_factor.gl(),
+        WebGlRenderingCtx::ONE,
+        WebGlRenderingCtx::ONE,
+    );
+
+    f();
+
+    gl.blend_equation(BlendFunc::FuncAdd as u32);
+}
 
 use crate::buffer::Tile;
 impl ImageSurveys {
@@ -1352,13 +1293,14 @@ impl ImageSurveys {
                     color,
                     opacity,
                     url,
-                    blend_cfg
+                    blend_cfg,
+                    ..
                 } = meta;
 
                 let survey = self.surveys.get_mut(url).unwrap();
                 let raytracer = &self.raytracer;
 
-                blend_cfg.active_blend_cfg(&self.gl, || {
+                active_blend_cfg(&self.gl, &blend_cfg, || {
                     survey.draw::<P>(
                         raytracer,
                         shaders,
@@ -1426,6 +1368,7 @@ impl ImageSurveys {
             let color = hips.color(colormaps);
             let blend_cfg: BlendCfg = hips.blend_cfg.clone();
             let opacity = hips.opacity;
+            let layer = hips.layer.clone();
 
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
@@ -1436,6 +1379,7 @@ impl ImageSurveys {
             }
             self.meta.push(ImageSurveyMeta {
                 url: url,
+                layer: layer,
                 blend_cfg,
                 color,
                 opacity
@@ -1444,6 +1388,12 @@ impl ImageSurveys {
         al_core::log::log(&format!("list of surveys {:?} {:?}", self.surveys.keys(), self.meta));
 
         Ok(new_survey_ids)
+    }
+
+    pub fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta> {
+        self.meta
+            .iter()
+            .find(|survey| survey.layer == layer)
     }
 
     pub fn is_ready(&self) -> bool {

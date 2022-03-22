@@ -1,4 +1,4 @@
-use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, color::Color, coo_conversion::CooSystem, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
+use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, coo_conversion::CooSystem, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
@@ -10,7 +10,7 @@ use al_core::{
     pixel::PixelType, WebGlContext
 };
 
-use al_api::hips::SimpleHiPS;
+use al_api::hips::{SimpleHiPS, Color};
 
 use cgmath::Vector4;
 
@@ -341,6 +341,7 @@ pub trait AppTrait {
 
     // Survey
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue>;
+    fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta>;
     fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
     fn set_longitude_reversed(&mut self, reversed: bool);
@@ -717,6 +718,10 @@ where
         self.request_redraw = true;
 
         Ok(())
+    }
+
+    fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta> {
+        self.surveys.get_image_survey_meta(layer)
     }
 
     /*pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {

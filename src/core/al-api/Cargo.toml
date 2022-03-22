@@ -12,7 +12,6 @@ cgmath = "*"
 image = "0.23.14"
 lazy_static = "1.4.0"
 serde = { version = "^1.0.59", features = ["derive"] }
-al-core = { path = "../al-core" }
 
 [dependencies.wasm-bindgen]
 version = "0.2.70"

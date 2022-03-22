@@ -1,5 +1,6 @@
 use std::borrow::BorrowMut;
 
+use al_api::colormap::Colormap;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, PartialEq, Default)]
@@ -160,15 +161,6 @@ async fn request_survey_properties(url: String) -> PropertiesParsed {
 }
 
 #[derive(PartialEq)]
-enum TransferFunction {
-    ASINH,
-    LINEAR,
-    POW,
-    LOG,
-    SQRT
-}
-
-#[derive(PartialEq)]
 enum ColorOption {
     RGB,
     Color,
@@ -190,7 +182,7 @@ pub struct SurveyWidget {
     color_cfg: HiPSColor,
     color: Color32,
     k: f32,
-    colormap: String,
+    colormap: Colormap,
     reversed: bool,
     // Blending panel
     blend_cfg: BlendCfg,
@@ -207,7 +199,7 @@ use crate::painter::WebGlRenderingCtx;
 use al_api::blend::{
     BlendCfg, BlendFactor, BlendFunc
 };
-use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
+use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -228,7 +220,7 @@ impl SurveyWidget {
         let color_cfg = if properties.is_fits_image() {
             HiPSColor::Grayscale2Color {
                 color: [1.0, 0.0, 0.0],
-                transfer: "asinh".to_string(),
+                param: GrayscaleParameter::default(),
                 k: 1.0,
             }
         } else {
@@ -237,10 +229,10 @@ impl SurveyWidget {
 
         let k = 1.0;
         let color = Color32::RED;
-        let colormap = String::from("blackwhite");
+        let colormap = Colormap::Blackwhite;
         let reversed = false;
 
-        let transfer_func = Some(TransferFunction::ASINH);
+        let transfer_func = Some(TransferFunction::Asinh);
 
         let blend_cfg = BlendCfg {
             src_color_factor: BlendFactor::SrcAlpha,
@@ -320,10 +312,13 @@ impl SurveyWidget {
             self.opacity
         };
 
-        let hips = SimpleHiPS {
+        let meta = ImageSurveyMeta {
             color: self.color_cfg.clone(),
             blend_cfg: self.blend_cfg.clone(),
             opacity: opacity,
+        };
+
+        let hips = SimpleHiPS {
             layer: self.url.clone(),
             properties: HiPSProperties {
                 url: self.url.clone(),
@@ -333,7 +328,8 @@ impl SurveyWidget {
                 min_cutout,
                 max_cutout,
                 format,
-            }
+            },
+            meta
         };
 
         hips
@@ -379,42 +375,42 @@ impl SurveyWidget {
                                 egui::Grid::new("").show(ui, |ui| {
                                     // Plot widget
                                     match t {
-                                        TransferFunction::ASINH => plot(ui, |x| x.asinh()),
-                                        TransferFunction::LINEAR => plot(ui, |x| x),
-                                        TransferFunction::POW => plot(ui, |x| x.pow(2.0)),
-                                        TransferFunction::SQRT => plot(ui, |x| x.sqrt()),
-                                        TransferFunction::LOG => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
+                                        TransferFunction::Asinh => plot(ui, |x| x.asinh()),
+                                        TransferFunction::Linear => plot(ui, |x| x),
+                                        TransferFunction::Pow2 => plot(ui, |x| x.pow(2.0)),
+                                        TransferFunction::Sqrt => plot(ui, |x| x.sqrt()),
+                                        TransferFunction::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                     }
         
                                     // Selection of the transfer function
                                     ui.vertical(|ui| {
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::ASINH, 
+                                            TransferFunction::Asinh, 
                                             "asinh"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::LOG,
+                                            TransferFunction::Log,
                                             "log",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::LINEAR,
+                                            TransferFunction::Linear,
                                             "linear",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::POW, 
+                                            TransferFunction::Pow2, 
                                             "pow2"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::SQRT, 
+                                            TransferFunction::Sqrt, 
                                             "sqrt"
                                         ).clicked();
                                     });
@@ -471,14 +467,8 @@ impl SurveyWidget {
                 ).clicked();
             });
 
-            let transfer = match self.transfer_func.as_ref().unwrap() {
-                TransferFunction::ASINH => String::from("asinh"),
-                TransferFunction::LINEAR => String::from("linear"),
-                TransferFunction::POW => String::from("pow2"),
-                TransferFunction::LOG => String::from("log"),
-                TransferFunction::SQRT => String::from("sqrt"),
-            };
-
+            let cutouts = self.cutouts.unwrap_or([0.0, 1.0]);
+            let transfer = self.transfer_func.unwrap_or(TransferFunction::Asinh);
             match self.color_option {
                 ColorOption::Color => {
                     ui.label("Color picker");
@@ -493,7 +483,11 @@ impl SurveyWidget {
                             (self.color.g() as f32)/255.0,
                             (self.color.b() as f32)/255.0
                         ],
-                        transfer,
+                        param: GrayscaleParameter {
+                            h: transfer,
+                            min_value: cutouts[0],
+                            max_value: cutouts[1],
+                        },
                         k: self.k
                     };
                 },
@@ -501,24 +495,28 @@ impl SurveyWidget {
                     egui::ComboBox::from_label("Colormap")
                     .selected_text(format!("{:?}", self.colormap))
                     .show_ui(ui, |ui| {
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "blackwhite".to_string(), "blackwhite").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "blues".to_string(), "blues").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "parula".to_string(), "parula").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "rainbow".to_string(), "rainbow").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "RdBu".to_string(), "RdBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "RdYiBu".to_string(), "RdYiBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "redtemperature".to_string(), "redtemperature").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "spectral".to_string(), "spectral").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "summer".to_string(), "summer").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "YIGnBu".to_string(), "YIGnBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, "YIOrBr".to_string(), "YIOrBr").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Blackwhite, "blackwhite").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Blues, "blues").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Parula, "parula").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RdBu, "RdBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RdYiBu, "RdYiBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RedTemperature, "redtemperature").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Spectral, "spectral").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Summer, "summer").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::YIGnBu, "YIGnBu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::YIOrBr, "YIOrBr").clicked();
                     });
 
                     *ui_changed |= ui.add(egui::Checkbox::new(&mut self.reversed, "Reversed")).changed();
 
                     self.color_cfg = HiPSColor::Grayscale2Colormap {
                         colormap: self.colormap.clone(),
-                        transfer,
+                        param: GrayscaleParameter {
+                            h: transfer,
+                            min_value: cutouts[0],
+                            max_value: cutouts[1],
+                        },
                         reversed: self.reversed,
                     };
                 },

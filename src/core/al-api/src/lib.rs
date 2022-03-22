@@ -4,3 +4,5 @@
 */
 pub mod blend;
 pub mod hips;
+pub mod color;
+pub mod colormap;

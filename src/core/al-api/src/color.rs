@@ -1,4 +1,7 @@
-#[derive(Clone)]
+use wasm_bindgen::prelude::*;
+
+#[derive(Debug, Clone, Copy)]
+#[wasm_bindgen]
 pub struct Color {
     pub red: f32,
     pub green: f32,
@@ -6,7 +9,9 @@ pub struct Color {
     pub alpha: f32,
 }
 
+#[wasm_bindgen]
 impl Color {
+    #[wasm_bindgen(constructor)]
     pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Color {
         Color {
             red,
@@ -36,17 +41,5 @@ impl From<&Color> for String {
 
         let color = format!("#{}{}{}", red, green, blue);
         color
-    }
-}
-use al_core::{shader::UniformType, WebGlContext};
-use web_sys::WebGlUniformLocation;
-impl UniformType for Color {
-    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
-    }
-}
-impl<'a> UniformType for &'a Color {
-    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
     }
 }

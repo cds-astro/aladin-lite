@@ -32,7 +32,8 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
             // we must return true, so that the default action (set view to center of image) is performed
             return true;
         }
-        aladin.displayJPG(
+        aladin.displayFITS('http://goldmine.mib.infn.it/data//B/fits/A04_VC1316_ooooog.fits', 'overlay');
+        /*aladin.displayJPG(
             // the JPG to transform to HiPS
             'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
             // name of the HiPS layer
@@ -41,7 +42,7 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
             null,
             // A callback fn once the overlay is set
             callback
-        );
+        );*/
 
         $("#slider").on('input', function() {
             aladin.setOpacityLayer($(this).val(), "overlay");
@@ -53,11 +54,10 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
 
             $('input[name=survey]').change(async function() {
                 let surveyName = $(this).val();
-                console.log(surveyName)
                 if (surveyName === "P/2MASS/Color") {
-                    aladin.setBaseImageSurvey(twomass);
+                    aladin.setImageSurvey(twomass, "base");
                 } else if (surveyName === "P/DSS2/Color") {
-                    aladin.setBaseImageSurvey(dss2);
+                    aladin.setImageSurvey(dss2, "base");
                 }
             });
         })();

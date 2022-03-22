@@ -1688,6 +1688,13 @@ Aladin.prototype.displayFITS = function (url, layerName, options, successCallbac
 
             (async () => {
                 let survey = await Aladin.createImageSurvey(response.data.url);
+                survey.color = {
+                    grayscale2Colormap: {
+                        transfer: "asinh",
+                        colormap: "redtemperature",
+                        reversed: true,
+                    }
+                };
                 var transparency = (options && options.transparency) || 1.0;
     
                 var executeDefaultSuccessAction = true;

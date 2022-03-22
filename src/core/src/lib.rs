@@ -35,7 +35,6 @@ mod async_task;
 mod buffer;
 mod camera;
 mod cdshealpix;
-mod color;
 mod coo_conversion;
 mod angle;
 
@@ -51,7 +50,6 @@ mod shaders;
 mod sphere_geometry;
 mod time;
 mod projection;
-mod transfert_function;
 
 use crate::{
     camera::CameraViewPort,
@@ -83,7 +81,7 @@ pub struct WebClient {
 use crate::shader::FileSrc;
 use crate::transfert_function::TransferFunction;
 
-use crate::color::Color;
+use al_api::color::Color;
 use crate::app::AppTrait;
 use crate::app::AppType;
 #[wasm_bindgen]
@@ -286,37 +284,9 @@ impl WebClient {
         Ok(())
     }
 
-    /// Move a layer forward the other ones
-    ///
-    /// # Arguments
-    ///
-    /// * `layer_name` - The name of the layer to move
-    ///
-    /// # Panics
-    ///
-    /// * If the layer specified is not found
-    #[wasm_bindgen(js_name = moveImageSurveysLayerForward)]
-    pub fn move_image_surveys_layer_forward(&mut self, survey_url: &str) -> Result<(), JsValue> {
-        //self.app.move_image_surveys_layer_forward(layer_name)
-
-        Ok(())
-    }
-
-    /// Set the opacity of a layer
-    ///
-    /// # Arguments
-    ///
-    /// * `opacity` - Set an opacity value (between 0.0 and 1.0)
-    /// * `layer_name` - The name of the layer to move
-    ///
-    /// # Panics
-    ///
-    /// * If the layer specified is not found
-    #[wasm_bindgen(js_name = setOpacityLayer)]
-    pub fn set_opacity_layer(&mut self, opacity: f32, survey_url: &str) -> Result<(), JsValue> {
-        //self.app.set_opacity_layer(layer_name, opacity)
-
-        Ok(())
+    #[wasm_bindgen(js_name = getImageSurveyMeta)]
+    pub fn get_image_survey(&mut self, layer: String) -> Option<ImageSurveyMeta> {
+        self.app.get_image_survey_meta(&layer)
     }
 
     /// Set the equatorial grid color

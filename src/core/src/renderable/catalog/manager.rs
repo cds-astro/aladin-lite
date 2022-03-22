@@ -524,6 +524,21 @@ impl Catalog {
         Ok(())
     }
 }
+pub fn get_catalog_shader<'a>(
+    gl: &WebGlContext,
+    shaders: &'a mut ShaderManager,
+) -> Result<&'a Shader, JsValue> {
+    shaders
+        .get(
+            gl,
+            &ShaderId(
+                Cow::Borrowed("ColormapCatalogVS"),
+                Cow::Borrowed("ColormapCatalogFS"),
+            ),
+        )
+        .map_err(|e| e.into())
+}
+
 pub trait CatalogShaderProjection {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
 }

@@ -1,6 +1,6 @@
 use web_sys::WebGl2RenderingContext;
 
-use crate::color::Color;
+use al_api::color::Color;
 
 use crate::angle;
 use cgmath::Vector4;

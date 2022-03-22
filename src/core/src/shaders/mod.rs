@@ -12,6 +12,14 @@ YIGnBu = 9,
 YIOrBr = 10,
 */
 use std::collections::HashMap;
+use al_core::resources::Resources;
+use crate::shader::ShaderId;
+use al_core::Texture2D;
+use al_core::WebGlContext;
+use std::borrow::Cow;
+use wasm_bindgen::JsValue;
+use web_sys::WebGl2RenderingContext;
+
 pub struct Colormaps {
     tex: Texture2D,
     colormaps: HashMap<&'static str, Colormap>,
@@ -159,36 +167,6 @@ impl Colormaps {
     }
 }
 
-#[derive(Clone, Debug, Copy)]
-pub struct Colormap {
-    pub name: &'static str,
-    pub id: i32,
-}
-
-use al_core::resources::Resources;
-use crate::shader::ShaderId;
-use al_core::Texture2D;
-use al_core::WebGlContext;
-use std::borrow::Cow;
-use wasm_bindgen::JsValue;
-use web_sys::WebGl2RenderingContext;
-impl Colormap {
-    pub fn get_catalog_shader<'a>(
-        gl: &WebGlContext,
-        shaders: &'a mut ShaderManager,
-    ) -> Result<&'a Shader, JsValue> {
-        shaders
-            .get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("ColormapCatalogVS"),
-                    Cow::Borrowed("ColormapCatalogFS"),
-                ),
-            )
-            .map_err(|e| e.into())
-    }
-}
-
 use al_core::shader::{SendUniforms, ShaderBound};
 
 impl SendUniforms for Colormaps {
@@ -196,14 +174,6 @@ impl SendUniforms for Colormaps {
         shader
             .attach_uniform("colormaps", &self.tex)
             .attach_uniform("num_colormaps", &(self.colormaps.len() as f32));
-
-        shader
-    }
-}
-
-impl SendUniforms for Colormap {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap_id", &(self.id as f32));
 
         shader
     }

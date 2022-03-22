@@ -1,8 +1,8 @@
-use al_core::WebGlContext;
 use serde::Deserialize;
 
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(feature = "webgl2")]
 pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
@@ -10,8 +10,9 @@ pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
 pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 #[derive(Deserialize, Debug)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct BlendCfg {
     pub src_color_factor: BlendFactor,
     pub dst_color_factor: BlendFactor,
@@ -31,54 +32,74 @@ impl Default for BlendCfg {
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[derive(PartialEq)]
+#[wasm_bindgen]
 pub enum BlendFactor {
-    Zero = WebGlRenderingCtx::ZERO as isize,
-    One = WebGlRenderingCtx::ONE as isize,
+    Zero,
+    One,
     
-    SrcColor = WebGlRenderingCtx::SRC_COLOR as isize,
-    OneMinusSrcColor = WebGlRenderingCtx::ONE_MINUS_SRC_COLOR as isize,
+    SrcColor,
+    OneMinusSrcColor,
 
-    DstColor = WebGlRenderingCtx::DST_COLOR as isize,
-    OneMinusDstColor = WebGlRenderingCtx::ONE_MINUS_DST_COLOR as isize,
+    DstColor,
+    OneMinusDstColor,
 
-    SrcAlpha = WebGlRenderingCtx::SRC_ALPHA as isize,
-    OneMinusSrcAlpha = WebGlRenderingCtx::ONE_MINUS_SRC_ALPHA as isize,
+    SrcAlpha,
+    OneMinusSrcAlpha,
 
-    DstAlpha = WebGlRenderingCtx::DST_ALPHA as isize,
-    OneMinusDstAlpha = WebGlRenderingCtx::ONE_MINUS_DST_ALPHA as isize,
+    DstAlpha,
+    OneMinusDstAlpha,
 
-    ConstantColor = WebGlRenderingCtx::CONSTANT_COLOR as isize,
-    OneMinusConstantColor = WebGlRenderingCtx::ONE_MINUS_CONSTANT_COLOR as isize,
-    ConstantAlpha = WebGlRenderingCtx::CONSTANT_ALPHA as isize,
-    OneMinusConstantAlpha = WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA as isize,
+    ConstantColor,
+    OneMinusConstantColor,
+    ConstantAlpha,
+    OneMinusConstantAlpha,
+}
+
+impl BlendFactor {
+    // Map the blend factor into the WebGL value
+    fn gl(&self) -> u32 {
+        match self {
+            BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,
+            BlendFactor::ConstantColor => WebGlRenderingCtx::CONSTANT_COLOR,
+            BlendFactor::Zero => WebGlRenderingCtx::ZERO,
+            BlendFactor::One => WebGlRenderingCtx::ONE,
+            BlendFactor::DstAlpha => WebGlRenderingCtx::DST_ALPHA,
+            BlendFactor::DstColor => WebGlRenderingCtx::DST_COLOR,
+            BlendFactor::OneMinusConstantAlpha => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
+            BlendFactor::OneMinusDstColor => WebGlRenderingCtx::ONE_MINUS_DST_COLOR,
+            BlendFactor::OneMinusDstAlpha => WebGlRenderingCtx::ONE_MINUS_DST_ALPHA,
+            BlendFactor::SrcAlpha => WebGlRenderingCtx::SRC_ALPHA,
+            BlendFactor::SrcColor => WebGlRenderingCtx::SRC_COLOR,
+            BlendFactor::OneMinusSrcColor => WebGlRenderingCtx::ONE_MINUS_SRC_COLOR,
+            BlendFactor::OneMinusSrcAlpha => WebGlRenderingCtx::ONE_MINUS_SRC_ALPHA,
+            BlendFactor::OneMinusConstantColor => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[derive(PartialEq)]
+#[wasm_bindgen]
 pub enum BlendFunc {
-    FuncAdd = WebGlRenderingCtx::FUNC_ADD as isize,
-    FuncSubstract = WebGlRenderingCtx::FUNC_SUBTRACT as isize,
-    FuncReverseSubstract = WebGlRenderingCtx::FUNC_REVERSE_SUBTRACT as isize,
+    FuncAdd,
+    FuncSubstract,
+    FuncReverseSubstract,
     #[cfg(feature = "webgl2")]
-    Min = WebGlRenderingCtx::MIN as isize,
+    Min,
     #[cfg(feature = "webgl2")]
-    Max = WebGlRenderingCtx::MAX as isize
+    Max
 }
 
-impl BlendCfg {
-    pub fn active_blend_cfg(&self, gl: &WebGlContext, f: impl FnOnce() -> ()) {
-        gl.blend_equation(self.func as u32);
-        gl.blend_func_separate(
-            self.src_color_factor as u32,
-            self.dst_color_factor as u32,
-            WebGlRenderingCtx::ONE,
-            WebGlRenderingCtx::ONE,
-        );
-
-        f();
-
-        gl.blend_equation(BlendFunc::FuncAdd as u32);
+impl BlendFunc {
+    fn gl(&self) -> u32 {
+        match self {
+            BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
+            BlendFunc::FuncSubstract => WebGlRenderingCtx::FUNC_SUBTRACT,
+            BlendFunc::FuncReverseSubstract => WebGlRenderingCtx::FUNC_REVERSE_SUBTRACT,
+            BlendFunc::Min => WebGlRenderingCtx::MIN,
+            BlendFunc::Max => WebGlRenderingCtx::MAX,
+        }
     }
 }
 

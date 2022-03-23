@@ -188,7 +188,7 @@ pub struct SurveyWidget {
     blend_cfg: BlendCfg,
     opacity: f32,
     // FITS specific panel
-    transfer_func: Option<TransferFunction>,
+    transfer_func: Option<TransferFunction2>,
     cutouts: Option<[f32; 2]>,
     cut_range: std::ops::RangeInclusive<f32>
 }
@@ -199,7 +199,7 @@ use crate::painter::WebGlRenderingCtx;
 use al_api::blend::{
     BlendCfg, BlendFactor, BlendFunc
 };
-use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction};
+use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction2};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -232,7 +232,7 @@ impl SurveyWidget {
         let colormap = Colormap::Blackwhite;
         let reversed = false;
 
-        let transfer_func = Some(TransferFunction::Asinh);
+        let transfer_func = Some(TransferFunction2::Asinh);
 
         let blend_cfg = BlendCfg {
             src_color_factor: BlendFactor::SrcAlpha,
@@ -375,42 +375,42 @@ impl SurveyWidget {
                                 egui::Grid::new("").show(ui, |ui| {
                                     // Plot widget
                                     match t {
-                                        TransferFunction::Asinh => plot(ui, |x| x.asinh()),
-                                        TransferFunction::Linear => plot(ui, |x| x),
-                                        TransferFunction::Pow2 => plot(ui, |x| x.pow(2.0)),
-                                        TransferFunction::Sqrt => plot(ui, |x| x.sqrt()),
-                                        TransferFunction::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
+                                        TransferFunction2::Asinh => plot(ui, |x| x.asinh()),
+                                        TransferFunction2::Linear => plot(ui, |x| x),
+                                        TransferFunction2::Pow2 => plot(ui, |x| x.pow(2.0)),
+                                        TransferFunction2::Sqrt => plot(ui, |x| x.sqrt()),
+                                        TransferFunction2::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                     }
         
                                     // Selection of the transfer function
                                     ui.vertical(|ui| {
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::Asinh, 
+                                            TransferFunction2::Asinh, 
                                             "asinh"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::Log,
+                                            TransferFunction2::Log,
                                             "log",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::Linear,
+                                            TransferFunction2::Linear,
                                             "linear",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::Pow2, 
+                                            TransferFunction2::Pow2, 
                                             "pow2"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction::Sqrt, 
+                                            TransferFunction2::Sqrt, 
                                             "sqrt"
                                         ).clicked();
                                     });
@@ -468,7 +468,7 @@ impl SurveyWidget {
             });
 
             let cutouts = self.cutouts.unwrap_or([0.0, 1.0]);
-            let transfer = self.transfer_func.unwrap_or(TransferFunction::Asinh);
+            let transfer = self.transfer_func.unwrap_or(TransferFunction2::Asinh);
             match self.color_option {
                 ColorOption::Color => {
                     ui.label("Color picker");
@@ -552,7 +552,7 @@ fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, upda
                 });
         });
     
-        #[cfg(feature = "webgl2")]
+        /*#[cfg(feature = "webgl2")]
         egui::ComboBox::from_label("Blend Func")
         .selected_text(format!("{:?}", blend.func))
         .show_ui(ui, |ui| {
@@ -561,8 +561,8 @@ fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, upda
             ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
             ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::Min, "Min").clicked();
             ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::Max, "Max").clicked();
-        });
-        #[cfg(feature = "webgl1")]
+        });*/
+        //#[cfg(feature = "webgl1")]
         egui::ComboBox::from_label("Blend Func")
         .selected_text(format!("{:?}", blend.func))
         .show_ui(ui, |ui| {

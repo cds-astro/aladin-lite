@@ -316,7 +316,7 @@ export let Aladin = (function () {
                     options.survey.forEach(async (rootUrlOrId) => {
                         const survey = await Aladin.createImageSurvey(rootUrlOrId);
                         if (i == 0) {
-                            this.setImageSurvey(survey, "base");
+                            this.addImageSurvey(survey, "base");
                         } else {
                             this.addImageSurvey(survey, "base");
                         }
@@ -324,7 +324,7 @@ export let Aladin = (function () {
                     });
                 } else {
                     const survey = await Aladin.createImageSurvey(options.survey, "base");
-                    this.setImageSurvey(survey, "base");
+                    this.addImageSurvey(survey, "base");
                 }
             })();
         }
@@ -930,69 +930,15 @@ export let Aladin = (function () {
         return survey;
     }
 
-    Aladin.prototype.setImageSurvey = function (survey, layer = "base") {
-        console.log("SETIMAGESURVEY")
-        this.view.setImageSurvey(survey, layer);
+    Aladin.prototype.addImageSurvey = function (survey, layer = "base") {
+        this.view.addImageSurvey(survey, layer);
     };
-
-    /*Aladin.prototype.setImageSurveysLayer = function (surveys, layer) {
-        let layerName;
-        if (layer) {
-            layerName = layer;
-        } else {
-            layerName = "base";
-        }
-
-        this.view.setImageSurveysLayer(surveys, layerName);
-    };
-
-    Aladin.prototype.removeImageSurveysLayer = function (layer) {
-        let layerName;
-        if (layer) {
-            layerName = layer;
-        } else {
-            layerName = "base";
-        }
-
-        this.view.removeImageSurveysLayer(layerName);
-    };
-
-    Aladin.prototype.moveImageSurveysLayerForward = function (layer) {
-        this.view.moveImageSurveysLayerForward(surveys, layerName);
-    };
-
-    Aladin.prototype.addImageSurvey = function (survey, layer) {
-        let layerName;
-        if (layer) {
-            layerName = layer;
-        } else {
-            layerName = "base";
-        }
-        this.view.addImageSurvey(survey, layerName);
-    };*/
 
     Aladin.prototype.setOpacityLayer = function(opacity, layer = "base") {
         this.webglAPI.setOpacityLayer(opacity, layer)
     }
 
     // @api
-    /*Aladin.prototype.setBaseImageSurveysLayer = function (surveys) {
-        this.view.setImageSurveysLayer(surveys, 'base');
-    };
-    Aladin.prototype.setBaseImageSurvey = function (survey) {
-        this.view.setImageSurvey(survey, 'base');
-    };*/
-    /*
-    // @api
-    Aladin.prototype.getOverlayImageLayer = function () {
-        return this.view.overlayImageSurvey;
-    };
-    // @api
-    Aladin.prototype.setOverlayImageLayer = function (imageSurvey, callback) {
-        this.view.setOverlayImageSurvey(imageSurvey, callback);
-    };
-    */
-
     Aladin.prototype.increaseZoom = function (step) {
         //if (!step) {
         //    step = 5;
@@ -1654,7 +1600,7 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function (url, layerName, options, successCallback, errorCallback) {
+Aladin.prototype.displayFITS = async function (url, layer, options, successCallback, errorCallback) {
     options = options || {};
     var data = { url: url };
     if (options.color) {
@@ -1670,12 +1616,22 @@ Aladin.prototype.displayFITS = function (url, layerName, options, successCallbac
         data.nocache = options.nocache;
     }
     let self = this;
-    $.ajax({
-        url: 'https://alasky.unistra.fr/cgi/fits2HiPS',
-        data: data,
-        method: 'GET',
-        dataType: 'json',
-        success: function (response) {
+    const request = ( url, params = {}, method = 'GET' ) => {
+        let options = {
+            method
+        };
+        if ( 'GET' === method ) {
+            url += '?' + ( new URLSearchParams( params ) ).toString();
+        } else {
+            options.body = JSON.stringify( params );
+        }
+        
+        return fetch( url, options ).then( response => response.json() );
+    };
+    const get = ( url, params ) => request( url, params, 'GET' );
+
+    get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
+        .then(async (response) => {
             if (response.status != 'success') {
                 console.error('An error occured: ' + response.message);
                 if (errorCallback) {
@@ -1686,38 +1642,25 @@ Aladin.prototype.displayFITS = function (url, layerName, options, successCallbac
             var label = options.label || "FITS image";
             var meta = response.data.meta;
 
-            (async () => {
-                let survey = await Aladin.createImageSurvey(response.data.url);
-                survey.color = {
-                    grayscale2Colormap: {
-                        transfer: "asinh",
-                        colormap: "redtemperature",
-                        reversed: true,
-                    }
-                };
-                var transparency = (options && options.transparency) || 1.0;
-    
-                var executeDefaultSuccessAction = true;
-                if (successCallback) {
-                    executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
-                }
-                if (executeDefaultSuccessAction === true) {
-                    self.webglAPI.setCenter(meta.ra, meta.dec);
-                    self.setFoV(meta.fov);
-                }
-                // TODO! set an image survey once the already loaded surveys
-                // are READY! Otherwise it can lead to some congestion and avoid
-                // downloading the base tiles of the other surveys loading!
-                // This has to be fixed in the backend but a fast fix is just to wait
-                // before setting a new image survey
+            let survey = await Aladin.createImageSurvey(response.data.url);
+            var transparency = (options && options.transparency) || 1.0;
 
-                self.setImageSurvey(survey, layerName)
-                // set transparency
-                //self.setOpacityLayer(transparency, layerName)
-            })();
-        }
-    });
+            var executeDefaultSuccessAction = true;
+            if (successCallback) {
+                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+            }
+            if (executeDefaultSuccessAction === true) {
+                self.webglAPI.setCenter(meta.ra, meta.dec);
+                self.setFoV(meta.fov);
+            }
 
+            self.addImageSurvey(survey, layer)
+            // TODO! set an image survey once the already loaded surveys
+            // are READY! Otherwise it can lead to some congestion and avoid
+            // downloading the base tiles of the other surveys loading!
+            // This has to be fixed in the backend but a fast fix is just to wait
+            // before setting a new image survey
+        });
 };
 
 // @API

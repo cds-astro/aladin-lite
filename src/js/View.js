@@ -1939,7 +1939,7 @@ export let View = (function() {
 
     View.prototype.setUnknownSurveyIfNeeded = function() {
         if (unknownSurveyId) {
-            this.setImageSurvey(unknownSurveyId);
+            this.addImageSurvey(unknownSurveyId);
             unknownSurveyId = undefined;
         }
     }
@@ -1956,7 +1956,7 @@ export let View = (function() {
         this.setHiPS();
     };*/
 
-    View.prototype.setImageSurvey = function(survey, layer = "base") {
+    View.prototype.addImageSurvey = function(survey, layer = "base") {
         let copiedSurvey = JSON.parse(JSON.stringify(survey));
         // Set the layer name
         copiedSurvey.layer = layer;

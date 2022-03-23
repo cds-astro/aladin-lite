@@ -132,9 +132,14 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.parseSurveyProperties = function(metadata) {
         const order = (+metadata.hips_order);
         const hipsTileFormat = metadata.hips_tile_format.split(' ');
+        let cuts = [undefined, undefined];
+        if (metadata.hips_pixel_cut) {
+            cuts = metadata.hips_pixel_cut.split(" ");
+        }
 
         let tileFormat;
         let color;
+
         if (hipsTileFormat.indexOf('fits') >= 0) {
             tileFormat = {
                 FITSImage: {
@@ -142,11 +147,33 @@ export let HpxImageSurvey = (function() {
                 }
             };
             color = {
-                grayscale2Color: {
+                grayscale2Colormap: {
+                    colormap: "rdBu",
+                    reversed: false,
+                    param: {
+                        h: "Asinh",
+                        minValue: parseFloat(cuts[0]),
+                        maxValue: parseFloat(cuts[1])
+                    }
+                }
+                /*grayscale2Color: {
                     color: [1.0, 1.0, 1.0],
                     k: 1.0,
-                    transfer: "asinh"
-                }
+                    param: {
+                        h: "Asinh",
+                        minValue: parseFloat(cuts[0]),
+                        maxValue: parseFloat(cuts[1])
+                    }
+                }*/
+                /*grayscale2Color: {
+                    color: [1, 1, 1],
+                    k: 1,
+                    param: {
+                        h: "Asinh",
+                        minValue: parseFloat(cuts[0]) || 0,
+                        maxValue: parseFloat(cuts[1]) || 1
+                    }
+                }*/
             };
         } else {
             color = "color";
@@ -166,11 +193,6 @@ export let HpxImageSurvey = (function() {
             }
         }
 
-
-        let cuts = [undefined, undefined];
-        if (metadata.hips_pixel_cut) {
-            cuts = metadata.hips_pixel_cut.split(" ");
-        }
         let tileSize = 512;
         // Verify the validity of the tile width
         if (metadata.hips_tile_width) {
@@ -206,11 +228,14 @@ export let HpxImageSurvey = (function() {
                 minCutout: parseFloat(cuts[0]),
                 maxCutout: parseFloat(cuts[1]),
             },
-            color: color,
-            blendCfg: {
-                srcColorFactor: "SrcAlpha",
-                dstColorFactor: "OneMinusSrcAlpha",
-                func: "FuncAdd",
+            meta: {
+                color: color,
+                blendCfg: {
+                    srcColorFactor: 'SrcAlpha',
+                    dstColorFactor: 'OneMinusSrcAlpha',
+                    func: 'FuncAdd' 
+                },
+                opacity: 1.0,
             }
         };
     }
@@ -221,7 +246,6 @@ export let HpxImageSurvey = (function() {
         }
     
         let survey = await new HpxImageSurvey(idOrRootUrl);
-        console.log("survey111", survey)
         return survey;
     };
 

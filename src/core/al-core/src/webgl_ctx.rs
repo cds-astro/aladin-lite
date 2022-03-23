@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use al_api::blend::BlendFunc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 
@@ -95,5 +96,53 @@ impl Deref for WebGlContext {
 
     fn deref(&self) -> &WebGlRenderingCtx {
         &self.inner
+    }
+}
+
+pub trait GlWrapper {
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ());
+}
+
+use al_api::blend::{BlendFactor, BlendCfg};
+impl GlWrapper for BlendCfg {
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ()) {
+        let blend_factor_f = |f: &BlendFactor| -> u32 {
+            match f {
+                BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,
+                BlendFactor::ConstantColor => WebGlRenderingCtx::CONSTANT_COLOR,
+                BlendFactor::Zero => WebGlRenderingCtx::ZERO,
+                BlendFactor::One => WebGlRenderingCtx::ONE,
+                BlendFactor::DstAlpha => WebGlRenderingCtx::DST_ALPHA,
+                BlendFactor::DstColor => WebGlRenderingCtx::DST_COLOR,
+                BlendFactor::OneMinusConstantAlpha => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
+                BlendFactor::OneMinusDstColor => WebGlRenderingCtx::ONE_MINUS_DST_COLOR,
+                BlendFactor::OneMinusDstAlpha => WebGlRenderingCtx::ONE_MINUS_DST_ALPHA,
+                BlendFactor::SrcAlpha => WebGlRenderingCtx::SRC_ALPHA,
+                BlendFactor::SrcColor => WebGlRenderingCtx::SRC_COLOR,
+                BlendFactor::OneMinusSrcColor => WebGlRenderingCtx::ONE_MINUS_SRC_COLOR,
+                BlendFactor::OneMinusSrcAlpha => WebGlRenderingCtx::ONE_MINUS_SRC_ALPHA,
+                BlendFactor::OneMinusConstantColor => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
+            }
+        };
+
+        let blend_func_f = |f: &BlendFunc| -> u32 {
+            match f {
+                BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
+                BlendFunc::FuncReverseSubstract => WebGlRenderingCtx::FUNC_REVERSE_SUBTRACT,
+                BlendFunc::FuncSubstract => WebGlRenderingCtx::FUNC_SUBTRACT,
+            }
+        };
+
+        gl.blend_equation(blend_func_f(&self.func));
+        gl.blend_func_separate(
+            blend_factor_f(&self.src_color_factor),
+            blend_factor_f(&self.dst_color_factor),
+            WebGlRenderingCtx::ONE,
+            WebGlRenderingCtx::ONE,
+        );
+
+        f();
+
+        gl.blend_equation(blend_func_f(&BlendFunc::FuncAdd));
     }
 }

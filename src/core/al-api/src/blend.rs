@@ -1,7 +1,5 @@
 use serde::Deserialize;
 
-use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(feature = "webgl2")]
@@ -55,28 +53,7 @@ pub enum BlendFactor {
     OneMinusConstantAlpha,
 }
 
-impl BlendFactor {
-    // Map the blend factor into the WebGL value
-    pub fn gl(&self) -> u32 {
-        match self {
-            BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,
-            BlendFactor::ConstantColor => WebGlRenderingCtx::CONSTANT_COLOR,
-            BlendFactor::Zero => WebGlRenderingCtx::ZERO,
-            BlendFactor::One => WebGlRenderingCtx::ONE,
-            BlendFactor::DstAlpha => WebGlRenderingCtx::DST_ALPHA,
-            BlendFactor::DstColor => WebGlRenderingCtx::DST_COLOR,
-            BlendFactor::OneMinusConstantAlpha => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
-            BlendFactor::OneMinusDstColor => WebGlRenderingCtx::ONE_MINUS_DST_COLOR,
-            BlendFactor::OneMinusDstAlpha => WebGlRenderingCtx::ONE_MINUS_DST_ALPHA,
-            BlendFactor::SrcAlpha => WebGlRenderingCtx::SRC_ALPHA,
-            BlendFactor::SrcColor => WebGlRenderingCtx::SRC_COLOR,
-            BlendFactor::OneMinusSrcColor => WebGlRenderingCtx::ONE_MINUS_SRC_COLOR,
-            BlendFactor::OneMinusSrcAlpha => WebGlRenderingCtx::ONE_MINUS_SRC_ALPHA,
-            BlendFactor::OneMinusConstantColor => WebGlRenderingCtx::ONE_MINUS_CONSTANT_ALPHA,
-        }
-    }
-}
-
+use wasm_bindgen::prelude::*;
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[derive(PartialEq)]
@@ -85,20 +62,16 @@ pub enum BlendFunc {
     FuncAdd,
     FuncSubstract,
     FuncReverseSubstract,
-    #[cfg(feature = "webgl2")]
-    Min,
-    #[cfg(feature = "webgl2")]
-    Max
 }
 
 impl BlendFunc {
-    pub fn gl(&self) -> u32 {
+    fn gl(&self) -> u32 {
         match self {
             BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
             BlendFunc::FuncSubstract => WebGlRenderingCtx::FUNC_SUBTRACT,
             BlendFunc::FuncReverseSubstract => WebGlRenderingCtx::FUNC_REVERSE_SUBTRACT,
-            BlendFunc::Min => WebGlRenderingCtx::MIN,
-            BlendFunc::Max => WebGlRenderingCtx::MAX,
+            //BlendFunc::Min => WebGlRenderingCtx::MIN,
+            //BlendFunc::Max => WebGlRenderingCtx::MAX,
         }
     }
 }
@@ -141,10 +114,10 @@ impl fmt::Display for BlendFunc {
             BlendFunc::FuncAdd => "Add",
             BlendFunc::FuncSubstract => "Subtract",
             BlendFunc::FuncReverseSubstract => "Reverse Subtract",
-            #[cfg(feature = "webgl2")]
+            /*#[cfg(feature = "webgl2")]
             BlendFunc::Min => "Min",
             #[cfg(feature = "webgl2")]
-            BlendFunc::Max => "Max",
+            BlendFunc::Max => "Max",*/
         };
         write!(f, "{}", str)
     }

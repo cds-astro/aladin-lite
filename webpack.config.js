@@ -21,7 +21,6 @@ module.exports = {
         hints: false
     },
     plugins: [
-        //new HtmlWebpackPlugin(),
         // WebGL1 app
         /*new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "src/core"),

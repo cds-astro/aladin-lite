@@ -29,16 +29,7 @@
         aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10});
         (async () => {
             let dssred = await A.createImageSurvey("CDS/P/DSS2/blue");
-            dssred.properties.minCutout = 4286.0
-            dssred.properties.maxCutout = 19959.0
-            dssred.color = {
-                grayscale2Colormap: {
-                    colormap: "rainbow",
-                    transfer: "asinh",
-                    reversed: false,
-                }
-            };
-            aladin.setImageSurvey(dssred);
+            aladin.addImageSurvey(dssred);
         })();
 
         var moc = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#84f', lineWidth: 1});

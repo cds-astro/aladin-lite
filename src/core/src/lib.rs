@@ -79,7 +79,7 @@ pub struct WebClient {
 }
 
 use crate::shader::FileSrc;
-use al_api::hips::TransferFunction;
+use al_api::hips::TransferFunction2;
 
 use al_api::color::Color;
 use crate::app::AppTrait;

@@ -23,14 +23,10 @@
         (async () => {
             let mellinger = await A.createImageSurvey("CDS/P/Mellinger/color");
             let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
-            vtss.properties.format = {
-                Image: { format: 'png' }
-            };
-            vtss.color = "color";
-            vtss.opacity = 0.5;
+            vtss.meta.opacity = 1.0;
 
-            aladin.setImageSurvey(mellinger, "base");
-            aladin.setImageSurvey(vtss, "overlay");
+            aladin.addImageSurvey(mellinger, "base");
+            aladin.addImageSurvey(vtss, "overlay");
         })();
 
         //aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', '', 'galactic', 3, {imgFormat: 'png'}));

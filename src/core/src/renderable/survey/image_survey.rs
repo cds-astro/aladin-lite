@@ -601,7 +601,6 @@ use crate::utils;
 use al_core::pixel::PixelType;
 use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
-    #[cfg(feature = "webgl2")]
     fn new(
         config: HiPSConfig,
         gl: &WebGlContext,
@@ -628,14 +627,9 @@ impl ImageSurvey {
         let m0 = vec![];
         let m1 = vec![];
         let idx_vertices = vec![];
+
+        #[cfg(feature = "webgl2")]
         vao.bind_for_update()
-            /*.add_array_buffer(
-                12 * std::mem::size_of::<f32>(),
-                &[3, 3, 3, 1, 1, 1],
-                &[0, 3 * std::mem::size_of::<f32>(), 6 * std::mem::size_of::<f32>(), 9 * std::mem::size_of::<f32>(), 10 * std::mem::size_of::<f32>(), 11 * std::mem::size_of::<f32>()],
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&vertices),
-            )*/
             .add_array_buffer_single(
                 3,
                 "position",
@@ -667,6 +661,49 @@ impl ImageSurvey {
                 VecData::<f32>(&m0),
             )
             .add_array_buffer_single(
+                1,
+                "m1",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&m1),
+            )
+            // Set the element buffer
+            .add_element_buffer(
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<u16>(&idx_vertices),
+            ).unbind();
+        #[cfg(feature = "webgl1")]
+        vao.bind_for_update()
+            .add_array_buffer(
+                3,
+                "position",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&position),
+            )
+            .add_array_buffer(
+                3,
+                "uv_start",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&uv_start),
+            )
+            .add_array_buffer(
+                3,
+                "uv_end",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&uv_end),
+            )
+            .add_array_buffer(
+                1,
+                "time_tile_received",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&time_tile_received),
+            )
+            .add_array_buffer(
+                1,
+                "m0",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&m0),
+            )
+            .add_array_buffer(
                 1,
                 "m1",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
@@ -707,109 +744,6 @@ impl ImageSurvey {
             m0,
             m1,
 
-            idx_vertices,
-        })
-    }
-
-    #[cfg(feature = "webgl1")]
-    fn new(
-        gl: &WebGlContext,
-        camera: &CameraViewPort,
-        config: HiPSConfig,
-        //color: Color,
-        exec: Rc<RefCell<TaskExecutor>>,
-        //_type: ImageSurveyType
-    ) -> Result<Self, JsValue> {
-        let mut vao = VertexArrayObject::new(&gl);
-
-        // layout (location = 0) in vec2 lonlat;
-        // layout (location = 1) in vec3 position;
-        // layout (location = 2) in vec3 uv_start;
-        // layout (location = 3) in vec3 uv_end;
-        // layout (location = 4) in float time_tile_received;
-        // layout (location = 5) in float m0;
-        // layout (location = 6) in float m1;
-        let position = vec![];
-        let uv_start = vec![];
-        let uv_end = vec![];
-        let time_tile_received = vec![];
-        let m0 = vec![];
-        let m1 = vec![];
-        let idx_vertices = vec![];
-
-        vao.bind_for_update()
-            .add_array_buffer(
-                3,
-                "position",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&position),
-            )
-            .add_array_buffer(
-                3,
-                "uv_start",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&uv_start),
-            )
-            .add_array_buffer(
-                3,
-                "uv_end",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&uv_end),
-            )
-            .add_array_buffer(
-                1,
-                "time_tile_received",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&time_tile_received),
-            )
-            .add_array_buffer(
-                1,
-                "m0",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m0),
-            )
-            .add_array_buffer(
-                1,
-                "m1",
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<f32>(&m1),
-            )
-            // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::DYNAMIC_DRAW,
-                VecData::<u16>(&idx_vertices),
-            ).unbind();
-
-        let num_idx = MAX_NUM_INDICES_TO_DRAW;
-        let sphere_sub = SphereSubdivided {};
-
-        let textures = ImageSurveyTextures::new(gl, config, exec)?;
-        let conf = textures.config();
-        let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
-
-        let gl = gl.clone();
-
-        Ok(ImageSurvey {
-            //color,
-            // The image survey texture buffer
-            textures,
-            // Keep track of the cells in the FOV
-            view,
-
-            num_idx,
-
-            sphere_sub,
-            vao,
-
-            gl,
-
-            position,
-            uv_start,
-            uv_end,
-            time_tile_received,
-            m0,
-            m1,
-            
             idx_vertices,
         })
     }
@@ -1179,21 +1113,8 @@ use crate::coo_conversion::CooSystem;
 use crate::shaders::Colormaps;
 use crate::Resources;
 
-fn active_blend_cfg(gl: &WebGlContext, cfg: &BlendCfg, f: impl FnOnce() -> ()) {
-    gl.blend_equation(cfg.func.gl());
-    gl.blend_func_separate(
-        cfg.src_color_factor.gl(),
-        cfg.dst_color_factor.gl(),
-        WebGl2RenderingContext::ONE,
-        WebGl2RenderingContext::ONE,
-    );
-
-    f();
-
-    gl.blend_equation(BlendFunc::FuncAdd as u32);
-}
-
 use crate::buffer::Tile;
+use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -1279,6 +1200,7 @@ impl ImageSurveys {
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
+        let raytracer = &self.raytracer;
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
@@ -1292,9 +1214,8 @@ impl ImageSurveys {
 
                 let url = self.urls.get(layer).expect("Url should be found");
                 let survey = self.surveys.get_mut(url).unwrap();
-                let raytracer = &self.raytracer;
 
-                active_blend_cfg(&self.gl, &blend_cfg, || {
+                blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
                         raytracer,
                         shaders,

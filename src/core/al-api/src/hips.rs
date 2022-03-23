@@ -57,47 +57,12 @@ pub enum HiPSFormat {
     Image { format: String },
 }
 
-use wasm_bindgen::prelude::*;
-#[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[derive(Deserialize, Serialize)]
-pub enum TransferFunction {
-    Linear,
-    Sqrt,
-    Log,
-    Asinh,
-    Pow2,
-}
-
-#[wasm_bindgen]
-impl TransferFunction {
-    #[wasm_bindgen(constructor)]
-    pub fn new(id: &str) -> Self {
-        if id.contains("linear") {
-            TransferFunction::Linear
-        } else if id.contains("pow2") {
-            TransferFunction::Pow2
-        } else if id.contains("log") {
-            TransferFunction::Log
-        } else if id.contains("sqrt") {
-            TransferFunction::Sqrt
-        } else {
-            TransferFunction::Asinh
-        }
-    }
-}
-
-impl From<String> for TransferFunction {
-    fn from(id: String) -> Self {
-        TransferFunction::new(&id)
-    }
-}
-
 use serde::Serialize;
 #[wasm_bindgen]
 #[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct GrayscaleParameter {
-    pub h: TransferFunction,
+    pub h: TransferFunction2,
     pub min_value: f32,
     pub max_value: f32,
 }
@@ -105,10 +70,44 @@ pub struct GrayscaleParameter {
 impl Default for GrayscaleParameter {
     fn default() -> Self {
         Self {
-            h: TransferFunction::Asinh,
+            h: TransferFunction2::Asinh,
             min_value: 0.0,
             max_value: 1.0
         }
+    }
+}
+
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen]
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Deserialize, Serialize)]
+pub enum TransferFunction2 {
+    Linear,
+    Sqrt,
+    Log,
+    Asinh,
+    Pow2,
+}
+
+impl TransferFunction2 {
+    pub fn new(id: &str) -> Self {
+        if id.contains("linear") {
+            TransferFunction2::Linear
+        } else if id.contains("pow2") {
+            TransferFunction2::Pow2
+        } else if id.contains("log") {
+            TransferFunction2::Log
+        } else if id.contains("sqrt") {
+            TransferFunction2::Sqrt
+        } else {
+            TransferFunction2::Asinh
+        }
+    }
+}
+
+impl From<String> for TransferFunction2 {
+    fn from(id: String) -> Self {
+        TransferFunction2::new(&id)
     }
 }
 
@@ -134,7 +133,7 @@ impl Default for HiPSColor {
         HiPSColor::Grayscale2Color {
             color: [1.0, 0.0, 0.0],
             param: GrayscaleParameter {
-                h: TransferFunction::Asinh,
+                h: TransferFunction2::Asinh,
                 min_value: 0.0,
                 max_value: 1.0,
             },
@@ -144,6 +143,7 @@ impl Default for HiPSColor {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 #[derive(Clone)]
 #[wasm_bindgen]
 pub struct ImageSurveyMeta {

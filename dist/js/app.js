@@ -2,13 +2,13 @@
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {showSimbadPointerControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false, survey: 'CDS/P/2MASS/color'});
-        //aladin.setImageSurvey('CDS/P/Coronelli');
+        //aladin.addImageSurvey('CDS/P/Coronelli');
 
 
 
 aladin.createImageSurvey('Coronelli', 'Coronelli', 'http://alasky.u-strasbg.fr/CDS_P_Coronelli', 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true, minOrder: 3});
 aladin.createImageSurvey('illenoroC', 'illenoroC', 'http://alasky.u-strasbg.fr/CDS_P_Coronelli', 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false, minOrder: 3});
-//aladin.setImageSurvey('Coronelli');
+//aladin.addImageSurvey('Coronelli');
 
 $('#layersControlLeft').show();
 $('#layersCL2').show();

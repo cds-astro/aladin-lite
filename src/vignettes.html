@@ -45,12 +45,12 @@
             var curSurveyIdx = 0;
             var surveys = ["DSS Color", "2MASS Color", "DSS Red", "SDSS DR7 Color", "GALEX AIS Color", "XMM-Newton"];
             
-            aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[0]));
+            aladin.addImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[0]));
             
             $(document).keydown(function(e){
                 if (e.keyCode == 39) {
                 	curSurveyIdx = (curSurveyIdx+1) % surveys.length;
-                	aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
+                	aladin.addImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
                    return false;
                 }
                 
@@ -59,7 +59,7 @@
                     if (curSurveyIdx==-1) {
                     	curSurveyIdx = surveys.length - 1;
                     }
-                    aladin.setImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
+                    aladin.addImageSurvey(HpxImageSurvey.getSurveyFromName(surveys[curSurveyIdx]));
                    return false;
                 }
             });

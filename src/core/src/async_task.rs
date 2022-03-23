@@ -8,7 +8,7 @@ pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
 pub use crate::buffer::Tile;
 pub use crate::renderable::catalog::Source;
-pub use crate::shaders::Colormap;
+pub use al_api::colormap::Colormap;
 pub enum TaskResult {
     TableParsed {
         name: String,

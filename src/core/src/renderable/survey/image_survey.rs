@@ -259,15 +259,14 @@ use crate::projection::Projection;
 use crate::buffer::ImageSurveyTextures;
 use super::RayTracer;
 
-use crate::shaders::Colormap;
-
+use al_api::colormap::Colormap;
 trait Draw {
     fn draw<P: Projection>(
         &mut self,
         raytracer: &RayTracer,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
-        color: &Color,
+        color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
     );
@@ -302,8 +301,8 @@ pub enum Color {
         unsigned_tex: bool,
     ) -> &'a Shader {
         match color {
-            Color::Colored => P::get_raster_shader_color(gl, shaders),
-            Color::Grayscale2Colormap { .. } => {
+            HiPSColor::Color => P::get_raster_shader_color(gl, shaders),
+            HiPSColor::Grayscale2Colormap { .. } => {
                 if unsigned_tex {
                     return P::get_raster_shader_gray2colormap_unsigned(gl, shaders);
                 }
@@ -314,7 +313,7 @@ pub enum Color {
 
                 P::get_raster_shader_gray2colormap(gl, shaders)
             }
-            Color::Grayscale2Color { .. } => {
+            HiPSColor::Grayscale2Color { .. } => {
                 if unsigned_tex {
                     return P::get_raster_shader_gray2color_unsigned(gl, shaders);
                 }
@@ -336,8 +335,8 @@ pub enum Color {
         unsigned_tex: bool,
     ) -> &'a Shader {
         match color {
-            Color::Colored => P::get_raytracer_shader_color(gl, shaders),
-            Color::Grayscale2Colormap { .. } => {
+            HiPSColor::Color => P::get_raytracer_shader_color(gl, shaders),
+            HiPSColor::Grayscale2Colormap { .. } => {
                 if unsigned_tex {
                     return P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders);
                 }
@@ -348,7 +347,7 @@ pub enum Color {
 
                 P::get_raytracer_shader_gray2colormap(gl, shaders)
             }
-            Color::Grayscale2Color { .. } => {
+            HiPSColor::Grayscale2Color { .. } => {
                 if unsigned_tex {
                     return P::get_raytracer_shader_gray2color_unsigned(gl, shaders);
                 }
@@ -604,16 +603,11 @@ use web_sys::WebGl2RenderingContext;
 impl ImageSurvey {
     #[cfg(feature = "webgl2")]
     fn new(
+        config: HiPSConfig,
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        hips: SimpleHiPS,
-        //color: Color,
         exec: Rc<RefCell<TaskExecutor>>,
-        //_type: ImageSurveyType
     ) -> Result<Self, JsValue> {
-        let SimpleHiPS { properties, .. } = self;
-        let config = HiPSConfig::new(gl, &properties)?;
-
         let mut vao = VertexArrayObject::new(&gl);
 
         // layout (location = 0) in vec2 lonlat;
@@ -1007,7 +1001,6 @@ impl ImageSurvey {
     }
 }
 
-use crate::color;
 use std::borrow::Cow;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
@@ -1015,7 +1008,7 @@ impl Draw for ImageSurvey {
         raytracer: &RayTracer,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
-        color: &Color,
+        color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
     ) {
@@ -1028,8 +1021,8 @@ impl Draw for ImageSurvey {
         let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
         //let raytracing = true;
         if raytracing {
-            let shader = color
-                .get_raytracer_shader::<P>(
+            let shader = get_raytracer_shader::<P>(
+                    color,
                     &self.gl,
                     shaders,
                     self.textures.config.tex_storing_integers,
@@ -1068,8 +1061,8 @@ impl Draw for ImageSurvey {
 
         let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles();
         
-        let shader = color
-        .get_raster_shader::<P>(
+        let shader = get_raster_shader::<P>(
+            color,
             &self.gl,
             shaders,
             self.textures.config.tex_storing_integers,
@@ -1112,21 +1105,21 @@ impl Draw for ImageSurvey {
 
 use wasm_bindgen::JsValue;
 //pub trait HiPS {
-    fn create(
+    /*fn create(
         self,
         gl: &WebGlContext,
         camera: &CameraViewPort,
         surveys: &ImageSurveys,
         exec: Rc<RefCell<TaskExecutor>>,
-    ) -> Result<ImageSurvey, JsValue>;
+    ) -> Result<ImageSurvey, JsValue>;*/
     //fn color(&self, colormaps: &Colormaps) -> HiPSColor;
 //}
 
 use crate::{HiPSColor, SimpleHiPS};
 use std::cell::RefCell;
 use std::rc::Rc;
-impl HiPS for SimpleHiPS {
-    /*fn color(&self, colormaps: &Colormaps) -> Color {
+/*impl HiPS for SimpleHiPS {
+    fn color(&self, colormaps: &Colormaps) -> Color {
         let color = match self.color.clone() {
             HiPSColor::Color => Color::Colored,
             HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
@@ -1154,20 +1147,26 @@ impl HiPS for SimpleHiPS {
         };
 
         color
-    }*/
+    }
+}*/
 
-}
-
-use al_api::blend::BlendCfg;
+use al_api::blend::{BlendFunc, BlendCfg};
 use al_api::hips::ImageSurveyMeta;
 
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
-type SurveyURL = String;
+pub(crate) type Url = String;
+type LayerId = String;
 pub struct ImageSurveys {
-    surveys: HashMap<SurveyURL, ImageSurvey>,
-    meta: Vec<ImageSurveyMeta>,
+    // Surveys to query
+    surveys: HashMap<Url, ImageSurvey>,
+    // The meta data associated with a layer
+    meta: HashMap<LayerId, ImageSurveyMeta>,
+    // Hashmap between urls and layers
+    urls: HashMap<LayerId, Url>,
+    // Layers given in a specific order to draw
+    layers: Vec<LayerId>,
 
-    most_precise_survey: SurveyURL,
+    most_precise_survey: Url,
 
     raytracer: RayTracer,
     gl: WebGlContext,
@@ -1180,13 +1179,13 @@ use crate::coo_conversion::CooSystem;
 use crate::shaders::Colormaps;
 use crate::Resources;
 
-fn active_blend_cfg(gl: &WebGlContext, blendCfg: &BlendCfg, f: impl FnOnce() -> ()) {
-    gl.blend_equation(self.func.gl());
+fn active_blend_cfg(gl: &WebGlContext, cfg: &BlendCfg, f: impl FnOnce() -> ()) {
+    gl.blend_equation(cfg.func.gl());
     gl.blend_func_separate(
-        self.src_color_factor.gl(),
-        self.dst_color_factor.gl(),
-        WebGlRenderingCtx::ONE,
-        WebGlRenderingCtx::ONE,
+        cfg.src_color_factor.gl(),
+        cfg.dst_color_factor.gl(),
+        WebGl2RenderingContext::ONE,
+        WebGl2RenderingContext::ONE,
     );
 
     f();
@@ -1202,7 +1201,9 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
     ) -> Self {
         let surveys = HashMap::new();
-        let meta = Vec::new();
+        let meta = HashMap::new();
+        let urls = HashMap::new();
+        let layers = Vec::new();
 
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
@@ -1215,6 +1216,9 @@ impl ImageSurveys {
         ImageSurveys {
             surveys,
             meta,
+            urls,
+            layers,
+
             most_precise_survey,
 
             raytracer,
@@ -1228,7 +1232,7 @@ impl ImageSurveys {
         }
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>, url: &str) -> Result<PixelType, JsValue> {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, url: &Url) -> Result<PixelType, JsValue> {
         if let Some(survey) = self.surveys.get(url) {
             // Read the pixel from the first survey of layer
             survey.read_pixel(pos)
@@ -1257,15 +1261,6 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
     }
 
-    /*pub fn set_opacity_layer(&mut self, url: &str, blending: BlendingOption) -> Result<(), JsValue> {
-        if let Some(layer) = self.meta.get_mut(url) {
-            layer.blending = blending;
-            Ok(())
-        } else {
-            Err(JsValue::from_str(&format!("layer {} not found", url)))
-        }
-    }*/
-
     pub fn draw<P: Projection>(
         &mut self,
         camera: &CameraViewPort,
@@ -1283,20 +1278,19 @@ impl ImageSurveys {
         }
 
         // The first layer must be paint independently of its alpha channel
-
         self.gl.enable(WebGl2RenderingContext::BLEND);
 
-        for meta in self.meta.iter() {
+        for layer in self.layers.iter() {
+            let meta = self.meta.get(layer).expect("Meta should be found");
             al_core::log::log(&format!("META {:?}", meta));
             if meta.visible() {
                 let ImageSurveyMeta {
                     color,
                     opacity,
-                    url,
                     blend_cfg,
-                    ..
                 } = meta;
 
+                let url = self.urls.get(layer).expect("Url should be found");
                 let survey = self.surveys.get_mut(url).unwrap();
                 let raytracer = &self.raytracer;
 
@@ -1331,7 +1325,17 @@ impl ImageSurveys {
         exec: Rc<RefCell<TaskExecutor>>,
         colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
-        let mut new_survey_ids = Vec::new();
+        // 1. Check if layer duplicated have been given
+        for i in 0..hipses.len() {
+            for j in 0..i {
+                if hipses[i].layer == hipses[j].layer {
+                    let layer = &hipses[i].layer;
+                    return Err(JsValue::from_str(&format!("{:?} layer name are duplicates", layer)));
+                }
+            }
+        }
+
+        let mut new_survey_urls = Vec::new();
         {
             let mut current_needed_surveys = HashSet::new();
             for hips in hipses.iter() {
@@ -1345,55 +1349,44 @@ impl ImageSurveys {
                 .drain()
                 .filter(|(_, m)| current_needed_surveys.contains(&m.textures.config().root_url))
                 .collect();
-            self.meta = self
-                .meta
-                .drain(..)
-                .filter(|m| current_needed_surveys.contains(&m.url))
-                .collect();
         }
         // Create the new surveys
         let mut max_depth_among_surveys = 0;
 
         self.meta.clear();
-        for hips in hipses.into_iter() {
-            let url = {
-                let HiPSProperties { url, max_order, .. } = &hips.properties;
-                if *max_order > max_depth_among_surveys {
-                    max_depth_among_surveys = *max_order;
-                    self.most_precise_survey = url.clone();
-                }
-                url.clone()
-            };
+        self.layers.clear();
+        self.urls.clear();
+        for SimpleHiPS { layer, meta, properties } in hipses.into_iter() {
+            let config = HiPSConfig::new(gl, &properties)?;
 
-            let color = hips.color(colormaps);
-            let blend_cfg: BlendCfg = hips.blend_cfg.clone();
-            let opacity = hips.opacity;
-            let layer = hips.layer.clone();
+            // Get the most precise survey from all the ones given
+            let HiPSProperties { url, max_order, .. } = properties;
+            if max_order > max_depth_among_surveys {
+                max_depth_among_surveys = max_order;
+                self.most_precise_survey = url.clone();
+            }
 
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
-                // create the survey
-                let survey = hips.create(gl, camera, self, exec.clone())?;
+                let survey = ImageSurvey::new(config, gl, camera, exec.clone())?;
                 self.surveys.insert(url.clone(), survey);
-                new_survey_ids.push(url.clone());
+                new_survey_urls.push(url.clone());
             }
-            self.meta.push(ImageSurveyMeta {
-                url: url,
-                layer: layer,
-                blend_cfg,
-                color,
-                opacity
-            });
-        }
-        al_core::log::log(&format!("list of surveys {:?} {:?}", self.surveys.keys(), self.meta));
 
-        Ok(new_survey_ids)
+            self.meta.insert(layer.clone(), meta);
+            self.urls.insert(layer.clone(), url);
+
+            self.layers.push(layer);
+        }
+        al_core::log::log(&format!("List of surveys: {:?}\nmeta: {:?}\nlayers: {:?}\n", self.surveys.keys(), self.meta, self.layers));
+
+        Ok(new_survey_urls)
     }
 
-    pub fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta> {
+    pub fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta> {
         self.meta
-            .iter()
-            .find(|survey| survey.layer == layer)
+            .get(layer)
+            .map(|m| m.clone())
     }
 
     pub fn is_ready(&self) -> bool {
@@ -1566,5 +1559,3 @@ impl ImageSurveys {
 
 use crate::{async_task::TaskExecutor, buffer::HiPSConfig, shader::ShaderManager};
 use std::collections::hash_map::IterMut;
-
-use crate::TransferFunction;

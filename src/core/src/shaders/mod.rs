@@ -25,85 +25,53 @@ pub struct Colormaps {
     colormaps: HashMap<&'static str, Colormap>,
 }
 
+use al_api::colormap::Colormap;
 impl Colormaps {
     pub fn new(gl: &WebGlContext, rs: &Resources) -> Result<Self, JsValue> {
         let colormaps: HashMap<&str, Colormap> = [
             (
                 "blackwhite",
-                Colormap {
-                    name: "blackwhite",
-                    id: 0,
-                },
+                Colormap::Blackwhite
             ),
             (
                 "blues",
-                Colormap {
-                    name: "blues",
-                    id: 1,
-                },
+                Colormap::Blues
             ),
             (
                 "parula",
-                Colormap {
-                    name: "parula",
-                    id: 2,
-                },
+                Colormap::Parula
             ),
             (
                 "rainbow",
-                Colormap {
-                    name: "rainbow",
-                    id: 3,
-                },
+                Colormap::Rainbow
             ),
             (
                 "RdBu",
-                Colormap {
-                    name: "RdBu",
-                    id: 4,
-                },
+                Colormap::RdBu
             ),
             (
                 "RdYiBu",
-                Colormap {
-                    name: "RdYiBu",
-                    id: 5,
-                },
+                Colormap::RdYiBu
             ),
             (
                 "redtemperature",
-                Colormap {
-                    name: "redtemperature",
-                    id: 6,
-                },
+                Colormap::RedTemperature
             ),
             (
                 "spectral",
-                Colormap {
-                    name: "spectral",
-                    id: 7,
-                },
+                Colormap::Spectral
             ),
             (
                 "summer",
-                Colormap {
-                    name: "summer",
-                    id: 8,
-                },
+                Colormap::Summer
             ),
             (
                 "YIGnBu",
-                Colormap {
-                    name: "YIGnBu",
-                    id: 9,
-                },
+                Colormap::YIGnBu
             ),
             (
                 "YIOrBr",
-                Colormap {
-                    name: "YIOrBr",
-                    id: 10,
-                },
+                Colormap::YIOrBr
             ),
         ]
         .iter()

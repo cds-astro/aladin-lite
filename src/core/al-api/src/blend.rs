@@ -57,7 +57,7 @@ pub enum BlendFactor {
 
 impl BlendFactor {
     // Map the blend factor into the WebGL value
-    fn gl(&self) -> u32 {
+    pub fn gl(&self) -> u32 {
         match self {
             BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,
             BlendFactor::ConstantColor => WebGlRenderingCtx::CONSTANT_COLOR,
@@ -92,7 +92,7 @@ pub enum BlendFunc {
 }
 
 impl BlendFunc {
-    fn gl(&self) -> u32 {
+    pub fn gl(&self) -> u32 {
         match self {
             BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
             BlendFunc::FuncSubstract => WebGlRenderingCtx::FUNC_SUBTRACT,

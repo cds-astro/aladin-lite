@@ -10,7 +10,9 @@ use al_core::{
     pixel::PixelType, WebGlContext
 };
 
-use al_api::hips::{SimpleHiPS, Color};
+use al_api::hips::SimpleHiPS;
+use al_api::color::Color;
+use al_api::hips::ImageSurveyMeta;
 
 use cgmath::Vector4;
 
@@ -80,7 +82,8 @@ use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
 use crate::rotation::Rotation;
-use crate::shaders::Colormap;
+use al_api::colormap::Colormap;
+use crate::renderable::survey::image_survey::Url;
 struct MoveAnimation {
     start_anim_rot: Rotation<f64>,
     goal_anim_rot: Rotation<f64>,
@@ -341,7 +344,7 @@ pub trait AppTrait {
 
     // Survey
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue>;
-    fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta>;
+    fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta>;
     fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
     fn set_longitude_reversed(&mut self, reversed: bool);
@@ -592,7 +595,7 @@ where
     ) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world(&pos) {
-            self.surveys.read_pixel(&lonlat, base_url)
+            self.surveys.read_pixel(&lonlat, &base_url.to_string())
         } else {
             Err(JsValue::from_str(&format!(
                 "{:?} is out of projection",
@@ -720,8 +723,8 @@ where
         Ok(())
     }
 
-    fn get_image_survey_meta(&self, layer: &str) -> Option<&ImageSurveyMeta> {
-        self.surveys.get_image_survey_meta(layer)
+    fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta> {
+        self.surveys.get_image_survey_color_cfg(layer)
     }
 
     /*pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {

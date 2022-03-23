@@ -79,11 +79,13 @@ pub struct WebClient {
 }
 
 use crate::shader::FileSrc;
-use crate::transfert_function::TransferFunction;
+use al_api::hips::TransferFunction;
 
 use al_api::color::Color;
 use crate::app::AppTrait;
 use crate::app::AppType;
+use al_api::hips::ImageSurveyMeta;
+
 #[wasm_bindgen]
 impl WebClient {
     /// Create the Aladin Lite webgl backend
@@ -285,8 +287,8 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getImageSurveyMeta)]
-    pub fn get_image_survey(&mut self, layer: String) -> Option<ImageSurveyMeta> {
-        self.app.get_image_survey_meta(&layer)
+    pub fn get_survey_color_cfg(&mut self, layer: String) -> Option<ImageSurveyMeta> {
+        self.app.get_image_survey_color_cfg(&layer)
     }
 
     /// Set the equatorial grid color

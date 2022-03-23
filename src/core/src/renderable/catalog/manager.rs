@@ -1,10 +1,11 @@
 use super::source::Source;
-use crate::{shaders::Colormap, ShaderManager};
+use crate::ShaderManager;
 use al_core::FrameBufferObject;
 use al_core::{
     resources::Resources,
     shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
+use al_api::colormap::Colormap;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};

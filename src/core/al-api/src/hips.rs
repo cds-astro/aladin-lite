@@ -144,6 +144,7 @@ impl Default for HiPSColor {
 }
 
 #[derive(Deserialize, Debug)]
+#[derive(Clone)]
 #[wasm_bindgen]
 pub struct ImageSurveyMeta {
     /// Color config

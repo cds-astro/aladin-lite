@@ -13,6 +13,7 @@ use al_core::{
 use al_api::hips::SimpleHiPS;
 use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
+use al_api::grid::GridCfg;
 
 use cgmath::Vector4;
 
@@ -168,7 +169,11 @@ where
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders)?;
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, GridCfg {
+            color: Color::new(0.0, 1.0, 0.0, 1.0),
+            enabled: false,
+            labels: true,
+        })?;
 
         // Variable storing the location to move to
         let move_animation = None;
@@ -336,15 +341,25 @@ where
 
 #[enum_dispatch(AppType)]
 pub trait AppTrait {
-    // View
+    /// View
     fn is_ready(&self) -> Result<bool, JsValue>;
     fn resize(&mut self, width: f32, height: f32);
+    // Low level method for updating the view
     fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue>;
+    // Low level method for rendering the view (layers + ui) on the render
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue>;
 
-    // Survey
+    /// Survey
+    // Low level methods that must be called whenever a change happen in the group of layers to render
+    // - A layer moves in the stack
+    // - A layer is added
+    // - A layer is removed
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue>;
-    fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta>;
+    // Getter to access the meta data of a layer
+    fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue>;
+    // Setter of the meta data of a layer
+    fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue>;
+
     fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
     fn set_longitude_reversed(&mut self, reversed: bool);
@@ -357,11 +372,7 @@ pub trait AppTrait {
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
     
     // Grid
-    fn set_grid_color(&mut self, color: Color);
-    fn show_grid_labels(&mut self);
-    fn hide_grid_labels(&mut self);
-    fn show_grid(&mut self);
-    fn hide_grid(&mut self);
+    fn set_grid_cfg(&mut self, cfg: GridCfg);
 
     // Coo System
     fn set_coo_system(&mut self, coo_system: CooSystem);
@@ -723,16 +734,15 @@ where
         Ok(())
     }
 
-    fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta> {
+    fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.surveys.get_image_survey_color_cfg(layer)
     }
 
-    /*pub fn move_image_surveys_layer_forward(&mut self, layer_name: &str) -> Result<(), JsValue> {
-        self.surveys.move_image_surveys_layer_forward(layer_name)?;
+    fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        Ok(())
-    }*/
+        self.surveys.set_image_survey_color_cfg(layer, meta)
+    }
 
     fn set_projection<Q: Projection>(mut self) -> App<Q> {
         self.camera.set_projection::<Q>();
@@ -892,29 +902,8 @@ where
         Ok(())
     }
 
-    fn set_grid_color(&mut self, color: Color) {
-        self.grid.set_color(color);
-        self.request_redraw = true;
-    }
-
-    fn show_grid(&mut self) {
-        self.grid.enable::<P>(&self.camera);
-        self.request_redraw = true;
-    }
-
-    fn hide_grid_labels(&mut self) {
-        self.grid.hide_labels(&self.camera);
-        self.request_redraw = true;
-    }
-
-    fn show_grid_labels(&mut self) {
-        self.grid.show_labels();
-        self.request_redraw = true;
-    }
-
-    fn hide_grid(&mut self) {
-        self.grid.disable(&self.camera);
-        self.request_redraw = true;
+    fn set_grid_cfg(&mut self, cfg: GridCfg) {
+        self.grid.set_cfg(cfg);
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {

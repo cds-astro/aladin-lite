@@ -1,6 +1,4 @@
-use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use wasm_bindgen::convert::WasmSlice;
 
 use super::blend::BlendCfg;
 use serde::Deserialize;
@@ -9,7 +7,6 @@ pub struct CompositeHiPS {
     hipses: Vec<SimpleHiPS>,
 }
 
-use std::fmt::Result;
 use std::iter::IntoIterator;
 impl IntoIterator for CompositeHiPS {
     type Item = SimpleHiPS;
@@ -32,37 +29,100 @@ pub struct SimpleHiPS {
     pub meta: ImageSurveyMeta,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct HiPSProperties {
-    pub url: String,
+impl SimpleHiPS {
+    pub fn get_layer(&self) -> String {
+        self.layer.clone()
+    }
 
-    pub max_order: u8,
-    pub frame: Frame,
-    pub tile_size: i32,
+    pub fn get_properties(&self) -> &HiPSProperties {
+        &self.properties
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[derive(Clone)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+pub struct HiPSProperties {
+    url: String,
+
+    max_order: u8,
+    frame: HiPSFrame,
+    tile_size: i32,
+    bitpix: Option<i32>,
+    format: HiPSTileFormat,
+
     pub min_cutout: Option<f32>,
     pub max_cutout: Option<f32>,
-    pub format: HiPSFormat,
+}
+
+#[wasm_bindgen]
+impl HiPSProperties {
+    #[wasm_bindgen(constructor)]
+    pub fn new(url: String, max_order: u8, frame: HiPSFrame, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
+        Self {
+            url,
+            max_order,
+            frame,
+            tile_size,
+            format,
+            bitpix,
+            min_cutout,
+            max_cutout
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn get_url(&self) -> String {
+        self.url.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn get_max_order(&self) -> u8 {
+        self.max_order
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn get_bitpix(&self) -> Option<i32> {
+        self.bitpix
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn get_format(&self) -> HiPSTileFormat {
+        self.format
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn get_tile_size(&self) -> i32 {
+        self.tile_size
+    }
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Frame {
-    pub label: String,
-    pub system: String,
+#[derive(Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+pub enum HiPSFrame {
+    GALACTIC,
+    J2000
 }
 
 #[derive(Deserialize, Debug)]
-pub enum HiPSFormat {
-    FITSImage { bitpix: i32 },
-    Image { format: String },
+#[derive(Clone, Copy)]
+#[wasm_bindgen]
+pub enum HiPSTileFormat {
+    FITS,
+    JPG,
+    PNG
 }
 
 use serde::Serialize;
 #[wasm_bindgen]
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct GrayscaleParameter {
-    pub h: TransferFunction2,
+    pub h: TransferFunction,
     pub min_value: f32,
     pub max_value: f32,
 }
@@ -70,7 +130,7 @@ pub struct GrayscaleParameter {
 impl Default for GrayscaleParameter {
     fn default() -> Self {
         Self {
-            h: TransferFunction2::Asinh,
+            h: TransferFunction::Asinh,
             min_value: 0.0,
             max_value: 1.0
         }
@@ -81,7 +141,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[derive(Deserialize, Serialize)]
-pub enum TransferFunction2 {
+pub enum TransferFunction {
     Linear,
     Sqrt,
     Log,
@@ -89,30 +149,31 @@ pub enum TransferFunction2 {
     Pow2,
 }
 
-impl TransferFunction2 {
+impl TransferFunction {
     pub fn new(id: &str) -> Self {
         if id.contains("linear") {
-            TransferFunction2::Linear
+            TransferFunction::Linear
         } else if id.contains("pow2") {
-            TransferFunction2::Pow2
+            TransferFunction::Pow2
         } else if id.contains("log") {
-            TransferFunction2::Log
+            TransferFunction::Log
         } else if id.contains("sqrt") {
-            TransferFunction2::Sqrt
+            TransferFunction::Sqrt
         } else {
-            TransferFunction2::Asinh
+            TransferFunction::Asinh
         }
     }
 }
 
-impl From<String> for TransferFunction2 {
+impl From<String> for TransferFunction {
     fn from(id: String) -> Self {
-        TransferFunction2::new(&id)
+        TransferFunction::new(&id)
     }
 }
 
 use crate::colormap::Colormap;
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
+#[derive(Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum HiPSColor {
     Grayscale2Colormap {
@@ -133,7 +194,7 @@ impl Default for HiPSColor {
         HiPSColor::Grayscale2Color {
             color: [1.0, 0.0, 0.0],
             param: GrayscaleParameter {
-                h: TransferFunction2::Asinh,
+                h: TransferFunction::Asinh,
                 min_value: 0.0,
                 max_value: 1.0,
             },
@@ -144,7 +205,7 @@ impl Default for HiPSColor {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[wasm_bindgen]
 pub struct ImageSurveyMeta {
     /// Color config
@@ -164,11 +225,15 @@ fn default_opacity() -> f32 {
 
 #[wasm_bindgen]
 impl ImageSurveyMeta {
-    pub fn visible(&self) -> bool {
-        self.opacity > 0.0
+    #[wasm_bindgen(setter = color)]
+    pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
+        self.color = color.into_serde()
+            .map_err(|e|  JsValue::from_str(&e.to_string()))?;
+
+        Ok(())
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = color)]
     pub fn color(&self) -> JsValue {
         let js_color_obj = js_sys::Object::new();
 
@@ -197,18 +262,10 @@ impl ImageSurveyMeta {
 
         js_color_obj.into()
     }
+}
 
-    #[wasm_bindgen(setter)]
-    pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
-        self.color = color.into_serde()
-            .map_err(|e|  JsValue::from_str(&e.to_string()))?;
-
-        Ok(())
+impl ImageSurveyMeta {
+    pub fn visible(&self) -> bool {
+        self.opacity > 0.0
     }
 }
-/*
-impl PartialEq for ImageSurveyMeta {
-    fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-    }
-}*/

@@ -172,7 +172,13 @@ export let Aladin = (function () {
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
-        this.view.setShowGrid(options.showCooGrid);
+        if (options && options.showCooGrid) {
+            this.view.setGridConfig({
+                enabled: true,
+                labels: true,
+                color: [1.0, 0.0, 0.0, 1.0]
+            });
+        }
 
         // retrieve available surveys
         // TODO: replace call with MocServer
@@ -925,8 +931,8 @@ export let Aladin = (function () {
     // @api
     // @old
 
-    Aladin.createImageSurvey = async function(rootUrlOrId) {
-        const survey = await HpxImageSurvey.create(rootUrlOrId);
+    Aladin.createImageSurvey = async function(rootUrlOrId, options) {
+        const survey = await HpxImageSurvey.create(rootUrlOrId, options);
         return survey;
     }
 
@@ -934,9 +940,13 @@ export let Aladin = (function () {
         this.view.addImageSurvey(survey, layer);
     };
 
-    Aladin.prototype.setOpacityLayer = function(opacity, layer = "base") {
-        this.webglAPI.setOpacityLayer(opacity, layer)
-    }
+    Aladin.prototype.getImageSurveyMeta = function(layer = "base") {
+        return this.view.getImageSurveyMeta(layer);
+    };
+
+    Aladin.prototype.setImageSurveyMeta = function(meta, layer = "base") {
+        return this.view.setImageSurveyMeta(layer, meta);
+    };
 
     // @api
     Aladin.prototype.increaseZoom = function (step) {
@@ -1115,7 +1125,7 @@ export let Aladin = (function () {
         layerBox.append(equatorialGridCb).append('<label for="displayEquatorialGrid">Equatorial grid</label><br/>');
         equatorialGridCb.change(function () {
             let isChecked = $(this).is(':checked');
-            self.view.setShowGrid(isChecked);
+            self.view.setGridConfig(isChecked);
         });
 
 
@@ -1455,8 +1465,8 @@ A.marker = function (ra, dec, options, data) {
     return A.source(ra, dec, data, options);
 };
 
-A.createImageSurvey = async function(rootUrlOrId) {
-    const survey = await HpxImageSurvey.create(rootUrlOrId);
+A.createImageSurvey = async function(rootUrlOrId, options) {
+    const survey = await HpxImageSurvey.create(rootUrlOrId, options);
     return survey;
 }
 
@@ -1668,7 +1678,7 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
  * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
  * and display it
  */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, layerName, options, successCallback, errorCallback) {
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = async function (url, layerName, options, successCallback, errorCallback) {
     options = options || {};
     options.color = true;
     options.label = "JPG/PNG image";

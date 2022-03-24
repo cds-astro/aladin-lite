@@ -36,14 +36,12 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(rootURLOrId) {
-        this.survey = null;
+    let HpxImageSurvey = function(rootURLOrId, options) {
         if (!rootURLOrId) {
             throw 'An hosting survey URL or an ID (i.e. DSS2/red) must be given';
         }
 
         let isUrl = false;
-        console.log("root url", rootURLOrId)
         if (rootURLOrId.includes("http")) {
             isUrl = true;
         }
@@ -56,7 +54,6 @@ export let HpxImageSurvey = (function() {
         };
 
         // If an HiPS id has been given
-        let url = null;
         if (!isUrl) {
             // Use the MOCServer to retrieve the
             // properties
@@ -86,7 +83,7 @@ export let HpxImageSurvey = (function() {
                     }
                 }
                 // Let is build the survey object
-                return HpxImageSurvey.parseSurveyProperties(metadata);
+                return HpxImageSurvey.parseSurveyProperties(metadata, options);
             })();
         } else {
             // Fetch the properties of the survey
@@ -105,17 +102,13 @@ export let HpxImageSurvey = (function() {
                 rootURL = rootURL.replace('http://', 'https://');
             }
 
-            console.log("ROOT URL", rootURL);
-            url = rootURL + '/properties';
-
 
             return (async () => {
-                console.log("properties url", url);
+                const url = rootURL + '/properties';
                 let metadata = await fetch(url)
                     .then((response) => response.text());
                 // We get the property here
                 metadata = HiPSDefinition.parseHiPSProperties(metadata);
-                console.log("metadata", metadata);
 
                 // 1. Ensure there is exactly one survey matching
                 if (!metadata) {
@@ -124,85 +117,14 @@ export let HpxImageSurvey = (function() {
                 // Set the service url if not found
                 metadata.hips_service_url = rootURLOrId;
                 // Let is build the survey object
-                return HpxImageSurvey.parseSurveyProperties(metadata);
+                return HpxImageSurvey.parseSurveyProperties(metadata, options);
             })();
         }
     };
 
-    HpxImageSurvey.parseSurveyProperties = function(metadata) {
-        const order = (+metadata.hips_order);
-        const hipsTileFormat = metadata.hips_tile_format.split(' ');
-        let cuts = [undefined, undefined];
-        if (metadata.hips_pixel_cut) {
-            cuts = metadata.hips_pixel_cut.split(" ");
-        }
-
-        let tileFormat;
-        let color;
-
-        if (hipsTileFormat.indexOf('fits') >= 0) {
-            tileFormat = {
-                FITSImage: {
-                    bitpix: parseInt(metadata.hips_pixel_bitpix)
-                }
-            };
-            color = {
-                grayscale2Colormap: {
-                    colormap: "rdBu",
-                    reversed: false,
-                    param: {
-                        h: "Asinh",
-                        minValue: parseFloat(cuts[0]),
-                        maxValue: parseFloat(cuts[1])
-                    }
-                }
-                /*grayscale2Color: {
-                    color: [1.0, 1.0, 1.0],
-                    k: 1.0,
-                    param: {
-                        h: "Asinh",
-                        minValue: parseFloat(cuts[0]),
-                        maxValue: parseFloat(cuts[1])
-                    }
-                }*/
-                /*grayscale2Color: {
-                    color: [1, 1, 1],
-                    k: 1,
-                    param: {
-                        h: "Asinh",
-                        minValue: parseFloat(cuts[0]) || 0,
-                        maxValue: parseFloat(cuts[1]) || 1
-                    }
-                }*/
-            };
-        } else {
-            color = "color";
-
-            if (hipsTileFormat.indexOf('png') >= 0) {
-                tileFormat = {
-                    Image: {
-                        format: "png"
-                    }
-                };
-            } else {
-                tileFormat = {
-                    Image: {
-                        format: "jpeg"
-                    }
-                };
-            }
-        }
-
-        let tileSize = 512;
-        // Verify the validity of the tile width
-        if (metadata.hips_tile_width) {
-            let hipsTileWidth = parseInt(metadata.hips_tile_width);
-            let isPowerOfTwo = hipsTileWidth && !(hipsTileWidth & (hipsTileWidth - 1));
-
-            if (isPowerOfTwo === true) {
-                tileSize = hipsTileWidth;
-            }
-        }
+    HpxImageSurvey.parseSurveyProperties = function(metadata, options) {
+        console.log("OPTIONS", options)
+        // HiPS url
         let url = metadata.hips_service_url;
         if (!url) {
             throw 'no valid service URL for retrieving the tiles'
@@ -215,37 +137,119 @@ export let HpxImageSurvey = (function() {
             // Pass by a proxy for extern http urls
             url = 'https://alasky.u-strasbg.fr/cgi/JSONProxy?url=' + url;
         }
+
+        // HiPS order
+        const order = (+metadata.hips_order);
+        // HiPS cutouts
+        let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
+        if (cuts) {
+            cuts = [parseFloat(cuts[0]), parseFloat(cuts[1])]
+        }
+
+        const minCut = (options && options.mincut) || (cuts && cuts[0]) || 0;
+        const maxCut = (options && options.maxcut) || (cuts && cuts[1]) || 1;
+
+        // HiPS tile format
+        let tileFormat;
+        const tileFormats = metadata.hips_tile_format.split(' ');
+        if (tileFormats.indexOf('fits') >= 0) {
+            tileFormat = "FITS";
+        } else if (tileFormats.indexOf('png') >= 0) {
+            tileFormat = "PNG";
+        } else if (tileFormats.indexOf('jpeg') >= 0) {
+            tileFormat = "JPG";
+        } else {
+            throw "Only FITS, PNG or JPG tile format supported";
+        }
+
+        // HiPS tile size
+        const tileSize = +metadata.hips_tile_width;
+        // HiPS bitpix
+        const bitpix = +metadata.hips_pixel_bitpix;
+        // HiPS frame
+        const frame = (options && options.frame) || "j2000";
+
+        // HiPS render options
+        let renderCfg;
+        const colormap = (options && options.colormap) || 'blackwhite';
+        const reversed = (options && options.reversed) || true;
+        const param = {
+            h: (options && options.tf) || "Asinh",
+            minValue: minCut,
+            maxValue: maxCut
+        };
+        const color = (options && options.color) || [1, 1, 1];
+        const strength = (options && options.strength) || 1.0;
+
+        if (options && options.colormap) {
+            renderCfg = {
+                grayscale2Colormap: {
+                    colormap: colormap,
+                    reversed: reversed,
+                    param: param
+                }
+            };
+        } else if (options && options.color) {
+            renderCfg = {
+                grayscale2Color: {
+                    color: color,
+                    k: strength,
+                    param: param
+                }
+            };
+        } else {
+            // no options have been given or without any colormap or single color referenced
+            if (tileFormat === "FITS") {
+                renderCfg = {
+                    grayscale2Color: {
+                        color: color,
+                        k: strength,
+                        param: param
+                    }
+                };
+            } else {
+                renderCfg = "color";
+            }            
+        }
+
+        const opacity = (options && options.opacity) || 1.0;
+        const additiveBlending = (options && options.additive) || false;
+        let blendingCfg;
+        if (additiveBlending) {
+            blendingCfg = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'One',
+                func: 'FuncAdd' 
+            }
+        } else {
+            blendingCfg = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'OneMinusSrcAlpha',
+                func: 'FuncAdd' 
+            }
+        }
+
         return {
             properties: {
                 url: url,
-                maxOrder:  parseInt(metadata.hips_order),
-                frame: {
-                    label: "J2000",
-                    system: "J2000"
-                },
+                maxOrder: order,
+                frame: frame,
                 tileSize: tileSize,
                 format: tileFormat,
-                minCutout: parseFloat(cuts[0]),
-                maxCutout: parseFloat(cuts[1]),
+                minCutout: minCut,
+                maxCutout: maxCut,
+                bitpix: bitpix,
             },
             meta: {
-                color: color,
-                blendCfg: {
-                    srcColorFactor: 'SrcAlpha',
-                    dstColorFactor: 'OneMinusSrcAlpha',
-                    func: 'FuncAdd' 
-                },
-                opacity: 1.0,
+                color: renderCfg,
+                blendCfg: blendingCfg,
+                opacity: opacity,
             }
         };
     }
 
     HpxImageSurvey.create = async function(idOrRootUrl, options) {
-        if (!idOrRootUrl) {
-            return;
-        }
-    
-        let survey = await new HpxImageSurvey(idOrRootUrl);
+        let survey = await new HpxImageSurvey(idOrRootUrl, options);
         return survey;
     };
 

@@ -252,8 +252,8 @@ impl<'a> UniformType for &'a Color {
     }
 }
 
-use al_api::hips::TransferFunction2;
-impl SendUniforms for TransferFunction2 {
+use al_api::hips::TransferFunction;
+impl SendUniforms for TransferFunction {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader.attach_uniform("H", self);
 
@@ -261,7 +261,7 @@ impl SendUniforms for TransferFunction2 {
     }
 }
 
-impl UniformType for TransferFunction2 {
+impl UniformType for TransferFunction {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         gl.uniform1i(location, *value as i32);
     }

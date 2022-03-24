@@ -61,7 +61,8 @@ use crate::{
 };
 use al_core::resources::Resources;
 use al_core::{shader::Shader, WebGlContext};
-use al_api::hips::{HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS};
+use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
+use al_api::grid::GridCfg;
 
 pub use coo_conversion::CooSystem;
 
@@ -79,7 +80,7 @@ pub struct WebClient {
 }
 
 use crate::shader::FileSrc;
-use al_api::hips::TransferFunction2;
+use al_api::hips::TransferFunction;
 
 use al_api::color::Color;
 use crate::app::AppTrait;
@@ -287,8 +288,13 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getImageSurveyMeta)]
-    pub fn get_survey_color_cfg(&mut self, layer: String) -> Option<ImageSurveyMeta> {
+    pub fn get_survey_color_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
         self.app.get_image_survey_color_cfg(&layer)
+    }
+
+    #[wasm_bindgen(js_name = setImageSurveyMeta)]
+    pub fn set_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
+        self.app.set_image_survey_color_cfg(layer, meta)
     }
 
     /// Set the equatorial grid color
@@ -299,48 +305,12 @@ impl WebClient {
     /// * `green` - Green amount (between 0.0 and 1.0)
     /// * `blue` - Blue amount (between 0.0 and 1.0)
     /// * `alpha` - Alpha amount (between 0.0 and 1.0)
-    #[wasm_bindgen(js_name = setGridColor)]
-    pub fn set_grid_color(
+    #[wasm_bindgen(js_name = setGridConfig)]
+    pub fn set_grid_cfg(
         &mut self,
-        red: f32,
-        green: f32,
-        blue: f32,
-        alpha: f32,
+        cfg: GridCfg
     ) -> Result<(), JsValue> {
-        let color = Color::new(red, green, blue, alpha);
-        self.app.set_grid_color(color);
-
-        Ok(())
-    }
-
-    /// Enable the rendering of the equatorial grid
-    #[wasm_bindgen(js_name = enableGrid)]
-    pub fn show_grid(&mut self) -> Result<(), JsValue> {
-        self.app.show_grid();
-
-        Ok(())
-    }
-
-    /// Disable the rendering of the equatorial grid
-    #[wasm_bindgen(js_name = disableGrid)]
-    pub fn hide_grid(&mut self) -> Result<(), JsValue> {
-        self.app.hide_grid();
-
-        Ok(())
-    }
-
-    /// Enable the rendering of the equatorial grid labels
-    #[wasm_bindgen(js_name = hideGridLabels)]
-    pub fn enable_grid_labels(&mut self) -> Result<(), JsValue> {
-        self.app.hide_grid_labels();
-
-        Ok(())
-    }
-
-    /// Disable the rendering of the equatorial grid labels
-    #[wasm_bindgen(js_name = showGridLabels)]
-    pub fn disable_grid_labels(&mut self) -> Result<(), JsValue> {
-        self.app.show_grid_labels();
+        self.app.set_grid_cfg(cfg);
 
         Ok(())
     }

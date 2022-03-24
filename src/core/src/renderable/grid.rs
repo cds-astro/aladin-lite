@@ -8,17 +8,14 @@ use cgmath::Vector4;
 use crate::camera::CameraViewPort;
 use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
 use al_core::VertexArrayObject;
+use al_api::grid::GridCfg;
 pub struct ProjetedGrid {
-    // The color of the grid
-    color: Color,
+    // The config
+    cfg: GridCfg,
 
     // The vertex array object of the screen in NDC
     vao: VertexArrayObject,
     vao_gpu: VertexArrayObject,
-
-    //vbo: WebGlBuffer,
-    // A pointer over the 2d context where we can write text
-    //ctx2d: CanvasRenderingContext2d,
 
     labels: Vec<Option<Label>>,
     size_vertices_buf: usize,
@@ -28,8 +25,6 @@ pub struct ProjetedGrid {
     num_vertices: usize,
 
     gl: WebGlContext,
-    enabled: bool,
-    hide_labels: bool,
 
     // Render Text Manager
     text_renderer: TextRenderManager,
@@ -49,6 +44,7 @@ impl ProjetedGrid {
         gl: &WebGlContext,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
+        cfg: GridCfg,
     ) -> Result<ProjetedGrid, JsValue> {
         let vao_gpu = {
             let mut vao = VertexArrayObject::new(gl);
@@ -119,17 +115,14 @@ impl ProjetedGrid {
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         let labels = vec![];
 
-        let color = Color::new(0_f32, 1_f32, 0_f32, 0.3_f32);
         let gl = gl.clone();
         let sizes = vec![];
         let offsets = vec![];
 
         let text_renderer = TextRenderManager::new(gl.clone(), &camera)?;
-        // Get the canvas rendering context
-        let enabled = false;
-        let hide_labels = false;
+
         let grid = ProjetedGrid {
-            color,
+            cfg,
 
             vao,
             //vbo,
@@ -141,10 +134,7 @@ impl ProjetedGrid {
             sizes,
             offsets,
 
-            //ctx2d,
             gl,
-            enabled,
-            hide_labels,
             vao_gpu,
 
             text_renderer
@@ -152,41 +142,10 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_color(&mut self, color: Color) {
-        self.color = color;
+    pub fn set_cfg(&mut self, cfg: GridCfg) {
+        self.cfg = cfg;
     }
 
-    pub fn enable<P: Projection>(&mut self, camera: &CameraViewPort) {
-        self.enabled = true;
-        self.force_update::<P>(camera);
-    }
-
-    pub fn disable(&mut self, camera: &CameraViewPort) {
-        let size_screen = &camera.get_screen_size();
-
-        self.enabled = false;
-        /*self.ctx2d.clear_rect(
-            0.0,
-            0.0,
-            2.0 * size_screen.x as f64,
-            2.0 * size_screen.y as f64,
-        );*/
-    }
-
-    pub fn hide_labels(&mut self, camera: &CameraViewPort) {
-        let size_screen = &camera.get_screen_size();
-
-        self.hide_labels = true;
-        /*self.ctx2d.clear_rect(
-            0.0,
-            0.0,
-            2.0 * size_screen.x as f64,
-            2.0 * size_screen.y as f64,
-        );*/
-    }
-    pub fn show_labels(&mut self) {
-        self.hide_labels = false;
-    }
     fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
         {
             self.text_renderer.begin_frame();
@@ -214,7 +173,7 @@ impl ProjetedGrid {
             let scale = Label::size(camera) as f32;
             for label in self.labels.iter() {
                 if let Some(label) = label {
-                    self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.color, cgmath::Rad(label.rot as f32));
+                    self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.cfg.color, cgmath::Rad(label.rot as f32));
                 }
             }
     
@@ -247,7 +206,7 @@ impl ProjetedGrid {
 
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
-        if !self.enabled {
+        if !self.cfg.enabled {
             return;
         }
 
@@ -274,7 +233,7 @@ impl ProjetedGrid {
             .attach_uniform("num_parallels", &(parallels.len() as i32))
             .attach_uniform("meridians[0]", &meridians.as_slice())
             .attach_uniform("parallels[0]", &parallels.as_slice())
-            .attach_uniform("color", &self.color)
+            .attach_uniform("color", &self.cfg.color)
             // Bind the Vertex Array Object for drawing
             .bind_vertex_array_object_ref(&self.vao_gpu)
             .draw_elements_with_i32(
@@ -304,7 +263,7 @@ impl ProjetedGrid {
         let shader = shader.bind(&self.gl);
         shader
             .attach_uniforms_from(camera)
-            .attach_uniform("color", &self.color);
+            .attach_uniform("color", &self.cfg.color);
 
         // The raster vao is bound at the lib.rs level
         let drawer = shader.bind_vertex_array_object_ref(&self.vao);
@@ -320,7 +279,7 @@ impl ProjetedGrid {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
-        if self.enabled {
+        if self.cfg.enabled {
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
             if camera.get_aperture() < ArcDeg(10.0) {

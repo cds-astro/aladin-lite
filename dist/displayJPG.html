@@ -33,19 +33,10 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
             return true;
         }
 
-        /*aladin.displayJPG(
-            // the JPG to transform to HiPS
-            'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
-            // name of the HiPS layer
-            'overlay',
-            // no options
-            null,
-            // A callback fn once the overlay is set
-            callback
-        );*/
-
         $("#slider").on('input', function() {
-            aladin.setOpacityLayer($(this).val(), "overlay");
+            let meta = aladin.getImageSurveyMeta("overlay");
+            meta.opacity = $(this).val();
+            aladin.setImageSurveyMeta(meta, "overlay");
         });
 
         (async () => {
@@ -53,7 +44,18 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
             let dss2 = await A.createImageSurvey("CDS/P/DSS2/color");
             aladin.addImageSurvey(dss2, "base");
 
-            let fits = await aladin.displayFITS('http://goldmine.mib.infn.it/data//B/fits/A04_VC1316_ooooog.fits', 'overlay');
+            //let fits = await aladin.displayFITS('http://goldmine.mib.infn.it/data//B/fits/A04_VC1316_ooooog.fits', 'overlay');
+
+            let jpg = aladin.displayJPG(
+                // the JPG to transform to HiPS
+                'https://noirlab.edu/public/media/archives/images/large/noirlab1912a.jpg',
+                // name of the HiPS layer
+                'overlay',
+                // no options
+                null,
+                // A callback fn once the overlay is set
+                callback
+            );
 
             $('input[name=survey]').change(function() {
                 let surveyName = $(this).val();
@@ -64,6 +66,8 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
                 }
             });
         })();
+
+
     });
 </script>
 </body>

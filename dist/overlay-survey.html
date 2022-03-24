@@ -23,7 +23,6 @@
         (async () => {
             let mellinger = await A.createImageSurvey("CDS/P/Mellinger/color");
             let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
-            vtss.meta.opacity = 1.0;
 
             aladin.addImageSurvey(mellinger, "base");
             aladin.addImageSurvey(vtss, "overlay");

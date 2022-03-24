@@ -1249,39 +1249,40 @@ impl ImageSurveys {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
             for j in 0..i {
-                if hipses[i].layer == hipses[j].layer {
-                    let layer = &hipses[i].layer;
+                if hipses[i].get_layer() == hipses[j].get_layer() {
+                    let layer = &hipses[i].get_layer();
                     return Err(JsValue::from_str(&format!("{:?} layer name are duplicates", layer)));
                 }
             }
         }
 
         let mut new_survey_urls = Vec::new();
-        {
-            let mut current_needed_surveys = HashSet::new();
-            for hips in hipses.iter() {
-                let url = hips.properties.url.clone();
-                current_needed_surveys.insert(url);
-            }
 
-            // Remove surveys that are not needed anymore
-            self.surveys = self
-                .surveys
-                .drain()
-                .filter(|(_, m)| current_needed_surveys.contains(&m.textures.config().root_url))
-                .collect();
+        let mut current_needed_surveys = HashSet::new();
+        for hips in hipses.iter() {
+            let url = hips.get_properties().get_url();
+            current_needed_surveys.insert(url);
         }
+
+        // Remove surveys that are not needed anymore
+        self.surveys = self
+            .surveys
+            .drain()
+            .filter(|(_, m)| current_needed_surveys.contains(&m.textures.config().root_url))
+            .collect();
+        
         // Create the new surveys
         let mut max_depth_among_surveys = 0;
 
         self.meta.clear();
         self.layers.clear();
         self.urls.clear();
-        for SimpleHiPS { layer, meta, properties } in hipses.into_iter() {
+        for SimpleHiPS { layer, properties, meta } in hipses.into_iter() {
             let config = HiPSConfig::new(gl, &properties)?;
 
             // Get the most precise survey from all the ones given
-            let HiPSProperties { url, max_order, .. } = properties;
+            let url = properties.get_url();
+            let max_order = properties.get_max_order();
             if max_order > max_depth_among_surveys {
                 max_depth_among_surveys = max_order;
                 self.most_precise_survey = url.clone();
@@ -1304,10 +1305,19 @@ impl ImageSurveys {
         Ok(new_survey_urls)
     }
 
-    pub fn get_image_survey_color_cfg(&self, layer: &str) -> Option<ImageSurveyMeta> {
+    pub fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.meta
             .get(layer)
             .map(|m| m.clone())
+            .ok_or(JsValue::from(js_sys::Error::new("Survey not found")))
+    }
+
+    pub fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
+        // Expect the image survey to be found in the hash map
+        self.meta.insert(layer.clone(), meta)
+            .ok_or(JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer))))?;
+        
+        Ok(())
     }
 
     pub fn is_ready(&self) -> bool {

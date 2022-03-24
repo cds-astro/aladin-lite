@@ -188,10 +188,12 @@ pub struct SurveyWidget {
     blend_cfg: BlendCfg,
     opacity: f32,
     // FITS specific panel
-    transfer_func: Option<TransferFunction2>,
+    transfer_func: Option<TransferFunction>,
     cutouts: Option<[f32; 2]>,
     cut_range: std::ops::RangeInclusive<f32>
 }
+
+use al_api::hips::{HiPSFrame, HiPSTileFormat};
 
 use cgmath::num_traits::Pow;
 
@@ -199,7 +201,7 @@ use crate::painter::WebGlRenderingCtx;
 use al_api::blend::{
     BlendCfg, BlendFactor, BlendFunc
 };
-use al_api::hips::{Frame, HiPSColor, HiPSFormat, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction2};
+use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -232,7 +234,7 @@ impl SurveyWidget {
         let colormap = Colormap::Blackwhite;
         let reversed = false;
 
-        let transfer_func = Some(TransferFunction2::Asinh);
+        let transfer_func = Some(TransferFunction::Asinh);
 
         let blend_cfg = BlendCfg {
             src_color_factor: BlendFactor::SrcAlpha,
@@ -273,13 +275,10 @@ impl SurveyWidget {
     }*/
 
     pub fn get_hips_config(&self) -> SimpleHiPS {
-        let props = &self.properties;
-        let max_order = props.hips_order;
-        let frame = Frame {
-            label: String::from("J2000"),
-            system: String::from("J2000")
-        };
-        let tile_size = props.hips_tile_width;
+        let max_order = self.properties.hips_order;
+        let frame = HiPSFrame::J2000;
+        let tile_size = self.properties.hips_tile_width;
+        let bitpix = self.properties.hips_pixel_bitpix;
         let min_cutout = if let Some(c) = self.cutouts {
             Some(c[0])
         } else {
@@ -290,20 +289,12 @@ impl SurveyWidget {
         } else {
             None
         };
-        let format = if props.is_fits_image() {
-            HiPSFormat::FITSImage {
-                bitpix: props.hips_pixel_bitpix.unwrap()
-            }
+        let format = if self.properties.hips_tile_format.contains("fits") {
+            HiPSTileFormat::FITS
+        } else if self.properties.hips_tile_format.contains("png") {
+            HiPSTileFormat::PNG
         } else {
-            if props.hips_tile_format.contains("png") {
-                HiPSFormat::Image {
-                    format: String::from("png")
-                }
-            } else {
-                HiPSFormat::Image {
-                    format: String::from("jpeg")
-                }
-            }
+            HiPSTileFormat::JPG
         };
 
         let opacity = if !self.visible {
@@ -312,27 +303,24 @@ impl SurveyWidget {
             self.opacity
         };
 
-        let meta = ImageSurveyMeta {
-            color: self.color_cfg.clone(),
-            blend_cfg: self.blend_cfg.clone(),
-            opacity: opacity,
-        };
-
-        let hips = SimpleHiPS {
+        SimpleHiPS {
             layer: self.url.clone(),
-            properties: HiPSProperties {
-                url: self.url.clone(),
+            properties: HiPSProperties::new(
+                self.url.clone(),
                 max_order,
                 frame,
                 tile_size,
                 min_cutout,
                 max_cutout,
-                format,
-            },
-            meta
-        };
-
-        hips
+                bitpix,
+                format
+            ),
+            meta: ImageSurveyMeta {
+                color: self.color_cfg.clone(),
+                blend_cfg: self.blend_cfg.clone(),
+                opacity: opacity,
+            }
+        }
     }
 
     pub fn removed(&self) -> bool {
@@ -375,42 +363,42 @@ impl SurveyWidget {
                                 egui::Grid::new("").show(ui, |ui| {
                                     // Plot widget
                                     match t {
-                                        TransferFunction2::Asinh => plot(ui, |x| x.asinh()),
-                                        TransferFunction2::Linear => plot(ui, |x| x),
-                                        TransferFunction2::Pow2 => plot(ui, |x| x.pow(2.0)),
-                                        TransferFunction2::Sqrt => plot(ui, |x| x.sqrt()),
-                                        TransferFunction2::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
+                                        TransferFunction::Asinh => plot(ui, |x| x.asinh()),
+                                        TransferFunction::Linear => plot(ui, |x| x),
+                                        TransferFunction::Pow2 => plot(ui, |x| x.pow(2.0)),
+                                        TransferFunction::Sqrt => plot(ui, |x| x.sqrt()),
+                                        TransferFunction::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                     }
         
                                     // Selection of the transfer function
                                     ui.vertical(|ui| {
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction2::Asinh, 
+                                            TransferFunction::Asinh, 
                                             "asinh"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction2::Log,
+                                            TransferFunction::Log,
                                             "log",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction2::Linear,
+                                            TransferFunction::Linear,
                                             "linear",
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction2::Pow2, 
+                                            TransferFunction::Pow2, 
                                             "pow2"
                                         ).clicked();
         
                                         ui_changed |= ui.selectable_value(
                                             t,
-                                            TransferFunction2::Sqrt, 
+                                            TransferFunction::Sqrt, 
                                             "sqrt"
                                         ).clicked();
                                     });
@@ -468,7 +456,7 @@ impl SurveyWidget {
             });
 
             let cutouts = self.cutouts.unwrap_or([0.0, 1.0]);
-            let transfer = self.transfer_func.unwrap_or(TransferFunction2::Asinh);
+            let transfer = self.transfer_func.unwrap_or(TransferFunction::Asinh);
             match self.color_option {
                 ColorOption::Color => {
                     ui.label("Color picker");

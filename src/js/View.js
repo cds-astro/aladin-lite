@@ -193,7 +193,6 @@ export let View = (function() {
             
             this.dateRequestRedraw = null;
             
-            this.showGrid = false; // coordinates grid
             
             init(this);
             
@@ -1781,13 +1780,13 @@ export let View = (function() {
 
         this.setZoom(new_fov);
     }
-    View.prototype.setShowGrid = function(showGrid) {
-        this.showGrid = showGrid;
-        if (showGrid) {
-            this.aladin.webglAPI.enableGrid();
-        } else {
-            this.aladin.webglAPI.disableGrid();
-        }
+    View.prototype.setGridConfig = function(gridCfg) {
+        let cfg = new this.aladin.webglAPI.GridCfg;
+        cfg.color = [1.0, 0.0, 0.0, 1.0];
+        cfg.enabled = true;
+        cfg.labels = true;
+
+        //this.aladin.webglAPI.setGridConfig(cfg);
         this.requestRedraw();
     };
 
@@ -1973,10 +1972,25 @@ export let View = (function() {
         try {
             this.aladin.webglAPI.setImageSurveys(this.imageSurveys);
         } catch(e) {
-            console.log("Error setting a survey: ", e)
+            console.error(e)
         }
     };
 
+    View.prototype.getImageSurveyMeta = function(layer = "base") {
+        try {
+            return this.aladin.webglAPI.getImageSurveyMeta(layer);
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
+    View.prototype.setImageSurveyMeta = function(layer = "base", meta) {
+        try {
+            this.aladin.webglAPI.setImageSurveyMeta(layer, meta);
+        } catch(e) {
+            console.error(e);
+        }
+    };
     /*View.prototype.setImageSurveysLayer = function(surveys, layer) {
         this.imageSurveys.set(layer, new Map());
 

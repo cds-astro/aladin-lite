@@ -165,12 +165,13 @@ pub struct HiPSConfig {
 }
 
 use crate::math;
-use crate::{HiPSFormat, HiPSProperties};
+use crate::{HiPSProperties};
+use al_api::hips::HiPSTileFormat;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 impl HiPSConfig {
     pub fn new(_gl: &WebGlContext, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
-        let root_url = properties.url.to_string();
+        let root_url = properties.get_url().to_string();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
         let num_textures_by_side_slice = 8;
@@ -178,74 +179,80 @@ impl HiPSConfig {
         let num_slices = 3;
         let num_textures = (num_textures_by_slice * num_slices) as usize;
 
-        let max_depth_tile = properties.max_order;
-        let tile_size = properties.tile_size;
+        let max_depth_tile = properties.get_max_order();
+        let tile_size = properties.get_tile_size();
         // Assert size is a power of two
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let fmt = &properties.format;
+        let fmt = &properties.get_format();
+        let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;
 
         let mut tex_storing_fits = false;
         let tile_config: Result<_, JsValue> = match fmt {
-            HiPSFormat::FITSImage { bitpix, .. } => {
+            HiPSTileFormat::FITS => {
                 tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
-                match bitpix {
-                    #[cfg(feature = "webgl2")]
-                    8 => {
-                        tex_storing_unsigned_int = true;
-                        Ok(TileConfigType::R8UI {
-                            config: TileConfig::<R8UI>::new(tile_size),
-                        })
+                if let Some(bitpix) = bitpix {
+                    match bitpix {
+                        #[cfg(feature = "webgl2")]
+                        8 => {
+                            tex_storing_unsigned_int = true;
+                            Ok(TileConfigType::R8UI {
+                                config: TileConfig::<R8UI>::new(tile_size),
+                            })
+                        }
+                        #[cfg(feature = "webgl2")]
+                        16 => {
+                            tex_storing_integers = true;
+                            Ok(TileConfigType::R16I {
+                                config: TileConfig::<R16I>::new(tile_size),
+                            })
+                        }
+                        #[cfg(feature = "webgl2")]
+                        32 => {
+                            tex_storing_integers = true;
+                            Ok(TileConfigType::R32I {
+                                config: TileConfig::<R32I>::new(tile_size),
+                            })
+                        }
+                        -32 => {
+                            tex_storing_integers = false;
+                            Ok(TileConfigType::R32F {
+                                config: TileConfig::<R32F>::new(tile_size),
+                            })
+                        }
+                        -64 => {
+                            tex_storing_integers = false;
+                            Ok(TileConfigType::R32F {
+                                config: TileConfig::<R32F>::new(tile_size),
+                            })
+                        }
+                        _ => Err(
+                            "Fits tiles exists but the BITPIX is not correct in the property file"
+                                .to_string()
+                                .into()
+                        ),
                     }
-                    #[cfg(feature = "webgl2")]
-                    16 => {
-                        tex_storing_integers = true;
-                        Ok(TileConfigType::R16I {
-                            config: TileConfig::<R16I>::new(tile_size),
-                        })
-                    }
-                    #[cfg(feature = "webgl2")]
-                    32 => {
-                        tex_storing_integers = true;
-                        Ok(TileConfigType::R32I {
-                            config: TileConfig::<R32I>::new(tile_size),
-                        })
-                    }
-                    -32 => {
-                        tex_storing_integers = false;
-                        Ok(TileConfigType::R32F {
-                            config: TileConfig::<R32F>::new(tile_size),
-                        })
-                    }
-                    -64 => {
-                        tex_storing_integers = false;
-                        Ok(TileConfigType::R32F {
-                            config: TileConfig::<R32F>::new(tile_size),
-                        })
-                    }
-                    _ => Err(
-                        "Fits tiles exists but the BITPIX is not correct in the property file"
-                            .to_string()
-                            .into(),
-                    ),
-                }
-            }
-            HiPSFormat::Image { format } => {
-                if format.contains("png") {
-                    Ok(TileConfigType::RGBA8U {
-                        config: TileConfig::<RGBA8U>::new(tile_size),
-                    })
-                } else if format.contains("jpeg") || format.contains("jpg") {
-                    Ok(TileConfigType::RGB8U {
-                        config: TileConfig::<RGB8U>::new(tile_size),
-                    })
                 } else {
-                    Err(format!("{} Unrecognized image format", format).into())
+                    Err(
+                        "Fits tiles exists but the BITPIX is not found"
+                            .to_string()
+                            .into()
+                    )
                 }
+            },
+            HiPSTileFormat::PNG => {
+                Ok(TileConfigType::RGBA8U {
+                    config: TileConfig::<RGBA8U>::new(tile_size),
+                })
+            },
+            HiPSTileFormat::JPG => {
+                Ok(TileConfigType::RGB8U {
+                    config: TileConfig::<RGB8U>::new(tile_size),
+                })
             }
         };
         let tile_config = tile_config?;

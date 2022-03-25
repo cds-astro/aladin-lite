@@ -150,12 +150,20 @@ export let MOC = (function() {
      */
     MOC.prototype.dataFromJSON = function(jsonMOC) {
         var order, ipix;
+        // 1. Compute the order (order of the deepest cells contained in the moc)
         for (var orderStr in jsonMOC) {
             if (jsonMOC.hasOwnProperty(orderStr)) {
                 order = parseInt(orderStr);
                 if (this.order===undefined || order > this.order) {
                     this.order = order;
                 }
+            }
+        }
+
+        // 2. Build the mocs (LOW and HIGH res ones)
+        for (var orderStr in jsonMOC) {
+            if (jsonMOC.hasOwnProperty(orderStr)) {
+                order = parseInt(orderStr);
                 for (var k=0; k<jsonMOC[orderStr].length; k++) {
                     ipix = jsonMOC[orderStr][k];
                     this._addPix(order, ipix);

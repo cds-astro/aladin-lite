@@ -994,7 +994,6 @@ impl Draw for ImageSurvey {
         //     * there are new available tiles for the GPU
 
         let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles();
-        
         let shader = get_raster_shader::<P>(
             color,
             &self.gl,

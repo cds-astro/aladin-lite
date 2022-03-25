@@ -355,6 +355,10 @@ impl Projection for Aitoff {
             };
             theta *= 2.0;
 
+            if longitude_reversed {
+                theta = -theta;
+            }
+
             let mut pos_world_space = cgmath::Vector4::new(
                 theta.sin() * phi.cos(),
                 phi.sin(),
@@ -362,9 +366,7 @@ impl Projection for Aitoff {
                 1.0,
             );
 
-            if longitude_reversed {
-                pos_world_space.x = -pos_world_space.x;
-            }
+
             Some(pos_world_space)
         } else {
             None
@@ -484,10 +486,14 @@ impl Projection for Mollweide {
             let y2 = pos_clip_space.y * pos_clip_space.y;
             let k = (1.0 - 4.0 * y2).sqrt();
 
-            let theta = f64::PI() * pos_clip_space.x / k;
+            let mut theta = f64::PI() * pos_clip_space.x / k;
             let delta = ((2.0 * (2.0 * pos_clip_space.y).asin() + 4.0 * pos_clip_space.y * k)
                 / f64::PI())
             .asin();
+
+            if longitude_reversed {
+                theta = -theta;
+            }
 
             // The minus is an astronomical convention.
             // longitudes are increasing from right to left
@@ -497,10 +503,6 @@ impl Projection for Mollweide {
                 theta.cos() * delta.cos(),
                 1.0,
             );
-
-            if longitude_reversed {
-                pos_world_space.x = -pos_world_space.x;
-            }
 
             Some(pos_world_space)
         } else {
@@ -920,14 +922,14 @@ impl Projection for Mercator {
         pos_clip_space: &Vector2<f64>,
         longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
-        let theta = pos_clip_space.x * f64::PI();
+        let mut theta = pos_clip_space.x * f64::PI();
         let delta = (pos_clip_space.y.sinh()).atan() * f64::PI();
 
-        let mut pos_world_space = math::radec_to_xyzw(Angle(theta), Angle(delta));
         if longitude_reversed {
-            pos_world_space.x = -pos_world_space.x;
+            theta = -theta;
         }
 
+        let pos_world_space = math::radec_to_xyzw(Angle(theta), Angle(delta));
         Some(pos_world_space)
     }
 

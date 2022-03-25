@@ -308,8 +308,11 @@ impl WebClient {
     #[wasm_bindgen(js_name = setGridConfig)]
     pub fn set_grid_cfg(
         &mut self,
-        cfg: GridCfg
+        cfg: &JsValue
     ) -> Result<(), JsValue> {
+        let cfg = cfg.into_serde::<GridCfg>()
+            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
+
         self.app.set_grid_cfg(cfg);
 
         Ok(())

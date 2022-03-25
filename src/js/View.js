@@ -1781,12 +1781,7 @@ export let View = (function() {
         this.setZoom(new_fov);
     }
     View.prototype.setGridConfig = function(gridCfg) {
-        let cfg = new this.aladin.webglAPI.GridCfg;
-        cfg.color = [1.0, 0.0, 0.0, 1.0];
-        cfg.enabled = true;
-        cfg.labels = true;
-
-        //this.aladin.webglAPI.setGridConfig(cfg);
+        this.aladin.webglAPI.setGridConfig(gridCfg);
         this.requestRedraw();
     };
 

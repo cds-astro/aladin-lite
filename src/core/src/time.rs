@@ -13,11 +13,6 @@ impl Time {
 }
 
 use std::cmp::Ordering;
-impl Ord for Time {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(&other).unwrap()
-    }
-}
 impl Eq for Time {}
 
 use core::ops::Sub;

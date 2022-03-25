@@ -185,12 +185,17 @@ impl ProjetedGrid {
             //self.lines = lines;
             self.num_vertices = vertices.len();
     
-            let vertices: Vec<f32> = unsafe {
-                vertices.set_len(vertices.len() * 2);
-                std::mem::transmute(vertices)
+            /*let vertices = unsafe {
+                let len = vertices.len() << 1;
+                let cap = len;
+
+                Vec::from_raw_parts(vertices.as_mut_ptr() as *mut f32, len, cap)
+            };*/
+            let vertices = unsafe {
+                vertices.set_len(self.num_vertices << 1);
+                std::mem::transmute::<_, Vec<f32>>(vertices)
             };
     
-            let buf_vertices = unsafe { js_sys::Float32Array::view(&vertices) };
             self.size_vertices_buf = vertices.len();
             
             #[cfg(feature = "webgl2")]

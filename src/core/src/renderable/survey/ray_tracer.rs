@@ -267,6 +267,10 @@ impl RayTracer {
                     0
                 )
     }
+
+    pub fn is_rendering<P: Projection>(&self, camera: &CameraViewPort) -> bool {
+        camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE
+    }
 }
 
 impl Drop for RayTracer {

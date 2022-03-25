@@ -175,7 +175,7 @@ export let Aladin = (function () {
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
-                color: [0.0, 1.0, 0.0, 1.0]
+                color: [0.0, 1.0, 0.0, 0.1]
             });
 
             this.view.showCooGrid = true;

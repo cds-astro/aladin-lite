@@ -129,15 +129,15 @@ where
     pub fn rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
 
-        let pos_model_space = w2m * pos_world_space;
-        pos_model_space
+        
+        w2m * pos_world_space
     }
     pub fn inv_rotate(&self, pos_model_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
         let m2w = w2m.transpose();
 
-        let pos_world_space = m2w * pos_model_space;
-        pos_world_space
+        
+        m2w * pos_model_space
     }
 }
 

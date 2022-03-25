@@ -100,11 +100,7 @@ impl FieldOfViewVertices {
 
         let world_coo =
             ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
-        let model_coo = if let Some(world_coo) = &world_coo {
-            Some(world_to_model(world_coo, mat))
-        } else {
-            None
-        };
+        let model_coo = world_coo.as_ref().map(|world_coo| world_to_model(world_coo, mat));
 
         let great_circles = if let Some(vertices) = &model_coo {
             FieldOfViewType::new_polygon(vertices)
@@ -112,14 +108,14 @@ impl FieldOfViewVertices {
             FieldOfViewType::new_allsky()
         };
 
-        let fov = FieldOfViewVertices {
+        
+
+        FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
             great_circles,
-        };
-
-        fov
+        }
     }
 
     pub fn set_fov<P: Projection>(

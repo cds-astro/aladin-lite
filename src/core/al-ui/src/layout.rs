@@ -13,7 +13,6 @@ pub struct LayerLayout {
 use crate::widgets::SurveyGrid;
 use crate::Event;
 
-use egui::InnerResponse;
 use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
 impl LayerLayout {

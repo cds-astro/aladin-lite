@@ -233,7 +233,7 @@ impl Stream for BuildCatalogIndex {
     }
 }
 
-use al_core::format::ImageFormat;
+
 use cgmath::Vector3;
 /// Task that send a tile to the GPU
 pub struct ImageTile2GpuTask<I>

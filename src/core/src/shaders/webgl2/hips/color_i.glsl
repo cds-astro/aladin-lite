@@ -49,7 +49,7 @@ vec4 get_colormap_from_grayscale_texture(vec3 UV) {
         float alpha = x * scale + offset;
         alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(colormap_f(alpha), vec4(0.0), float(alpha == 0.0));
+        return mix(colormap_f(alpha), vec4(0.0), float(x == blank));
     //}
 }
 
@@ -66,6 +66,6 @@ vec4 get_color_from_grayscale_texture(vec3 UV) {
         float alpha = x * scale + offset;
         alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(vec4(C * K * alpha, 1.0), vec4(0.0), float(alpha == 0.0));
+        return mix(vec4(C * K * alpha, 1.0), vec4(0.0), float(x == blank));
     //}
 }

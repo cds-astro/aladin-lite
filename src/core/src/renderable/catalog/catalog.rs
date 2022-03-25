@@ -24,7 +24,7 @@ impl SourceIndices {
         }
         let mut idx_source = 0;
 
-        let healpix_idx = healpix_idx.into_iter()
+        let healpix_idx = healpix_idx.iter()
             .map(|idx| {
                 if let Some(r) = idx {
                     idx_source = r.end;

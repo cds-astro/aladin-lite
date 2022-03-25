@@ -15,7 +15,7 @@ pub fn project<P: Projection>(
     subdivide::<P>(&mut s_vert, [v1, &v, v2], camera);
 
     for ndc_vert in s_vert.iter_mut() {
-        *ndc_vert = ndc_to_screen_space(&ndc_vert, camera);
+        *ndc_vert = ndc_to_screen_space(ndc_vert, camera);
     }
 
     s_vert
@@ -118,7 +118,7 @@ fn subdivide<P: Projection>(
             let e = (mp[0] + mp[1]) * 0.5;
             subdivide::<P>(
                 vertices,
-                [&e, &((mp[1] + e) * 0.5).normalize(), &mp[1]],
+                [&e, &((mp[1] + e) * 0.5).normalize(), mp[1]],
                 camera,
             );
             //vertices.push(b);

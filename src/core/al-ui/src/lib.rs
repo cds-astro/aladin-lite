@@ -175,7 +175,6 @@ impl Gui {
                 });
             
             self.mouse_on_ui = response.inner.contains(self.cur_mouse_pos);
-            al_core::log(&format!("mouse: {:?}", self.mouse_on_ui));
         }
         self.painter.upload_egui_texture(&self.ctx.texture());
 

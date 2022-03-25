@@ -48,14 +48,14 @@ pub struct TextRenderManager {
 use wasm_bindgen::JsValue;
 use cgmath::{Vector2, Basis2, Rotation2, Rad};
 use al_core::VecData;
-use wasm_bindgen::prelude::*;
+
 use web_sys::WebGl2RenderingContext;
 use crate::Color;
 use crate::camera::CameraViewPort;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGlContext, camera: &CameraViewPort) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGlContext, _camera: &CameraViewPort) -> Result<Self, JsValue> {
         // Create the VAO for the screen
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(
@@ -250,7 +250,7 @@ impl TextRenderManager {
                 off_idx,
                 num_idx,
                 scale,
-                color: color.clone(),
+                color: *color,
                 screen_pos: *screen_pos,
                 rot: rot.into(),
             }

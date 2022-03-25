@@ -13,10 +13,10 @@ YIOrBr = 10,
 */
 use std::collections::HashMap;
 use al_core::resources::Resources;
-use crate::shader::ShaderId;
+
 use al_core::Texture2D;
 use al_core::WebGlContext;
-use std::borrow::Cow;
+
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -147,5 +147,5 @@ impl SendUniforms for Colormaps {
     }
 }
 
-use crate::Shader;
-use crate::ShaderManager;
+
+

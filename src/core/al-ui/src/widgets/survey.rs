@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use al_api::colormap::Colormap;
 use serde::{Serialize, Deserialize};
 

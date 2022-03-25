@@ -9,7 +9,7 @@ where
     default: Rc<ImageBuffer<F>>,
     pixel_fill: <F as ImageFormat>::P,
 }
-use al_core::{image::Image, pixel::Pixel};
+use al_core::{pixel::Pixel};
 impl<F> TileConfig<F>
 where
     F: ImageFormat,
@@ -168,10 +168,10 @@ use crate::math;
 use crate::{HiPSProperties};
 use al_api::hips::HiPSTileFormat;
 use wasm_bindgen::JsValue;
-use web_sys::WebGl2RenderingContext;
+
 impl HiPSConfig {
     pub fn new(_gl: &WebGlContext, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
-        let root_url = properties.get_url().to_string();
+        let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
         let num_textures_by_side_slice = 8;

@@ -53,7 +53,7 @@ pub enum BlendFactor {
     OneMinusConstantAlpha,
 }
 
-use wasm_bindgen::prelude::*;
+
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[derive(PartialEq)]

@@ -1,24 +1,18 @@
 use al_core::FrameBufferObject;
 use {
-    js_sys::WebAssembly,
-    wasm_bindgen::{prelude::*, JsCast},
+    wasm_bindgen::{prelude::*},
     web_sys::{
-        WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlProgram, WebGlShader,
-        WebGlTexture, WebGlVertexArrayObject,
+        WebGl2RenderingContext,
     },
 };
 
-use std::borrow::Cow;
 
-use al_core::log::*;
+
+
 use al_core::{shader::Shader, VecData, VertexArrayObject};
-use cgmath::Vector2;
-use egui::{
-    self,
-    emath::vec2,
-    epaint::Color32,
-};
-use web_sys::console;
+
+
+
 use al_core::WebGlContext;
 pub struct RenderPass {
     gl: WebGlContext,
@@ -27,7 +21,7 @@ pub struct RenderPass {
 }
 
 impl RenderPass {
-    pub fn new(gl: &WebGlContext, width: i32, height: i32) -> Result<RenderPass, JsValue> {
+    pub fn new(gl: &WebGlContext, _width: i32, _height: i32) -> Result<RenderPass, JsValue> {
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
@@ -36,14 +30,14 @@ impl RenderPass {
         )?;
         #[cfg(feature = "webgl2")]
         let shader = Shader::new(
-            &gl,
+            gl,
             include_str!("../shaders/webgl2/passes/post_vertex_100es.glsl"),
             include_str!("../shaders/webgl2/passes/post_fragment_100es.glsl")
         )?;
 
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         let indices = vec![0u8, 1, 2, 1, 3, 2];
-        let mut vao = VertexArrayObject::new(&gl);
+        let mut vao = VertexArrayObject::new(gl);
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             // positions and texcoords buffers

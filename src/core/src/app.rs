@@ -2,7 +2,6 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
-        labels::{RenderManager, TextRenderManager},
     }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
 
 use al_core::{
@@ -83,8 +82,8 @@ use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
 use crate::rotation::Rotation;
-use al_api::colormap::Colormap;
-use crate::renderable::survey::image_survey::Url;
+
+
 struct MoveAnimation {
     start_anim_rot: Rotation<f64>,
     goal_anim_rot: Rotation<f64>,
@@ -107,8 +106,8 @@ struct ZoomAnimation {
     goal_fov: Angle<f64>,
     w0: f64,
 }
-use al_core::log::log;
-use cgmath::Rad;
+
+
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::buffer::Tile;
 use crate::time::Time;
@@ -243,11 +242,9 @@ where
             //let num_tiles = num_cells * (1 << (2 * delta_depth));
             //let mut already_available_tiles = Vec::with_capacity(num_tiles);
 
-            let mut tile_cells = survey.get_view().get_cells()
-                .map(|texture_cell| {
+            let mut tile_cells = survey.get_view().get_cells().flat_map(|texture_cell| {
                     texture_cell.get_tile_cells(survey.get_textures().config())
                 })
-                .flatten()
                 .collect::<Vec<_>>();
 
             if survey.get_view().get_depth() >= 3 {
@@ -262,7 +259,7 @@ where
 
             for tile_cell in tile_cells {
                 let already_available = survey.get_textures().contains_tile(&tile_cell);
-                let is_tile_new = survey.get_view().is_new(&tile_cell);
+                let _is_tile_new = survey.get_view().is_new(&tile_cell);
 
                 if already_available {
                     // Remove and append the texture with an updated
@@ -324,7 +321,7 @@ where
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        &self.surveys.get_view().unwrap(),
+                        self.surveys.get_view().unwrap(),
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
@@ -579,7 +576,7 @@ where
             for event in events.drain(..) {
                 match event {
                     al_ui::Event::ImageSurveys(surveys) => self.set_image_surveys(surveys)?,
-                    _ => ()
+                    _ => { todo!() }
                 }
             }
         }
@@ -787,7 +784,7 @@ where
     }
 
     fn get_coo_system(&self) -> &CooSystem {
-        &self.camera.get_system()
+        self.camera.get_system()
     }
 
     fn get_max_fov(&self) -> f64 {
@@ -846,8 +843,8 @@ where
             .unwrap()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap();
-        canvas.style().set_property("width", &format!("{}px", width.to_string())).unwrap();
-        canvas.style().set_property("height", &format!("{}px", height.to_string())).unwrap();
+        canvas.style().set_property("width", &format!("{}px", width)).unwrap();
+        canvas.style().set_property("height", &format!("{}px", height)).unwrap();
 
         let w = (width as f32) * dpi;
         let h = (height as f32 ) * dpi;
@@ -946,7 +943,7 @@ where
         sources: &Vec<JsValue>,
     ) -> Result<Vec<f64>, JsValue> {
         let res: Vec<f64> = sources
-            .into_iter()
+            .iter()
             .filter_map(|s| {
                 let source: S = s
                     .into_serde()
@@ -957,11 +954,7 @@ where
 
                 let xyz = lonlat.vector();
 
-                if let Some(s_xy) = P::model_to_screen_space(&xyz, &self.camera) {
-                    Some(vec![s_xy.x, s_xy.y])
-                } else {
-                    None
-                }
+                P::model_to_screen_space(&xyz, &self.camera).map(|s_xy| vec![s_xy.x, s_xy.y])
             })
             .flatten()
             .collect::<Vec<_>>();
@@ -969,12 +962,7 @@ where
     }
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
-        if let Some(model_pos) = P::screen_to_model_space(&pos, &self.camera) {
-            //let model_pos = self.system.system_to_icrs_coo(model_pos);
-            Some(model_pos.lonlat())
-        } else {
-            None
-        }
+        P::screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
     }
 
     fn set_center(&mut self, lonlat: &LonLatT<f64>) {
@@ -994,14 +982,14 @@ where
         self.inertial_move_animation = None;
     }
 
-    fn press_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
         self.move_animation = None;
         self.out_of_fov = false;
     }
 
-    fn release_left_button_mouse(&mut self, sx: f32, sy: f32) {
+    fn release_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.

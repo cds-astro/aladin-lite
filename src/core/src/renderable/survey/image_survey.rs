@@ -1,5 +1,5 @@
 use crate::buffer::Texture;
-use crate::healpix_cell::HEALPixCell;
+
 use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
 #[cfg(feature = "webgl2")]
 use al_core::format::{
@@ -8,7 +8,7 @@ use al_core::format::{
     R8UI
 };
 
-use al_api::hips::HiPSProperties;
+
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
     pub ending_texture: &'a Texture,
@@ -105,7 +105,7 @@ impl RecomputeRasterizer for Move {
 
 fn num_subdivision(depth: u8) -> u8 {
     if depth < 5 {
-        5 - depth
+        std::cmp::max(5 - depth, 2)
     } else {
         0
     }
@@ -159,8 +159,8 @@ impl RecomputeRasterizer for UnZoom {
         view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
-        let depth = view.get_depth();
-        let max_depth = survey.config().get_max_depth();
+        let _depth = view.get_depth();
+        let _max_depth = survey.config().get_max_depth();
 
         // We do not draw the parent cells if the depth has not decreased by at least one
         let cells_to_draw = view.get_cells();
@@ -168,20 +168,20 @@ impl RecomputeRasterizer for UnZoom {
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
         for cell in cells_to_draw {
-            let parent_cell = cell.parent();
+            let _parent_cell = cell.parent();
 
             if survey.contains(cell) {
-                let parent_cell = survey.get_nearest_parent(cell);
+                let _parent_cell = survey.get_nearest_parent(cell);
 
                 let ending_cell_in_tex = survey.get(cell).unwrap();
-                let starting_cell_in_tex = survey.get(&cell).unwrap();
+                let starting_cell_in_tex = survey.get(cell).unwrap();
 
                 textures.push(
                     TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
-                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
+                let _grand_parent_cell = survey.get_nearest_parent(&parent_cell);
 
                 let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
@@ -204,7 +204,7 @@ use crate::projection::Projection;
 use crate::buffer::ImageSurveyTextures;
 use super::RayTracer;
 
-use al_api::colormap::Colormap;
+
 trait Draw {
     fn draw<P: Projection>(
         &mut self,
@@ -218,7 +218,7 @@ trait Draw {
     );
 }
 
-use al_core::shader::{Shader, ShaderBound};
+use al_core::shader::{Shader};
 
 /*
 /// List of the different type of surveys
@@ -311,14 +311,8 @@ pub enum Color {
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
 const MAX_NUM_CELLS_TO_DRAW: usize = 768;
-// Each cell has 4 vertices
-pub const MAX_NUM_VERTICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 4;
-// There is 13 floats per vertex (lonlat, pos, uv_start, uv_end, time_start, m0, m1) = 2 + 2 + 3 + 3 + 1 + 1 + 1 = 13
-const MAX_NUM_FLOATS_TO_DRAW: usize = MAX_NUM_VERTICES_TO_DRAW * 13;
-const MAX_NUM_INDICES_TO_DRAW: usize = MAX_NUM_CELLS_TO_DRAW * 6;
-
 use cgmath::{Vector3, Vector4};
-use std::mem;
+
 
 use crate::renderable::survey::uv::{TileCorner, TileUVW};
 
@@ -438,7 +432,7 @@ fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
         }
     }
 }*/
-use cgmath::Vector2;
+
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid(
     depth: u8,
@@ -461,16 +455,16 @@ fn add_vertices_grid(
 
     alpha: f32,
 
-    camera: &CameraViewPort,
+    _camera: &CameraViewPort,
 ) {
     let num_subdivision = num_subdivision(depth);
     let n_segments_by_side: usize = 1 + (num_subdivision as usize);
     let n_vertices_per_segment = 2 + (num_subdivision as usize);
 
-    let off_idx_vertices = (uv_start.len() / 2) as u16;
+    let _off_idx_vertices = (uv_start.len() / 2) as u16;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
-            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+            let _id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
 
             let hj0 = (j as f32) / (n_segments_by_side as f32);
             let hi0 = (i as f32) / (n_segments_by_side as f32);
@@ -553,7 +547,7 @@ impl ImageSurvey {
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<Self, JsValue> {
-        let mut vao = VertexArrayObject::new(&gl);
+        let mut vao = VertexArrayObject::new(gl);
 
         // layout (location = 0) in vec2 lonlat;
         // layout (location = 1) in vec3 position;
@@ -661,7 +655,7 @@ impl ImageSurvey {
                 VecData::<u16>(&idx_vertices),
             ).unbind();
 
-        let num_idx = MAX_NUM_INDICES_TO_DRAW;
+        let num_idx = 0;
 
         let textures = ImageSurveyTextures::new(gl, config, exec)?;
         let conf = textures.config();
@@ -775,8 +769,8 @@ impl ImageSurvey {
         let survey_config = self.textures.config();
         let depth = self.view.get_depth();
         for (TextureToDraw { starting_texture, ending_texture }, cell) in textures.iter().zip(self.view.get_cells()) {
-            let uv_0 = TileUVW::new(cell, &starting_texture, survey_config);
-            let uv_1 = TileUVW::new(cell, &ending_texture, survey_config);
+            let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
+            let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
             let start_time = ending_texture.start_time();
             let miss_0 = starting_texture.is_missing() as f32;
             let miss_1 = ending_texture.is_missing() as f32;
@@ -881,7 +875,7 @@ impl ImageSurvey {
     }
 }
 
-use std::borrow::Cow;
+
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
@@ -940,7 +934,6 @@ impl Draw for ImageSurvey {
 
         let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
         
-        al_core::log::log(&format!("recompute vertices {:?}", recompute_vertices));
         let shader = get_raster_shader::<P>(
             color,
             &self.gl,
@@ -1030,7 +1023,7 @@ use std::rc::Rc;
     }
 }*/
 
-use al_api::blend::{BlendFunc, BlendCfg};
+
 use al_api::hips::ImageSurveyMeta;
 
 use crate::renderable::survey::view_on_surveys::HEALPixCellsInView;
@@ -1059,14 +1052,14 @@ pub struct ImageSurveys {
 #[derive(PartialEq, Eq)]
 #[derive(Clone, Copy)]
 enum RenderingMode {
-    RAYTRACE,
-    RASTERIZE
+    Raytrace,
+    Rasterize
 }
 
 use crate::buffer::{FitsImage, HTMLImage, TileConfigType};
 use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 
-use crate::coo_conversion::CooSystem;
+
 use crate::shaders::Colormaps;
 use crate::Resources;
 
@@ -1088,12 +1081,12 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
+        let raytracer = RayTracer::new::<P>(gl, camera, shaders);
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
-        let past_rendering_mode = RenderingMode::RAYTRACE;
-        let current_rendering_mode = RenderingMode::RAYTRACE;
+        let past_rendering_mode = RenderingMode::Raytrace;
+        let current_rendering_mode = RenderingMode::Raytrace;
 
         ImageSurveys {
             surveys,
@@ -1123,7 +1116,7 @@ impl ImageSurveys {
             // Read the pixel from the first survey of layer
             survey.read_pixel(pos)
         } else {
-            Err(JsValue::from_str(&format!("No survey found")))
+            Err(JsValue::from_str("No survey found"))
         }
     }
 
@@ -1157,10 +1150,10 @@ impl ImageSurveys {
 
         let mut switch_from_raytrace_to_raster = false;
         if raytracing {
-            self.current_rendering_mode = RenderingMode::RAYTRACE;
+            self.current_rendering_mode = RenderingMode::Raytrace;
         } else {
-            self.current_rendering_mode = RenderingMode::RASTERIZE;
-            if self.past_rendering_mode == RenderingMode::RAYTRACE {
+            self.current_rendering_mode = RenderingMode::Rasterize;
+            if self.past_rendering_mode == RenderingMode::Raytrace {
                 switch_from_raytrace_to_raster = true;
             }
         }
@@ -1195,12 +1188,12 @@ impl ImageSurveys {
                         camera,
                         color,
                         *opacity,
-                        &colormaps,
+                        colormaps,
                     );
                 });
             }
         }
-        al_core::log::log(&format!("\n"));
+        al_core::log::log("\n");
 
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -1219,7 +1212,7 @@ impl ImageSurveys {
         gl: &WebGlContext,
         camera: &CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
-        colormaps: &Colormaps,
+        _colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
@@ -1282,15 +1275,14 @@ impl ImageSurveys {
 
     pub fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.meta
-            .get(layer)
-            .map(|m| m.clone())
-            .ok_or(JsValue::from(js_sys::Error::new("Survey not found")))
+            .get(layer).copied()
+            .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 
     pub fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
         // Expect the image survey to be found in the hash map
         self.meta.insert(layer.clone(), meta)
-            .ok_or(JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer))))?;
+            .ok_or_else(|| JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer))))?;
         
         Ok(())
     }
@@ -1404,7 +1396,7 @@ impl ImageSurveys {
                     TileResolved::Found { image, time_req } => {
                         let missing = false;
                         match image {
-                            RetrievedImageType::FitsImage_R32F { image } => {
+                            RetrievedImageType::FitsImageR32f { image } => {
                                 // update the metadata
                                 textures.config.set_fits_metadata(
                                     image.bscale,
@@ -1414,7 +1406,7 @@ impl ImageSurveys {
                                 textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
                             }
                             #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImage_R32I { image } => {
+                            RetrievedImageType::FitsImageR32i { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,
                                     image.bzero,
@@ -1423,7 +1415,7 @@ impl ImageSurveys {
                                 textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
                             }
                             #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImage_R16I { image } => {
+                            RetrievedImageType::FitsImageR16i { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,
                                     image.bzero,
@@ -1432,7 +1424,7 @@ impl ImageSurveys {
                                 textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
                             }
                             #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImage_R8UI { image } => {
+                            RetrievedImageType::FitsImageR8ui { image } => {
                                 textures.config.set_fits_metadata(
                                     image.bscale,
                                     image.bzero,
@@ -1440,10 +1432,10 @@ impl ImageSurveys {
                                 );
                                 textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
                             }
-                            RetrievedImageType::PNGImage_RGBA8U { image } => {
+                            RetrievedImageType::PngImageRgba8u { image } => {
                                 textures.push::<HTMLImage<RGBA8U>>(tile, image, time_req, missing);
                             }
-                            RetrievedImageType::JPGImage_RGB8U { image } => {
+                            RetrievedImageType::JpgImageRgb8u { image } => {
                                 textures.push::<HTMLImage<RGB8U>>(tile, image, time_req, missing);
                             }
                         }
@@ -1458,7 +1450,7 @@ impl ImageSurveys {
         self.surveys.get(root_url)
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, String, ImageSurvey> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, String, ImageSurvey> {
         self.surveys.iter_mut()
     }
 }

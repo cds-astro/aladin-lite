@@ -17,9 +17,9 @@ pub enum FieldOfViewType {
 use crate::CameraViewPort;
 impl FieldOfViewType {
     pub fn new_allsky() -> FieldOfViewType {
-        let allsky = FieldOfViewType::Allsky(Allsky::new());
+        
 
-        allsky
+        FieldOfViewType::Allsky(Allsky::new())
     }
 
     pub fn new_polygon(vertices: &[Vector4<f64>]) -> FieldOfViewType {
@@ -198,7 +198,7 @@ impl Pole {
         // from the starting vertex of the edge to the ending one.
         let mut sum_delta_lon = Angle::new(Rad(0.0));
 
-        let mut num_vertices_in_south = 0 as usize;
+        let mut num_vertices_in_south = 0_usize;
 
         let num_lon = lon.len();
         let mut last = num_lon - 1;
@@ -458,7 +458,7 @@ where
     S: BaseFloat,
 {
     fn new(vertices: &[Vector4<S>]) -> EdgesSortedLon<S> {
-        let mut edges = EdgeIterator::new(&vertices).collect::<Vec<_>>();
+        let mut edges = EdgeIterator::new(vertices).collect::<Vec<_>>();
         edges.sort_unstable_by(|e1, e2| {
             // Get the minimum longitudes from e1 and e2 vertices
             let e1_min_lon = e1.v1.lon().min(e1.v2.lon());
@@ -500,7 +500,7 @@ where
     S: BaseFloat + std::cmp::PartialOrd,
 {
     fn new(vertices: &[Vector4<S>]) -> EdgesSortedLat<S> {
-        let mut edges = EdgeIterator::new(&vertices).collect::<Vec<_>>();
+        let mut edges = EdgeIterator::new(vertices).collect::<Vec<_>>();
         edges.sort_unstable_by(|e1, e2| {
             // Get the minimum latitudes from e1 and e2 vertices
             let e1_min_lat = e1.v1.lat().min(e1.v2.lat());

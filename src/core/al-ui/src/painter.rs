@@ -309,10 +309,10 @@ impl WebGl2Painter {
             positions.push(v.pos.y);
             texcoords.push(v.uv.x);
             texcoords.push(v.uv.y);
-            colors.push((v.color[0] as f32));
-            colors.push((v.color[1] as f32));
-            colors.push((v.color[2] as f32));
-            colors.push((v.color[3] as f32));
+            colors.push(v.color[0] as f32);
+            colors.push(v.color[1] as f32);
+            colors.push(v.color[2] as f32);
+            colors.push(v.color[3] as f32);
         }
 
         let gl = &self.gl;

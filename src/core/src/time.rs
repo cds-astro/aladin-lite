@@ -12,7 +12,7 @@ impl Time {
     }
 }
 
-use std::cmp::Ordering;
+
 impl Eq for Time {}
 
 use core::ops::Sub;

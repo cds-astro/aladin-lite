@@ -124,7 +124,7 @@ impl CameraViewPort {
             .unwrap() as f32;
         let dpi = window.device_pixel_ratio() as f32;
         //let dpi = 1.5;
-        set_canvas_size(&gl, width as u32, height as u32);
+        set_canvas_size(gl, width as u32, height as u32);
         //gl.scissor(0, 0, width as i32, height as i32);
 
         let aspect = width / height;
@@ -140,7 +140,9 @@ impl CameraViewPort {
         let time_last_move = Time::now();
         let rotation_center_angle = Angle(0.0);
 
-        let camera = CameraViewPort {
+        
+
+        CameraViewPort {
             // The field of view angle
             aperture,
             center,
@@ -182,9 +184,7 @@ impl CameraViewPort {
             gl,
             // coo system
             system,
-        };
-
-        camera
+        }
     }
 
     pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
@@ -282,7 +282,7 @@ impl CameraViewPort {
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
-        let drot = Rotation::from_axis_angle(&(axis), angle);
+        let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
         self.update_rot_matrices::<P>();

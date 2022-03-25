@@ -217,8 +217,8 @@ impl FormatType for DD {
         let angle = Rad(angle.0);
         let degrees: ArcDeg<S> = angle.into();
 
-        let result = degrees.to_string();
-        result
+        
+        degrees.to_string()
     }
 }
 impl FormatType for DMM {
@@ -249,7 +249,7 @@ impl FormatType for DMS {
         let minutes = minutes.round() % num_per_sec_per_minutes;
         let seconds = seconds.round() % num_per_sec_per_minutes;
 
-        let mut result = degrees.to_string() + &"°";
+        let mut result = degrees.to_string() + "°";
         result += &minutes.to_string();
         result += "\'";
         result += &seconds.to_string();

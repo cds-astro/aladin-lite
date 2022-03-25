@@ -1,12 +1,12 @@
 use web_sys::WebGl2RenderingContext;
 
-use al_api::color::Color;
+
 
 use crate::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
-use web_sys::{WebGlBuffer, WebGlVertexArrayObject};
+
 use al_core::VertexArrayObject;
 use al_api::grid::GridCfg;
 pub struct ProjetedGrid {
@@ -43,7 +43,7 @@ impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
+        _shaders: &mut ShaderManager,
         cfg: GridCfg,
     ) -> Result<ProjetedGrid, JsValue> {
         let vao_gpu = {
@@ -112,14 +112,14 @@ impl ProjetedGrid {
         let size_vertices_buf = 1000;
         let num_vertices = 0;
 
-        let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
+        let _num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         let labels = vec![];
 
         let gl = gl.clone();
         let sizes = vec![];
         let offsets = vec![];
 
-        let text_renderer = TextRenderManager::new(gl.clone(), &camera)?;
+        let text_renderer = TextRenderManager::new(gl.clone(), camera)?;
 
         let grid = ProjetedGrid {
             cfg,
@@ -359,7 +359,7 @@ impl GridShaderProjection for Gnomonic {
             .unwrap()
     }
 }
-use crate::projection::*;
+
 impl GridShaderProjection for AzimuthalEquidistant {
     fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -441,7 +441,7 @@ fn subdivide<P: Projection>(
                     vertices.push(b);
                     vertices.push(c);
                 }
-                return;
+                
             }
         }
         (Some(_), None, None) => {
@@ -860,7 +860,7 @@ const GRID_STEPS: &[f64] = &[
 
 fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
     let bbox = camera.get_bounding_box();
-    let fov = camera.get_field_of_view();
+    let _fov = camera.get_field_of_view();
 
     /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
 
@@ -876,7 +876,7 @@ fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
     let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
 
     let step_lon = select_grid_step(
-        &bbox,
+        bbox,
         bbox.get_lon_size().0 as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
@@ -897,7 +897,7 @@ fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
     }
 
     // Add parallels
-    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
+    let step_lat = select_grid_step(bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;
@@ -930,31 +930,23 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            if let Some(snp) = P::model_to_screen_space(
+            P::model_to_screen_space(
                 &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
                 camera,
-            ) {
-                Some(snp)
-            } else {
-                None
-            }
+            )
         } else {
             // screen south pole
-            if let Some(ssp) = P::model_to_screen_space(
+            P::model_to_screen_space(
                 &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
                 camera,
-            ) {
-                Some(ssp)
-            } else {
-                None
-            }
+            )
         }
     } else {
         None
     };
 
     let bbox = camera.get_bounding_box();
-    let fov = camera.get_field_of_view();
+    let _fov = camera.get_field_of_view();
 
     /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
 
@@ -973,7 +965,7 @@ fn lines<P: Projection>(
     let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
 
     let step_lon = select_grid_step(
-        &bbox,
+        bbox,
         bbox.get_lon_size().0 as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
@@ -1002,7 +994,7 @@ fn lines<P: Projection>(
     }
 
     // Add parallels
-    let step_lat = select_grid_step(&bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
+    let step_lat = select_grid_step(bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
     let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;

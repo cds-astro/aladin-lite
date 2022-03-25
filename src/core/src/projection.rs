@@ -24,11 +24,11 @@ pub fn screen_to_ndc_space(
 
 
     // Scale to fit in [-1, 1]
-    let pos_normalized_device = Vector2::new(
+    
+    Vector2::new(
         2.0 * (origin.x / window_size.x),
         -2.0 * (origin.y / window_size.y),
-    );
-    pos_normalized_device
+    )
 }
 
 #[allow(dead_code)]
@@ -84,12 +84,12 @@ pub fn ndc_to_clip_space(
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
 
-    let pos_clip_space = Vector2::new(
+    
+
+    Vector2::new(
         pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
         pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
-    );
-
-    pos_clip_space
+    )
 }
 
 use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjection};
@@ -227,13 +227,7 @@ pub trait Projection:
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        if let Some(pos_normalized_device) =
-            Self::world_to_normalized_device_space(pos_world_space, camera)
-        {
-            Some(self::ndc_to_screen_space(&pos_normalized_device, camera))
-        } else {
-            None
-        }
+        Self::world_to_normalized_device_space(pos_world_space, camera).map(|pos_normalized_device| self::ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
     /// Perform a clip to the world space deprojection
@@ -338,7 +332,7 @@ impl Projection for Aitoff {
         pos_clip_space: &Vector2<f64>,
         longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(&pos_clip_space) {
+        if Self::is_included_inside_projection(pos_clip_space) {
             let u = pos_clip_space.x * f64::PI() * 0.5;
             let v = pos_clip_space.y * f64::PI();
             //da uv a lat/lon
@@ -359,7 +353,7 @@ impl Projection for Aitoff {
                 theta = -theta;
             }
 
-            let mut pos_world_space = cgmath::Vector4::new(
+            let pos_world_space = cgmath::Vector4::new(
                 theta.sin() * phi.cos(),
                 phi.sin(),
                 theta.cos() * phi.cos(),
@@ -482,7 +476,7 @@ impl Projection for Mollweide {
         pos_clip_space: &Vector2<f64>,
         longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(&pos_clip_space) {
+        if Self::is_included_inside_projection(pos_clip_space) {
             let y2 = pos_clip_space.y * pos_clip_space.y;
             let k = (1.0 - 4.0 * y2).sqrt();
 
@@ -497,7 +491,7 @@ impl Projection for Mollweide {
 
             // The minus is an astronomical convention.
             // longitudes are increasing from right to left
-            let mut pos_world_space = cgmath::Vector4::new(
+            let pos_world_space = cgmath::Vector4::new(
                 theta.sin() * delta.cos(),
                 delta.sin(),
                 theta.cos() * delta.cos(),
@@ -545,7 +539,7 @@ impl Projection for Mollweide {
             k += 1;
         }
 
-        theta = theta / 2.0;
+        theta /= 2.0;
 
         // The minus is an astronomical convention.
         // longitudes are increasing from right to left
@@ -942,7 +936,7 @@ impl Projection for Mercator {
         pos_world_space: &Vector4<f64>,
         longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
-        let (mut theta, delta) = math::xyzw_to_radec(&pos_world_space);
+        let (mut theta, delta) = math::xyzw_to_radec(pos_world_space);
 
         if longitude_reversed {
             theta.0 = -theta.0;

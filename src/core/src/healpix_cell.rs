@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct HEALPixCell(pub u8, pub u64);
 
-use crate::projection::Projection;
+
 
 use crate::buffer::HiPSConfig;
 use crate::utils;
@@ -25,15 +25,15 @@ impl HEALPixCell {
         let HEALPixCell(depth, idx) = self;
         let delta_depth = std::cmp::min(delta_depth, depth);
 
-        let ancestor = HEALPixCell(depth - delta_depth, idx >> (2 * delta_depth));
-        ancestor
+        
+        HEALPixCell(depth - delta_depth, idx >> (2 * delta_depth))
     }
 
     // Get the texture cell in which the tile is
     pub fn get_texture_cell(&self, config: &HiPSConfig) -> HEALPixCell {
         let delta_depth_to_texture = config.delta_depth();
-        let texture_cell = self.ancestor(delta_depth_to_texture);
-        texture_cell
+        
+        self.ancestor(delta_depth_to_texture)
     }
     pub fn get_offset_in_texture_cell(&self, config: &HiPSConfig) -> (u32, u32) {
         let texture_cell = self.get_texture_cell(config);
@@ -103,7 +103,7 @@ impl HEALPixCell {
 }
 
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;
-pub const ALLSKY_HPX_CELLS_D0: &'static [HEALPixCell; NUM_HPX_TILES_DEPTH_ZERO] = &[
+pub const ALLSKY_HPX_CELLS_D0: &[HEALPixCell; NUM_HPX_TILES_DEPTH_ZERO] = &[
     HEALPixCell(0, 0),
     HEALPixCell(0, 1),
     HEALPixCell(0, 2),
@@ -165,6 +165,6 @@ impl PartialOrd for HEALPixCell {
 }
 impl Ord for HEALPixCell {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(&other).unwrap()
+        self.partial_cmp(other).unwrap()
     }
 }

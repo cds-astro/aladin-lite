@@ -1,26 +1,25 @@
-use crate::Angle;
+
 use crate::math::LonLatT;
 use crate::{camera::CameraViewPort, projection::Projection, shader::ShaderManager};
 
 use al_core::VecData;
-use al_core::shader::Shader;
+
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
 
-use crate::coo_conversion::CooSystem;
+
 use super::Triangulation;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGlContext,
-    camera: &CameraViewPort,
+    _camera: &CameraViewPort,
 ) -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
     let vertices = vertices
-        .into_iter()
-        .map(|pos_clip_space| {
+        .into_iter().flat_map(|pos_clip_space| {
             /*let pos_world_space = system.system_to_icrs_coo(
                 P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
             );*/
@@ -33,7 +32,6 @@ fn create_vertices_array<P: Projection>(
             // is sent to the GPU
             vec![pos_clip_space.x as f32, pos_clip_space.y as f32/*, pos_world_space.x as f32, pos_world_space.y as f32, pos_world_space.z as f32*/]
         })
-        .flatten()
         .collect::<Vec<_>>();
 
     (vertices, idx)
@@ -50,7 +48,7 @@ pub struct RayTracer {
     ang2pix_tex: Texture2D,
 }
 use cgmath::{InnerSpace, Vector2};
-use std::mem;
+
 
 const SIZE_POSITION_TEX: usize = 2048;
 fn generate_xyz_position<P: Projection>() -> Vec<f32> {
@@ -158,7 +156,7 @@ fn create_f32_texture_from_raw(gl: &WebGlContext, width: i32, height: i32, data:
     )
     .unwrap();
 
-    let buf_data = unsafe { js_sys::Float32Array::view(&data) };
+    let buf_data = unsafe { js_sys::Float32Array::view(data) };
     tex
         .bind()
         .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
@@ -180,7 +178,7 @@ impl RayTracer {
     ) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>(gl, camera);
 
-        let mut vao = VertexArrayObject::new(&gl);
+        let mut vao = VertexArrayObject::new(gl);
         // layout (location = 0) in vec2 pos_clip_space;
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
@@ -223,7 +221,7 @@ impl RayTracer {
         .unbind();
         // create position data
         let data = generate_xyz_position::<P>();
-        let position_tex = create_f32_texture_from_raw(&gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data);
+        let position_tex = create_f32_texture_from_raw(gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data);
 
         // create ang2pix texture for webgl1 app
         #[cfg(feature = "webgl1")]

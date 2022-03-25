@@ -91,7 +91,7 @@ where
     }
 
     pub fn vector<VectorT: LonLat<S>>(&self) -> VectorT {
-        VectorT::from_lonlat(&self)
+        VectorT::from_lonlat(self)
     }
 }
 
@@ -247,7 +247,7 @@ where
 #[inline]
 #[allow(dead_code)]
 pub fn lambert_wm1(x: f32) -> f32 {
-    assert!(x < 0.0 && x >= -1.0 / std::f32::consts::E);
+    assert!((-1.0 / std::f32::consts::E..0.0).contains(&x));
     let m1 = 0.3361;
     let m2 = -0.0042;
     let m3 = -0.0201;

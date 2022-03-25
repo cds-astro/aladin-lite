@@ -16,7 +16,7 @@ serde = { version = "^1.0.59", features = ["derive"] }
 al-api = { path = "../al-api" }
 
 [dependencies.wasm-bindgen]
-version = "0.2.70"
+version = "0.2.79"
 features = ["serde-serialize"]
 
 [features]
@@ -33,7 +33,7 @@ webgl2 = [
 ]
 
 [dependencies.web-sys]
-version = "0.3.55"
+version = "0.3.56"
 features = [
   'console',
   'Document',

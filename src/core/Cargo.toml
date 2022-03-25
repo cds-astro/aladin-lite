@@ -63,11 +63,11 @@ webgl2 = [
 ]
 
 [dependencies.wasm-bindgen]
-version = "0.2.70"
+version = "0.2.79"
 features = ["serde-serialize"]
 
 [dependencies.web-sys]
-version = "0.3.55"
+version = "0.3.56"
 features = [
   'console',
   'Document',

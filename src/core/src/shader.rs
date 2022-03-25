@@ -75,7 +75,7 @@ impl ShaderManager {
                     message: format!("Frag id {} not found", frag_id),
                 })?;
 
-                let shader = Shader::new(&gl, &vert_src, &frag_src).unwrap();
+                let shader = Shader::new(gl, vert_src, frag_src).unwrap();
 
                 v.insert(shader)
             }
@@ -719,7 +719,7 @@ impl GetShader for Mercator {
     }
 }
 
-use crate::projection::*;
+
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(
         gl: &WebGlContext,

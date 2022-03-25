@@ -1,26 +1,26 @@
 use crate::{healpix_cell::HEALPixCell, time::Time};
-use js_sys::{Float32Array, Function};
+use js_sys::{Function};
 use std::cell::Cell;
 use std::rc::Rc;
 
 #[cfg(feature = "webgl2")]
 pub enum RetrievedImageType {
-    FitsImage_R32F { image: FitsImage<R32F> },
-    FitsImage_R32I { image: FitsImage<R32I> },
-    FitsImage_R16I { image: FitsImage<R16I> },
-    FitsImage_R8UI { image: FitsImage<R8UI> },
-    PNGImage_RGBA8U { image: HTMLImage<RGBA8U> },
-    JPGImage_RGB8U { image: HTMLImage<RGB8U> },
+    FitsImageR32f { image: FitsImage<R32F> },
+    FitsImageR32i { image: FitsImage<R32I> },
+    FitsImageR16i { image: FitsImage<R16I> },
+    FitsImageR8ui { image: FitsImage<R8UI> },
+    PngImageRgba8u { image: HTMLImage<RGBA8U> },
+    JpgImageRgb8u { image: HTMLImage<RGB8U> },
 }
 
 #[cfg(feature = "webgl1")]
 pub enum RetrievedImageType {
-    FitsImage_R32F { image: FitsImage<R32F> },
-    PNGImage_RGBA8U { image: HTMLImage<RGBA8U> },
-    JPGImage_RGB8U { image: HTMLImage<RGB8U> },
+    FitsImageR32f { image: FitsImage<R32F> },
+    PngImageRgba8u { image: HTMLImage<RGBA8U> },
+    JpgImageRgb8u { image: HTMLImage<RGB8U> },
 }
 
-use al_core::format::ImageFormatType;
+
 pub trait ImageRequest<F>
 where
     F: ImageFormat,
@@ -87,25 +87,25 @@ impl ImageRequestType {
 
     fn image(&self, tile_width: i32) -> Result<RetrievedImageType, JsValue> {
         match self {
-            ImageRequestType::FitsR32FImageReq(r) => Ok(RetrievedImageType::FitsImage_R32F {
+            ImageRequestType::FitsR32FImageReq(r) => Ok(RetrievedImageType::FitsImageR32f {
                 image: r.image(tile_width)?,
             }),
             #[cfg(feature = "webgl2")]
-            ImageRequestType::FitsR32IImageReq(r) => Ok(RetrievedImageType::FitsImage_R32I {
+            ImageRequestType::FitsR32IImageReq(r) => Ok(RetrievedImageType::FitsImageR32i {
                 image: r.image(tile_width)?,
             }),
             #[cfg(feature = "webgl2")]
-            ImageRequestType::FitsR16IImageReq(r) => Ok(RetrievedImageType::FitsImage_R16I {
+            ImageRequestType::FitsR16IImageReq(r) => Ok(RetrievedImageType::FitsImageR16i {
                 image: r.image(tile_width)?,
             }),
             #[cfg(feature = "webgl2")]
-            ImageRequestType::FitsR8UIImageReq(r) => Ok(RetrievedImageType::FitsImage_R8UI {
+            ImageRequestType::FitsR8UIImageReq(r) => Ok(RetrievedImageType::FitsImageR8ui {
                 image: r.image(tile_width)?,
             }),
-            ImageRequestType::PNGRGBA8UImageReq(r) => Ok(RetrievedImageType::PNGImage_RGBA8U {
+            ImageRequestType::PNGRGBA8UImageReq(r) => Ok(RetrievedImageType::PngImageRgba8u {
                 image: r.image(tile_width)?,
             }),
-            ImageRequestType::JPGRGB8UImageReq(r) => Ok(RetrievedImageType::JPGImage_RGB8U {
+            ImageRequestType::JPGRGB8UImageReq(r) => Ok(RetrievedImageType::JpgImageRgb8u {
                 image: r.image(tile_width)?,
             }),
         }
@@ -179,9 +179,9 @@ impl TileRequest {
             let url = format!(
                 "{}/Norder{}/Dir{}/Npix{}.{}",
                 root_url,
-                depth.to_string(),
-                dir_idx.to_string(),
-                idx.to_string(),
+                depth,
+                dir_idx,
+                idx,
                 format.get_ext_file()
             );
 
@@ -336,7 +336,7 @@ where
         fail: Option<&Function>,
         url: &str,
     ) -> Result<(), JsValue> {
-        self.image.set_src(&url);
+        self.image.set_src(url);
         self.image.set_onload(success);
         self.image.set_onerror(fail);
 
@@ -504,13 +504,13 @@ use web_sys::XmlHttpRequest;
 pub struct FitsImageRequest {
     image: XmlHttpRequest,
 }
-use fitsrs::{DataType, Fits};
+
 use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
 use web_sys::XmlHttpRequestResponseType;
 
 use al_core::format::ImageFormat;
-use al_core::image::ImageBuffer;
+
 use fitsrs::ToBigEndian;
 pub trait FitsImageFormat: ImageFormat {
     type Type: ToBigEndian;
@@ -558,7 +558,7 @@ impl FitsImageFormat for R8UI {
     }
 }
 
-use std::alloc::{alloc, dealloc, Layout};
+use std::alloc::{alloc, Layout};
 use fitsrs::FitsMemAligned;
 impl<F> ImageRequest<F> for FitsImageRequest
 where

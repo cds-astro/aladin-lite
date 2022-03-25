@@ -1,5 +1,5 @@
 use crate::healpix_cell::HEALPixCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
@@ -25,9 +25,9 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
     }
 }
 
-use cgmath::Vector3;
+
 use crate::cdshealpix;
-use cgmath::Vector4;
+
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> Vec<HEALPixCell> {
     if let Some(vertices) = camera.get_vertices() {
         let inside = camera.get_center().truncate();
@@ -61,7 +61,7 @@ pub struct HEALPixCellsInView {
 
 use crate::camera::{CameraViewPort, UserAction};
 impl HEALPixCellsInView {
-    pub fn new(survey_tex_size: i32, max_depth: u8, camera: &CameraViewPort) -> Self {
+    pub fn new(_survey_tex_size: i32, _max_depth: u8, _camera: &CameraViewPort) -> Self {
         let cells = HashMap::new();
         Self {
             cells,
@@ -83,7 +83,7 @@ impl HEALPixCellsInView {
     // The new cells obtained are used for sending new requests
     pub fn refresh_cells(&mut self, texture_size: i32, max_depth: u8, camera: &CameraViewPort) {
         // Compute that depth
-        let mut new_depth = depth_from_pixels_on_screen(camera, texture_size);
+        let new_depth = depth_from_pixels_on_screen(camera, texture_size);
 
         self.depth = new_depth.min(max_depth);
         // Get the cells of that depth in the current field of view

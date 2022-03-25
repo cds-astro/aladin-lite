@@ -17,7 +17,7 @@ use al_core::format::{R32F, RGB8U, RGBA8U};
 #[cfg(feature = "webgl2")]
 use al_core::format::{R16I, R32I, R8UI};
 
-use std::convert::TryInto;
+
 impl RequestSystem {
     fn new() -> Self {
         let mut reqs: Vec<Option<TileRequest>> = Vec::with_capacity(NUM_EVENT_LISTENERS);
@@ -136,7 +136,7 @@ impl RequestSystem {
                                 if let Ok(image) = image {
                                     TileResolved::Found { image, time_req }
                                 } else {
-                                    let err = image.err().unwrap();
+                                    let _err = image.err().unwrap();
                                     TileResolved::Missing { time_req }
                                 }
                             }
@@ -184,7 +184,7 @@ impl Tile {
     }
 }
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet};
 pub struct TileDownloader {
     // Waiting cells to be loaded
     tiles_to_req: Vec<Tile>,
@@ -211,7 +211,7 @@ pub enum TileResolved {
 use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
-use al_core::log::*;
+
 use crate::ImageSurveys;
 use wasm_bindgen::JsValue;
 impl TileDownloader {
@@ -265,7 +265,7 @@ impl TileDownloader {
         surveys: &ImageSurveys,
     ) -> ResolvedTiles {
         let resolved_tiles = self.requests.resolved_tiles(available_tiles, surveys);
-        for (tile, resolve) in resolved_tiles.iter() {
+        for (tile, _resolve) in resolved_tiles.iter() {
             if self.requested_tiles.contains(tile) {
                 self.requested_tiles.remove(tile);
             }

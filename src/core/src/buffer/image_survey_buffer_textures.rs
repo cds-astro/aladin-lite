@@ -31,7 +31,7 @@ impl PartialOrd for TextureCellItem {
 }
 impl Ord for TextureCellItem {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(&other).unwrap()
+        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -262,9 +262,9 @@ impl ImageSurveyTextures {
         if !self.textures.contains_key(&texture_cell) {
             let HEALPixCell(_, idx) = texture_cell;
             let texture = if texture_cell.is_root() {
-                let texture = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
+                
 
-                texture
+                Texture::new(&self.config, &texture_cell, idx as i32, time_request)
             } else {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
@@ -292,9 +292,8 @@ impl ImageSurveyTextures {
                     // The idx is computed based on the current size of the buffer
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                    let texture =
-                        Texture::new(&self.config, &texture_cell, idx as i32, time_request);
-                    texture
+                    
+                    Texture::new(&self.config, &texture_cell, idx as i32, time_request)
                 };
                 // Push it to the buffer
                 self.heap.push(&texture);
@@ -375,8 +374,8 @@ impl ImageSurveyTextures {
         // Check that there are no more than num_textures
         // textures in the buffer
         let num_textures_heap = self.heap.len();
-        let full_heap = num_textures_heap == (self.size - NUM_HPX_TILES_DEPTH_ZERO);
-        full_heap
+        
+        num_textures_heap == (self.size - NUM_HPX_TILES_DEPTH_ZERO)
     }
 
     // Tell if a texture is available meaning all its sub tiles
@@ -566,7 +565,7 @@ impl ImageSurveyTextures {
     }
 }
 use crate::buffer::TextureUniforms;
-use al_core::log::*;
+
 use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     /*

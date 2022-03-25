@@ -8,7 +8,7 @@ use al_core::{
 use al_api::colormap::Colormap;
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
+use web_sys::{WebGl2RenderingContext};
 
 #[derive(Debug)]
 pub enum Error {
@@ -39,7 +39,7 @@ pub struct Manager {
 impl Manager {
     pub fn new(
         gl: &WebGlContext,
-        shaders: &mut ShaderManager,
+        _shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         resources: &Resources,
     ) -> Result<Self, JsValue> {
@@ -79,13 +79,13 @@ impl Manager {
                 1.0_f32, 1.0_f32, 1.0_f32, 1.0_f32,
                 -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
-            let position = [
+            let _position = [
                 -1.0_f32, -1.0_f32,
                 1.0_f32, -1.0_f32,
                 1.0_f32, 1.0_f32,
                 -1.0_f32, 1.0_f32,
             ];
-            let uv = [
+            let _uv = [
                 0.0_f32, 0.0_f32,
                 1.0_f32, 0.0_f32,
                 1.0_f32, 1.0_f32,
@@ -241,7 +241,7 @@ impl Manager {
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(&gl, shaders, self, camera, colormaps, fbo)?;
+            catalog.draw::<P>(gl, shaders, self, camera, colormaps, fbo)?;
         }
         gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -250,7 +250,7 @@ impl Manager {
 }
 
 use super::catalog::SourceIndices;
-use std::ops::Range;
+
 pub struct Catalog {
     colormap: Colormap,
     num_instances: i32,
@@ -268,17 +268,17 @@ use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
-use crate::renderable::survey::view_on_surveys::depth_from_pixels_on_screen;
+
 use crate::renderable::survey::HEALPixCellsInView;
 use crate::shaders::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGlContext,
-        shaders: &mut ShaderManager,
+        _shaders: &mut ShaderManager,
         colormap: Colormap,
         sources: Box<[Source]>,
-        view: &HEALPixCellsInView,
-        camera: &CameraViewPort,
+        _view: &HEALPixCellsInView,
+        _camera: &CameraViewPort,
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
@@ -416,13 +416,13 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &[HEALPixCell], camera: &CameraViewPort) {
+    fn update<P: Projection>(&mut self, cells: &[HEALPixCell], _camera: &CameraViewPort) {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
         self.current_sources.clear();
         // depth < 7
         for cell in cells {
-            let delta_depth = (7 as i8 - cell.depth() as i8).max(0);
+            let delta_depth = (7_i8 - cell.depth() as i8).max(0);
 
             for c in cell.get_children_cells(delta_depth as u8) {
                 // Define the total number of sources being in this kernel depth tile

@@ -80,7 +80,6 @@ pub struct WebClient {
 }
 
 use crate::shader::FileSrc;
-use al_api::hips::TransferFunction;
 
 use al_api::color::Color;
 use crate::app::AppTrait;
@@ -629,27 +628,6 @@ impl WebClient {
         Ok(cat_loaded)
     }
 
-    /// Set the catalog heatmap colormap
-    ///
-    /// # Arguments
-    ///
-    /// * `name_catalog` - The name of the catalog to apply this change to
-    /// * `colormap` - The name of the colormap. Check out the list of possible colormaps names `getAvailableColormapList`.
-    ///
-    /// # Panics
-    ///
-    /// If the catalog has not been found
-    #[wasm_bindgen(js_name = setCatalogColormap)]
-    pub fn set_catalog_colormap(
-        &mut self,
-        name_catalog: String,
-        colormap: String,
-    ) -> Result<(), JsValue> {
-        self.set_catalog_colormap(name_catalog, colormap)?;
-
-        Ok(())
-    }
-
     /// Set the catalog heatmap opacity
     ///
     /// # Arguments
@@ -719,9 +697,7 @@ impl WebClient {
             .project_line(lon1, lat1, lon2, lat2);
 
         let vertices = vertices
-            .into_iter()
-            .map(|v| vec![v.x, v.y])
-            .flatten()
+            .into_iter().flat_map(|v| vec![v.x, v.y])
             .collect::<Vec<_>>();
 
         Ok(vertices.into_boxed_slice())

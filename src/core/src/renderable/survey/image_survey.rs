@@ -168,11 +168,7 @@ impl RecomputeRasterizer for UnZoom {
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
         for cell in cells_to_draw {
-            let _parent_cell = cell.parent();
-
             if survey.contains(cell) {
-                let _parent_cell = survey.get_nearest_parent(cell);
-
                 let ending_cell_in_tex = survey.get(cell).unwrap();
                 let starting_cell_in_tex = survey.get(cell).unwrap();
 
@@ -181,7 +177,6 @@ impl RecomputeRasterizer for UnZoom {
                 );
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
-                let _grand_parent_cell = survey.get_nearest_parent(&parent_cell);
 
                 let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
                 let starting_cell_in_tex = survey.get(&parent_cell).unwrap();

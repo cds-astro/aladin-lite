@@ -53,7 +53,6 @@ pub trait RecomputeRasterizer {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(
-        camera: &CameraViewPort,
         view: &HEALPixCellsInView,
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
@@ -71,7 +70,6 @@ impl RecomputeRasterizer for Move {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(
-        _camera: &CameraViewPort,
         view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
@@ -107,7 +105,7 @@ impl RecomputeRasterizer for Move {
 
 fn num_subdivision(depth: u8) -> u8 {
     if depth < 5 {
-        std::cmp::min(5 - depth, 3)
+        5 - depth
     } else {
         0
     }
@@ -119,7 +117,6 @@ impl RecomputeRasterizer for Zoom {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(
-        _camera: &CameraViewPort,
         view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
@@ -159,7 +156,6 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
     fn get_textures_from_survey<'a>(
-        camera: &CameraViewPort,
         view: &HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
     ) -> TexturesToDraw<'a> {
@@ -167,50 +163,13 @@ impl RecomputeRasterizer for UnZoom {
         let max_depth = survey.config().get_max_depth();
 
         // We do not draw the parent cells if the depth has not decreased by at least one
-        let cells_to_draw = /*if depth < max_depth && view.has_depth_decreased_while_unzooming(camera)
-        {
-            Cow::Owned(crate::renderable::survey::view_on_surveys::get_cells_in_camera(
-                depth + 1,
-                camera,
-            ))
-        } else {*/
-            //Cow::Borrowed(&view.get_cells())
-            view.get_cells();
-        //};
+        let cells_to_draw = view.get_cells();
 
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
         for cell in cells_to_draw {
             let parent_cell = cell.parent();
 
-            /*if survey.contains(&parent_cell) {
-                let starting_cell = if survey.contains(&cell) {
-                    *cell
-                } else {
-                    survey.get_nearest_parent(&parent_cell)
-                };
-                let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
-                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
-                );
-            } else {
-                let starting_cell = if survey.contains(&cell) {
-                    *cell
-                } else {
-                    survey.get_nearest_parent(&parent_cell)
-                };
-
-                let ending_cell = starting_cell;
-
-                let starting_cell_in_tex = survey.get(&starting_cell).unwrap();
-                let ending_cell_in_tex = survey.get(&ending_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(cell, starting_cell_in_tex, ending_cell_in_tex),
-                );
-            }*/
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
@@ -235,20 +194,6 @@ impl RecomputeRasterizer for UnZoom {
 
         textures
     }
-
-    /*fn num_subdivision(depth: u8) -> u8 {
-        let num_subdivision = if depth < 5 {
-            std::cmp::min(5 - depth, 3)
-        } else {
-            0
-        };
-
-        if num_subdivision <= 1 {
-            0
-        } else {
-            num_subdivision - 1
-        }
-    }*/
 }
 
 use crate::camera::CameraViewPort;
@@ -264,6 +209,7 @@ trait Draw {
     fn draw<P: Projection>(
         &mut self,
         raytracer: &RayTracer,
+        switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         color: &HiPSColor,
@@ -824,7 +770,7 @@ impl ImageSurvey {
         self.m1.clear();
         //self.idx_vertices.clear();
 
-        let textures = T::get_textures_from_survey(camera, &self.view, &self.textures);
+        let textures = T::get_textures_from_survey(&self.view, &self.textures);
 
         let survey_config = self.textures.config();
         let depth = self.view.get_depth();
@@ -940,6 +886,7 @@ impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
         raytracer: &RayTracer,
+        switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         color: &HiPSColor,
@@ -952,16 +899,16 @@ impl Draw for ImageSurvey {
             return;
         }
 
-        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        let raytracing = raytracer.is_rendering::<P>(camera);
         //let raytracing = true;
         if raytracing {
             let shader = get_raytracer_shader::<P>(
-                    color,
-                    &self.gl,
-                    shaders,
-                    self.textures.config.tex_storing_integers,
-                    self.textures.config.tex_storing_unsigned_int,
-                );
+                color,
+                &self.gl,
+                shaders,
+                self.textures.config.tex_storing_integers,
+                self.textures.config.tex_storing_unsigned_int,
+            );
 
             let shader = shader.bind(&self.gl);
             shader
@@ -989,11 +936,11 @@ impl Draw for ImageSurvey {
         // - The UVs are changed if:
         //     * new cells are added/removed (because new cells are added)
         //     * there are new available tiles for the GPU
-        // - The starting blending animation times are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //     * there are new available tiles for the GPU
+        // - The 
 
-        let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles();
+        let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
+        
+        al_core::log::log(&format!("recompute vertices {:?}", recompute_vertices));
         let shader = get_raster_shader::<P>(
             color,
             &self.gl,
@@ -1102,7 +1049,18 @@ pub struct ImageSurveys {
     most_precise_survey: Url,
 
     raytracer: RayTracer,
+
+    past_rendering_mode: RenderingMode,
+    current_rendering_mode: RenderingMode,
+
     gl: WebGlContext,
+}
+
+#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy)]
+enum RenderingMode {
+    RAYTRACE,
+    RASTERIZE
 }
 
 use crate::buffer::{FitsImage, HTMLImage, TileConfigType};
@@ -1133,6 +1091,10 @@ impl ImageSurveys {
         let raytracer = RayTracer::new::<P>(&gl, &camera, shaders);
         let gl = gl.clone();
         let most_precise_survey = String::new();
+
+        let past_rendering_mode = RenderingMode::RAYTRACE;
+        let current_rendering_mode = RenderingMode::RAYTRACE;
+
         ImageSurveys {
             surveys,
             meta,
@@ -1142,6 +1104,10 @@ impl ImageSurveys {
             most_precise_survey,
 
             raytracer,
+
+            past_rendering_mode,
+            current_rendering_mode,
+
             gl,
         }
     }
@@ -1187,11 +1153,19 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE;
+        let raytracing = self.raytracer.is_rendering::<P>(camera);
 
+        let mut switch_from_raytrace_to_raster = false;
         if raytracing {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        } else if camera.is_reversed_longitude() {
+            self.current_rendering_mode = RenderingMode::RAYTRACE;
+        } else {
+            self.current_rendering_mode = RenderingMode::RASTERIZE;
+            if self.past_rendering_mode == RenderingMode::RAYTRACE {
+                switch_from_raytrace_to_raster = true;
+            }
+        }
+
+        if raytracing || camera.is_reversed_longitude() {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
@@ -1203,7 +1177,6 @@ impl ImageSurveys {
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
-            al_core::log::log(&format!("META {:?}", meta));
             if meta.visible() {
                 let ImageSurveyMeta {
                     color,
@@ -1217,6 +1190,7 @@ impl ImageSurveys {
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
                         raytracer,
+                        switch_from_raytrace_to_raster,
                         shaders,
                         camera,
                         color,
@@ -1235,6 +1209,8 @@ impl ImageSurveys {
             WebGl2RenderingContext::ONE,
         );
         self.gl.disable(WebGl2RenderingContext::BLEND);
+
+        self.past_rendering_mode = self.current_rendering_mode;
     }
 
     pub fn set_image_surveys(

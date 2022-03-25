@@ -703,9 +703,11 @@ where
 
             // Reset the flags about the user action
             self.camera.reset();
-        }
 
-        self.surveys.reset_frame();
+            if self.rendering {
+                self.surveys.reset_frame();
+            }
+        }
 
         Ok(())
     }

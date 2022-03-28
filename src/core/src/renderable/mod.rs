@@ -1,8 +1,8 @@
-pub mod grid;
 pub mod catalog;
-pub mod survey;
-pub mod labels;
 pub mod final_pass;
+pub mod grid;
+pub mod labels;
+pub mod survey;
 
 pub use labels::TextRenderManager;
 

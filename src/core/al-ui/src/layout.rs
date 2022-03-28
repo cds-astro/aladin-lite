@@ -13,8 +13,8 @@ pub struct LayerLayout {
 use crate::widgets::SurveyGrid;
 use crate::Event;
 
-use wasm_bindgen::prelude::JsValue;
 use std::sync::{Arc, Mutex};
+use wasm_bindgen::prelude::JsValue;
 impl LayerLayout {
     pub fn new(ui_backend: &mut WebGl2Painter) -> Result<Self, JsValue> {
         let survey_grid_widget = SurveyGrid::new(ui_backend)?;
@@ -34,8 +34,9 @@ impl LayerLayout {
                 self.ui(ui, events.clone());
 
                 let mut new_survey_added = false;
-                self.s_select_w.show(ui, &mut self.survey_name_selected, &mut new_survey_added);
-                
+                self.s_select_w
+                    .show(ui, &mut self.survey_name_selected, &mut new_survey_added);
+
                 if new_survey_added {
                     let s_id_selected = self.survey_name_selected.clone();
                     let s_list = self.surveys.clone();
@@ -54,7 +55,7 @@ impl LayerLayout {
                                 }
                             }
                         }*/
-        
+
                         //if can_surveys_be_added {
                             // get the SimpleHiPS from the SurveyWidget
                             let mut image_surveys = vec![];
@@ -69,7 +70,7 @@ impl LayerLayout {
                             s_list.lock().unwrap().push(new_survey);
                         //}
                     };
-        
+
                     wasm_bindgen_futures::spawn_local(fut);
                 }
             });
@@ -101,7 +102,7 @@ impl LayerLayout {
 
         // TODO: check if you can add a new survey
         // it is not possible if:
-        // - a color survey is already selected 
+        // - a color survey is already selected
         // - a grayscale survey mapped to a colormap object is selected
         if ui.add(egui::Button::new("Add survey")).clicked() {
             self.s_select_w.open();
@@ -113,7 +114,9 @@ impl LayerLayout {
                 image_surveys.push(survey.get_hips_config());
             }
 
-            events.lock().unwrap()
+            events
+                .lock()
+                .unwrap()
                 .push(Event::ImageSurveys(image_surveys));
         }
 

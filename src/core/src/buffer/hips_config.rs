@@ -32,11 +32,7 @@ where
 }
 
 #[cfg(feature = "webgl2")]
-use al_core::format::{
-    R16I,
-    R32I,
-    R8UI
-};
+use al_core::format::{R16I, R32I, R8UI};
 
 #[cfg(feature = "webgl2")]
 #[derive(Debug)]

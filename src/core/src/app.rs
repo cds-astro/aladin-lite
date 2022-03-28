@@ -129,14 +129,19 @@ pub enum AppType {
     MollweideApp,
     ArcApp,
     TanApp,
-    MercatorApp
+    MercatorApp,
 }
 
 impl<P> App<P>
 where
-    P: Projection
+    P: Projection,
 {
-    pub fn new(gl: &WebGlContext, aladin_div_name: &str, mut shaders: ShaderManager, resources: Resources) -> Result<Self, JsValue> {
+    pub fn new(
+        gl: &WebGlContext,
+        aladin_div_name: &str,
+        mut shaders: ShaderManager,
+        resources: Resources,
+    ) -> Result<Self, JsValue> {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
@@ -188,13 +193,14 @@ where
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
-        let final_rendering_pass = RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
+        let final_rendering_pass =
+            RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let ui = Gui::new(aladin_div_name, &gl)?;
 
         Ok(App {
             gl,
             ui,
-            
+
             shaders,
 
             camera,
@@ -227,7 +233,7 @@ where
             catalog_loaded,
 
             colormaps,
-            p: std::marker::PhantomData
+            p: std::marker::PhantomData,
         })
     }
 
@@ -367,7 +373,7 @@ pub trait AppTrait {
     fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue>;
     fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue>;
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
-    
+
     // Grid
     fn set_grid_cfg(&mut self, cfg: GridCfg);
 
@@ -407,7 +413,7 @@ pub trait AppTrait {
 
 impl<P> AppTrait for App<P>
 where
-    P: Projection
+    P: Projection,
 {
     fn over_ui(&self) -> bool {
         self.ui.lock().pos_over_ui()
@@ -556,9 +562,7 @@ where
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
-        self.rendering = blending_anim_occuring
-            | has_camera_moved
-            | self.request_redraw;
+        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -568,7 +572,7 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera, force);        
+        self.grid.update::<P>(&self.camera, force);
         {
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -584,7 +588,6 @@ where
         Ok(())
     }
 
-
     fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
         self.camera.set_rotation_around_center::<P>(Angle(0.0));
@@ -595,12 +598,7 @@ where
         self.set_center(&center);
     }
 
-    fn read_pixel(
-        &self,
-        x: f64,
-        y: f64,
-        base_url: &str,
-    ) -> Result<PixelType, JsValue> {
+    fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue> {
         let pos = Vector2::new(x, y);
         if let Some(lonlat) = self.screen_to_world(&pos) {
             self.surveys.read_pixel(&lonlat, &base_url.to_string())
@@ -611,7 +609,6 @@ where
             )))
         }
     }
-
 
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
         /*let scene_redraw = self.rendering | force_render;
@@ -629,20 +626,23 @@ where
             let colormaps = &self.colormaps;
             let fbo_view = &self.fbo_view;
 
-            fbo_view.draw_onto(move || {
-                // Render the scene
-                gl.clear_color(0.00, 0.00, 0.00, 1.0);
-                gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            fbo_view.draw_onto(
+                move || {
+                    // Render the scene
+                    gl.clear_color(0.00, 0.00, 0.00, 1.0);
+                    gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                surveys.draw::<P>(camera, shaders, colormaps);
+                    surveys.draw::<P>(camera, shaders, colormaps);
 
-                // Draw the catalog
-                catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+                    // Draw the catalog
+                    catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
 
-                grid.draw::<P>(camera, shaders)?;
+                    grid.draw::<P>(camera, shaders)?;
 
-                Ok(())
-            }, None)?;
+                    Ok(())
+                },
+                None,
+            )?;
 
             // Reset the flags about the user action
             self.camera.reset();
@@ -779,7 +779,7 @@ where
             time_start_blending: self.time_start_blending,
             request_redraw: self.request_redraw,
             rendering: self.rendering,
-            grid: self.grid
+            grid: self.grid,
         }
     }
 
@@ -838,7 +838,8 @@ where
     fn resize(&mut self, width: f32, height: f32) {
         let dpi = self.camera.get_dpi();
 
-        let canvas = self.gl
+        let canvas = self
+            .gl
             .canvas()
             .unwrap()
             .dyn_into::<web_sys::HtmlCanvasElement>()
@@ -847,7 +848,7 @@ where
         canvas.style().set_property("height", &format!("{}px", height)).unwrap();
 
         let w = (width as f32) * dpi;
-        let h = (height as f32 ) * dpi;
+        let h = (height as f32) * dpi;
         self.camera.set_screen_size::<P>(w, h);
         // resize the view fbo
         self.fbo_view.resize(w as usize, h as usize);
@@ -859,11 +860,7 @@ where
         self.manager.set_kernel_size(&self.camera);
     }
 
-    fn set_catalog_colormap(
-        &mut self,
-        name: String,
-        colormap: String,
-    ) -> Result<(), JsValue> {
+    fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
         let colormap = self.colormaps.get(&colormap);
 
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
@@ -924,10 +921,7 @@ where
         self.request_redraw = true;
     }
 
-    fn world_to_screen(
-        &self,
-        lonlat: &LonLatT<f64>,
-    ) -> Result<Option<Vector2<f64>>, String> {
+    fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String> {
         //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
         let model_pos_xyz = lonlat.vector();
 
@@ -938,10 +932,7 @@ where
     /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(
-        &self,
-        sources: &Vec<JsValue>,
-    ) -> Result<Vec<f64>, JsValue> {
+    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue> {
         let res: Vec<f64> = sources
             .iter()
             .filter_map(|s| {
@@ -1070,17 +1061,11 @@ where
         self.request_redraw = true;
     }
 
-    fn project_line(
-        &self,
-        lon1: f64,
-        lat1: f64,
-        lon2: f64,
-        lat2: f64,
-    ) -> Vec<Vector2<f64>> {
+    fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
         let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
         let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
 
-        line::project::<P>(&v1, &v2, &self.camera)
+        line::project_along_great_circles::<P>(&v1, &v2, &self.camera)
     }
 
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {

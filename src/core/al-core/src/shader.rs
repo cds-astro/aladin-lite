@@ -221,8 +221,8 @@ impl UniformType for Matrix4<f64> {
         gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
     }
 }
-use super::texture::CUR_IDX_TEX_UNIT;
 use super::texture::Texture2D;
+use super::texture::CUR_IDX_TEX_UNIT;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, tex: &Self) {
         // 1. Active the texture unit of the texture
@@ -235,8 +235,6 @@ impl UniformType for Texture2D {
             gl.uniform1i(location, CUR_IDX_TEX_UNIT as i32);
             CUR_IDX_TEX_UNIT += 1;
         };
-
-
     }
 }
 

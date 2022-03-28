@@ -248,7 +248,7 @@ impl Pole {
 }
 
 use std::ops::Range;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BoundingBox {
     pub lon: Range<Angle<f64>>,
     pub lat: Range<Angle<f64>>,

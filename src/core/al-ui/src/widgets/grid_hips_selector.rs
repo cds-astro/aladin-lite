@@ -22,7 +22,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "SDSS/DR9/color",
         },
-        index_thumbnail: 0
+        index_thumbnail: 0,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -30,7 +30,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "DSS/DSS2-NIR/",
         },
-        index_thumbnail: 1
+        index_thumbnail: 1,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -38,7 +38,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "HLA-hips/filter_SDSSz_hips",
         },
-        index_thumbnail: 2
+        index_thumbnail: 2,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -46,7 +46,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "Pan-STARRS/DR1/g",
         },
-        index_thumbnail: 3
+        index_thumbnail: 3,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -54,7 +54,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "Pan-STARRS/DR1/z",
         },
-        index_thumbnail: 4
+        index_thumbnail: 4,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -62,7 +62,7 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "Optical",
             url: "ancillary/GaiaDR2/hips-density-map",
         },
-        index_thumbnail: 5
+        index_thumbnail: 5,
     },
     SurveyThumbnail {
         desc: SurveyThumbnailDesc {
@@ -70,8 +70,8 @@ const SURVEY_THUMBNAILS: &'static [SurveyThumbnail] = &[
             regime: "UV",
             url: "GALEX/GR6-03-2014/AIS-FD",
         },
-        index_thumbnail: 6
-    }
+        index_thumbnail: 6,
+    },
 ];
 
 pub struct SurveyGrid {
@@ -79,8 +79,8 @@ pub struct SurveyGrid {
     thumbnail_texture_size: egui::Vec2,
     open: bool,
 }
-use wasm_bindgen::prelude::*;
 use super::SurveyWidget;
+use wasm_bindgen::prelude::*;
 impl SurveyGrid {
     pub fn new(painter: &mut WebGl2Painter) -> Result<Self, JsValue> {
         //let thumbnail_img_path = resources.get_filename("ui_thumbnail").unwrap();
@@ -90,13 +90,16 @@ impl SurveyGrid {
 
             let image_buf = img_pixel::load_from_memory_with_format(
                 include_bytes!("../../img/tileset.png"),
-                img_pixel::ImageFormat::Png
-            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+                img_pixel::ImageFormat::Png,
+            )
+            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
             //let mut data_rgba = Vec::with_capacity((width_thumbnail_img as usize) * (height_thumbnail_img as usize) * 4);
             let data = image_buf.into_bytes();
 
             let srgba_pixels = {
-                unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Color32, data.len() >> 2) }
+                unsafe {
+                    std::slice::from_raw_parts(data.as_ptr() as *const Color32, data.len() >> 2)
+                }
             };
             // register the texture to the ui backend
             let user_texture = painter.alloc_user_texture(size_thumbnail_img, srgba_pixels);
@@ -104,13 +107,14 @@ impl SurveyGrid {
         };
 
         let open = false;
-        Ok(
-            Self {
-                thumbnail_texture: user_texture,
-                thumbnail_texture_size: egui::Vec2::new(size_thumbnail_tex.0 as f32, size_thumbnail_tex.1 as f32),
-                open,
-            }
-        )
+        Ok(Self {
+            thumbnail_texture: user_texture,
+            thumbnail_texture_size: egui::Vec2::new(
+                size_thumbnail_tex.0 as f32,
+                size_thumbnail_tex.1 as f32,
+            ),
+            open,
+        })
     }
 
     pub fn open(&mut self) {
@@ -132,22 +136,36 @@ impl SurveyGrid {
                             ui.end_row();
                         }
 
-                        let hover_text = format!("{:?}\nRegime: {}", thumbnail.desc.id, thumbnail.desc.regime);
+                        let hover_text =
+                            format!("{:?}\nRegime: {}", thumbnail.desc.id, thumbnail.desc.regime);
                         if ui
-                            .add(egui::ImageButton::new(self.thumbnail_texture, SIZE_SURVEY_THUMBNAIL)
+                            .add(
+                                egui::ImageButton::new(
+                                    self.thumbnail_texture,
+                                    SIZE_SURVEY_THUMBNAIL,
+                                )
                                 .uv(egui::Rect {
                                     min: egui::Pos2::new(
-                                        ((thumbnail.index_thumbnail % 5) as f32) * SIZE_SURVEY_THUMBNAIL.x / self.thumbnail_texture_size.x,
-                                        ((thumbnail.index_thumbnail / 5) as f32) * SIZE_SURVEY_THUMBNAIL.y / self.thumbnail_texture_size.y
+                                        ((thumbnail.index_thumbnail % 5) as f32)
+                                            * SIZE_SURVEY_THUMBNAIL.x
+                                            / self.thumbnail_texture_size.x,
+                                        ((thumbnail.index_thumbnail / 5) as f32)
+                                            * SIZE_SURVEY_THUMBNAIL.y
+                                            / self.thumbnail_texture_size.y,
                                     ),
                                     max: egui::Pos2::new(
-                                        ((thumbnail.index_thumbnail % 5) as f32 + 1.0) * SIZE_SURVEY_THUMBNAIL.x / self.thumbnail_texture_size.x,
-                                        ((thumbnail.index_thumbnail / 5) as f32 + 1.0) * SIZE_SURVEY_THUMBNAIL.y / self.thumbnail_texture_size.y
-                                    )
-                                })
+                                        ((thumbnail.index_thumbnail % 5) as f32 + 1.0)
+                                            * SIZE_SURVEY_THUMBNAIL.x
+                                            / self.thumbnail_texture_size.x,
+                                        ((thumbnail.index_thumbnail / 5) as f32 + 1.0)
+                                            * SIZE_SURVEY_THUMBNAIL.y
+                                            / self.thumbnail_texture_size.y,
+                                    ),
+                                }),
                             )
                             .on_hover_text(hover_text)
-                            .clicked() {
+                            .clicked()
+                        {
                             *s_id_selected = thumbnail.desc.url.to_string();
                         }
                     }
@@ -166,12 +184,12 @@ impl SurveyGrid {
                         self.open = false;
                     }
                 });
-        });
+            });
     }
 }
 
 mod tests {
-    use img_pixel::{RgbaImage, ImageBuffer};
+    use img_pixel::{ImageBuffer, RgbaImage};
 
     #[test]
     fn test_open_png_image() {
@@ -182,9 +200,13 @@ mod tests {
         let image_buf: RgbaImage = ImageBuffer::from_raw(
             width_thumbnail_img,
             height_thumbnail_img,
-            include_bytes!("../../img/CDS_P_SDSS9_color.png").to_vec()
-        ).unwrap();
+            include_bytes!("../../img/CDS_P_SDSS9_color.png").to_vec(),
+        )
+        .unwrap();
 
-        assert_eq!(image_buf.pixels().len(), size_thumbnail_img.0 * size_thumbnail_img.1);
+        assert_eq!(
+            image_buf.pixels().len(),
+            size_thumbnail_img.0 * size_thumbnail_img.1
+        );
     }
 }

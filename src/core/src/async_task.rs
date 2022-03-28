@@ -245,9 +245,9 @@ where
     texture_array: Rc<Texture2DArray>,
 }
 
-use al_core::Texture2DArray;
 use crate::buffer::{HiPSConfig, Texture};
 use al_core::image::Image;
+use al_core::Texture2DArray;
 
 use std::rc::Rc;
 impl<I> ImageTile2GpuTask<I>

@@ -8,7 +8,7 @@ pub mod vertex_array_object;
 
 pub use array_buffer::ArrayBuffer;
 pub use array_buffer::VertexAttribPointerType;
+pub use framebuffer::FrameBufferObject;
 pub use vertex_array_object::vao::{
     ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
 };
-pub use framebuffer::FrameBufferObject;

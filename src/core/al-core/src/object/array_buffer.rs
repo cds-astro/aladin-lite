@@ -49,12 +49,7 @@ pub trait VertexAttribPointerType: std::marker::Sized {
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
 
-        Self::buffer_data_with_array_buffer_view(
-            gl,
-            data,
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            usage,
-        );
+        Self::buffer_data_with_array_buffer_view(gl, data, WebGlRenderingCtx::ARRAY_BUFFER, usage);
         // Attrib pointer to the shader
         for (idx, (size, offset)) in sizes.iter().zip(offsets.iter()).enumerate() {
             let idx = (idx as u32) + offset_idx;
@@ -297,14 +292,7 @@ impl VertexAttribPointerType for i32 {
         #[cfg(feature = "webgl2")]
         gl.vertex_attrib_i_pointer_with_i32(idx, size, WebGlRenderingCtx::INT, stride, offset);
         #[cfg(feature = "webgl1")]
-        gl.vertex_attrib_pointer_with_i32(
-            idx,
-            size,
-            WebGlRenderingCtx::INT,
-            false,
-            stride,
-            offset,
-        );
+        gl.vertex_attrib_pointer_with_i32(idx, size, WebGlRenderingCtx::INT, false, stride, offset);
         gl.enable_vertex_attrib_array(idx);
     }
 }
@@ -406,10 +394,10 @@ impl ArrayBuffer {
         // Returns an instance that keeps only the buffer
         ArrayBuffer {
             buffer,
-            
+
             len,
             num_packed_data,
-            
+
             offset_idx,
             stride,
             sizes: sizes.into(),
@@ -477,14 +465,11 @@ impl ArrayBuffer {
 
 impl VertexBufferObject for ArrayBuffer {
     fn bind(&self) {
-        self.gl.bind_buffer(
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            Some(self.buffer.as_ref()),
-        );
+        self.gl
+            .bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(self.buffer.as_ref()));
     }
     fn unbind(&self) {
-        self.gl
-            .bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
+        self.gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
     }
 }
 

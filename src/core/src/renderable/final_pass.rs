@@ -5,14 +5,7 @@ use {
         WebGl2RenderingContext,
     },
 };
-
-
-
-
 use al_core::{shader::Shader, VecData, VertexArrayObject};
-
-
-
 use al_core::WebGlContext;
 pub struct RenderPass {
     gl: WebGlContext,
@@ -26,13 +19,13 @@ impl RenderPass {
         let shader = Shader::new(
             &gl,
             include_str!("../shaders/webgl1/passes/post_vertex_100es.glsl"),
-            include_str!("../shaders/webgl1/passes/post_fragment_100es.glsl")
+            include_str!("../shaders/webgl1/passes/post_fragment_100es.glsl"),
         )?;
         #[cfg(feature = "webgl2")]
         let shader = Shader::new(
             gl,
             include_str!("../shaders/webgl2/passes/post_vertex_100es.glsl"),
-            include_str!("../shaders/webgl2/passes/post_fragment_100es.glsl")
+            include_str!("../shaders/webgl2/passes/post_fragment_100es.glsl"),
         )?;
 
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
@@ -50,12 +43,9 @@ impl RenderPass {
                 VecData(&positions),
             )
             // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData(&indices),
-            )
-        // Unbind the buffer
-        .unbind();
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData(&indices))
+            // Unbind the buffer
+            .unbind();
         #[cfg(feature = "webgl1")]
         vao.bind_for_update()
             // positions and texcoords buffers
@@ -66,12 +56,9 @@ impl RenderPass {
                 VecData(&positions),
             )
             // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData(&indices),
-            )
-        // Unbind the buffer
-        .unbind();
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData(&indices))
+            // Unbind the buffer
+            .unbind();
 
         Ok(RenderPass {
             gl: gl.clone(),
@@ -82,12 +69,21 @@ impl RenderPass {
 
     pub fn draw_on_screen(&self, fbo: &FrameBufferObject) {
         self.gl.enable(WebGl2RenderingContext::BLEND);
-        self.gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
+        self.gl.blend_func(
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+        ); // premultiplied alpha
 
-        self.shader.bind(&self.gl)
+        self.shader
+            .bind(&self.gl)
             .attach_uniform("fbo_tex", &fbo.texture)
             .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES, Some(6), WebGl2RenderingContext::UNSIGNED_BYTE, 0);
+            .draw_elements_with_i32(
+                WebGl2RenderingContext::TRIANGLES,
+                Some(6),
+                WebGl2RenderingContext::UNSIGNED_BYTE,
+                0,
+            );
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
     }

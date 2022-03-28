@@ -99,7 +99,6 @@ impl RequestSystem {
             _ => unimplemented!(),
         }
 
-
         self.reqs[free_idx].as_mut()
     }
 
@@ -211,8 +210,8 @@ pub enum TileResolved {
 use std::collections::HashMap;
 pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 
-
 use crate::ImageSurveys;
+use al_core::log::*;
 use wasm_bindgen::JsValue;
 impl TileDownloader {
     pub fn new() -> TileDownloader {

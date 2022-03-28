@@ -46,14 +46,14 @@ impl epi::RepaintSignal for NeedRepaint {
 #[derive(Debug)]
 pub enum Event {
     Grid {
-        color:  [f32; 4],
+        color: [f32; 4],
         line_thickness: f32,
-        enable: bool
+        enable: bool,
     },
     Location {
-        name: String
+        name: String,
     },
-    ImageSurveys(Vec<SimpleHiPS>)
+    ImageSurveys(Vec<SimpleHiPS>),
 }
 
 pub struct Gui {
@@ -179,7 +179,7 @@ impl Gui {
         self.painter.upload_egui_texture(&self.ctx.texture());
 
         let (output, shapes) = self.ctx.end_frame();
-        self.clipped_meshes = Some(self.ctx.tessellate(shapes)); // create triangles to paint    
+        self.clipped_meshes = Some(self.ctx.tessellate(shapes)); // create triangles to paint
 
         input::handle_output(&output, self);
 
@@ -189,8 +189,11 @@ impl Gui {
     pub fn draw(&mut self, gl: &WebGlContext, pixels_per_point: f32) -> Result<(), JsValue> {
         if let Some(meshes) = self.clipped_meshes.take() {
             gl.enable(WebGl2RenderingContext::BLEND);
-            gl.blend_func(WebGl2RenderingContext::ONE, WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA); // premultiplied alpha
-            
+            gl.blend_func(
+                WebGl2RenderingContext::ONE,
+                WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+            ); // premultiplied alpha
+
             self.painter.paint_meshes(meshes, pixels_per_point)?;
 
             gl.disable(WebGl2RenderingContext::BLEND);

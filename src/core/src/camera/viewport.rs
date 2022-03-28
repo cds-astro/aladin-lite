@@ -67,10 +67,7 @@ use crate::coo_conversion::CooSystem;
 use al_core::WebGlContext;
 
 use crate::{
-    projection::Projection,
-    angle::Angle,
-    rotation::Rotation,
-    sphere_geometry::FieldOfViewType,
+    angle::Angle, projection::Projection, rotation::Rotation, sphere_geometry::FieldOfViewType,
 };
 
 use cgmath::{SquareMatrix, Vector4};
@@ -110,18 +107,9 @@ impl CameraViewPort {
         let final_rot = Rotation::zero();
 
         // Get the initial size of the window
-        let window = web_sys::window()
-            .unwrap();
-        let width = window
-            .inner_width()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
-        let height = window
-            .inner_height()
-            .unwrap()
-            .as_f64()
-            .unwrap() as f32;
+        let window = web_sys::window().unwrap();
+        let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
+        let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
         let dpi = window.device_pixel_ratio() as f32;
         //let dpi = 1.5;
         set_canvas_size(gl, width as u32, height as u32);
@@ -264,9 +252,10 @@ impl CameraViewPort {
             self.longitude_reversed,
             &self.system,
         );
-        self.is_allsky = !P::is_included_inside_projection(
-            &crate::projection::ndc_to_clip_space(&Vector2::new(-1.0, -1.0), self),
-        );
+        self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
+            &Vector2::new(-1.0, -1.0),
+            self,
+        ));
 
         //self.update_scissor();
     }

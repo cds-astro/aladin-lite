@@ -1,58 +1,57 @@
 use al_api::colormap::Colormap;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, PartialEq, Default)]
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Default, Deserialize, Serialize)]
 struct Properties {
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     obs_description: String,
 
-    #[serde(default="default_float")]
+    #[serde(default = "default_float")]
     moc_sky_fraction: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     bib_reference: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     bib_reference_url: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     obs_regime: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     prov_progenitor: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     client_category: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     obs_collection: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     obs_title: String,
 
-    #[serde(default="default_float")]
+    #[serde(default = "default_float")]
     em_min: String,
 
-    #[serde(default="default_float")]
+    #[serde(default = "default_float")]
     em_max: String,
 
-    #[serde(default="default_int")]
+    #[serde(default = "default_int")]
     hips_order: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     hips_pixel_bitpix: String,
 
-    #[serde(default="default_format")]
+    #[serde(default = "default_format")]
     hips_tile_format: String,
 
-    #[serde(default="default_int")]
+    #[serde(default = "default_int")]
     hips_tile_width: String,
 
-    #[serde(default="default_empty_string")]
+    #[serde(default = "default_empty_string")]
     hips_pixel_cut: String,
 
-    #[serde(default="default_frame")]
+    #[serde(default = "default_frame")]
     hips_frame: String,
 }
 
@@ -188,7 +187,7 @@ pub struct SurveyWidget {
     // FITS specific panel
     transfer_func: Option<TransferFunction>,
     cutouts: Option<[f32; 2]>,
-    cut_range: std::ops::RangeInclusive<f32>
+    cut_range: std::ops::RangeInclusive<f32>,
 }
 
 use al_api::hips::{HiPSFrame, HiPSTileFormat};
@@ -207,7 +206,7 @@ impl SurveyWidget {
         let cut_range = if let Some(c) = properties.hips_pixel_cut.clone() {
             let lc = c[1] - c[0];
             let half_lc = 0.5 * lc;
-    
+
             let c_min = c[0] - half_lc;
             let c_max = c[1] + half_lc;
 
@@ -216,7 +215,6 @@ impl SurveyWidget {
             0.0..=0.0
         };
 
-       
         let color_cfg = if properties.is_fits_image() {
             HiPSColor::Grayscale2Color {
                 color: [1.0, 0.0, 0.0],
@@ -250,21 +248,24 @@ impl SurveyWidget {
             edition_mode: false,
 
             update_survey: false,
-            color_option: if is_grayscale_image { ColorOption::Color } else { ColorOption::RGB },
+            color_option: if is_grayscale_image {
+                ColorOption::Color
+            } else {
+                ColorOption::RGB
+            },
             // edition mode
             // Color
             color_cfg, // color config
-            color, // color
-            k, // strength color
+            color,     // color
+            k,         // strength color
             colormap,
             reversed,
-            
 
             blend_cfg,
             opacity,
             transfer_func,
             cutouts,
-            cut_range
+            cut_range,
         }
     }
 
@@ -295,11 +296,7 @@ impl SurveyWidget {
             HiPSTileFormat::JPG
         };
 
-        let opacity = if !self.visible {
-            0.0
-        } else {
-            self.opacity
-        };
+        let opacity = if !self.visible { 0.0 } else { self.opacity };
 
         SimpleHiPS {
             layer: self.url.clone(),
@@ -337,7 +334,7 @@ impl SurveyWidget {
 
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut self.quit, true, "❌");
-                    ui.selectable_value(&mut info,true, "ℹ");
+                    ui.selectable_value(&mut info, true, "ℹ");
                     ui.selectable_value(&mut self.edition_mode, !edition_mode, "🖊");
                     let v = self.visible;
                     if ui.selectable_value(&mut self.visible, !v, "👁").clicked() {
@@ -367,7 +364,7 @@ impl SurveyWidget {
                                         TransferFunction::Sqrt => plot(ui, |x| x.sqrt()),
                                         TransferFunction::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
                                     }
-        
+
                                     // Selection of the transfer function
                                     ui.vertical(|ui| {
                                         ui_changed |= ui.selectable_value(
@@ -402,25 +399,35 @@ impl SurveyWidget {
                                     });
                                     ui.end_row();
                                 });
-                                }
-        
-                                if let Some(c) = &mut self.cutouts {
-                                    ui.separator();
-                                    ui.label("Cutouts:");
-                                    ui_changed |= ui.add(
-                                        egui::widgets::Slider::new(&mut c[0], self.cut_range.clone())
-                                            .text("left")
-                                    ).changed();
-        
-                                    ui_changed |= ui.add(
-                                        egui::widgets::Slider::new(&mut c[1], self.cut_range.clone())
-                                            .text("right"),
-                                    ).changed();
-                                }
-                            });
-    
-                            ui.separator();
-                            blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut ui_changed);
+                            }
+
+                            if let Some(c) = &mut self.cutouts {
+                                ui.separator();
+                                ui.label("Cutouts:");
+                                ui_changed |= ui
+                                    .add(
+                                        egui::widgets::Slider::new(
+                                            &mut c[0],
+                                            self.cut_range.clone(),
+                                        )
+                                        .text("left"),
+                                    )
+                                    .changed();
+
+                                ui_changed |= ui
+                                    .add(
+                                        egui::widgets::Slider::new(
+                                            &mut c[1],
+                                            self.cut_range.clone(),
+                                        )
+                                        .text("right"),
+                                    )
+                                    .changed();
+                            }
+                        });
+
+                        ui.separator();
+                        blend_widget(ui, &mut self.blend_cfg, &mut self.opacity, &mut ui_changed);
                     });
                     if ui_changed {
                         self.update_survey = true;
@@ -433,24 +440,18 @@ impl SurveyWidget {
         ui.group(|ui| {
             ui.horizontal(|ui| {
                 if !self.properties.is_fits_image() {
-                    *ui_changed |= ui.selectable_value(
-                        &mut self.color_option,
-                        ColorOption::RGB,
-                        "RGB"
-                    ).clicked();
+                    *ui_changed |= ui
+                        .selectable_value(&mut self.color_option, ColorOption::RGB, "RGB")
+                        .clicked();
                 }
 
-                *ui_changed |= ui.selectable_value(
-                    &mut self.color_option,
-                    ColorOption::Colormap,
-                    "Colormap"
-                ).clicked();
-        
-                *ui_changed |= ui.selectable_value(
-                    &mut self.color_option,
-                    ColorOption::Color,
-                    "Color"
-                ).clicked();
+                *ui_changed |= ui
+                    .selectable_value(&mut self.color_option, ColorOption::Colormap, "Colormap")
+                    .clicked();
+
+                *ui_changed |= ui
+                    .selectable_value(&mut self.color_option, ColorOption::Color, "Color")
+                    .clicked();
             });
 
             let cutouts = self.cutouts.unwrap_or([0.0, 1.0]);
@@ -459,15 +460,14 @@ impl SurveyWidget {
                 ColorOption::Color => {
                     ui.label("Color picker");
                     *ui_changed |= ui.color_edit_button_srgba(&mut self.color).changed();
-                    *ui_changed |= ui.add(
-                        egui::widgets::Slider::new(&mut self.k, 0.0..=2.0)
-                            .text("Strength"),
-                    ).changed();
+                    *ui_changed |= ui
+                        .add(egui::widgets::Slider::new(&mut self.k, 0.0..=2.0).text("Strength"))
+                        .changed();
                     self.color_cfg = HiPSColor::Grayscale2Color {
                         color: [
-                            (self.color.r() as f32)/255.0,
-                            (self.color.g() as f32)/255.0,
-                            (self.color.b() as f32)/255.0
+                            (self.color.r() as f32) / 255.0,
+                            (self.color.g() as f32) / 255.0,
+                            (self.color.b() as f32) / 255.0,
                         ],
                         param: GrayscaleParameter {
                             h: transfer,
@@ -476,7 +476,7 @@ impl SurveyWidget {
                         },
                         k: self.k
                     };
-                },
+                }
                 ColorOption::Colormap => {
                     egui::ComboBox::from_label("Colormap")
                     .selected_text(format!("{:?}", self.colormap))
@@ -505,7 +505,7 @@ impl SurveyWidget {
                         },
                         reversed: self.reversed,
                     };
-                },
+                }
                 ColorOption::RGB => {
                     self.color_cfg = HiPSColor::Color;
                 }
@@ -514,9 +514,12 @@ impl SurveyWidget {
     }
 }
 
-
-
-fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, update_parent: &mut bool) {
+fn blend_widget(
+    ui: &mut egui::Ui,
+    blend: &mut BlendCfg,
+    opacity: &mut f32,
+    update_parent: &mut bool,
+) {
     ui.group(|ui| {
         ui.label("Blending:");
         let mut ui_changed = false;
@@ -525,16 +528,44 @@ fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, upda
             egui::ComboBox::from_label("Src Color")
                 .selected_text(format!("{:?}", blend.src_color_factor))
                 .show_ui(ui, |ui| {
-                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked();
-                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked();
-                    ui_changed |= ui.selectable_value(&mut blend.src_color_factor, BlendFactor::One, "One").clicked();
+                    ui_changed |= ui
+                        .selectable_value(
+                            &mut blend.src_color_factor,
+                            BlendFactor::SrcAlpha,
+                            "SrcAlpha",
+                        )
+                        .clicked();
+                    ui_changed |= ui
+                        .selectable_value(
+                            &mut blend.src_color_factor,
+                            BlendFactor::OneMinusSrcAlpha,
+                            "OneMinusSrcAlpha",
+                        )
+                        .clicked();
+                    ui_changed |= ui
+                        .selectable_value(&mut blend.src_color_factor, BlendFactor::One, "One")
+                        .clicked();
                 });
             egui::ComboBox::from_label("Dst Color")
                 .selected_text(format!("{:?}", blend.dst_color_factor))
                 .show_ui(ui, |ui| {
-                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::SrcAlpha, "SrcAlpha").clicked();
-                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::OneMinusSrcAlpha, "OneMinusSrcAlpha").clicked();
-                    ui_changed |= ui.selectable_value(&mut blend.dst_color_factor, BlendFactor::One, "One").clicked();
+                    ui_changed |= ui
+                        .selectable_value(
+                            &mut blend.dst_color_factor,
+                            BlendFactor::SrcAlpha,
+                            "SrcAlpha",
+                        )
+                        .clicked();
+                    ui_changed |= ui
+                        .selectable_value(
+                            &mut blend.dst_color_factor,
+                            BlendFactor::OneMinusSrcAlpha,
+                            "OneMinusSrcAlpha",
+                        )
+                        .clicked();
+                    ui_changed |= ui
+                        .selectable_value(&mut blend.dst_color_factor, BlendFactor::One, "One")
+                        .clicked();
                 });
         });
     
@@ -550,17 +581,26 @@ fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, upda
         });*/
         //#[cfg(feature = "webgl1")]
         egui::ComboBox::from_label("Blend Func")
-        .selected_text(format!("{:?}", blend.func))
-        .show_ui(ui, |ui| {
-            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add").clicked();
-            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract").clicked();
-            ui_changed |= ui.selectable_value(&mut blend.func, BlendFunc::FuncReverseSubstract, "Reverse Subtract").clicked();
-        });
-    
-        ui_changed |= ui.add(
-            egui::widgets::Slider::new(opacity, 0.0..=1.0)
-                .text("Alpha")
-        ).changed();
+            .selected_text(format!("{:?}", blend.func))
+            .show_ui(ui, |ui| {
+                ui_changed |= ui
+                    .selectable_value(&mut blend.func, BlendFunc::FuncAdd, "Add")
+                    .clicked();
+                ui_changed |= ui
+                    .selectable_value(&mut blend.func, BlendFunc::FuncSubstract, "Subtract")
+                    .clicked();
+                ui_changed |= ui
+                    .selectable_value(
+                        &mut blend.func,
+                        BlendFunc::FuncReverseSubstract,
+                        "Reverse Subtract",
+                    )
+                    .clicked();
+            });
+
+        ui_changed |= ui
+            .add(egui::widgets::Slider::new(opacity, 0.0..=1.0).text("Alpha"))
+            .changed();
 
         if ui_changed {
             *update_parent = true;
@@ -569,23 +609,20 @@ fn blend_widget(ui: &mut egui::Ui, blend: &mut BlendCfg, opacity: &mut f32, upda
 }
 
 fn plot(ui: &mut egui::Ui, f: impl Fn(f32) -> f32) {
-    use egui::plot::{Line, Value, Values, Plot};
+    use egui::plot::{Line, Plot, Value, Values};
     let sin = (0..100).map(|i| {
         let x = i as f32 * 0.01;
         Value::new(x, f(x))
     });
     let line = Line::new(Values::from_values_iter(sin));
     ui.add(
-        Plot::new(
-            "Transfer function"
-        )
-        .width(100.0)
-        .legend(egui::widgets::plot::Legend::default())
-        .allow_drag(false)
-        .allow_zoom(false)
-        .line(line)
-        .view_aspect(1.0)
-        .show_background(false)
+        Plot::new("Transfer function")
+            .width(100.0)
+            .legend(egui::widgets::plot::Legend::default())
+            .allow_drag(false)
+            .allow_zoom(false)
+            .line(line)
+            .view_aspect(1.0)
+            .show_background(false),
     );
 }
-

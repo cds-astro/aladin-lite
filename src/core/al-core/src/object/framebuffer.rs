@@ -1,9 +1,4 @@
-use {
-    wasm_bindgen::prelude::*,
-    web_sys::{
-        WebGlFramebuffer
-    },
-};
+use {wasm_bindgen::prelude::*, web_sys::WebGlFramebuffer};
 
 use crate::webgl_ctx::WebGlRenderingCtx;
 
@@ -12,8 +7,8 @@ pub struct FrameBufferObject {
     fbo: WebGlFramebuffer,
     pub texture: Texture2D,
 }
-use crate::Texture2D;
 use crate::webgl_ctx::WebGlContext;
+use crate::Texture2D;
 
 impl FrameBufferObject {
     pub fn new(gl: &WebGlContext, width: usize, height: usize) -> Result<Self, JsValue> {
@@ -62,7 +57,8 @@ impl FrameBufferObject {
         if (width, height) != (self.texture.width() as usize, self.texture.height() as usize) {
             //let pixels = [0, 0, 0, 0].iter().cloned().cycle().take(4*height*width).collect::<Vec<_>>();
             #[cfg(feature = "webgl2")]
-            self.texture.bind_mut()
+            self.texture
+                .bind_mut()
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
                     width as i32,
                     height as i32,
@@ -72,7 +68,8 @@ impl FrameBufferObject {
                     None
                 );
             #[cfg(feature = "webgl1")]
-            self.texture.bind_mut()
+            self.texture
+                .bind_mut()
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
                     width as i32,
                     height as i32,
@@ -86,7 +83,8 @@ impl FrameBufferObject {
 
     pub fn bind(&self) {
         // bind the fbo
-        self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&self.fbo));
+        self.gl
+            .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&self.fbo));
 
         let w = self.texture.width() as i32;
         let h = self.texture.height() as i32;

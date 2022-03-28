@@ -1,17 +1,16 @@
-
 use crate::math::LonLatT;
+use crate::Angle;
 use crate::{camera::CameraViewPort, projection::Projection, shader::ShaderManager};
 
 use al_core::VecData;
-
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
 
-
 use super::Triangulation;
+use crate::coo_conversion::CooSystem;
 fn create_vertices_array<P: Projection>(
     _gl: &WebGlContext,
     _camera: &CameraViewPort,
@@ -48,7 +47,6 @@ pub struct RayTracer {
     ang2pix_tex: Texture2D,
 }
 use cgmath::{InnerSpace, Vector2};
-
 
 const SIZE_POSITION_TEX: usize = 2048;
 fn generate_xyz_position<P: Projection>() -> Vec<f32> {
@@ -117,10 +115,14 @@ fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
         for x in 0..(w as u32) {
             let xy = Vector2::new(x, y);
             let lonlat = LonLatT::new(
-                Rad(((xy.x as f64) / (w as f64)) * std::f64::consts::PI * 2.0 + std::f64::consts::PI).into(),
-                Rad((2.0 * ((xy.y as f64) / (h as f64)) - 1.0) * std::f64::consts::FRAC_PI_2).into(),
+                Rad(((xy.x as f64) / (w as f64)) * std::f64::consts::PI * 2.0
+                    + std::f64::consts::PI)
+                .into(),
+                Rad((2.0 * ((xy.y as f64) / (h as f64)) - 1.0) * std::f64::consts::FRAC_PI_2)
+                    .into(),
             );
-            let (idx, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
+            let (idx, dx, dy) =
+                healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
             data.extend(&[(idx as f32), dx as f32, dy as f32]);
         }
     }
@@ -128,7 +130,12 @@ fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
     data
 }
 
-fn create_f32_texture_from_raw(gl: &WebGlContext, width: i32, height: i32, data: &[f32]) -> Texture2D {
+fn create_f32_texture_from_raw(
+    gl: &WebGlContext,
+    width: i32,
+    height: i32,
+    data: &[f32],
+) -> Texture2D {
     let tex = Texture2D::create_empty_with_format::<al_core::format::RGB32F>(
         gl,
         width,
@@ -198,12 +205,9 @@ impl RayTracer {
                 VecData::<f32>(&vertices),
             )*/
             // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData::<u16>(&idx),
-            )
-        // Unbind the buffer
-        .unbind();
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData::<u16>(&idx))
+            // Unbind the buffer
+            .unbind();
         #[cfg(feature = "webgl1")]
         vao.bind_for_update()
             .add_array_buffer(
@@ -213,21 +217,28 @@ impl RayTracer {
                 VecData::<f32>(&vertices),
             )
             // Set the element buffer
-            .add_element_buffer(
-                WebGl2RenderingContext::STATIC_DRAW,
-                VecData::<u16>(&idx),
-            )
-        // Unbind the buffer
-        .unbind();
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData::<u16>(&idx))
+            // Unbind the buffer
+            .unbind();
         // create position data
         let data = generate_xyz_position::<P>();
-        let position_tex = create_f32_texture_from_raw(gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data);
+        let position_tex = create_f32_texture_from_raw(
+            &gl,
+            SIZE_POSITION_TEX as i32,
+            SIZE_POSITION_TEX as i32,
+            &data,
+        );
 
         // create ang2pix texture for webgl1 app
         #[cfg(feature = "webgl1")]
         let ang2pix_tex = {
             let data = generate_hash_dxdy::<P>(0);
-            create_f32_texture_from_raw(&gl, SIZE_POSITION_TEX as i32, SIZE_POSITION_TEX as i32, &data)
+            create_f32_texture_from_raw(
+                &gl,
+                SIZE_POSITION_TEX as i32,
+                SIZE_POSITION_TEX as i32,
+                &data,
+            )
         };
 
         let gl = gl.clone();
@@ -238,7 +249,7 @@ impl RayTracer {
 
             position_tex,
             #[cfg(feature = "webgl1")]
-            ang2pix_tex
+            ang2pix_tex,
         }
     }
 
@@ -248,22 +259,22 @@ impl RayTracer {
             .attach_uniform("position_tex", &self.position_tex)
             .attach_uniform("u_ang2pixd", &self.ang2pix_tex)
             .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(
-                    WebGl2RenderingContext::TRIANGLES, 
-                    None, 
-                    WebGl2RenderingContext::UNSIGNED_SHORT, 
-                    0
-                );
+            .draw_elements_with_i32(
+                WebGl2RenderingContext::TRIANGLES,
+                None,
+                WebGl2RenderingContext::UNSIGNED_SHORT,
+                0,
+            );
         #[cfg(feature = "webgl2")]
         shader
             .attach_uniform("position_tex", &self.position_tex)
             .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(
-                    WebGl2RenderingContext::TRIANGLES, 
-                    None, 
-                    WebGl2RenderingContext::UNSIGNED_SHORT, 
-                    0
-                )
+            .draw_elements_with_i32(
+                WebGl2RenderingContext::TRIANGLES,
+                None,
+                WebGl2RenderingContext::UNSIGNED_SHORT,
+                0,
+            )
     }
 
     pub fn is_rendering<P: Projection>(&self, camera: &CameraViewPort) -> bool {

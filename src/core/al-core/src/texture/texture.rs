@@ -1,8 +1,8 @@
 use crate::webgl_ctx::WebGlContext;
+use crate::webgl_ctx::WebGlRenderingCtx;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
-use crate::webgl_ctx::WebGlRenderingCtx;
 
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
@@ -248,7 +248,8 @@ impl Texture2D {
     }
 
     pub fn active_texture(&self, idx_tex_unit: u8) -> &Self {
-        self.gl.active_texture(WebGlRenderingCtx::TEXTURE0 + idx_tex_unit as u32);
+        self.gl
+            .active_texture(WebGlRenderingCtx::TEXTURE0 + idx_tex_unit as u32);
         self
     }
 
@@ -381,7 +382,7 @@ impl<'a> Texture2DBound<'a> {
         image: &HtmlImageElement,
     ) {
         let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
-        
+
         #[cfg(feature = "webgl2")]
         self.texture_2d
             .gl

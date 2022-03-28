@@ -8,7 +8,6 @@ pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
 #[cfg(feature = "webgl1")]
 pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
-
 #[derive(Clone)]
 pub struct WebGlContext {
     inner: Rc<WebGlRenderingCtx>,
@@ -42,7 +41,7 @@ impl WebGlContext {
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =
             js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
-        
+
         #[cfg(feature = "webgl1")]
         let gl = Rc::new(
             canvas
@@ -61,14 +60,18 @@ impl WebGlContext {
         );
 
         #[cfg(feature = "webgl1")]
-        let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+        let angles_ext =
+            get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
         #[cfg(feature = "webgl1")]
         let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
         #[cfg(feature = "webgl1")]
         let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
 
         #[cfg(feature = "webgl1")]
-        let ctx = WebGlContext { inner: gl, ext: WebGlExt { angles: angles_ext } };
+        let ctx = WebGlContext {
+            inner: gl,
+            ext: WebGlExt { angles: angles_ext },
+        };
         #[cfg(feature = "webgl2")]
         let ctx = WebGlContext { inner: gl };
 

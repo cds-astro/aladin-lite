@@ -12,13 +12,13 @@ extern crate console_error_panic_hook;
 extern crate egui;
 extern crate epi;
 extern crate fitsrs;
+extern crate fontdue;
 extern crate img_pixel;
 extern crate itertools_num;
 extern crate num;
 extern crate num_traits;
 extern crate rand;
 extern crate serde_json;
-extern crate fontdue;
 #[macro_use]
 extern crate enum_dispatch;
 
@@ -30,13 +30,13 @@ mod utils;
 use projection::*;
 use wasm_bindgen::prelude::*;
 
+mod angle;
 mod app;
 mod async_task;
 mod buffer;
 mod camera;
 mod cdshealpix;
 mod coo_conversion;
-mod angle;
 
 pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 
@@ -52,16 +52,12 @@ mod time;
 mod projection;
 
 use crate::{
-    camera::CameraViewPort,
-    math::LonLatT,
-    renderable::{survey::image_survey::ImageSurveys},
-    shader::ShaderManager,
-    shaders::Colormaps,
-    time::DeltaTime,
+    camera::CameraViewPort, math::LonLatT, renderable::survey::image_survey::ImageSurveys,
+    shader::ShaderManager, shaders::Colormaps, time::DeltaTime,
 };
+use al_api::hips::{HiPSColor, HiPSTileFormat, HiPSProperties, SimpleHiPS};
 use al_core::resources::Resources;
 use al_core::{shader::Shader, WebGlContext};
-use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
 use al_api::grid::GridCfg;
 
 pub use coo_conversion::CooSystem;
@@ -107,15 +103,16 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-        let app = AppType::OrthoApp(App::<Orthographic>::new(&gl, aladin_div_name, shaders, resources)?);
+        let app = AppType::OrthoApp(App::<Orthographic>::new(
+            &gl,
+            aladin_div_name,
+            shaders,
+            resources,
+        )?);
 
         let dt = DeltaTime::zero();
 
-        let webclient = WebClient {
-            app,
-
-            dt,
-        };
+        let webclient = WebClient { app, dt };
 
         Ok(webclient)
     }
@@ -135,8 +132,7 @@ impl WebClient {
         // world coordinates of the center of projection in (ra, dec)
         self.app.update(
             // Time of the previous frame rendering
-            self.dt,
-            // Force the update of some elements:
+            self.dt, // Force the update of some elements:
             // i.e. the grid
             force,
         )?;
@@ -551,8 +547,7 @@ impl WebClient {
     /// * `pos_y` - The y screen coordinate in pixels
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
-        if let Some(lonlat) = self.app.screen_to_world(&Vector2::new(pos_x, pos_y))
-        {
+        if let Some(lonlat) = self.app.screen_to_world(&Vector2::new(pos_x, pos_y)) {
             let lon_deg: ArcDeg<f64> = lonlat.lon().into();
             let lat_deg: ArcDeg<f64> = lonlat.lat().into();
 
@@ -693,8 +688,7 @@ impl WebClient {
         lon2: f64,
         lat2: f64,
     ) -> Result<Box<[f64]>, JsValue> {
-        let vertices = self.app
-            .project_line(lon1, lat1, lon2, lat2);
+        let vertices = self.app.project_line(lon1, lat1, lon2, lat2);
 
         let vertices = vertices
             .into_iter().flat_map(|v| vec![v.x, v.y])

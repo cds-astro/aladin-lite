@@ -88,10 +88,8 @@ impl ShaderManager {
 use crate::projection::*;
 use std::borrow::Cow;
 pub trait GetShader {
-    fn get_raster_shader_color<'a>(
-        gl: &WebGlContext,
-        shaders: &'a mut ShaderManager,
-    ) -> &'a Shader;
+    fn get_raster_shader_color<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager)
+        -> &'a Shader;
     fn get_raster_shader_gray2colormap<'a>(
         gl: &WebGlContext,
         shaders: &'a mut ShaderManager,

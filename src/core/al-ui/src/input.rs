@@ -16,13 +16,13 @@
 //#![warn(clippy::all, missing_crate_level_docs)]
 use wasm_bindgen::prelude::*;
 
-use egui::mutex::Mutex;
 use crate::Gui;
+use egui::mutex::Mutex;
 
+use al_core::log::*;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
-use al_core::log::*;
 
 static AGENT_ID: &str = "egui_text_agent";
 
@@ -492,8 +492,7 @@ impl Clone for GuiRef {
 use egui::mutex::MutexGuard;
 pub type GuiLock<'a> = MutexGuard<'a, Gui>;
 use std::ops::Deref;
-impl Deref for GuiRef
-{
+impl Deref for GuiRef {
     type Target = Arc<Mutex<Gui>>;
 
     fn deref(&self) -> &Self::Target {
@@ -509,14 +508,24 @@ fn get_current_time() -> f32 {
     performance.now() as f32
 }
 
-fn paint_for_duration_milli_secs(runner_ref: GuiRef, start_time: f32, duration: f32) -> Result<(), JsValue> {
-    fn request_animation_frame(runner_ref: GuiRef, start_time: f32, duration: f32) -> Result<(), JsValue> {
+fn paint_for_duration_milli_secs(
+    runner_ref: GuiRef,
+    start_time: f32,
+    duration: f32,
+) -> Result<(), JsValue> {
+    fn request_animation_frame(
+        runner_ref: GuiRef,
+        start_time: f32,
+        duration: f32,
+    ) -> Result<(), JsValue> {
         use wasm_bindgen::JsCast;
 
         if get_current_time() - start_time < duration {
             let window = web_sys::window().unwrap();
 
-            let closure = Closure::once(move || paint_for_duration_milli_secs(runner_ref, start_time, duration));
+            let closure = Closure::once(move || {
+                paint_for_duration_milli_secs(runner_ref, start_time, duration)
+            });
             window.request_animation_frame(closure.as_ref().unchecked_ref())?;
             closure.forget(); // We must forget it, or else the callback is canceled on drop
         }
@@ -860,7 +869,8 @@ pub fn install_canvas_events(runner_ref: GuiRef) -> Result<(), JsValue> {
                         });
                     runner_lock.mouse_pressed = true;
                 }
-                paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0).unwrap();
+                paint_for_duration_milli_secs(runner_ref.clone(), get_current_time(), 500.0)
+                    .unwrap();
             }
 
             event.stop_propagation();

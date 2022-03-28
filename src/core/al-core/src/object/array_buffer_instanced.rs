@@ -23,14 +23,11 @@ use super::array_buffer::VertexBufferObject;
 
 impl VertexBufferObject for ArrayBufferInstanced {
     fn bind(&self) {
-        self.gl.bind_buffer(
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            Some(self.buffer.as_ref()),
-        );
+        self.gl
+            .bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(self.buffer.as_ref()));
     }
     fn unbind(&self) {
-        self.gl
-            .bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
+        self.gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, None);
     }
 }
 
@@ -62,12 +59,7 @@ impl ArrayBufferInstanced {
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
         // Pass the vertices data to the buffer
-        f32::buffer_data_with_array_buffer_view(
-            gl,
-            data,
-            WebGlRenderingCtx::ARRAY_BUFFER,
-            usage,
-        );
+        f32::buffer_data_with_array_buffer_view(gl, data, WebGlRenderingCtx::ARRAY_BUFFER, usage);
         // Link to the shader
         let idx = offset_idx;
 
@@ -216,11 +208,11 @@ impl ArrayBufferInstanced {
             );
             // unbind the buffer of origin
             self.gl
-                .bind_buffer(WebGlRenderingCtx::COPY_READ_BUFFER, None);            
+                .bind_buffer(WebGlRenderingCtx::COPY_READ_BUFFER, None);
         }
 
         #[cfg(feature = "webgl1")]
-        
+
 
         self.buffer = dest_buf;
         self.num_bytes_in_buf = num_bytes_in_dest_buf;

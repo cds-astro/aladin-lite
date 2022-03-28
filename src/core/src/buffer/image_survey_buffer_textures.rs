@@ -130,11 +130,9 @@ pub struct ImageSurveyTextures {
 
     exec: Rc<RefCell<TaskExecutor>>,
 }
+use crate::async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType};
 use crate::math::LonLatT;
 use crate::JsValue;
-use crate::{
-    async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType},
-};
 use al_core::WebGlContext;
 
 use al_core::format::ImageFormat;
@@ -181,11 +179,7 @@ use super::Tile;
 use al_core::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
-use al_core::format::{
-    R16I,
-    R32I,
-    R8UI
-};
+use al_core::format::{R16I, R32I, R8UI};
 
 use crate::healpix_cell::NUM_HPX_TILES_DEPTH_ZERO;
 use cgmath::Vector3;

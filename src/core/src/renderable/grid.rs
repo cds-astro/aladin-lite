@@ -1,3 +1,4 @@
+use healpix::TWICE_PI;
 use web_sys::WebGl2RenderingContext;
 
 
@@ -287,11 +288,11 @@ impl ProjetedGrid {
         if self.cfg.enabled {
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
-            if camera.get_aperture() < ArcDeg(10.0) {
+            //if camera.get_aperture() < ArcDeg(10.0) {
                 self.draw_lines_cpu::<P>(camera, shaders);
-            } else {
-                self.draw_lines_gpu::<P>(camera, shaders);
-            }
+            //} else {
+            //    self.draw_lines_gpu::<P>(camera, shaders);
+            //}
 
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -374,182 +375,6 @@ impl GridShaderProjection for AzimuthalEquidistant {
 use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
-pub const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
-fn subdivide<P: Projection>(
-    vertices: &mut Vec<Vector2<f64>>,
-    lonlat: [(f64, f64); 3],
-    depth: usize,
-    min_subdivision_level: i32,
-    camera: &CameraViewPort,
-) {
-    // Convert to cartesian
-    let system = camera.get_system();
-    let a: Vector4<f64> =
-        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[0].0), Angle(lonlat[0].1));
-    let b: Vector4<f64> =
-        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[1].0), Angle(lonlat[1].1));
-    let c: Vector4<f64> =
-        system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lonlat[2].0), Angle(lonlat[2].1));
-
-    // Project them. We are always facing the camera
-    let a = P::model_to_ndc_space(&a, camera);
-    let b = P::model_to_ndc_space(&b, camera);
-    let c = P::model_to_ndc_space(&c, camera);
-    match (a, b, c) {
-        (None, None, None) => {}
-        (Some(a), Some(b), Some(c)) => {
-            // Compute the angle between a->b and b->c
-            let ab = b - a;
-            let bc = c - b;
-            let ab_l = ab.magnitude2();
-            let bc_l = bc.magnitude2();
-
-            let theta = math::angle(&ab.normalize(), &bc.normalize());
-
-            if theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION && min_subdivision_level <= 0 {
-                vertices.push(a);
-                vertices.push(b);
-
-                vertices.push(b);
-                vertices.push(c);
-            } else if depth > 0 {
-                // Subdivide a->b and b->c
-                let lon_d = (lonlat[0].0 + lonlat[1].0) * 0.5;
-                let lat_d = (lonlat[0].1 + lonlat[1].1) * 0.5;
-                subdivide::<P>(
-                    vertices,
-                    [lonlat[0], (lon_d, lat_d), lonlat[1]],
-                    depth - 1,
-                    min_subdivision_level - 1,
-                    camera,
-                );
-
-                let lon_e = (lonlat[1].0 + lonlat[2].0) * 0.5;
-                let lat_e = (lonlat[1].1 + lonlat[2].1) * 0.5;
-                subdivide::<P>(
-                    vertices,
-                    [lonlat[1], (lon_e, lat_e), lonlat[2]],
-                    depth - 1,
-                    min_subdivision_level - 1,
-                    camera,
-                );
-            } else if ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
-                if ab_l == ab_l.min(bc_l) {
-                    vertices.push(a);
-                    vertices.push(b);
-                } else {
-                    vertices.push(b);
-                    vertices.push(c);
-                }
-                
-            }
-        }
-        (Some(_), None, None) => {
-            if depth == 0 {
-                return;
-            }
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[0],
-                    (
-                        (lonlat[0].0 + lonlat[1].0) * 0.5,
-                        (lonlat[0].1 + lonlat[1].1) * 0.5,
-                    ),
-                    lonlat[1],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-        }
-        (None, None, Some(_)) => {
-            if depth == 0 {
-                return;
-            }
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[1],
-                    (
-                        (lonlat[1].0 + lonlat[2].0) * 0.5,
-                        (lonlat[1].1 + lonlat[2].1) * 0.5,
-                    ),
-                    lonlat[2],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-        }
-        (None, Some(_), None) => {
-            if depth == 0 {
-                return;
-            }
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[0],
-                    (
-                        (lonlat[0].0 + lonlat[1].0) * 0.5,
-                        (lonlat[0].1 + lonlat[1].1) * 0.5,
-                    ),
-                    lonlat[1],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[1],
-                    (
-                        (lonlat[1].0 + lonlat[2].0) * 0.5,
-                        (lonlat[1].1 + lonlat[2].1) * 0.5,
-                    ),
-                    lonlat[2],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-        }
-        _ => {
-            if depth == 0 {
-                return;
-            }
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[0],
-                    (
-                        (lonlat[0].0 + lonlat[1].0) * 0.5,
-                        (lonlat[0].1 + lonlat[1].1) * 0.5,
-                    ),
-                    lonlat[1],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-            subdivide::<P>(
-                vertices,
-                [
-                    lonlat[1],
-                    (
-                        (lonlat[1].0 + lonlat[2].0) * 0.5,
-                        (lonlat[1].1 + lonlat[2].1) * 0.5,
-                    ),
-                    lonlat[2],
-                ],
-                depth - 1,
-                min_subdivision_level - 1,
-                camera,
-            );
-        }
-    }
-}
 use crate::math::{self};
 use crate::sphere_geometry::FieldOfViewType;
 use crate::Angle;
@@ -757,24 +582,18 @@ impl GridLine {
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
-        subdivide::<P>(
+
+        let system = camera.get_system();
+        let a = Vector2::new(lon, lat.start);
+        let c = Vector2::new(lon, lat.end);
+        let b = (a + c)*0.5;
+
+        crate::line::subdivide_along_longitude_and_latitudes::<P>(
             &mut vertices,
-            [
-                (lon, lat.start),
-                (lon, (lat.start + lat.end) * 0.5),
-                (lon, lat.end),
-            ],
-            7,
-            2,
-            camera,
+            [&a, &b, &c],
+            camera
         );
 
-        /*let too_unzoomed = camera.get_aperture() > ArcDeg(720.0);
-        let label = if !too_unzoomed {
-            Label::meridian::<P>(fov, lon, &p, camera, sp, ctx2d)
-        } else {
-            None
-        };*/
         let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
         let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
 
@@ -792,24 +611,18 @@ impl GridLine {
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
             let mut vertices = vec![];
-            subdivide::<P>(
+            let system = camera.get_system();
+
+            let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
+            let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
+            let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
+
+            crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,
-                [
-                    (lon.start, lat),
-                    (0.5 * (lon.start + lon.end), lat),
-                    (lon.end, lat),
-                ],
-                7,
-                2,
-                camera,
+                [&Vector2::new(lon.start, lat), &Vector2::new(0.5*(lon.start + lon.end), lat), &Vector2::new(lon.end, lat)],
+                camera
             );
 
-            /*let too_unzoomed = camera.get_aperture() > ArcDeg(720.0);
-            let label = if !too_unzoomed {
-                Label::parallel::<P>(fov, lat, &p, camera, ctx2d)
-            } else {
-                None
-            };*/
             let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer);
 
             Some(GridLine { vertices, label })

@@ -1,7 +1,7 @@
 use super::image::ArrayBuffer;
 use super::image::{ArrayF32, ArrayI16, ArrayI32, ArrayU8};
-use wasm_bindgen::JsValue;
 use crate::webgl_ctx::WebGlRenderingCtx;
+use wasm_bindgen::JsValue;
 
 use crate::webgl_ctx::WebGlContext;
 pub trait Pixel:

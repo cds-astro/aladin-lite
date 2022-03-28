@@ -2,8 +2,7 @@ use super::source::Source;
 use crate::ShaderManager;
 use al_core::FrameBufferObject;
 use al_core::{
-    resources::Resources,
-    shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
+    resources::Resources, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
 use al_api::colormap::Colormap;
 use std::collections::HashMap;
@@ -263,7 +262,7 @@ pub struct Catalog {
 }
 use al_core::SliceData;
 use crate::healpix_cell::HEALPixCell;
-use crate::{camera::CameraViewPort, utils, projection::Projection};
+use crate::{camera::CameraViewPort, projection::Projection, utils};
 use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
@@ -344,8 +343,8 @@ impl Catalog {
                     WebGl2RenderingContext::STATIC_DRAW,
                     SliceData(indices.as_ref()),
                 )
-            // Unbind the buffer
-            .unbind();
+                // Unbind the buffer
+                .unbind();
             #[cfg(feature = "webgl1")]
             vao.bind_for_update()
                 .add_instanced_array_buffer(
@@ -373,8 +372,8 @@ impl Catalog {
                     WebGl2RenderingContext::STATIC_DRAW,
                     SliceData(indices.as_ref()),
                 )
-            // Unbind the buffer
-            .unbind();
+                // Unbind the buffer
+                .unbind();
 
             vao
         };
@@ -544,9 +543,9 @@ pub trait CatalogShaderProjection {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
+use crate::projection::Aitoff;
 use crate::shader::ShaderId;
 use std::borrow::Cow;
-use crate::projection::Aitoff;
 
 impl CatalogShaderProjection for Aitoff {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {

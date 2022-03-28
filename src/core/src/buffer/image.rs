@@ -306,13 +306,9 @@ pub struct CompressedImageRequest {
     image: web_sys::HtmlImageElement,
 }
 
-use al_core::format::{R32F, RGB8U, RGBA8U};
 #[cfg(feature = "webgl2")]
-use al_core::format::{
-    R16I,
-    R32I,
-    R8UI
-};
+use al_core::format::{R16I, R32I, R8UI};
+use al_core::format::{R32F, RGB8U, RGBA8U};
 trait CompressedImageFormat: ImageFormat {}
 impl CompressedImageFormat for RGBA8U {}
 impl CompressedImageFormat for RGB8U {}

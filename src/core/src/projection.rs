@@ -22,7 +22,6 @@ pub fn screen_to_ndc_space(
     let dpi = camera.get_dpi() as f64;
     let origin = pos_screen_space * dpi - window_size / 2.0;
 
-
     // Scale to fit in [-1, 1]
     
     Vector2::new(
@@ -419,7 +418,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((150.0 / 180.0) * std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((200.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::math;
@@ -650,7 +649,7 @@ impl Projection for Orthographic {
         pos_world_space.z > 0_f64
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((110.0 / 180.0) * std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((120.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for AzimuthalEquidistant {

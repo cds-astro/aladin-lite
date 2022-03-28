@@ -7,13 +7,10 @@ pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
 use {
     wasm_bindgen::{prelude::*, JsCast},
-    web_sys::{
-        WebGlBuffer,
-        WebGlTexture,
-    },
+    web_sys::{WebGlBuffer, WebGlTexture},
 };
 
-use al_core::{shader::Shader};
+use al_core::shader::Shader;
 use cgmath::Vector2;
 use egui::{
     self,
@@ -96,20 +93,19 @@ impl WebGl2Painter {
         let shader = Shader::new(
             &gl,
             include_str!("../shaders/webgl1/main_vertex_100es.glsl"),
-            include_str!("../shaders/webgl1/main_fragment_100es.glsl")
+            include_str!("../shaders/webgl1/main_fragment_100es.glsl"),
         )?;
         #[cfg(feature = "webgl2")]
         let shader = Shader::new(
             &gl,
             include_str!("../shaders/webgl2/main_vertex_100es.glsl"),
-            include_str!("../shaders/webgl2/main_fragment_100es.glsl")
+            include_str!("../shaders/webgl2/main_fragment_100es.glsl"),
         )?;
 
         let pos_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         let tc_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         let color_buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
         //gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(&pos_buffer));
-        
 
         /*let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 pos;
@@ -330,14 +326,7 @@ impl WebGl2Painter {
         let num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         // layout (location = 0) in vec2 pos;
         let pos_loc = self.shader.get_attrib_location(gl, "pos") as u32;
-        gl.vertex_attrib_pointer_with_i32(
-            pos_loc,
-            2,
-            WebGlRenderingCtx::FLOAT,
-            false,
-            0,
-            0,
-        );
+        gl.vertex_attrib_pointer_with_i32(pos_loc, 2, WebGlRenderingCtx::FLOAT, false, 0, 0);
         gl.enable_vertex_attrib_array(pos_loc);
 
         // layout (location = 1) in vec2 tx;
@@ -348,14 +337,7 @@ impl WebGl2Painter {
             WebGlRenderingCtx::STREAM_DRAW,
         );
         let tx_loc = self.shader.get_attrib_location(gl, "tx") as u32;
-        gl.vertex_attrib_pointer_with_i32(
-            tx_loc,
-            2,
-            WebGlRenderingCtx::FLOAT,
-            false,
-            0,
-            0,
-        );
+        gl.vertex_attrib_pointer_with_i32(tx_loc, 2, WebGlRenderingCtx::FLOAT, false, 0, 0);
         gl.enable_vertex_attrib_array(tx_loc);
 
         // layout (location = 2) in vec4 color;
@@ -366,14 +348,7 @@ impl WebGl2Painter {
             WebGlRenderingCtx::STREAM_DRAW,
         );
         let color_loc = self.shader.get_attrib_location(gl, "color") as u32;
-        gl.vertex_attrib_pointer_with_i32(
-            color_loc,
-            4,
-            WebGlRenderingCtx::FLOAT,
-            false,
-            0,
-            0,
-        );
+        gl.vertex_attrib_pointer_with_i32(color_loc, 4, WebGlRenderingCtx::FLOAT, false, 0, 0);
         gl.enable_vertex_attrib_array(color_loc);
 
         gl.bind_buffer(
@@ -457,9 +432,13 @@ impl egui_web::Painter for WebGl2Painter {
             pixels.push(srgba.a());
         }
         #[cfg(feature = "webgl1")]
-        let (src_format, src_internal_format) = (web_sys::ExtSRgb::SRGB_ALPHA_EXT, web_sys::ExtSRgb::SRGB_ALPHA_EXT);
+        let (src_format, src_internal_format) = (
+            web_sys::ExtSRgb::SRGB_ALPHA_EXT,
+            web_sys::ExtSRgb::SRGB_ALPHA_EXT,
+        );
         #[cfg(feature = "webgl2")]
-        let (src_format, src_internal_format) = (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::SRGB8_ALPHA8);
+        let (src_format, src_internal_format) =
+            (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::SRGB8_ALPHA8);
 
         let src_type = WebGlRenderingCtx::UNSIGNED_BYTE;
         let gl = &self.gl;
@@ -532,7 +511,6 @@ impl egui_web::Painter for WebGl2Painter {
                 ));
             }
         }
-
 
         self.gl.disable(WebGlRenderingCtx::SCISSOR_TEST);
         self.gl.enable(WebGlRenderingCtx::CULL_FACE);

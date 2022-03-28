@@ -24,10 +24,11 @@ pub use object::buffer_data::{BufferDataStorage, SliceData, VecData};
 pub use object::element_array_buffer::ElementArrayBuffer;
 pub use object::framebuffer::FrameBufferObject;
 
-pub use object::vertex_array_object::vao::{
-    ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject, VertexArrayObjectBound,
-};
 use object::array_buffer::VertexAttribPointerType;
+pub use object::vertex_array_object::vao::{
+    ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
+    VertexArrayObjectBound,
+};
 
 pub mod resources;
 

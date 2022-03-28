@@ -2,12 +2,7 @@ use crate::buffer::Texture;
 
 use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
 #[cfg(feature = "webgl2")]
-use al_core::format::{
-    R16I,
-    R32I,
-    R8UI
-};
-
+use al_core::format::{R16I, R32I, R8UI};
 
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
@@ -196,8 +191,8 @@ use al_core::WebGlContext;
 
 use crate::projection::Projection;
 
-use crate::buffer::ImageSurveyTextures;
 use super::RayTracer;
+use crate::buffer::ImageSurveyTextures;
 
 
 trait Draw {
@@ -648,7 +643,8 @@ impl ImageSurvey {
             .add_element_buffer(
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&idx_vertices),
-            ).unbind();
+            )
+            .unbind();
 
         let num_idx = 0;
 
@@ -1156,7 +1152,7 @@ impl ImageSurveys {
         if raytracing || camera.is_reversed_longitude() {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         } else {
-            self.gl.cull_face(WebGl2RenderingContext::FRONT);
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
         }
 
         // The first layer must be paint independently of its alpha channel
@@ -1296,7 +1292,12 @@ impl ImageSurveys {
         if self.surveys.is_empty() {
             None
         } else {
-            Some(self.surveys.get(&self.most_precise_survey).unwrap().get_view())
+            Some(
+                self.surveys
+                    .get(&self.most_precise_survey)
+                    .unwrap()
+                    .get_view(),
+            )
         }
     }
 

@@ -102,7 +102,6 @@ export let HpxImageSurvey = (function() {
                 rootURL = rootURL.replace('http://', 'https://');
             }
 
-
             return (async () => {
                 const url = rootURL + '/properties';
                 let metadata = await fetch(url)
@@ -168,6 +167,8 @@ export let HpxImageSurvey = (function() {
         const bitpix = +metadata.hips_pixel_bitpix;
         // HiPS frame
         const frame = (options && options.frame) || "j2000";
+        // HiPS longitude reversed
+        const longitude_reversed = (options && options.reversedLongitude) || false;
 
         // HiPS render options
         let renderCfg;
@@ -234,6 +235,7 @@ export let HpxImageSurvey = (function() {
                 url: url,
                 maxOrder: order,
                 frame: frame,
+                longitudeReversed: longitude_reversed,
                 tileSize: tileSize,
                 format: tileFormat,
                 minCutout: minCut,

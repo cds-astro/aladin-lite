@@ -196,6 +196,7 @@ impl WebClient {
         Ok(self)
     }
 
+    /*
     /// Reverse the longitude axis
     ///
     /// # Arguments
@@ -207,6 +208,7 @@ impl WebClient {
 
         Ok(())
     }
+    */
 
     /// Check whether the app is ready
     ///
@@ -471,7 +473,7 @@ impl WebClient {
     pub fn reset_north_orientation(&mut self) {
         self.app.reset_north_orientation();
     }
-
+    /*
     /// Move to a location
     ///
     /// The core works in ICRS system so
@@ -491,7 +493,7 @@ impl WebClient {
 
         Ok(())
     }
-
+    */
     /// Go from a location to another one
     ///
     /// # Arguments

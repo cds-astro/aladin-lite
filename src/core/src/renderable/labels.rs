@@ -331,6 +331,8 @@ impl RenderManager for TextRenderManager {
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         ); // premultiplied alpha
 
+        self.gl.disable(WebGl2RenderingContext::CULL_FACE);
+
         {
             let shader = self.shader.bind(&self.gl);
             shader
@@ -352,7 +354,7 @@ impl RenderManager for TextRenderManager {
                     );
             }
         }
-
+        self.gl.enable(WebGl2RenderingContext::CULL_FACE);
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())

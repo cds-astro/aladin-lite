@@ -60,8 +60,8 @@ where
     exec: Rc<RefCell<TaskExecutor>>,
     pub resources: Resources,
 
-    move_animation: Option<MoveAnimation>,
-    zoom_animation: Option<ZoomAnimation>,
+    //move_animation: Option<MoveAnimation>,
+    //zoom_animation: Option<ZoomAnimation>,
     inertial_move_animation: Option<InertiaAnimation>,
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
@@ -84,11 +84,11 @@ use futures::stream::StreamExt; // for `next`
 use crate::rotation::Rotation;
 
 
-struct MoveAnimation {
+/*struct MoveAnimation {
     start_anim_rot: Rotation<f64>,
     goal_anim_rot: Rotation<f64>,
     time_start_anim: Time,
-}
+}*/
 
 /// State for inertia
 struct InertiaAnimation {
@@ -180,8 +180,6 @@ where
         })?;
 
         // Variable storing the location to move to
-        let move_animation = None;
-        let zoom_animation = None;
         let inertial_move_animation = None;
         let tasks_finished = false;
         let request_redraw = false;
@@ -223,8 +221,6 @@ where
             fbo_ui,
             final_rendering_pass,
 
-            move_animation,
-            zoom_animation,
             inertial_move_animation,
             prev_cam_position,
             out_of_fov,
@@ -340,6 +336,16 @@ where
 
         Ok(tiles_available)
     }
+
+    // To know if the longitude is reversed before doing the projection
+    // We have to retrieve the last rendered/visible survey
+    fn is_reversed_longitude(&self) -> bool {
+        if let Some(survey) = self.surveys.last() {
+            survey.longitude_reversed()
+        } else {
+            false
+        }
+    }
 }
 
 #[enum_dispatch(AppType)]
@@ -365,7 +371,7 @@ pub trait AppTrait {
 
     fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
-    fn set_longitude_reversed(&mut self, reversed: bool);
+    //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
     // Catalog
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
@@ -387,7 +393,7 @@ pub trait AppTrait {
     fn set_center(&mut self, lonlat: &LonLatT<f64>);
     fn set_fov(&mut self, fov: Angle<f64>);
 
-    fn start_moving_to(&mut self, lonlat: &LonLatT<f64>);
+    //fn start_moving_to(&mut self, lonlat: &LonLatT<f64>);
     fn rotate_around_center(&mut self, theta: ArcDeg<f64>);
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64);
     fn reset_north_orientation(&mut self);
@@ -440,7 +446,7 @@ where
         let is_there_new_available_tiles = !available_tiles.is_empty();
 
         // Check if there is an move animation to do
-        if let Some(MoveAnimation {
+        /*if let Some(MoveAnimation {
             start_anim_rot,
             goal_anim_rot,
             time_start_anim,
@@ -465,42 +471,6 @@ where
             // Animation stop criteria
             if 1.0 - alpha < 1e-5 {
                 self.move_animation = None;
-            }
-        }
-
-        // Check if there is an zoom animation to do
-        /*if let Some(ZoomAnimation {
-            time_start_anim,
-            start_fov,
-            goal_fov,
-            w0,
-            ..
-        }) = self.zoom_animation
-        {
-            let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
-
-            // Undamped angular frequency of the oscillator
-            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
-            //
-            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
-            // where:
-            // * k is the stiffness of the ressort
-            // * m is its mass
-            let fov = goal_fov + (start_fov - goal_fov) * (w0 * t + 1.0) * ((-w0 * t).exp());
-            /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
-            let alpha = alpha * alpha;
-            let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-
-            self.camera.set_aperture::<P>(fov);
-            self.look_for_new_tiles();
-
-            // The threshold stopping criteria must be dependant
-            // of the zoom level, in this case we stop when we get
-            // to 1% before the goal fov
-            let err = (fov - goal_fov).abs();
-            let thresh = (start_fov - goal_fov).abs() * 1e-2;
-            if err < thresh {
-                self.zoom_animation = None;
             }
         }*/
 
@@ -527,7 +497,8 @@ where
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
 
-            self.camera.rotate::<P>(&axis, d);
+            let reversed_longitude = self.is_reversed_longitude();
+            self.camera.rotate::<P>(&axis, d, reversed_longitude);
             self.look_for_new_tiles();
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
@@ -572,7 +543,7 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera, force);
+        self.grid.update::<P>(&self.camera, force, self.is_reversed_longitude());        
         {
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -581,6 +552,7 @@ where
                 match event {
                     al_ui::Event::ImageSurveys(surveys) => self.set_image_surveys(surveys)?,
                     _ => { todo!() }
+                    //al_ui::Event::ReverseLongitude(longitude_reversed) => { self.set_longitude_reversed(longitude_reversed)? }
                 }
             }
         }
@@ -590,7 +562,7 @@ where
 
     fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
-        self.camera.set_rotation_around_center::<P>(Angle(0.0));
+        self.camera.set_rotation_around_center::<P>(Angle(0.0), self.is_reversed_longitude());
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
@@ -722,7 +694,6 @@ where
         if !new_survey_ids.is_empty() {
             for id in new_survey_ids.iter() {
                 let config = &self.surveys.get(id).unwrap().get_textures().config;
-                al_core::log::log(&format!("config: {:?}", config));
                 self.downloader.request_base_tiles(config);
             }
             // Once its added, request its tiles
@@ -744,7 +715,8 @@ where
     }
 
     fn set_projection<Q: Projection>(mut self) -> App<Q> {
-        self.camera.set_projection::<Q>();
+        let reversed_longitude = self.is_reversed_longitude();
+        self.camera.set_projection::<Q>(reversed_longitude);
         self.surveys.set_projection::<Q>(
             &self.camera,
             &mut self.shaders,
@@ -764,8 +736,8 @@ where
             manager: self.manager,
             exec: self.exec,
             resources: self.resources,
-            move_animation: self.move_animation,
-            zoom_animation: self.zoom_animation,
+            //zoom_animation: self.zoom_animation,
+            //move_animation: self.move_animation,
             inertial_move_animation: self.inertial_move_animation,
             prev_cam_position: self.prev_cam_position,
             prev_center: self.prev_center,
@@ -791,19 +763,12 @@ where
         P::aperture_start().0
     }
 
-    fn set_longitude_reversed(&mut self, reversed: bool) {
+    /*fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
         self.camera.set_longitude_reversed(reversed);
-        self.surveys.set_longitude_reversed::<P>(
-            reversed,
-            &self.camera,
-            &mut self.shaders,
-            &self.resources,
-        );
 
         self.look_for_new_tiles();
-
         self.request_redraw = true;
-    }
+    }*/
 
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
@@ -925,14 +890,23 @@ where
         //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
         let model_pos_xyz = lonlat.vector();
 
-        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera);
+        // Select the HiPS layer rendered lastly
+        let reversed_longitude = self.is_reversed_longitude();
+
+        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera, reversed_longitude);
         Ok(screen_pos)
     }
 
     /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue> {
+    fn world_to_screen_vec(
+        &self,
+        sources: &Vec<JsValue>,
+    ) -> Result<Vec<f64>, JsValue> {
+        // Select the HiPS layer rendered lastly
+        let reversed_longitude = self.is_reversed_longitude();
+
         let res: Vec<f64> = sources
             .iter()
             .filter_map(|s| {
@@ -945,7 +919,7 @@ where
 
                 let xyz = lonlat.vector();
 
-                P::model_to_screen_space(&xyz, &self.camera).map(|s_xy| vec![s_xy.x, s_xy.y])
+                P::model_to_screen_space(&xyz, &self.camera, reversed_longitude).map(|s_xy| vec![s_xy.x, s_xy.y])
             })
             .flatten()
             .collect::<Vec<_>>();
@@ -953,7 +927,9 @@ where
     }
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
-        P::screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
+        // Select the HiPS layer rendered lastly
+        let reversed_longitude = self.is_reversed_longitude();
+        P::screen_to_model_space(pos, &self.camera, reversed_longitude).map(|model_pos| model_pos.lonlat())
     }
 
     fn set_center(&mut self, lonlat: &LonLatT<f64>) {
@@ -964,11 +940,10 @@ where
 
         // Apply the rotation to the camera to go
         // to the next lonlat
-        self.camera.set_rotation::<P>(&rot);
+        let reversed_longitude = self.is_reversed_longitude();
+        self.camera.set_rotation::<P>(&rot, reversed_longitude);
         self.look_for_new_tiles();
 
-        // Stop the current animation if there is one
-        self.move_animation = None;
         // And stop the current inertia as well if there is one
         self.inertial_move_animation = None;
     }
@@ -976,7 +951,6 @@ where
     fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
-        self.move_animation = None;
         self.out_of_fov = false;
     }
 
@@ -1024,7 +998,7 @@ where
         self.request_redraw = true;
     }
 
-    fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
+    /*fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
         // Get the XYZ cartesian position from the lonlat
         let goal_pos: Vector4<f64> = lonlat.vector();
 
@@ -1038,10 +1012,10 @@ where
             start_anim_rot,
             goal_anim_rot,
         });
-    }
+    }*/
 
     fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
-        self.camera.set_rotation_around_center::<P>(theta.into());
+        self.camera.set_rotation_around_center::<P>(theta.into(), self.is_reversed_longitude());
         // New tiles can be needed and some tiles can be removed
         self.look_for_new_tiles();
 
@@ -1053,9 +1027,10 @@ where
     }
 
     fn set_fov(&mut self, fov: Angle<f64>) {
+        let reversed_longitude = self.is_reversed_longitude();
         // For the moment, no animation is triggered.
         // The fov is directly set
-        self.camera.set_aperture::<P>(fov);
+        self.camera.set_aperture::<P>(fov, reversed_longitude);
         self.look_for_new_tiles();
 
         self.request_redraw = true;
@@ -1065,12 +1040,16 @@ where
         let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
         let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
 
-        line::project_along_great_circles::<P>(&v1, &v2, &self.camera)
+        let reversed_longitude = self.is_reversed_longitude();
+        line::project_along_great_circles::<P>(&v1, &v2, &self.camera, reversed_longitude)
     }
 
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
-        if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera) {
-            if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera) {
+        // Select the HiPS layer rendered lastly
+        let reversed_longitude = self.is_reversed_longitude();
+
+        if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera, reversed_longitude) {
+            if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera, reversed_longitude) {
                 let r = self.camera.get_final_rotation();
 
                 let cur_pos = r.rotate(&w1).truncate();
@@ -1084,7 +1063,7 @@ where
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
-                    self.camera.rotate::<P>(&(-axis), d);
+                    self.camera.rotate::<P>(&(-axis), d, reversed_longitude);
                     self.look_for_new_tiles();
                 }
                 return;

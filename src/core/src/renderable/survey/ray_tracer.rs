@@ -10,11 +10,7 @@ pub trait RayTracingProjection {
 }
 
 use super::Triangulation;
-use crate::coo_conversion::CooSystem;
-fn create_vertices_array<P: Projection>(
-    _gl: &WebGlContext,
-    _camera: &CameraViewPort,
-) -> (Vec<f32>, Vec<u16>) {
+fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
     let (vertices, idx) = Triangulation::new::<P>().into();
 
     let vertices = vertices
@@ -59,7 +55,7 @@ fn generate_xyz_position<P: Projection>() -> Vec<f32> {
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
-            if let Some(pos) = P::clip_to_world_space(&clip_xy, true) {
+            if let Some(pos) = P::clip_to_world_space(&clip_xy, false) {
                 let pos = pos.truncate().normalize();
                 /*let mut d: u32 = 0;
                 d |= 3 << 30;
@@ -88,7 +84,7 @@ fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
-            if let Some(pos) = P::clip_to_world_space(&clip_xy, true) {
+            if let Some(pos) = P::clip_to_world_space(&clip_xy, false) {
                 let pos = pos.truncate().normalize();
                 let (lon, lat) = crate::math::xyz_to_radec::<f64>(&pos);
                 /*let mut d: u32 = 0;
@@ -180,10 +176,8 @@ fn create_f32_texture_from_raw(
 impl RayTracer {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
-        camera: &CameraViewPort,
-        _shaders: &mut ShaderManager,
     ) -> RayTracer {
-        let (vertices, idx) = create_vertices_array::<P>(gl, camera);
+        let (vertices, idx) = create_vertices_array::<P>();
 
         let mut vao = VertexArrayObject::new(gl);
         // layout (location = 0) in vec2 pos_clip_space;

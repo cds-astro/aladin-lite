@@ -188,6 +188,8 @@ pub struct SurveyWidget {
     transfer_func: Option<TransferFunction>,
     cutouts: Option<[f32; 2]>,
     cut_range: std::ops::RangeInclusive<f32>,
+    // HiPS other options
+    longitude_reversed: bool,
 }
 
 use al_api::hips::{HiPSFrame, HiPSTileFormat};
@@ -239,6 +241,7 @@ impl SurveyWidget {
         };
         let opacity = 1.0;
         let is_grayscale_image = properties.is_fits_image();
+        let longitude_reversed = false;
         Self {
             url,
             properties,
@@ -266,6 +269,7 @@ impl SurveyWidget {
             transfer_func,
             cutouts,
             cut_range,
+            longitude_reversed,
         }
     }
 
@@ -304,6 +308,7 @@ impl SurveyWidget {
                 self.url.clone(),
                 max_order,
                 frame,
+                self.longitude_reversed,
                 tile_size,
                 min_cutout,
                 max_cutout,
@@ -352,6 +357,9 @@ impl SurveyWidget {
                     let mut ui_changed = false;
                     ui.vertical_centered(|ui| {
                         self.color_picker_widget(ui, &mut ui_changed);
+
+                        // Longitude reversed
+                        ui_changed |= ui.add(egui::Checkbox::new(&mut self.longitude_reversed, "Longitude reversed")).changed();
 
                         ui.group(|ui| {
                             if let Some(t) = &mut self.transfer_func {

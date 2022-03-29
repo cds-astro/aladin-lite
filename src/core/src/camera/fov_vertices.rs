@@ -11,7 +11,7 @@ fn ndc_to_world<P: Projection>(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
-    longitude_reversed: bool,
+    reversed_longitude: bool,
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
@@ -22,7 +22,7 @@ fn ndc_to_world<P: Projection>(
             n.x * ndc_to_clip.x * clip_zoom_factor,
             n.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let w = P::clip_to_world_space(&c, longitude_reversed);
+        let w = P::clip_to_world_space(&c, false);
         if let Some(w) = w {
             world_coo.push(w);
         } else {
@@ -63,7 +63,7 @@ impl FieldOfViewVertices {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
-        longitude_reversed: bool,
+        reversed_longitude: bool,
     ) -> Self {
         let mut x_ndc =
             itertools_num::linspace::<f64>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
@@ -99,7 +99,7 @@ impl FieldOfViewVertices {
         }
 
         let world_coo =
-            ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, longitude_reversed);
+            ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor, false);
         let model_coo = world_coo.as_ref().map(|world_coo| world_to_model(world_coo, mat));
 
         let great_circles = if let Some(vertices) = &model_coo {
@@ -124,14 +124,14 @@ impl FieldOfViewVertices {
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
-        longitude_reversed: bool,
         system: &CooSystem,
+        reversed_longitude: bool,
     ) {
         self.world_coo = ndc_to_world::<P>(
             &self.ndc_coo,
             ndc_to_clip,
             clip_zoom_factor,
-            longitude_reversed,
+            false
         );
         self.set_rotation::<P>(w2m, aperture, system);
     }

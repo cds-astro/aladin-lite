@@ -147,77 +147,76 @@ impl ProjetedGrid {
         self.cfg = cfg;
     }
 
-    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
-        {
-            self.text_renderer.begin_frame();
-            //let text_height = text_renderer.text_size();
-            let lines = lines::<P>(camera, &self.text_renderer);
+    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
+        self.text_renderer.begin_frame();
+        //let text_height = text_renderer.text_size();
+        let lines = lines::<P>(camera, &self.text_renderer, reversed_longitude);
 
-            self.offsets.clear();
-            self.sizes.clear();
-            let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
-                .into_iter()
-                .map(|line| {
-                    if self.sizes.is_empty() {
-                        self.offsets.push(0);
-                    } else {
-                        let last_offset = *self.offsets.last().unwrap();
-                        self.offsets.push(last_offset + self.sizes.last().unwrap());
-                    }
-                    self.sizes.push(line.vertices.len());
-    
-                    (line.vertices, line.label)
-                })
-                .unzip();
-            self.labels = labels;
-    
-            let scale = Label::size(camera) as f32;
-            for label in self.labels.iter() {
-                if let Some(label) = label {
-                    self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.cfg.color, cgmath::Rad(label.rot as f32));
+        self.offsets.clear();
+        self.sizes.clear();
+        let (vertices, labels): (Vec<Vec<Vector2<f64>>>, Vec<Option<Label>>) = lines
+            .into_iter()
+            .map(|line| {
+                if self.sizes.is_empty() {
+                    self.offsets.push(0);
+                } else {
+                    let last_offset = *self.offsets.last().unwrap();
+                    self.offsets.push(last_offset + self.sizes.last().unwrap());
                 }
+                self.sizes.push(line.vertices.len());
+
+                (line.vertices, line.label)
+            })
+            .unzip();
+        self.labels = labels;
+
+        let scale = Label::size(camera) as f32;
+        for label in self.labels.iter() {
+            if let Some(label) = label {
+                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.cfg.color, cgmath::Rad(label.rot as f32));
             }
-    
-            let mut vertices = vertices
-                .into_iter()
-                .flatten()
-                .map(|v| Vector2::new(v.x as f32, v.y as f32))
-                .collect::<Vec<_>>();
-            //self.lines = lines;
-            self.num_vertices = vertices.len();
-    
-            /*let vertices = unsafe {
-                let len = vertices.len() << 1;
-                let cap = len;
-
-                Vec::from_raw_parts(vertices.as_mut_ptr() as *mut f32, len, cap)
-            };*/
-            let vertices = unsafe {
-                vertices.set_len(self.num_vertices << 1);
-                std::mem::transmute::<_, Vec<f32>>(vertices)
-            };
-    
-            self.size_vertices_buf = vertices.len();
-            
-            #[cfg(feature = "webgl2")]
-            self.vao.bind_for_update()
-                .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
-            #[cfg(feature = "webgl1")]
-            self.vao.bind_for_update()
-                .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
-
-            self.text_renderer.end_frame();
         }
+
+        let mut vertices = vertices
+            .into_iter()
+            .flatten()
+            .map(|v| Vector2::new(v.x as f32, v.y as f32))
+            .collect::<Vec<_>>();
+        //self.lines = lines;
+        self.num_vertices = vertices.len();
+
+        /*let vertices = unsafe {
+            let len = vertices.len() << 1;
+            let cap = len;
+
+            Vec::from_raw_parts(vertices.as_mut_ptr() as *mut f32, len, cap)
+        };*/
+        let vertices = unsafe {
+            vertices.set_len(self.num_vertices << 1);
+            std::mem::transmute::<_, Vec<f32>>(vertices)
+        };
+
+        self.size_vertices_buf = vertices.len();
+        
+        #[cfg(feature = "webgl2")]
+        self.vao.bind_for_update()
+            .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
+        #[cfg(feature = "webgl1")]
+        self.vao.bind_for_update()
+            .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
+
+        self.text_renderer.end_frame();
+        
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool, reversed_longitude: bool) {
         if !self.cfg.enabled {
             return;
         }
 
         if camera.has_moved() || force {
-            self.force_update::<P>(camera);
+            self.force_update::<P>(camera, reversed_longitude);
         }
     }
 
@@ -395,6 +394,7 @@ impl Label {
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
+        reversed_longitude: bool,
     ) -> Option<Self> {
         let system = camera.get_system();
 
@@ -421,7 +421,7 @@ impl Label {
 
         let m2 = ((m1.truncate() + d * 1e-3).normalize()).extend(1.0);
 
-        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera)?;
+        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
             // we will have its screen projected position
@@ -440,7 +440,7 @@ impl Label {
                 return None;
             }
         }
-        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera)?;
+        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -488,7 +488,8 @@ impl Label {
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         // in pixels
-        text_renderer: &TextRenderManager
+        text_renderer: &TextRenderManager,
+        reversed_longitude: bool,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let system = camera.get_system();
@@ -499,9 +500,9 @@ impl Label {
         let m2 = (m1 + d * 1e-3).normalize();
 
         let s1 =
-            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera)?;
+            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
         let s2 =
-            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera)?;
+            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -579,6 +580,7 @@ impl GridLine {
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
+        reversed_longitude: bool,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
@@ -591,11 +593,12 @@ impl GridLine {
         crate::line::subdivide_along_longitude_and_latitudes::<P>(
             &mut vertices,
             [&a, &b, &c],
-            camera
+            camera,
+            reversed_longitude
         );
 
         let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
-        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
+        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer, reversed_longitude);
 
         Some(GridLine { vertices, label })
     }
@@ -606,6 +609,7 @@ impl GridLine {
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
+        reversed_longitude: bool,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -620,10 +624,11 @@ impl GridLine {
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,
                 [&Vector2::new(lon.start, lat), &Vector2::new(0.5*(lon.start + lon.end), lat), &Vector2::new(lon.end, lat)],
-                camera
+                camera,
+                reversed_longitude
             );
 
-            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer);
+            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer, reversed_longitude);
 
             Some(GridLine { vertices, label })
         } else {
@@ -733,6 +738,7 @@ fn lines<P: Projection>(
     camera: &CameraViewPort,
     //text_height: f64,
     text_renderer: &TextRenderManager,
+    reversed_longitude: bool
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let system = camera.get_system();
@@ -746,12 +752,14 @@ fn lines<P: Projection>(
             P::model_to_screen_space(
                 &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
                 camera,
+                reversed_longitude,
             )
         } else {
             // screen south pole
             P::model_to_screen_space(
                 &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
                 camera,
+                reversed_longitude,
             )
         }
     } else {
@@ -800,6 +808,7 @@ fn lines<P: Projection>(
             sp.as_ref(),
             camera,
             text_renderer,
+            reversed_longitude
         ) {
             lines.push(line);
         }
@@ -819,7 +828,7 @@ fn lines<P: Projection>(
 
     while alpha < stop_alpha {
         if let Some(line) =
-            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer)
+            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer, reversed_longitude)
         {
             lines.push(line);
         }

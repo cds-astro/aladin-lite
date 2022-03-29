@@ -12,9 +12,12 @@ uniform float czf;
 uniform mat4 model;
 uniform sampler2D position_tex;
 
+@import ../projection;
+
 void main() {
     vec2 uv = pos_clip_space * 0.5 + 0.5;
     vec3 world_pos = texture(position_tex, uv).rgb;
+    world_pos = check_inversed_longitude(world_pos);
 
     frag_pos = vec3(model * vec4(world_pos, 1.0));
 

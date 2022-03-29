@@ -61,12 +61,12 @@ vec3 check_inversed_longitude(vec3 p) {
 }
 
 vec2 world2clip_orthographic(vec3 p) {
-    return vec2(p.x, p.y);
+    return vec2(-p.x, p.y);
 }
 
 vec2 world2clip_aitoff(vec3 p) {
     float delta = asin(p.y);
-    float theta = atan(p.x, p.z);
+    float theta = atan(-p.x, p.z);
 
     float theta_by_two = theta * 0.5f;
 
@@ -109,7 +109,7 @@ vec2 world2clip_mollweide(vec3 p) {
 
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left
-    float x = (theta / PI) * cos(phi);
+    float x = (-theta / PI) * cos(phi);
     float y = 0.5f * sin(phi);
 
     return vec2(x, y);
@@ -120,7 +120,7 @@ vec2 world2clip_mercator(vec3 p) {
     // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
 
     float delta = asin(p.y);
-    float theta = atan(p.x, p.z);
+    float theta = atan(-p.x, p.z);
 
     float x = theta / PI;
     float y = asinh(tan(delta / PI));
@@ -153,7 +153,7 @@ vec2 world2clip_arc(vec3 p) {
         float x = p.x * r;
         float y = p.y * r;
 
-        return vec2(x / PI, y / PI);
+        return vec2(-x / PI, y / PI);
     } else {
         return vec2(1.0, 0.0);
     }
@@ -163,6 +163,6 @@ vec2 world2clip_gnomonic(vec3 p) {
     if (p.z <= 1e-2) { // Back hemisphere (x < 0) + diverges near x=0
         return vec2(1.0, 0.0);
     } else {
-        return vec2((p.x/p.z) / PI , (p.y/p.z) / PI);
+        return vec2((-p.x/p.z) / PI , (p.y/p.z) / PI);
     }
 }

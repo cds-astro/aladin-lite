@@ -53,7 +53,6 @@ pub struct CameraViewPort {
     last_user_action: UserAction,
 
     // longitude reversed flag
-    longitude_reversed: bool,
     is_allsky: bool,
 
     // Time when the camera has moved
@@ -119,22 +118,19 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let longitude_reversed = true;
         let vertices =
-            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, longitude_reversed);
+            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, true);
         let gl = gl.clone();
 
         let is_allsky = true;
         let time_last_move = Time::now();
         let rotation_center_angle = Angle(0.0);
 
-        
-
         CameraViewPort {
             // The field of view angle
             aperture,
             center,
-            // The rotation of the camera
+            // The rotation of the cameraq
             w2m_rot,
             w2m,
             m2w,
@@ -162,8 +158,6 @@ impl CameraViewPort {
 
             // Tag the last action done by the user
             last_user_action,
-            // longitude reversed flag
-            longitude_reversed,
             // Time when the camera has moved
             // for the last time
             time_last_move,
@@ -203,7 +197,7 @@ impl CameraViewPort {
         );*/
     }
 
-    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
+    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>, reversed_longitude: bool) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
@@ -221,7 +215,7 @@ impl CameraViewPort {
 
             // Vertex in the WCS of the FOV
             let v0 = math::radec_to_xyzw(lon, Angle(0.0));
-            if let Some(p0) = P::world_to_clip_space(&v0, self.longitude_reversed) {
+            if let Some(p0) = P::world_to_clip_space(&v0, false) {
                 self.clip_zoom_factor = p0.x.abs().min(1.0);
             } else {
                 // Gnomonic unzoomed case!
@@ -232,7 +226,7 @@ impl CameraViewPort {
             if !P::ALLOW_UNZOOM_MORE {
                 // Some projections have a limit of unzooming
                 // like Mercator
-                self.set_aperture::<P>(P::aperture_start());
+                self.set_aperture::<P>(P::aperture_start(), false);
                 return;
             }
 
@@ -249,8 +243,8 @@ impl CameraViewPort {
             self.clip_zoom_factor,
             &self.w2m,
             self.aperture,
-            self.longitude_reversed,
             &self.system,
+            false
         );
         self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -269,29 +263,29 @@ impl CameraViewPort {
         self.gl.scissor(a.x as i32, a.y as i32, w as i32, h as i32);
     }*/
 
-    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
+    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, reversed_longitude: bool) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices::<P>(reversed_longitude);
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
+    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>, reversed_longitude: bool) {
         self.w2m_rot = *rot;
 
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices::<P>(reversed_longitude);
     }
 
-    pub fn set_projection<P: Projection>(&mut self) {
+    pub fn set_projection<P: Projection>(&mut self, reversed_longitude: bool) {
         // Recompute the ndc_to_clip
         self.set_screen_size::<P>(self.width, self.height);
         // Recompute clip zoom factor
-        self.set_aperture::<P>(self.get_aperture());
+        self.set_aperture::<P>(self.get_aperture(), reversed_longitude);
     }
-    pub fn set_longitude_reversed(&mut self, reversed: bool) {
+    /*pub fn set_longitude_reversed(&mut self, reversed: bool) {
         self.longitude_reversed = reversed;
-    }
+    }*/
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
         self.vertices._type()
@@ -368,9 +362,9 @@ impl CameraViewPort {
     pub fn get_center(&self) -> &Vector4<f64> {
         &self.center
     }
-    pub fn is_reversed_longitude(&self) -> bool {
+    /*pub fn is_reversed_longitude(&self) -> bool {
         self.longitude_reversed
-    }
+    }*/
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
         self.vertices.get_bounding_box()
@@ -388,9 +382,9 @@ impl CameraViewPort {
         &self.system
     }
 
-    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>) {
+    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>, reversed_longitude: bool) {
         self.rotation_center_angle = theta;
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices::<P>(reversed_longitude);
     }
 
     pub fn get_rotation_around_center(&self) -> &Angle<f64> {
@@ -401,12 +395,12 @@ use cgmath::Matrix;
 //use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
-    fn update_rot_matrices<P: Projection>(&mut self) {
+    fn update_rot_matrices<P: Projection>(&mut self, reversed_longitude: bool) {
         self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
         // Update the center with the new rotation
-        self.update_center::<P>();
+        self.update_center::<P>(false);
 
         // Rotate the fov vertices
         self.vertices
@@ -417,10 +411,10 @@ impl CameraViewPort {
         self.moved = true;
     }
 
-    fn update_center<P: Projection>(&mut self) {
+    fn update_center<P: Projection>(&mut self, reversed_longitude: bool) {
         // update the center position
         let center_world_space =
-            P::clip_to_world_space(&Vector2::new(0.0, 0.0), self.is_reversed_longitude()).unwrap();
+            P::clip_to_world_space(&Vector2::new(0.0, 0.0), false).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space
@@ -448,7 +442,6 @@ impl SendUniforms for CameraViewPort {
             .attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("czf", &self.clip_zoom_factor) // Send clip zoom factor
-            .attach_uniform("inversed_longitude", &(self.longitude_reversed as i32))
             .attach_uniform("window_size", &self.get_screen_size()) // Window size
             .attach_uniform("fov", &self.aperture);
 

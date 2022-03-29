@@ -2119,7 +2119,7 @@ export let View = (function() {
         }*/
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
-        if (options && options.forceAnimation === false) {
+        /*if (options && options.forceAnimation === false) {
             this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         } else if (options && options.forceAnimation === true) {
             this.aladin.webglAPI.moveToLocation(this.viewCenter.lon, this.viewCenter.lat)
@@ -2129,7 +2129,9 @@ export let View = (function() {
             } else {
                 this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
             }
-        }
+        }*/
+        // Put a javascript code here to do some animation
+        this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         
         this.forceRedraw();
         this.requestRedraw();

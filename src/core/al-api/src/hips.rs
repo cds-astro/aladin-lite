@@ -44,14 +44,16 @@ impl SimpleHiPS {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct HiPSProperties {
+    // Associated with the HiPS
     url: String,
-
     max_order: u8,
     frame: HiPSFrame,
     tile_size: i32,
     bitpix: Option<i32>,
     format: HiPSTileFormat,
 
+    // Parametrable by the user
+    pub longitude_reversed: bool,
     pub min_cutout: Option<f32>,
     pub max_cutout: Option<f32>,
 }
@@ -59,11 +61,12 @@ pub struct HiPSProperties {
 #[wasm_bindgen]
 impl HiPSProperties {
     #[wasm_bindgen(constructor)]
-    pub fn new(url: String, max_order: u8, frame: HiPSFrame, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
+    pub fn new(url: String, max_order: u8, frame: HiPSFrame, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
         Self {
             url,
             max_order,
             frame,
+            longitude_reversed,
             tile_size,
             format,
             bitpix,

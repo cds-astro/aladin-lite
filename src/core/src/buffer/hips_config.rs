@@ -134,6 +134,9 @@ pub struct HiPSConfig {
 
     // The size of the texture images
     pub texture_size: i32,
+
+    // Longitude reversed
+    pub longitude_reversed: bool,
     // Delta depth i.e. log2(texture_size / tile_size)
     delta_depth: u8,
     // Num tiles per texture
@@ -182,6 +185,7 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let fmt = &properties.get_format();
+        let longitude_reversed = properties.longitude_reversed;
         let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;
@@ -267,6 +271,7 @@ impl HiPSConfig {
             root_url,
             // Tile size & blank tile data
             tile_config,
+            longitude_reversed,
             // Texture config
             // The size of the texture images
             texture_size,
@@ -375,7 +380,8 @@ impl SendUniforms for HiPSConfig {
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)
-            .attach_uniform("blank", &self.blank);
+            .attach_uniform("blank", &self.blank)
+            .attach_uniform("inversed_longitude", &self.longitude_reversed);
 
         shader
     }

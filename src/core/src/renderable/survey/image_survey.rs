@@ -679,6 +679,10 @@ impl ImageSurvey {
         })
     }
 
+    pub fn longitude_reversed(&self) -> bool {
+        self.textures.config().longitude_reversed
+    }
+
     fn reset_frame(&mut self) {
         self.view.reset_frame();
     }
@@ -807,7 +811,6 @@ impl ImageSurvey {
 
         for cell in self.view.get_cells() {
             let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-
             // Indices overwritten
             let off_idx_vertices = (self.position.len() / 3) as u16;
 
@@ -1072,7 +1075,8 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(gl, camera, shaders);
+        let longitude_reversed = false;
+        let raytracer = RayTracer::new::<P>(gl);
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
@@ -1093,6 +1097,16 @@ impl ImageSurveys {
             current_rendering_mode,
 
             gl,
+        }
+    }
+
+    pub fn last(&self) -> Option<&ImageSurvey> {
+        if let Some(last_rendered_layer) = self.layers.last() {
+            let url = self.urls.get(last_rendered_layer).expect("Url from layer name not found.");
+
+            self.surveys.get(url)
+        } else {
+            None
         }
     }
 
@@ -1117,18 +1131,7 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
     ) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
-    }
-
-    pub fn set_longitude_reversed<P: Projection>(
-        &mut self,
-        _reversed: bool,
-        camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
-        _rs: &Resources,
-    ) {
-        // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl, camera, shaders);
+        self.raytracer = RayTracer::new::<P>(&self.gl);
     }
 
     pub fn draw<P: Projection>(
@@ -1149,12 +1152,6 @@ impl ImageSurveys {
             }
         }
 
-        if raytracing || camera.is_reversed_longitude() {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        } else {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        }
-
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
         let raytracer = &self.raytracer;
@@ -1170,6 +1167,15 @@ impl ImageSurveys {
 
                 let url = self.urls.get(layer).expect("Url should be found");
                 let survey = self.surveys.get_mut(url).unwrap();
+
+                // Get the reverse longitude flag
+                let longitude_reversed = survey.get_textures().config()
+                    .longitude_reversed;
+                if raytracing || !longitude_reversed {
+                    self.gl.cull_face(WebGl2RenderingContext::BACK);
+                } else {
+                    self.gl.cull_face(WebGl2RenderingContext::FRONT);
+                }
 
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(

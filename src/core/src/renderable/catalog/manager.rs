@@ -236,7 +236,7 @@ impl Manager {
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         colormaps: &Colormaps,
-        fbo: &FrameBufferObject,
+        fbo: Option<&FrameBufferObject>,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
         for catalog in self.catalogs.values() {
@@ -461,7 +461,7 @@ impl Catalog {
         manager: &Manager, // catalog manager
         camera: &CameraViewPort,
         colormaps: &Colormaps,
-        fbo: &FrameBufferObject,
+        fbo: Option<&FrameBufferObject>,
     ) -> Result<(), JsValue> {
         // If the catalog is transparent, simply discard the draw
         if self.alpha > 0_f32 {
@@ -488,7 +488,7 @@ impl Catalog {
                             self.num_instances as i32,
                         );
                 Ok(())
-            }, Some(fbo))?;
+            }, fbo)?;
 
             // Render to the heatmap to the screen
             {

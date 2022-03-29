@@ -656,7 +656,6 @@ where
             let surveys = &mut self.surveys;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
-            let fbo_view = &self.fbo_view;
             // Render the scene
             gl.clear_color(0.0, 0.0, 0.0, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -664,7 +663,9 @@ where
             surveys.draw::<P>(camera, shaders, colormaps);
 
             // Draw the catalog
-            catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+            //let fbo_view = &self.fbo_view;
+            //catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+            catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
             grid.draw::<P>(camera, shaders)?;
 
             let dpi  = self.camera.get_dpi();
@@ -816,9 +817,9 @@ where
         let h = (height as f32) * dpi;
         self.camera.set_screen_size::<P>(w, h);
         // resize the view fbo
-        self.fbo_view.resize(w as usize, h as usize);
+        //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo
-        self.fbo_ui.resize(w as usize, h as usize);
+        //self.fbo_ui.resize(w as usize, h as usize);
 
         // launch the new tile requests
         self.look_for_new_tiles();

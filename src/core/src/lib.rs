@@ -36,7 +36,6 @@ mod async_task;
 mod buffer;
 mod camera;
 mod cdshealpix;
-mod coo_conversion;
 
 pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 
@@ -60,7 +59,7 @@ use al_core::resources::Resources;
 use al_core::{shader::Shader, WebGlContext};
 use al_api::grid::GridCfg;
 
-pub use coo_conversion::CooSystem;
+use al_api::coo_system::CooSystem;
 
 use app::App;
 use cgmath::{Vector2, Vector4};
@@ -172,25 +171,25 @@ impl WebClient {
     #[wasm_bindgen(js_name = setProjection)]
     pub fn set_projection(mut self, projection: String) -> Result<WebClient, JsValue> {
         match projection.as_str() {
-            "aitoff" => {
+            "AIT" => {
                 self.app = AppType::AitoffApp(self.app.set_projection::<Aitoff>());
             },
-            "sinus" => {
+            "SIN" => {
                 self.app = AppType::OrthoApp(self.app.set_projection::<Orthographic>());
             },
-            "mollweide" => {
+            "MOL" => {
                 self.app = AppType::MollweideApp(self.app.set_projection::<Mollweide>());
             },
-            "arc" => {
+            "ARC" => {
                 self.app = AppType::ArcApp(self.app.set_projection::<AzimuthalEquidistant>());
             },
-            "tan" => {
+            "TAN" => {
                 self.app = AppType::TanApp(self.app.set_projection::<Gnomonic>());
             },
-            "mercator" => {
+            "MER" => {
                 self.app = AppType::MercatorApp(self.app.set_projection::<Mercator>());
             },
-            _ => return Err(format!("{} is not a valid projection name. aitoff, arc, sinus, tan, mollweide and mercator are accepted", projection).into()),
+            _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL and MER are accepted", projection).into()),
         }
 
         Ok(self)
@@ -315,14 +314,6 @@ impl WebClient {
         Ok(())
     }
 
-    /// Get the coordinate system of the view
-    ///
-    /// Returns either ICRSJ2000 or GAL
-    #[wasm_bindgen(js_name = cooSystem)]
-    pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
-        Ok(*self.app.get_coo_system())
-    }
-
     /// Set the coordinate system for the view
     ///
     /// # Arguments
@@ -333,6 +324,14 @@ impl WebClient {
         self.app.set_coo_system(coo_system);
 
         Ok(())
+    }
+
+    /*/// Get the coordinate system of the view
+    ///
+    /// Returns either ICRSJ2000 or GAL
+    #[wasm_bindgen(js_name = cooSystem)]
+    pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
+        Ok(*self.app.get_coo_system())
     }
 
     /// Convert a j2000 lonlat to a galactic one
@@ -370,7 +369,7 @@ impl WebClient {
             icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI),
         ])))
     }
-
+    */
     /// Get the field of the view in degrees
     #[wasm_bindgen(js_name = getFieldOfView)]
     pub fn get_fov(&self) -> Result<f64, JsValue> {

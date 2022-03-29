@@ -398,7 +398,8 @@ impl Label {
     ) -> Option<Self> {
         let system = camera.get_system();
 
-        let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
+        //let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
+        let LonLatT(.., lat) = camera.get_center().lonlat();
         // Do not plot meridian labels when the center of fov
         // is above 80deg
         if fov.is_allsky() {
@@ -421,7 +422,9 @@ impl Label {
 
         let m2 = ((m1.truncate() + d * 1e-3).normalize()).extend(1.0);
 
-        let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
+        //let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
+        let s1 = P::model_to_screen_space(&m1, camera, reversed_longitude)?;
+
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
             // we will have its screen projected position
@@ -440,7 +443,8 @@ impl Label {
                 return None;
             }
         }
-        let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
+        let s2 = P::model_to_screen_space(&m2, camera, reversed_longitude)?;
+        //let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -493,16 +497,19 @@ impl Label {
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let system = camera.get_system();
-        let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
+        let center = camera.get_center().truncate();
+        //let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
             d = -d;
         }
         let m2 = (m1 + d * 1e-3).normalize();
 
         let s1 =
-            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
+            //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
+            P::model_to_screen_space(&m1.extend(1.0), camera, reversed_longitude)?;
         let s2 =
-            P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
+            //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
+            P::model_to_screen_space(&m2.extend(1.0), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -617,9 +624,12 @@ impl GridLine {
             let mut vertices = vec![];
             let system = camera.get_system();
 
-            let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
-            let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
-            let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
+            //let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
+            let a = math::radec_to_xyz(Angle(lon.start), Angle(lat));
+            //let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
+            let b = math::radec_to_xyz(Angle((lon.start + lon.end)*0.5), Angle(lat));
+            //let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
+            let c = math::radec_to_xyz(Angle(lon.end), Angle(lat));
 
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,
@@ -750,14 +760,16 @@ fn lines<P: Projection>(
             // for plotting labels
             // screen north pole
             P::model_to_screen_space(
-                &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
+                //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
+                &Vector4::new(0.0, 1.0, 0.0, 1.0),
                 camera,
                 reversed_longitude,
             )
         } else {
             // screen south pole
             P::model_to_screen_space(
-                &(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
+                //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
+                &Vector4::new(0.0, -1.0, 0.0, 1.0),
                 camera,
                 reversed_longitude,
             )

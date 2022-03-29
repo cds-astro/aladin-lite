@@ -1,11 +1,12 @@
 use cgmath::Matrix4;
-pub trait CooBaseFloat: Sized {
-    const GALACTIC_TO_J2000: Matrix4<Self>;
-    const J2000_TO_GALACTIC: Matrix4<Self>;
+pub trait CooBaseFloat: Sized + 'static {
+    const GALACTIC_TO_J2000: &'static Matrix4<Self>;
+    const J2000_TO_GALACTIC: &'static Matrix4<Self>;
+    const ID: &'static Matrix4<Self>;
 }
 
 impl CooBaseFloat for f32 {
-    const GALACTIC_TO_J2000: Matrix4<f32> = Matrix4::new(
+    const GALACTIC_TO_J2000: &'static Matrix4<Self> = &Matrix4::new(
         -0.444_829_64,
         0.746_982_2,
         0.494_109_42,
@@ -24,7 +25,7 @@ impl CooBaseFloat for f32 {
         1.0,
     );
 
-    const J2000_TO_GALACTIC: Matrix4<f32> = Matrix4::new(
+    const J2000_TO_GALACTIC: &'static Matrix4<Self> = &Matrix4::new(
         -0.444_829_64,
         -0.198_076_37,
         -0.873_437_1,
@@ -36,6 +37,25 @@ impl CooBaseFloat for f32 {
         0.494_109_42,
         -0.867_666_1,
         -0.054_875_56,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    );
+
+    const ID: &'static Matrix4<Self> = &Matrix4::new(
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
         0.0,
         0.0,
         0.0,
@@ -44,7 +64,7 @@ impl CooBaseFloat for f32 {
     );
 }
 impl CooBaseFloat for f64 {
-    const GALACTIC_TO_J2000: Matrix4<f64> = Matrix4::new(
+    const GALACTIC_TO_J2000: &'static Matrix4<Self> = &Matrix4::new(
         -0.4448296299195045,
         0.7469822444763707,
         0.4941094279435681,
@@ -63,7 +83,7 @@ impl CooBaseFloat for f64 {
         1.0,
     );
 
-    const J2000_TO_GALACTIC: Matrix4<f64> = Matrix4::new(
+    const J2000_TO_GALACTIC: &'static Matrix4<Self> = &Matrix4::new(
         -0.4448296299195045,
         -0.1980763734646737,
         -0.873437090247923,
@@ -81,13 +101,28 @@ impl CooBaseFloat for f64 {
         0.0,
         1.0,
     );
-}
 
-use crate::math::LonLat;
-use crate::LonLatT;
-use crate::Vector4;
+    const ID: &'static Matrix4<Self> = &Matrix4::new(
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    );}
+
 use cgmath::BaseFloat;
-
+/*
 // Some utility functions converting the spherical coordinates
 // from icrs j2000 to galactic
 pub fn to_galactic<S>(lonlat: LonLatT<S>) -> LonLatT<S>
@@ -107,16 +142,18 @@ where
     let gal_coo: Vector4<S> = lonlat.vector();
     let j2000_coo = S::GALACTIC_TO_J2000 * gal_coo;
     j2000_coo.lonlat()
-}
+}*/
 use wasm_bindgen::prelude::*;
-
+use serde::Deserialize;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
+#[derive(Deserialize)]
 pub enum CooSystem {
     ICRSJ2000,
     GAL,
 }
-
+/*
 #[allow(dead_code)]
 #[wasm_bindgen(js_name = "GALCooSys")]
 pub fn galcoo_sys() -> Result<CooSystem, JsValue> {
@@ -128,37 +165,21 @@ pub fn galcoo_sys() -> Result<CooSystem, JsValue> {
 pub fn icrsj2000_coo_sys() -> Result<CooSystem, JsValue> {
     Ok(CooSystem::ICRSJ2000)
 }
-
-use cgmath::SquareMatrix;
+*/
 impl CooSystem {
-    /// This is conversion method returning a transformation
-    /// matrix when the system requested by the user is not
-    /// icrs j2000.
-    /// The core projections are always performed in icrs j2000
-    /// so one must call these methods to convert them to icrs before.
     #[inline]
-    pub fn to_icrs_j2000<'a, S>(&self) -> Matrix4<S>
+    pub fn get_mat<S>(&self, coo_system: &Self) -> &Matrix4<S>
     where
         S: BaseFloat + CooBaseFloat,
     {
-        if *self == CooSystem::GAL {
-            S::GALACTIC_TO_J2000
-        } else {
-            Matrix4::<S>::identity()
-        }
-    }
-
-    /// This method is called by the grid to convert it
-    /// from icrs to galactic coo system
-    #[inline]
-    pub fn to_gal<'a, S>(&self) -> Matrix4<S>
-    where
-        S: BaseFloat + CooBaseFloat,
-    {
-        if *self == CooSystem::GAL {
-            S::J2000_TO_GALACTIC
-        } else {
-            Matrix4::<S>::identity()
+        match (self, coo_system) {
+            (CooSystem::GAL, CooSystem::ICRSJ2000) => {
+                S::GALACTIC_TO_J2000
+            },
+            (CooSystem::ICRSJ2000, CooSystem::GAL) => {
+                S::J2000_TO_GALACTIC
+            },
+            (_, _) => S::ID
         }
     }
 }

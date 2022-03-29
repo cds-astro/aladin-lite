@@ -192,7 +192,8 @@ pub struct SurveyWidget {
     longitude_reversed: bool,
 }
 
-use al_api::hips::{HiPSFrame, HiPSTileFormat};
+use al_api::hips::HiPSTileFormat;
+use al_api::coo_system::CooSystem;
 
 use cgmath::num_traits::Pow;
 
@@ -279,7 +280,11 @@ impl SurveyWidget {
 
     pub fn get_hips_config(&self) -> SimpleHiPS {
         let max_order = self.properties.hips_order;
-        let frame = HiPSFrame::J2000;
+        let frame = match &self.properties.hips_frame.as_str() {
+            &"equatorial" => CooSystem::ICRSJ2000,
+            &"galactic" => CooSystem::GAL,
+            _ => CooSystem::ICRSJ2000,
+        };
         let tile_size = self.properties.hips_tile_width;
         let bitpix = self.properties.hips_pixel_bitpix;
         let min_cutout = if let Some(c) = self.cutouts {

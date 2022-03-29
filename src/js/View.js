@@ -113,11 +113,11 @@ export let View = (function() {
             }
             if (cooFrame.system === CooFrameEnum.SYSTEMS.GAL) {
                 console.log()
-                const GAL = Aladin.wasmLibs.webgl.GALCooSys();
-                this.aladin.webglAPI.setCooSystem(GAL);
+                //const GAL = Aladin.wasmLibs.webgl.GALCooSys();
+                //this.aladin.webglAPI.setCooSystem(GAL);
             } else {
-                const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
-                this.aladin.webglAPI.setCooSystem(ICRSJ2000);
+                //const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
+                //this.aladin.webglAPI.setCooSystem(ICRSJ2000);
             }
 
             if (zoom) {
@@ -1002,9 +1002,9 @@ export let View = (function() {
         
         if (lonlat) {
             // Convert it to galactic
-            if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+            /*if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
                 lonlat = view.aladin.webglAPI.J20002Gal(lonlat[0], lonlat[1]);
-            }
+            }*/
 
             //console.log(view.aladin.webglAPI.readPixel(x, y, 'base'));
             view.location.update(lonlat[0], lonlat[1], view.cooFrame, isViewCenterPosition);
@@ -2014,9 +2014,9 @@ export let View = (function() {
         this.needRedraw = true;
     };
     
-    View.prototype.changeProjection = function(projectionName) {
+    View.prototype.setProjection = function(projectionName) {
         switch (projectionName) {
-            case "aitoff":
+            case "ait":
                 this.projectionMethod = ProjectionEnum.AITOFF;
                 break;
             case "tan":
@@ -2025,13 +2025,13 @@ export let View = (function() {
             case "arc":
                 this.projectionMethod = ProjectionEnum.ARC;
                 break;
-            case "mercator":
+            case "mer":
                 this.projectionMethod = ProjectionEnum.MERCATOR;
                 break;
-            case "mollweide":
+            case "mol":
                 this.projectionMethod = ProjectionEnum.MOL;
                 break;
-            case "sinus":
+            case "sin":
             default:
                 this.projectionMethod = ProjectionEnum.SIN;
         }
@@ -2046,8 +2046,7 @@ export let View = (function() {
         var oldCooFrame = this.cooFrame;
         this.cooFrame = cooFrame;
         // recompute viewCenter
-        console.log("change frame")
-        if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL && this.cooFrame.system != oldCooFrame.system) {
+        /*if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL && this.cooFrame.system != oldCooFrame.system) {
             var lb = CooConversion.J2000ToGalactic([this.viewCenter.lon, this.viewCenter.lat]);
             this.viewCenter.lon = lb[0];
             this.viewCenter.lat = lb[1]; 
@@ -2062,10 +2061,25 @@ export let View = (function() {
 
             const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
             this.aladin.webglAPI.setCooSystem(ICRSJ2000);
+        }*/
+        if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
+            /*var lb = CooConversion.J2000ToGalactic([this.viewCenter.lon, this.viewCenter.lat]);
+            this.viewCenter.lon = lb[0];
+            this.viewCenter.lat = lb[1];*/
+
+            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.GAL);
         }
+        else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
+            /*var radec = CooConversion.GalacticToJ2000([this.viewCenter.lon, this.viewCenter.lat]);
+            this.viewCenter.lon = radec[0];
+            this.viewCenter.lat = radec[1];*/
+
+            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.ICRSJ2000);
+        }
+        console.log("change frame");
+        this.viewCenter = this.aladin.webglAPI.getCenter();
 
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
-
         this.requestRedraw();
     };
 

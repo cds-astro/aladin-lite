@@ -869,7 +869,7 @@ impl ImageSurvey {
     }
 }
 
-
+use cgmath::Matrix;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
@@ -887,8 +887,16 @@ impl Draw for ImageSurvey {
             return;
         }
 
+        // Get the coo system transformation matrix
+        let coosys = camera.get_system();
+        let hips_frame = self.textures
+            .config()
+            .get_frame();
+
+        let survey_to_view_frame = hips_frame.get_mat::<f32>(coosys).transpose();
+        al_core::log::log(&format!("{:?} {:?}", survey_to_view_frame, coosys));
+        
         let raytracing = raytracer.is_rendering::<P>(camera);
-        //let raytracing = true;
         if raytracing {
             let shader = get_raytracer_shader::<P>(
                 color,
@@ -903,70 +911,62 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
+                .attach_uniform("coosys_mat", &survey_to_view_frame)
                 .attach_uniform("current_depth", &(self.view.get_depth() as i32))
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps);
 
             raytracer.draw(&shader);
-            return;
+        } else {
+            // The rasterizer has a buffer containing:
+            // - The vertices of the HEALPix cells for the most refined survey
+            // - The starting and ending uv for the blending animation
+            // - The time for each HEALPix cell at which the animation begins
+            //
+            // Each of these data can be changed at different circumstances:
+            // - The vertices are changed if:
+            //     * new cells are added/removed (because new cells are added)
+            //       to the previous frame.
+            // - The UVs are changed if:
+            //     * new cells are added/removed (because new cells are added)
+            //     * there are new available tiles for the GPU
+            // - The 
+
+            let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
+            
+            let shader = get_raster_shader::<P>(
+                color,
+                &self.gl,
+                shaders,
+                self.textures.config.tex_storing_integers,
+                self.textures.config.tex_storing_unsigned_int,
+            )
+            .bind(&self.gl);
+
+            //self.gl.bind_vertex_array(Some(&self.vao));
+            
+            if recompute_vertices {
+                self.set_positions();
+                self.set_uvs(camera);
+            }
+
+            shader
+                .attach_uniforms_from(camera)
+                .attach_uniforms_from(&self.textures)
+                .attach_uniforms_from(color)
+                .attach_uniform("coosys_mat", &survey_to_view_frame)
+                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
+                .attach_uniform("current_time", &utils::get_current_time())
+                .attach_uniform("opacity", &opacity)
+                .attach_uniforms_from(colormaps)
+                .bind_vertex_array_object_ref(&self.vao)
+                .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
+                    Some(self.num_idx as i32), 
+                    WebGl2RenderingContext::UNSIGNED_SHORT, 
+                    0
+                );
         }
-
-        // The rasterizer has a buffer containing:
-        // - The vertices of the HEALPix cells for the most refined survey
-        // - The starting and ending uv for the blending animation
-        // - The time for each HEALPix cell at which the animation begins
-        //
-        // Each of these data can be changed at different circumstances:
-        // - The vertices are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //       to the previous frame.
-        // - The UVs are changed if:
-        //     * new cells are added/removed (because new cells are added)
-        //     * there are new available tiles for the GPU
-        // - The 
-
-        let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
-        
-        let shader = get_raster_shader::<P>(
-            color,
-            &self.gl,
-            shaders,
-            self.textures.config.tex_storing_integers,
-            self.textures.config.tex_storing_unsigned_int,
-        )
-        .bind(&self.gl);
-
-        //self.gl.bind_vertex_array(Some(&self.vao));
-        
-        if recompute_vertices {
-            self.set_positions();
-            self.set_uvs(camera);
-        }
-
-        shader
-            .attach_uniforms_from(camera)
-            .attach_uniforms_from(&self.textures)
-            .attach_uniforms_from(color)
-            .attach_uniform("current_depth", &(self.view.get_depth() as i32))
-            .attach_uniform("current_time", &utils::get_current_time())
-            .attach_uniform("opacity", &opacity)
-            .attach_uniforms_from(colormaps)
-            .bind_vertex_array_object_ref(&self.vao)
-            .draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES,
-                Some(self.num_idx as i32), 
-                WebGl2RenderingContext::UNSIGNED_SHORT, 
-                0
-            );
-
-        // The raster vao is bound at the lib.rs level
-        /*self.gl.draw_elements_with_i32(
-            //WebGl2RenderingContext::LINES,
-            WebGl2RenderingContext::TRIANGLES,
-            self.num_idx as i32,
-            WebGl2RenderingContext::UNSIGNED_SHORT,
-            0,
-        );*/
     }
 }
 
@@ -1190,7 +1190,6 @@ impl ImageSurveys {
                 });
             }
         }
-        al_core::log::log("\n");
 
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,

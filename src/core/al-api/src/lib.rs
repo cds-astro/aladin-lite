@@ -7,3 +7,4 @@ pub mod hips;
 pub mod color;
 pub mod colormap;
 pub mod grid;
+pub mod coo_system;

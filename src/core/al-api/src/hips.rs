@@ -39,6 +39,8 @@ impl SimpleHiPS {
     }
 }
 
+use crate::coo_system::CooSystem;
+
 #[derive(Deserialize, Debug)]
 #[derive(Clone)]
 #[serde(rename_all = "camelCase")]
@@ -47,7 +49,7 @@ pub struct HiPSProperties {
     // Associated with the HiPS
     url: String,
     max_order: u8,
-    frame: HiPSFrame,
+    frame: CooSystem,
     tile_size: i32,
     bitpix: Option<i32>,
     format: HiPSTileFormat,
@@ -61,7 +63,7 @@ pub struct HiPSProperties {
 #[wasm_bindgen]
 impl HiPSProperties {
     #[wasm_bindgen(constructor)]
-    pub fn new(url: String, max_order: u8, frame: HiPSFrame, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
+    pub fn new(url: String, max_order: u8, frame: CooSystem, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
         Self {
             url,
             max_order,
@@ -99,15 +101,11 @@ impl HiPSProperties {
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
-}
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
-#[serde(rename_all = "camelCase")]
-#[wasm_bindgen]
-pub enum HiPSFrame {
-    GALACTIC,
-    J2000
+    #[wasm_bindgen(getter)]
+    pub fn get_frame(&self) -> CooSystem {
+        self.frame
+    }
 }
 
 #[derive(Deserialize, Debug)]

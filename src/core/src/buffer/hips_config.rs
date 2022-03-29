@@ -161,8 +161,10 @@ pub struct HiPSConfig {
     pub tex_storing_unsigned_int: bool,
 
     pub size_tile_uv: f32,
+    pub frame: CooSystem
 }
 
+use al_api::coo_system::CooSystem;
 use crate::math;
 use crate::{HiPSProperties};
 use al_api::hips::HiPSTileFormat;
@@ -266,6 +268,8 @@ impl HiPSConfig {
         let max_depth_texture = max_depth_tile - delta_depth;
         let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
+        let frame = properties.get_frame();
+
         let hips_config = HiPSConfig {
             // HiPS name
             root_url,
@@ -296,6 +300,7 @@ impl HiPSConfig {
             tex_storing_unsigned_int,
 
             size_tile_uv,
+            frame
         };
 
         Ok(hips_config)
@@ -336,6 +341,11 @@ impl HiPSConfig {
     #[inline]
     pub fn get_max_depth(&self) -> u8 {
         self.max_depth_texture
+    }
+
+    #[inline]
+    pub fn get_frame(&self) -> CooSystem {
+        self.frame
     }
 
     /*#[inline]

@@ -166,7 +166,14 @@ export let HpxImageSurvey = (function() {
         // HiPS bitpix
         const bitpix = +metadata.hips_pixel_bitpix;
         // HiPS frame
-        const frame = (options && options.frame) || "j2000";
+        let frame = (options && options.frame) || "ICRSJ2000";
+        if (frame == "equatorial") {
+            frame = "ICRSJ2000";
+        } else if (frame == "galactic") {
+            frame = "GAL";
+        } else {
+            frame = "ICRSJ2000";
+        }
         // HiPS longitude reversed
         const longitude_reversed = (options && options.reversedLongitude) || false;
 

@@ -56,7 +56,8 @@ impl FieldOfViewType {
                 // but this is not true for example for the orthographic projection
                 // Some meridians may not be visible
                 let system = camera.get_system();
-                let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
+                let center = camera.get_center().lonlat();
+                //let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
                 let lon: Rad<f64> = lon.into();
                 let pos: Vector3<f64> = LonLatT::new(lon.into(), center.lat()).vector();
                 Some(pos)
@@ -73,8 +74,8 @@ impl FieldOfViewType {
         match self {
             FieldOfViewType::Allsky(_) => {
                 let system = camera.get_system();
-
-                let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
+                let center = camera.get_center().lonlat();
+                //let center = (system.to_gal::<f64>() * camera.get_center()).lonlat();
                 let lat: Rad<f64> = lat.into();
                 let pos: Vector3<f64> = LonLatT::new(center.lon(), lat.into()).vector();
                 Some(pos)

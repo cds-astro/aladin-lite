@@ -74,12 +74,17 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 ) {
     // Project them. We are always facing the camera
     let system = camera.get_system();
+    /*
     let aa = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[0].x), Angle(mp[0].y)))
         .truncate();
     let bb = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[1].x), Angle(mp[1].y)))
         .truncate();
     let cc = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[2].x), Angle(mp[2].y)))
         .truncate();
+    */
+    let aa = math::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
+    let bb = math::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
+    let cc = math::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
 
     let a = P::model_to_ndc_space(&aa.extend(1.0), camera, reversed_longitude);
     let b = P::model_to_ndc_space(&bb.extend(1.0), camera, reversed_longitude);

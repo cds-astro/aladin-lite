@@ -18,6 +18,7 @@ out float m_end;
 uniform mat4 inv_model;
 uniform vec2 ndc_to_clip;
 uniform float czf;
+uniform mat4 coosys_mat;
 
 // current time in ms
 uniform float current_time;
@@ -25,7 +26,7 @@ uniform float current_time;
 @import ../projection;
 
 void main() {
-    vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    vec3 world_pos = vec3(inv_model * transpose(coosys_mat) * vec4(position, 1.f));
     world_pos = check_inversed_longitude(world_pos);
 
     gl_Position = vec4(world2clip_aitoff(world_pos) / (ndc_to_clip * czf), 0.0, 1.0);

@@ -31,7 +31,7 @@ where
         s.0.into()
     }
 }
-use crate::coo_conversion::CooBaseFloat;
+use al_api::coo_system::CooBaseFloat;
 use crate::Angle;
 use cgmath::Matrix;
 use cgmath::Rad;

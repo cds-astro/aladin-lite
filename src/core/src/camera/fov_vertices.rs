@@ -154,11 +154,13 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
-                let vertices = vertices
+                /*let vertices = vertices
                     .iter()
                     .cloned()
-                    .map(|v| system.to_gal::<f64>() * v)
-                    .collect::<Vec<_>>();
+                    .map(|v| {
+                        system.to_gal::<f64>() * v
+                    })
+                    .collect::<Vec<_>>();*/
                 self.great_circles = FieldOfViewType::new_polygon(&vertices);
             } else if let FieldOfViewType::Polygon(_) = &self.great_circles {
                 self.great_circles = FieldOfViewType::new_allsky();

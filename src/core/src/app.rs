@@ -1,9 +1,8 @@
-use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, coo_conversion::CooSystem, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
+use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
     }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
-
 use al_core::{
     resources::Resources,
     pixel::PixelType, WebGlContext
@@ -13,6 +12,7 @@ use al_api::hips::SimpleHiPS;
 use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
 use al_api::grid::GridCfg;
+use al_api::coo_system::CooSystem;
 
 use cgmath::Vector4;
 

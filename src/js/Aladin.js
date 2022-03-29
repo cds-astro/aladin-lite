@@ -181,6 +181,10 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
+        // Set thr projection
+        let projection = (options && options.projection) || 'SIN';
+        this.view.setProjection(projection)
+
         // retrieve available surveys
         // TODO: replace call with MocServer
         /*$.ajax({
@@ -588,24 +592,11 @@ export let Aladin = (function () {
         $(this.aladinDiv).find('.aladin-frameChoice').val(newFrame.label);
     };
 
-    Aladin.prototype.setProjection = function (projectionName) {
-        if (!projectionName) {
+    Aladin.prototype.setProjection = function (projection) {
+        if (!projection) {
             return;
         }
-        projectionName = projectionName.toLowerCase();
-        /*console.log('setProj', projectionName);
-
-        let projectionOptionElt = document.getElementById(projectionName);
-        console.log("jKJHKSDJHF")
-
-        console.log(projectionOptionElt);
-        if (projectionOptionElt) {
-            console.log("jKJHKSDJHF")
-            projectionOptionElt.selected = 'selected';
-        }*/
-        
-        this.view.changeProjection(projectionName);
-        //this.view.fov_limit = this.webglAPI.getMaxFieldOfView() * 180 / Math.PI;
+        this.view.setProjection(projection);
     };
 
     /** point view to a given object (resolved by Sesame) or position
@@ -641,9 +632,9 @@ export let Aladin = (function () {
             coo.parse(targetName);
             var lonlat = [coo.lon, coo.lat];
             // Convert it to icrs if the coo system is galactic
-            if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+            /*if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
                 lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
-            }
+            }*/
             this.view.pointTo(lonlat[0], lonlat[1], options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -1031,12 +1022,14 @@ export let Aladin = (function () {
 
         layerBox.append('<div class="aladin-label">Projection</div>');
 
-        let projectionElt = $('<select id="projectionChoice"><option id="sinus" value="sinus">SINUS</option><option id="aitoff" value="aitoff">AITOFF</option><option id="mollweide" value="mollweide">MOLLWEIDE</option><option id="mercator" value="mercator">MERCATOR</option><option id="arc" value="arc">ARC</option><option id="tan" value="tan">TAN</option></select>');
+        let projectionElt = $('<select id="projectionChoice"><option id="SIN" value="SIN">SIN</option><option id="AIT" value="AIT">AIT</option><option id="MOL" value="MOL">MOL</option><option id="MER" value="MER">MER</option><option id="ARC" value="ARC">ARC</option><option id="TAN" value="TAN">TAN</option></select>');
 
         layerBox.append(projectionElt)
             .append('<br />');
         projectionElt.change(function () {
-            self.setProjection($(this).val());
+            const projection = $(this).val();
+            console.log(projection)
+            self.setProjection(projection);
         });
         
         layerBox.append('<div class="aladin-box-separator"></div>' +
@@ -1331,9 +1324,9 @@ export let Aladin = (function () {
 
         var res;
         // Convert it to icrs j2000
-        if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
+        /*if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
             res = this.view.aladin.webglAPI.Gal2J2000(radec[0], radec[1]);
-        }
+        }*/
 
         return res;
     };

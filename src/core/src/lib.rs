@@ -434,7 +434,7 @@ impl WebClient {
         Ok(self.app.get_clip_zoom_factor())
     }
 
-    /// Set the center of the view
+    /// Set the center of the view in ICRSJ2000 coosys
     ///
     /// The core works in ICRS system so
     /// the location must be given in this system
@@ -516,11 +516,11 @@ impl WebClient {
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = ICRSJ2000ToViewCooSys)]
-    pub fn icrsj2000_to_view_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+    #[wasm_bindgen(js_name = viewToICRSJ2000CooSys)]
+    pub fn view_to_icrsj2000_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
-        let res = self.app.icrsj2000_to_view_coosys(&lonlat);
+        let res = self.app.view_to_icrsj2000_coosys(&lonlat);
 
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();

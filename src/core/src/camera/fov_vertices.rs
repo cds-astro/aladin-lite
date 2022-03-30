@@ -15,7 +15,6 @@ fn ndc_to_world<P: Projection>(
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
-    let _out_of_fov = false;
 
     for n in ndc_coo {
         let c = Vector2::new(
@@ -33,11 +32,11 @@ fn ndc_to_world<P: Projection>(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[WorldCoord], mat: &Matrix4<f64>) -> Vec<ModelCoord> {
+fn world_to_model(world_coo: &[WorldCoord], w2m: &Matrix4<f64>) -> Vec<ModelCoord> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
-        model_coo.push(mat * w);
+        model_coo.push(w2m * w);
     }
 
     model_coo
@@ -107,8 +106,6 @@ impl FieldOfViewVertices {
         } else {
             FieldOfViewType::new_allsky()
         };
-
-        
 
         FieldOfViewVertices {
             ndc_coo,

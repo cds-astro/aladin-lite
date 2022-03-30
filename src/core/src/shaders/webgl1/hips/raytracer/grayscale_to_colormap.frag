@@ -5,8 +5,6 @@ precision mediump int;
 varying vec3 out_vert_pos;
 varying vec2 out_clip_pos;
 
-uniform int user_action;
-
 struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
@@ -14,7 +12,6 @@ struct Tile {
     float empty;
 };
 
-uniform int current_depth;
 uniform Tile textures_tiles[192];
 uniform int num_tiles;
 

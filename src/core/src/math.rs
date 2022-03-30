@@ -212,12 +212,12 @@ pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<
 /// The core projections are always performed in icrs j2000
 /// so one must call these methods to convert them to icrs before.
 #[inline]
-pub fn apply_coo_system<'a, S>(c1: &CooSystem, c2: &CooSystem, v1: Vector4<S>) -> Vector4<S>
+pub fn apply_coo_system<'a, S>(c1: &CooSystem, c2: &CooSystem, v1: &Vector4<S>) -> Vector4<S>
 where
     S: BaseFloat + CooBaseFloat,
 {
     let c1_2_c2_mat = c1.get_mat::<S>(c2);
-    c1_2_c2_mat * v1
+    c1_2_c2_mat * (*v1)
 }
 
 #[inline]

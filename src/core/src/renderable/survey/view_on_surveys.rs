@@ -24,15 +24,23 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
         (depth_pixel - depth_offset_texture) as u8
     }
 }
-
-
+use al_api::coo_system::CooSystem;
 use crate::cdshealpix;
-
 pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort) -> Vec<HEALPixCell> {
     if let Some(vertices) = camera.get_vertices() {
-        let inside = camera.get_center().truncate();
+        // The vertices coming from the camera are in a specific coo sys
+        // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
+        let view_system = camera.get_system();
+        let icrsj2000_fov_vertices_pos = vertices.iter()
+            .map(|v| {
+                crate::math::apply_coo_system(view_system, &CooSystem::ICRSJ2000, v)
+            })
+            .collect::<Vec<_>>();
+
+        let vs_inside_pos = camera.get_center();
+        let icrsj2000_inside_pos = crate::math::apply_coo_system(view_system, &CooSystem::ICRSJ2000, &vs_inside_pos);
         // Prefer to query from_polygon with depth >= 2
-        let coverage = cdshealpix::from_polygon(depth, vertices, &inside);
+        let coverage = cdshealpix::from_polygon(depth, &icrsj2000_fov_vertices_pos[..], &icrsj2000_inside_pos.truncate());
 
         coverage
             .flat_iter()

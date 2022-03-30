@@ -93,6 +93,8 @@ use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjec
 use crate::shader::GetShader;
 use cgmath::InnerSpace;
 use cgmath::Vector4;
+use al_api::coo_system::CooSystem;
+use cgmath::Matrix;
 #[enum_dispatch(ProjectionType)]
 pub trait Projection:
     GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
@@ -151,8 +153,27 @@ pub trait Projection:
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_final_rotation();
             let pos_model_space = r.rotate(&pos_world_space);
-
             Some(pos_model_space)
+        } else {
+            None
+        }
+    }
+
+    fn screen_to_view_space(
+        pos_screen_space: &Vector2<f64>,
+        camera: &CameraViewPort,
+        reversed_longitude: bool,
+    ) -> Option<Vector4<f64>> {
+        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera, reversed_longitude);
+
+        if let Some(pos_world_space) = pos_world_space {
+            let r = camera.get_final_rotation();
+            let pos_model_space = r.rotate(&pos_world_space);
+
+            let view_coosys = camera.get_system();
+            let C = CooSystem::ICRSJ2000.get_mat::<f64>(view_coosys);
+
+            Some(C.transpose() * pos_model_space)
         } else {
             None
         }
@@ -165,6 +186,19 @@ pub trait Projection:
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
+        Self::world_to_screen_space(&pos_world_space, camera, reversed_longitude)
+    }
+
+    fn view_to_screen_space(
+        pos_model_space: &Vector4<f64>,
+        camera: &CameraViewPort,
+        reversed_longitude: bool,
+    ) -> Option<Vector2<f64>> {
+        let view_coosys = camera.get_system();
+        let C = CooSystem::ICRSJ2000.get_mat::<f64>(view_coosys);
+
+        let m2w = camera.get_m2w();
+        let pos_world_space = m2w * C * pos_model_space;
         Self::world_to_screen_space(&pos_world_space, camera, reversed_longitude)
     }
 

@@ -112,13 +112,14 @@ export let View = (function() {
                 this.cooFrame = CooFrameEnum.GAL;
             }
             if (cooFrame.system === CooFrameEnum.SYSTEMS.GAL) {
-                console.log()
                 //const GAL = Aladin.wasmLibs.webgl.GALCooSys();
                 //this.aladin.webglAPI.setCooSystem(GAL);
             } else {
                 //const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
                 //this.aladin.webglAPI.setCooSystem(ICRSJ2000);
             }
+
+            this.changeFrame(this.cooFrame);
 
             if (zoom) {
                 this.setZoom(zoom);
@@ -2114,6 +2115,15 @@ export let View = (function() {
         this.requestRedraw();
     };
 
+    /**
+     * 
+     * @API Point to a specific location
+     * 
+     * @param ra ra expressed in ICRS J2000 frame
+     * @param dec dec expressed in ICRS J2000 frame
+     * @param options
+     *   
+     */
     View.prototype.pointTo = function(ra, dec, options) {
         options = options || {};
         ra = parseFloat(ra);

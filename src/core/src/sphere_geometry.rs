@@ -17,8 +17,6 @@ pub enum FieldOfViewType {
 use crate::CameraViewPort;
 impl FieldOfViewType {
     pub fn new_allsky() -> FieldOfViewType {
-        
-
         FieldOfViewType::Allsky(Allsky::new())
     }
 

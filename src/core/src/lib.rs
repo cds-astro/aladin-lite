@@ -516,6 +516,28 @@ impl WebClient {
     ///
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
+    #[wasm_bindgen(js_name = ICRSJ2000ToViewCooSys)]
+    pub fn icrsj2000_to_view_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let res = self.app.icrsj2000_to_view_coosys(&lonlat);
+
+        let lon_deg: ArcDeg<f64> = res.lon().into();
+        let lat_deg: ArcDeg<f64> = res.lat().into();
+
+        al_core::log::log(&format!("{:?} {:?}", lon_deg.0, lat_deg.0));
+
+        Box::new([lon_deg.0, lat_deg.0])
+    }
+
+    /// World to screen projection
+    ///
+    /// Coordinates must be given in the ICRS coo system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = worldToScreen)]
     pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
@@ -527,7 +549,7 @@ impl WebClient {
         }
     }
 
-    /// World to screen projection of a list of sources
+    /*/// World to screen projection of a list of sources
     ///
     /// Coordinates must be given in the ICRS coo system
     ///
@@ -538,7 +560,7 @@ impl WebClient {
     pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
         let screen_positions = self.app.world_to_screen_vec(&sources)?;
         Ok(screen_positions.into_boxed_slice())
-    }
+    }*/
 
     /// Screen to world unprojection
     ///

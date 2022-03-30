@@ -128,7 +128,6 @@ where
     // Apply a rotation to a position
     pub fn rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
-
         
         w2m * pos_world_space
     }
@@ -136,7 +135,6 @@ where
         let w2m: &Matrix4<S> = &self.into();
         let m2w = w2m.transpose();
 
-        
         m2w * pos_model_space
     }
 }

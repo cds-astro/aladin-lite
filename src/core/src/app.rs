@@ -352,6 +352,7 @@ where
 pub trait AppTrait {
     /// View
     fn is_ready(&self) -> Result<bool, JsValue>;
+    // Called whenever the canvas changed its dimensions
     fn resize(&mut self, width: f32, height: f32);
     // Low level method for updating the view
     fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue>;
@@ -411,7 +412,8 @@ pub trait AppTrait {
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
-    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
+    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
+    //fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
 
     // UI
     fn over_ui(&self) -> bool;
@@ -566,8 +568,7 @@ where
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
-        let center = self.get_center();
-        self.set_center(&center);
+        self.set_center(&self.get_center());
     }
 
     fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue> {
@@ -872,7 +873,7 @@ where
         //let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
         //let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
 
-        self.camera.set_coo_system::<P>(coo_system);
+        self.camera.set_coo_system::<P>(coo_system, self.is_reversed_longitude());
 
         /*if icrs2gal {
             // rotate the camera around the center axis
@@ -894,11 +895,11 @@ where
         // Select the HiPS layer rendered lastly
         let reversed_longitude = self.is_reversed_longitude();
 
-        let screen_pos = P::model_to_screen_space(&model_pos_xyz, &self.camera, reversed_longitude);
+        let screen_pos = P::view_to_screen_space(&model_pos_xyz, &self.camera, reversed_longitude);
         Ok(screen_pos)
     }
 
-    /// World to screen projection
+    /*/// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
     fn world_to_screen_vec(
@@ -925,7 +926,7 @@ where
             .flatten()
             .collect::<Vec<_>>();
         Ok(res)
-    }
+    }*/
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         // Select the HiPS layer rendered lastly
@@ -933,10 +934,20 @@ where
         P::screen_to_model_space(pos, &self.camera, reversed_longitude).map(|model_pos| model_pos.lonlat())
     }
 
+    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+        let view_system = self.camera.get_system();
+        let (ra, dec) = crate::math::xyzw_to_radec(
+            &crate::math::apply_coo_system(&CooSystem::ICRSJ2000, &view_system, &icrsj2000_pos)
+        );
+
+        LonLatT::new(ra, dec)
+    }
+
     fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-
         let xyz: Vector4<_> = lonlat.vector();
+
         let rot = Rotation::from_sky_position(&xyz);
 
         // Apply the rotation to the camera to go
@@ -1049,13 +1060,11 @@ where
         // Select the HiPS layer rendered lastly
         let reversed_longitude = self.is_reversed_longitude();
 
-        if let Some(w1) = P::screen_to_world_space(&Vector2::new(s1x, s1y), &self.camera, reversed_longitude) {
-            if let Some(w2) = P::screen_to_world_space(&Vector2::new(s2x, s2y), &self.camera, reversed_longitude) {
-                let r = self.camera.get_final_rotation();
-
-                let cur_pos = r.rotate(&w1).truncate();
+        if let Some(w1) = P::screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera, reversed_longitude) {
+            if let Some(w2) = P::screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera, reversed_longitude) {
+                let cur_pos = w1.truncate();
                 //let cur_pos = w1.truncate();
-                let next_pos = r.rotate(&w2).truncate();
+                let next_pos = w2.truncate();
                 //let next_pos = w2.truncate();
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();

@@ -893,9 +893,11 @@ impl Draw for ImageSurvey {
             .config()
             .get_frame();
 
-        let survey_to_view_frame = hips_frame.get_mat::<f32>(coosys).transpose();
-        al_core::log::log(&format!("{:?} {:?}", survey_to_view_frame, coosys));
-        
+        let C = hips_frame.get_mat(coosys).transpose();
+        // Retrieve the model and inverse model matrix
+        let w2v = C * (*camera.get_w2m());
+        let v2w = w2v.transpose();
+
         let raytracing = raytracer.is_rendering::<P>(camera);
         if raytracing {
             let shader = get_raytracer_shader::<P>(
@@ -911,8 +913,8 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("coosys_mat", &survey_to_view_frame)
-                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
+                .attach_uniform("model", &w2v)
+                .attach_uniform("inv_model", &v2w)
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps);
@@ -955,8 +957,8 @@ impl Draw for ImageSurvey {
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
                 .attach_uniforms_from(color)
-                .attach_uniform("coosys_mat", &survey_to_view_frame)
-                .attach_uniform("current_depth", &(self.view.get_depth() as i32))
+                .attach_uniform("model", &w2v)
+                .attach_uniform("inv_model", &v2w)
                 .attach_uniform("current_time", &utils::get_current_time())
                 .attach_uniform("opacity", &opacity)
                 .attach_uniforms_from(colormaps)

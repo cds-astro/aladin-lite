@@ -5,8 +5,6 @@ precision highp int;
 varying vec3 out_vert_pos;
 varying vec2 out_clip_pos;
 
-uniform int user_action;
-
 struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
@@ -14,7 +12,6 @@ struct Tile {
     float empty;
 };
 
-uniform int current_depth;
 uniform Tile textures_tiles[192];
 uniform int num_tiles;
 
@@ -84,10 +81,9 @@ vec4 get_tile_color(vec3 pos) {
 uniform sampler2D position_tex;
 uniform mat4 model;
 void main() {
-    //if(current_depth < 2) {
     vec2 uv = out_clip_pos * 0.5 + 0.5;
     vec3 n = texture2D(position_tex, uv).rgb;
-    /*} else {
+    /* Taylor DL
         float x = out_clip_pos.x;
         float y = out_clip_pos.y;
         float x2 = x*x;
@@ -100,7 +96,7 @@ void main() {
             y,
             -0.5*x2 - 0.5*y2 + 1.0
         );
-    }*/
+    */
 
     vec3 frag_pos = vec3(model * vec4(n, 1.0));
 

@@ -170,10 +170,10 @@ impl ProjetedGrid {
             .unzip();
         self.labels = labels;
 
-        let scale = Label::size(camera) as f32;
+        //let scale = Label::size(camera) as f32;
         for label in self.labels.iter() {
             if let Some(label) = label {
-                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), scale, &self.cfg.color, cgmath::Rad(label.rot as f32));
+                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.cfg.color, cgmath::Rad(label.rot as f32));
             }
         }
 
@@ -220,37 +220,6 @@ impl ProjetedGrid {
         }
     }
 
-    fn draw_lines_gpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
-        let shader = P::get_grid_shader(&self.gl, shaders);
-        self.gl.blend_func_separate(
-            WebGl2RenderingContext::SRC_ALPHA,
-            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
-            WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE,
-        );
-
-        let (meridians, parallels) = lines_gpu::<P>(camera);
-
-        shader
-            .bind(&self.gl)
-            .attach_uniforms_from(camera)
-            .attach_uniform("num_meridians", &(meridians.len() as i32))
-            .attach_uniform("num_parallels", &(parallels.len() as i32))
-            .attach_uniform("meridians[0]", &meridians.as_slice())
-            .attach_uniform("parallels[0]", &parallels.as_slice())
-            .attach_uniform("color", &self.cfg.color)
-            // Bind the Vertex Array Object for drawing
-            .bind_vertex_array_object_ref(&self.vao_gpu)
-            .draw_elements_with_i32(
-                // Mode of render
-                WebGl2RenderingContext::TRIANGLES,
-                // Number of elements, by default None
-                None,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                0
-            );
-    }
-
     fn draw_lines_cpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -286,12 +255,7 @@ impl ProjetedGrid {
     ) -> Result<(), JsValue> {
         if self.cfg.enabled {
             self.gl.enable(WebGl2RenderingContext::BLEND);
-
-            //if camera.get_aperture() < ArcDeg(10.0) {
-                self.draw_lines_cpu::<P>(camera, shaders);
-            //} else {
-            //    self.draw_lines_gpu::<P>(camera, shaders);
-            //}
+            self.draw_lines_cpu::<P>(camera, shaders);
 
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -550,7 +514,7 @@ impl Label {
         })
     }
 
-    fn size(camera: &CameraViewPort) -> f64 {
+    /*fn size(camera: &CameraViewPort) -> f64 {
         let ndc1 =
             crate::projection::clip_to_ndc_space(&Vector2::new(-1.0, 0.0), camera);
         let ndc2 =
@@ -565,7 +529,7 @@ impl Label {
         } else {
             1.0
         }
-    }
+    }*/
 }
 
 #[derive(Debug)]
@@ -686,63 +650,6 @@ const GRID_STEPS: &[f64] = &[
     0.0000000000048481366,
 ];
 
-fn lines_gpu<P: Projection>(camera: &CameraViewPort) -> (Vec<f64>, Vec<f64>) {
-    let bbox = camera.get_bounding_box();
-    let _fov = camera.get_field_of_view();
-
-    /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
-
-    let c1 = camera.get_center().truncate();
-    let c2 = (c1 + Vector3::new(0.0, 0.0, 1e-3)).normalize();
-    let ndcc = P::model_to_ndc_space(&c2.extend(1.0), camera).unwrap();
-    let d = ndcc.normalize();
-
-    let a1 = d.x.abs() as f32;
-    let a2 = d.y.abs() as f32;
-
-    let num_lines_lon = (a1 * (num_max_lines as f32)  + (1.0 - a1) * (NUM_MIN_LINES as f32)) as usize;
-    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
-
-    let step_lon = select_grid_step(
-        bbox,
-        bbox.get_lon_size().0 as f64,
-        //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
-        //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
-        NUM_LINES,
-    );
-
-    // Add meridians
-    let mut theta = bbox.lon_min().0 - (bbox.lon_min().0 % step_lon);
-
-    let mut stop_theta = bbox.lon_max().0;
-    if bbox.all_lon() {
-        stop_theta -= 1e-3;
-    }
-    let mut meridians = vec![];
-    while theta < stop_theta {
-        meridians.push(theta);
-        theta += step_lon;
-    }
-
-    // Add parallels
-    let step_lat = select_grid_step(bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
-    let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
-    if alpha == -HALF_PI {
-        alpha += step_lat;
-    }
-    let mut stop_alpha = bbox.lat_max().0;
-    if stop_alpha == HALF_PI {
-        stop_alpha -= 1e-3;
-    }
-    let mut parallels = vec![];
-    while alpha < stop_alpha {
-        parallels.push(alpha);
-        alpha += step_lat;
-    }
-
-    (meridians, parallels)
-}
-
 const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
@@ -759,7 +666,7 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            P::model_to_screen_space(
+            P::view_to_screen_space(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, 1.0, 0.0, 1.0),
                 camera,
@@ -767,7 +674,7 @@ fn lines<P: Projection>(
             )
         } else {
             // screen south pole
-            P::model_to_screen_space(
+            P::view_to_screen_space(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, -1.0, 0.0, 1.0),
                 camera,

@@ -622,7 +622,6 @@ export let Aladin = (function () {
             errorCallback = callbackOptions;
         }
 
-
         var isObjectName = /[a-zA-Z]/.test(targetName);
 
         // try to parse as a position
@@ -645,9 +644,10 @@ export let Aladin = (function () {
             Sesame.resolve(targetName,
                 function (data) { // success callback
                     // Location given in icrs at J2000
-                    var ra = data.Target.Resolver.jradeg;
-                    var dec = data.Target.Resolver.jdedeg;
-
+                    const coo = data.Target.Resolver;
+                    console.log("coo, ", coo)
+                    const [ra, dec] = self.view.aladin.webglAPI.ICRSJ2000ToViewCooSys(coo.jradeg, coo.jdedeg);
+                    console.log(ra, dec)
                     self.view.pointTo(ra, dec, options);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());

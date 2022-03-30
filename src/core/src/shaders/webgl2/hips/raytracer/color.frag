@@ -9,8 +9,6 @@ in vec2 out_clip_pos;
 in vec3 frag_pos;
 out vec4 out_frag_color;
 
-uniform int user_action;
-
 struct Tile {
     int uniq; // Healpix cell
     int texture_idx; // Index in the texture buffer
@@ -18,7 +16,6 @@ struct Tile {
     float empty;
 };
 
-uniform int current_depth;
 uniform Tile textures_tiles[12];
 uniform int num_tiles;
 

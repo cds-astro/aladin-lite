@@ -6,13 +6,6 @@ pub enum UserAction {
     Starting = 4,
 }
 
-impl SendUniforms for UserAction {
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("user_action", &(*self as i32));
-
-        shader
-    }
-}
 use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
 
@@ -284,18 +277,21 @@ impl CameraViewPort {
         // Recompute clip zoom factor
         self.set_aperture::<P>(self.get_aperture(), reversed_longitude);
     }
-    /*pub fn set_longitude_reversed(&mut self, reversed: bool) {
-        self.longitude_reversed = reversed;
-    }*/
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
         self.vertices._type()
     }
 
-    pub fn set_coo_system<P: Projection>(&mut self, system: CooSystem) {
-        self.system = system;
-        self.vertices
-            .set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+    pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem, reversed_longitude: bool) {
+        // Compute the center position according to the new coordinate frame system
+        let new_center = crate::math::apply_coo_system(&self.system, &new_system, &self.center);
+        // Create a rotation object from that position
+        let new_rotation = Rotation::from_sky_position(&new_center);
+        // Apply it to the center of the view
+        self.set_rotation::<P>(&new_rotation, reversed_longitude);
+
+        // Record the new system
+        self.system = new_system;
     }
 
     // Accessors
@@ -363,6 +359,7 @@ impl CameraViewPort {
     pub fn get_center(&self) -> &Vector4<f64> {
         &self.center
     }
+
     /*pub fn is_reversed_longitude(&self) -> bool {
         self.longitude_reversed
     }*/
@@ -436,11 +433,11 @@ use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for CameraViewPort {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
-            .attach_uniforms_from(&self.last_user_action)
+            //.attach_uniforms_from(&self.last_user_action)
             //.attach_uniform("to_icrs", &self.system.to_icrs_j2000::<f32>())
             //.attach_uniform("to_galactic", &self.system.to_gal::<f32>())
-            .attach_uniform("model", &self.w2m)
-            .attach_uniform("inv_model", &self.m2w)
+            //.attach_uniform("model", &self.w2m)
+            //.attach_uniform("inv_model", &self.m2w)
             .attach_uniform("ndc_to_clip", &self.ndc_to_clip) // Send ndc to clip
             .attach_uniform("czf", &self.clip_zoom_factor) // Send clip zoom factor
             .attach_uniform("window_size", &self.get_screen_size()) // Window size

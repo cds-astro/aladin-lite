@@ -213,7 +213,7 @@ impl CameraViewPort {
 
             // Vertex in the WCS of the FOV
             let v0 = math::radec_to_xyzw(lon, Angle(0.0));
-            if let Some(p0) = P::world_to_clip_space(&v0, false) {
+            if let Some(p0) = P::world_to_clip_space(&v0) {
                 self.clip_zoom_factor = p0.x.abs().min(1.0);
             } else {
                 // Gnomonic unzoomed case!
@@ -420,7 +420,7 @@ impl CameraViewPort {
     fn update_center<P: Projection>(&mut self) {
         // update the center position
         let center_world_space =
-            P::clip_to_world_space(&Vector2::new(0.0, 0.0), false).unwrap();
+            P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space

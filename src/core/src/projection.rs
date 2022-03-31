@@ -124,8 +124,12 @@ pub trait Projection:
             pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
         );
         let pos_world_space =
-            Self::clip_to_world_space(&pos_clip_space, camera.get_longitude_reversed());
-        if let Some(pos_world_space) = pos_world_space {
+            Self::clip_to_world_space(&pos_clip_space);
+        if let Some(mut pos_world_space) = pos_world_space {
+            if camera.get_longitude_reversed() {
+                pos_world_space.x = -pos_world_space.x;
+            }
+
             let pos_world_space = pos_world_space.normalize();
 
             Some(pos_world_space)
@@ -207,24 +211,6 @@ pub trait Projection:
         Self::world_to_normalized_device_space(&pos_world_space, camera)
     }
 
-    /*fn clip_to_model_space(
-        pos_clip_space: &Vector2<f64>,
-        camera: &CameraViewPort,
-        reversed_longitude: bool,
-    ) -> Option<Vector4<f64>> {
-        let pos_world_space =
-            Self::clip_to_world_space(pos_clip_space, reversed_longitude);
-
-        if let Some(pos_world_space) = pos_world_space {
-            let w2m = camera.get_w2m();
-            let pos_model_space = w2m * pos_world_space;
-
-            Some(pos_model_space)
-        } else {
-            None
-        }
-    }*/
-
     /// World to screen space projection
 
     /// World to screen space transformation
@@ -237,9 +223,12 @@ pub trait Projection:
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        if let Some(pos_clip_space) =
-            Self::world_to_clip_space(pos_world_space, camera.get_longitude_reversed())
+        if let Some(mut pos_clip_space) =
+            Self::world_to_clip_space(pos_world_space)
         {
+            if camera.get_longitude_reversed() {
+                pos_clip_space.x = -pos_clip_space.x;
+            }
             let ndc_to_clip = camera.get_ndc_to_clip();
             let clip_zoom_factor = camera.get_clip_zoom_factor();
 
@@ -267,7 +256,6 @@ pub trait Projection:
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        reversed_longitude: bool,
     ) -> Option<Vector4<f64>>;
     /// World to the clipping space deprojection
     ///
@@ -276,7 +264,6 @@ pub trait Projection:
     /// * ``pos_world_space`` - The position in the world space
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>>;
 
     // Aperture angle at the start of the application (full view)
@@ -360,7 +347,6 @@ impl Projection for Aitoff {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let u = pos_clip_space.x * f64::PI() * 0.5;
@@ -368,7 +354,7 @@ impl Projection for Aitoff {
             //da uv a lat/lon
             let c = (v * v + u * u).sqrt();
 
-            let (phi, mut theta) = if c != 0.0 {
+            let (phi, theta) = if c != 0.0 {
                 let phi = (v * c.sin() / c).asin();
                 let theta = (u * c.sin()).atan2(c * c.cos());
                 (phi, -theta)
@@ -377,20 +363,9 @@ impl Projection for Aitoff {
                 let theta = u.atan();
                 (phi, -theta)
             };
-            theta *= 2.0;
+            let theta = theta*2.0;
 
-            if longitude_reversed {
-                theta = -theta;
-            }
-
-            let pos_world_space = cgmath::Vector4::new(
-                theta.sin() * phi.cos(),
-                phi.sin(),
-                theta.cos() * phi.cos(),
-                1.0,
-            );
-
-
+            let pos_world_space = crate::math::radec_to_xyzw(Angle(theta), Angle(phi));
             Some(pos_world_space)
         } else {
             None
@@ -406,7 +381,6 @@ impl Projection for Aitoff {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
@@ -415,10 +389,7 @@ impl Projection for Aitoff {
         //let pos_world_space = pos_world_space;
 
         let xyz = pos_world_space.truncate();
-        let (mut theta, delta) = math::xyz_to_radec(&xyz);
-        if longitude_reversed {
-            theta.0 = -theta.0;
-        }
+        let (theta, delta) = math::xyz_to_radec(&xyz);
 
         let theta_by_two = -theta / 2.0;
 
@@ -504,29 +475,19 @@ impl Projection for Mollweide {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let y2 = pos_clip_space.y * pos_clip_space.y;
             let k = (1.0 - 4.0 * y2).sqrt();
 
-            let mut theta = -f64::PI() * pos_clip_space.x / k;
+            let theta = -f64::PI() * pos_clip_space.x / k;
             let delta = ((2.0 * (2.0 * pos_clip_space.y).asin() + 4.0 * pos_clip_space.y * k)
                 / f64::PI())
             .asin();
 
-            if longitude_reversed {
-                theta = -theta;
-            }
-
             // The minus is an astronomical convention.
             // longitudes are increasing from right to left
-            let pos_world_space = cgmath::Vector4::new(
-                theta.sin() * delta.cos(),
-                delta.sin(),
-                theta.cos() * delta.cos(),
-                1.0,
-            );
+            let pos_world_space = crate::math::radec_to_xyzw(Angle(theta), Angle(delta));
 
             Some(pos_world_space)
         } else {
@@ -543,7 +504,6 @@ impl Projection for Mollweide {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
@@ -551,10 +511,7 @@ impl Projection for Mollweide {
         let max_iter = 10;
 
         let xyz = pos_world_space.truncate();
-        let (mut lon, lat) = math::xyz_to_radec(&xyz);
-        if longitude_reversed {
-            lon = -lon;
-        }
+        let (lon, lat) = math::xyz_to_radec(&xyz);
 
         let cst = std::f64::consts::PI * lat.sin();
 
@@ -636,17 +593,10 @@ impl Projection for Orthographic {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
         let xw_2 = 1.0 - pos_clip_space.x * pos_clip_space.x - pos_clip_space.y * pos_clip_space.y;
         if xw_2 > 0.0 {
-            let mut pos_world_space =
-                cgmath::Vector4::new(-pos_clip_space.x, pos_clip_space.y, xw_2.sqrt(), 1_f64);
-
-            if longitude_reversed {
-                pos_world_space.x = -pos_world_space.x;
-            }
-
+            let pos_world_space = Vector4::new(-pos_clip_space.x, pos_clip_space.y, xw_2.sqrt(), 1_f64);
             Some(pos_world_space)
         } else {
             // Out of the sphere
@@ -661,12 +611,9 @@ impl Projection for Orthographic {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &cgmath::Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
         if pos_world_space.z < 0.0_f64 {
             None
-        } else if longitude_reversed {
-            Some(Vector2::new(pos_world_space.x, pos_world_space.y))
         } else {
             Some(Vector2::new(-pos_world_space.x, pos_world_space.y))
         }
@@ -727,24 +674,18 @@ impl Projection for AzimuthalEquidistant {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
         // r <= pi
         let x = pos_clip_space.x * f64::PI();
         let y = pos_clip_space.y * f64::PI();
-        let mut r = (x * x + y * y).sqrt();
+        let r = (x * x + y * y).sqrt();
         if r > f64::PI() {
             None
         } else {
             let z = r.cos();
-            r = math::sinc_positive(r);
+            let r = math::sinc_positive(r);
 
-            let pos_world_space = if longitude_reversed {
-                Vector4::new(x * r, y * r, z, 1.0)
-            } else {
-                Vector4::new(-x * r, y * r, z, 1.0)
-            };
-
+            let pos_world_space = Vector4::new(-x * r, y * r, z, 1.0);
             Some(pos_world_space)
         }
     }
@@ -756,7 +697,6 @@ impl Projection for AzimuthalEquidistant {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
         if pos_world_space.z > -1.0 {
             // Distance in the Euclidean plane (xy)
@@ -772,16 +712,10 @@ impl Projection for AzimuthalEquidistant {
                 // Angular distance > PI/2, angular distance = acos(x)
                 r = pos_world_space.z.acos() / r;
             }
-            let x = if longitude_reversed {
-                pos_world_space.x * r
-            } else {
-                -pos_world_space.x * r
-            };
-            let y = pos_world_space.y * r;
 
             Some(Vector2::new(
-                x / std::f64::consts::PI,
-                y / std::f64::consts::PI,
+                -pos_world_space.x * r / std::f64::consts::PI,
+                pos_world_space.y * r / std::f64::consts::PI,
             ))
         } else {
             Some(Vector2::new(1.0, 0.0))
@@ -842,7 +776,6 @@ impl Projection for Gnomonic {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
         //if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
         //    None
@@ -852,11 +785,7 @@ impl Projection for Gnomonic {
         let r = x_2d * x_2d + y_2d * y_2d;
 
         let z = (1.0 + r).sqrt();
-        let pos_world_space = if longitude_reversed {
-            Vector4::new(z * x_2d, z * y_2d, z, 1.0)
-        } else {
-            Vector4::new(-z * x_2d, z * y_2d, z, 1.0)
-        };
+        let pos_world_space = Vector4::new(-z * x_2d, z * y_2d, z, 1.0);
 
         Some(pos_world_space)
         //}
@@ -869,23 +798,15 @@ impl Projection for Gnomonic {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
         if pos_world_space.z <= 1e-2 {
             // Back hemisphere (z < 0) + diverges near z=0
             None
         } else {
-            let pos_clip_space = if longitude_reversed {
-                Vector2::new(
-                    (pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
-                    (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
-                )
-            } else {
-                Vector2::new(
-                    (-pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
-                    (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
-                )
-            };
+            let pos_clip_space = Vector2::new(
+                (-pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
+                (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
+            );
             Some(pos_clip_space)
         }
     }
@@ -944,14 +865,9 @@ impl Projection for Mercator {
     /// * `y` - in normalized device coordinates between [-1; 1]
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
-        longitude_reversed: bool,
     ) -> Option<cgmath::Vector4<f64>> {
-        let mut theta = -pos_clip_space.x * f64::PI();
+        let theta = -pos_clip_space.x * f64::PI();
         let delta = (pos_clip_space.y.sinh()).atan() * f64::PI();
-
-        if longitude_reversed {
-            theta = -theta;
-        }
 
         let pos_world_space = math::radec_to_xyzw(Angle(theta), Angle(delta));
         Some(pos_world_space)
@@ -964,13 +880,8 @@ impl Projection for Mercator {
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(
         pos_world_space: &Vector4<f64>,
-        longitude_reversed: bool,
     ) -> Option<Vector2<f64>> {
-        let (mut theta, delta) = math::xyzw_to_radec(pos_world_space);
-
-        if longitude_reversed {
-            theta.0 = -theta.0;
-        }
+        let (theta, delta) = math::xyzw_to_radec(pos_world_space);
 
         Some(Vector2::new(
             -theta.0 / std::f64::consts::PI,
@@ -1006,7 +917,7 @@ mod tests {
                         2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                         2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
                     );
-                    let rgb = if let Some(pos) = P::clip_to_world_space(&clip_xy, false) {
+                    let rgb = if let Some(pos) = P::clip_to_world_space(&clip_xy) {
                         let pos = pos.truncate().normalize();
                         Rgb([
                             ((pos.x * 0.5 + 0.5) * 256.0) as u8,

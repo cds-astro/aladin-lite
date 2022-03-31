@@ -15,13 +15,6 @@ fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
 
     let vertices = vertices
         .into_iter().flat_map(|pos_clip_space| {
-            /*let pos_world_space = system.system_to_icrs_coo(
-                P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap()
-            );*/
-            //let pos_world_space =
-            //    P::clip_to_world_space(&pos_clip_space, camera.is_reversed_longitude()).unwrap();
-            //let pos_world_space = system.to_icrs_j2000() * pos_world_space;
-
             // Cast all the double into float
             // simple precision because this buffer
             // is sent to the GPU
@@ -55,7 +48,7 @@ fn generate_xyz_position<P: Projection>() -> Vec<f32> {
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
-            if let Some(pos) = P::clip_to_world_space(&clip_xy, false) {
+            if let Some(pos) = P::clip_to_world_space(&clip_xy) {
                 let pos = pos.truncate().normalize();
                 /*let mut d: u32 = 0;
                 d |= 3 << 30;
@@ -84,7 +77,7 @@ fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
-            if let Some(pos) = P::clip_to_world_space(&clip_xy, false) {
+            if let Some(pos) = P::clip_to_world_space(&clip_xy) {
                 let pos = pos.truncate().normalize();
                 let (lon, lat) = crate::math::xyz_to_radec::<f64>(&pos);
                 /*let mut d: u32 = 0;

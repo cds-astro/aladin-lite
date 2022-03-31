@@ -21,7 +21,7 @@ fn ndc_to_world<P: Projection>(
             n.x * ndc_to_clip.x * clip_zoom_factor,
             n.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let w = P::clip_to_world_space(&c, false);
+        let w = P::clip_to_world_space(&c);
         if let Some(w) = w {
             world_coo.push(w);
         } else {

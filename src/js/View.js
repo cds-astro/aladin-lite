@@ -457,27 +457,14 @@ export let View = (function() {
                 return;
             }
             try {
-                var lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
+                const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
+                var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
+                view.pointTo(radec[0], radec[1], {forceAnimation: true});
             }
             catch(err) {
                 return;
             }
-            var radec;
-            /*if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
-                radec = view.aladin.webglAPI.Gal2J2000(lonlat[0], lonlat[1]);
-            } else {*/
-                radec = lonlat;
-            //}
-            //var radec = view.aladin.webglAPI.;
-            // convert to J2000 if needed
-            /*if (view.cooFrame.system==CooFrameEnum.SYSTEMS.GAL) {
-                radec = CooConversion.GalacticToJ2000([lonlat.ra, lonlat.dec]);
-            }
-            else {
-                radec = lonlat;
-            }*/
             
-            view.pointTo(radec[0], radec[1], {forceAnimation: true});
         };
         if (! hasTouchEvents) {
             $(view.reticleCanvas).dblclick(onDblClick);
@@ -860,7 +847,6 @@ export let View = (function() {
             let viewCenter = view.aladin.webglAPI.getCenter();
             view.viewCenter.lon = viewCenter[0];
             view.viewCenter.lat = viewCenter[1];
-
 
             //console.log(view.viewCenter);
             view.requestRedraw();
@@ -2117,7 +2103,7 @@ export let View = (function() {
 
     /**
      * 
-     * @API Point to a specific location
+     * @API Point to a specific location in ICRSJ2000
      * 
      * @param ra ra expressed in ICRS J2000 frame
      * @param dec dec expressed in ICRS J2000 frame

@@ -412,7 +412,7 @@ pub trait AppTrait {
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
-    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
+    fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     //fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
 
     // UI
@@ -923,11 +923,11 @@ where
         P::screen_to_model_space(pos, &self.camera, reversed_longitude).map(|model_pos| model_pos.lonlat())
     }
 
-    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+    fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = crate::math::xyzw_to_radec(
-            &crate::math::apply_coo_system(&CooSystem::ICRSJ2000, &view_system, &icrsj2000_pos)
+            &crate::math::apply_coo_system(&view_system, &CooSystem::ICRSJ2000, &icrsj2000_pos)
         );
 
         LonLatT::new(ra, dec)
@@ -935,9 +935,10 @@ where
 
     fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        let xyz: Vector4<_> = lonlat.vector();
+        let icrsj2000_pos: Vector4<_> = lonlat.vector();
 
-        let rot = Rotation::from_sky_position(&xyz);
+        let view_pos = crate::math::apply_coo_system(&CooSystem::ICRSJ2000, self.camera.get_system(), &icrsj2000_pos);
+        let rot = Rotation::from_sky_position(&view_pos);
 
         // Apply the rotation to the camera to go
         // to the next lonlat

@@ -629,12 +629,9 @@ export let Aladin = (function () {
             var coo = new Coo();
 
             coo.parse(targetName);
-            var lonlat = [coo.lon, coo.lat];
-            // Convert it to icrs if the coo system is galactic
-            /*if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
-                lonlat = this.view.aladin.webglAPI.Gal2J2000(coo.lon, coo.lat);
-            }*/
-            this.view.pointTo(lonlat[0], lonlat[1], options);
+            // Convert from view coo sys to icrsj2000
+            const [ra, dec] = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(coo.lon, coo.lat);
+            this.view.pointTo(ra, dec, options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
         }
@@ -645,10 +642,7 @@ export let Aladin = (function () {
                 function (data) { // success callback
                     // Location given in icrs at J2000
                     const coo = data.Target.Resolver;
-                    console.log("coo, ", coo)
-                    const [ra, dec] = self.view.aladin.webglAPI.ICRSJ2000ToViewCooSys(coo.jradeg, coo.jdedeg);
-                    console.log(ra, dec)
-                    self.view.pointTo(ra, dec, options);
+                    self.view.pointTo(coo.jradeg, coo.jdedeg, options);
 
                     (typeof successCallback === 'function') && successCallback(self.getRaDec());
                 },

@@ -158,7 +158,7 @@ fn get_skewed_factor<P: Projection>(scell: &HEALPixCell, camera: &CameraViewPort
     }
 }*/
 
-fn num_subdivision<P: Projection>(cell: &HEALPixCell) -> u8 {
+fn num_subdivision(cell: &HEALPixCell) -> u8 {
     let d = cell.depth();
     const MAX_SUBDIVISION: u8 = 4;
 
@@ -281,7 +281,6 @@ trait Draw {
         color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
-        reversed_longitude: bool
     );
 }
 
@@ -385,7 +384,7 @@ use crate::renderable::survey::uv::{TileCorner, TileUVW};
 
 
 //#[cfg(feature = "webgl1")]
-fn add_vertices_grid<P>(
+fn add_vertices_grid(
     cell: &HEALPixCell,
     position: &mut Vec<f32>,
     uv_start: &mut Vec<f32>,
@@ -407,13 +406,8 @@ fn add_vertices_grid<P>(
     alpha: f32,
 
     camera: &CameraViewPort,
-    reversed_longitude: bool,
-)
-where
-    P: Projection
-{
-    //let num_subdivision = num_subdivision::<P>(cell, camera, reversed_longitude);
-    let num_subdivision = num_subdivision::<P>(cell);
+) {
+    let num_subdivision = num_subdivision(cell);
 
     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
     let n_vertices_per_segment = n_segments_by_side + 1;
@@ -689,17 +683,17 @@ impl ImageSurvey {
         texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)
     }
 
-    pub fn set_uvs<P: Projection>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
+    pub fn recompute_vertices(&mut self, camera: &CameraViewPort) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_uvs::<P, UnZoom>(camera, reversed_longitude);
+                self.update_vertices::<UnZoom>(camera);
             }
             UserAction::Zooming => {
-                self.update_uvs::<P, Zoom>(camera, reversed_longitude);
+                self.update_vertices::<Zoom>(camera);
             }
             _ => {
-                self.update_uvs::<P, Move>(camera, reversed_longitude);
+                self.update_vertices::<Move>(camera);
             }
         }
     }
@@ -741,7 +735,7 @@ impl ImageSurvey {
     }*/
 
     //#[cfg(feature = "webgl1")]
-    fn update_uvs<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
+    fn update_vertices<T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -761,7 +755,7 @@ impl ImageSurvey {
             let miss_0 = starting_texture.is_missing() as f32;
             let miss_1 = ending_texture.is_missing() as f32;
 
-            add_vertices_grid::<P>(
+            add_vertices_grid(
                 cell,
                 &mut self.position,
                 &mut self.uv_start,
@@ -778,7 +772,6 @@ impl ImageSurvey {
                 miss_1,
                 start_time.as_millis(),
                 camera,
-                reversed_longitude
             );
         }
         self.num_idx = self.idx_vertices.len();
@@ -847,7 +840,6 @@ impl Draw for ImageSurvey {
         color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
-        reversed_longitude: bool
     ) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
@@ -901,10 +893,7 @@ impl Draw for ImageSurvey {
             // - The UVs are changed if:
             //     * new cells are added/removed (because new cells are added)
             //     * there are new available tiles for the GPU
-            // - The 
-
-            let recompute_vertices = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
-            
+            // - The             
             let shader = get_raster_shader::<P>(
                 color,
                 &self.gl,
@@ -914,10 +903,9 @@ impl Draw for ImageSurvey {
             )
             .bind(&self.gl);
 
-            //self.gl.bind_vertex_array(Some(&self.vao));
-            
-            if recompute_vertices {
-                self.set_uvs::<P>(camera, reversed_longitude);
+            let vertices_recomputation_needed = self.view.is_there_new_cells_added() | self.textures.is_there_available_tiles() | switch_from_raytrace_to_raster;
+            if vertices_recomputation_needed {
+                self.recompute_vertices(camera);
             }
 
             shader
@@ -1108,7 +1096,6 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
-        reversed_longitude: bool
     ) {
         let raytracing = self.raytracer.is_rendering::<P>(camera);
 
@@ -1156,7 +1143,6 @@ impl ImageSurveys {
                         color,
                         *opacity,
                         colormaps,
-                        reversed_longitude
                     );
                 });
             }

@@ -336,16 +336,6 @@ where
 
         Ok(tiles_available)
     }
-
-    // To know if the longitude is reversed before doing the projection
-    // We have to retrieve the last rendered/visible survey
-    fn is_reversed_longitude(&self) -> bool {
-        if let Some(survey) = self.surveys.last() {
-            survey.longitude_reversed()
-        } else {
-            false
-        }
-    }
 }
 
 #[enum_dispatch(AppType)]
@@ -499,8 +489,7 @@ where
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
 
-            let reversed_longitude = self.is_reversed_longitude();
-            self.camera.rotate::<P>(&axis, d, reversed_longitude);
+            self.camera.rotate::<P>(&axis, d);
             self.look_for_new_tiles();
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
@@ -545,7 +534,7 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera, force, self.is_reversed_longitude());        
+        self.grid.update::<P>(&self.camera, force);        
         {
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -564,7 +553,7 @@ where
 
     fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
-        self.camera.set_rotation_around_center::<P>(Angle(0.0), self.is_reversed_longitude());
+        self.camera.set_rotation_around_center::<P>(Angle(0.0));
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
@@ -647,7 +636,6 @@ where
         let mut ui = self.ui.lock();
         //al_core::log(&format!("dpi {:?}", dpi));
         let ui_redraw = ui.redraw_needed();
-        let reversed_longitude = self.is_reversed_longitude();
 
         if scene_redraw || ui_redraw {
             let shaders = &mut self.shaders;
@@ -662,7 +650,7 @@ where
             gl.clear_color(0.0, 0.0, 0.0, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw::<P>(camera, shaders, colormaps, reversed_longitude);
+            surveys.draw::<P>(camera, shaders, colormaps);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -718,8 +706,7 @@ where
     }
 
     fn set_projection<Q: Projection>(mut self) -> App<Q> {
-        let reversed_longitude = self.is_reversed_longitude();
-        self.camera.set_projection::<Q>(reversed_longitude);
+        self.camera.set_projection::<Q>();
         self.surveys.set_projection::<Q>(
             &self.camera,
             &mut self.shaders,
@@ -871,7 +858,7 @@ where
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {
-        self.camera.set_coo_system::<P>(coo_system, self.is_reversed_longitude());
+        self.camera.set_coo_system::<P>(coo_system);
         self.look_for_new_tiles();
 
         self.request_redraw = true;
@@ -881,10 +868,7 @@ where
         //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
         let model_pos_xyz = lonlat.vector();
 
-        // Select the HiPS layer rendered lastly
-        let reversed_longitude = self.is_reversed_longitude();
-
-        let screen_pos = P::view_to_screen_space(&model_pos_xyz, &self.camera, reversed_longitude);
+        let screen_pos = P::view_to_screen_space(&model_pos_xyz, &self.camera);
         Ok(screen_pos)
     }
 
@@ -919,8 +903,7 @@ where
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         // Select the HiPS layer rendered lastly
-        let reversed_longitude = self.is_reversed_longitude();
-        P::screen_to_model_space(pos, &self.camera, reversed_longitude).map(|model_pos| model_pos.lonlat())
+        P::screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
     }
 
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
@@ -942,8 +925,7 @@ where
 
         // Apply the rotation to the camera to go
         // to the next lonlat
-        let reversed_longitude = self.is_reversed_longitude();
-        self.camera.set_rotation::<P>(&rot, reversed_longitude);
+        self.camera.set_rotation::<P>(&rot);
         self.look_for_new_tiles();
 
         // And stop the current inertia as well if there is one
@@ -1017,7 +999,7 @@ where
     }*/
 
     fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
-        self.camera.set_rotation_around_center::<P>(theta.into(), self.is_reversed_longitude());
+        self.camera.set_rotation_around_center::<P>(theta.into());
         // New tiles can be needed and some tiles can be removed
         self.look_for_new_tiles();
 
@@ -1029,10 +1011,9 @@ where
     }
 
     fn set_fov(&mut self, fov: Angle<f64>) {
-        let reversed_longitude = self.is_reversed_longitude();
         // For the moment, no animation is triggered.
         // The fov is directly set
-        self.camera.set_aperture::<P>(fov, reversed_longitude);
+        self.camera.set_aperture::<P>(fov);
         self.look_for_new_tiles();
 
         self.request_redraw = true;
@@ -1047,9 +1028,8 @@ where
 
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         // Select the HiPS layer rendered lastly
-
-        if let Some(w1) = P::screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera, reversed_longitude) {
-            if let Some(w2) = P::screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera, reversed_longitude) {
+        if let Some(w1) = P::screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera) {
+            if let Some(w2) = P::screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera) {
                 let cur_pos = w1.truncate();
                 //let cur_pos = w1.truncate();
                 let next_pos = w2.truncate();

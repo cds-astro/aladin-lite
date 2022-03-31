@@ -26,7 +26,6 @@ pub fn project_along_longitudes_and_latitudes<P: Projection>(
             &Vector2::new(end.0 .0, end.1 .0),
         ],
         camera,
-        reversed_longitude
     );
 
     for ndc_vert in s_vert.iter_mut() {

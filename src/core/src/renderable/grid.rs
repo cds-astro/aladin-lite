@@ -147,10 +147,10 @@ impl ProjetedGrid {
         self.cfg = cfg;
     }
 
-    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
+    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
         self.text_renderer.begin_frame();
         //let text_height = text_renderer.text_size();
-        let lines = lines::<P>(camera, &self.text_renderer, reversed_longitude);
+        let lines = lines::<P>(camera, &self.text_renderer);
 
         self.offsets.clear();
         self.sizes.clear();
@@ -210,13 +210,13 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool, reversed_longitude: bool) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
         if !self.cfg.enabled {
             return;
         }
 
         if camera.has_moved() || force {
-            self.force_update::<P>(camera, reversed_longitude);
+            self.force_update::<P>(camera);
         }
     }
 
@@ -574,9 +574,7 @@ impl GridLine {
         lon: &Range<f64>,
         lat: f64,
         camera: &CameraViewPort,
-        //text_height: f64,
         text_renderer: &TextRenderManager,
-        reversed_longitude: bool,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -595,10 +593,9 @@ impl GridLine {
                 &mut vertices,
                 [&Vector2::new(lon.start, lat), &Vector2::new(0.5*(lon.start + lon.end), lat), &Vector2::new(lon.end, lat)],
                 camera,
-                reversed_longitude
             );
 
-            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer, reversed_longitude);
+            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer);
 
             Some(GridLine { vertices, label })
         } else {
@@ -720,7 +717,6 @@ fn lines<P: Projection>(
             sp.as_ref(),
             camera,
             text_renderer,
-            reversed_longitude
         ) {
             lines.push(line);
         }
@@ -740,7 +736,7 @@ fn lines<P: Projection>(
 
     while alpha < stop_alpha {
         if let Some(line) =
-            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer, reversed_longitude)
+            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer)
         {
             lines.push(line);
         }

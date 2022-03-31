@@ -358,7 +358,6 @@ impl Label {
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
-        reversed_longitude: bool,
     ) -> Option<Self> {
         let system = camera.get_system();
 
@@ -387,7 +386,7 @@ impl Label {
         let m2 = ((m1.truncate() + d * 1e-3).normalize()).extend(1.0);
 
         //let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
-        let s1 = P::model_to_screen_space(&m1, camera, reversed_longitude)?;
+        let s1 = P::model_to_screen_space(&m1, camera)?;
 
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
@@ -407,7 +406,7 @@ impl Label {
                 return None;
             }
         }
-        let s2 = P::model_to_screen_space(&m2, camera, reversed_longitude)?;
+        let s2 = P::model_to_screen_space(&m2, camera)?;
         //let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
@@ -457,7 +456,6 @@ impl Label {
         camera: &CameraViewPort,
         // in pixels
         text_renderer: &TextRenderManager,
-        reversed_longitude: bool,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let system = camera.get_system();
@@ -470,10 +468,10 @@ impl Label {
 
         let s1 =
             //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
-            P::model_to_screen_space(&m1.extend(1.0), camera, reversed_longitude)?;
+            P::model_to_screen_space(&m1.extend(1.0), camera)?;
         let s2 =
             //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
-            P::model_to_screen_space(&m2.extend(1.0), camera, reversed_longitude)?;
+            P::model_to_screen_space(&m2.extend(1.0), camera)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -551,7 +549,6 @@ impl GridLine {
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
-        reversed_longitude: bool,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
@@ -565,11 +562,10 @@ impl GridLine {
             &mut vertices,
             [&a, &b, &c],
             camera,
-            reversed_longitude
         );
 
         let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
-        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer, reversed_longitude);
+        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
 
         Some(GridLine { vertices, label })
     }
@@ -655,7 +651,6 @@ fn lines<P: Projection>(
     camera: &CameraViewPort,
     //text_height: f64,
     text_renderer: &TextRenderManager,
-    reversed_longitude: bool
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let system = camera.get_system();
@@ -670,7 +665,6 @@ fn lines<P: Projection>(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, 1.0, 0.0, 1.0),
                 camera,
-                reversed_longitude,
             )
         } else {
             // screen south pole
@@ -678,7 +672,6 @@ fn lines<P: Projection>(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, -1.0, 0.0, 1.0),
                 camera,
-                reversed_longitude,
             )
         }
     } else {

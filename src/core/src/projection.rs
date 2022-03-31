@@ -110,7 +110,6 @@ pub trait Projection:
     fn screen_to_world_space(
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector4<f64>> {
         // Change the screen position according to the dpi
         //let dpi = camera.get_dpi();
@@ -125,7 +124,7 @@ pub trait Projection:
             pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
         );
         let pos_world_space =
-            Self::clip_to_world_space(&pos_clip_space, reversed_longitude);
+            Self::clip_to_world_space(&pos_clip_space, camera.get_longitude_reversed());
         if let Some(pos_world_space) = pos_world_space {
             let pos_world_space = pos_world_space.normalize();
 
@@ -146,9 +145,8 @@ pub trait Projection:
     fn screen_to_model_space(
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector4<f64>> {
-        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera, reversed_longitude);
+        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_final_rotation();
@@ -162,9 +160,8 @@ pub trait Projection:
     fn screen_to_view_space(
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector4<f64>> {
-        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera, reversed_longitude);
+        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_final_rotation();
@@ -182,35 +179,32 @@ pub trait Projection:
     fn model_to_screen_space(
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-        Self::world_to_screen_space(&pos_world_space, camera, reversed_longitude)
+        Self::world_to_screen_space(&pos_world_space, camera)
     }
 
     fn view_to_screen_space(
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>> {
         let view_coosys = camera.get_system();
         let C = CooSystem::ICRSJ2000.get_mat::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * C * pos_model_space;
-        Self::world_to_screen_space(&pos_world_space, camera, reversed_longitude)
+        Self::world_to_screen_space(&pos_world_space, camera)
     }
 
     fn model_to_ndc_space(
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         //pos_world_space.x = -pos_world_space.x;
-        Self::world_to_normalized_device_space(&pos_world_space, camera, reversed_longitude)
+        Self::world_to_normalized_device_space(&pos_world_space, camera)
     }
 
     /*fn clip_to_model_space(
@@ -242,10 +236,9 @@ pub trait Projection:
     fn world_to_normalized_device_space(
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>> {
         if let Some(pos_clip_space) =
-            Self::world_to_clip_space(pos_world_space, reversed_longitude)
+            Self::world_to_clip_space(pos_world_space, camera.get_longitude_reversed())
         {
             let ndc_to_clip = camera.get_ndc_to_clip();
             let clip_zoom_factor = camera.get_clip_zoom_factor();
@@ -263,9 +256,8 @@ pub trait Projection:
     fn world_to_screen_space(
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
-        reversed_longitude: bool,
     ) -> Option<Vector2<f64>> {
-        Self::world_to_normalized_device_space(pos_world_space, camera, reversed_longitude).map(|pos_normalized_device| self::ndc_to_screen_space(&pos_normalized_device, camera))
+        Self::world_to_normalized_device_space(pos_world_space, camera).map(|pos_normalized_device| self::ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
     /// Perform a clip to the world space deprojection

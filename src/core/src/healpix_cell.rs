@@ -100,6 +100,11 @@ impl HEALPixCell {
         let npix = 12 << ((depth as usize) << 1);
         (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
     }
+
+    #[inline]
+    pub fn center(&self) -> (f64, f64) {
+        healpix::nested::center(self.0, self.1)
+    }
 }
 
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;

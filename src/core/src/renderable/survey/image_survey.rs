@@ -3,6 +3,7 @@ use crate::buffer::Texture;
 use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
 #[cfg(feature = "webgl2")]
 use al_core::format::{R16I, R32I, R8UI};
+use egui::epaint::ahash::CallHasher;
 
 pub struct TextureToDraw<'a> {
     pub starting_texture: &'a Texture,
@@ -98,12 +99,87 @@ impl RecomputeRasterizer for Move {
     }
 }
 
-fn num_subdivision(depth: u8) -> u8 {
+/*fn num_subdivision(depth: u8) -> u8 {
     if depth < 5 {
         std::cmp::max(5 - depth, 2)
     } else {
         0
     }
+}*/
+
+// Recursively compute the number of subdivision needed for a cell
+// to not be too much skewed
+use al_api::coo_system::CooSystem;
+use cgmath::InnerSpace;
+use crate::healpix_cell::HEALPixCell;
+fn get_skewed_factor<P: Projection>(scell: &HEALPixCell, camera: &CameraViewPort) -> f64 {
+    let view_system = camera.get_system();
+
+    let ndc_pos_vertices = cdshealpix::vertices_lonlat::<f64>(scell)
+        .map(|lonlat| {
+            let icrsj2000_pos = lonlat.vector();
+            // Convert it to the system frame
+            let pos = crate::math::apply_coo_system(&CooSystem::ICRSJ2000, &view_system, &icrsj2000_pos);
+
+            P::model_to_ndc_space(&pos, camera).unwrap()
+        });
+    
+    let first_diag_length = (ndc_pos_vertices[0] - ndc_pos_vertices[2]).magnitude();
+    let second_diag_length = (ndc_pos_vertices[1] - ndc_pos_vertices[3]).magnitude();
+
+    first_diag_length.min(second_diag_length)/first_diag_length.max(second_diag_length)
+}
+
+/*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
+    let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
+    al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
+
+    if skewed_factor > 0.8 {
+        0
+    } else {
+        let mut subdivide_further = false;
+        for child_cell in cell.get_children_cells(1) {
+            let child_cell_skewed_factor = get_skewed_factor::<P>(&child_cell, camera, reversed_longitude);
+            if child_cell_skewed_factor > skewed_factor {
+                subdivide_further = true;
+                break;
+            }
+        }
+    
+        if !subdivide_further {
+            0
+        } else {
+            cell.get_children_cells(1)
+                .map(|child_cell| {
+                    num_subdivision::<P>(&child_cell, camera, reversed_longitude)
+                })
+                .fold(std::u8::MIN, |a, b| a.max(b)) + 1
+        }
+    }
+}*/
+
+fn num_subdivision<P: Projection>(cell: &HEALPixCell) -> u8 {
+    let d = cell.depth();
+    const MAX_SUBDIVISION: u8 = 4;
+
+    if d == 0 {
+        return MAX_SUBDIVISION;
+    } else if d == 1 {
+        return MAX_SUBDIVISION;
+    }
+
+    // Largest deformation cell among the cells of a specific depth
+    let largest_center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, 0.0, healpix::TRANSITION_LATITUDE);
+    let smallest_center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, 0.0, healpix::LAT_OF_SQUARE_CELL);
+
+    let (lon, lat) = cell.center();
+    let center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, lon, lat);
+
+    let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist) / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
+    //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
+    debug_assert!(skewed_factor <= 1.0 && skewed_factor >= 0.0);
+
+    (skewed_factor * ((MAX_SUBDIVISION - 1) as f64)) as u8 + 1
 }
 
 impl RecomputeRasterizer for Zoom {
@@ -205,6 +281,7 @@ trait Draw {
         color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
+        reversed_longitude: bool
     );
 }
 
@@ -306,134 +383,18 @@ use cgmath::{Vector3, Vector4};
 
 use crate::renderable::survey::uv::{TileCorner, TileUVW};
 
-// This method only computes the vertex positions
-// of a HEALPix cell and append them
-// to lonlats and positions vectors
-/*#[cfg(feature = "webgl2")]
-fn add_vertices_grid<P: Projection, E: RecomputeRasterizer>(
-    vertices: &mut Vec<f32>,
-    idx_positions: &mut Vec<u16>,
-
-    cell: &HEALPixCell,
-    sphere_sub: &SphereSubdivided,
-
-    uv_0: &TileUVW,
-    uv_1: &TileUVW,
-    miss_0: f32,
-    miss_1: f32,
-
-    alpha: f32,
-
-    camera: &CameraViewPort,
-) {
-    let num_subdivision = E::num_subdivision::<P>(cell, sphere_sub);
-
-    let n_segments_by_side: usize = 1 << num_subdivision;
-    let lonlat = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-
-    let n_vertices_per_segment = n_segments_by_side + 1;
-
-    let off_idx_vertices = (vertices.len() / 12) as u16;
-    //let mut valid = vec![vec![true; n_vertices_per_segment]; n_vertices_per_segment];
-    for i in 0..n_vertices_per_segment {
-        for j in 0..n_vertices_per_segment {
-            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
-
-            let hj0 = (j as f32) / (n_segments_by_side as f32);
-            let hi0 = (i as f32) / (n_segments_by_side as f32);
-
-            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-
-            let uv_s_vertex_0 = Vector3::new(
-                uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                uv_0[TileCorner::BottomLeft].z,
-            );
-
-            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-            let uv_e_vertex_0 = Vector3::new(
-                uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                uv_1[TileCorner::BottomLeft].z,
-            );
-
-            let (lon, lat) = (lonlat[id_vertex_0].lon().0, lonlat[id_vertex_0].lat().0);
-            let model_pos: Vector4<f64> = lonlat[id_vertex_0].vector();
-            // The projection is defined whatever the projection is
-            // because this code is executed for small fovs (~<100deg depending
-            // of the projection).
-            if let Some(ndc_pos) = P::model_to_ndc_space(&model_pos, camera) {
-                vertices.extend(
-                    [
-                        model_pos.x as f32,
-                        model_pos.y as f32,
-                        model_pos.z as f32,
-                        uv_s_vertex_0.x,
-                        uv_s_vertex_0.y,
-                        uv_s_vertex_0.z,
-                        uv_e_vertex_0.x,
-                        uv_e_vertex_0.y,
-                        uv_e_vertex_0.z,
-                        alpha,
-                        miss_0,
-                        miss_1,
-                    ]
-                    .iter(),
-                );
-            } else {
-                //valid[i][j] = false;
-                vertices.extend(
-                    [
-                        1.0,
-                        0.0,
-                        0.0,
-                        uv_s_vertex_0.x,
-                        uv_s_vertex_0.y,
-                        uv_s_vertex_0.z,
-                        uv_e_vertex_0.x,
-                        uv_e_vertex_0.y,
-                        uv_e_vertex_0.z,
-                        alpha,
-                        miss_0,
-                        miss_1,
-                    ]
-                    .iter(),
-                );
-            }
-        }
-    }
-
-    for i in 0..n_segments_by_side {
-        for j in 0..n_segments_by_side {
-            let idx_0 = (j + i * n_vertices_per_segment) as u16;
-            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
-
-            idx_positions.push(off_idx_vertices + idx_0);
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_2);
-
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_3);
-            idx_positions.push(off_idx_vertices + idx_2);
-        }
-    }
-}*/
 
 //#[cfg(feature = "webgl1")]
-fn add_vertices_grid(
-    depth: u8,
-    //position: &mut Vec<f32>,
+fn add_vertices_grid<P>(
+    cell: &HEALPixCell,
+    position: &mut Vec<f32>,
     uv_start: &mut Vec<f32>,
     uv_end: &mut Vec<f32>,
     time_tile_received: &mut Vec<f32>,
     m0: &mut Vec<f32>,
     m1: &mut Vec<f32>,
 
-    //idx_positions: &mut Vec<u16>,
+    idx_positions: &mut Vec<u16>,
 
     //cell: &HEALPixCell,
     //sphere_sub: &SphereSubdivided,
@@ -445,16 +406,29 @@ fn add_vertices_grid(
 
     alpha: f32,
 
-    _camera: &CameraViewPort,
-) {
-    let num_subdivision = num_subdivision(depth);
-    let n_segments_by_side: usize = 1 + (num_subdivision as usize);
-    let n_vertices_per_segment = 2 + (num_subdivision as usize);
+    camera: &CameraViewPort,
+    reversed_longitude: bool,
+)
+where
+    P: Projection
+{
+    //let num_subdivision = num_subdivision::<P>(cell, camera, reversed_longitude);
+    let num_subdivision = num_subdivision::<P>(cell);
 
-    let _off_idx_vertices = (uv_start.len() / 2) as u16;
+    let n_segments_by_side: usize = 1 << (num_subdivision as usize);
+    let n_vertices_per_segment = n_segments_by_side + 1;
+
+    // Indices overwritten
+    let off_idx_vertices = (position.len() / 3) as u16;
+
+    let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
-            let _id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+
+            let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
+            position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
+
 
             let hj0 = (j as f32) / (n_segments_by_side as f32);
             let hi0 = (i as f32) / (n_segments_by_side as f32);
@@ -481,6 +455,23 @@ fn add_vertices_grid(
             time_tile_received.push(alpha);
             m0.push(miss_0);
             m1.push(miss_1);
+        }
+    }
+
+    for i in 0..n_segments_by_side {
+        for j in 0..n_segments_by_side {
+            let idx_0 = (j + i * n_vertices_per_segment) as u16;
+            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+
+            idx_positions.push(off_idx_vertices + idx_0);
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_2);
+
+            idx_positions.push(off_idx_vertices + idx_1);
+            idx_positions.push(off_idx_vertices + idx_3);
+            idx_positions.push(off_idx_vertices + idx_2);
         }
     }
 }
@@ -529,7 +520,7 @@ use crate::camera::UserAction;
 use crate::math::LonLatT;
 use crate::utils;
 use al_core::pixel::PixelType;
-use web_sys::WebGl2RenderingContext;
+use web_sys::{WebGl2RenderingContext, WheelEvent};
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -698,17 +689,17 @@ impl ImageSurvey {
         texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)
     }
 
-    pub fn set_uvs(&mut self, camera: &CameraViewPort) {
+    pub fn set_uvs<P: Projection>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_uvs::<UnZoom>(camera);
+                self.update_uvs::<P, UnZoom>(camera, reversed_longitude);
             }
             UserAction::Zooming => {
-                self.update_uvs::<Zoom>(camera);
+                self.update_uvs::<P, Zoom>(camera, reversed_longitude);
             }
             _ => {
-                self.update_uvs::<Move>(camera);
+                self.update_uvs::<P, Move>(camera, reversed_longitude);
             }
         }
     }
@@ -750,14 +741,14 @@ impl ImageSurvey {
     }*/
 
     //#[cfg(feature = "webgl1")]
-    fn update_uvs<T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
-        //self.position.clear();
+    fn update_uvs<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort, reversed_longitude: bool) {
+        self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
         self.time_tile_received.clear();
         self.m0.clear();
         self.m1.clear();
-        //self.idx_vertices.clear();
+        self.idx_vertices.clear();
 
         let textures = T::get_textures_from_survey(&self.view, &self.textures);
 
@@ -770,15 +761,15 @@ impl ImageSurvey {
             let miss_0 = starting_texture.is_missing() as f32;
             let miss_1 = ending_texture.is_missing() as f32;
 
-            add_vertices_grid(
-                depth,
-                //&mut self.position,
+            add_vertices_grid::<P>(
+                cell,
+                &mut self.position,
                 &mut self.uv_start,
                 &mut self.uv_end,
                 &mut self.time_tile_received,
                 &mut self.m0,
                 &mut self.m1,
-                //&mut self.idx_vertices,
+                &mut self.idx_vertices,
                 //&cell,
                 //&self.sphere_sub,
                 &uv_0,
@@ -787,66 +778,42 @@ impl ImageSurvey {
                 miss_1,
                 start_time.as_millis(),
                 camera,
+                reversed_longitude
             );
         }
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
-        vao.update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
+        vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
+            .update_array("uv_start", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_start))
             .update_array("uv_end", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.uv_end))
             .update_array("time_tile_received", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.time_tile_received))
             .update_array("m0", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m0))
-            .update_array("m1", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m1));
-            //.update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
+            .update_array("m1", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.m1))
+            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
 
-    fn set_positions(&mut self) {
+    /*fn set_positions<P>(&mut self, camera: &CameraViewPort, reversed_longitude: bool)
+    where
+        P: Projection
+    {
         self.position.clear();
         self.idx_vertices.clear();
         let depth = self.view.get_depth();
 
-        let num_subdivision = num_subdivision(depth);
-        let n_segments_by_side = 1 + num_subdivision as usize;
-        let n_vertices_per_segment = 2 + num_subdivision as usize;
-
         for cell in self.view.get_cells() {
-            let ll = cdshealpix::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-            // Indices overwritten
-            let off_idx_vertices = (self.position.len() / 3) as u16;
+            let num_subdivision = num_subdivision::<P>(cell);
+            let n_segments_by_side: usize = 1 << num_subdivision;
+            let n_vertices_per_segment = n_segments_by_side + 1;
 
-            // Positions overwritten
-            for i in 0..n_vertices_per_segment {
-                for j in 0..n_vertices_per_segment {
-                    let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
 
-                    let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
-                    self.position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
-                }
-            }
-
-            for i in 0..n_segments_by_side {
-                for j in 0..n_segments_by_side {
-                    let idx_0 = (j + i * n_vertices_per_segment) as u16;
-                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-                    let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-                    let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
-        
-                    self.idx_vertices.push(off_idx_vertices + idx_0);
-                    self.idx_vertices.push(off_idx_vertices + idx_1);
-                    self.idx_vertices.push(off_idx_vertices + idx_2);
-        
-                    self.idx_vertices.push(off_idx_vertices + idx_1);
-                    self.idx_vertices.push(off_idx_vertices + idx_3);
-                    self.idx_vertices.push(off_idx_vertices + idx_2);
-                }
-            }
         }
 
         let mut vao = self.vao.bind_for_update();
         vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
-
+*/
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let tile_size = self.textures.config().get_tile_size();
         let max_depth = self.textures.config().get_max_depth();
@@ -880,6 +847,7 @@ impl Draw for ImageSurvey {
         color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
+        reversed_longitude: bool
     ) {
         if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
@@ -949,8 +917,7 @@ impl Draw for ImageSurvey {
             //self.gl.bind_vertex_array(Some(&self.vao));
             
             if recompute_vertices {
-                self.set_positions();
-                self.set_uvs(camera);
+                self.set_uvs::<P>(camera, reversed_longitude);
             }
 
             shader
@@ -1141,6 +1108,7 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
+        reversed_longitude: bool
     ) {
         let raytracing = self.raytracer.is_rendering::<P>(camera);
 
@@ -1188,6 +1156,7 @@ impl ImageSurveys {
                         color,
                         *opacity,
                         colormaps,
+                        reversed_longitude
                     );
                 });
             }
@@ -1208,7 +1177,7 @@ impl ImageSurveys {
         &mut self,
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         exec: Rc<RefCell<TaskExecutor>>,
         _colormaps: &Colormaps,
     ) -> Result<Vec<String>, JsValue> {
@@ -1267,6 +1236,11 @@ impl ImageSurveys {
             self.layers.push(layer);
         }
         al_core::log::log(&format!("List of surveys: {:?}\nmeta: {:?}\nlayers: {:?}\n", self.surveys.keys(), self.meta, self.layers));
+
+        // Set the reversed longitude
+        if let Some(survey) = self.last() {
+            camera.set_longitude_reversed(survey.longitude_reversed());
+        }
 
         Ok(new_survey_urls)
     }

@@ -647,6 +647,7 @@ where
         let mut ui = self.ui.lock();
         //al_core::log(&format!("dpi {:?}", dpi));
         let ui_redraw = ui.redraw_needed();
+        let reversed_longitude = self.is_reversed_longitude();
 
         if scene_redraw || ui_redraw {
             let shaders = &mut self.shaders;
@@ -661,7 +662,7 @@ where
             gl.clear_color(0.0, 0.0, 0.0, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw::<P>(camera, shaders, colormaps);
+            surveys.draw::<P>(camera, shaders, colormaps, reversed_longitude);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -687,7 +688,7 @@ where
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
-            &self.camera,
+            &mut self.camera,
             self.exec.clone(),
             &self.colormaps,
         )?;
@@ -870,20 +871,8 @@ where
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {
-        //let icrs2gal = coo_system == CooSystem::GAL && self.system == CooSystem::ICRSJ2000;
-        //let gal2icrs = coo_system == CooSystem::ICRSJ2000 && self.system == CooSystem::GAL;
-
         self.camera.set_coo_system::<P>(coo_system, self.is_reversed_longitude());
-
-        /*if icrs2gal {
-            // rotate the camera around the center axis
-            // to move the galactic plane straight to the center
-            self.camera
-                .set_rotation_around_center::<P>(ArcDeg(58.6).into());
-        } else if gal2icrs {
-            self.camera
-                .set_rotation_around_center::<P>(ArcDeg(0.0).into());
-        }*/
+        self.look_for_new_tiles();
 
         self.request_redraw = true;
     }
@@ -1052,13 +1041,11 @@ where
         let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
         let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
 
-        let reversed_longitude = self.is_reversed_longitude();
-        line::project_along_great_circles::<P>(&v1, &v2, &self.camera, reversed_longitude)
+        line::project_along_great_circles::<P>(&v1, &v2, &self.camera)
     }
 
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         // Select the HiPS layer rendered lastly
-        let reversed_longitude = self.is_reversed_longitude();
 
         if let Some(w1) = P::screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera, reversed_longitude) {
             if let Some(w2) = P::screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera, reversed_longitude) {
@@ -1073,7 +1060,7 @@ where
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
-                    self.camera.rotate::<P>(&(-axis), d, reversed_longitude);
+                    self.camera.rotate::<P>(&(-axis), d);
                     self.look_for_new_tiles();
                 }
                 return;

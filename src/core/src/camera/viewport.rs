@@ -54,6 +54,7 @@ pub struct CameraViewPort {
     // A reference to the WebGL2 context
     gl: WebGlContext,
     system: CooSystem,
+    reversed_longitude: bool,
 }
 use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
@@ -118,6 +119,7 @@ impl CameraViewPort {
         let is_allsky = true;
         let time_last_move = Time::now();
         let rotation_center_angle = Angle(0.0);
+        let reversed_longitude = false;
 
         CameraViewPort {
             // The field of view angle
@@ -159,6 +161,8 @@ impl CameraViewPort {
             gl,
             // coo system
             system,
+            // a flag telling if the viewport has a reversed longitude axis
+            reversed_longitude,
         }
     }
 
@@ -191,7 +195,7 @@ impl CameraViewPort {
         ));
     }
 
-    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>, reversed_longitude: bool) {
+    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
@@ -220,7 +224,7 @@ impl CameraViewPort {
             if !P::ALLOW_UNZOOM_MORE {
                 // Some projections have a limit of unzooming
                 // like Mercator
-                self.set_aperture::<P>(P::aperture_start(), false);
+                self.set_aperture::<P>(P::aperture_start());
                 return;
             }
 
@@ -257,41 +261,49 @@ impl CameraViewPort {
         self.gl.scissor(a.x as i32, a.y as i32, w as i32, h as i32);
     }*/
 
-    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, reversed_longitude: bool) {
+    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
-        self.update_rot_matrices::<P>(reversed_longitude);
+        self.update_rot_matrices::<P>();
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>, reversed_longitude: bool) {
+    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
         self.w2m_rot = *rot;
 
-        self.update_rot_matrices::<P>(reversed_longitude);
+        self.update_rot_matrices::<P>();
     }
 
-    pub fn set_projection<P: Projection>(&mut self, reversed_longitude: bool) {
+    pub fn set_projection<P: Projection>(&mut self) {
         // Recompute the ndc_to_clip
         self.set_screen_size::<P>(self.width, self.height);
         // Recompute clip zoom factor
-        self.set_aperture::<P>(self.get_aperture(), reversed_longitude);
+        self.set_aperture::<P>(self.get_aperture());
     }
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
         self.vertices._type()
     }
 
-    pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem, reversed_longitude: bool) {
+    pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system
         let new_center = crate::math::apply_coo_system(&self.system, &new_system, &self.center);
         // Create a rotation object from that position
         let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view
-        self.set_rotation::<P>(&new_rotation, reversed_longitude);
+        self.set_rotation::<P>(&new_rotation);
 
         // Record the new system
         self.system = new_system;
+    }
+
+    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool) {
+        self.reversed_longitude = reversed_longitude;
+    }
+
+    pub fn get_longitude_reversed(&self) -> bool {
+        self.reversed_longitude
     }
 
     // Accessors
@@ -360,10 +372,6 @@ impl CameraViewPort {
         &self.center
     }
 
-    /*pub fn is_reversed_longitude(&self) -> bool {
-        self.longitude_reversed
-    }*/
-
     pub fn get_bounding_box(&self) -> &BoundingBox {
         self.vertices.get_bounding_box()
     }
@@ -380,9 +388,9 @@ impl CameraViewPort {
         &self.system
     }
 
-    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>, reversed_longitude: bool) {
+    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>) {
         self.rotation_center_angle = theta;
-        self.update_rot_matrices::<P>(reversed_longitude);
+        self.update_rot_matrices::<P>();
     }
 
     pub fn get_rotation_around_center(&self) -> &Angle<f64> {
@@ -393,12 +401,12 @@ use cgmath::Matrix;
 //use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
-    fn update_rot_matrices<P: Projection>(&mut self, reversed_longitude: bool) {
+    fn update_rot_matrices<P: Projection>(&mut self) {
         self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
         // Update the center with the new rotation
-        self.update_center::<P>(false);
+        self.update_center::<P>();
 
         // Rotate the fov vertices
         self.vertices
@@ -409,7 +417,7 @@ impl CameraViewPort {
         self.moved = true;
     }
 
-    fn update_center<P: Projection>(&mut self, reversed_longitude: bool) {
+    fn update_center<P: Projection>(&mut self) {
         // update the center position
         let center_world_space =
             P::clip_to_world_space(&Vector2::new(0.0, 0.0), false).unwrap();

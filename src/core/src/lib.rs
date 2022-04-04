@@ -189,7 +189,10 @@ impl WebClient {
             "MER" => {
                 self.app = AppType::MercatorApp(self.app.set_projection::<Mercator>());
             },
-            _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL and MER are accepted", projection).into()),
+            "HPX" => {
+                self.app = AppType::HEALPixApp(self.app.set_projection::<HEALPix>());
+            },
+            _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted", projection).into()),
         }
 
         Ok(self)

@@ -60,7 +60,7 @@ float d_isolon(vec3 pos_model, float theta) {
 
     // Project to screen x and h and compute the distance
     // between the two
-    h_world = check_inversed_longitude(h_world);
+    //h_world = check_inversed_longitude(h_world);
     vec2 h_clip = world2clip_arc(h_world);
     
     return length(pos_clip - h_clip) * 2.0;

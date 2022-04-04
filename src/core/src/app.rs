@@ -121,6 +121,7 @@ type MollweideApp = App<Mollweide>;
 type ArcApp = App<AzimuthalEquidistant>;
 type TanApp = App<Gnomonic>;
 type MercatorApp = App<Mercator>;
+type HEALPixApp = App<HEALPix>;
 
 #[enum_dispatch]
 pub enum AppType {
@@ -129,6 +130,7 @@ pub enum AppType {
     MollweideApp,
     ArcApp,
     TanApp,
+    HEALPixApp,
     MercatorApp,
 }
 

@@ -21,7 +21,7 @@
         aladin = A.aladin('#aladin-lite-div', { target: '240 +10.65', cooFrame: 'j2000d', showCooGrid: true, fov: 90, fullScreen: true});
 
         (async () => {
-            let mars = await A.createImageSurvey("https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/", {reversedLongitude: true});
+            let mars = await A.createImageSurvey("https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/", {reversedLongitude: false});
             aladin.addImageSurvey(mars);
         })();
 

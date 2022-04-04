@@ -269,72 +269,6 @@ impl ProjetedGrid {
 
 use crate::{projection::*, shader::ShaderId, Shader};
 use std::borrow::Cow;
-pub trait GridShaderProjection {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
-}
-
-impl GridShaderProjection for Aitoff {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridAitoffFS")),
-            )
-            .unwrap()
-    }
-}
-impl GridShaderProjection for Mollweide {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridMollFS")),
-            )
-            .unwrap()
-    }
-}
-impl GridShaderProjection for Mercator {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridMercatorFS")),
-            )
-            .unwrap()
-    }
-}
-impl GridShaderProjection for Orthographic {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridOrthoFS")),
-            )
-            .unwrap()
-    }
-}
-impl GridShaderProjection for Gnomonic {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridTanFS")),
-            )
-            .unwrap()
-    }
-}
-
-impl GridShaderProjection for AzimuthalEquidistant {
-    fn get_grid_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("GridVS"), Cow::Borrowed("GridArcFS")),
-            )
-            .unwrap()
-    }
-}
-
 use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
@@ -677,22 +611,6 @@ fn lines<P: Projection>(
 
     let bbox = camera.get_bounding_box();
     let _fov = camera.get_field_of_view();
-
-    /*let num_max_lines = ((NUM_MIN_LINES as f32) * camera.get_aspect()) as usize;
-
-    let c1 = camera.get_center().truncate();
-    let c2 = (c1 + Vector3::new(0.0, 0.0, 1e-3)).normalize();
-    let ndcc = P::model_to_ndc_space(&c2.extend(1.0), camera).unwrap();
-    let d = ndcc.normalize();
-
-    let a1 = d.x.abs() as f32;
-    let a2 = d.y.abs() as f32;
-
-    let num_lines_lon = (a1 * (num_max_lines as f32)  + (1.0 - a1) * (NUM_MIN_LINES as f32)) as usize;
-    debug!(a1);
-    debug!(num_max_lines);
-    debug!(NUM_MIN_LINES);
-    let num_lines_lat = ((1.0 - a1) * (num_max_lines as f32)  + a1 * (NUM_MIN_LINES as f32)) as usize;*/
 
     let step_lon = select_grid_step(
         bbox,

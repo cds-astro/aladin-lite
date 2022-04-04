@@ -5,6 +5,7 @@ import CatalogMercatVS from '../core/src/shaders/webgl2/catalogs/mercator.vert';
 import CatalogArcVS from '../core/src/shaders/webgl2/catalogs/arc.vert';
 import CatalogTanVS from '../core/src/shaders/webgl2/catalogs/tan.vert';
 import CatalogMollVS from '../core/src/shaders/webgl2/catalogs/mollweide.vert';
+import CatalogHEALPixVS from '../core/src/shaders/webgl2/catalogs/healpix.vert';
 import CatalogOrthoVS from '../core/src/shaders/webgl2/catalogs/ortho.vert';
 import CatalogOrthoFS from '../core/src/shaders/webgl2/catalogs/ortho.frag';
 import CatalogFS from '../core/src/shaders/webgl2/catalogs/catalog.frag';
@@ -36,6 +37,7 @@ import RayTracerGrayscale2ColorUnsignedFS from '../core/src/shaders/webgl2/hips/
 import RayTracerGrayscale2ColormapUnsignedFS from '../core/src/shaders/webgl2/hips/raytracer/grayscale_to_colormap_u.frag'
 // Rasterizer
 import RasterizerOrthoVS from '../core/src/shaders/webgl2/hips/rasterizer/ortho.vert'
+import RasterizerHEALPixVS from '../core/src/shaders/webgl2/hips/rasterizer/healpix.vert'
 import RasterizerMercatorVS from '../core/src/shaders/webgl2/hips/rasterizer/mercator.vert'
 import RasterizerAitoffVS from '../core/src/shaders/webgl2/hips/rasterizer/aitoff.vert'
 import RasterizerGnomonicVS from '../core/src/shaders/webgl2/hips/rasterizer/gnomonic.vert'
@@ -54,6 +56,10 @@ let shaders = [
     {
         id: "CatalogAitoffVS",
         content: CatalogAitoffVS,
+    },
+    {
+        id: "CatalogHEALPixVS",
+        content: CatalogHEALPixVS,
     },
     {
         id: "CatalogMercatVS",
@@ -175,6 +181,10 @@ let shaders = [
     {
         id: "RasterizerAitoffVS",
         content: RasterizerAitoffVS,
+    },
+    {
+        id: "RasterizerHEALPixVS",
+        content: RasterizerHEALPixVS,
     },
     {
         id: "RasterizerArcVS",

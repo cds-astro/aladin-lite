@@ -1,8 +1,110 @@
 use cgmath::Vector2;
 
+pub trait Triangulate {
+    fn triangulate() -> Triangulation;
+}
+
+use crate::{healpix_cell::HEALPixCell, projection::*};
+impl Triangulate for Orthographic {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+impl Triangulate for Aitoff {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+impl Triangulate for Mollweide {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+impl Triangulate for AzimuthalEquidistant {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+impl Triangulate for Mercator {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+impl Triangulate for Gnomonic {
+    fn triangulate() -> Triangulation {
+        build::<Self>()
+    }
+}
+use crate::Angle;
+impl Triangulate for HEALPix {
+    fn triangulate() -> Triangulation {
+        // The HEALPix 2d projection space is not convex
+        // We can define it by creating triangles from the projection
+        // of the HEALPix cells at order 2
+        let mut off_idx = 0;
+        let mut indices = Vec::new();
+        let vertices = HEALPixCell::allsky(2)
+            .map(|cell| {
+                indices.extend([
+                    off_idx, off_idx + 1, off_idx + 2,
+                    off_idx + 2, off_idx + 3, off_idx
+                ]);
+                off_idx += 4;
+
+                let (c_ra, c_dec) = cell.center();
+
+                cell.vertices()
+                    .map(|(ra, dec)| {
+                        let ra = lerp(ra, c_ra, 1e-3);
+                        let dec = lerp(dec, c_dec, 1e-3);
+
+                        let v = crate::math::radec_to_xyzw(Angle(ra), Angle(dec));
+                        HEALPix::world_to_clip_space(&v).unwrap()
+                    })
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+        
+        Triangulation {
+            vertices,
+            idx: indices
+        }
+    }
+}
+
+fn lerp(a: f64, b: f64, t: f64) -> f64 {
+    a * (1.0 - t) + b * t
+}
+
 pub struct Triangulation {
-    vertices: Vec<Vector2<f64>>,
-    idx: Vec<u16>,
+    pub vertices: Vec<Vector2<f64>>,
+    pub idx: Vec<u16>,
+}
+
+impl Triangulation {
+    pub fn vertices(&self) -> &Vec<Vector2<f64>> {
+        &self.vertices
+    }
+
+    pub fn idx(&self) -> &Vec<u16> {
+        &self.idx
+    }
+}
+
+fn build<P: Projection>() -> Triangulation {
+    let (mut vertices, mut idx) = (Vec::new(), Vec::new());
+
+    let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
+    let children = root.split();
+
+    let depth = 5;
+    let mut first = false;
+    recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth, &mut first);
+    recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth, &mut first);
+    recursive_triangulation::<P>(&children[2], &mut vertices, &mut idx, depth, &mut first);
+    recursive_triangulation::<P>(&children[3], &mut vertices, &mut idx, depth, &mut first);
+
+    Triangulation { vertices, idx }
 }
 
 struct Face {
@@ -514,38 +616,5 @@ fn recursive_triangulation<P: Projection>(
                 }
             }
         }
-    }
-}
-
-use crate::projection::Projection;
-impl Triangulation {
-    pub fn new<P: Projection>() -> Triangulation {
-        let (mut vertices, mut idx) = (Vec::new(), Vec::new());
-
-        let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
-        let children = root.split();
-
-        let depth = 5;
-        let mut first = false;
-        recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth, &mut first);
-        recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth, &mut first);
-        recursive_triangulation::<P>(&children[2], &mut vertices, &mut idx, depth, &mut first);
-        recursive_triangulation::<P>(&children[3], &mut vertices, &mut idx, depth, &mut first);
-
-        Triangulation { vertices, idx }
-    }
-
-    pub fn vertices(&self) -> &Vec<Vector2<f64>> {
-        &self.vertices
-    }
-
-    pub fn idx(&self) -> &Vec<u16> {
-        &self.idx
-    }
-}
-
-impl From<Triangulation> for (Vec<Vector2<f64>>, Vec<u16>) {
-    fn from(t: Triangulation) -> Self {
-        (t.vertices, t.idx)
     }
 }

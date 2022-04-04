@@ -316,6 +316,106 @@ impl GetShader for Aitoff {
             .unwrap()
     }
 }
+impl GetShader for HEALPix {
+    fn get_raster_shader_color<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerColorFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap_integer<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_integer<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorIntegerFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2colormap_unsigned<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColormapUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+    fn get_raster_shader_gray2color_unsigned<'a>(
+        gl: &WebGlContext,
+        shaders: &'a mut ShaderManager,
+    ) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(
+                    Cow::Borrowed("RasterizerHEALPixVS"),
+                    Cow::Borrowed("RasterizerGrayscale2ColorUnsignedFS"),
+                ),
+            )
+            .unwrap()
+    }
+}
 impl GetShader for Mollweide {
     fn get_raster_shader_color<'a>(
         gl: &WebGlContext,

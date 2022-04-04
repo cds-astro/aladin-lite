@@ -390,8 +390,8 @@ impl SendUniforms for HiPSConfig {
             .attach_uniform("tex_storing_fits", &self.tex_storing_fits)
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)
-            .attach_uniform("blank", &self.blank)
-            .attach_uniform("inversed_longitude", &self.longitude_reversed);
+            .attach_uniform("blank", &self.blank);
+            //.attach_uniform("inversed_longitude", &self.longitude_reversed);
 
         shader
     }

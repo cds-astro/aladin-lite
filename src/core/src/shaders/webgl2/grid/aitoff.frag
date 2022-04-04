@@ -134,7 +134,7 @@ void main() {
     vec4 transparency = vec4(0.f, 0.f, 0.f, 0.f);
 
     vec3 pos_world = clip2world_aitoff(pos_clip);
-    pos_world = check_inversed_longitude(pos_world);
+    //pos_world = check_inversed_longitude(pos_world);
 
     vec3 pos_model = vec3(to_galactic * model * vec4(pos_world, 1.f));
 

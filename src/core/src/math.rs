@@ -216,7 +216,7 @@ pub fn apply_coo_system<'a, S>(c1: &CooSystem, c2: &CooSystem, v1: &Vector4<S>) 
 where
     S: BaseFloat + CooBaseFloat,
 {
-    let c1_2_c2_mat = c1.get_mat::<S>(c2);
+    let c1_2_c2_mat = c1.to::<S>(c2);
     c1_2_c2_mat * (*v1)
 }
 

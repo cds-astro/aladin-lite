@@ -26,7 +26,7 @@ uniform float current_time;
 void main() {
     
     vec3 world_pos = vec3(inv_model * vec4(position, 1.0));
-    world_pos = check_inversed_longitude(world_pos);
+    //world_pos = check_inversed_longitude(world_pos);
 
     vec2 ndc_pos = world2clip_aitoff(world_pos) / (ndc_to_clip * czf);
     

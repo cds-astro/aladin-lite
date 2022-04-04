@@ -70,7 +70,7 @@ float d_isolon(vec3 pos_model, float theta) {
 
     vec3 h_model = normalize(posmodel - n*d);
     vec3 h_world = vec3(inv_model * to_icrs * vec4(h_model, 1.0));
-    h_world = check_inversed_longitude(h_world);
+    //h_world = check_inversed_longitude(h_world);
 
     // Project to screen x and h and compute the distance
     // between the two

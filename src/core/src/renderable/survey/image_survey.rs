@@ -828,8 +828,48 @@ impl ImageSurvey {
         &self.view
     }
 }
+use cgmath::Matrix4;
+// Identity matrix
+const Id: &'static Matrix4<f64> = &Matrix4::new(
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+);
+// Longitude reversed identity matrix
+const IdR: &'static Matrix4<f64> = &Matrix4::new(
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+);
 
 use cgmath::Matrix;
+use al_api::coo_system::CooBaseFloat;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
@@ -848,14 +888,24 @@ impl Draw for ImageSurvey {
         }
 
         // Get the coo system transformation matrix
-        let coosys = camera.get_system();
+        let selected_frame = camera.get_system();
         let hips_frame = self.textures
             .config()
             .get_frame();
+        let C = selected_frame.to(&hips_frame);
 
-        let C = hips_frame.get_mat(coosys).transpose();
+        // Get whether the camera mode is longitude reversed
+        let longitude_reversed = self.textures
+            .config()
+            .longitude_reversed;
+        let RL = if longitude_reversed {
+            IdR
+        } else {
+            Id
+        };
+
         // Retrieve the model and inverse model matrix
-        let w2v = C * (*camera.get_w2m());
+        let w2v = C * (*camera.get_w2m()) * RL;
         let v2w = w2v.transpose();
 
         let raytracing = raytracer.is_rendering::<P>(camera);

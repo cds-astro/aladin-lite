@@ -1,12 +1,6 @@
 const float PI = 3.1415926535897932384626433832795;
 
-uniform int inversed_longitude;
-
-const mat3 inverseLongitude = mat3(
-    -1.0, 0.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 0.0, 1.0
-);
+//uniform int inversed_longitude;
 
 const mat4 GAL2J2000 = mat4(
     -0.4448296299195045,
@@ -51,14 +45,6 @@ const mat4 J20002GAL = mat4(
     0.0,
     1.0
 );
-
-vec3 check_inversed_longitude(vec3 p) {
-    if (inversed_longitude == 1) {
-        return inverseLongitude * p;
-    } else {
-        return p;
-    }
-}
 
 vec2 world2clip_orthographic(vec3 p) {
     return vec2(p.x, p.y);

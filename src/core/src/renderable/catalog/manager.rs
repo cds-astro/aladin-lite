@@ -581,6 +581,19 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
             .unwrap()
     }
 }
+
+use crate::projection::HEALPix;
+impl CatalogShaderProjection for HEALPix {
+    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
+        shaders
+            .get(
+                gl,
+                &ShaderId(Cow::Borrowed("CatalogHEALPixVS"), Cow::Borrowed("CatalogFS")),
+            )
+            .unwrap()
+    }
+}
+
 use crate::projection::Mercator;
 
 impl CatalogShaderProjection for Mercator {

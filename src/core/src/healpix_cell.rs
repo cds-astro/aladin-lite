@@ -105,6 +105,19 @@ impl HEALPixCell {
     pub fn center(&self) -> (f64, f64) {
         healpix::nested::center(self.0, self.1)
     }
+
+    #[inline]
+    pub fn vertices(&self) -> [(f64, f64); 4] {
+        healpix::nested::vertices(self.0, self.1)
+    }
+
+    // Given in ICRS(J2000)
+    #[inline]
+    pub fn new(&self, depth: u8, theta: f64, delta: f64) -> Self {
+        let pix = healpix::nested::hash(depth, theta, delta);
+
+        HEALPixCell(depth, pix)
+    }
 }
 
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;

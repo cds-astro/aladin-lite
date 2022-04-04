@@ -89,15 +89,16 @@ pub fn ndc_to_clip_space(
     )
 }
 
-use crate::renderable::{catalog::CatalogShaderProjection, grid::GridShaderProjection};
+use crate::renderable::catalog::CatalogShaderProjection;
 use crate::shader::GetShader;
 use cgmath::InnerSpace;
 use cgmath::Vector4;
 use al_api::coo_system::CooSystem;
 use cgmath::Matrix;
+use crate::renderable::survey::Triangulate;
 #[enum_dispatch(ProjectionType)]
 pub trait Projection:
-    GetShader + CatalogShaderProjection + GridShaderProjection + std::marker::Sized
+    GetShader + CatalogShaderProjection + Triangulate + std::marker::Sized
 {
     /// Screen to model space deprojection
 
@@ -172,9 +173,9 @@ pub trait Projection:
             let pos_model_space = r.rotate(&pos_world_space);
 
             let view_coosys = camera.get_system();
-            let C = CooSystem::ICRSJ2000.get_mat::<f64>(view_coosys);
+            let C = view_coosys.to::<f64>(&CooSystem::ICRSJ2000);
 
-            Some(C.transpose() * pos_model_space)
+            Some(C * pos_model_space)
         } else {
             None
         }
@@ -194,7 +195,7 @@ pub trait Projection:
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         let view_coosys = camera.get_system();
-        let C = CooSystem::ICRSJ2000.get_mat::<f64>(view_coosys);
+        let C = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * C * pos_model_space;
@@ -291,6 +292,7 @@ pub struct Orthographic;
 pub struct AzimuthalEquidistant;
 pub struct Gnomonic;
 pub struct Mercator;
+pub struct HEALPix;
 
 use cgmath::Vector2;
 
@@ -887,6 +889,95 @@ impl Projection for Mercator {
             -theta.0 / std::f64::consts::PI,
             ((delta.0 / std::f64::consts::PI).tan()).asinh() as f64,
         ))
+    }
+
+    fn aperture_start() -> Angle<f64> {
+        ArcDeg(360_f64).into()
+    }
+
+    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
+        // 2D projections always faces the camera
+        true
+    }
+
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
+}
+
+impl Projection for HEALPix {
+    const ALLOW_UNZOOM_MORE: bool = false;
+
+    fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
+        Vector2::new(1_f64, 1_f64)
+    }
+
+    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+        let px = pos_clip_space.x*4.0; // [-4; 4]
+        let py = pos_clip_space.y*2.0; // [-2; 2]
+
+        if py >= -1.0 && py <= 1.0 {
+            return true;
+        }
+
+        let px = px.rem_euclid(2.0); // [0; 2]
+        if px <= 1.0 {
+            py < 1.0 + px
+        } else {
+            py < 3.0 - px
+        }
+    }
+
+    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+        if y.abs() > 1.0 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
+    }
+
+    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+        if x.abs() > 1.0 {
+            None
+        } else {
+            Some((-1.0 + 1e-3, 1.0 - 1e-3))
+        }
+    }
+
+    /// View to world space transformation
+    ///
+    /// This returns a normalized vector along its first 3 dimensions.
+    /// Its fourth component is set to 1.
+    ///
+    /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - in normalized device coordinates between [-1; 1]
+    /// * `y` - in normalized device coordinates between [-1; 1]
+    fn clip_to_world_space(
+        pos_clip_space: &Vector2<f64>,
+    ) -> Option<cgmath::Vector4<f64>> {
+        let x = pos_clip_space.x * 4.0;
+        let y = pos_clip_space.y * 2.0;
+
+        let (lon, lat) = healpix::unproj(x, y);
+        Some(crate::math::radec_to_xyzw(Angle(lon), Angle(lat)))
+    }
+
+    /// World to screen space transformation
+    ///
+    /// # Arguments
+    ///
+    /// * `pos_world_space` - Position in the world space. Must be a normalized vector
+    fn world_to_clip_space(
+        pos_world_space: &Vector4<f64>,
+    ) -> Option<Vector2<f64>> {
+        let (lon, lat) = math::xyzw_to_radec(pos_world_space);
+
+        let (x, y) = healpix::proj(lon.0, lat.0);
+        let (x, y) = (x*0.25, y*0.5);
+
+        //assert_debug!(x >= -1.0 && x <= 1.0);
+        Some(Vector2::new(x, y))
     }
 
     fn aperture_start() -> Angle<f64> {

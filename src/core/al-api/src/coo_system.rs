@@ -168,7 +168,7 @@ pub fn icrsj2000_coo_sys() -> Result<CooSystem, JsValue> {
 */
 impl CooSystem {
     #[inline]
-    pub fn get_mat<S>(&self, coo_system: &Self) -> &Matrix4<S>
+    pub fn to<S>(&self, coo_system: &Self) -> &Matrix4<S>
     where
         S: BaseFloat + CooBaseFloat,
     {

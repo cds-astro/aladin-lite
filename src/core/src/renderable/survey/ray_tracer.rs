@@ -8,10 +8,10 @@ use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
-
+use super::triangulation::Triangulate;
 use super::Triangulation;
 fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
-    let (vertices, idx) = Triangulation::new::<P>().into();
+    let Triangulation { vertices, idx } = P::triangulate();
 
     let vertices = vertices
         .into_iter().flat_map(|pos_clip_space| {

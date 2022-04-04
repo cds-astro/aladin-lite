@@ -19,7 +19,7 @@ varying vec3 out_p;
 
 void main() {
     vec3 p = vec3(inv_model * vec4(center, 1.0));
-    p = check_inversed_longitude(p);
+    //p = check_inversed_longitude(p);
 
     vec2 center_pos_clip_space = world2clip_gnomonic(p);
 

@@ -35,36 +35,66 @@ impl Triangulate for Gnomonic {
         build::<Self>()
     }
 }
+
+fn counterClockwiseTriangle(x: Vector2<f64>, y: Vector2<f64>, z: Vector2<f64>) -> bool {
+    // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
+    // | x.x, x.y, 1 |
+    // | y.x, y.y, 1 | > 0 => the triangle is given in anticlockwise order
+    // | z.x, z.y, 1 |
+
+    x.x*y.y + x.y*z.x + y.x*z.y - z.x*y.y - z.y*x.x - y.x*x.y >= 0.0
+}
+
 use crate::Angle;
 impl Triangulate for HEALPix {
     fn triangulate() -> Triangulation {
         // The HEALPix 2d projection space is not convex
         // We can define it by creating triangles from the projection
         // of the HEALPix cells at order 2
-        let mut off_idx = 0;
+        let mut off_idx = 0_u16;
         let mut indices = Vec::new();
-        let vertices = HEALPixCell::allsky(2)
+
+        let vertices = HEALPixCell::allsky(3)
             .map(|cell| {
                 indices.extend([
                     off_idx, off_idx + 1, off_idx + 2,
-                    off_idx + 2, off_idx + 3, off_idx
+                    off_idx, off_idx + 2, off_idx + 3,
                 ]);
-                off_idx += 4;
 
                 let (c_ra, c_dec) = cell.center();
 
-                cell.vertices()
+                let mut vertices = cell.vertices()
                     .map(|(ra, dec)| {
                         let ra = lerp(ra, c_ra, 1e-3);
                         let dec = lerp(dec, c_dec, 1e-3);
 
                         let v = crate::math::radec_to_xyzw(Angle(ra), Angle(dec));
                         HEALPix::world_to_clip_space(&v).unwrap()
-                    })
+                    });
+                
+                if !counterClockwiseTriangle(vertices[0], vertices[1], vertices[2]) {
+                    // triangles are crossing
+                    if vertices[0].x > 0.0 {
+                        vertices[0].x = -1.0;
+                        vertices[2].x = -1.0;
+                    }
+                }
+
+                /*if !counterClockwiseTriangle(vertices[0], vertices[2], vertices[3]) {
+                    // triangles are crossing
+                    if vertices[0].x < 0.0 {
+                        vertices[0].x = 1.0;
+                        vertices[2].x = 1.0;
+                    }
+                }*/
+
+                off_idx += 4;
+
+                vertices
             })
             .flatten()
             .collect::<Vec<_>>();
-        
+
         Triangulation {
             vertices,
             idx: indices

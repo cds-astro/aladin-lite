@@ -94,11 +94,11 @@ Or build it and launch a localhost server (usually starting on port 8080 but it 
 npm run serve
 ```
 
-If you just want to check the Rust code without compiling, from the root location:
+For just compiling the rust core from the root location (it is faster to do so)
 
 ```bash
 cd src/core
-cargo check
+cargo check --features webgl2
 ```
 
 and run the tests

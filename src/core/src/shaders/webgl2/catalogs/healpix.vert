@@ -21,7 +21,7 @@ void main() {
     vec3 p = vec3(inv_model * vec4(center, 1.0f));
     //p = check_inversed_longitude(p);
 
-    vec2 center_pos_clip_space = world2clip_aitoff(p);
+    vec2 center_pos_clip_space = world2clip_healpix(p);
 
     vec2 pos_clip_space = center_pos_clip_space;
     gl_Position = vec4((pos_clip_space / (ndc_to_clip * czf)) + offset * kernel_size , 0.f, 1.f);

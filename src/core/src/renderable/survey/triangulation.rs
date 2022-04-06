@@ -36,34 +36,34 @@ impl Triangulate for Gnomonic {
     }
 }
 
-fn counterClockwiseTriangle(x: Vector2<f64>, y: Vector2<f64>, z: Vector2<f64>) -> bool {
-    // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
-    // | x.x, x.y, 1 |
-    // | y.x, y.y, 1 | > 0 => the triangle is given in anticlockwise order
-    // | z.x, z.y, 1 |
-
-    x.x*y.y + x.y*z.x + y.x*z.y - z.x*y.y - z.y*x.x - y.x*x.y >= 0.0
-}
-
 use crate::Angle;
 impl Triangulate for HEALPix {
     fn triangulate() -> Triangulation {
+        fn counter_clockwise_tri(x: Vector2<f64>, y: Vector2<f64>, z: Vector2<f64>) -> bool {
+            // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
+            // | x.x, x.y, 1 |
+            // | y.x, y.y, 1 | > 0 => the triangle is given in counterclockwise order
+            // | z.x, z.y, 1 |
+        
+            x.x*y.y + x.y*z.x + y.x*z.y - z.x*y.y - z.y*x.x - y.x*x.y >= 0.0
+        }
+
         // The HEALPix 2d projection space is not convex
         // We can define it by creating triangles from the projection
         // of the HEALPix cells at order 2
         let mut off_idx = 0_u16;
-        let mut indices = Vec::new();
+        let mut idx = Vec::new();
 
         let vertices = HEALPixCell::allsky(3)
             .map(|cell| {
-                indices.extend([
+                idx.extend([
                     off_idx, off_idx + 1, off_idx + 2,
-                    off_idx, off_idx + 2, off_idx + 3,
+                    off_idx + 3, off_idx + 4, off_idx + 5,
                 ]);
 
                 let (c_ra, c_dec) = cell.center();
 
-                let mut vertices = cell.vertices()
+                let v = cell.vertices()
                     .map(|(ra, dec)| {
                         let ra = lerp(ra, c_ra, 1e-3);
                         let dec = lerp(dec, c_dec, 1e-3);
@@ -72,23 +72,17 @@ impl Triangulate for HEALPix {
                         HEALPix::world_to_clip_space(&v).unwrap()
                     });
                 
-                if !counterClockwiseTriangle(vertices[0], vertices[1], vertices[2]) {
+                let mut vertices = [
+                    v[0], v[3], v[2], v[2], v[1], v[0]
+                ];
+
+                if !counter_clockwise_tri(vertices[3], vertices[4], vertices[5]) {
                     // triangles are crossing
-                    if vertices[0].x > 0.0 {
-                        vertices[0].x = -1.0;
-                        vertices[2].x = -1.0;
-                    }
+                    vertices[3].x = 1.0;
+                    vertices[5].x = 1.0;
                 }
 
-                /*if !counterClockwiseTriangle(vertices[0], vertices[2], vertices[3]) {
-                    // triangles are crossing
-                    if vertices[0].x < 0.0 {
-                        vertices[0].x = 1.0;
-                        vertices[2].x = 1.0;
-                    }
-                }*/
-
-                off_idx += 4;
+                off_idx += 6;
 
                 vertices
             })
@@ -97,7 +91,7 @@ impl Triangulate for HEALPix {
 
         Triangulation {
             vertices,
-            idx: indices
+            idx
         }
     }
 }

@@ -113,7 +113,7 @@ impl CameraViewPort {
         let clip_zoom_factor = 1.0;
 
         let vertices =
-            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, true);
+            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -186,8 +186,7 @@ impl CameraViewPort {
             self.clip_zoom_factor,
             &self.w2m,
             self.aperture,
-            &self.system,
-            false
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -241,8 +240,7 @@ impl CameraViewPort {
             self.clip_zoom_factor,
             &self.w2m,
             self.aperture,
-            &self.system,
-            false
+            &self.system
         );
         self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),

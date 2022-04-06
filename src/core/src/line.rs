@@ -71,14 +71,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 ) {
     // Project them. We are always facing the camera
     let system = camera.get_system();
-    /*
-    let aa = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[0].x), Angle(mp[0].y)))
-        .truncate();
-    let bb = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[1].x), Angle(mp[1].y)))
-        .truncate();
-    let cc = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(mp[2].x), Angle(mp[2].y)))
-        .truncate();
-    */
+
     let aa = math::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
     let bb = math::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
     let cc = math::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
@@ -96,9 +89,10 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            /*if ab_l < 1e-5 || bc_l < 1e-5 {
+            if ab_l < 1e-5 || bc_l < 1e-5 {
                 return;
-            }*/
+            }
+
             let ab = ab.normalize();
             let bc = bc.normalize();
             let theta = math::angle(&ab, &bc);
@@ -122,7 +116,6 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 
                     vertices.push(b);
                     vertices.push(c);
-                    //}
                 }
             } else if is_vertices_near && ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
                 if ab_l < bc_l {

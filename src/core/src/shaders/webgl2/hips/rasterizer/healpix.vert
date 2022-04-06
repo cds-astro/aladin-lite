@@ -25,8 +25,8 @@ uniform float current_time;
 @import ../projection;
 
 void main() {
-    vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
-    gl_Position = vec4(world2clip_healpix(world_pos) / (ndc_to_clip * czf), 0.0, 1.0);
+    vec3 world_pos = vec3(inv_model * vec4(position, 1.f)); 
+    gl_Position = vec4(world2clip_healpix(world_pos.zxy) / (ndc_to_clip * czf), 0.0, 1.0);
 
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;

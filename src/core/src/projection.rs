@@ -757,6 +757,7 @@ impl Projection for Gnomonic {
             Some((-1.0 + 1e-3, 1.0 - 1e-3))
         }
     }
+
     fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1_f64 {
             None
@@ -914,15 +915,15 @@ impl Projection for HEALPix {
         let px = pos_clip_space.x*4.0; // [-4; 4]
         let py = pos_clip_space.y*2.0; // [-2; 2]
 
-        if py >= -1.0 && py <= 1.0 {
+        if py.abs() < 1.0 {
             return true;
         }
 
         let px = px.rem_euclid(2.0); // [0; 2]
-        if px <= 1.0 {
-            py < 1.0 + px
+        if px < 1.0 {
+            py.abs() <= px + 1.0 + 1e-2
         } else {
-            py < 3.0 - px
+            py.abs() <= 3.0 - px
         }
     }
 
@@ -956,11 +957,15 @@ impl Projection for HEALPix {
     fn clip_to_world_space(
         pos_clip_space: &Vector2<f64>,
     ) -> Option<cgmath::Vector4<f64>> {
-        let x = pos_clip_space.x * 4.0;
-        let y = pos_clip_space.y * 2.0;
+        if Self::is_included_inside_projection(pos_clip_space) {
+            let x = -pos_clip_space.x * 4.0;
+            let y = pos_clip_space.y * 2.0;
 
-        let (lon, lat) = healpix::unproj(x, y);
-        Some(crate::math::radec_to_xyzw(Angle(lon), Angle(lat)))
+            let (lon, lat) = healpix::unproj(x, y);
+            Some(crate::math::radec_to_xyzw(Angle(lon), Angle(lat)))
+        } else {
+            None
+        }
     }
 
     /// World to screen space transformation
@@ -974,7 +979,7 @@ impl Projection for HEALPix {
         let (lon, lat) = math::xyzw_to_radec(pos_world_space);
 
         let (x, y) = healpix::proj(lon.0, lat.0);
-        let (x, y) = (x*0.25, y*0.5);
+        let (x, y) = (-x*0.25, y*0.5);
 
         //assert_debug!(x >= -1.0 && x <= 1.0);
         Some(Vector2::new(x, y))
@@ -989,7 +994,7 @@ impl Projection for HEALPix {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(140.0 * crate::angle::PI / 180.0);
 }
 
 mod tests {

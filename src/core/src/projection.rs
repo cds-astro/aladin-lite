@@ -162,25 +162,6 @@ pub trait Projection:
         }
     }
 
-    fn screen_to_view_space(
-        pos_screen_space: &Vector2<f64>,
-        camera: &CameraViewPort,
-    ) -> Option<Vector4<f64>> {
-        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
-
-        if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_final_rotation();
-            let pos_model_space = r.rotate(&pos_world_space);
-
-            let view_coosys = camera.get_system();
-            let C = view_coosys.to::<f64>(&CooSystem::ICRSJ2000);
-
-            Some(C * pos_model_space)
-        } else {
-            None
-        }
-    }
-
     fn model_to_screen_space(
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,

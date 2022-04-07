@@ -112,23 +112,6 @@ impl RecomputeRasterizer for Move {
 use al_api::coo_system::CooSystem;
 use cgmath::InnerSpace;
 use crate::healpix_cell::HEALPixCell;
-fn get_skewed_factor<P: Projection>(scell: &HEALPixCell, camera: &CameraViewPort) -> f64 {
-    let view_system = camera.get_system();
-
-    let ndc_pos_vertices = cdshealpix::vertices_lonlat::<f64>(scell)
-        .map(|lonlat| {
-            let icrsj2000_pos = lonlat.vector();
-            // Convert it to the system frame
-            let pos = crate::math::apply_coo_system(&CooSystem::ICRSJ2000, &view_system, &icrsj2000_pos);
-
-            P::model_to_ndc_space(&pos, camera).unwrap()
-        });
-    
-    let first_diag_length = (ndc_pos_vertices[0] - ndc_pos_vertices[2]).magnitude();
-    let second_diag_length = (ndc_pos_vertices[1] - ndc_pos_vertices[3]).magnitude();
-
-    first_diag_length.min(second_diag_length)/first_diag_length.max(second_diag_length)
-}
 
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
     let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
@@ -808,10 +791,13 @@ impl ImageSurvey {
     }
 */
     fn refresh_view(&mut self, camera: &CameraViewPort) {
-        let tile_size = self.textures.config().get_tile_size();
-        let max_depth = self.textures.config().get_max_depth();
+        let cfg = self.textures.config();
 
-        self.view.refresh_cells(tile_size, max_depth, camera);
+        let tile_size = cfg.get_tile_size();
+        let max_depth = cfg.get_max_depth();
+        let hips_frame = cfg.frame;
+
+        self.view.refresh_cells(tile_size, max_depth, camera, hips_frame);
     }
 
     #[inline]

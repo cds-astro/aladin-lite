@@ -18,7 +18,7 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {fov: 110, target: '0 0'});
+        aladin = A.aladin('#aladin-lite-div', {fov: 110, target: '0 0', cooFrame: "GAL", fullScreen: true});
 
         (async () => {
             let mellinger = await A.createImageSurvey("CDS/P/Mellinger/color");

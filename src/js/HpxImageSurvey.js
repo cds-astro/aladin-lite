@@ -166,7 +166,7 @@ export let HpxImageSurvey = (function() {
         // HiPS bitpix
         const bitpix = +metadata.hips_pixel_bitpix;
         // HiPS frame
-        let frame = (options && options.frame) || "ICRSJ2000";
+        let frame = (metadata.hips_frame) || "equatorial";
         if (frame == "equatorial") {
             frame = "ICRSJ2000";
         } else if (frame == "galactic") {

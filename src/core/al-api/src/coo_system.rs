@@ -122,27 +122,6 @@ impl CooBaseFloat for f64 {
     );}
 
 use cgmath::BaseFloat;
-/*
-// Some utility functions converting the spherical coordinates
-// from icrs j2000 to galactic
-pub fn to_galactic<S>(lonlat: LonLatT<S>) -> LonLatT<S>
-where
-    S: BaseFloat + CooBaseFloat,
-{
-    let j2000_coo: Vector4<S> = lonlat.vector();
-    let gal_coo = S::J2000_TO_GALACTIC * j2000_coo;
-    gal_coo.lonlat()
-}
-
-// or from galactic to icrs j2000
-pub fn to_icrs_j2000<S>(lonlat: LonLatT<S>) -> LonLatT<S>
-where
-    S: BaseFloat + CooBaseFloat,
-{
-    let gal_coo: Vector4<S> = lonlat.vector();
-    let j2000_coo = S::GALACTIC_TO_J2000 * gal_coo;
-    j2000_coo.lonlat()
-}*/
 use wasm_bindgen::prelude::*;
 use serde::Deserialize;
 #[wasm_bindgen]
@@ -153,19 +132,7 @@ pub enum CooSystem {
     ICRSJ2000,
     GAL,
 }
-/*
-#[allow(dead_code)]
-#[wasm_bindgen(js_name = "GALCooSys")]
-pub fn galcoo_sys() -> Result<CooSystem, JsValue> {
-    Ok(CooSystem::GAL)
-}
 
-#[allow(dead_code)]
-#[wasm_bindgen(js_name = "ICRSJ2000CooSys")]
-pub fn icrsj2000_coo_sys() -> Result<CooSystem, JsValue> {
-    Ok(CooSystem::ICRSJ2000)
-}
-*/
 impl CooSystem {
     #[inline]
     pub fn to<S>(&self, coo_system: &Self) -> &Matrix4<S>

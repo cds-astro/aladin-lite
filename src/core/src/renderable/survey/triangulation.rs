@@ -65,8 +65,8 @@ impl Triangulate for HEALPix {
 
                 let v = cell.vertices()
                     .map(|(ra, dec)| {
-                        let ra = lerp(ra, c_ra, 1e-3);
-                        let dec = lerp(dec, c_dec, 1e-3);
+                        let ra = lerp(ra, c_ra, 1e-5);
+                        let dec = lerp(dec, c_dec, 1e-5);
 
                         let v = crate::math::radec_to_xyzw(Angle(ra), Angle(dec));
                         HEALPix::world_to_clip_space(&v).unwrap()

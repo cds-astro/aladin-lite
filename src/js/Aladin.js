@@ -909,27 +909,35 @@ export let Aladin = (function () {
         this.view.addImageSurveyLayer(layer)
     };*/
 
-    // @api
-    /*Aladin.prototype.getBaseImageLayers = function () {
-        return this.view.imageSurvey;
-    };*/
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
-    // @api
-    // @old
+    // @oldAPI
+    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
+        const rootUrlOrId = rootUrl || id;
+        if (cooFrame) {
+            options.cooFrame = cooFrame;
+        }
 
-    Aladin.createImageSurvey = async function(rootUrlOrId, options) {
-        const survey = await HpxImageSurvey.create(rootUrlOrId, options);
-        return survey;
-    }
-
-    Aladin.prototype.addImageSurvey = function (survey, layer = "base") {
-        this.view.addImageSurvey(survey, layer);
+        return new HpxImageSurvey(rootUrlOrId, options);
     };
 
+    // @api
+    Aladin.prototype.setBaseImageLayer = function(id) {
+        const baseSurveyPromise = this.createImageSurvey(id);
+        console.log("ppp", baseSurveyPromise);
+        this.view.setBaseImageLayer(baseSurveyPromise);
+    };
+    // @api
+    Aladin.prototype.getBaseImageLayer = function () {
+        return this.view.getImageSurvey("base");
+    };
+    // @api
+    Aladin.prototype.setOverlayImageLayer = function (survey, callback, layer = "overlay") {
+        this.view.setOverlayImageSurvey(survey, callback, layer)
+    };
+
+    // new!
     Aladin.prototype.getImageSurveyMeta = function(layer = "base") {
         return this.view.getImageSurveyMeta(layer);
     };
-
     Aladin.prototype.setImageSurveyMeta = function(meta, layer = "base") {
         return this.view.setImageSurveyMeta(layer, meta);
     };

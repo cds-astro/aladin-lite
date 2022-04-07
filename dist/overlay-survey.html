@@ -18,17 +18,22 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {fov: 110, target: '0 0', cooFrame: "GAL", fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 110, target: 'galactic center'});
 
-        (async () => {
+        /*(async () => {
             let mellinger = await A.createImageSurvey("CDS/P/Mellinger/color");
-            let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha");
+            let vtss = await A.createImageSurvey("https://alasky.u-strasbg.fr/VTSS/Ha", {
+
+            });
 
             aladin.addImageSurvey(mellinger, "base");
             aladin.addImageSurvey(vtss, "overlay");
-        })();
+        })();*/
 
         //aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', '', 'galactic', 3, {imgFormat: 'png'}));
+        aladin.setBaseImageLayer('P/Mellinger/color');
+        aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));
+        //aladin.getOverlayImageLayer().setAlpha(1.0);
     });
 </script>
 </body>

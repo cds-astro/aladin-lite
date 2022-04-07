@@ -150,7 +150,7 @@ export let HpxImageSurvey = (function() {
 
         // HiPS tile format
         let tileFormat;
-        const tileFormats = metadata.hips_tile_format.split(' ');
+        const tileFormats = (options && options.imgFormat) || metadata.hips_tile_format.split(' ');
         if (tileFormats.indexOf('fits') >= 0) {
             tileFormat = "FITS";
         } else if (tileFormats.indexOf('png') >= 0) {
@@ -166,7 +166,7 @@ export let HpxImageSurvey = (function() {
         // HiPS bitpix
         const bitpix = +metadata.hips_pixel_bitpix;
         // HiPS frame
-        let frame = (metadata.hips_frame) || "equatorial";
+        let frame = (options && options.cooFrame) || metadata.hips_frame || "equatorial";
         if (frame == "equatorial") {
             frame = "ICRSJ2000";
         } else if (frame == "galactic") {

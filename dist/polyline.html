@@ -24,7 +24,7 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {fov: 360, survey: "P/DSS2/color", showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, showCooGrid: true});
         var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 2});
         aladin.addOverlay(overlay);
         overlay.add(A.polyline([

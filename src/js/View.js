@@ -1876,7 +1876,6 @@ export let View = (function() {
     View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
         baseSurveyPromise
             .then((baseSurvey) => {
-                console.log("base: ", baseSurvey);
                 this.addImageSurvey(baseSurvey, "base");
             });
     };

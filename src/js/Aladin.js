@@ -325,19 +325,19 @@ export let Aladin = (function () {
                 if (typeof options.survey === Array) {
                     let i = 0;
                     options.survey.forEach(async (rootUrlOrId) => {
-                        const survey = await Aladin.createImageSurvey(rootUrlOrId);
                         if (i == 0) {
-                            this.addImageSurvey(survey, "base");
+                            this.setBaseImageLayer(options.survey);
                         } else {
-                            this.addImageSurvey(survey, "base");
+                            this.setOverlayImageLayer(options.survey, "overlay" + i.toString());
                         }
                         i++;
                     });
                 } else {
-                    const survey = await Aladin.createImageSurvey(options.survey, "base");
-                    this.addImageSurvey(survey, "base");
+                    this.setBaseImageLayer(options.survey);
                 }
             })();
+        } else {
+            this.setBaseImageLayer(DEFAULT_OPTIONS.survey);
         }
         
         this.view.showCatalog(options.showCatalog);
@@ -400,6 +400,7 @@ export let Aladin = (function () {
     Aladin.wasmLibs = {};
     Aladin.webglAPI = [];
     Aladin.DEFAULT_OPTIONS = {
+        survey: "CDS/P/DSS2/color",
         target: "0 +0",
         cooFrame: "J2000",
         fov: 60,
@@ -922,7 +923,6 @@ export let Aladin = (function () {
     // @api
     Aladin.prototype.setBaseImageLayer = function(id) {
         const baseSurveyPromise = this.createImageSurvey(id);
-        console.log("ppp", baseSurveyPromise);
         this.view.setBaseImageLayer(baseSurveyPromise);
     };
     // @api
@@ -1469,12 +1469,12 @@ A.marker = function (ra, dec, options, data) {
     options['marker'] = true;
     return A.source(ra, dec, data, options);
 };
-
+/*
 A.createImageSurvey = async function(rootUrlOrId, options) {
     const survey = await HpxImageSurvey.create(rootUrlOrId, options);
     return survey;
 }
-
+*/
 // @API
 A.polygon = function (raDecArray) {
     var l = raDecArray.length;
@@ -1657,7 +1657,7 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
             var label = options.label || "FITS image";
             var meta = response.data.meta;
 
-            let survey = await Aladin.createImageSurvey(response.data.url);
+            let survey = this.createImageSurvey(response.data.url);
             var transparency = (options && options.transparency) || 1.0;
 
             var executeDefaultSuccessAction = true;
@@ -1669,7 +1669,7 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
                 self.setFoV(meta.fov);
             }
 
-            self.addImageSurvey(survey, layer)
+            self.setOverlayImageLayer(survey, layer)
             // TODO! set an image survey once the already loaded surveys
             // are READY! Otherwise it can lead to some congestion and avoid
             // downloading the base tiles of the other surveys loading!

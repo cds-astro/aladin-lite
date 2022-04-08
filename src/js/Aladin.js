@@ -45,7 +45,7 @@ import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
 import { Location } from "./Location.js";
 import { Source } from "./Source.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { HpxImageSurvey, fetchSurveyProperties } from "./HpxImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { Color } from "./Color.js";
@@ -905,10 +905,6 @@ export let Aladin = (function () {
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
     };
-    /*Aladin.prototype.addImageSurveyLayer = function (layer) {
-        console.log("add layer", layer)
-        this.view.addImageSurveyLayer(layer)
-    };*/
 
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
@@ -917,21 +913,38 @@ export let Aladin = (function () {
             options.cooFrame = cooFrame;
         }
 
-        return new HpxImageSurvey(rootUrlOrId, options);
+        const promise = (async () => {
+            let metadata = await fetchSurveyProperties(rootUrlOrId);
+            return new HpxImageSurvey(metadata, this, options);
+        })();
+
+        console.log("pp, ", promise);
+        return promise;
     };
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(id) {
-        const baseSurveyPromise = this.createImageSurvey(id);
-        this.view.setBaseImageLayer(baseSurveyPromise);
+        (async() => {
+            const baseSurvey = await this.createImageSurvey(id);
+            this.view.setBaseImageLayer(baseSurvey);
+        })();
     };
     // @api
     Aladin.prototype.getBaseImageLayer = function () {
         return this.view.getImageSurvey("base");
     };
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (survey, callback, layer = "overlay") {
-        this.view.setOverlayImageSurvey(survey, callback, layer)
+    Aladin.prototype.setOverlayImageLayer = function (overlayImageSurveyPromise, callback, layer = "overlay") {
+        (async() => {
+            const overlayImageSurvey = await overlayImageSurveyPromise;
+            this.view.setOverlayImageSurvey(overlayImageSurvey, callback, layer)
+        })();
+    };
+    // @api
+    Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
+        const survey = this.view.getImageSurvey(layer);
+        console.log("get survey", survey);
+        return survey;
     };
 
     // new!
@@ -1669,7 +1682,7 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
                 self.setFoV(meta.fov);
             }
 
-            self.setOverlayImageLayer(survey, layer)
+            self.setOverlayImageLayer(survey, null, layer);
             // TODO! set an image survey once the already loaded surveys
             // are READY! Otherwise it can lead to some congestion and avoid
             // downloading the base tiles of the other surveys loading!

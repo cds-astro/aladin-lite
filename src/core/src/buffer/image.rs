@@ -20,7 +20,6 @@ pub enum RetrievedImageType {
     JpgImageRgb8u { image: HTMLImage<RGB8U> },
 }
 
-
 pub trait ImageRequest<F>
 where
     F: ImageFormat,
@@ -261,6 +260,13 @@ impl TileRequest {
     pub fn get_image(&self, tile_width: i32) -> Result<RetrievedImageType, JsValue> {
         assert!(self.is_resolved());
         self.req.image(tile_width)
+    }
+}
+
+impl Drop for TileRequest {
+    fn drop(&mut self) {
+        self.req.send(None, None, "").unwrap();
+
     }
 }
 /* ------------------------------------------------------ */

@@ -127,6 +127,7 @@ export let View = (function() {
             
             // current reference image survey displayed
             this.imageSurveys = new Map();
+            this.imageSurveysIdx = new Map();
             this.overlayLayers = [];
             // current catalogs displayed
             this.catalogs = [];
@@ -1873,14 +1874,24 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
-        baseSurveyPromise
-            .then((baseSurvey) => {
-                this.addImageSurvey(baseSurvey, "base");
-            });
+    View.prototype.setBaseImageLayer = function(baseSurvey) {
+        const surveyIdx = this.imageSurveysIdx.get("base") || 0;
+        const newSurveyIdx = surveyIdx + 1;
+        this.imageSurveysIdx.set("base", newSurveyIdx);
+        if (newSurveyIdx < this.imageSurveysIdx.get("base")) {
+            // discard if other indices have been added
+            return;
+        }
+
+        console.log("base survey, ", baseSurvey);
+        this.addImageSurvey(baseSurvey, "base");
     };
 
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurveyPromise, callback, layer = "overlay") {
+    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback, layer = "overlay") {
+        const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
+        const newSurveyIdx = surveyIdx + 1;
+        this.imageSurveysIdx.set(layer, newSurveyIdx);
+
         // Check whether this layer already exist
         const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
         if (idxOverlaySurveyFound == -1) {
@@ -1890,12 +1901,17 @@ export let View = (function() {
             this.overlayLayers[ idxOverlaySurveyFound ] = layer;
         }
 
-        overlayImageSurveyPromise.then((survey) => {
-            this.addImageSurvey(survey, layer);
-            if (callback) {
-                callback();
-            }
-        });
+        console.log("overlay survey", overlayImageSurvey);
+
+        if (newSurveyIdx < this.imageSurveysIdx.get(layer)) {
+            // discard if other indices have been added
+            return;
+        }
+
+        this.addImageSurvey(overlayImageSurvey, layer);
+        if (callback) {
+            callback();
+        }
     };
 
     /*View.prototype.setUnknownSurveyIfNeeded = function() {
@@ -1922,6 +1938,17 @@ export let View = (function() {
         return sortedImageSurveys;
     }
 
+    View.prototype.updateImageLayerStack = function() {
+        try {
+            const surveys = this.buildSortedImageSurveys();
+
+            console.log("SURVEYS TO PLOT, ", surveys);
+            this.aladin.webglAPI.setImageSurveys(surveys);
+        } catch(e) {
+            console.error(e)
+        }
+    };
+
     View.prototype.removeImageSurvey = function(layer) {
         this.imageSurveys.delete(layer);
 
@@ -1935,26 +1962,16 @@ export let View = (function() {
         this.overlayLayers.splice(idxOverlaidSurveyFound, idxOverlaidSurveyFound);
 
         // Update the backend
-        try {
-            const surveys = this.buildSortedImageSurveys();
-            this.aladin.webglAPI.setImageSurveys(surveys);
-        } catch(e) {
-            console.error(e)
-        }
+        this.updateImageLayerStack();
     };
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
+
         let copiedSurvey = JSON.parse(JSON.stringify(survey));
-        // Set the layer name
         copiedSurvey.layer = layer;
         this.imageSurveys.set(layer, copiedSurvey);
 
-        try {
-            const surveys = this.buildSortedImageSurveys();
-            this.aladin.webglAPI.setImageSurveys(surveys);
-        } catch(e) {
-            console.error(e)
-        }
+        this.updateImageLayerStack();
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {

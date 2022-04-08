@@ -507,7 +507,7 @@ where
             if is_there_new_available_tiles {
                 self.time_start_blending = Time::now();
             }
-
+            al_core::log(&format!("{:?}", self.surveys.urls));
             // 1. Surveys must be aware of the new available tiles
             self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys

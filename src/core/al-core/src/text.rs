@@ -44,7 +44,9 @@ pub struct Font {
 use cgmath::Vector2;
 pub fn rasterize_font(text_size: f32) -> Font {
     // Read the font data.
-    let font = include_bytes!("../resources/arial.ttf") as &[u8];
+    //let font = include_bytes!("../resources/arial.ttf") as &[u8];
+    let font = include_bytes!("../resources/Roboto-Regular.ttf") as &[u8];
+
     // Parse it into the font type.
     let font = fontdue::Font::from_bytes(font, fontdue::FontSettings::default()).unwrap();
 

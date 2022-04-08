@@ -30,99 +30,96 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 
+export async function fetchSurveyProperties(rootURLOrId) {
+    if (!rootURLOrId) {
+        throw 'An hosting survey URL or an ID (i.e. DSS2/red) must be given';
+    }
+
+    let isUrl = false;
+    if (rootURLOrId.includes("http")) {
+        isUrl = true;
+    }
+
+    const request = async (url) => {
+        const response = await fetch(url);
+        const json = await response.json();
+
+        return json;
+    };
+
+    let metadata = {};
+    // If an HiPS id has been given
+    if (!isUrl) {
+        // Use the MOCServer to retrieve the
+        // properties
+        const id = rootURLOrId;
+        const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
+
+        metadata = await request(MOCServerUrl);
+
+        // We get the property here
+
+        // 1. Ensure there is exactly one survey matching
+        if (!metadata) {
+            throw 'no surveys matching';
+        } else {
+            if (metadata.length > 1) {
+                let ids = [];
+                metadata.forEach((prop) => {
+                    ids.push(prop.ID)
+                });
+                throw ids + ' surveys are matching. Please use one from this list.';
+            } else if (metadata.length === 0) {
+                throw 'no surveys matching';
+            } else {
+                // Exactly one matching
+                metadata = metadata[0];
+            }
+        }
+    } else {
+        // Fetch the properties of the survey
+        let rootURL = rootURLOrId;
+        // Use the url for retrieving the HiPS properties
+        // remove final slash
+        if (rootURL.slice(-1) === '/') {
+            rootURL = rootURL.substr(0, rootURL.length-1);
+        }
+
+        // make URL absolute
+        rootURL = Utils.getAbsoluteURL(rootURL);
+
+        // fast fix for HTTPS support --> will work for all HiPS served by CDS
+        if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(rootURL) || /unistra.fr/i.test(rootURL)  ) ) {
+            rootURL = rootURL.replace('http://', 'https://');
+        }
+
+        const url = rootURL + '/properties';
+        metadata = await fetch(url)
+            .then((response) => response.text());
+        // We get the property here
+        metadata = HiPSDefinition.parseHiPSProperties(metadata);
+
+        // 1. Ensure there is exactly one survey matching
+        if (!metadata) {
+            throw 'no surveys matching';
+        }
+        // Set the service url if not found
+        metadata.hips_service_url = rootURLOrId;
+    }
+
+    return metadata;
+} 
+
 export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(rootURLOrId, options) {
-        if (!rootURLOrId) {
-            throw 'An hosting survey URL or an ID (i.e. DSS2/red) must be given';
-        }
-
-        let isUrl = false;
-        if (rootURLOrId.includes("http")) {
-            isUrl = true;
-        }
-
-        const request = async (url) => {
-            const response = await fetch(url);
-            const json = await response.json();
-
-            return json;
-        };
-
-        // If an HiPS id has been given
-        if (!isUrl) {
-            // Use the MOCServer to retrieve the
-            // properties
-            const id = rootURLOrId;
-            const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
-
-            return (async () => {
-                let metadata = await request(MOCServerUrl);
-
-                // We get the property here
-
-                // 1. Ensure there is exactly one survey matching
-                if (!metadata) {
-                    throw 'no surveys matching';
-                } else {
-                    if (metadata.length > 1) {
-                        let ids = [];
-                        metadata.forEach((prop) => {
-                            ids.push(prop.ID)
-                        });
-                        throw ids + ' surveys are matching. Please use one from this list.';
-                    } else if (metadata.length === 0) {
-                        throw 'no surveys matching';
-                    } else {
-                        // Exactly one matching
-                        metadata = metadata[0];
-                    }
-                }
-                // Let is build the survey object
-                return HpxImageSurvey.parseSurveyProperties(metadata, options);
-            })();
-        } else {
-            // Fetch the properties of the survey
-            let rootURL = rootURLOrId;
-            // Use the url for retrieving the HiPS properties
-            // remove final slash
-            if (rootURL.slice(-1) === '/') {
-                rootURL = rootURL.substr(0, rootURL.length-1);
-            }
-
-            // make URL absolute
-            rootURL = Utils.getAbsoluteURL(rootURL);
-
-            // fast fix for HTTPS support --> will work for all HiPS served by CDS
-            if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(rootURL) || /unistra.fr/i.test(rootURL)  ) ) {
-                rootURL = rootURL.replace('http://', 'https://');
-            }
-
-            return (async () => {
-                const url = rootURL + '/properties';
-                let metadata = await fetch(url)
-                    .then((response) => response.text());
-                // We get the property here
-                metadata = HiPSDefinition.parseHiPSProperties(metadata);
-
-                // 1. Ensure there is exactly one survey matching
-                if (!metadata) {
-                    throw 'no surveys matching';
-                }
-                // Set the service url if not found
-                metadata.hips_service_url = rootURLOrId;
-                // Let is build the survey object
-                return HpxImageSurvey.parseSurveyProperties(metadata, options);
-            })();
-        }
-    };
-
-    HpxImageSurvey.parseSurveyProperties = function(metadata, options) {
-        console.log("OPTIONS", options)
+    let HpxImageSurvey = function(metadata, aladin, options) {
+        // Build the survey object
+        //HpxImageSurvey.parseSurveyProperties(metadata, options);
+        console.log("OPTIONS", options, metadata)
         // HiPS url
         let url = metadata.hips_service_url;
         if (!url) {
@@ -237,29 +234,36 @@ export let HpxImageSurvey = (function() {
             }
         }
 
-        return {
-            properties: {
-                url: url,
-                maxOrder: order,
-                frame: frame,
-                longitudeReversed: longitude_reversed,
-                tileSize: tileSize,
-                format: tileFormat,
-                minCutout: minCut,
-                maxCutout: maxCut,
-                bitpix: bitpix,
-            },
-            meta: {
-                color: renderCfg,
-                blendCfg: blendingCfg,
-                opacity: opacity,
-            }
+        this.properties = {
+            url: url,
+            maxOrder: order,
+            frame: frame,
+            longitudeReversed: longitude_reversed,
+            tileSize: tileSize,
+            format: tileFormat,
+            minCutout: minCut,
+            maxCutout: maxCut,
+            bitpix: bitpix,
         };
-    }
+        this.meta = {
+            color: renderCfg,
+            blendCfg: blendingCfg,
+            opacity: opacity,
+        };
+        //this.aladin = aladin;
+    };
 
-    HpxImageSurvey.create = async function(idOrRootUrl, options) {
-        let survey = await new HpxImageSurvey(idOrRootUrl, options);
-        return survey;
+    // @api
+    HpxImageSurvey.prototype.setAlpha = function(alpha) {
+        alpha = +alpha; // coerce to number
+        this.meta.opacity = Math.max(0, Math.min(alpha, 1));
+
+        //this.aladin.view.updateImageLayerStack();
+    };
+    
+    // @api
+    HpxImageSurvey.prototype.getAlpha = function() {
+        return this.meta.opacity;
     };
 
     return HpxImageSurvey;

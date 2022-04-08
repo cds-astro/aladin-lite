@@ -123,26 +123,27 @@ impl RequestSystem {
                         self.free_slots_idx.push(idx);
                     } else {
                         // Time when the tile has been received
-                        let time_req = request.get_time_request();
+                        if let Some(survey) = surveys.get(&tile.root_url) {
+                            let time_req = request.get_time_request();
 
-                        let tile_resolved = match request.resolve_status() {
-                            ResolvedStatus::Missing => TileResolved::Missing { time_req },
-                            ResolvedStatus::Found => {
-                                let config =
-                                    surveys.get(&tile.root_url).unwrap().get_textures().config();
-
-                                let image = request.get_image(config.get_tile_size());
-                                if let Ok(image) = image {
-                                    TileResolved::Found { image, time_req }
-                                } else {
-                                    let _err = image.err().unwrap();
-                                    TileResolved::Missing { time_req }
+                            let tile_resolved = match request.resolve_status() {
+                                ResolvedStatus::Missing => TileResolved::Missing { time_req },
+                                ResolvedStatus::Found => {
+                                    let config = survey.get_textures().config();
+    
+                                    let image = request.get_image(config.get_tile_size());
+                                    if let Ok(image) = image {
+                                        TileResolved::Found { image, time_req }
+                                    } else {
+                                        let _err = image.err().unwrap();
+                                        TileResolved::Missing { time_req }
+                                    }
                                 }
-                            }
-                            _ => unreachable!(),
-                        };
-
-                        results.insert(tile.clone(), tile_resolved);
+                                _ => unreachable!(),
+                            };
+    
+                            results.insert(tile.clone(), tile_resolved);
+                        }
                     }
                 }
             }

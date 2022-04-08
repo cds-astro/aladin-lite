@@ -1023,7 +1023,7 @@ pub struct ImageSurveys {
     // The meta data associated with a layer
     meta: HashMap<LayerId, ImageSurveyMeta>,
     // Hashmap between urls and layers
-    urls: HashMap<LayerId, Url>,
+    pub urls: HashMap<LayerId, Url>,
     // Layers given in a specific order to draw
     layers: Vec<LayerId>,
 

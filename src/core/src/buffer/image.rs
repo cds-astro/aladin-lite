@@ -3,6 +3,7 @@ use js_sys::{Function};
 use std::cell::Cell;
 use std::rc::Rc;
 
+#[derive(Debug)]
 #[cfg(feature = "webgl2")]
 pub enum RetrievedImageType {
     FitsImageR32f { image: FitsImage<R32F> },
@@ -138,16 +139,36 @@ impl TileRequest {
         // By default, we say the tile is available to be reused
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
         let tile = None;
-        let closures = [
+        /*let closures = [
             Closure::wrap(
                 Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
             ),
             Closure::wrap(
                 Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
             ),
-        ];
+        ];*/
         //let ready = true;
         let time_request = Time::now();
+        let success = {
+            let r = resolved.clone();
+
+            Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                //al_core::log("image RECEIVED");
+                r.set(ResolvedStatus::Found);
+            }) as Box<dyn FnMut(&web_sys::Event)>)
+        };
+
+        let fail = {
+            let r = resolved.clone();
+            Closure::wrap(Box::new(move |_: &web_sys::Event| {
+                r.set(ResolvedStatus::Missing);
+            }) as Box<dyn FnMut(&web_sys::Event)>)
+        };
+
+        let closures = [
+            success, fail
+        ];
+
         Self {
             req: image_req,
             resolved,
@@ -187,30 +208,15 @@ impl TileRequest {
             url
         };
 
-        let success = {
-            let resolved = self.resolved.clone();
-
-            Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Found);
-            }) as Box<dyn FnMut(&web_sys::Event)>)
-        };
-
-        let fail = {
-            let resolved = self.resolved.clone();
-            Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                resolved.set(ResolvedStatus::Missing);
-            }) as Box<dyn FnMut(&web_sys::Event)>)
-        };
-
-        self.resolved.set(ResolvedStatus::NotResolved);
+        //self.resolved.set(ResolvedStatus::NotResolved);
 
         self.req.send(
-            Some(success.as_ref().unchecked_ref()),
-            Some(fail.as_ref().unchecked_ref()),
+            Some(self.closures[0].as_ref().unchecked_ref()),
+            Some(self.closures[1].as_ref().unchecked_ref()),
             &url,
         )?;
 
-        self.closures = [success, fail];
+        //self.closures = [success, fail];
         self.time_request = Time::now();
 
         Ok(())
@@ -270,6 +276,7 @@ impl Drop for TileRequest {
 }
 /* ------------------------------------------------------ */
 
+#[derive(Debug)]
 pub struct HTMLImage<F>
 where
     F: ImageFormat,
@@ -292,6 +299,8 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
+        al_core::log(&format!("textures, {:?}, offset {:?}", textures.textures.len(), offset));
+
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
@@ -304,6 +313,15 @@ where
     // The size of the image
     fn get_size(&self) -> &Vector2<i32> {
         &self.size
+    }
+}
+
+impl<F> Drop for HTMLImage<F>
+where
+    F: ImageFormat
+{
+    fn drop(&mut self) {
+        //al_core::log("HTML Image dropped!");
     }
 }
 
@@ -337,9 +355,10 @@ where
         fail: Option<&Function>,
         url: &str,
     ) -> Result<(), JsValue> {
-        self.image.set_src(url);
         self.image.set_onload(success);
         self.image.set_onerror(fail);
+        self.image.set_src(url);
+        //self.image.send().unwrap();
 
         Ok(())
     }
@@ -359,6 +378,7 @@ where
 
 /* ------------------------------------------------------ */
 
+#[derive(Debug)]
 pub struct FitsImage<F>
 where
     F: FitsImageFormat,

@@ -436,8 +436,10 @@ where
     }
 
     fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
-        let available_tiles = self.run_tasks(dt)?;
-        let is_there_new_available_tiles = !available_tiles.is_empty();
+        //let available_tiles = self.run_tasks(dt)?;
+        //let is_there_new_available_tiles = !available_tiles.is_empty();
+
+        //al_core::log(&format!("aaaa {:?}", is_there_new_available_tiles));
 
         // Check if there is an move animation to do
         /*if let Some(MoveAnimation {
@@ -503,18 +505,25 @@ where
         }
 
         {
+            al_core::log(&format!("sdfsdfs"));
+
             // Newly available tiles must lead to
+            //al_core::log(&format!("{:?}, ready {:?}", self.surveys.urls, self.is_ready()));
+            // 1. Surveys must be aware of the new available tiles
+            //self.surveys.set_available_tiles(&available_tiles);
+            // 2. Get the resolved tiles and push them to the image surveys
+            let is_there_new_available_tiles = self
+                .downloader
+                .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);
+            //let is_there_new_available_tiles = !resolved_tiles.is_empty();
+            //al_core::log(&format!("resolved tiles {:?}", resolved_tiles));
             if is_there_new_available_tiles {
                 self.time_start_blending = Time::now();
             }
-            al_core::log(&format!("{:?}", self.surveys.urls));
-            // 1. Surveys must be aware of the new available tiles
-            self.surveys.set_available_tiles(&available_tiles);
-            // 2. Get the resolved tiles and push them to the image surveys
-            let resolved_tiles = self
-                .downloader
-                .get_resolved_tiles(&available_tiles, &self.surveys);
-            self.surveys.add_resolved_tiles(resolved_tiles);
+
+            //self.surveys.add_resolved_tiles(resolved_tiles);
+
+
             // 3. Try sending new tile requests after
             self.downloader.try_sending_tile_requests()?;
         }
@@ -675,6 +684,8 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
+        self.downloader.clear_requests();
+
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
@@ -682,7 +693,6 @@ where
             self.exec.clone(),
             &self.colormaps,
         )?;
-        self.downloader.clear_requests();
 
         //if !new_survey_ids.is_empty() {
             /*for id in new_survey_ids.iter() {

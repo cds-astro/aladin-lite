@@ -238,7 +238,7 @@ use cgmath::Vector3;
 /// Task that send a tile to the GPU
 pub struct ImageTile2GpuTask<I>
 where
-    I: Image + 'static,
+    I: Image + std::fmt::Debug + 'static,
 {
     offset: Vector3<i32>,
     image: I,
@@ -252,7 +252,7 @@ use al_core::Texture2DArray;
 use std::rc::Rc;
 impl<I> ImageTile2GpuTask<I>
 where
-    I: Image + 'static,
+    I: Image + 'static + std::fmt::Debug,
 {
     pub fn new(
         tile: &Tile, // The tile cell. It must lie in the texture
@@ -308,7 +308,7 @@ where
 use futures::Future;
 impl<I> Future for ImageTile2GpuTask<I>
 where
-    I: Image + 'static,
+    I: Image + 'static + std::fmt::Debug,
 {
     type Output = ();
 

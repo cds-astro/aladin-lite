@@ -237,16 +237,16 @@ impl ImageSurveyTextures {
 
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
-    pub fn push<I: Image + 'static>(
+    pub fn push<I: Image + 'static  + std::fmt::Debug>(
         &mut self,
-        tile: Tile,
+        tile: &Tile,
         image: I,
         time_request: Time,
         missing: bool,
     ) {
-        let tile_cell = tile.cell;
+        let tile_cell = &tile.cell;
         // Assert here to prevent pushing doublons
-        if self.contains_tile(&tile_cell) {
+        if self.contains_tile(tile_cell) {
             return;
         }
 
@@ -303,11 +303,12 @@ impl ImageSurveyTextures {
         // First get the texture
         if let Some(texture) = self.textures.get_mut(&texture_cell) {
             texture.append(
-                &tile_cell, // The tile cell
+                tile_cell, // The tile cell
                 &self.config,
                 missing,
             );
 
+            /*
             // Append new async task responsible for writing
             // the image into the texture 2d array for the GPU
             let mut exec_ref = self.exec.borrow_mut();
@@ -327,12 +328,25 @@ impl ImageSurveyTextures {
 
                     TaskResult::TileSentToGPU { tile }
                 });
+            */
+
+            // Direct sub
+            let task = ImageTile2GpuTask::<I>::new(
+                tile,
+                texture,
+                image,
+                self.texture_2d_array.clone(),
+                &self.config,
+            );
+
+            task.tex_sub();
+
+            self.register_available_tile(&tile);
         } else {
             unreachable!()
         }
     }
 
-    // Return true if at least one task has been processed
     pub fn register_available_tile(&mut self, available_tile: &Tile) {
         let Tile { cell, .. } = available_tile;
         let texture_cell = cell.get_texture_cell(&self.config);
@@ -606,7 +620,7 @@ impl SendUniforms for ImageSurveyTextures {
 
 impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
-        al_core::log(&format!("Drop image surveys"));
+        //al_core::log(&format!("Drop image surveys"));
         // Cleanup the heap
         self.heap.clear();
 

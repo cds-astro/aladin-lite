@@ -200,10 +200,6 @@ where
 {
     type T = I::T;
 
-    /*fn allocate(width: i32, pixel_fill: &<<Self as Image>::T as ImageFormat>::P) -> Self {
-        Rc::new(I::allocate(width, pixel_fill))
-    }*/
-
     fn tex_sub_image_3d(
         &self,
         // The texture array

@@ -1312,7 +1312,7 @@ impl ImageSurveys {
     }
 
     // Update the surveys by telling which tiles are available
-    pub fn set_available_tiles(&mut self, available_tiles: &HashSet<Tile>) {
+    /*pub fn set_available_tiles(&mut self, available_tiles: &HashSet<Tile>) {
         for tile in available_tiles {
             let textures = &mut self
                 .surveys
@@ -1321,129 +1321,135 @@ impl ImageSurveys {
                 .get_textures_mut();
             textures.register_available_tile(tile);
         }
-    }
+    }*/
 
-    // Update the surveys by adding to the surveys the tiles
-    // that have been resolved
-    pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
-        for (tile, result) in resolved_tiles.into_iter() {
-            if let Some(survey) = self.surveys.get_mut(&tile.root_url) {
-                let textures = survey.get_textures_mut();
-                match result {
-                    TileResolved::Missing { time_req } => {
-                        let missing = true;
-                        let tile_conf = &textures.config.tile_config;
-                        match tile_conf {
-                            TileConfigType::RGBA8U { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<RGBA8U>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
-                            TileConfigType::RGB8U { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<RGB8U>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
-                            TileConfigType::R32F { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<R32F>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
-                            #[cfg(feature = "webgl2")]
-                            TileConfigType::R8UI { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<R8UI>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
-                            #[cfg(feature = "webgl2")]
-                            TileConfigType::R16I { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<R16I>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
-                            #[cfg(feature = "webgl2")]
-                            TileConfigType::R32I { config } => {
-                                let missing_tile_image = config.get_default_tile();
-                                textures.push::<Rc<ImageBuffer<R32I>>>(
-                                    tile,
-                                    missing_tile_image,
-                                    time_req,
-                                    missing,
-                                );
-                            }
+    pub fn add_resolved_tile(&mut self, tile: &Tile, status: TileResolved) {
+        if let Some(survey) = self.surveys.get_mut(&tile.root_url) {
+            let textures = survey.get_textures_mut();
+            match status {
+                TileResolved::Missing { time_req } => {
+                    let missing = true;
+                    let tile_conf = &textures.config.tile_config;
+                    match tile_conf {
+                        TileConfigType::RGBA8U { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<RGBA8U>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
+                        }
+                        TileConfigType::RGB8U { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<RGB8U>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
+                        }
+                        TileConfigType::R32F { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<R32F>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
+                        }
+                        #[cfg(feature = "webgl2")]
+                        TileConfigType::R8UI { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<R8UI>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
+                        }
+                        #[cfg(feature = "webgl2")]
+                        TileConfigType::R16I { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<R16I>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
+                        }
+                        #[cfg(feature = "webgl2")]
+                        TileConfigType::R32I { config } => {
+                            let missing_tile_image = config.get_default_tile();
+                            textures.push::<Rc<ImageBuffer<R32I>>>(
+                                tile,
+                                missing_tile_image,
+                                time_req,
+                                missing,
+                            );
                         }
                     }
-                    TileResolved::Found { image, time_req } => {
-                        let missing = false;
-                        match image {
-                            RetrievedImageType::FitsImageR32f { image } => {
-                                // update the metadata
-                                textures.config.set_fits_metadata(
-                                    image.bscale,
-                                    image.bzero,
-                                    image.blank,
-                                );
-                                textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
-                            }
-                            #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImageR32i { image } => {
-                                textures.config.set_fits_metadata(
-                                    image.bscale,
-                                    image.bzero,
-                                    image.blank,
-                                );
-                                textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
-                            }
-                            #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImageR16i { image } => {
-                                textures.config.set_fits_metadata(
-                                    image.bscale,
-                                    image.bzero,
-                                    image.blank,
-                                );
-                                textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
-                            }
-                            #[cfg(feature = "webgl2")]
-                            RetrievedImageType::FitsImageR8ui { image } => {
-                                textures.config.set_fits_metadata(
-                                    image.bscale,
-                                    image.bzero,
-                                    image.blank,
-                                );
-                                textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
-                            }
-                            RetrievedImageType::PngImageRgba8u { image } => {
-                                textures.push::<HTMLImage<RGBA8U>>(tile, image, time_req, missing);
-                            }
-                            RetrievedImageType::JpgImageRgb8u { image } => {
-                                textures.push::<HTMLImage<RGB8U>>(tile, image, time_req, missing);
-                            }
+                },
+                TileResolved::Found { image, time_req } => {
+                    let missing = false;
+                    match image {
+                        RetrievedImageType::FitsImageR32f { image } => {
+                            // update the metadata
+                            textures.config.set_fits_metadata(
+                                image.bscale,
+                                image.bzero,
+                                image.blank,
+                            );
+                            textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
+                        }
+                        #[cfg(feature = "webgl2")]
+                        RetrievedImageType::FitsImageR32i { image } => {
+                            textures.config.set_fits_metadata(
+                                image.bscale,
+                                image.bzero,
+                                image.blank,
+                            );
+                            textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
+                        }
+                        #[cfg(feature = "webgl2")]
+                        RetrievedImageType::FitsImageR16i { image } => {
+                            textures.config.set_fits_metadata(
+                                image.bscale,
+                                image.bzero,
+                                image.blank,
+                            );
+                            textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
+                        }
+                        #[cfg(feature = "webgl2")]
+                        RetrievedImageType::FitsImageR8ui { image } => {
+                            textures.config.set_fits_metadata(
+                                image.bscale,
+                                image.bzero,
+                                image.blank,
+                            );
+                            textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
+                        }
+                        RetrievedImageType::PngImageRgba8u { image } => {
+                            //al_core::log("push image png");
+                            textures.push::<HTMLImage<RGBA8U>>(tile, image, time_req, missing);
+                        }
+                        RetrievedImageType::JpgImageRgb8u { image } => {
+                            //al_core::log("push image jpg");
+                            textures.push::<HTMLImage<RGB8U>>(tile, image, time_req, missing);
                         }
                     }
                 }
             }
         }
     }
+
+    // Update the surveys by adding to the surveys the tiles
+    // that have been resolved
+    /*pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
+        for (tile, result) in resolved_tiles.into_iter() {
+            
+        }
+    }*/
 
     // Accessors
     pub fn get(&self, root_url: &str) -> Option<&ImageSurvey> {

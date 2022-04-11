@@ -102,57 +102,63 @@ impl RequestSystem {
         self.reqs[free_idx].as_mut()
     }
 
-    fn resolved_tiles(
+    fn handle_received_tiles(
         &mut self,
-        tiles_uploaded_on_gpu: &HashSet<Tile>,
-        surveys: &ImageSurveys,
-    ) -> HashMap<Tile, TileResolved> {
-        let mut results = HashMap::new();
+        surveys: &mut ImageSurveys,
+    ) -> Vec<Tile> {
+        let mut tiles_received = Vec::new();
 
         for (idx, req) in self.reqs.iter_mut().enumerate() {
             // First, tag the tile requests as ready if they just have been
             // given to the GPU
-            if let Some(request) = req {
-                if request.is_resolved() {
-                    let tile = request.get_tile();
-                    // A tile request can be reused if its cell texture is available/readable
-                    // by the GPU
-                    let available_req = tiles_uploaded_on_gpu.contains(tile);
-                    if available_req {
-                        *req = None;
-                        self.free_slots_idx.push(idx);
-                    } else {
-                        // Time when the tile has been received
-                        let time_req = request.get_time_request();
+            let mut handled_tile = false;
 
-                        let tile_resolved = match request.resolve_status() {
-                            ResolvedStatus::Missing => TileResolved::Missing { time_req },
-                            ResolvedStatus::Found => {
-                                if let Some(survey) = surveys.get(&tile.root_url) {
-                                    let config = survey.get_textures().config();
-                                    //let config = surveys.get(&tile.root_url).unwrap().get_textures().config();
+            if let Some(response) = req {
+                let tile = response.get_tile();
+                let time_req = response.get_time_request();
+                let status = response.resolve_status();
+                match status {
+                    ResolvedStatus::Missing => {
+                        let status = TileResolved::Missing { time_req };
 
-                                    let image = request.get_image(config.get_tile_size());
-                                    if let Ok(image) = image {
-                                        TileResolved::Found { image, time_req }
-                                    } else {
-                                        TileResolved::Missing { time_req }
-                                    }
-                                } else {
-                                    TileResolved::Missing { time_req }
-                                }
+                        surveys.add_resolved_tile(tile, status);
+                        handled_tile = true;
+                    },
+                    ResolvedStatus::Found => {
+                        let status = if let Some(survey) = surveys.get(&tile.root_url) {
+                            let cfg = survey.get_textures().config();
+                            if let Ok(image) = response.get_image(cfg.get_tile_size()) {
+                                TileResolved::Found { image, time_req }
+                            } else {
+                                TileResolved::Missing { time_req }
                             }
-                            _ => unreachable!(),
+                        } else {
+                            TileResolved::Missing { time_req }
                         };
 
-                        results.insert(tile.clone(), tile_resolved);   
-                    }
+                        surveys.add_resolved_tile(tile, status);
+                        handled_tile = true;
+                    },
+                    ResolvedStatus::NotResolved => (),
+                }
+
+                if handled_tile {
+                    // Signals that the tile has been handled (copied for the GPU)
+                    tiles_received.push(tile.clone());
+    
+                    // Free the request to be used to download a new tile
+                    self.free_slots_idx.push(idx);
+                    *req = None;
+
+                    break; // handle one tile per frame
                 }
             }
         }
 
-        results
+        tiles_received
     }
+
+
 
     fn clear(&mut self) {
         for req in self.reqs.iter_mut() {
@@ -201,6 +207,7 @@ use al_core::format::ImageFormatType;
 
 use super::image::RetrievedImageType;
 use crate::time::Time;
+#[derive(Debug)]
 pub enum TileResolved {
     Missing {
         time_req: Time,
@@ -234,6 +241,7 @@ impl TileDownloader {
 
     pub fn clear_requests(&mut self) {
         self.tiles_to_req.clear();
+        self.base_tiles_to_req.clear();
 
         self.requests.clear();
         self.requested_tiles.clear();
@@ -263,17 +271,15 @@ impl TileDownloader {
     // * The image is missing
     pub fn get_resolved_tiles(
         &mut self,
-        available_tiles: &HashSet<Tile>,
-        surveys: &ImageSurveys,
-    ) -> ResolvedTiles {
-        let resolved_tiles = self.requests.resolved_tiles(available_tiles, surveys);
-        for (tile, _resolve) in resolved_tiles.iter() {
-            if self.requested_tiles.contains(tile) {
-                self.requested_tiles.remove(tile);
-            }
+        /*available_tiles: &HashSet<Tile>,*/
+        surveys: &mut ImageSurveys,
+    ) -> bool {
+        let resolved_tiles = self.requests.handle_received_tiles(surveys);
+        for tile in resolved_tiles.iter() {
+            self.requested_tiles.remove(tile);
         }
 
-        resolved_tiles
+        !resolved_tiles.is_empty()
     }
 
     pub fn try_sending_tile_requests(&mut self) -> Result<(), JsValue> {

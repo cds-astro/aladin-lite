@@ -76,25 +76,6 @@ impl ArrayBufferInstanced {
         gl.vertex_attrib_divisor(idx, 1);
         #[cfg(feature = "webgl1")]
         gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
-        /*for (idx, size) in sizes.iter().enumerate() {
-            let idx = (idx as u32) + offset_idx;
-            //crate::log::log(&format("IDX LOC {:?}", idx));
-
-            gl.vertex_attrib_pointer_with_i32(
-                idx,
-                *size as i32,
-                WebGlRenderingCtx::FLOAT,
-                false,
-                stride as i32,
-                0,
-            );
-            gl.enable_vertex_attrib_array(idx);
-            #[cfg(feature = "webgl2")]
-            gl.vertex_attrib_divisor(idx, 1);
-            #[cfg(feature = "webgl1")]
-            gl.ext.angles.vertex_attrib_divisor_angle(idx, 1);
-        }*/
-
 
         let num_packed_data = sizes.len();
         let gl = gl.clone();
@@ -118,7 +99,6 @@ impl ArrayBufferInstanced {
     pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
         let loc = shader.get_attrib_location(&self.gl, location);
         assert_eq!(self.sizes.len(), 1);
-        //crate::log::log(&format("{:?}", loc));
         self.gl.vertex_attrib_pointer_with_i32(
             loc as u32,
             *self.sizes.first().unwrap() as i32,

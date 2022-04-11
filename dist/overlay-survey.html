@@ -30,9 +30,10 @@
             aladin.addImageSurvey(vtss, "overlay");
         })();*/
         aladin.setBaseImageLayer('CDS/P/DSS2/color');
-        aladin.setBaseImageLayer('P/Mellinger/color');
+        //aladin.setBaseImageLayer('P/Mellinger/color');
 
         aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));
+        //aladin.setOverlayImageLayer(aladin.createImageSurvey('P/Mellinger/color'));
         //aladin.getOverlayImageLayer().setAlpha(1.0);
 
 

@@ -25,7 +25,7 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: "0 0", cooFrame: "gal"});
+        aladin = A.aladin('#aladin-lite-div', {target: "0 0", cooFrame: "gal"});
         
         var callback = function(ra, dec, fov) {
             aladin.addCatalog(A.catalogFromSimbad( {ra: ra, dec: dec} , 1 , {shape: 'circle', color: '#5d5', onClick: 'showTable'}));
@@ -40,6 +40,7 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
             const alpha = $(this).val();
             aladin.getOverlayImageLayer().setAlpha(alpha);
         });*/
+        aladin.setBaseImageLayer('P/Mellinger/color');
 
         //let fits = aladin.displayFITS('http://goldmine.mib.infn.it/data//B/fits/A04_VC1316_ooooog.fits', 'overlay');
         let jpg = aladin.displayJPG(

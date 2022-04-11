@@ -918,27 +918,21 @@ export let Aladin = (function () {
             return new HpxImageSurvey(metadata, this, options);
         })();
 
-        console.log("pp, ", promise);
         return promise;
     };
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(id) {
-        (async() => {
-            const baseSurvey = await this.createImageSurvey(id);
-            this.view.setBaseImageLayer(baseSurvey);
-        })();
+        const baseSurveyPromise = this.createImageSurvey(id);
+        this.view.setBaseImageLayer(baseSurveyPromise);
     };
     // @api
     Aladin.prototype.getBaseImageLayer = function () {
         return this.view.getImageSurvey("base");
     };
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (overlayImageSurveyPromise, callback, layer = "overlay") {
-        (async() => {
-            const overlayImageSurvey = await overlayImageSurveyPromise;
-            this.view.setOverlayImageSurvey(overlayImageSurvey, callback, layer)
-        })();
+    Aladin.prototype.setOverlayImageLayer = function (promise, callback, layer = "overlay") {
+        this.view.setOverlayImageSurvey(promise, callback, layer);
     };
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
@@ -1670,7 +1664,10 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
             var label = options.label || "FITS image";
             var meta = response.data.meta;
 
-            let survey = this.createImageSurvey(response.data.url);
+            const promise = self.createImageSurvey(response.data.url);
+            console.log("not ready", self.webglAPI.isReady());
+            self.setOverlayImageLayer(promise, null, "overlay");
+
             var transparency = (options && options.transparency) || 1.0;
 
             var executeDefaultSuccessAction = true;
@@ -1682,7 +1679,6 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
                 self.setFoV(meta.fov);
             }
 
-            self.setOverlayImageLayer(survey, null, layer);
             // TODO! set an image survey once the already loaded surveys
             // are READY! Otherwise it can lead to some congestion and avoid
             // downloading the base tiles of the other surveys loading!

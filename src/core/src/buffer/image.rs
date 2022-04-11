@@ -266,7 +266,6 @@ impl TileRequest {
 impl Drop for TileRequest {
     fn drop(&mut self) {
         self.req.send(None, None, "").unwrap();
-
     }
 }
 /* ------------------------------------------------------ */

@@ -256,8 +256,6 @@ impl ImageSurveyTextures {
         if !self.textures.contains_key(&texture_cell) {
             let HEALPixCell(_, idx) = texture_cell;
             let texture = if texture_cell.is_root() {
-                
-
                 Texture::new(&self.config, &texture_cell, idx as i32, time_request)
             } else {
                 // The texture is not among the essential ones
@@ -608,6 +606,7 @@ impl SendUniforms for ImageSurveyTextures {
 
 impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
+        al_core::log(&format!("Drop image surveys"));
         // Cleanup the heap
         self.heap.clear();
 

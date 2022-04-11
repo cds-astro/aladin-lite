@@ -1874,20 +1874,30 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setBaseImageLayer = function(baseSurvey) {
+    View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
         const surveyIdx = this.imageSurveysIdx.get("base") || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set("base", newSurveyIdx);
-        if (newSurveyIdx < this.imageSurveysIdx.get("base")) {
-            // discard if other indices have been added
-            return;
-        }
 
-        console.log("base survey, ", baseSurvey);
-        this.addImageSurvey(baseSurvey, "base");
+        baseSurveyPromise.then((baseSurvey) => {
+            if (newSurveyIdx < this.imageSurveysIdx.get("base") ) {
+                // discard if other indices have been added
+                return;
+            }
+
+            if (!this.aladin.webglAPI.isReady()) {
+                console.log("not ready");
+                return;
+            }
+
+            console.log("base survey, ", baseSurvey);
+            this.addImageSurvey(baseSurvey, "base");
+        });
+
+        //this.surveyPromises.push(promise);
     };
 
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurvey, callback, layer = "overlay") {
+    View.prototype.setOverlayImageSurvey = function(overlayImageSurveyPromise, callback, layer = "overlay") {
         const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set(layer, newSurveyIdx);
@@ -1901,17 +1911,23 @@ export let View = (function() {
             this.overlayLayers[ idxOverlaySurveyFound ] = layer;
         }
 
-        console.log("overlay survey", overlayImageSurvey);
+        overlayImageSurveyPromise.then((survey) => {
+            if (newSurveyIdx < this.imageSurveysIdx.get(layer)) {
+                // discard if other indices have been added
+                return;
+            }
 
-        if (newSurveyIdx < this.imageSurveysIdx.get(layer)) {
-            // discard if other indices have been added
-            return;
-        }
+            /*if (!this.aladin.webglAPI.isReady()) {
+                console.log("not ready");
+                return;
+            }*/
+            //console.log("overlay survey", survey);
 
-        this.addImageSurvey(overlayImageSurvey, layer);
-        if (callback) {
-            callback();
-        }
+            this.addImageSurvey(survey, layer);
+            if (callback) {
+                callback();
+            }
+        });
     };
 
     /*View.prototype.setUnknownSurveyIfNeeded = function() {

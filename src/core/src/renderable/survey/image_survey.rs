@@ -1019,7 +1019,7 @@ pub(crate) type Url = String;
 type LayerId = String;
 pub struct ImageSurveys {
     // Surveys to query
-    surveys: HashMap<Url, ImageSurvey>,
+    pub surveys: HashMap<Url, ImageSurvey>,
     // The meta data associated with a layer
     meta: HashMap<LayerId, ImageSurveyMeta>,
     // Hashmap between urls and layers

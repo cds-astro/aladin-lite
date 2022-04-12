@@ -55,6 +55,7 @@ import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
+import { AladinLogo } from "./gui/AladinLogo.js";
 
 export let Aladin = (function () {
 
@@ -154,10 +155,8 @@ export let Aladin = (function () {
 
 
 
-
-
         // Aladin logo
-        $("<div class='aladin-logo-container'><a href='https://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
+        new AladinLogo(aladinDiv);
 
 
         // we store the boxes
@@ -181,7 +180,7 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
-        // Set thr projection
+        // Set the projection
         let projection = (options && options.projection) || 'SIN';
         this.view.setProjection(projection)
 

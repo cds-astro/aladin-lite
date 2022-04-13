@@ -2,6 +2,9 @@ use cgmath::Rad;
 use cgmath::{BaseFloat, InnerSpace};
 use cgmath::{Vector2, Vector3, Vector4};
 
+pub const TWICE_PI: f64 = 6.28318530718;
+pub const PI: f64 = 3.14159265359;
+
 #[inline]
 pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
     Angle((ab.dot(*bc)).acos())

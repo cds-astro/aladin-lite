@@ -921,19 +921,36 @@ export let Aladin = (function () {
         return promise;
     };
 
+    // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
-    Aladin.prototype.setBaseImageLayer = function(id) {
-        const baseSurveyPromise = this.createImageSurvey(id);
-        this.view.setBaseImageLayer(baseSurveyPromise);
+    // @old
+    Aladin.prototype.setImageSurvey = function(imageSurvey, callback) {
+        this.view.setBaseImageLayer(imageSurvey, callback);
+        //this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
     };
+
+    // @api
+    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callback) {
+        let baseSurveyPromise = null;
+        if (typeof idOrSurvey === "string") {
+            baseSurveyPromise = this.createImageSurvey(idOrSurvey);
+        } else {
+            baseSurveyPromise = idOrSurvey;
+        }
+
+        this.view.setBaseImageLayer(baseSurveyPromise, callback);
+    };
+
     // @api
     Aladin.prototype.getBaseImageLayer = function () {
         return this.view.getImageSurvey("base");
     };
+
     // @api
     Aladin.prototype.setOverlayImageLayer = function (promise, callback, layer = "overlay") {
         this.view.setOverlayImageSurvey(promise, callback, layer);
     };
+
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
         const survey = this.view.getImageSurvey(layer);
@@ -945,6 +962,7 @@ export let Aladin = (function () {
     Aladin.prototype.getImageSurveyMeta = function(layer = "base") {
         return this.view.getImageSurveyMeta(layer);
     };
+
     Aladin.prototype.setImageSurveyMeta = function(meta, layer = "base") {
         return this.view.setImageSurveyMeta(layer, meta);
     };
@@ -966,7 +984,6 @@ export let Aladin = (function () {
         this.view.decreaseZoom();
     };
 
-
     Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {
         return new ProgressiveCat(url, frame, maxOrder, options);
     };
@@ -974,9 +991,6 @@ export let Aladin = (function () {
     Aladin.prototype.createOverlay = function (options) {
         return new Overlay(options);
     };
-
-
-
 
     Aladin.AVAILABLE_CALLBACKS = ['select', 'objectClicked', 'objectHovered', 'footprintClicked', 'footprintHovered', 'positionChanged', 'zoomChanged', 'click', 'mouseMove', 'fullScreenToggled', 'catalogReady'];
     // API

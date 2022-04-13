@@ -250,7 +250,6 @@ export let HpxImageSurvey = (function() {
             blendCfg: blendingCfg,
             opacity: opacity,
         };
-        //this.aladin = aladin;
     };
 
     // @api
@@ -264,6 +263,160 @@ export let HpxImageSurvey = (function() {
     // @api
     HpxImageSurvey.prototype.getAlpha = function() {
         return this.meta.opacity;
+    };
+
+    HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
+    
+    HpxImageSurvey.SURVEYS_OBJECTS = {};
+    HpxImageSurvey.SURVEYS = [
+        {
+            "id": "P/2MASS/color",
+            "url": "http://alasky.u-strasbg.fr/2MASS/Color",
+            "name": "2MASS colored",
+            "maxOrder": 9,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/DSS2/color",
+            "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
+            "name": "DSS colored",
+            "maxOrder": 9,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/DSS2/red",
+            "url": "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+            "name": "DSS2 Red (F+R)",
+            "maxOrder": 9,
+            "frame": "equatorial",
+            "format": "jpeg fits"
+        },
+        {
+            "id": "P/PanSTARRS/DR1/g",
+            "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+            "name": "PanSTARRS DR1 g",
+            "maxOrder": 11,
+            "frame": "equatorial",
+            "format": "jpeg fits"
+        },
+        {
+            "id": "P/PanSTARRS/DR1/color-z-zg-g",
+            "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
+            "name": "PanSTARRS DR1 color",
+            "maxOrder": 11,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/DECaPS/DR1/color",
+            "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
+            "name": "DECaPS DR1 color",
+            "maxOrder": 11,
+            "frame": "equatorial",
+            "format": "jpeg png"
+        },
+        {
+            "id": "P/Fermi/color",
+            "url": "http://alasky.u-strasbg.fr/Fermi/Color",
+            "name": "Fermi color",
+            "maxOrder": 3,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/Finkbeiner",
+            "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
+            "maxOrder": 3,
+            "frame": "galactic",
+            "format": "jpeg fits",
+            "name": "Halpha"
+        },
+        {
+            "id": "P/GALEXGR6/AIS/color",
+            "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
+            "name": "GALEX Allsky Imaging Survey colored",
+            "maxOrder": 8,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/IRIS/color",
+            "url": "http://alasky.u-strasbg.fr/IRISColor",
+            "name": "IRIS colored",
+            "maxOrder": 3,
+            "frame": "galactic",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/Mellinger/color",
+            "url": "http://alasky.u-strasbg.fr/MellingerRGB",
+            "name": "Mellinger colored",
+            "maxOrder": 4,
+            "frame": "galactic",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/SDSS9/color",
+            "url": "http://alasky.u-strasbg.fr/SDSS/DR9/color",
+            "name": "SDSS9 colored",
+            "maxOrder": 10,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/SPITZER/color",
+            "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
+            "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+            "maxOrder": 9,
+            "frame": "galactic",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/VTSS/Ha",
+            "url": "http://alasky.u-strasbg.fr/VTSS/Ha",
+            "maxOrder": 3,
+            "frame": "galactic",
+            "format": "png jpeg fits",
+            "name": "VTSS-Ha"
+        },
+        {
+            "id": "P/XMM/EPIC",
+            "url": "http://saada.u-strasbg.fr/xmmallsky",
+            "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
+            "maxOrder": 7,
+            "frame": "equatorial",
+            "format": "png fits"
+        },
+        {
+            "id": "P/XMM/PN/color",
+            "url": "http://saada.unistra.fr/PNColor",
+            "name": "XMM PN colored",
+            "maxOrder": 7,
+            "frame": "equatorial",
+            "format": "png jpeg"
+        },
+        {
+            "id": "P/allWISE/color",
+            "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+            "name": "AllWISE color",
+            "maxOrder": 8,
+            "frame": "equatorial",
+            "format": "jpeg"
+        },
+        {
+            "id": "P/GLIMPSE360",
+            "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            "name": "GLIMPSE360",
+            "maxOrder": 9,
+            "frame": "equatorial",
+            "format": "jpeg"
+        }
+    ];
+
+    HpxImageSurvey.getAvailableSurveys = function() {
+    	return HpxImageSurvey.SURVEYS;
     };
 
     return HpxImageSurvey;

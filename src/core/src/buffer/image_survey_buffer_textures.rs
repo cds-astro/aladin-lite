@@ -341,6 +341,7 @@ impl ImageSurveyTextures {
 
             task.tex_sub();
 
+            // Once the texture has been received in the GPU
             self.register_available_tile(&tile);
         } else {
             unreachable!()

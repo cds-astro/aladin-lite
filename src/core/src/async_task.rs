@@ -299,6 +299,8 @@ where
     }
 
     pub fn tex_sub(&self) -> bool {
+        al_core::log(&format!("textures, {:?}, offset {:?}, image {:?}", self.texture_array.textures.len(), self.offset, self.image));
+
         self.image
             .tex_sub_image_3d(&self.texture_array, &self.offset);
         true

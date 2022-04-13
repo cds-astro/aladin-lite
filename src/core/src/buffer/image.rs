@@ -299,6 +299,8 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
+        al_core::log(&format!("textures, {:?}, offset {:?}", textures.textures.len(), offset));
+
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(

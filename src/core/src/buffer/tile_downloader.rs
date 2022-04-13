@@ -290,6 +290,7 @@ impl TileDownloader {
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
+            al_core::log(&format!("{:?}", is_remaining_req));
             let mut base_tile_requested = false;
             let tile = if let Some(base_tile) = self.base_tiles_to_req.last() {
                 base_tile_requested = true;

@@ -464,8 +464,10 @@ impl WebClient {
     pub fn get_center(&self) -> Result<Box<[f64]>, JsValue> {
         let center = self.app.get_center();
 
-        let lon_deg: ArcDeg<f64> = center.lon().into();
-        let lat_deg: ArcDeg<f64> = center.lat().into();
+        let (lon, lat) = (center.lon(), center.lat());
+
+        let mut lon_deg: ArcDeg<f64> = lon.into();
+        let lat_deg: ArcDeg<f64> = lat.into();
 
         Ok(Box::new([lon_deg.0, lat_deg.0]))
     }

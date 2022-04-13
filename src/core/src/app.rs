@@ -505,6 +505,8 @@ where
         }
 
         {
+            al_core::log(&format!("sdfsdfs"));
+
             // Newly available tiles must lead to
             //al_core::log(&format!("{:?}, ready {:?}", self.surveys.urls, self.is_ready()));
             // 1. Surveys must be aware of the new available tiles

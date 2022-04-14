@@ -117,9 +117,6 @@ export let HpxImageSurvey = (function() {
      *  
      */
     let HpxImageSurvey = function(metadata, aladin, options) {
-        // Build the survey object
-        //HpxImageSurvey.parseSurveyProperties(metadata, options);
-        console.log("OPTIONS", options, metadata)
         // HiPS url
         let url = metadata.hips_service_url;
         if (!url) {
@@ -233,7 +230,10 @@ export let HpxImageSurvey = (function() {
                 func: 'FuncAdd' 
             }
         }
-
+        this.backend = aladin.webglAPI;
+        console.log("BACKEND", this.backend);
+        // The survey created is associated to no layer when it is created
+        this.layer = null;
         this.properties = {
             url: url,
             maxOrder: order,
@@ -257,8 +257,26 @@ export let HpxImageSurvey = (function() {
         alpha = +alpha; // coerce to number
         this.meta.opacity = Math.max(0, Math.min(alpha, 1));
 
-        //this.aladin.view.updateImageLayerStack();
+        // Tell the view its meta have changed
+        this.backend.setImageSurveyMeta(this.layer, this.meta);
     };
+
+    // @api
+    /*HpxImageSurvey.prototype.setColor = function(color) {
+        this.meta.color = Math.max(0, Math.min(alpha, 1));
+
+        // Tell the view its meta have changed
+        this.backend.setImageSurveyMeta(this.layer, this.meta);
+    };*/
+
+    // This method is called by the view object to
+    // signal to the backend whether the view must be recomputed or not
+    /*HpxImageSurvey.prototype.isMetaChanged = function() {
+        const metaChanged = this.needRedraw;
+        this.needRedraw = false;
+
+        return metaChanged;
+    };*/
     
     // @api
     HpxImageSurvey.prototype.getAlpha = function() {

@@ -139,21 +139,12 @@ impl TileRequest {
         // By default, we say the tile is available to be reused
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
         let tile = None;
-        /*let closures = [
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-        ];*/
-        //let ready = true;
+
         let time_request = Time::now();
         let success = {
             let r = resolved.clone();
 
             Closure::wrap(Box::new(move |_: &web_sys::Event| {
-                //al_core::log("image RECEIVED");
                 r.set(ResolvedStatus::Found);
             }) as Box<dyn FnMut(&web_sys::Event)>)
         };
@@ -235,30 +226,6 @@ impl TileRequest {
         resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Missing
     }
 
-    /*pub fn is_ready(&self) -> bool {
-        self.ready
-    }
-
-    pub fn set_ready(&mut self) {
-        self.ready = true;
-    }*/
-
-    /*pub fn clear(&mut self) {
-        self.req.send(None, None, "").unwrap();
-        self.ready = true;
-        self.resolved.set(ResolvedStatus::NotResolved);
-        self.closures = [
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-            Closure::wrap(
-                Box::new(|_events: &web_sys::Event| {}) as Box<dyn FnMut(&web_sys::Event)>
-            ),
-        ];
-        //self.tile = HEALPixCell(0, 13);
-        self.time_request = Time::now();
-    }*/
-
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
     }
@@ -299,8 +266,6 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
-        al_core::log(&format!("textures, {:?}, offset {:?}", textures.textures.len(), offset));
-
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(

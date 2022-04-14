@@ -265,14 +265,16 @@ where
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
         // Index of the slice of textures
-        let idx_slice = texture_idx / conf.num_textures_by_slice();
+        let num_textures_by_slice = conf.num_textures_by_slice();
+        let idx_slice = texture_idx / num_textures_by_slice;
         // Index of the texture in its slice
-        let idx_in_slice = texture_idx % conf.num_textures_by_slice();
+        let idx_in_slice = texture_idx % num_textures_by_slice;
 
         // Index of the column of the texture in its slice
-        let idx_col_in_slice = idx_in_slice / conf.num_textures_by_side_slice();
+        let num_textures_by_side_slice = conf.num_textures_by_side_slice();
+        let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
         // Index of the row of the texture in its slice
-        let idx_row_in_slice = idx_in_slice % conf.num_textures_by_side_slice();
+        let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
 
         // Row and column indexes of the tile in its texture
         let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(conf);
@@ -289,8 +291,6 @@ where
             idx_slice,
         );
 
-        //let max_size_to_cpy = 64;
-
         ImageTile2GpuTask {
             offset,
             image,
@@ -299,8 +299,6 @@ where
     }
 
     pub fn tex_sub(&self) -> bool {
-        al_core::log(&format!("textures, {:?}, offset {:?}, image {:?}", self.texture_array.textures.len(), self.offset, self.image));
-
         self.image
             .tex_sub_image_3d(&self.texture_array, &self.offset);
         true

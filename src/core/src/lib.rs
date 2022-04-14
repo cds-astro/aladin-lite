@@ -291,8 +291,11 @@ impl WebClient {
         self.app.get_image_survey_color_cfg(&layer)
     }
 
+    // Set a new color associated with a layer
     #[wasm_bindgen(js_name = setImageSurveyMeta)]
-    pub fn set_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
+    pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
+        let meta = meta.into_serde()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         self.app.set_image_survey_color_cfg(layer, meta)
     }
 

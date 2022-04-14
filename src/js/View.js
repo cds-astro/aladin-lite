@@ -1049,7 +1049,7 @@ export let View = (function() {
     View.prototype.redraw = function() {
         // calc elapsed time since last loop
         // Put your drawing code here
-        var saveNeedRedraw = this.needRedraw;
+        var saveNeedRedraw = this.needRedraw;        
 
         try {
             //var dt = now_update - this.prev;
@@ -1285,13 +1285,11 @@ export let View = (function() {
                 radius *= 1.6;
             }
             else if (this.fov>12) {
-                radius *=1.45;
+                radius *= 1.45;
             }
             else {
                 radius *= 1.1;
             }
-
-
 
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
@@ -1812,22 +1810,15 @@ export let View = (function() {
     };
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
-
-        let copiedSurvey = JSON.parse(JSON.stringify(survey));
-        copiedSurvey.layer = layer;
-        this.imageSurveys.set(layer, copiedSurvey);
+        //let copiedSurvey = JSON.parse(JSON.stringify(survey));
+        //copiedSurvey.layer = layer;
+        survey.layer = layer;
+        this.imageSurveys.set(layer, survey);
 
         this.updateImageLayerStack();
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {
-        /*const idxSurveyFound = this.imageSurveys.findIndex(s => s.layer == layer);
-        if (idxSurveyFound == -1) {
-            // layer not found
-            return undefined;
-        }
-
-        return this.imageSurveys[ idxSurveyFound ];*/
         return this.imageSurveys.get(layer);
     };
 

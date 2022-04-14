@@ -113,10 +113,10 @@ impl RequestSystem {
             // given to the GPU
             let mut handled_tile = false;
 
-            if let Some(response) = req {
-                let tile = response.get_tile();
-                let time_req = response.get_time_request();
-                let status = response.resolve_status();
+            if let Some(resp) = req {
+                let tile = resp.get_tile();
+                let time_req = resp.get_time_request();
+                let status = resp.resolve_status();
                 match status {
                     ResolvedStatus::Missing => {
                         let status = TileResolved::Missing { time_req };
@@ -127,7 +127,7 @@ impl RequestSystem {
                     ResolvedStatus::Found => {
                         let status = if let Some(survey) = surveys.get(&tile.root_url) {
                             let cfg = survey.get_textures().config();
-                            if let Ok(image) = response.get_image(cfg.get_tile_size()) {
+                            if let Ok(image) = resp.get_image(cfg.get_tile_size()) {
                                 TileResolved::Found { image, time_req }
                             } else {
                                 TileResolved::Missing { time_req }
@@ -157,8 +157,6 @@ impl RequestSystem {
 
         tiles_received
     }
-
-
 
     fn clear(&mut self) {
         for req in self.reqs.iter_mut() {
@@ -271,7 +269,6 @@ impl TileDownloader {
     // * The image is missing
     pub fn get_resolved_tiles(
         &mut self,
-        /*available_tiles: &HashSet<Tile>,*/
         surveys: &mut ImageSurveys,
     ) -> bool {
         let resolved_tiles = self.requests.handle_received_tiles(surveys);
@@ -290,7 +287,6 @@ impl TileDownloader {
         let mut downloader_overloaded = false;
 
         while is_remaining_req && !downloader_overloaded {
-            al_core::log(&format!("{:?}", is_remaining_req));
             let mut base_tile_requested = false;
             let tile = if let Some(base_tile) = self.base_tiles_to_req.last() {
                 base_tile_requested = true;

@@ -207,8 +207,8 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
-        //let image = &**self;
-        self.tex_sub_image_3d(textures, offset);
+        let image = &**self;
+        image.tex_sub_image_3d(textures, offset);
     }
 
     fn get_size(&self) -> &Vector2<i32> {

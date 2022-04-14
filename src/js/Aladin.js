@@ -482,6 +482,7 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.updateSurveysDropdownList = function (surveys) {
+        console.log(surveys)
         surveys = surveys.sort(function (a, b) {
             if (!a.order) {
                 return a.id > b.id;
@@ -490,9 +491,11 @@ export let Aladin = (function () {
         });
         var select = $(this.aladinDiv).find('.aladin-surveySelection');
         select.empty();
+        const baseImgLayer = this.getBaseImageLayer();
+        console.log("image layer", baseImgLayer)
         for (var i = 0; i < surveys.length; i++) {
-            var isCurSurvey = this.view.imageSurvey.id == surveys[i].id;
-            select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].id).text(surveys[i].name));
+            const isCurSurvey = baseImgLayer.properties.id == surveys[i].properties.id;
+            select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].properties.id).text(surveys[i].properties.name));
         };
     };
 
@@ -925,17 +928,22 @@ export let Aladin = (function () {
     // @api
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey, callback) {
-        this.view.setBaseImageLayer(imageSurvey, callback);
-        //this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        this.setBaseImageLayer(imageSurvey, callback);
+        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
     };
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callback) {
         let baseSurveyPromise = null;
+        // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
             baseSurveyPromise = this.createImageSurvey(idOrSurvey);
-        } else {
+        // 2. User gives a non resolved promise
+        } else if (typeof idOrSurvey === "Promise") {
             baseSurveyPromise = idOrSurvey;
+        // 3. User gives an image survey object
+        } else {
+            baseSurveyPromise = Promise.resolve(idOrSurvey);
         }
 
         this.view.setBaseImageLayer(baseSurveyPromise, callback);
@@ -1041,34 +1049,34 @@ export let Aladin = (function () {
         layerBox.empty();
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
             '<div style="clear: both;"></div>' +
+            '<div class="aladin-label">Base image layer</div>' +
+            '<select class="aladin-surveySelection"></select>' +
             '</div>');
 
         layerBox.append('<div class="aladin-label">Projection</div>');
 
         let projectionElt = $('<select id="projectionChoice"><option id="SIN" value="SIN">SIN</option><option id="AIT" value="AIT">AIT</option><option id="MOL" value="MOL">MOL</option><option id="MER" value="MER">MER</option><option id="ARC" value="ARC">ARC</option><option id="TAN" value="TAN">TAN</option><option id="HPX" value="HPX">HPX</option></select>');
-
-        layerBox.append(projectionElt)
-            .append('<br />');
         projectionElt.change(function () {
             const projection = $(this).val();
-            console.log(projection)
             self.setProjection(projection);
         });
-        
+        layerBox.append(projectionElt)
+            .append('<br />');
+
         layerBox.append('<div class="aladin-box-separator"></div>' +
         '<div class="aladin-label">Overlay layers</div>');
 
-        //var cmDiv = layerBox.find('.aladin-cmap');
+        /*var cmDiv = layerBox.find('.aladin-cmap');
 
         // fill color maps options
-        /*var cmSelect = layerBox.find('.aladin-cmSelection');
+        var cmSelect = layerBox.find('.aladin-cmSelection');
         for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
             cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
         }
         console.log(self.getBaseImageLayer())
         console.log(self.getBaseImageLayer().getColorMap())
-        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);*/
-
+        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
+        */
 
         // loop over all overlay layers
         var layers = this.view.allOverlayLayers;
@@ -1154,7 +1162,6 @@ export let Aladin = (function () {
             }
         });
 
-
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Tools</div>');
         var exportBtn = $('<button class="aladin-btn" type="button">Export view as PNG</button>');
@@ -1166,13 +1173,15 @@ export let Aladin = (function () {
         layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
 
         // update list of surveys
-        /*this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
             var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            self.setImageSurvey(survey.id, function () {
+            self.setImageSurvey(survey, function () {
                 var baseImgLayer = self.getBaseImageLayer();
 
+                // !TODO
+                /*
                 if (baseImgLayer.useCors) {
                     // update color map list with current value color map
                     cmSelect.val(baseImgLayer.getColorMap().mapName);
@@ -1184,7 +1193,7 @@ export let Aladin = (function () {
                     cmDiv.hide();
 
                     exportBtn.hide();
-                }
+                }*/
             });
 
 
@@ -1193,7 +1202,7 @@ export let Aladin = (function () {
 
         //// COLOR MAP management ////////////////////////////////////////////
         // update color map
-        cmDiv.find('.aladin-cmSelection').change(function () {
+        /*cmDiv.find('.aladin-cmSelection').change(function () {
             var cmName = $(this).find(':selected').val();
             self.getBaseImageLayer().getColorMap().update(cmName);
         });

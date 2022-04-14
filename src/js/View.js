@@ -1708,11 +1708,12 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
     
-    View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
+    View.prototype.setBaseImageLayer = function(baseSurveyPromise, callback) {
         const surveyIdx = this.imageSurveysIdx.get("base") || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set("base", newSurveyIdx);
 
+        console.log("promise", baseSurveyPromise)
         baseSurveyPromise.then((baseSurvey) => {
             if (newSurveyIdx < this.imageSurveysIdx.get("base") ) {
                 // discard if other indices have been added
@@ -1724,6 +1725,9 @@ export let View = (function() {
             }
 
             this.addImageSurvey(baseSurvey, "base");
+            if (callback) {
+                callback();
+            }
         });
     };
 

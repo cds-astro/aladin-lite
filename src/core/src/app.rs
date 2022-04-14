@@ -692,18 +692,13 @@ where
             &self.colormaps,
         )?;
 
-        //if !new_survey_ids.is_empty() {
-            /*for id in new_survey_ids.iter() {
-                let config = &self.surveys.get(id).unwrap().get_textures().config;
-                self.downloader.request_base_tiles(config);
-            }*/
-            for survey in self.surveys.surveys.values() {
-                let config = &survey.get_textures().config;
-                self.downloader.request_base_tiles(config);
-            }
-            // Once its added, request its tiles
-            //self.look_for_new_tiles();
-        //}
+        for survey in self.surveys.surveys.values() {
+            let config = &survey.get_textures().config;
+            self.downloader.request_base_tiles(config);
+        }
+        // Once its added, request its tiles
+        self.look_for_new_tiles();
+
         self.request_redraw = true;
 
         Ok(())

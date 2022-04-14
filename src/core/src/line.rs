@@ -89,9 +89,9 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            if ab_l < 1e-5 || bc_l < 1e-5 {
+            /*if ab_l < 1e-5 || bc_l < 1e-5 {
                 return;
-            }
+            }*/
 
             let ab = ab.normalize();
             let bc = bc.normalize();

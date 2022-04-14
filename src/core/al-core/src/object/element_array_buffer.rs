@@ -76,14 +76,14 @@ impl ElementArrayBuffer {
             );
         } else {
             // Reallocation if the new data size exceeds the size of the buffer
-            console::log_1(
+            /*console::log_1(
                 &format!(
                     "element array buffer reallocation! old/new size: {:?}/{:?}",
                     self.len,
                     data.len()
                 )
                 .into(),
-            );
+            );*/
             self.len = data.len();
             //unreachable!();
             T::buffer_data_with_array_buffer_view(

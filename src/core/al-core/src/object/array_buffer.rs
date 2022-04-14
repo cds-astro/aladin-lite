@@ -443,14 +443,14 @@ impl ArrayBuffer {
                 WebGlRenderingCtx::ARRAY_BUFFER,
             );
         } else {
-            console::log_1(
+            /*console::log_1(
                 &format!(
                     "array buffer reallocation! old/new size: {:?}/{:?}",
                     self.len,
                     data.len()
                 )
                 .into(),
-            );
+            );*/
             self.len = data.len();
 
             T::buffer_data_with_array_buffer_view(

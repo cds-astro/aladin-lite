@@ -288,77 +288,183 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
         {
-            "id": "P/2MASS/color",
-            "url": "http://alasky.u-strasbg.fr/2MASS/Color",
-            "name": "2MASS colored",
-            "maxOrder": 9,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/2MASS/color",
+                name: "2MASS colored",
+                url: "http://alasky.u-strasbg.fr/2MASS/Color",
+                maxOrder: 9,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/DSS2/color",
-            "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
-            "name": "DSS colored",
-            "maxOrder": 9,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/DSS2/color",
+                name: "DSS colored",
+                url: "http://alasky.u-strasbg.fr/DSS/DSSColor",
+                maxOrder: 9,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/DSS2/red",
-            "url": "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
-            "name": "DSS2 Red (F+R)",
-            "maxOrder": 9,
-            "frame": "equatorial",
-            "format": "jpeg fits"
+            properties: {
+                id: "P/DSS2/red",
+                name: "DSS2 Red (F+R)",
+                url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
+                maxOrder: 9,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "FITS",
+                bitpix: 16,
+            },
+            meta: {
+                color: {
+                    grayscale2Color: {
+                        color: [1.0, 0.0, 0.0],
+                        k: 1.0,
+                        param: {
+                            h: "Asinh",
+                            minValue: 10.0,
+                            maxValue: 10000.0,
+                        }
+                    }
+                },
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/PanSTARRS/DR1/g",
-            "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
-            "name": "PanSTARRS DR1 g",
-            "maxOrder": 11,
-            "frame": "equatorial",
-            "format": "jpeg fits"
+            properties: {
+                id: "P/PanSTARRS/DR1/g",
+                name: "PanSTARRS DR1 g",
+                url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+                maxOrder: 11,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "FITS",
+                bitpix: -32,
+            },
+            meta: {
+                color: {
+                    grayscale2Colormap: {
+                        colormap: "redTemperature",
+                        reversed: false,
+                        param: {
+                            h: "Asinh",
+                            minValue: -34,
+                            maxValue: 7000,
+                        }
+                    }
+                },
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/PanSTARRS/DR1/color-z-zg-g",
-            "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
-            "name": "PanSTARRS DR1 color",
-            "maxOrder": 11,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/PanSTARRS/DR1/color-z-zg-g",
+                name: "PanSTARRS DR1 color",
+                url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
+                maxOrder: 11,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/DECaPS/DR1/color",
-            "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
-            "name": "DECaPS DR1 color",
-            "maxOrder": 11,
-            "frame": "equatorial",
-            "format": "jpeg png"
+            properties: {
+                id: "P/DECaPS/DR1/color",
+                name: "DECaPS DR1 color",
+                url: "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
+                maxOrder: 11,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "PNG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/Fermi/color",
-            "url": "http://alasky.u-strasbg.fr/Fermi/Color",
-            "name": "Fermi color",
-            "maxOrder": 3,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/Fermi/color",
+                name: "Fermi color",
+                url: "http://alasky.u-strasbg.fr/Fermi/Color",
+                maxOrder: 3,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/Finkbeiner",
-            "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
-            "maxOrder": 3,
-            "frame": "galactic",
-            "format": "jpeg fits",
-            "name": "Halpha"
+            properties: {
+                id: "P/Finkbeiner",
+                name: "Halpha",
+                url: "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
+                maxOrder: 3,
+                frame: "GAL",
+                longitudeReversed: false,
+                tileSize: 128,
+                format: "FITS",
+                bitpix: -32
+            },
+            meta: {
+                color: {
+                    grayscale2Colormap: {
+                        colormap: "redTemperature",
+                        reversed: false,
+                        param: {
+                            h: "Asinh",
+                            minValue: -10,
+                            maxValue: 800,
+                        }
+                    }
+                },
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/GALEXGR6/AIS/color",
-            "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
-            "name": "GALEX Allsky Imaging Survey colored",
-            "maxOrder": 8,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/GALEXGR6/AIS/color",
+                name: "GALEX Allsky Imaging Survey colored",
+                url: "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
+                maxOrder: 8,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
+        /*
         {
             "id": "P/IRIS/color",
             "url": "http://alasky.u-strasbg.fr/IRISColor",
@@ -430,7 +536,7 @@ export let HpxImageSurvey = (function() {
             "maxOrder": 9,
             "frame": "equatorial",
             "format": "jpeg"
-        }
+        }*/
     ];
 
     HpxImageSurvey.getAvailableSurveys = function() {

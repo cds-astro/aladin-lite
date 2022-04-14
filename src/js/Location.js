@@ -40,7 +40,6 @@ export let Location = (function () {
 
     Location.prototype.update = function (lon, lat, cooFrame, isViewCenterPosition) {
         isViewCenterPosition = (isViewCenterPosition && isViewCenterPosition === true) || false;
-
         var coo = new Coo(lon, lat, 7);
         if (cooFrame == CooFrameEnum.J2000) {
             this.$div.html(coo.format('s/'));

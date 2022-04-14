@@ -989,13 +989,12 @@ export let View = (function() {
         }
         
         if (lonlat) {
-            // Convert it to galactic
-            /*if (view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
-                lonlat = view.aladin.webglAPI.J20002Gal(lonlat[0], lonlat[1]);
-            }*/
+            let [lon, lat] = lonlat;
 
-            //console.log(view.aladin.webglAPI.readPixel(x, y, 'base'));
-            view.location.update(lonlat[0], lonlat[1], view.cooFrame, isViewCenterPosition);
+            if (lon < 0.0) {
+                lon += 360.0;
+            }
+            view.location.update(lon, lat, view.cooFrame, isViewCenterPosition);
         }
     }
     

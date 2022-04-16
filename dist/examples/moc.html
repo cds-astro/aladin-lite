@@ -18,7 +18,7 @@
       </div>
     </div>
 <div id='aladin-statsDiv'></div>
-<script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
 
@@ -27,10 +27,8 @@
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {target: 'Gamma Cas', fov: 10});
-        (async () => {
-            let dssred = await A.createImageSurvey("CDS/P/DSS2/blue");
-            aladin.addImageSurvey(dssred);
-        })();
+        aladin.setBaseImageLayer("CDS/P/DSS2/blue");
+
 
         var moc = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#84f', lineWidth: 1});
         aladin.addMOC(moc);

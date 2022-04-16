@@ -461,16 +461,17 @@ export let MOC = (function() {
         }
 
         // check if we have a pixel at the edge of the view in allsky projections
-        if (projection.PROJECTION!=ProjectionEnum.SIN && projection.PROJECTION!=ProjectionEnum.TAN) {
+        //if (projection.PROJECTION!=ProjectionEnum.SIN && projection.PROJECTION!=ProjectionEnum.TAN) {
             // Faster approach: when a vertex from a cell gets to the other side of the projection
             // its vertices order change from counter-clockwise to clockwise!
             // So if the vertices describing a cell are given in clockwise order
             // we know it crosses the projection, so we do not plot them!
+            //console.log("tetet");
             if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
                 !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
                 return null;
             }
-        }
+        //}
 
         //cornersXYView = AladinUtils.grow2(cornersXYView, 1);
         return cornersXYView;

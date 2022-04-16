@@ -39,7 +39,7 @@
     <input id="allwise" type="radio" name="survey" value="P/allWISE/color"><label for="allwise">AllWISE<label>
     <!--<input id="glimpse" type="radio" name="survey" value="P/GLIMPSE360"><label for="glimpse">GLIMPSE 360<label>--> 
 
-    <script type="text/javascript" src="./aladin.js" charset="utf-8"></script>
+    <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
     <!-- Creation of Aladin Lite instance with initial parameters -->
     <script type="text/javascript">
         let surveys = {
@@ -94,24 +94,10 @@
         var aladin;
         A.init.then(() => {
             // Start up Aladin Lite
-            aladin = A.aladin('#aladin-lite-div', {fov: 360, survey: "P/DSS2/color", showCooGrid: true});
-            aladin.setProjection('mollweide');
+            aladin = A.aladin('#aladin-lite-div', {fov: 360, survey: "P/DSS2/color", showCooGrid: false});
+            aladin.setProjection('MOL');
 
             var moc = A.MOCFromJSON(json, {color: 'magenta', lineWidth: 1, opacity: 0.6});
-            aladin.addMOC(moc);
-
-            var self = aladin;
-            document.getElementById("DSS").onclick = function() {
-                self.setBaseImageSurvey(surveys["P/DSS2/color"]);
-            };
-            document.getElementById("DSS-blue").onclick = function() {
-                self.setBaseImageSurvey(surveys["P/DSS2/blue"]);
-            };
-            document.getElementById("2MASS").onclick = function() {
-                self.setBaseImageSurvey(surveys["P/2MASS/color"]);
-            };
-            document.getElementById("allwise").onclick = function() {
-                self.setBaseImageSurvey(surveys["P/allWISE/color"]);
-            };
+            aladin.addMOC(moc);        
         });
     </script>

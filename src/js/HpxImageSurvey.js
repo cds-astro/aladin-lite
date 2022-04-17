@@ -464,79 +464,150 @@ export let HpxImageSurvey = (function() {
                 opacity: 1.0,
             }
         },
-        /*
         {
-            "id": "P/IRIS/color",
-            "url": "http://alasky.u-strasbg.fr/IRISColor",
-            "name": "IRIS colored",
-            "maxOrder": 3,
-            "frame": "galactic",
-            "format": "jpeg"
+            properties: {
+                id: "P/IRIS/color",
+                name: "IRIS colored",
+                url: "http://alasky.u-strasbg.fr/IRISColor",
+                maxOrder: 3,
+                frame: "GAL",
+                longitudeReversed: false,
+                tileSize: 256,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/Mellinger/color",
-            "url": "http://alasky.u-strasbg.fr/MellingerRGB",
-            "name": "Mellinger colored",
-            "maxOrder": 4,
-            "frame": "galactic",
-            "format": "jpeg"
+            properties: {
+                id: "P/Mellinger/color",
+                name: "Mellinger colored",
+                url: "http://alasky.u-strasbg.fr/MellingerRGB",
+                maxOrder: 4,
+                frame: "GAL",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/SDSS9/color",
-            "url": "http://alasky.u-strasbg.fr/SDSS/DR9/color",
-            "name": "SDSS9 colored",
-            "maxOrder": 10,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/SDSS9/color",
+                name: "SDSS9 colored",
+                url: "http://alasky.u-strasbg.fr/SDSS/DR9/color",
+                maxOrder: 10,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/SPITZER/color",
-            "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
-            "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-            "maxOrder": 9,
-            "frame": "galactic",
-            "format": "jpeg"
+            properties: {
+                id: "P/SPITZER/color",
+                name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+                url: "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
+                maxOrder: 9,
+                frame: "GAL",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/VTSS/Ha",
-            "url": "http://alasky.u-strasbg.fr/VTSS/Ha",
-            "maxOrder": 3,
-            "frame": "galactic",
-            "format": "png jpeg fits",
-            "name": "VTSS-Ha"
+            properties: {
+                id: "P/VTSS/Ha",
+                name: "VTSS-Ha",
+                url: "http://alasky.u-strasbg.fr/VTSS/Ha",
+                maxOrder: 3,
+                frame: "GAL",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/XMM/EPIC",
-            "url": "http://saada.u-strasbg.fr/xmmallsky",
-            "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
-            "maxOrder": 7,
-            "frame": "equatorial",
-            "format": "png fits"
+            properties: {
+                id: "P/XMM/EPIC",
+                name: "XMM-Newton stacked EPIC images (no phot. normalization)",
+                url: "http://saada.u-strasbg.fr/xmmallsky",
+                maxOrder: 7,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/XMM/PN/color",
-            "url": "http://saada.unistra.fr/PNColor",
-            "name": "XMM PN colored",
-            "maxOrder": 7,
-            "frame": "equatorial",
-            "format": "png jpeg"
+            properties: {
+                id: "P/XMM/PN/color",
+                name: "XMM PN colored",
+                url: "http://saada.unistra.fr/PNColor",
+                maxOrder: 7,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/allWISE/color",
-            "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
-            "name": "AllWISE color",
-            "maxOrder": 8,
-            "frame": "equatorial",
-            "format": "jpeg"
+            properties: {
+                id: "P/allWISE/color",
+                name: "AllWISE color",
+                url: "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+                maxOrder: 8,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
         },
         {
-            "id": "P/GLIMPSE360",
-            "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
-            "name": "GLIMPSE360",
-            "maxOrder": 9,
-            "frame": "equatorial",
-            "format": "jpeg"
-        }*/
+            properties: {
+                id: "P/GLIMPSE360",
+                name: "GLIMPSE360",
+                url: "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+                maxOrder: 9,
+                frame: "ICRSJ2000",
+                longitudeReversed: false,
+                tileSize: 512,
+                format: "JPG",
+            },
+            meta: {
+                color: "color",
+                opacity: 1.0,
+            }
+        },
     ];
 
     HpxImageSurvey.getAvailableSurveys = function() {

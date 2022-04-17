@@ -485,16 +485,17 @@ export let Aladin = (function () {
         console.log(surveys)
         surveys = surveys.sort(function (a, b) {
             if (!a.order) {
-                return a.id > b.id;
+                return a.properties.id > b.properties.id;
             }
-            return a.order && a.order > b.order ? 1 : -1;
+            return a.properties.maxOrder && a.properties.maxOrder > b.properties.maxOrder ? 1 : -1;
         });
         var select = $(this.aladinDiv).find('.aladin-surveySelection');
         select.empty();
         const baseImgLayer = this.getBaseImageLayer();
-        console.log("image layer", baseImgLayer)
+        //console.log("image layer", baseImgLayer)
         for (var i = 0; i < surveys.length; i++) {
-            const isCurSurvey = baseImgLayer.properties.id == surveys[i].properties.id;
+            //console.log("base image survey: ", baseImgLayer.properties.url)
+            const isCurSurvey = baseImgLayer.properties.url == surveys[i].properties.url;
             select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].properties.id).text(surveys[i].properties.name));
         };
     };
@@ -929,7 +930,6 @@ export let Aladin = (function () {
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey, callback) {
         this.setBaseImageLayer(imageSurvey, callback);
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
     };
 
     // @api
@@ -1195,9 +1195,6 @@ export let Aladin = (function () {
                     exportBtn.hide();
                 }*/
             });
-
-
-
         });
 
         //// COLOR MAP management ////////////////////////////////////////////

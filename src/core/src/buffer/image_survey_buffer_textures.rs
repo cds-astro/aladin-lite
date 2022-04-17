@@ -284,7 +284,6 @@ impl ImageSurveyTextures {
                     // The idx is computed based on the current size of the buffer
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                    
                     Texture::new(&self.config, &texture_cell, idx as i32, time_request)
                 };
                 // Push it to the buffer
@@ -301,51 +300,55 @@ impl ImageSurveyTextures {
         // and the tile is not already in any textures of the buffer
         // We can safely push it
         // First get the texture
-        if let Some(texture) = self.textures.get_mut(&texture_cell) {
-            texture.append(
-                tile_cell, // The tile cell
-                &self.config,
-                missing,
-            );
+        let texture = self.textures.get_mut(&texture_cell).expect("the cell has to be in the tile buffer");
+        texture.append(
+            tile_cell, // The tile cell
+            &self.config,
+            missing,
+        );
 
-            /*
-            // Append new async task responsible for writing
-            // the image into the texture 2d array for the GPU
-            let mut exec_ref = self.exec.borrow_mut();
-            let task = ImageTile2GpuTask::<I>::new(
-                &tile,
-                texture,
-                image,
-                self.texture_2d_array.clone(),
-                &self.config,
-            );
+        /*
+        // Append new async task responsible for writing
+        // the image into the texture 2d array for the GPU
+        let mut exec_ref = self.exec.borrow_mut();
+        let task = ImageTile2GpuTask::<I>::new(
+            &tile,
+            texture,
+            image,
+            self.texture_2d_array.clone(),
+            &self.config,
+        );
 
-            let tile = tile;
-            exec_ref
-                .spawner()
-                .spawn(TaskType::ImageTile2GpuTask(tile.clone()), async move {
-                    task.await;
+        let tile = tile;
+        exec_ref
+            .spawner()
+            .spawn(TaskType::ImageTile2GpuTask(tile.clone()), async move {
+                task.await;
 
-                    TaskResult::TileSentToGPU { tile }
-                });
-            */
+                TaskResult::TileSentToGPU { tile }
+            });
+        */
 
-            // Direct sub
-            let task = ImageTile2GpuTask::<I>::new(
-                tile,
-                texture,
-                image,
-                self.texture_2d_array.clone(),
-                &self.config,
-            );
+        // Direct sub
+        /*let task = ImageTile2GpuTask::<I>::new(
+            tile,
+            texture,
+            image,
+            self.texture_2d_array.clone(),
+            &self.config,
+        );
 
-            task.tex_sub();
+        task.tex_sub();*/
+        send_to_gpu(
+            tile_cell,
+            texture,
+            image,
+            self.texture_2d_array.clone(),
+            &self.config,
+        );
 
-            // Once the texture has been received in the GPU
-            self.register_available_tile(&tile);
-        } else {
-            unreachable!()
-        }
+        // Once the texture has been received in the GPU
+        self.register_available_tile(&tile);
     }
 
     pub fn register_available_tile(&mut self, available_tile: &Tile) {
@@ -570,6 +573,45 @@ impl ImageSurveyTextures {
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()
     }
+}
+
+fn send_to_gpu<I: Image>(
+    cell: &HEALPixCell,
+    texture: &Texture,
+    image: I,
+    texture_array: Rc<Texture2DArray>,
+    cfg: &HiPSConfig,
+) {
+    // Index of the texture in the total set of textures
+    let texture_idx = texture.idx();
+    // Index of the slice of textures
+    let num_textures_by_slice = cfg.num_textures_by_slice();
+    let idx_slice = texture_idx / num_textures_by_slice;
+    // Index of the texture in its slice
+    let idx_in_slice = texture_idx % num_textures_by_slice;
+
+    // Index of the column of the texture in its slice
+    let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
+    let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
+    // Index of the row of the texture in its slice
+    let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
+
+    // Row and column indexes of the tile in its texture
+    let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(cfg);
+
+    // The size of the global texture containing the tiles
+    let texture_size = cfg.get_texture_size();
+    // The size of a tile in its texture
+    let tile_size = cfg.get_tile_size();
+
+    // Offset in the slice in pixels
+    let offset = Vector3::new(
+        (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size,
+        (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size,
+        idx_slice,
+    );
+
+    image.tex_sub_image_3d(&texture_array, &offset);
 }
 use crate::buffer::TextureUniforms;
 

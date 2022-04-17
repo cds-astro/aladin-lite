@@ -1728,6 +1728,9 @@ export let View = (function() {
             if (callback) {
                 callback();
             }
+
+            // Once added, update the survey dropdown list
+            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         });
     };
 

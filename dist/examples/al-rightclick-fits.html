@@ -18,7 +18,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 1});
-        aladin.setImageSurvey(aladin.createImageSurvey('Panstarrs', 'Panstarrs', 'http://alasky.cds.unistra.fr/Pan-STARRS/DR1/g/', 'equatorial', 11, {imgFormat: 'fits'}));
+        aladin.setImageSurvey(aladin.createImageSurvey('Panstarrs', 'Panstarrs', 'http://alasky.cds.unistra.fr/Pan-STARRS/DR1/g/', 'equatorial', 11, {imgFormat: 'fits', colormap: "redTemperature"}));
     });
 </script>
 

@@ -732,7 +732,9 @@ export let View = (function() {
                 let cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
                 let cy = (xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
 
-                view.lastFitsSurvey.setCuts([(1.0 - cx)*view.cutMinInit, (1.0 + cx)*view.cutMaxInit])
+                let offset = (view.cutMaxInit - view.cutMinInit) * cx;
+
+                view.lastFitsSurvey.setCuts([offset + (1.0 - cy*2.0)*view.cutMinInit, offset + (1.0 + cy*2.0)*view.cutMaxInit])
 
                 return;
             }

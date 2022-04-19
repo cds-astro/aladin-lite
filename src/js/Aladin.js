@@ -962,7 +962,6 @@ export let Aladin = (function () {
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
         const survey = this.view.getImageSurvey(layer);
-        console.log("get survey", survey);
         return survey;
     };
 

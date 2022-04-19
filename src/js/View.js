@@ -129,6 +129,9 @@ export let View = (function() {
             // current reference image survey displayed
             this.imageSurveys = new Map();
             this.imageSurveysIdx = new Map();
+            // Boolean telling if the image survey is wanted
+            this.imageSurveyBeingFetched = new Map();
+
             this.overlayLayers = [];
             // current catalogs displayed
             this.catalogs = [];
@@ -171,6 +174,11 @@ export let View = (function() {
             this.dragging = false;
             this.dragx = null;
             this.dragy = null;
+            this.rightclickx = null;
+            this.rightclicky = null;
+            this.lastFitsSurvey = null;
+            this.cutMinInit = null;
+            this.cutMaxInit = null;
             this.needRedraw = true;
 
             const si = 500000.0;
@@ -470,9 +478,48 @@ export let View = (function() {
         if (! hasTouchEvents) {
             $(view.reticleCanvas).dblclick(onDblClick);
         }
-        
+
         $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
+
+            if (e.which === 3 || e.button === 2) {
+                view.rightClick = true;
+                view.rightclickx = xymouse.x;
+                view.rightclicky = xymouse.y;
+
+                // Check if there is at least one fits image layer
+                // if there is one, choose the last
+                let survey = null;
+                for (let layer of view.overlayLayers
+                    // creates a shallow copy, overlayLayers will not change
+                    .slice()
+                    .reverse()) {
+                    const s = view.imageSurveys.get(layer);
+                    if (s.properties.format === "FITS") {
+                        survey = s;
+                        break;
+                    }
+                }
+
+                // Lastly check the base layer
+                if (survey == null) {
+                    const s = view.imageSurveys.get("base");
+                    if (s.properties.format === "FITS") {
+                        survey = s;
+                    }
+                }
+
+                console.log("change cutout of ", survey);
+
+                view.cutMinInit = survey.properties.minCutout;
+                view.cutMaxInit = survey.properties.maxCutout;
+
+                view.lastFitsSurvey = survey;
+
+                console.log("press right click")
+                return;
+            }
+            
             if(view.aladin.webglAPI.posOnUi()) {
                 return;
             }
@@ -508,7 +555,6 @@ export let View = (function() {
                 view.dragy = xymouse.y;
             }
 
-            console.log("AAAA")
             view.dragging = true;
             if (view.mode==View.PAN) {
                 view.setCursor('move');
@@ -516,13 +562,22 @@ export let View = (function() {
             else if (view.mode==View.SELECT) {
                 view.selectStartCoo = {x: view.dragx, y: view.dragy};
             }
+
             view.aladin.webglAPI.pressLeftMouseButton(view.dragx, view.dragy);
             return false; // to disable text selection
         });
 
-        //$(view.reticleCanvas).bind("mouseup mouseout touchend", function(e) {
-        $(view.reticleCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view
-            var xymouse = view.imageCanvas.relMouseCoords(e);
+        //$(view.reticleCanvas).bind("click mouseout touchend", function(e) {
+        $(view.reticleCanvas).bind("mouseup click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
+            if (view.rightClick) {
+                console.log("release right click")
+                view.rightClick = false;
+                view.rightclickx = null;
+                view.rightclicky = null;
+
+                return;
+            }
+            
             if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -537,9 +592,10 @@ export let View = (function() {
                 return;
             }
 
-
             var wasDragging = view.realDragging === true;
             var selectionHasEnded = view.mode===View.SELECT && view.dragging;
+
+
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
@@ -570,13 +626,9 @@ export let View = (function() {
                 return;
             }
 
-
-
             view.mustClearCatalog = true;
             view.mustRedrawReticle = true; // pour effacer selection bounding box
             view.dragx = view.dragy = null;
-
-
 
             if (e.type==="mouseout" || e.type==="touchend") {
                 view.requestRedraw(true);
@@ -592,7 +644,7 @@ export let View = (function() {
                 }
             }
 
-
+            const xymouse = view.imageCanvas.relMouseCoords(e);
             if (view.mode==View.TOOL_SIMBAD_POINTER) {
                 var radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
@@ -660,7 +712,6 @@ export let View = (function() {
                 }
             }
 
-
             // TODO : remplacer par mecanisme de listeners
             // on avertit les catalogues progressifs
             view.refreshProgressiveCats();
@@ -674,6 +725,17 @@ export let View = (function() {
         $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
+
+            if (view.rightClick) {
+                console.log("mouse right click")
+
+                let cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
+                let cy = (xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
+
+                view.lastFitsSurvey.setCuts([(1.0 - cx)*view.cutMinInit, (1.0 + cx)*view.cutMaxInit])
+
+                return;
+            }
             p = xymouse;
 
             if(view.aladin.webglAPI.posOnUi()) {
@@ -918,7 +980,6 @@ export let View = (function() {
             //view.refreshProgressiveCats();
             return false;
         });
-
     };
     
     var init = function(view) {
@@ -1713,9 +1774,10 @@ export let View = (function() {
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set("base", newSurveyIdx);
 
-        console.log("promise", baseSurveyPromise)
+        this.imageSurveyBeingFetched.set("base", true);
+
         baseSurveyPromise.then((baseSurvey) => {
-            if (newSurveyIdx < this.imageSurveysIdx.get("base") ) {
+            if ( newSurveyIdx < this.imageSurveysIdx.get("base") ) {
                 // discard if other indices have been added
                 return;
             }
@@ -1725,6 +1787,7 @@ export let View = (function() {
             }
 
             this.addImageSurvey(baseSurvey, "base");
+
             if (callback) {
                 callback();
             }
@@ -1748,7 +1811,13 @@ export let View = (function() {
             this.overlayLayers[ idxOverlaySurveyFound ] = layer;
         }
 
+        this.imageSurveyBeingFetched.set(layer, true);
+
+        this.imageSurveys.set(layer, overlayImageSurveyPromise);
+
         overlayImageSurveyPromise.then((survey) => {
+            console.log("bbb: ", survey);
+
             if (newSurveyIdx < this.imageSurveysIdx.get(layer)) {
                 // discard if other indices have been added
                 return;
@@ -1759,6 +1828,7 @@ export let View = (function() {
             }
 
             this.addImageSurvey(survey, layer);
+
             if (callback) {
                 callback();
             }
@@ -1791,7 +1861,8 @@ export let View = (function() {
 
     View.prototype.updateImageLayerStack = function() {
         try {
-            const surveys = this.buildSortedImageSurveys();
+            const surveys = this.buildSortedImageSurveys()
+                .filter(x => x !== undefined);
 
             console.log("SURVEYS TO PLOT, ", surveys);
             this.aladin.webglAPI.setImageSurveys(surveys);
@@ -1820,13 +1891,23 @@ export let View = (function() {
         //let copiedSurvey = JSON.parse(JSON.stringify(survey));
         //copiedSurvey.layer = layer;
         survey.layer = layer;
+        console.log("ss: ", survey)
+
         this.imageSurveys.set(layer, survey);
 
         this.updateImageLayerStack();
+
+        this.imageSurveyBeingFetched.set(layer, false);
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {
-        return this.imageSurveys.get(layer);
+        //if (!this.imageSurveyBeingFetched.has(layer)) {
+        //    return undefined;
+        //}
+        const survey = this.imageSurveys.get(layer);
+        console.log("layer: ", survey);
+
+        return survey;
     };
 
     View.prototype.getImageSurveyMeta = function(layer = "base") {
@@ -1844,6 +1925,7 @@ export let View = (function() {
             console.error(e);
         }
     };
+
     /*View.prototype.setImageSurveysLayer = function(surveys, layer) {
         this.imageSurveys.set(layer, new Map());
 

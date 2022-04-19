@@ -108,7 +108,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
     }
 
     return metadata;
-} 
+}
 
 export let HpxImageSurvey = (function() {
     /** Constructor
@@ -231,7 +231,7 @@ export let HpxImageSurvey = (function() {
             }
         }
         this.backend = aladin.webglAPI;
-        console.log("BACKEND", this.backend);
+
         // The survey created is associated to no layer when it is created
         this.layer = null;
         this.properties = {
@@ -262,21 +262,62 @@ export let HpxImageSurvey = (function() {
     };
 
     // @api
-    /*HpxImageSurvey.prototype.setColor = function(color) {
-        this.meta.color = Math.max(0, Math.min(alpha, 1));
+    HpxImageSurvey.prototype.setColor = function(color, options) {
+        const isColoredHiPS = this.properties.format !== "FITS";
+        if (isColoredHiPS) {
+            throw "This HiPS is not FITS";
+        }
 
+        let param = (this.meta.color.grayscale2Color && this.meta.color.grayscale2Color.param) || (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.param);
+        param.h = (options && options.tf) || param.h;
+        param.minValue = (options && options.mincut) || param.minValue;
+        param.maxValue = (options && options.maxcut) || param.maxValue;
+
+        if ( Array.isArray(color) ) {
+            const strength = (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.k) || (options && options.strength) || false;
+            this.meta.color = {
+                grayscale2Color: {
+                    color: color,
+                    k: strength,
+                    param: param,
+                }
+            };
+        } else if (typeof color === "String") {
+            const reversed = (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.reversed) || (options && options.reversed) || false;
+            this.meta.color = {
+                grayscale2Colormap: {
+                    colormap: color,
+                    reversed: reversed,
+                    param: param
+                }
+            };
+        }
+
+        console.log("meeeta", this.meta)
         // Tell the view its meta have changed
         this.backend.setImageSurveyMeta(this.layer, this.meta);
-    };*/
+    };
 
-    // This method is called by the view object to
-    // signal to the backend whether the view must be recomputed or not
-    /*HpxImageSurvey.prototype.isMetaChanged = function() {
-        const metaChanged = this.needRedraw;
-        this.needRedraw = false;
+    HpxImageSurvey.prototype.setCuts = function(cuts) {
+        const isColoredHiPS = this.properties.format !== "FITS";
+        if (isColoredHiPS) {
+            throw "This HiPS is not FITS";
+        }
 
-        return metaChanged;
-    };*/
+        let param = (this.meta.color.grayscale2Color && this.meta.color.grayscale2Color.param) || (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.param);
+        param.minValue = cuts[0];
+        param.maxValue = cuts[1];
+
+        if ( this.meta.color.grayscale2Color ) {
+            this.meta.color.grayscale2Color.param = param;
+        } else {
+            this.meta.color.grayscale2Colormap.param = param;
+        }
+
+        console.log("meeeta", this.meta)
+        // Tell the view its meta have changed
+        this.backend.setImageSurveyMeta(this.layer, this.meta);
+    };
     
     // @api
     HpxImageSurvey.prototype.getAlpha = function() {

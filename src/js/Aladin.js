@@ -482,7 +482,7 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.updateSurveysDropdownList = function (surveys) {
-        console.log(surveys)
+        //console.log(surveys)
         surveys = surveys.sort(function (a, b) {
             if (!a.order) {
                 return a.properties.id > b.properties.id;
@@ -492,12 +492,14 @@ export let Aladin = (function () {
         var select = $(this.aladinDiv).find('.aladin-surveySelection');
         select.empty();
         const baseImgLayer = this.getBaseImageLayer();
-        //console.log("image layer", baseImgLayer)
-        for (var i = 0; i < surveys.length; i++) {
-            //console.log("base image survey: ", baseImgLayer.properties.url)
-            const isCurSurvey = baseImgLayer.properties.url == surveys[i].properties.url;
-            select.append($("<option />").attr("selected", isCurSurvey).val(surveys[i].properties.id).text(surveys[i].properties.name));
-        };
+        const baseImgNotLoaded = baseImgLayer.properties;
+
+        if (baseImgNotLoaded) {
+            surveys.forEach(s => {
+                const isCurSurvey = baseImgLayer.properties.url == s.properties.url;
+                select.append($("<option />").attr("selected", isCurSurvey).val(s.properties.id).text(s.properties.name));
+            });
+        }
     };
 
     Aladin.prototype.setAngleRotation = function (theta) {
@@ -917,12 +919,12 @@ export let Aladin = (function () {
             options.cooFrame = cooFrame;
         }
 
-        const promise = (async () => {
-            let metadata = await fetchSurveyProperties(rootUrlOrId);
-            return new HpxImageSurvey(metadata, this, options);
-        })();
+        //const promise = (async () => {
+            //let metadata = await fetchSurveyProperties(rootUrlOrId);
+            return new HpxImageSurvey(rootUrlOrId, this.view, options);
+        //})();
 
-        return promise;
+        //return promise;
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
@@ -934,19 +936,16 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callback) {
-        let baseSurveyPromise = null;
+        let survey = null;
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
-            baseSurveyPromise = this.createImageSurvey(idOrSurvey);
+            survey = this.createImageSurvey(idOrSurvey);
         // 2. User gives a non resolved promise
-        } else if (typeof idOrSurvey === "Promise") {
-            baseSurveyPromise = idOrSurvey;
-        // 3. User gives an image survey object
         } else {
-            baseSurveyPromise = Promise.resolve(idOrSurvey);
+            survey = idOrSurvey;
         }
 
-        this.view.setBaseImageLayer(baseSurveyPromise, callback);
+        this.view.setBaseImageLayer(survey, callback);
     };
 
     // @api
@@ -1172,10 +1171,11 @@ export let Aladin = (function () {
         layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
 
         // update list of surveys
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys(this.view));
         var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
+            var survey = HpxImageSurvey.getAvailableSurveys(self.view)[$(this)[0].selectedIndex];
+            console.log("survey, chosen ", survey)
             self.setImageSurvey(survey, function () {
                 var baseImgLayer = self.getBaseImageLayer();
 

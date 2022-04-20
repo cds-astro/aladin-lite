@@ -279,8 +279,9 @@ impl WebClient {
                     .map_err(|e| JsValue::from_str(&e.to_string()))
             })
             .collect::<Result<Vec<_>, _>>();
+
+        //let surveys: Vec<SimpleHiPS> = surveys.iter().map(SimpleHiPS::from).collect::<Vec<_>>();
         let surveys = surveys?;
-        //al_core::log::log(&format!("num surveys {:?}", surveys.len()));
         self.app.set_image_surveys(surveys)?;
 
         Ok(())

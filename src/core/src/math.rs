@@ -98,6 +98,31 @@ where
     }
 }
 
+impl<S> LonLat<S> for LonLatT<S>
+where
+    S: BaseFloat,
+{
+    #[inline]
+    fn lon(&self) -> Angle<S> {
+        self.0
+    }
+
+    #[inline]
+    fn lat(&self) -> Angle<S> {
+        self.1
+    }
+
+    #[inline]
+    fn lonlat(&self) -> LonLatT<S> {
+        *self
+    }
+
+    #[inline]
+    fn from_lonlat(lonlat: &LonLatT<S>) -> Self {
+        *lonlat
+    }
+}
+
 impl<S> LonLat<S> for Vector3<S>
 where
     S: BaseFloat,
@@ -278,4 +303,65 @@ pub fn lambert_wm1(x: f32) -> f32 {
     -1.0 - s
         - (2.0 / m1)
             * (1.0 - 1.0 / (1.0 + ((m1 * s_div_2_root) / (1.0 + m2 * s * (m3 * s_root).exp()))))
+}
+
+mod tests {
+    #[allow(unused_macros)]
+    macro_rules! assert_delta {
+        ($x:expr, $y:expr, $d:expr) => {
+            if !($x - $y < $d || $y - $x < $d) {
+                panic!();
+            }
+        };
+    }
+
+    use crate::{ArcDeg, LonLatT};
+    use al_api::coo_system::CooSystem;
+    use crate::math::LonLat;
+
+    #[test]
+    fn j2000_to_gal() {
+        let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
+        let gal_lonlat = super::apply_coo_system(&CooSystem::ICRSJ2000, &CooSystem::GAL, &lonlat.vector()).lonlat();
+
+        let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+
+        assert_delta!(gal_lon_deg, 96.33723581, 1e-3);
+        assert_delta!(gal_lat_deg, -60.18845577, 1e-3);
+    }
+
+    #[test]
+    fn gal_to_j2000() {
+        let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
+        let j2000_lonlat = super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRSJ2000, &lonlat.vector()).lonlat();
+        let j2000_lon_deg = j2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let j2000_lat_deg = j2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+
+        assert_delta!(j2000_lon_deg, 266.40506655, 1e-3);
+        assert_delta!(j2000_lat_deg, -28.93616241, 1e-3);
+    }
+
+    #[test]
+    fn j2000_gal_roundtrip() {
+        let gal_lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
+
+        let icrsj2000_pos = super::apply_coo_system(
+            &CooSystem::GAL, 
+            &CooSystem::ICRSJ2000,
+            &gal_lonlat.vector()
+        );
+
+        let gal_lonlat = super::apply_coo_system(
+            &CooSystem::ICRSJ2000, 
+            &CooSystem::GAL,
+            &icrsj2000_pos
+        );
+
+        let gal_lon_deg = gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI);
+        let gal_lat_deg = gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI);
+
+        assert_delta!(gal_lon_deg, 0.0, 1e-3);
+        assert_delta!(gal_lat_deg, 0.0, 1e-3);
+    }
 }

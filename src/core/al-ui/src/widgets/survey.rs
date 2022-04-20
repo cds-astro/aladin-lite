@@ -324,7 +324,8 @@ impl SurveyWidget {
                 color: self.color_cfg.clone(),
                 blend_cfg: self.blend_cfg.clone(),
                 opacity: opacity,
-            }
+            },
+            backend: None
         }
     }
 

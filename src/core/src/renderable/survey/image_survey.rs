@@ -1235,7 +1235,7 @@ impl ImageSurveys {
         self.meta.clear();
         self.layers.clear();
         self.urls.clear();
-        for SimpleHiPS { layer, properties, meta } in hipses.into_iter() {
+        for SimpleHiPS { layer, properties, meta, .. } in hipses.into_iter() {
             let config = HiPSConfig::new(gl, &properties)?;
 
             // Get the most precise survey from all the ones given

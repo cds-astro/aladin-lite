@@ -129,8 +129,6 @@ export let View = (function() {
             // current reference image survey displayed
             this.imageSurveys = new Map();
             this.imageSurveysIdx = new Map();
-            // Boolean telling if the image survey is wanted
-            this.imageSurveyBeingFetched = new Map();
 
             this.overlayLayers = [];
             // current catalogs displayed
@@ -510,11 +508,11 @@ export let View = (function() {
                 }
 
                 console.log("change cutout of ", survey);
-
                 view.cutMinInit = survey.properties.minCutout;
                 view.cutMaxInit = survey.properties.maxCutout;
 
                 view.lastFitsSurvey = survey;
+                console.log("survey selected: ", view.lastFitsSurvey)
 
                 console.log("press right click")
                 return;
@@ -733,7 +731,7 @@ export let View = (function() {
                 let cy = (xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
 
                 let offset = (view.cutMaxInit - view.cutMinInit) * cx;
-
+                console.log("jjj; ", view.lastFitsSurvey)
                 view.lastFitsSurvey.setCuts([offset + (1.0 - cy*2.0)*view.cutMinInit, offset + (1.0 + cy*2.0)*view.cutMaxInit])
 
                 return;
@@ -1764,77 +1762,53 @@ export let View = (function() {
         this.curNorder = norder;
         this.curOverlayNorder = overlayNorder;
     };
-    
+
     View.prototype.untaintCanvases = function() {
         this.createCanvases();
         createListeners(this);
         this.fixLayoutDimensions();
     };
-    
+
     View.prototype.setBaseImageLayer = function(baseSurveyPromise, callback) {
-        const surveyIdx = this.imageSurveysIdx.get("base") || 0;
-        const newSurveyIdx = surveyIdx + 1;
-        this.imageSurveysIdx.set("base", newSurveyIdx);
-
-        this.imageSurveyBeingFetched.set("base", true);
-
-        baseSurveyPromise.then((baseSurvey) => {
-            if ( newSurveyIdx < this.imageSurveysIdx.get("base") ) {
-                // discard if other indices have been added
-                return;
-            }
-
-            if (this.options.log) {
-                Logger.log("setBaseImageLayer", baseSurvey.properties.url);
-            }
-
-            this.addImageSurvey(baseSurvey, "base");
-
-            if (callback) {
-                callback();
-            }
-
-            // Once added, update the survey dropdown list
-            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        });
+        this.setOverlayImageSurvey(baseSurveyPromise, callback, "base");
     };
 
-    View.prototype.setOverlayImageSurvey = function(overlayImageSurveyPromise, callback, layer = "overlay") {
+    View.prototype.setOverlayImageSurvey = function(survey, callback, layer = "overlay") {
         const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set(layer, newSurveyIdx);
+        survey.orderIdx = newSurveyIdx;
 
         // Check whether this layer already exist
         const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
         if (idxOverlaySurveyFound == -1) {
-            this.overlayLayers.push(layer);
+            if (layer === "base") {
+                // insert at the beginning
+                this.overlayLayers.splice(0, 0, layer);
+            } else {
+                this.overlayLayers.push(layer);
+            }
         } else {
             // find the survey by layer and erase it by the new value
             this.overlayLayers[ idxOverlaySurveyFound ] = layer;
         }
 
-        this.imageSurveyBeingFetched.set(layer, true);
+        /// async part
+        if (this.options.log && survey.properties) {
+            Logger.log("setImageLayer", survey.properties.url);
+        }
 
-        this.imageSurveys.set(layer, overlayImageSurveyPromise);
+        this.imageSurveys.set(layer, survey);
+        this.addImageSurvey(survey, layer);
 
-        overlayImageSurveyPromise.then((survey) => {
-            console.log("bbb: ", survey);
+        // If the base has been changed, we update the survey dropdown list
+        if (layer === "base") {
+            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys(this));
+        }
 
-            if (newSurveyIdx < this.imageSurveysIdx.get(layer)) {
-                // discard if other indices have been added
-                return;
-            }
-
-            if (this.options.log) {
-                Logger.log("setOverlayImageLayer", survey.properties.url);
-            }
-
-            this.addImageSurvey(survey, layer);
-
-            if (callback) {
-                callback();
-            }
-        });
+        if (callback) {
+            callback();
+        }
     };
 
     /*View.prototype.setUnknownSurveyIfNeeded = function() {
@@ -1847,10 +1821,7 @@ export let View = (function() {
     var unknownSurveyId = undefined;
 
     View.prototype.buildSortedImageSurveys = function() {
-        // Base must be already present
-        let sortedImageSurveys = [
-            this.imageSurveys.get("base")
-        ];
+        let sortedImageSurveys = [];
 
         this.overlayLayers.forEach((overlaidLayer) => {
             sortedImageSurveys.push(
@@ -1863,8 +1834,15 @@ export let View = (function() {
 
     View.prototype.updateImageLayerStack = function() {
         try {
-            const surveys = this.buildSortedImageSurveys()
-                .filter(x => x !== undefined);
+            let surveys = this.buildSortedImageSurveys()
+                .filter(x => x !== undefined && x.properties )
+                .map((x) => {
+                    return {
+                        layer: x.layer,
+                        properties: x.properties,
+                        meta: x.meta,
+                    };
+                });
 
             console.log("SURVEYS TO PLOT, ", surveys);
             this.aladin.webglAPI.setImageSurveys(surveys);
@@ -1898,14 +1876,9 @@ export let View = (function() {
         this.imageSurveys.set(layer, survey);
 
         this.updateImageLayerStack();
-
-        this.imageSurveyBeingFetched.set(layer, false);
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {
-        //if (!this.imageSurveyBeingFetched.has(layer)) {
-        //    return undefined;
-        //}
         const survey = this.imageSurveys.get(layer);
         console.log("layer: ", survey);
 

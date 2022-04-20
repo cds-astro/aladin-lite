@@ -18,6 +18,7 @@ impl IntoIterator for CompositeHiPS {
 }
 
 #[derive(Deserialize, Debug)]
+#[derive(Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SimpleHiPS {
     /// Layer name
@@ -27,7 +28,22 @@ pub struct SimpleHiPS {
     pub properties: HiPSProperties,
 
     pub meta: ImageSurveyMeta,
+
+    pub backend: Option<i64>,
 }
+
+/*#[wasm_bindgen]
+impl SimpleHiPS {
+    #[wasm_bindgen(constructor)]
+    pub fn new(layer: String, properties: HiPSProperties, meta: ImageSurveyMeta) -> Self {
+        Self {
+            layer,
+            properties,
+            meta,
+            backend: None
+        }
+    }
+}*/
 
 impl SimpleHiPS {
     pub fn get_layer(&self) -> String {

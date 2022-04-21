@@ -19,13 +19,13 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 110, target: 'galactic center'});
         aladin.setBaseImageLayer('P/Mellinger/color');
-        aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));
+        aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'fits', minCut: -10.0, maxCut: 100.0}));
         /*aladin.getOverlayImageLayer().then((overlay) => {
             overlay.setAlpha(1.0);
             overlay.setColor([1.0, 0.0, 0.0]);
         });*/
-        aladin.getOverlayImageLayer().setAlpha(0.5);
-        aladin.getOverlayImageLayer().setColor([1.0, 0.0, 0.0]);
+        aladin.getOverlayImageLayer().setAlpha(1.0);
+        aladin.getOverlayImageLayer().setColor("rdBu");
     });
 </script>
 </body>

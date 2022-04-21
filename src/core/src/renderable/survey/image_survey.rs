@@ -268,7 +268,7 @@ trait Draw {
 }
 
 use al_core::shader::{Shader};
-
+use al_api::hips::GrayscaleColor;
 /*
 /// List of the different type of surveys
 #[derive(Clone, Debug)]
@@ -297,27 +297,27 @@ pub enum Color {
     ) -> &'a Shader {
         match color {
             HiPSColor::Color => P::get_raster_shader_color(gl, shaders),
-            HiPSColor::Grayscale2Colormap { .. } => {
-                if unsigned_tex {
-                    return P::get_raster_shader_gray2colormap_unsigned(gl, shaders);
+            HiPSColor::Grayscale { color, .. } => {
+                match color {
+                    GrayscaleColor::Color(..) => {
+                        if unsigned_tex {
+                            P::get_raster_shader_gray2color_unsigned(gl, shaders)
+                        } else if integer_tex {
+                            P::get_raster_shader_gray2color_integer(gl, shaders)
+                        } else {
+                            P::get_raster_shader_gray2color(gl, shaders)
+                        }
+                    },
+                    GrayscaleColor::Colormap { .. } => {
+                        if unsigned_tex {
+                            P::get_raster_shader_gray2colormap_unsigned(gl, shaders)
+                        } else if integer_tex {
+                            P::get_raster_shader_gray2colormap_integer(gl, shaders)
+                        } else {
+                            P::get_raster_shader_gray2colormap(gl, shaders)
+                        }
+                    },
                 }
-
-                if integer_tex {
-                    return P::get_raster_shader_gray2colormap_integer(gl, shaders);
-                }
-
-                P::get_raster_shader_gray2colormap(gl, shaders)
-            }
-            HiPSColor::Grayscale2Color { .. } => {
-                if unsigned_tex {
-                    return P::get_raster_shader_gray2color_unsigned(gl, shaders);
-                }
-
-                if integer_tex {
-                    return P::get_raster_shader_gray2color_integer(gl, shaders);
-                }
-
-                P::get_raster_shader_gray2color(gl, shaders)
             }
         }
     }
@@ -331,27 +331,27 @@ pub enum Color {
     ) -> &'a Shader {
         match color {
             HiPSColor::Color => P::get_raytracer_shader_color(gl, shaders),
-            HiPSColor::Grayscale2Colormap { .. } => {
-                if unsigned_tex {
-                    return P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders);
+            HiPSColor::Grayscale { color, .. } => {
+                match color {
+                    GrayscaleColor::Color(..) => {
+                        if unsigned_tex {
+                            P::get_raytracer_shader_gray2color_unsigned(gl, shaders)
+                        } else if integer_tex {
+                            P::get_raytracer_shader_gray2color_integer(gl, shaders)
+                        } else {
+                            P::get_raytracer_shader_gray2color(gl, shaders)
+                        }
+                    },
+                    GrayscaleColor::Colormap { .. } => {
+                        if unsigned_tex {
+                            P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
+                        } else if integer_tex {
+                            P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
+                        } else {
+                            P::get_raytracer_shader_gray2colormap(gl, shaders)
+                        }
+                    },
                 }
-
-                if integer_tex {
-                    return P::get_raytracer_shader_gray2colormap_integer(gl, shaders);
-                }
-
-                P::get_raytracer_shader_gray2colormap(gl, shaders)
-            }
-            HiPSColor::Grayscale2Color { .. } => {
-                if unsigned_tex {
-                    return P::get_raytracer_shader_gray2color_unsigned(gl, shaders);
-                }
-
-                if integer_tex {
-                    return P::get_raytracer_shader_gray2color_integer(gl, shaders);
-                }
-
-                P::get_raytracer_shader_gray2color(gl, shaders)
             }
         }
     }
@@ -1270,7 +1270,8 @@ impl ImageSurveys {
 
     pub fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.meta
-            .get(layer).copied()
+            .get(layer)
+            .map(|x| x.clone())
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 

@@ -1,3 +1,4 @@
+use al_api::hips::GrayscaleColor;
 use web_sys::{WebGlProgram, WebGlShader, WebGlUniformLocation};
 
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -181,6 +182,12 @@ impl UniformType for [f32; 3] {
     }
 }
 
+impl UniformType for [f32; 4] {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, v: &Self) {
+        gl.uniform4f(location, v[0], v[1], v[2], v[3]);
+    }
+}
+
 use cgmath::Vector4;
 impl UniformType for Vector4<f32> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
@@ -263,7 +270,7 @@ impl UniformType for TransferFunction {
     }
 }
 
-use al_api::hips::GrayscaleParameter;
+/*use al_api::hips::GrayscaleParameter;
 impl SendUniforms for GrayscaleParameter {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
@@ -273,29 +280,30 @@ impl SendUniforms for GrayscaleParameter {
 
         shader
     }
-}
+}*/
 use al_api::colormap::Colormap;
 use al_api::hips::HiPSColor;
 impl SendUniforms for HiPSColor {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
             HiPSColor::Color => (),
-            HiPSColor::Grayscale2Colormap {
-                colormap,
-                param,
-                reversed,
-            } => {
-                let reversed = *reversed as u8 as f32;
-                shader
-                    .attach_uniforms_from(colormap)
-                    .attach_uniforms_from(param)
-                    .attach_uniform("reversed", &reversed);
-            }
-            HiPSColor::Grayscale2Color { color, k, param } => {
-                shader
-                    .attach_uniforms_from(param)
-                    .attach_uniform("C", color)
-                    .attach_uniform("K", k);
+            HiPSColor::Grayscale { tf, min_cut, max_cut, color } => {
+                match color {
+                    GrayscaleColor::Color(color) => {
+                        shader.attach_uniform("H", tf)
+                            .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
+                            .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
+                            .attach_uniform("C", color)
+                            .attach_uniform("K", &1.0_f32);
+                    },
+                    GrayscaleColor::Colormap { reversed, colormap } => {
+                        shader.attach_uniform("H", tf)
+                            .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
+                            .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
+                            .attach_uniforms_from(colormap)
+                            .attach_uniform("reversed", reversed);
+                    }
+                }
             }
         }
 

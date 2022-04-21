@@ -485,9 +485,9 @@ export let Aladin = (function () {
         //console.log(surveys)
         surveys = surveys.sort(function (a, b) {
             if (!a.order) {
-                return a.properties.id > b.properties.id;
+                return a.id > b.id;
             }
-            return a.properties.maxOrder && a.properties.maxOrder > b.properties.maxOrder ? 1 : -1;
+            return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });
         var select = $(this.aladinDiv).find('.aladin-surveySelection');
         select.empty();
@@ -496,8 +496,10 @@ export let Aladin = (function () {
 
         if (baseImgNotLoaded) {
             surveys.forEach(s => {
-                const isCurSurvey = baseImgLayer.properties.url == s.properties.url;
-                select.append($("<option />").attr("selected", isCurSurvey).val(s.properties.id).text(s.properties.name));
+                const isCurSurvey = baseImgLayer.properties.url.endsWith(s.url);
+                console.log("base image", isCurSurvey, baseImgLayer.properties.url)
+
+                select.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
             });
         }
     };
@@ -1171,12 +1173,18 @@ export let Aladin = (function () {
         layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
 
         // update list of surveys
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys(this.view));
+        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys(self.view)[$(this)[0].selectedIndex];
+            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
             console.log("survey, chosen ", survey)
-            self.setImageSurvey(survey, function () {
+
+            const hpxImageSurvey = new HpxImageSurvey(
+                survey.url,
+                self.view,
+                survey.options
+            );
+            self.setImageSurvey(hpxImageSurvey, function () {
                 var baseImgLayer = self.getBaseImageLayer();
 
                 // !TODO

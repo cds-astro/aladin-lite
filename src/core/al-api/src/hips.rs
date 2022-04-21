@@ -1,3 +1,4 @@
+use image::GrayAlphaImage;
 use wasm_bindgen::JsValue;
 
 use super::blend::BlendCfg;
@@ -134,7 +135,7 @@ pub enum HiPSTileFormat {
 }
 
 use serde::Serialize;
-#[wasm_bindgen]
+/*#[wasm_bindgen]
 #[derive(Deserialize, Serialize, Debug)]
 #[derive(Clone, Copy)]
 #[serde(rename_all = "camelCase")]
@@ -152,7 +153,7 @@ impl Default for GrayscaleParameter {
             max_value: 1.0
         }
     }
-}
+}*/
 
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
@@ -189,23 +190,36 @@ impl From<String> for TransferFunction {
 }
 
 use crate::colormap::Colormap;
+
 #[derive(Deserialize, Debug)]
 #[derive(Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum HiPSColor {
-    Grayscale2Colormap {
-        colormap: Colormap,
-        param: GrayscaleParameter,
-        reversed: bool,
+    // FITS tile
+    Grayscale {
+        tf: TransferFunction,
+        #[serde(rename="minCut")]
+        min_cut: Option<f32>,
+        #[serde(rename="maxCut")]
+        max_cut: Option<f32>,
+
+        color: GrayscaleColor,
     },
-    Grayscale2Color {
-        param: GrayscaleParameter,
-        color: [f32; 3],
-        k: f32,
-    },
+    // JPG/PNG tile
     Color,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, Copy)]
+pub enum GrayscaleColor {
+    Colormap {
+        reversed: bool,
+        colormap: Colormap,
+    },
+    Color([f32; 4]),
+}
+/*
 impl Default for HiPSColor {
     fn default() -> Self {
         HiPSColor::Grayscale2Color {
@@ -218,11 +232,11 @@ impl Default for HiPSColor {
             k: 1.0
         }
     }
-}
+}*/
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 #[wasm_bindgen]
 pub struct ImageSurveyMeta {
     /// Color config
@@ -256,23 +270,31 @@ impl ImageSurveyMeta {
 
         let color = match &self.color {
             HiPSColor::Color => JsValue::from_str("Colored"),
-            HiPSColor::Grayscale2Color { param, color, k } => {
-                let js_grayscale2clr = js_sys::Object::new();
-                
-                js_sys::Reflect::set(&js_grayscale2clr, &"param".into(), &JsValue::from_serde(&param).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale2clr, &"color".into(), &JsValue::from_serde(&color).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale2clr, &"strength".into(), &JsValue::from_f64(*k as f64)).unwrap();
+            HiPSColor::Grayscale { tf, min_cut, max_cut, color } => {
+                let js_grayscale = js_sys::Object::new();
 
-                js_grayscale2clr.into()
-            },
-            HiPSColor::Grayscale2Colormap { colormap, param, reversed } => {
-                let js_grayscale2colormap = js_sys::Object::new();
-                
-                js_sys::Reflect::set(&js_grayscale2colormap, &"colormap".into(), &JsValue::from_serde(&colormap).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale2colormap, &"param".into(), &JsValue::from_serde(&param).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale2colormap, &"reversed".into(), &JsValue::from_bool(*reversed)).unwrap();
+                js_sys::Reflect::set(&js_grayscale, &"tf".into(), &JsValue::from_serde(&tf).unwrap()).unwrap();
+                js_sys::Reflect::set(&js_grayscale, &"minCut".into(), &JsValue::from_serde(min_cut).unwrap()).unwrap();
+                js_sys::Reflect::set(&js_grayscale, &"maxCut".into(), &JsValue::from_serde(max_cut).unwrap()).unwrap();
 
-                js_grayscale2colormap.into()
+                let js_color = match color {
+                    GrayscaleColor::Color(color) => {
+                        let js_color = js_sys::Object::new();
+                        js_sys::Reflect::set(&js_color, &"color".into(), &JsValue::from_serde(&color).unwrap()).unwrap();
+
+                        js_color
+                    },
+                    GrayscaleColor::Colormap { reversed, colormap } => {
+                        let js_colormap = js_sys::Object::new();
+                        js_sys::Reflect::set(&js_colormap, &"reversed".into(), &JsValue::from_bool(*reversed)).unwrap();
+                        js_sys::Reflect::set(&js_colormap, &"colormap".into(), &JsValue::from_serde(&colormap).unwrap()).unwrap();
+
+                        js_colormap
+                    }
+                };
+                js_sys::Reflect::set(&js_grayscale, &"color".into(), &js_color).unwrap();
+
+                js_grayscale.into()
             }
         };
         js_sys::Reflect::set(&js_color_obj, &"color".into(), &color).unwrap();

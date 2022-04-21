@@ -117,35 +117,93 @@ export let HpxImageSurvey = (function() {
      *  
      */
     let HpxImageSurvey = function(rootURLOrId, view, options) {
+        // A reference to the view
         this.backend = view;
+        // A number used to ensure the correct layer ordering in the aladin lite view
         this.orderIdx = null;
+        // Set to true once its metadata has been received
         this.ready = false;
+        // Name of the layer
         this.layer = null;
-        this.properties = null;
-        this.meta = {
-            color: {
-                grayscale2Color: {
-                    color: (options && options.color) || [1.0, 1.0, 1.0],
-                    k: (options && options.strength) || 1.0,
-                    param: {
-                        h: (options && options.tf) || "Asinh",
-                        minValue: (options && options.mincut) || 0,
-                        maxValue: (options && options.maxcut) || 1
-                    }
-                }
-            },
-            blendCfg: {
+
+        let blend = null;
+        const additiveBlending = (options && options.additive) || false;
+        if (additiveBlending) {
+            blend = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'One',
+                func: 'FuncAdd' 
+            }
+        } else {
+            blend = {
                 srcColorFactor: 'SrcAlpha',
                 dstColorFactor: 'OneMinusSrcAlpha',
                 func: 'FuncAdd' 
-            },
-            opacity: (options && options.opacity) || 1.0,
-        };
+            }
+        }
+
+        // HiPS tile format
+        let tileFormat = null;
+        const tileFormats = (options && options.imgFormat) || "jpeg";
+        if (tileFormats && tileFormats.indexOf('fits') >= 0) {
+            tileFormat = "FITS";
+            this.fits = true;
+        } else if (tileFormats && tileFormats.indexOf('png') >= 0) {
+            tileFormat = "PNG";
+            this.fits = false;
+        } else {
+            tileFormat = "JPG";
+            this.fits = false;
+        }
+
+        if (this.fits && (options && options.colormap)) {
+            this.meta = {
+                color: {
+                    grayscale: {
+                        tf: (options && options.tf) || "Asinh",
+                        minCut: options && options.minCut,
+                        maxCut: options && options.maxCut,
+                        color: {
+                            colormap: {
+                                reversed: (options && options.reversed) || false,
+                                colormap: (options && options.colormap) || 'blackwhite',
+                            }
+                        }
+                    }
+                },
+                blendCfg: blend,
+                opacity: (options && options.opacity) || 1.0,
+            };
+        } else if(this.fits) {
+            const color = (options && options.color) || [1.0, 1.0, 1.0, 1.0];
+            this.meta = {
+                color: {
+                    grayscale: {
+                        tf: (options && options.tf) || "Asinh",
+                        minCut: options && options.minCut,
+                        maxCut: options && options.maxCut,
+                        color: {
+                            color: color,
+                        }
+                    }
+                },
+                blendCfg: blend,
+                opacity: (options && options.opacity) || 1.0,
+            };
+        } else {
+            this.meta = {
+                color: "color",
+                blendCfg: blend,
+                opacity: (options && options.opacity) || 1.0,
+            };
+        }
 
         (async () => {
             const metadata = await fetchSurveyProperties(rootURLOrId);
 
             // HiPS url
+            let id = metadata.creator_did;
+            let name = metadata.obs_title;
             let url = metadata.hips_service_url;
             if (!url) {
                 throw 'no valid service URL for retrieving the tiles'
@@ -167,20 +225,24 @@ export let HpxImageSurvey = (function() {
                 cuts = [parseFloat(cuts[0]), parseFloat(cuts[1])]
             }
 
-            const minCut = (options && options.mincut) || (cuts && cuts[0]) || 0;
-            const maxCut = (options && options.maxcut) || (cuts && cuts[1]) || 1;
-
             // HiPS tile format
             let tileFormat;
-            const tileFormats = (options && options.imgFormat) || metadata.hips_tile_format.split(' ');
-            if (tileFormats.indexOf('fits') >= 0) {
-                tileFormat = "FITS";
-            } else if (tileFormats.indexOf('png') >= 0) {
-                tileFormat = "PNG";
-            } else if (tileFormats.indexOf('jpeg') >= 0) {
-                tileFormat = "JPG";
+            const tileFormats = metadata.hips_tile_format.split(' ');
+            if (this.fits) {
+                // user wants a fits file
+                if (tileFormats.indexOf('fits') >= 0) {
+                    tileFormat = "FITS";
+                } else {
+                    throw name + " has only image tiles and not fits ones";
+                }
             } else {
-                throw "Only FITS, PNG or JPG tile format supported";
+                if (tileFormats.indexOf('png') >= 0) {
+                    tileFormat = "PNG";
+                } else if (tileFormats.indexOf('jpeg') >= 0) {
+                    tileFormat = "JPG";
+                } else {
+                    throw name + " has only fits tiles and not image ones";
+                }
             }
 
             // HiPS tile size
@@ -198,56 +260,22 @@ export let HpxImageSurvey = (function() {
             }
             // HiPS longitude reversed
             const longitude_reversed = (options && options.reversedLongitude) || false;
-
             // HiPS render options
-            let renderCfg;
-            const colormap = (options && options.colormap) || 'blackwhite';
-            const reversed = (options && options.reversed) || true;
-            const param = {
-                h: (options && options.tf) || "Asinh",
-                minValue: minCut,
-                maxValue: maxCut
-            };
-            const color = this.meta.color;
-            const strength = this.meta.color.grayscale2Color.strength;
+            let minCut = cuts && cuts[0];
+            let maxCut = cuts && cuts[1];
 
-            if (options && options.colormap) {
-                renderCfg = {
-                    grayscale2Colormap: {
-                        colormap: colormap,
-                        reversed: reversed,
-                        param: param
-                    }
-                };
-            } else {
-                // no options have been given or without any colormap or single color referenced
-                if (tileFormat === "FITS") {
-                    renderCfg = color;
-                } else {
-                    console.log("eeee");
-                    this.meta.color = "color";
-                }
-            }
-
-            const opacity = this.meta.opacity;
-            const additiveBlending = (options && options.additive) || false;
-            let blendingCfg;
-            if (additiveBlending) {
-                blendingCfg = {
-                    srcColorFactor: 'SrcAlpha',
-                    dstColorFactor: 'One',
-                    func: 'FuncAdd' 
-                }
-            } else {
-                blendingCfg = {
-                    srcColorFactor: 'SrcAlpha',
-                    dstColorFactor: 'OneMinusSrcAlpha',
-                    func: 'FuncAdd' 
-                }
+            if (this.fits) {
+                // If the survey received is a fits one
+                // update the cuts
+                console.log("grayscale", this.meta.color, cuts)
+                this.meta.color.grayscale.minCut = this.meta.color.grayscale.minCut || minCut;
+                this.meta.color.grayscale.maxCut = this.meta.color.grayscale.maxCut || maxCut;
             }
 
             // The survey created is associated to no layer when it is created
             this.properties = {
+                id: id,
+                name: name,
                 url: url,
                 maxOrder: order,
                 frame: frame,
@@ -258,11 +286,6 @@ export let HpxImageSurvey = (function() {
                 maxCutout: maxCut,
                 bitpix: bitpix,
             };
-            /*this.meta = {
-                color: renderCfg,
-                blendCfg: blendingCfg,
-                opacity: opacity,
-            };*/
 
             if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
                 // discard that
@@ -293,37 +316,49 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setColor = function(color, options) {
-        let param = (this.meta.color.grayscale2Color && this.meta.color.grayscale2Color.param) || (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.param);
-        param.h = (options && options.tf) || param.h;
-        param.minValue = (options && options.mincut) || param.minValue;
-        param.maxValue = (options && options.maxcut) || param.maxValue;
-
-        if ( Array.isArray(color) ) {
-            console.log("setcolor", color);
-
-            const strength = (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.k) || (options && options.strength) || false;
-            this.meta.color = {
-                grayscale2Color: {
-                    color: color,
-                    k: strength,
-                    param: param,
-                }
-            };
-
-            console.log("setcolor", this.meta.color, this.meta);
-
-        } else if (typeof color === "String") {
-            const reversed = (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.reversed) || (options && options.reversed) || false;
-            this.meta.color = {
-                grayscale2Colormap: {
-                    colormap: color,
-                    reversed: reversed,
-                    param: param
-                }
-            };
+        if (!this.fits) {
+            throw 'Can only set the color of a FITS survey but this survey contains tile images.';
         }
 
-        console.log("setColor", this)
+        // This has a grayscale color associated        
+        const tf = (options && options.tf) || this.meta.color.grayscale.tf;
+        const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
+        const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
+
+        let newColor = null;
+        if ( Array.isArray(color) ) {
+            newColor = {
+                grayscale: {
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    tf: tf,
+                    color: {
+                        color: color
+                    }
+                }
+            };
+        } else if (typeof color === "string") {
+            const reversed = (options && options.reversed) || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
+
+            newColor = {
+                grayscale: {
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    tf: tf,
+                    color: {
+                        colormap: {
+                            reversed: reversed,
+                            colormap: color,
+                        },
+                    }
+                }
+            };
+        } else {
+            throw "The color given: " + color + " is not recognized";
+        }
+
+        this.meta.color = newColor;
+
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.webglAPI.setImageSurveyMeta(this.layer, this.meta);
@@ -331,17 +366,13 @@ export let HpxImageSurvey = (function() {
     };
 
     HpxImageSurvey.prototype.setCuts = function(cuts) {
-        let param = (this.meta.color.grayscale2Color && this.meta.color.grayscale2Color.param) || (this.meta.color.grayscale2Colormap && this.meta.color.grayscale2Colormap.param);
-        param.minValue = cuts[0];
-        param.maxValue = cuts[1];
-
-        if ( this.meta.color.grayscale2Color ) {
-            this.meta.color.grayscale2Color.param = param;
-        } else {
-            this.meta.color.grayscale2Colormap.param = param;
+        if (!this.fits) {
+            throw 'Can only set the color of a FITS survey but this survey contains tile images.';
         }
 
-        console.log("meeetaeee", this.meta, this.layer);
+        this.meta.color.grayscale.minCut = cuts[0];
+        this.meta.color.grayscale.maxCut = cuts[1];
+
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
@@ -358,266 +389,114 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
         {
-            properties: {
-                id: "P/2MASS/color",
-                name: "2MASS colored",
-                url: "http://alasky.u-strasbg.fr/2MASS/Color",
-                maxOrder: 9,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
+            id: "P/2MASS/color",
+            name: "2MASS colored",
+            url: "https://alasky.u-strasbg.fr/2MASS/Color",
+            maxOrder: 9,
+        },
+        {
+            id: "P/DSS2/color",
+            name: "DSS colored",
+            url: "https://alasky.u-strasbg.fr/DSS/DSSColor",
+            maxOrder: 9,
+        },
+        {
+            id: "P/DSS2/red",
+            name: "DSS2 Red (F+R)",
+            url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
+            maxOrder: 9,
+            // options
+            options: {
+                minCut: 10.0,
+                maxCut: 10000.0,
+                color: [1.0, 0.0, 0.0, 1.0],
+                imgFormat: "fits",
             }
         },
         {
-            properties: {
-                id: "P/DSS2/color",
-                name: "DSS colored",
-                url: "http://alasky.u-strasbg.fr/DSS/DSSColor",
-                maxOrder: 9,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
+            id: "P/PanSTARRS/DR1/g",
+            name: "PanSTARRS DR1 g",
+            url: "https://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+            maxOrder: 11,
+            // options
+            options: {
+                minCut: -34,
+                maxCut: 7000,
+                colormap: "redTemperature",
+                imgFormat: "fits",
             }
         },
         {
-            properties: {
-                id: "P/DSS2/red",
-                name: "DSS2 Red (F+R)",
-                url: "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
-                maxOrder: 9,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "FITS",
-                bitpix: 16,
-                minCutout: 10.0,
-                maxCutout: 10000.0,
-            },
-            meta: {
-                color: {
-                    grayscale2Color: {
-                        color: [1.0, 0.0, 0.0],
-                        k: 1.0,
-                        param: {
-                            h: "Asinh",
-                            minValue: 10.0,
-                            maxValue: 10000.0,
-                        }
-                    }
-                },
-                opacity: 1.0,
+            id: "P/PanSTARRS/DR1/color-z-zg-g",
+            name: "PanSTARRS DR1 color",
+            url: "https://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
+            maxOrder: 11,    
+        },
+        {
+            id: "P/DECaPS/DR1/color",
+            name: "DECaPS DR1 color",
+            url: "https://alasky.u-strasbg.fr/DECaPS/DR1/color",
+            maxOrder: 11,
+        },
+        {
+            id: "P/Fermi/color",
+            name: "Fermi color",
+            url: "https://alasky.u-strasbg.fr/Fermi/Color",
+            maxOrder: 3,
+        },
+        {
+            id: "P/Finkbeiner",
+            name: "Halpha",
+            url: "https://alasky.u-strasbg.fr/FinkbeinerHalpha",
+            maxOrder: 3,
+            // options
+            options: {
+                minCut: -10,
+                maxCut: 800,
+                colormap: "rdBu",
+                imgFormat: "fits",
             }
         },
         {
-            properties: {
-                id: "P/PanSTARRS/DR1/g",
-                name: "PanSTARRS DR1 g",
-                url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
-                maxOrder: 11,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "FITS",
-                bitpix: -32,
-                minCutout: -34,
-                maxCutout: 7000
-            },
-            meta: {
-                color: {
-                    grayscale2Colormap: {
-                        colormap: "redTemperature",
-                        reversed: false,
-                        param: {
-                            h: "Asinh",
-                            minValue: -34,
-                            maxValue: 7000,
-                        }
-                    }
-                },
-                opacity: 1.0,
-            }
+            id: "P/GALEXGR6/AIS/color",
+            name: "GALEX Allsky Imaging Survey colored",
+            url: "https://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
+            maxOrder: 8,
         },
         {
-            properties: {
-                id: "P/PanSTARRS/DR1/color-z-zg-g",
-                name: "PanSTARRS DR1 color",
-                url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
-                maxOrder: 11,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/IRIS/color",
+            name: "IRIS colored",
+            url: "https://alasky.u-strasbg.fr/IRISColor",    
+            maxOrder: 3,
         },
         {
-            properties: {
-                id: "P/DECaPS/DR1/color",
-                name: "DECaPS DR1 color",
-                url: "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
-                maxOrder: 11,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "PNG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/Mellinger/color",
+            name: "Mellinger colored",
+            url: "https://alasky.u-strasbg.fr/MellingerRGB",
+            maxOrder: 4,
         },
         {
-            properties: {
-                id: "P/Fermi/color",
-                name: "Fermi color",
-                url: "http://alasky.u-strasbg.fr/Fermi/Color",
-                maxOrder: 3,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/SDSS9/color",
+            name: "SDSS9 colored",
+            url: "https://alasky.u-strasbg.fr/SDSS/DR9/color",
+            maxOrder: 10,
         },
         {
-            properties: {
-                id: "P/Finkbeiner",
-                name: "Halpha",
-                url: "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
-                maxOrder: 3,
-                frame: "GAL",
-                longitudeReversed: false,
-                tileSize: 128,
-                format: "FITS",
-                bitpix: -32,
-                minCutout: -10,
-                maxCutout: 800,
-            },
-            meta: {
-                color: {
-                    grayscale2Colormap: {
-                        colormap: "redTemperature",
-                        reversed: false,
-                        param: {
-                            h: "Asinh",
-                            minValue: -10,
-                            maxValue: 800,
-                        }
-                    }
-                },
-                opacity: 1.0,
-            }
+            id: "P/SPITZER/color",
+            name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+            url: "https://alasky.u-strasbg.fr/SpitzerI1I2I4color",
+            maxOrder: 9,
         },
         {
-            properties: {
-                id: "P/GALEXGR6/AIS/color",
-                name: "GALEX Allsky Imaging Survey colored",
-                url: "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
-                maxOrder: 8,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
-        },
-        {
-            properties: {
-                id: "P/IRIS/color",
-                name: "IRIS colored",
-                url: "http://alasky.u-strasbg.fr/IRISColor",
-                maxOrder: 3,
-                frame: "GAL",
-                longitudeReversed: false,
-                tileSize: 256,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
-        },
-        {
-            properties: {
-                id: "P/Mellinger/color",
-                name: "Mellinger colored",
-                url: "http://alasky.u-strasbg.fr/MellingerRGB",
-                maxOrder: 4,
-                frame: "GAL",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
-        },
-        {
-            properties: {
-                id: "P/SDSS9/color",
-                name: "SDSS9 colored",
-                url: "http://alasky.u-strasbg.fr/SDSS/DR9/color",
-                maxOrder: 10,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
-        },
-        {
-            properties: {
-                id: "P/SPITZER/color",
-                name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-                url: "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
-                maxOrder: 9,
-                frame: "GAL",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
-        },
-        {
-            properties: {
-                id: "P/VTSS/Ha",
-                name: "VTSS-Ha",
-                url: "http://alasky.u-strasbg.fr/VTSS/Ha",
-                maxOrder: 3,
-                frame: "GAL",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
+            id: "P/VTSS/Ha",
+            name: "VTSS-Ha",
+            url: "https://alasky.u-strasbg.fr/VTSS/Ha",
+            maxOrder: 3,
+            options: {
+                minCut: -10.0,
+                maxCut: 100.0,
+                colormap: "blackwhite",
+                imgFormat: "fits"
             }
         },
         /*
@@ -639,36 +518,16 @@ export let HpxImageSurvey = (function() {
             }
         },*/
         {
-            properties: {
-                id: "P/XMM/PN/color",
-                name: "XMM PN colored",
-                url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
-                maxOrder: 7,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "PNG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/XMM/PN/color",
+            name: "XMM PN colored",
+            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
+            maxOrder: 7,
         },
         {
-            properties: {
-                id: "P/allWISE/color",
-                name: "AllWISE color",
-                url: "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
-                maxOrder: 8,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/allWISE/color",
+            name: "AllWISE color",
+            url: "https://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+            maxOrder: 8,
         },
         /*
         The page is down
@@ -690,15 +549,24 @@ export let HpxImageSurvey = (function() {
         },*/
     ];
 
-    HpxImageSurvey.getAvailableSurveys = function(view) {
-        const surveys = HpxImageSurvey.SURVEYS
+    /*HpxImageSurvey.createFromProperties = function(properties, meta, view) {
+        let survey = new HpxImageSurvey("", view);
+
+        survey.meta = meta;
+        survey.properties = properties;
+
+        return survey;
+    }*/
+
+    HpxImageSurvey.getAvailableSurveys = function() {
+        /*const surveys = HpxImageSurvey.SURVEYS
             .map(obj => {
-                let survey = Object.assign(new HpxImageSurvey(""), obj);
-                survey.backend = view;
+                let survey = Object.assign(new HpxImageSurvey("", view), obj);
                 return survey;
             });
         console.log(surveys)
-        return surveys;
+        return surveys;*/
+        return HpxImageSurvey.SURVEYS;
     };
 
     return HpxImageSurvey;

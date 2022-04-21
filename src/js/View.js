@@ -499,20 +499,17 @@ export let View = (function() {
                     }
                 }
 
-                // Lastly check the base layer
-                if (survey == null) {
-                    const s = view.imageSurveys.get("base");
-                    if (s.properties.format === "FITS") {
-                        survey = s;
-                    }
+                //console.log("change cutout of ", survey);
+                if (survey) {
+                    // Take as start cut values what is inside the properties
+                    // If the cuts are not defined in the metadata of the survey
+                    // then we take what has been defined by the user
+                    view.cutMinInit = survey.properties.minCutout || survey.meta.color.grayscale.minCut;
+                    view.cutMaxInit = survey.properties.maxCutout || survey.meta.color.grayscale.maxCut;
                 }
 
-                console.log("change cutout of ", survey);
-                view.cutMinInit = survey.properties.minCutout;
-                view.cutMaxInit = survey.properties.maxCutout;
-
                 view.lastFitsSurvey = survey;
-                console.log("survey selected: ", view.lastFitsSurvey)
+                //console.log("survey selected: ", view.lastFitsSurvey)
 
                 console.log("press right click")
                 return;
@@ -724,14 +721,11 @@ export let View = (function() {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick) {
-                console.log("mouse right click")
-
+            if (view.rightClick && view.lastFitsSurvey) {
                 let cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
                 let cy = (xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
 
                 let offset = (view.cutMaxInit - view.cutMinInit) * cx;
-                console.log("jjj; ", view.lastFitsSurvey)
                 view.lastFitsSurvey.setCuts([offset + (1.0 - cy*2.0)*view.cutMinInit, offset + (1.0 + cy*2.0)*view.cutMaxInit])
 
                 return;
@@ -1803,7 +1797,7 @@ export let View = (function() {
 
         // If the base has been changed, we update the survey dropdown list
         if (layer === "base") {
-            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys(this));
+            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         }
 
         if (callback) {
@@ -1868,10 +1862,7 @@ export let View = (function() {
     };
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
-        //let copiedSurvey = JSON.parse(JSON.stringify(survey));
-        //copiedSurvey.layer = layer;
         survey.layer = layer;
-        console.log("ss: ", survey)
 
         this.imageSurveys.set(layer, survey);
 
@@ -1880,7 +1871,6 @@ export let View = (function() {
 
     View.prototype.getImageSurvey = function(layer = "base") {
         const survey = this.imageSurveys.get(layer);
-        console.log("layer: ", survey);
 
         return survey;
     };

@@ -201,7 +201,8 @@ use crate::painter::WebGlRenderingCtx;
 use al_api::blend::{
     BlendCfg, BlendFactor, BlendFunc
 };
-use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS, GrayscaleParameter, ImageSurveyMeta, TransferFunction};
+use al_api::color::Color;
+use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS, ImageSurveyMeta, TransferFunction, GrayscaleColor};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -219,10 +220,11 @@ impl SurveyWidget {
         };
 
         let color_cfg = if properties.is_fits_image() {
-            HiPSColor::Grayscale2Color {
-                color: [1.0, 0.0, 0.0],
-                param: GrayscaleParameter::default(),
-                k: 1.0,
+            HiPSColor::Grayscale {
+                tf: TransferFunction::Asinh,
+                min_cut: None,
+                max_cut: None,
+                color: GrayscaleColor::Color([1.0, 0.0, 0.0, 1.0])
             }
         } else {
             HiPSColor::Color
@@ -477,18 +479,16 @@ impl SurveyWidget {
                     *ui_changed |= ui
                         .add(egui::widgets::Slider::new(&mut self.k, 0.0..=2.0).text("Strength"))
                         .changed();
-                    self.color_cfg = HiPSColor::Grayscale2Color {
-                        color: [
+                    self.color_cfg = HiPSColor::Grayscale {
+                        color: GrayscaleColor::Color([
                             (self.color.r() as f32) / 255.0,
                             (self.color.g() as f32) / 255.0,
                             (self.color.b() as f32) / 255.0,
-                        ],
-                        param: GrayscaleParameter {
-                            h: transfer,
-                            min_value: cutouts[0],
-                            max_value: cutouts[1],
-                        },
-                        k: self.k
+                            (self.color.a() as f32) / 255.0,
+                        ]),
+                        tf: transfer,
+                        min_cut: Some(cutouts[0]),
+                        max_cut: Some(cutouts[1]),
                     };
                 }
                 ColorOption::Colormap => {
@@ -510,14 +510,14 @@ impl SurveyWidget {
 
                     *ui_changed |= ui.add(egui::Checkbox::new(&mut self.reversed, "Reversed")).changed();
 
-                    self.color_cfg = HiPSColor::Grayscale2Colormap {
-                        colormap: self.colormap.clone(),
-                        param: GrayscaleParameter {
-                            h: transfer,
-                            min_value: cutouts[0],
-                            max_value: cutouts[1],
-                        },
-                        reversed: self.reversed,
+                    self.color_cfg = HiPSColor::Grayscale {
+                        tf: transfer,
+                        min_cut: Some(cutouts[0]),
+                        max_cut: Some(cutouts[1]),
+                        color: GrayscaleColor::Colormap {
+                            reversed: self.reversed,
+                            colormap: self.colormap.clone()
+                        }
                     };
                 }
                 ColorOption::RGB => {

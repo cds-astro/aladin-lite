@@ -374,10 +374,14 @@ where
         }
     }
 
-    pub fn new(bmp: Arc<Mutex<Option<web_sys::ImageBitmap>>>, size: Vector2<i32>) -> Self {
+    pub fn new(bmp: web_sys::ImageBitmap) -> Self {
+        let size = Vector2::new(
+            bmp.width() as i32,
+            bmp.height() as i32
+        );
         al_core::log(&format!("size image bitmap received: {:?}", size));
         Self {
-            image: bmp,
+            image: Arc::new(Mutex::new(Some(bmp))),
             size: size,
             format: std::marker::PhantomData
         }

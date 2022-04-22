@@ -17,7 +17,7 @@ pub enum ResolvedStatus {
     Missing,
     Found,
 }
-
+use wasm_bindgen::JsValue;
 use std::future::Future;
 impl<R> Request<R>
 where

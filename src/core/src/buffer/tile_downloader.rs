@@ -173,6 +173,9 @@ use crate::ImageSurveys;
 use al_core::log::*;
 use wasm_bindgen::JsValue;
 use super::request::Request;
+use wasm_bindgen::JsCast;
+use crate::buffer::ImageBitmap;
+use web_sys::window;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = RequestSystem::new();
@@ -272,7 +275,7 @@ impl TileDownloader {
     }
 
     pub fn request_base_tiles(&mut self, config: &HiPSConfig) {
-        let allsky_request = Request::new::<Vec<ImageBitmap<RGB8U>>>(
+        let allsky_request = Request::new(
             "http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg",
             async move {
                 use wasm_bindgen_futures::JsFuture;
@@ -281,7 +284,7 @@ impl TileDownloader {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-
+                let window = web_sys::window().unwrap();
                 let request = Request::new_with_str_and_init("http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg", &opts).unwrap();
                 if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
                     // `resp_value` is a `Response` object.
@@ -290,6 +293,7 @@ impl TileDownloader {
 
                     let blob = JsFuture::from(resp.blob().unwrap()).await.unwrap().into();
 
+                    let mut tiles = vec![];
                     for idx in 0..768 {
                         let sw = 64;
                         let sh = 64;
@@ -301,14 +305,12 @@ impl TileDownloader {
                             .unwrap()
                             .into();
 
-                        
+                        tiles.push(ImageBitmap::<RGB8U>::new(tile_bmp));
                     }
-                    
 
-                    bmp.set(image_bmp);
-                    resolved.set(ResolvedStatus::Found);
+                    Ok(tiles)
                 } else {
-                    resolved.set(ResolvedStatus::Missing);
+                    Err(js_sys::Error::new("Allsky not fetched").into())
                 }
             }
         );

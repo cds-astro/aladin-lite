@@ -1,27 +1,23 @@
-
 <!doctype html>
 <html>
 <head>
 
-<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
-
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-
-
+<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
-<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        var aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', survey: 'P/SPITZER/color', fov: 5});
+        aladin = A.aladin('#aladin-lite-div', {survey: "P/SPITZER/color", cooFrame: 'equatorial', fov: 5});
         aladin.gotoRaDec(266.41683, -29.00781);
         // Parameters are:
         //    <right ascension of final position>,
@@ -30,5 +26,6 @@
         aladin.animateToRaDec(305.5, 38.5, 70);
     });
 </script>
+
 </body>
 </html>

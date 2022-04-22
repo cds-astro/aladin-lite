@@ -232,7 +232,7 @@ impl SurveyWidget {
 
         let k = 1.0;
         let color = Color32::RED;
-        let colormap = Colormap::Blackwhite;
+        let colormap = Colormap::Grayscale;
         let reversed = false;
 
         let transfer_func = Some(TransferFunction::Asinh);
@@ -495,17 +495,19 @@ impl SurveyWidget {
                     egui::ComboBox::from_label("Colormap")
                     .selected_text(format!("{:?}", self.colormap))
                     .show_ui(ui, |ui| {
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Blackwhite, "blackwhite").clicked();
                         *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Blues, "blues").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Cubehelix, "cubehelix").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Eosb, "eosb").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Grayscale, "grayscale").clicked();
                         *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Parula, "parula").clicked();
                         *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RdBu, "RdBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RdYiBu, "RdYiBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::RedTemperature, "redtemperature").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rdbu, "rdbu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rdyibu, "rdyibu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Redtemperature, "redtemperature").clicked();
                         *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Spectral, "spectral").clicked();
                         *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Summer, "summer").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::YIGnBu, "YIGnBu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::YIOrBr, "YIOrBr").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Yignbu, "yignbu").clicked();
+                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Yiorbr, "yiorbr").clicked();
                     });
 
                     *ui_changed |= ui.add(egui::Checkbox::new(&mut self.reversed, "Reversed")).changed();
@@ -516,7 +518,7 @@ impl SurveyWidget {
                         max_cut: Some(cutouts[1]),
                         color: GrayscaleColor::Colormap {
                             reversed: self.reversed,
-                            colormap: self.colormap.clone()
+                            name: self.colormap.clone()
                         }
                     };
                 }

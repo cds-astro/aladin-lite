@@ -293,7 +293,7 @@ impl HiPSConfig {
 
             scale: 1.0,
             offset: 0.0,
-            blank: 0.0,
+            blank: -1.0, // by default, set it to -1
 
             tex_storing_fits,
             tex_storing_integers,

@@ -39,7 +39,7 @@ where
 {
     pub gl: WebGlContext,
 
-    ui: GuiRef,
+    //ui: GuiRef,
 
     shaders: ShaderManager,
     camera: CameraViewPort,
@@ -195,11 +195,11 @@ where
 
         let final_rendering_pass =
             RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
-        let ui = Gui::new(aladin_div_name, &gl)?;
+        //let ui = Gui::new(aladin_div_name, &gl)?;
 
         Ok(App {
             gl,
-            ui,
+            //ui,
 
             shaders,
 
@@ -416,7 +416,8 @@ where
     P: Projection,
 {
     fn over_ui(&self) -> bool {
-        self.ui.lock().pos_over_ui()
+        //self.ui.lock().pos_over_ui()
+        false
     }
 
     fn is_catalog_loaded(&mut self) -> bool {
@@ -544,7 +545,7 @@ where
         }
 
         self.grid.update::<P>(&self.camera, force);        
-        {
+        /*{
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
 
@@ -555,7 +556,7 @@ where
                     //al_ui::Event::ReverseLongitude(longitude_reversed) => { self.set_longitude_reversed(longitude_reversed)? }
                 }
             }
-        }
+        }*/
 
         Ok(())
     }
@@ -642,11 +643,10 @@ where
         self.surveys.reset_frame();*/
 
         let scene_redraw = self.rendering | force_render;
-        let mut ui = self.ui.lock();
-        //al_core::log(&format!("dpi {:?}", dpi));
-        let ui_redraw = ui.redraw_needed();
-
-        if scene_redraw || ui_redraw {
+        //let mut ui = self.ui.lock();
+        //let ui_redraw = ui.redraw_needed();
+        //if scene_redraw || ui_redraw {
+        if scene_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
             let camera = &self.camera;
@@ -667,8 +667,8 @@ where
             catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
             grid.draw::<P>(camera, shaders)?;
 
-            let dpi  = self.camera.get_dpi();
-            ui.draw(&gl, dpi)?;
+            //let dpi  = self.camera.get_dpi();
+            //ui.draw(&gl, dpi)?;
 
             // Reset the flags about the user action
             self.camera.reset();
@@ -727,7 +727,7 @@ where
         App {
             p: std::marker::PhantomData,
             gl: self.gl,
-            ui: self.ui,
+            //ui: self.ui,
             colormaps: self.colormaps,
             fbo_ui: self.fbo_ui,
             fbo_view: self.fbo_view,
@@ -969,9 +969,9 @@ where
             return;
         }
 
-        if self.ui.lock().pos_over_ui() {
+        /*if self.ui.lock().pos_over_ui() {
             return;
-        }
+        }*/
         // Start inertia here
 
         // Angular distance between the previous and current

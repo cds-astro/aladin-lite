@@ -166,7 +166,7 @@ export let HpxImageSurvey = (function() {
                         color: {
                             colormap: {
                                 reversed: (options && options.reversed) || false,
-                                colormap: (options && options.colormap) || 'blackwhite',
+                                name: (options && options.colormap) || 'grayscale',
                             }
                         }
                     }
@@ -259,17 +259,20 @@ export let HpxImageSurvey = (function() {
                 frame = "ICRSJ2000";
             }
             // HiPS longitude reversed
-            const longitude_reversed = (options && options.reversedLongitude) || false;
+            const longitudeReversed = (options && options.reversedLongitude) || false;
             // HiPS render options
             let minCut = cuts && cuts[0];
             let maxCut = cuts && cuts[1];
 
-            if (this.fits) {
+            if ( this.fits ) {
                 // If the survey received is a fits one
                 // update the cuts
                 console.log("grayscale", this.meta.color, cuts)
-                this.meta.color.grayscale.minCut = this.meta.color.grayscale.minCut || minCut;
-                this.meta.color.grayscale.maxCut = this.meta.color.grayscale.maxCut || maxCut;
+                minCut = this.meta.color.grayscale.minCut || minCut;
+                maxCut = this.meta.color.grayscale.maxCut || maxCut;
+
+                this.meta.color.grayscale.minCut = minCut;
+                this.meta.color.grayscale.maxCut = maxCut;
             }
 
             // The survey created is associated to no layer when it is created
@@ -279,7 +282,7 @@ export let HpxImageSurvey = (function() {
                 url: url,
                 maxOrder: order,
                 frame: frame,
-                longitudeReversed: longitude_reversed,
+                longitudeReversed: longitudeReversed,
                 tileSize: tileSize,
                 format: tileFormat,
                 minCutout: minCut,
@@ -316,18 +319,17 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setColor = function(color, options) {
-        if (!this.fits) {
-            throw 'Can only set the color of a FITS survey but this survey contains tile images.';
-        }
+        //if (!this.fits) {
+        //    throw 'Can only set the color of a FITS survey but this survey contains tile images.';
+        //}
 
-        // This has a grayscale color associated        
-        const tf = (options && options.tf) || this.meta.color.grayscale.tf;
-        const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
-        const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
+        if ( !this.fits ) {
+            // This has a grayscale color associated        
+            const tf = (options && options.tf) || "Asinh";
+            const minCut = (options && options.minCut) || 0.0;
+            const maxCut = (options && options.maxCut) || 1.0;
 
-        let newColor = null;
-        if ( Array.isArray(color) ) {
-            newColor = {
+            const newColor = {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
@@ -337,27 +339,29 @@ export let HpxImageSurvey = (function() {
                     }
                 }
             };
-        } else if (typeof color === "string") {
-            const reversed = (options && options.reversed) || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
 
-            newColor = {
+            // Update the color config
+            this.meta.color = newColor;
+        } else {
+            // This has a grayscale color associated        
+            const tf = (options && options.tf) || this.meta.color.grayscale.tf;
+            const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
+            const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
+
+            const newColor = {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
                     tf: tf,
                     color: {
-                        colormap: {
-                            reversed: reversed,
-                            colormap: color,
-                        },
+                        color: color
                     }
                 }
             };
-        } else {
-            throw "The color given: " + color + " is not recognized";
-        }
 
-        this.meta.color = newColor;
+            // Update the color config
+            this.meta.color = newColor;
+        }
 
         // Tell the view its meta have changed
         if ( this.ready ) {
@@ -365,11 +369,74 @@ export let HpxImageSurvey = (function() {
         }
     };
 
+    HpxImageSurvey.prototype.setColormap = function(colormap, reversed, options) {
+        //if (!this.fits) {
+        //    throw 'Can only set the color of a FITS survey but this survey contains tile images.';
+        //}
+
+        if ( !this.fits ) {
+            if (colormap === "native") {
+                this.meta.color = "color";
+                return;
+            }
+
+            const tf = (options && options.tf) || "Asinh";
+            const minCut = (options && options.minCut) || 0.0;
+            const maxCut = (options && options.maxCut) || 1.0;
+            const rev = reversed || false;
+
+            const newColor = {
+                grayscale: {
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    tf: tf,
+                    color: {
+                        colormap: {
+                            reversed: rev,
+                            name: colormap,
+                        },
+                    }
+                }
+            };
+
+            this.meta.color = newColor;
+        } else {
+            // This has a grayscale color associated        
+            const tf = (options && options.tf) || this.meta.color.grayscale.tf || "Asinh";
+            const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
+            const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
+            const rev = reversed || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
+
+            const newColor = {
+                grayscale: {
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    tf: tf,
+                    color: {
+                        colormap: {
+                            reversed: rev,
+                            name: colormap,
+                        },
+                    }
+                }
+            };
+
+            // Update the color config
+            this.meta.color = newColor;
+        }
+
+        // Tell the view its meta have changed
+        if ( this.ready ) {
+            this.backend.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+    }
+
     HpxImageSurvey.prototype.setCuts = function(cuts) {
         if (!this.fits) {
             throw 'Can only set the color of a FITS survey but this survey contains tile images.';
         }
 
+        // Update the mincut/maxcut
         this.meta.color.grayscale.minCut = cuts[0];
         this.meta.color.grayscale.maxCut = cuts[1];
 
@@ -422,7 +489,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -34,
                 maxCut: 7000,
-                colormap: "redTemperature",
+                colormap: "redtemperature",
                 imgFormat: "fits",
             }
         },
@@ -495,27 +562,17 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -10.0,
                 maxCut: 100.0,
-                colormap: "blackwhite",
+                colormap: "grayscale",
                 imgFormat: "fits"
             }
         },
         /*
         // Seems to be not hosted on saada anymore
         {
-            properties: {
-                id: "P/XMM/EPIC",
-                name: "XMM-Newton stacked EPIC images (no phot. normalization)",
-                url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.u-strasbg.fr/xmmallsky",
-                maxOrder: 7,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "PNG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/XMM/EPIC",
+            name: "XMM-Newton stacked EPIC images (no phot. normalization)",
+            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.u-strasbg.fr/xmmallsky",
+            maxOrder: 7,
         },*/
         {
             id: "P/XMM/PN/color",
@@ -532,40 +589,14 @@ export let HpxImageSurvey = (function() {
         /*
         The page is down
         {
-            properties: {
-                id: "P/GLIMPSE360",
-                name: "GLIMPSE360",
-                url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
-                maxOrder: 9,
-                frame: "ICRSJ2000",
-                longitudeReversed: false,
-                tileSize: 512,
-                format: "JPG",
-            },
-            meta: {
-                color: "color",
-                opacity: 1.0,
-            }
+            id: "P/GLIMPSE360",
+            name: "GLIMPSE360",
+            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            maxOrder: 9,
         },*/
     ];
 
-    /*HpxImageSurvey.createFromProperties = function(properties, meta, view) {
-        let survey = new HpxImageSurvey("", view);
-
-        survey.meta = meta;
-        survey.properties = properties;
-
-        return survey;
-    }*/
-
     HpxImageSurvey.getAvailableSurveys = function() {
-        /*const surveys = HpxImageSurvey.SURVEYS
-            .map(obj => {
-                let survey = Object.assign(new HpxImageSurvey("", view), obj);
-                return survey;
-            });
-        console.log(surveys)
-        return surveys;*/
         return HpxImageSurvey.SURVEYS;
     };
 

@@ -17,10 +17,8 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 110, target: 'galactic center'});
-        aladin.setBaseImageLayer('P/Mellinger/color');
-        aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));
-        aladin.getOverlayImageLayer().setAlpha(1.0);
+        aladin = A.aladin('#aladin-lite-div', {target: 'M 45', fov: 5});
+        aladin.addCatalog(A.catalogFromVizieR('I/311/hip2', 'M 45', 5, {onClick: 'showTable'}));
     });
 </script>
 </body>

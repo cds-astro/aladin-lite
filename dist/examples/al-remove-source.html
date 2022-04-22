@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+<div id='buttons'></div>
+
+<script type="text/javascript">
+    A.init.then(() => {
+        var a = A.aladin('#aladin-lite-div', {target: '03 47 00.00 +24 07 00.0', survey: 'P/DSS2/color', zoom: 2, showReticle: false});
+        var cat = A.catalog({color: 'red', onClick: 'showTable'});
+        var originalSources = [
+            A.source(56.87115, 24.10514, {name: 'Alcyone'}),
+            A.source(57.29673, 24.13671, {name: 'Pleione'}),
+            A.source(56.58156, 23.94836, {name: 'Merope'}),
+            A.source(56.45669, 24.36775, {name: 'Maia'}),
+            A.source(56.21890, 24.11334, {name: 'Electra'}),
+            A.source(57.29059, 24.05342, {name: 'Atlas'}),
+            A.source(56.30207, 24.46728, {name: 'Taygeta'})
+        ];
+        
+        cat.addSources(originalSources);
+        
+        a.addCatalog(cat);
+        
+        // add button to remove sources
+        var buttonsDiv = document.getElementById('buttons');
+        for (var k=0; k<originalSources.length; k++) {
+            var s = originalSources[k];
+            var btn = document.createElement('button');
+            btn.innerHTML = 'Delete ' + s.data.name;
+            btn.value = k; // we store the index in the originalSources array
+            buttonsDiv.appendChild(btn);
+        }
+        
+        document.querySelectorAll('button').forEach(function(item) {
+            item.addEventListener('click', function() {
+                cat.remove(originalSources[parseInt(this.value)]);
+            });
+        });
+    });
+</script>
+</body>
+</html>

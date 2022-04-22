@@ -477,7 +477,15 @@ export let View = (function() {
             $(view.reticleCanvas).dblclick(onDblClick);
         }
 
+        $(view.reticleCanvas).bind("contextmenu", function(e) {
+            // do something here... 
+            e.preventDefault(); 
+        }, false);
+
         $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (e.which === 3 || e.button === 2) {

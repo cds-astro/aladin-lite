@@ -296,12 +296,14 @@ impl SendUniforms for HiPSColor {
                             .attach_uniform("C", color)
                             .attach_uniform("K", &1.0_f32);
                     },
-                    GrayscaleColor::Colormap { reversed, colormap } => {
-                        shader.attach_uniform("H", tf)
+                    GrayscaleColor::Colormap { reversed, name } => {
+                        let reversed = *reversed as u8 as f32;
+
+                        shader.attach_uniforms_from(name)
+                            .attach_uniform("H", tf)
                             .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
                             .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
-                            .attach_uniforms_from(colormap)
-                            .attach_uniform("reversed", reversed);
+                            .attach_uniform("reversed", &reversed);
                     }
                 }
             }

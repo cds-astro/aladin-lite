@@ -6,15 +6,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Colormap {
-    Blackwhite = 0,
-    Blues = 1,
-    Parula = 2,
-    Rainbow = 3,
-    RdBu = 4,
-    RdYiBu = 5,
-    RedTemperature = 6,
-    Spectral = 7,
-    Summer = 8,
-    YIGnBu = 9,
-    YIOrBr = 10,
+    Blues = 0,
+    Cubehelix = 1,
+    Eosb = 2,
+    Grayscale = 3,
+    Parula = 4,
+    Rainbow = 5,
+    Rdbu = 6,
+    Rdyibu = 7,
+    Redtemperature = 8,
+    Spectral = 9,
+    Summer = 10,
+    Yignbu = 11,
+    Yiorbr = 12
 }

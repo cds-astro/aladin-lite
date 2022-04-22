@@ -1,5 +1,5 @@
 /*
-blackwhite = 0,
+grayscale = 0,
 blues = 1,
 parula = 2,
 rainbow = 3,
@@ -10,6 +10,8 @@ spectral = 7,
 summer = 8,
 YIGnBu = 9,
 YIOrBr = 10,
+cubehelix = 11,
+eosb = 12,
 */
 use std::collections::HashMap;
 use al_core::resources::Resources;
@@ -29,50 +31,19 @@ use al_api::colormap::Colormap;
 impl Colormaps {
     pub fn new(gl: &WebGlContext, rs: &Resources) -> Result<Self, JsValue> {
         let colormaps: HashMap<&str, Colormap> = [
-            (
-                "blackwhite",
-                Colormap::Blackwhite
-            ),
-            (
-                "blues",
-                Colormap::Blues
-            ),
-            (
-                "parula",
-                Colormap::Parula
-            ),
-            (
-                "rainbow",
-                Colormap::Rainbow
-            ),
-            (
-                "RdBu",
-                Colormap::RdBu
-            ),
-            (
-                "RdYiBu",
-                Colormap::RdYiBu
-            ),
-            (
-                "redtemperature",
-                Colormap::RedTemperature
-            ),
-            (
-                "spectral",
-                Colormap::Spectral
-            ),
-            (
-                "summer",
-                Colormap::Summer
-            ),
-            (
-                "YIGnBu",
-                Colormap::YIGnBu
-            ),
-            (
-                "YIOrBr",
-                Colormap::YIOrBr
-            ),
+            ("blues", Colormap::Blues),
+            ("cubehelix", Colormap::Cubehelix),
+            ("eosb", Colormap::Eosb),
+            ("grayscale", Colormap::Grayscale),
+            ("parula", Colormap::Parula),
+            ("rainbow", Colormap::Rainbow),
+            ("rdbu", Colormap::Rdbu),
+            ("rdyibu", Colormap::Rdyibu),
+            ("redtemperature", Colormap::Redtemperature),
+            ("spectral", Colormap::Spectral),
+            ("summer", Colormap::Summer),
+            ("yignbu", Colormap::Yignbu),
+            ("yiorbr", Colormap::Yiorbr)
         ]
         .iter()
         .cloned()
@@ -110,17 +81,19 @@ impl Colormaps {
     #[inline]
     pub const fn get_list_available_colormaps() -> &'static [&'static str] {
         &[
-            "blackwhite",
             "blues",
+            "cubehelix",
+            "eosb",
+            "grayscale",
             "parula",
             "rainbow",
-            "RdBu",
-            "RdYiBu",
+            "rdbu",
+            "rdyibu",
             "redtemperature",
             "spectral",
             "summer",
-            "YIGnBu",
-            "YIOrBr",
+            "yignbu",
+            "yiorbr",
         ]
     }
 
@@ -128,7 +101,7 @@ impl Colormaps {
         let c = if let Some(c) = self.colormaps.get(name) {
             c
         } else {
-            self.colormaps.get("blackwhite").unwrap()
+            self.colormaps.get("grayscale").unwrap()
         };
 
         *c

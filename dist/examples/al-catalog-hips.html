@@ -17,10 +17,13 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 1});
-        aladin.setImageSurvey(aladin.createImageSurvey('Panstarrs', 'Panstarrs', 'http://alasky.cds.unistra.fr/Pan-STARRS/DR1/g/', 'equatorial', 11, {imgFormat: 'fits', colormap: "redtemperature"}));
+        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55});
+        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad'});
+        aladin.addCatalog(hips);
     });
 </script>
 
 </body>
 </html>
+
+

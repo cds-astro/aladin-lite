@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/red', target: 'M50', fov: 0.3});
+
+        var customImg = new Image();
+        customImg.onload = function() {
+            var cat = A.catalog({shape: customImg});
+            aladin.addCatalog(cat);
+            cat.addSources(A.source(105.69239256, -8.45235969));
+            cat.addSources(A.source(105.70779763, -8.31350997));
+            cat.addSources(A.source(105.74242906, -8.34776709));
+        };
+        customImg.src = 'https://aladin.u-strasbg.fr/AladinLite/doc/API/examples/img/star.png';
+    });
+</script>
+
+</body>
+</html>
+
+

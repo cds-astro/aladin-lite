@@ -215,7 +215,7 @@ pub enum HiPSColor {
 pub enum GrayscaleColor {
     Colormap {
         reversed: bool,
-        colormap: Colormap,
+        name: Colormap,
     },
     Color([f32; 4]),
 }
@@ -284,10 +284,10 @@ impl ImageSurveyMeta {
 
                         js_color
                     },
-                    GrayscaleColor::Colormap { reversed, colormap } => {
+                    GrayscaleColor::Colormap { reversed, name } => {
                         let js_colormap = js_sys::Object::new();
                         js_sys::Reflect::set(&js_colormap, &"reversed".into(), &JsValue::from_bool(*reversed)).unwrap();
-                        js_sys::Reflect::set(&js_colormap, &"colormap".into(), &JsValue::from_serde(&colormap).unwrap()).unwrap();
+                        js_sys::Reflect::set(&js_colormap, &"colormap".into(), &JsValue::from_serde(name).unwrap()).unwrap();
 
                         js_colormap
                     }

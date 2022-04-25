@@ -13,7 +13,10 @@ export let WebGLCtx = (function() {
         if (webGL2support) {
             return await import('../core/pkg-webgl2');
         } else {
-            return await import('../core/pkg-webgl1');
+            // WebGL1 not supported
+            // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 87,31% of users
+            throw "WebGL2 not supported by your browser";
+            //return await import('../core/pkg-webgl1');
         }
     };
 

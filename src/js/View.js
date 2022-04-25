@@ -120,11 +120,24 @@ export let View = (function() {
                 //this.aladin.webglAPI.setCooSystem(ICRSJ2000);
             }
 
+            // Frame setting
             this.changeFrame(this.cooFrame);
 
+            // Zoom starting setting
+            const si = 500000.0;
+            const alpha = 40.0;
+
+            let initialFov = 360.0;
             if (zoom) {
                 this.setZoom(zoom);
+                initialFov = zoom;
             }
+            this.pinchZoomParameters = {
+                isPinching: false, // true if a pinch zoom is ongoing
+                initialFov: undefined,
+                initialDistance: undefined,
+                initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
+            };
             
             // current reference image survey displayed
             this.imageSurveys = new Map();
@@ -178,16 +191,6 @@ export let View = (function() {
             this.cutMinInit = null;
             this.cutMaxInit = null;
             this.needRedraw = true;
-
-            const si = 500000.0;
-            const alpha = 40.0;
-            // zoom pinching
-            this.pinchZoomParameters = {
-                isPinching: false, // true if a pinch zoom is ongoing
-                initialFov: undefined,
-                initialDistance: undefined,
-                initialAccDelta: Math.pow(si / 180.0, 1.0/alpha)
-            };
 
             // two-fingers rotation
             this.fingersRotationParameters = {
@@ -952,31 +955,11 @@ export let View = (function() {
             }*/
             // The value of the field of view is determined
             // inside the backend
-            const si = 500000.0;
-            const alpha = 40.0;
-            let off = 0.003;
-
-            if (delta < 0.0) {
-                off = -0.003;
+            if (delta > 0.0) {
+                view.increaseZoom();
+            } else {
+                view.decreaseZoom();
             }
-
-            view.pinchZoomParameters.initialAccDelta += off;
-
-            if (view.pinchZoomParameters.initialAccDelta <= 0.0) {
-                view.pinchZoomParameters.initialAccDelta = 1e-3;
-            }
-
-            let new_fov = si / Math.pow(view.pinchZoomParameters.initialAccDelta, alpha);
-            if (new_fov > 1000.0) {
-                new_fov = 1000.0;
-                view.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-            } 
-            if (new_fov < 2e-10) {
-                new_fov = 2e-10;
-                view.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-            } 
-
-            view.setZoom(new_fov);
 
             if (! view.debounceProgCatOnZoom) {
                 var self = view;
@@ -1636,7 +1619,7 @@ export let View = (function() {
     View.prototype.increaseZoom = function() {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.015;
+        const amount = 0.005;
 
         this.pinchZoomParameters.initialAccDelta += amount;
 
@@ -1656,10 +1639,11 @@ export let View = (function() {
 
         this.setZoom(new_fov);
     }
+
     View.prototype.decreaseZoom = function() {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.015;
+        const amount = 0.005;
 
         this.pinchZoomParameters.initialAccDelta -= amount;
 
@@ -1679,6 +1663,7 @@ export let View = (function() {
 
         this.setZoom(new_fov);
     }
+
     View.prototype.setGridConfig = function(gridCfg) {
         this.aladin.webglAPI.setGridConfig(gridCfg);
         this.requestRedraw();

@@ -785,7 +785,6 @@ export let Aladin = (function () {
         aladin.setFoV(curFov);
 
         setTimeout(function () { doZoomAnimation(aladin); }, 50);
-
     };
     /*
      * zoom smoothly from the current FoV to the given new fov to the given ra, dec

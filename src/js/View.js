@@ -460,9 +460,9 @@ export let View = (function() {
         // various listeners
         let onDblClick = function(e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            if(view.aladin.webglAPI.posOnUi()) {
+            /*if(view.aladin.webglAPI.posOnUi()) {
                 return;
-            }
+            }*/
             try {
                 const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
                 var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
@@ -523,9 +523,9 @@ export let View = (function() {
                 return;
             }
             
-            if(view.aladin.webglAPI.posOnUi()) {
+            /*if(view.aladin.webglAPI.posOnUi()) {
                 return;
-            }
+            }*/
 
             // zoom pinching
             if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
@@ -730,19 +730,24 @@ export let View = (function() {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.lastFitsSurvey) {
-                let cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
-                let cy = (xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
+                const cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
+                const cy = -(xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
 
-                let offset = (view.cutMaxInit - view.cutMinInit) * cx;
-                view.lastFitsSurvey.setCuts([offset + (1.0 - cy*2.0)*view.cutMinInit, offset + (1.0 + cy*2.0)*view.cutMaxInit])
+                const offset = (view.cutMaxInit - view.cutMinInit) * cx;
+
+                const lr = offset + (1.0 - cy*2.0)*view.cutMinInit;
+                const rr = offset + (1.0 + cy*2.0)*view.cutMaxInit;
+                if (lr <= rr) {
+                    view.lastFitsSurvey.setCuts([lr, rr])
+                }
 
                 return;
             }
             p = xymouse;
 
-            if(view.aladin.webglAPI.posOnUi()) {
+            /*if(view.aladin.webglAPI.posOnUi()) {
                 return;
-            }
+            }*/
 
             if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
 
@@ -925,9 +930,9 @@ export let View = (function() {
             event.stopPropagation();
             //var xymouse = view.imageCanvas.relMouseCoords(event);
 
-            if(view.aladin.webglAPI.posOnUi()) {
+            /*if(view.aladin.webglAPI.posOnUi()) {
                 return;
-            }
+            }*/
             //var xymouse = view.imageCanvas.relMouseCoords(event);
             //var level = view.zoomLevel;
 

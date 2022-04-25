@@ -480,6 +480,8 @@ export let HpxImageSurvey = (function() {
                 maxCut: 10000.0,
                 color: [1.0, 0.0, 0.0, 1.0],
                 imgFormat: "fits",
+                colormap: "rainbow",
+                tf: 'Linear'
             }
         },
         {
@@ -522,7 +524,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -10,
                 maxCut: 800,
-                colormap: "rdBu",
+                colormap: "rdbu",
                 imgFormat: "fits",
             }
         },

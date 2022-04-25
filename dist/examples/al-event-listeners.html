@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id='infoDiv'>&nbsp; </div>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    A.init.then(() => {
+        var aladin = A.aladin('#aladin-lite-div', {target: '05 37 58 +08 17 35', fov: 12});
+        var cat = A.catalog({sourceSize: 20});
+        aladin.addCatalog(cat);
+        cat.addSources([A.source(83.784490, 09.934156, {name: 'Meissa'}), A.source(88.792939, 7.407064, {name: 'Betelgeuse'}), A.source(81.282764, 6.349703, {name: 'Bellatrix'})]);
+
+        // define function triggered when  a source is hovered
+        aladin.on('objectHovered', function(object) {
+            var msg;
+            if (object) {
+                msg = 'You hovered object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
+            }
+            else {
+                msg = 'No object hovered';
+            }
+            $('#infoDiv').html(msg);
+        });
+
+        // define function triggered when an object is clicked
+        var objClicked;
+        aladin.on('objectClicked', function(object) {
+            var msg;
+            if (object) {
+                objClicked = object;
+            object.select();
+                msg = 'You clicked object ' + object.data.name + ' located at ' + object.ra + ', ' + object.dec;
+            }
+            else {
+                objClicked.deselect();
+                msg = 'You clicked in void';
+            }
+            $('#infoDiv').html(msg);
+        });
+    });
+</script>
+</body>
+</html>

@@ -251,6 +251,8 @@ export let HpxImageSurvey = (function() {
             const bitpix = +metadata.hips_pixel_bitpix;
             // HiPS frame
             let frame = (options && options.cooFrame) || metadata.hips_frame || "equatorial";
+            console.log(frame);
+
             if (frame == "equatorial") {
                 frame = "ICRSJ2000";
             } else if (frame == "galactic") {
@@ -259,7 +261,7 @@ export let HpxImageSurvey = (function() {
                 frame = "ICRSJ2000";
             }
             // HiPS longitude reversed
-            const longitudeReversed = (options && options.reversedLongitude) || false;
+            const longitudeReversed = (options && options.longitudeReversed) || false;
             // HiPS render options
             let minCut = cuts && cuts[0];
             let maxCut = cuts && cuts[1];

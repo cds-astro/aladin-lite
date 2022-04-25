@@ -19,27 +19,19 @@
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-
-
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {fov: 360, showCooGrid: true});
-        var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 2});
+        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'M 1', fov: 0.2});
+        var overlay = A.graphicOverlay({color: '#ee2345', lineWidth: 3});
         aladin.addOverlay(overlay);
-        overlay.add(A.polyline([
-            [100.29452158, 0.14978110],
-            [2.29452158, 59.14978110],
-            [10.12683778, 56.53733116],
-            [14.1772154, 60.7167403],
-            [21.45396446, 60.23528403],
-            [28.59885697, 63.67010079]
-        ]));
+        overlay.addFootprints([
+            A.polygon([[83.64287, 22.01713], [83.59872, 22.01692], [83.59852, 21.97629], [83.64295, 21.97629]]),
+            A.polygon([[83.62807, 22.06330], [83.58397, 22.02280], [83.62792, 22.02258]]),
+            A.polygon([[8.62807, 220.06330], [83.58397, 10.02280], [150.62792, 87.02258]])
+        ]);
+        overlay.add(A.circle(83.66067, 22.03081, 0.04, {color: 'cyan'})); // radius in degrees
     });
-
-
-
-
 </script>
 </body>
 </html>

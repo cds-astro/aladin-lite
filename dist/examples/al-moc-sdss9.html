@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px">
+      <div id="ui" class="ui">
+      </div>
+    </div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color'});
+        var moc = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#84f', lineWidth: 1});
+        aladin.addMOC(moc);
+    });
+</script>
+</body>
+</html>

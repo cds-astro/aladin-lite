@@ -915,7 +915,7 @@ export let Aladin = (function () {
     };
 
     // @oldAPI
-    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options) {
+    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
         const rootUrlOrId = rootUrl || id;
         if (cooFrame) {
             options.cooFrame = cooFrame;

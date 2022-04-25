@@ -32,7 +32,7 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
 
 /// Get the grid
 pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) -> Vec<LonLatT<S>> {
-    assert!(n_segments_by_side > 0);
+    debug_assert!(n_segments_by_side > 0);
     healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side)
         .iter()
         .map(|(lon, lat)| {

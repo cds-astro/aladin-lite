@@ -231,14 +231,14 @@ impl TileRequest {
     }
 
     pub fn get_image(&self, tile_width: i32) -> Result<RetrievedImageType, JsValue> {
-        assert!(self.is_resolved());
+        debug_assert!(self.is_resolved());
         self.req.image(tile_width)
     }
 }
 
 impl Drop for TileRequest {
     fn drop(&mut self) {
-        self.req.send(None, None, "").unwrap();
+        //self.req.send(None, None, "").unwrap();
     }
 }
 /* ------------------------------------------------------ */

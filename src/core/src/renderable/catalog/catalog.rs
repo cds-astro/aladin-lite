@@ -77,7 +77,7 @@ impl SourceIndices {
     ) -> &'a [f32] {
         let HEALPixCell(depth, idx) = *cell;
 
-        assert!(depth <= 7);
+        debug_assert!(depth <= 7);
         let off = 2 * (7 - depth);
 
         let healpix_idx_start = (idx << off) as usize;

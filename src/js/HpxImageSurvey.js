@@ -367,7 +367,7 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if ( this.ready ) {
-            this.backend.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
     };
 
@@ -429,7 +429,7 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if ( this.ready ) {
-            this.backend.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
     }
 

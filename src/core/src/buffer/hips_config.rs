@@ -15,7 +15,7 @@ where
     F: ImageFormat,
 {
     fn new(width: i32) -> TileConfig<F> {
-        assert!(math::is_power_of_two(width as usize));
+        debug_assert!(math::is_power_of_two(width as usize));
         let pixel_fill = <<F as ImageFormat>::P as Pixel>::BLACK;
         let default = Rc::new(ImageBuffer::<F>::allocate(width, &pixel_fill));
         TileConfig {

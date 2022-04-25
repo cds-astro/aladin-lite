@@ -46,13 +46,13 @@ impl HEALPixCell {
 
         let idx_off = parent_idx << (2 * (depth - parent_depth));
 
-        assert!(idx >= idx_off);
-        assert!(depth >= parent_depth);
+        debug_assert!(idx >= idx_off);
+        debug_assert!(depth >= parent_depth);
         let nside = 1 << (depth - parent_depth);
 
         let (x, y) = utils::unmortonize(idx - idx_off);
-        assert!(x < nside);
-        assert!(y < nside);
+        debug_assert!(x < nside);
+        debug_assert!(y < nside);
 
         (x, y)
     }

@@ -128,17 +128,18 @@ export let View = (function() {
             const alpha = 40.0;
 
             let initialFov = 360.0;
-            if (zoom) {
-                this.setZoom(zoom);
-                initialFov = zoom;
-            }
             this.pinchZoomParameters = {
                 isPinching: false, // true if a pinch zoom is ongoing
                 initialFov: undefined,
                 initialDistance: undefined,
                 initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
             };
-            
+
+            if (zoom) {
+                this.setZoom(zoom);
+                //initialFov = zoom;
+            }
+
             // current reference image survey displayed
             this.imageSurveys = new Map();
             this.imageSurveysIdx = new Map();
@@ -1604,10 +1605,17 @@ export let View = (function() {
     };*/
     
     // Called for touchmove events
+    // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function(fovDegrees) {
-        if (fovDegrees<0) {
+        const si = 500000.0;
+        const alpha = 40.0;
+        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fovDegrees, 1.0/alpha);
+        /*if (fovDegrees<0) {
             return;
-        }
+        }*/
+        //const si = 500000.0;
+        //const alpha = 40.0;
+
         // Erase the field of view state of the backend by
         this.aladin.webglAPI.setFieldOfView(fovDegrees);
         //var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
@@ -1626,16 +1634,16 @@ export let View = (function() {
         if (this.pinchZoomParameters.initialAccDelta <= 0.0) {
             this.pinchZoomParameters.initialAccDelta = 1e-3;
         }
-
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
-        if (new_fov > 1000.0) {
-            new_fov = 1000.0;
-            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+
+        if (new_fov > 360.0) {
+            new_fov = 360.0;
+            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
         if (new_fov < 2e-10) {
             new_fov = 2e-10;
-            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-        } 
+            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        }
 
         this.setZoom(new_fov);
     }
@@ -1652,13 +1660,13 @@ export let View = (function() {
         }
 
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
-        if (new_fov > 1000.0) {
-            new_fov = 1000.0;
-            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+        if (new_fov > 360.0) {
+            new_fov = 360.0;
+            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
         if (new_fov < 2e-10) {
             new_fov = 2e-10;
-            this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
 
         this.setZoom(new_fov);

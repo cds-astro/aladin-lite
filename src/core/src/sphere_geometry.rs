@@ -546,7 +546,7 @@ pub struct Polygon {
 // A polygon must contain at least 3 vertices
 impl Polygon {
     fn new(vertices: &[Vector4<f64>]) -> Polygon {
-        assert!(vertices.len() >= 3);
+        debug_assert!(vertices.len() >= 3);
 
         // Compute longitudes and latitudes
         let (lon, lat): (Vec<_>, Vec<_>) = vertices

@@ -152,7 +152,7 @@ impl HEALPixCellsInView {
 
     #[inline]
     pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {
-        assert!(camera.get_last_user_action() == UserAction::Unzooming);
+        debug_assert!(camera.get_last_user_action() == UserAction::Unzooming);
         self.look_for_parents
     }
 

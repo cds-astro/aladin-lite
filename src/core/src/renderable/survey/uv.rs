@@ -30,15 +30,15 @@ impl TileUVW {
 
         let idx_off = parent_idx << (2 * (depth - parent_depth));
 
-        assert!(idx >= idx_off);
-        assert!(depth >= parent_depth);
+        debug_assert!(idx >= idx_off);
+        debug_assert!(depth >= parent_depth);
         let nside = (1 << (depth - parent_depth)) as f32;
 
         let (x, y) = utils::unmortonize(idx - idx_off);
         let x = x as f32;
         let y = y as f32;
-        assert!(x < nside);
-        assert!(y < nside);
+        debug_assert!(x < nside);
+        debug_assert!(y < nside);
 
         let parent_idx_texture = texture.idx();
         let idx_texture = (parent_idx_texture / config.num_textures_by_slice()) as f32;

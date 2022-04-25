@@ -192,7 +192,7 @@ impl ImageSurveyTextures {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
         // root textures
-        assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
+        debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
         let heap = HEALPixCellHeap::with_capacity(size - NUM_HPX_TILES_DEPTH_ZERO);
         let textures = HashMap::with_capacity(size);
 
@@ -264,7 +264,7 @@ impl ImageSurveyTextures {
                     // Pop the oldest requested texture
                     let oldest_texture = self.heap.pop().unwrap();
                     // Ensure this is not a base texture
-                    assert!(!oldest_texture.is_root());
+                    debug_assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
                     let mut texture = self.textures.remove(&oldest_texture.cell)
@@ -364,7 +364,7 @@ impl ImageSurveyTextures {
 
         if texture_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;
-            assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
+            debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
             //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
 
             if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
@@ -424,7 +424,7 @@ impl ImageSurveyTextures {
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
     pub fn update_priority(&mut self, cell: &HEALPixCell/*, new_fov_cell: bool*/) {
-        assert!(self.contains_tile(cell));
+        debug_assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
         let texture_cell = cell.get_texture_cell(&self.config);
@@ -540,31 +540,31 @@ impl ImageSurveyTextures {
 
     // Get the textures in the buffer
     // The resulting array is uniq sorted
-    fn get_allsky_textures(&self) -> [&Texture; NUM_HPX_TILES_DEPTH_ZERO] {
-        assert!(self.is_ready());
+    fn get_allsky_textures(&self) -> [Option<&Texture>; NUM_HPX_TILES_DEPTH_ZERO] {
+        //debug_assert!(self.is_ready());
         /*let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
         textures*/
         [
-            self.textures.get(&HEALPixCell(0, 0)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 1)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 2)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 3)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 4)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 5)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 6)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 7)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 8)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 9)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 10)).unwrap(),
-            self.textures.get(&HEALPixCell(0, 11)).unwrap(),
+            self.textures.get(&HEALPixCell(0, 0)),
+            self.textures.get(&HEALPixCell(0, 1)),
+            self.textures.get(&HEALPixCell(0, 2)),
+            self.textures.get(&HEALPixCell(0, 3)),
+            self.textures.get(&HEALPixCell(0, 4)),
+            self.textures.get(&HEALPixCell(0, 5)),
+            self.textures.get(&HEALPixCell(0, 6)),
+            self.textures.get(&HEALPixCell(0, 7)),
+            self.textures.get(&HEALPixCell(0, 8)),
+            self.textures.get(&HEALPixCell(0, 9)),
+            self.textures.get(&HEALPixCell(0, 10)),
+            self.textures.get(&HEALPixCell(0, 11)),
         ]
     }
 
     // Get the textures in the buffer
     // The resulting array is uniq sorted
     fn get_textures(&self) -> Vec<&Texture> {
-        assert!(self.is_ready());
+        debug_assert!(self.is_ready());
         let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
         textures
@@ -643,19 +643,21 @@ impl SendUniforms for ImageSurveyTextures {
     */
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        if self.is_ready() {
+        //if self.is_ready() {
             // Send the textures
             let textures = self.get_allsky_textures();
             for (idx, texture) in textures.iter().enumerate() {
-                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
-                shader.attach_uniforms_from(&texture_uniforms);
+                if let Some(texture) = texture {
+                    let texture_uniforms = TextureUniforms::new(texture, idx as i32);
+                    shader.attach_uniforms_from(&texture_uniforms);
+                }
             }
             let num_tiles = textures.len() as i32;
             shader
                 .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)
                 .attach_uniforms_from(&*self.texture_2d_array);
-        }
+        //}
 
         shader
     }

@@ -13,7 +13,7 @@ pub fn angle<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {
 use num_traits::Float;
 #[inline]
 pub fn asinc_positive(x: f64) -> f64 {
-    assert!(x >= 0.0);
+    debug_assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.asin() / x
     } else {
@@ -26,7 +26,7 @@ pub fn asinc_positive(x: f64) -> f64 {
 
 #[inline]
 pub fn sinc_positive(x: f64) -> f64 {
-    assert!(x >= 0.0);
+    debug_assert!(x >= 0.0);
     if x > 1.0e-4 {
         x.sin() / x
     } else {
@@ -260,7 +260,7 @@ pub fn log_2_checked<T>(x: T) -> u32
 where
     T: PrimInt + Zero
 {
-    assert!(x > T::zero());
+    debug_assert!(x > T::zero());
     num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 
@@ -291,7 +291,7 @@ where
 #[inline]
 #[allow(dead_code)]
 pub fn lambert_wm1(x: f32) -> f32 {
-    assert!((-1.0 / std::f32::consts::E..0.0).contains(&x));
+    debug_assert!((-1.0 / std::f32::consts::E..0.0).contains(&x));
     let m1 = 0.3361;
     let m2 = -0.0042;
     let m3 = -0.0201;

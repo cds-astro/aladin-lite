@@ -5,114 +5,6 @@ use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
 use al_core::format::{R16I, R32I, R8UI};
 use egui::epaint::ahash::CallHasher;
 
-pub struct TextureToDraw<'a> {
-    pub starting_texture: &'a Texture,
-    pub ending_texture: &'a Texture,
-}
-
-impl<'a> TextureToDraw<'a> {
-    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture) -> TextureToDraw<'a> {
-        TextureToDraw {
-            starting_texture,
-            ending_texture,
-        }
-    }
-}
-
-use std::collections::{HashMap, HashSet};
-pub struct TexturesToDraw<'a>(Vec<TextureToDraw<'a>>);
-
-impl<'a> TexturesToDraw<'a> {
-    fn new(capacity: usize) -> TexturesToDraw<'a> {
-        let states = Vec::with_capacity(capacity);
-
-        TexturesToDraw(states)
-    }
-}
-
-impl<'a> core::ops::Deref for TexturesToDraw<'a> {
-    type Target = Vec<TextureToDraw<'a>>;
-
-    fn deref(&'_ self) -> &'_ Self::Target {
-        &self.0
-    }
-}
-impl<'a> core::ops::DerefMut for TexturesToDraw<'a> {
-    fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
-        &mut self.0
-    }
-} 
-
-pub trait RecomputeRasterizer {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
-        view: &HEALPixCellsInView,
-        // The survey from which we get the textures to plot
-        // Usually it is the most refined survey
-        survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a>;
-}
-
-pub struct Move;
-pub struct Zoom;
-pub struct UnZoom;
-
-impl RecomputeRasterizer for Move {
-    // Returns:
-    // * The UV of the starting tile in the global 4096x4096 texture
-    // * The UV of the ending tile in the global 4096x4096 texture
-    // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
-        view: &HEALPixCellsInView,
-        survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
-        let cells_to_draw = view.get_cells();
-        let mut textures = TexturesToDraw::new(view.num_of_cells());
-
-        for cell in cells_to_draw {
-            if survey.contains(cell) {
-                let parent_cell = survey.get_nearest_parent(cell);
-
-                let ending_cell_in_tex = survey.get(cell).unwrap();
-                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
-            } else {
-                let parent_cell = survey.get_nearest_parent(cell);
-                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
-
-                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
-                let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
-            }
-        }
-
-        textures
-    }
-}
-
-/*fn num_subdivision(depth: u8) -> u8 {
-    if depth < 5 {
-        std::cmp::max(5 - depth, 2)
-    } else {
-        0
-    }
-}*/
-
-// Recursively compute the number of subdivision needed for a cell
-// to not be too much skewed
-use al_api::coo_system::CooSystem;
-use cgmath::InnerSpace;
-use crate::healpix_cell::HEALPixCell;
-
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
     let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
     al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
@@ -165,15 +57,72 @@ fn num_subdivision(cell: &HEALPixCell) -> u8 {
     (skewed_factor * ((MAX_SUBDIVISION - 1) as f64)) as u8 + 1
 }
 
-impl RecomputeRasterizer for Zoom {
+pub struct TextureToDraw<'a, 'b> {
+    pub starting_texture: &'a Texture,
+    pub ending_texture: &'a Texture,
+    pub cell: &'b HEALPixCell,
+}
+
+impl<'a, 'b> TextureToDraw<'a, 'b> {
+    fn new(starting_texture: &'a Texture, ending_texture: &'a Texture, cell: &'b HEALPixCell) -> TextureToDraw<'a, 'b> {
+        TextureToDraw {
+            starting_texture,
+            ending_texture,
+            cell,
+        }
+    }
+}
+
+use std::collections::{HashMap, HashSet};
+pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
+
+impl<'a, 'b> TexturesToDraw<'a, 'b> {
+    fn new(capacity: usize) -> TexturesToDraw<'a, 'b> {
+        let states = Vec::with_capacity(capacity);
+
+        TexturesToDraw(states)
+    }
+}
+
+impl<'a, 'b> core::ops::Deref for TexturesToDraw<'a, 'b> {
+    type Target = Vec<TextureToDraw<'a, 'b>>;
+
+    fn deref(&'_ self) -> &'_ Self::Target {
+        &self.0
+    }
+}
+impl<'a, 'b> core::ops::DerefMut for TexturesToDraw<'a, 'b> {
+    fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
+        &mut self.0
+    }
+} 
+
+pub trait RecomputeRasterizer {
     // Returns:
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
-        view: &HEALPixCellsInView,
+    fn get_textures_from_survey<'a, 'b>(
+        view: &'b HEALPixCellsInView,
+        // The survey from which we get the textures to plot
+        // Usually it is the most refined survey
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
+    ) -> TexturesToDraw<'a, 'b>;
+}
+
+pub struct Move;
+pub struct Zoom;
+pub struct UnZoom;
+
+impl RecomputeRasterizer for Move {
+    // Returns:
+    // * The UV of the starting tile in the global 4096x4096 texture
+    // * The UV of the ending tile in the global 4096x4096 texture
+    // * the blending factor between the two tiles in the texture
+    fn get_textures_from_survey<'a, 'b>(
+        view: &'b HEALPixCellsInView,
+        survey: &'a ImageSurveyTextures,
+    ) -> TexturesToDraw<'a, 'b> {
         let cells_to_draw = view.get_cells();
         let mut textures = TexturesToDraw::new(view.num_of_cells());
 
@@ -181,22 +130,71 @@ impl RecomputeRasterizer for Zoom {
             if survey.contains(cell) {
                 let parent_cell = survey.get_nearest_parent(cell);
 
-                let ending_cell_in_tex = survey.get(cell).unwrap();
-                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
+                if let Some(ending_cell_in_tex) = survey.get(cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
                 let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
 
-                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
-                let starting_cell_in_tex = survey.get(&grand_parent_cell).unwrap();
+                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(&grand_parent_cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
+            }
+        }
 
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
+        textures
+    }
+}
+
+// Recursively compute the number of subdivision needed for a cell
+// to not be too much skewed
+use al_api::coo_system::CooSystem;
+use cgmath::InnerSpace;
+use crate::healpix_cell::HEALPixCell;
+
+impl RecomputeRasterizer for Zoom {
+    // Returns:
+    // * The UV of the starting tile in the global 4096x4096 texture
+    // * The UV of the ending tile in the global 4096x4096 texture
+    // * the blending factor between the two tiles in the texture
+    fn get_textures_from_survey<'a, 'b>(
+        view: &'b HEALPixCellsInView,
+        survey: &'a ImageSurveyTextures,
+    ) -> TexturesToDraw<'a, 'b> {
+        let cells_to_draw = view.get_cells();
+        let mut textures = TexturesToDraw::new(view.num_of_cells());
+
+        for cell in cells_to_draw {
+            if survey.contains(cell) {
+                let parent_cell = survey.get_nearest_parent(cell);
+
+                if let Some(ending_cell_in_tex) = survey.get(cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
+            } else {
+                let parent_cell = survey.get_nearest_parent(cell);
+                let grand_parent_cell = survey.get_nearest_parent(&parent_cell);
+
+                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(&grand_parent_cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
             }
         }
 
@@ -209,10 +207,10 @@ impl RecomputeRasterizer for UnZoom {
     // * The UV of the starting tile in the global 4096x4096 texture
     // * The UV of the ending tile in the global 4096x4096 texture
     // * the blending factor between the two tiles in the texture
-    fn get_textures_from_survey<'a>(
-        view: &HEALPixCellsInView,
+    fn get_textures_from_survey<'a, 'b>(
+        view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a> {
+    ) -> TexturesToDraw<'a, 'b> {
         let _depth = view.get_depth();
         let _max_depth = survey.config().get_max_depth();
 
@@ -223,21 +221,23 @@ impl RecomputeRasterizer for UnZoom {
 
         for cell in cells_to_draw {
             if survey.contains(cell) {
-                let ending_cell_in_tex = survey.get(cell).unwrap();
-                let starting_cell_in_tex = survey.get(cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
+                if let Some(ending_cell_in_tex) = survey.get(cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
 
-                let ending_cell_in_tex = survey.get(&parent_cell).unwrap();
-                let starting_cell_in_tex = survey.get(&parent_cell).unwrap();
-
-                textures.push(
-                    TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex),
-                );
+                if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
+                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
+                        textures.push(
+                            TextureToDraw::new(starting_cell_in_tex, ending_cell_in_tex, cell),
+                        );
+                    }
+                }
             }
         }
 
@@ -252,7 +252,6 @@ use crate::projection::Projection;
 
 use super::RayTracer;
 use crate::buffer::ImageSurveyTextures;
-
 
 trait Draw {
     fn draw<P: Projection>(
@@ -269,102 +268,81 @@ trait Draw {
 
 use al_core::shader::{Shader};
 use al_api::hips::GrayscaleColor;
-/*
-/// List of the different type of surveys
-#[derive(Clone, Debug)]
-pub enum Color {
-    Colored,
-    Grayscale2Colormap {
-        colormap: Colormap,
-        param: GrayscaleParameter,
-        reversed: bool,
-    },
-    Grayscale2Color {
-        // A color associated to the component
-        color: [f32; 3],
-        k: f32, // factor controlling the amount of this HiPS
-        param: GrayscaleParameter,
-    },
-}
-*/
-//impl Color {
-    pub fn get_raster_shader<'a, P: Projection>(
-        color: &HiPSColor,
-        gl: &WebGlContext,
-        shaders: &'a mut ShaderManager,
-        integer_tex: bool,
-        unsigned_tex: bool,
-    ) -> &'a Shader {
-        match color {
-            HiPSColor::Color => P::get_raster_shader_color(gl, shaders),
-            HiPSColor::Grayscale { color, .. } => {
-                match color {
-                    GrayscaleColor::Color(..) => {
-                        if unsigned_tex {
-                            P::get_raster_shader_gray2color_unsigned(gl, shaders)
-                        } else if integer_tex {
-                            P::get_raster_shader_gray2color_integer(gl, shaders)
-                        } else {
-                            P::get_raster_shader_gray2color(gl, shaders)
-                        }
-                    },
-                    GrayscaleColor::Colormap { .. } => {
-                        if unsigned_tex {
-                            P::get_raster_shader_gray2colormap_unsigned(gl, shaders)
-                        } else if integer_tex {
-                            P::get_raster_shader_gray2colormap_integer(gl, shaders)
-                        } else {
-                            P::get_raster_shader_gray2colormap(gl, shaders)
-                        }
-                    },
-                }
-            }
-        }
-    }
 
-    pub fn get_raytracer_shader<'a, P: Projection>(
-        color: &HiPSColor,
-        gl: &WebGlContext,
-        shaders: &'a mut ShaderManager,
-        integer_tex: bool,
-        unsigned_tex: bool,
-    ) -> &'a Shader {
-        match color {
-            HiPSColor::Color => P::get_raytracer_shader_color(gl, shaders),
-            HiPSColor::Grayscale { color, .. } => {
-                match color {
-                    GrayscaleColor::Color(..) => {
-                        if unsigned_tex {
-                            P::get_raytracer_shader_gray2color_unsigned(gl, shaders)
-                        } else if integer_tex {
-                            P::get_raytracer_shader_gray2color_integer(gl, shaders)
-                        } else {
-                            P::get_raytracer_shader_gray2color(gl, shaders)
-                        }
-                    },
-                    GrayscaleColor::Colormap { .. } => {
-                        if unsigned_tex {
-                            P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
-                        } else if integer_tex {
-                            P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
-                        } else {
-                            P::get_raytracer_shader_gray2colormap(gl, shaders)
-                        }
-                    },
-                }
+pub fn get_raster_shader<'a, P: Projection>(
+    color: &HiPSColor,
+    gl: &WebGlContext,
+    shaders: &'a mut ShaderManager,
+    integer_tex: bool,
+    unsigned_tex: bool,
+) -> &'a Shader {
+    match color {
+        HiPSColor::Color => P::get_raster_shader_color(gl, shaders),
+        HiPSColor::Grayscale { color, .. } => {
+            match color {
+                GrayscaleColor::Color(..) => {
+                    if unsigned_tex {
+                        P::get_raster_shader_gray2color_unsigned(gl, shaders)
+                    } else if integer_tex {
+                        P::get_raster_shader_gray2color_integer(gl, shaders)
+                    } else {
+                        P::get_raster_shader_gray2color(gl, shaders)
+                    }
+                },
+                GrayscaleColor::Colormap { .. } => {
+                    if unsigned_tex {
+                        P::get_raster_shader_gray2colormap_unsigned(gl, shaders)
+                    } else if integer_tex {
+                        P::get_raster_shader_gray2colormap_integer(gl, shaders)
+                    } else {
+                        P::get_raster_shader_gray2colormap(gl, shaders)
+                    }
+                },
             }
         }
     }
-//}
+}
+
+pub fn get_raytracer_shader<'a, P: Projection>(
+    color: &HiPSColor,
+    gl: &WebGlContext,
+    shaders: &'a mut ShaderManager,
+    integer_tex: bool,
+    unsigned_tex: bool,
+) -> &'a Shader {
+    match color {
+        HiPSColor::Color => P::get_raytracer_shader_color(gl, shaders),
+        HiPSColor::Grayscale { color, .. } => {
+            match color {
+                GrayscaleColor::Color(..) => {
+                    if unsigned_tex {
+                        P::get_raytracer_shader_gray2color_unsigned(gl, shaders)
+                    } else if integer_tex {
+                        P::get_raytracer_shader_gray2color_integer(gl, shaders)
+                    } else {
+                        P::get_raytracer_shader_gray2color(gl, shaders)
+                    }
+                },
+                GrayscaleColor::Colormap { .. } => {
+                    if unsigned_tex {
+                        P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
+                    } else if integer_tex {
+                        P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
+                    } else {
+                        P::get_raytracer_shader_gray2colormap(gl, shaders)
+                    }
+                },
+            }
+        }
+    }
+}
 
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
 const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4};
 
-
 use crate::renderable::survey::uv::{TileCorner, TileUVW};
-
 
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid(
@@ -726,12 +704,13 @@ impl ImageSurvey {
         self.m0.clear();
         self.m1.clear();
         self.idx_vertices.clear();
-
-        let textures = T::get_textures_from_survey(&self.view, &self.textures);
-
+        
         let survey_config = self.textures.config();
         let depth = self.view.get_depth();
-        for (TextureToDraw { starting_texture, ending_texture }, cell) in textures.iter().zip(self.view.get_cells()) {
+        
+        let textures = T::get_textures_from_survey(&self.view, &self.textures);
+
+        for TextureToDraw { starting_texture, ending_texture, cell } in textures.iter() {
             let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
             let start_time = ending_texture.start_time();
@@ -867,11 +846,11 @@ impl Draw for ImageSurvey {
         opacity: f32,
         colormaps: &Colormaps,
     ) {
-        if !self.textures.is_ready() {
+        /*if !self.textures.is_ready() {
             // Do not render while the 12 base cell textures
             // are not loaded
             return;
-        }
+        }*/
 
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();

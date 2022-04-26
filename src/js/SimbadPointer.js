@@ -30,11 +30,11 @@
  * Author: Thomas Boch [CDS]
  * 
  *****************************************************************************/
+import { Coo }            from "./libs/astro/coo.js";
+import { Utils }          from "./Utils.js";
 
-SimbadPointer = (function() {
-    
-    
-    SimbadPointer = {};
+export let SimbadPointer = (function() {
+    const SimbadPointer = {};
 
     SimbadPointer.MIRRORS = ['https://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py', 'https://alaskybis.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py']; // list of base URL for Simbad pointer service
 

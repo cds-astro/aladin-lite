@@ -37,4 +37,5 @@
     ARC:  Projection.PROJ_ARC,
     TAN:  Projection.PROJ_TAN,
     MOL: Projection.PROJ_MOLLWEIDE,
+    HPX: Projection.PROJ_HEALPIX,
  };

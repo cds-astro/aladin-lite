@@ -35,7 +35,6 @@ import { HealpixGrid }    from "./HealpixGrid.js";
 import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Projection }     from "./libs/astro/projection.js";
-import { Coo }            from "./libs/astro/coo.js";
 import { AladinUtils }    from "./AladinUtils.js";
 import { HealpixIndex }   from "./libs/healpix.js";
 import { HealpixCache }   from "./HealpixCache.js";
@@ -51,7 +50,6 @@ import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
-import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 
@@ -59,183 +57,174 @@ export let View = (function() {
 
     /** Constructor */
     function View (aladin, location, fovDiv, cooFrame, zoom) {
-            this.aladin = aladin;
-            // Add a reference to the WebGL API
-            this.options = aladin.options;
-            this.aladinDiv = this.aladin.aladinDiv;
-            this.popup = new Popup(this.aladinDiv, this);
-            this.webGL2Support = WebGLCtx.checkForWebGL2Support();
-            this.createCanvases();
-            // Init the WebGL context
-            // At this point, the view has been created so the image canvas too
-            try {
-                // Start our Rust application. You can find `WebClient` in `src/lib.rs`
-                // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-                this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
-            } catch(e) {
-                // For browsers not supporting WebGL2:
-                // 1. Print the original exception message in the console
-                console.log(e)
-                // 2. Add a more explicite message to the end user
-                alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite")
-            }
+        this.aladin = aladin;
+        // Add a reference to the WebGL API
+        this.options = aladin.options;
+        this.aladinDiv = this.aladin.aladinDiv;
+        this.popup = new Popup(this.aladinDiv, this);
+        this.webGL2Support = WebGLCtx.checkForWebGL2Support();
+        this.createCanvases();
+        // Init the WebGL context
+        // At this point, the view has been created so the image canvas too
+        try {
+            // Start our Rust application. You can find `WebClient` in `src/lib.rs`
+            // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
+            this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
+        } catch(e) {
+            // For browsers not supporting WebGL2:
+            // 1. Print the original exception message in the console
+            console.log(e)
+            // 2. Add a more explicite message to the end user
+            alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite")
+        }
 
-            this.location = location;
-            this.fovDiv = fovDiv;
-            this.mustClearCatalog = true;
-            this.mustRedrawReticle = true;
-            //this.imageSurveysToSet = [];
-            this.mode = View.PAN;
-            
-            this.minFOV = this.maxFOV = null; // by default, no restriction
-            this.fov_limit = 180.0;
-            
-            this.healpixGrid = new HealpixGrid(this.imageCanvas);
-            this.then = Date.now();
-            
-            var lon, lat;
-            lon = lat = 0;
-            
-            this.projectionMethod = ProjectionEnum.SIN;
-            this.projection = new Projection(lon, lat);
-            this.projection.setProjection(this.projectionMethod);
-            //this.zoomLevel = 0;
-            // Prev time of the last frame
-            this.prev = 0;
-            //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
-            this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
-    
-            this.viewCenter = {lon: lon, lat: lat}; // position of center of view
+        this.location = location;
+        this.fovDiv = fovDiv;
+        this.mustClearCatalog = true;
+        this.mustRedrawReticle = true;
+        //this.imageSurveysToSet = [];
+        this.mode = View.PAN;
+        
+        this.minFOV = this.maxFOV = null; // by default, no restriction
+        this.fov_limit = 180.0;
+        
+        this.healpixGrid = new HealpixGrid();
+        this.then = Date.now();
+        
+        var lon, lat;
+        lon = lat = 0;
+        
+        this.projection = new Projection(lon, lat);
+        this.projection.setProjection(ProjectionEnum.SIN);
+        //this.zoomLevel = 0;
+        // Prev time of the last frame
+        this.prev = 0;
+        //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
+        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
 
-            if (cooFrame) {
-                this.cooFrame = cooFrame;
-            } else {
-                this.cooFrame = CooFrameEnum.GAL;
-            }
-            if (cooFrame.system === CooFrameEnum.SYSTEMS.GAL) {
-                //const GAL = Aladin.wasmLibs.webgl.GALCooSys();
-                //this.aladin.webglAPI.setCooSystem(GAL);
-            } else {
-                //const ICRSJ2000 = Aladin.wasmLibs.webgl.ICRSJ2000CooSys();
-                //this.aladin.webglAPI.setCooSystem(ICRSJ2000);
-            }
+        this.viewCenter = {lon: lon, lat: lat}; // position of center of view
 
-            // Frame setting
-            this.changeFrame(this.cooFrame);
+        if (cooFrame) {
+            this.cooFrame = cooFrame;
+        } else {
+            this.cooFrame = CooFrameEnum.GAL;
+        }
 
-            // Zoom starting setting
-            const si = 500000.0;
-            const alpha = 40.0;
+        // Frame setting
+        this.changeFrame(this.cooFrame);
 
-            let initialFov = 360.0;
-            this.pinchZoomParameters = {
-                isPinching: false, // true if a pinch zoom is ongoing
-                initialFov: undefined,
-                initialDistance: undefined,
-                initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
-            };
+        // Zoom starting setting
+        const si = 500000.0;
+        const alpha = 40.0;
 
-            if (zoom) {
-                this.setZoom(zoom);
-                //initialFov = zoom;
-            }
-
-            // current reference image survey displayed
-            this.imageSurveys = new Map();
-            this.imageSurveysIdx = new Map();
-
-            this.overlayLayers = [];
-            // current catalogs displayed
-            this.catalogs = [];
-            // a dedicated catalog for the popup
-            var c = document.createElement('canvas');
-            c.width = c.height = 24;
-            var ctx= c.getContext('2d');
-            ctx.lineWidth = 6.0;
-            ctx.beginPath();
-            ctx.strokeStyle = '#eee';
-            ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
-            ctx.stroke();
-            ctx.lineWidth = 3.0;
-            ctx.beginPath();
-            ctx.strokeStyle = '#c38';
-            ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
-            ctx.stroke();
-            this.catalogForPopup = A.catalog({shape: c, sourceSize: 24});
-            //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
-            this.catalogForPopup.hide();
-            this.catalogForPopup.setView(this);
-            // overlays (footprints for instance)
-            this.overlays = [];
-            // MOCs
-            this.mocs = [];
-            // reference to all overlay layers (= catalogs + overlays + mocs)
-            this.allOverlayLayers = []
-            
-    
-            
-            this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
-            this.fixLayoutDimensions();
-            
-            this.firstHiPS = true;
-            this.curNorder = 1;
-            this.realNorder = 1;
-            this.curOverlayNorder = 1;
-            
-            // some variables for mouse handling
-            this.dragging = false;
-            this.dragx = null;
-            this.dragy = null;
-            this.rightclickx = null;
-            this.rightclicky = null;
-            this.lastFitsSurvey = null;
-            this.cutMinInit = null;
-            this.cutMaxInit = null;
-            this.needRedraw = true;
-
-            // two-fingers rotation
-            this.fingersRotationParameters = {
-                initialViewAngleFromCenter: undefined,
-                initialFingerAngle: undefined,
-                rotationInitiated: false
-            }
-    
-            this.downloader = new Downloader(this); // the downloader object is shared across all HpxImageSurveys
-    
-            this.fadingLatestUpdate = null;
-            
-            this.dateRequestRedraw = null;
-            
-            
-            init(this);
-            
-
-            // listen to window resize and reshape canvases
-            this.resizeTimer = null;
-            var self = this;
-            $(window).resize(function() {
-                clearTimeout(self.resizeTimer);
-                self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self)}, 100);
-            });
-
-
-            // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
-            // this results in canvas dimension to be incorrect.
-            // The following line tries to fix this issue
-            setTimeout(function() {
-                var computedWidth = $(self.aladinDiv).width();
-                var computedHeight = $(self.aladinDiv).height();
-
-                if (self.width!==computedWidth || self.height===computedHeight) {
-                    self.fixLayoutDimensions();
-                    // As the WebGL backend has been resized correctly by
-                    // the previous call, we can get the zoom factor from it
-                    
-                    self.setZoom(self.fov); // needed to force recomputation of displayed FoV
-                }
-           }, 1000);
-
+        let initialFov = 360.0;
+        this.pinchZoomParameters = {
+            isPinching: false, // true if a pinch zoom is ongoing
+            initialFov: undefined,
+            initialDistance: undefined,
+            initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
         };
+
+        if (zoom) {
+            this.setZoom(zoom);
+        }
+
+        // current reference image survey displayed
+        this.imageSurveys = new Map();
+        this.imageSurveysIdx = new Map();
+
+        this.overlayLayers = [];
+        // current catalogs displayed
+        this.catalogs = [];
+        // a dedicated catalog for the popup
+        var c = document.createElement('canvas');
+        c.width = c.height = 24;
+        var ctx= c.getContext('2d');
+        ctx.lineWidth = 6.0;
+        ctx.beginPath();
+        ctx.strokeStyle = '#eee';
+        ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+        ctx.stroke();
+        ctx.lineWidth = 3.0;
+        ctx.beginPath();
+        ctx.strokeStyle = '#c38';
+        ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+        ctx.stroke();
+        this.catalogForPopup = A.catalog({shape: c, sourceSize: 24});
+        //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
+        this.catalogForPopup.hide();
+        this.catalogForPopup.setView(this);
+        // overlays (footprints for instance)
+        this.overlays = [];
+        // MOCs
+        this.mocs = [];
+        // reference to all overlay layers (= catalogs + overlays + mocs)
+        this.allOverlayLayers = []
+        
+
+        
+        this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
+        this.fixLayoutDimensions();
+        
+        this.firstHiPS = true;
+        this.curNorder = 1;
+        this.realNorder = 1;
+        this.curOverlayNorder = 1;
+        
+        // some variables for mouse handling
+        this.dragging = false;
+        this.dragx = null;
+        this.dragy = null;
+        this.rightclickx = null;
+        this.rightclicky = null;
+        this.lastFitsSurvey = null;
+        this.cutMinInit = null;
+        this.cutMaxInit = null;
+        this.needRedraw = true;
+
+        // two-fingers rotation
+        this.fingersRotationParameters = {
+            initialViewAngleFromCenter: undefined,
+            initialFingerAngle: undefined,
+            rotationInitiated: false
+        }
+
+        this.downloader = new Downloader(this); // the downloader object is shared across all HpxImageSurveys
+
+        this.fadingLatestUpdate = null;
+        
+        this.dateRequestRedraw = null;
+        
+        
+        init(this);
+        
+
+        // listen to window resize and reshape canvases
+        this.resizeTimer = null;
+        var self = this;
+        $(window).resize(function() {
+            clearTimeout(self.resizeTimer);
+            self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self)}, 100);
+        });
+
+
+        // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
+        // this results in canvas dimension to be incorrect.
+        // The following line tries to fix this issue
+        setTimeout(function() {
+            var computedWidth = $(self.aladinDiv).width();
+            var computedHeight = $(self.aladinDiv).height();
+
+            if (self.width!==computedWidth || self.height===computedHeight) {
+                self.fixLayoutDimensions();
+                // As the WebGL backend has been resized correctly by
+                // the previous call, we can get the zoom factor from it
+                
+                self.setZoom(self.fov); // needed to force recomputation of displayed FoV
+            }
+        }, 1000);
+
+    };
     
     // different available modes
     View.PAN = 0;
@@ -253,21 +242,12 @@ export let View = (function() {
     // (re)create needed canvases
     View.prototype.createCanvases = function() {
         var a = $(this.aladinDiv);
-
-        //a.find('.aladin-webglCanvas').remove();
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
         a.find('.aladin-reticleCanvas').remove();
-        a.find('.aladin-gridCanvas').remove();
-
+        
         // canvas to draw the images
-        //this.webglCanvas = $("<canvas class='aladin-webglCanvas'></canvas>").appendTo(this.aladinDiv)[0];
-        // canvas to draw the overlays
-                // canvas to draw the gui
-                //this.guiCanvas = $("<canvas id='aladin-guiCanvas' style={width: 200px}≈></canvas>").appendTo(this.aladinDiv)[0];
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
-        // canvas to draw the grid
-        this.gridCanvas = $("<canvas class='aladin-gridCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the reticle
@@ -300,18 +280,14 @@ export let View = (function() {
         
         this.catalogCtx = this.catalogCanvas.getContext("2d");
         this.reticleCtx = this.reticleCanvas.getContext("2d");
-        this.gridCtx = this.gridCanvas.getContext("2d");
-        //this.guiCtx = this.guiCanvas.getContext("webgl2");
 
         //this.imageCtx.canvas.width = this.width;
         this.catalogCtx.canvas.width = this.width;
         this.reticleCtx.canvas.width = this.width;
-        this.gridCtx.canvas.width = this.width;
         
         //this.imageCtx.canvas.height = this.height;
         this.catalogCtx.canvas.height = this.height;
         this.reticleCtx.canvas.height = this.height;
-        this.gridCtx.canvas.height = this.height;
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -330,7 +306,6 @@ export let View = (function() {
             $(this.logoDiv).css('width', '32px');
         }
 
-        
         this.computeNorder();
         //this.requestRedraw();
     };
@@ -389,7 +364,6 @@ export let View = (function() {
         ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.reticleCanvas, 0, 0, c.width, c.height);
-        ctx.drawImage(this.gridCanvas, 0, 0, c.width, c.height);
 
         return c.toDataURL(imgType);
         //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
@@ -653,12 +627,16 @@ export let View = (function() {
 
             const xymouse = view.imageCanvas.relMouseCoords(e);
             if (view.mode==View.TOOL_SIMBAD_POINTER) {
-                var radec = view.aladin.pix2world(xymouse.x, xymouse.y);
+                const radec = view.aladin.pix2world(xymouse.x, xymouse.y);
+                //var radec = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
-
-                SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                if (radec) {
+                    SimbadPointer.query(radec[0], radec[1], Math.min(1, 15 * view.fov / view.largestDim), view.aladin);
+                } else {
+                    console.log("Cannot unproject at the location you clicked on")
+                }
 
                 return; // when in TOOL_SIMBAD_POINTER mode, we do not call the listeners
             }
@@ -1123,27 +1101,6 @@ export let View = (function() {
         } catch(e) {
             console.error("Error: ", e);
         }
-        
-        // redraw HEALPix grid
-        if( this.displayHpxGrid) {
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
-            }
-            this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-            if (cornersXYViewMapHighres && this.curNorder>3) {
-                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
-            }
-            else {
-                this.healpixGrid.redraw(this.gridCtx, cornersXYViewMapAllsky, this.fov, 3);
-            }
-        }
 
         ///*
         ////// 2. Draw catalogues////////
@@ -1156,7 +1113,7 @@ export let View = (function() {
             this.mustClearCatalog = false;
         }
         if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-                // TODO : do not clear every time
+            // TODO : do not clear every time
             //// clear canvas ////
             if (! catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
@@ -1189,6 +1146,27 @@ export let View = (function() {
             }
         }
         
+        // Redraw HEALPix grid
+        var healpixGridCtx = catalogCtx;
+        if( this.displayHpxGrid ) {
+            var cornersXYViewMapAllsky = this.getVisibleCells(3);
+            var cornersXYViewMapHighres = null;
+            if (this.curNorder>=3) {
+                if (this.curNorder==3) {
+                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
+                }
+                else {
+                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+                }
+            }
+            if (cornersXYViewMapHighres && this.curNorder>3) {
+                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+            }
+            else {
+                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
+            }
+        }
+
 
         // draw MOCs
         var mocCtx = this.catalogCtx;
@@ -1240,8 +1218,7 @@ export let View = (function() {
             }
                 
             reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
-            
-            
+
             this.mustRedrawReticle = false;
         }
         /*
@@ -1416,17 +1393,14 @@ export let View = (function() {
             else {
                 radius *= 1.1;
             }
-            
-            
-                
+    
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
             var polar = HealpixIndex.utils.radecToPolar(lonlat[0], lonlat[1]);
             ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
         }
-        
-        
+
         var ipix;
         var lon, lat;
         var corners;
@@ -1502,7 +1476,7 @@ export let View = (function() {
 //                }
 //            }
             // check if we have a pixel at the edge of the view in allsky projections
-            if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
+            //if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
                /* console.log(this.largestDim);
                 var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
                 var ydiff = cornersXYView[0].vy-cornersXYView[2].vy;
@@ -1524,6 +1498,29 @@ export let View = (function() {
                 if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
                     !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
                     continue;
+                }
+            //}
+
+            if (this.projection.PROJECTION == ProjectionEnum.HPX) {
+                const triIdxInCollignonZone = ((p) => {
+                    const x = ((p.vx / this.reticleCanvas.clientWidth) - 0.5) * this.zoomFactor;
+                    const y = ((p.vy / this.reticleCanvas.clientHeight) - 0.5) * this.zoomFactor;
+
+                    const xZone = Math.floor((x + 0.5) * 4);
+                    return xZone + 4 * (y > 0.0);
+                });
+
+                const isInCollignon = ((p) => {
+                    const y = ((p.vy / this.reticleCanvas.clientHeight) - 0.5) * this.zoomFactor;
+
+                    return y < -0.25 || y > 0.25;
+                });
+
+                if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
+                    const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
+                    if (!allVerticesInSameCollignonRegion) {
+                        continue;
+                    }
                 }
             }
             
@@ -1927,27 +1924,37 @@ export let View = (function() {
     
     View.prototype.setProjection = function(projectionName) {
         switch (projectionName) {
-            case "ait":
-                this.projectionMethod = ProjectionEnum.AITOFF;
+            case "AIT":
+                this.projection.setProjection(ProjectionEnum.AITOFF);
+                //this.projectionMethod = ProjectionEnum.AITOFF;
                 break;
-            case "tan":
-                this.projectionMethod = ProjectionEnum.TAN;
+            case "HPX":
+                this.projection.setProjection(ProjectionEnum.HPX);
+                //this.projectionMethod = ProjectionEnum.HPX;
                 break;
-            case "arc":
-                this.projectionMethod = ProjectionEnum.ARC;
+            case "TAN":
+                this.projection.setProjection(ProjectionEnum.TAN);
+                //this.projectionMethod = ProjectionEnum.TAN;
                 break;
-            case "mer":
-                this.projectionMethod = ProjectionEnum.MERCATOR;
+            case "ARC":
+                this.projection.setProjection(ProjectionEnum.ARC);
+                //this.projectionMethod = ProjectionEnum.ARC;
                 break;
-            case "mol":
-                this.projectionMethod = ProjectionEnum.MOL;
+            case "MER":
+                this.projection.setProjection(ProjectionEnum.MERCATOR);
+                //this.projectionMethod = ProjectionEnum.MERCATOR;
                 break;
-            case "sin":
+            case "MOL":
+                this.projection.setProjection(ProjectionEnum.MOL);
+                //this.projectionMethod = ProjectionEnum.MOL;
+                break;
+            case "SIN":
             default:
-                this.projectionMethod = ProjectionEnum.SIN;
+                this.projection.setProjection(ProjectionEnum.SIN);
+                //this.projectionMethod = ProjectionEnum.SIN;
+
         }
         // Change the projection here
-        this.projection.setProjection(this.projectionMethod);
         this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName);
 
         this.requestRedraw();
@@ -1972,10 +1979,6 @@ export let View = (function() {
     };
 
     View.prototype.showHealpixGrid = function(show) {
-        // Clear the grid ctx when not showing it
-        if (!show) {
-            this.gridCtx.clearRect(0, 0, this.imageCanvas.width, this.imageCanvas.height);
-        }
         this.displayHpxGrid = show;
         this.requestRedraw();
     };

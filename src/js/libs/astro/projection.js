@@ -30,6 +30,7 @@ Projection.PROJ_LAMBERT = 9;
 Projection.PROJ_TSC = 10;	/* Tangent Sph. Cube	*/
 Projection.PROJ_QSC = 11;	/* QuadCube Sph. Cube	*/
 Projection.PROJ_MOLLWEIDE = 12;
+Projection.PROJ_HEALPIX = 13; /* HEALPix, not implemented */
 Projection.PROJ_LIST = [
 	"Mercator",Projection.PROJ_MERCATOR,
 	"Gnomonic",Projection.PROJ_TAN,

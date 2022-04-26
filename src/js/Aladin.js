@@ -377,9 +377,9 @@ export let Aladin = (function () {
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
         // initialize the Vue components
-        if (typeof Vue != "undefined") {
+        //if (typeof Vue != "undefined") {
             //this.discoverytree = new DiscoveryTree(this);
-        }
+        //}
 
         this.view.redraw();
 
@@ -1348,22 +1348,19 @@ export let Aladin = (function () {
 
         //var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
 
-        var radec;
         try {
             //radec = this.view.projection.unproject(xy.x, xy.y);
-            radec = this.view.aladin.webglAPI.screenToWorld(x, y);
-        }
-        catch (e) {
+            return this.view.aladin.webglAPI.screenToWorld(x, y);
+        } catch (e) {
             return undefined;
         }
-
-        var res;
+        //var res;
         // Convert it to icrs j2000
         /*if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
             res = this.view.aladin.webglAPI.Gal2J2000(radec[0], radec[1]);
         }*/
 
-        return res;
+        //return res;
     };
 
     /**
@@ -1842,7 +1839,6 @@ A.init = import('@fxpineau/healpix').then(async (hpxAPI) => {
     Aladin.wasmLibs.hpx = hpxAPI;
     // WebGL library
     let webgl = await WebGLCtx();
-    console.log("Init WebGL");
     Aladin.wasmLibs.webgl = webgl;
 });
 

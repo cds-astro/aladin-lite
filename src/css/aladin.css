@@ -26,13 +26,6 @@
     top: 0;
 }
 
-.aladin-gridCanvas {
-	position: absolute;
-    z-index: 1;
-	left: 0;
-	top: 0;
-}
-
 .aladin-logo-container {
     position: absolute;
 	bottom: 2px;

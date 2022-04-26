@@ -1346,21 +1346,12 @@ export let Aladin = (function () {
             return undefined;
         }
 
-        //var xy = AladinUtils.viewToXy(x, y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
-
         try {
             //radec = this.view.projection.unproject(xy.x, xy.y);
             return this.view.aladin.webglAPI.screenToWorld(x, y);
         } catch (e) {
             return undefined;
         }
-        //var res;
-        // Convert it to icrs j2000
-        /*if (this.view.aladin.webglAPI.cooSystem() === Aladin.wasmLibs.webgl.GALCooSys()) {
-            res = this.view.aladin.webglAPI.Gal2J2000(radec[0], radec[1]);
-        }*/
-
-        //return res;
     };
 
     /**

@@ -117,18 +117,14 @@ export let View = (function() {
         const si = 500000.0;
         const alpha = 40.0;
 
-        let initialFov = 360.0;
+        let initialFov = zoom || 360.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
             initialFov: undefined,
             initialDistance: undefined,
             initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
         };
-
-        if (zoom) {
-            this.setZoom(zoom);
-        }
-
+        this.setZoom(initialFov);
         // current reference image survey displayed
         this.imageSurveys = new Map();
         this.imageSurveysIdx = new Map();
@@ -244,14 +240,11 @@ export let View = (function() {
         var a = $(this.aladinDiv);
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
-        a.find('.aladin-reticleCanvas').remove();
         
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
-        // canvas to draw the reticle
-        this.reticleCanvas = $("<canvas class='aladin-reticleCanvas'></canvas>").appendTo(this.aladinDiv)[0];
     };
     
     // called at startup and when window is resized
@@ -277,17 +270,10 @@ export let View = (function() {
         // reinitialize 2D context
         this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
         this.aladin.webglAPI.resize(this.width, this.height);
-        
         this.catalogCtx = this.catalogCanvas.getContext("2d");
-        this.reticleCtx = this.reticleCanvas.getContext("2d");
 
-        //this.imageCtx.canvas.width = this.width;
-        this.catalogCtx.canvas.width = this.width;
-        this.reticleCtx.canvas.width = this.width;
-        
-        //this.imageCtx.canvas.height = this.height;
+        this.catalogCtx.canvas.width = this.width;        
         this.catalogCtx.canvas.height = this.height;
-        this.reticleCtx.canvas.height = this.height;
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
 
@@ -327,8 +313,8 @@ export let View = (function() {
         }
         else if (this.mode==View.TOOL_SIMBAD_POINTER) {
             this.popup.hide();
-            this.reticleCanvas.style.cursor = '';
-            $(this.reticleCanvas).addClass('aladin-sp-cursor');
+            this.catalogCanvas.style.cursor = '';
+            $(this.catalogCanvas).addClass('aladin-sp-cursor');
         }
         else {
             this.setCursor('default');
@@ -336,13 +322,13 @@ export let View = (function() {
     };
     
     View.prototype.setCursor = function(cursor) {
-        if (this.reticleCanvas.style.cursor==cursor) {
+        if (this.catalogCanvas.style.cursor==cursor) {
             return;
         }
         if (this.mode==View.TOOL_SIMBAD_POINTER) {
             return;
         }
-        this.reticleCanvas.style.cursor = cursor;
+        this.catalogCanvas.style.cursor = cursor;
     };
 
     
@@ -363,7 +349,6 @@ export let View = (function() {
         const canvas = this.aladin.webglAPI.canvas();
         ctx.drawImage(canvas, 0, 0, c.width, c.height);
         ctx.drawImage(this.catalogCanvas, 0, 0, c.width, c.height);
-        ctx.drawImage(this.reticleCanvas, 0, 0, c.width, c.height);
 
         return c.toDataURL(imgType);
         //return c.toDataURL("image/jpeg", 0.01); // setting quality only works for JPEG (?)
@@ -452,15 +437,15 @@ export let View = (function() {
             
         };
         if (! hasTouchEvents) {
-            $(view.reticleCanvas).dblclick(onDblClick);
+            $(view.catalogCanvas).dblclick(onDblClick);
         }
 
-        $(view.reticleCanvas).bind("contextmenu", function(e) {
+        $(view.catalogCanvas).bind("contextmenu", function(e) {
             // do something here... 
             e.preventDefault(); 
         }, false);
 
-        $(view.reticleCanvas).bind("mousedown touchstart", function(e) {
+        $(view.catalogCanvas).bind("mousedown touchstart", function(e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -548,8 +533,8 @@ export let View = (function() {
             return false; // to disable text selection
         });
 
-        //$(view.reticleCanvas).bind("click mouseout touchend", function(e) {
-        $(view.reticleCanvas).bind("mouseup click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
+        //$(view.catalogCanvas).bind("click mouseout touchend", function(e) {
+        $(view.catalogCanvas).bind("mouseup click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
             if (view.rightClick) {
                 console.log("release right click")
                 view.rightClick = false;
@@ -707,18 +692,22 @@ export let View = (function() {
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
         let p = null;
-        $(view.reticleCanvas).bind("mousemove touchmove", function(e) {
+        $(view.catalogCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.lastFitsSurvey) {
-                const cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
-                const cy = -(xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
+                const cs = {
+                    x: view.catalogCanvas.clientWidth * 0.5,
+                    y: view.catalogCanvas.clientHeight * 0.5,
+                };
+                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
                 const offset = (view.cutMaxInit - view.cutMinInit) * cx;
 
-                const lr = offset + (1.0 - cy*2.0)*view.cutMinInit;
-                const rr = offset + (1.0 + cy*2.0)*view.cutMaxInit;
+                const lr = offset + (1.0 - 2.0*cy)*view.cutMinInit;
+                const rr = offset + (1.0 + 2.0*cy)*view.cutMaxInit;
                 if (lr <= rr) {
                     view.lastFitsSurvey.setCuts([lr, rr])
                 }
@@ -907,7 +896,7 @@ export let View = (function() {
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
 
-        $(view.reticleCanvas).on('wheel', function(event) {            
+        $(view.catalogCanvas).on('wheel', function(event) {            
             event.preventDefault();
             event.stopPropagation();
             //var xymouse = view.imageCanvas.relMouseCoords(event);
@@ -1186,12 +1175,11 @@ export let View = (function() {
         
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        var reticleCtx = this.reticleCtx;
-        if (this.mustRedrawReticle || this.mode==View.SELECT) {
+        var reticleCtx = this.catalogCtx;
+        /*if (this.mustRedrawReticle || this.mode==View.SELECT) {
             reticleCtx.clearRect(0, 0, this.width, this.height);
-        }
+        }*/
         if (this.displayReticle) {
-            
             if (! this.reticleCache) {
                 // build reticle image
                 var c = document.createElement('canvas');
@@ -1503,15 +1491,15 @@ export let View = (function() {
 
             if (this.projection.PROJECTION == ProjectionEnum.HPX) {
                 const triIdxInCollignonZone = ((p) => {
-                    const x = ((p.vx / this.reticleCanvas.clientWidth) - 0.5) * this.zoomFactor;
-                    const y = ((p.vy / this.reticleCanvas.clientHeight) - 0.5) * this.zoomFactor;
+                    const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
+                    const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
 
                     const xZone = Math.floor((x + 0.5) * 4);
                     return xZone + 4 * (y > 0.0);
                 });
 
                 const isInCollignon = ((p) => {
-                    const y = ((p.vy / this.reticleCanvas.clientHeight) - 0.5) * this.zoomFactor;
+                    const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
 
                     return y < -0.25 || y > 0.25;
                 });

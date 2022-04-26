@@ -72,7 +72,7 @@ pub fn canvas_element(runner_lock: &Gui) -> web_sys::HtmlCanvasElement {
         .get_element_by_id(&runner_lock.aladin_lite_div)
         .unwrap()
         // Inside it, retrieve the canvas
-        .get_elements_by_class_name("aladin-reticleCanvas")
+        .get_elements_by_class_name("aladin-catalogCanvas")
         .get_with_index(0)
         .unwrap();
     canvas.dyn_into::<_>().unwrap()

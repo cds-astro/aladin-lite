@@ -19,13 +19,6 @@
     top: 0;
 }
 
-.aladin-reticleCanvas {
-    position: absolute;
-    z-index: 3;
-    left: 0;
-    top: 0;
-}
-
 .aladin-logo-container {
     position: absolute;
 	bottom: 2px;

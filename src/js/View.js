@@ -734,6 +734,7 @@ export let View = (function() {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.lastFitsSurvey) {
+                // we try to match DS9 contrast adjustment behaviour with right click
                 const cx = (xymouse.x - view.rightclickx) / view.reticleCanvas.clientWidth;
                 const cy = -(xymouse.y - view.rightclicky) / view.reticleCanvas.clientHeight;
 

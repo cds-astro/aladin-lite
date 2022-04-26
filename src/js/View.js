@@ -1138,6 +1138,11 @@ export let View = (function() {
         // Redraw HEALPix grid
         var healpixGridCtx = catalogCtx;
         if( this.displayHpxGrid ) {
+            if (! catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
             var cornersXYViewMapHighres = null;
             if (this.curNorder>=3) {
@@ -1349,26 +1354,14 @@ export let View = (function() {
             hpxIdx.init();
             var spatialVector = new SpatialVector();
             // if frame != frame image survey, we need to convert to survey frame system
-            var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
+            //var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
             //var radec = this.projection.unproject(xy.x, xy.y);
             var radec = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
-            var radec = {
-                ra: radec[0],
-                dec: radec[1],
-            };
-            var lonlat = [];
-            if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
-                if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
-                    lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]); 
-                }
-                else if (frameSurvey.system==CooFrameEnum.SYSTEMS.GAL) {
-                    lonlat = CooConversion.J2000ToGalactic([radec.ra, radec.dec]);
-                }
+            if (this.cooFrame == CooFrameEnum.GAL) {
+                radec = CooConversion.GalacticToJ2000([radec[0], radec[1]]);
             }
-            else {
-                lonlat = [radec.ra, radec.dec];
-            }
-            spatialVector.set(lonlat[0], lonlat[1]);
+            
+            spatialVector.set(radec[0], radec[1]);
 
             var radius = this.fov*0.5*this.ratio;
             // we need to extend the radius
@@ -1384,7 +1377,7 @@ export let View = (function() {
     
             pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
             // add central pixel at index 0
-            var polar = HealpixIndex.utils.radecToPolar(lonlat[0], lonlat[1]);
+            var polar = HealpixIndex.utils.radecToPolar(radec[0], radec[1]);
             ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
             pixList.unshift(ipixCenter);
         }
@@ -1403,34 +1396,22 @@ export let View = (function() {
             for (var k=0; k<4; k++) {
                 spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
                 
-                // need for frame transformation ?
-                if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
-                    if (frameSurvey.system == CooFrameEnum.SYSTEMS.J2000) {
-                        var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]); 
-                        lon = radec[0];
-                        lat = radec[1];
-                    }
-                    else if (frameSurvey.system == CooFrameEnum.SYSTEMS.GAL) {
-                        var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
-                        lon = radec[0];
-                        lat = radec[1];
-                    }
+                /*if (this.cooFrame == CooFrameEnum.GAL) {
+                    var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
+                    lon = radec[0];
+                    lat = radec[1];
                 }
-                else {
+                else {*/
                     lon = spVec.ra();
                     lat = spVec.dec();
-                }
+                //}
                 
-                //cornersXY[k] = this.projection.project(lon, lat);
                 cornersXY[k] = this.aladin.webglAPI.worldToScreen(lon, lat);
             }
-
 
             if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
                 continue;
             }
-
-
 
             for (var k=0; k<4; k++) {
                 //cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
@@ -1455,7 +1436,6 @@ export let View = (function() {
             if( cornersXYView[0].vy>=this.height && cornersXYView[1].vy>=this.height && cornersXYView[2].vy>=this.height &&cornersXYView[3].vy>=this.height) {
                 continue;
             }
-
 
             // check if pixel is visible
 //            if (this.fov<160) { // don't bother checking if fov is large enough
@@ -1968,6 +1948,11 @@ export let View = (function() {
 
     View.prototype.showHealpixGrid = function(show) {
         this.displayHpxGrid = show;
+
+        if (!this.displayHpxGrid) {
+            this.mustClearCatalog = true;
+        }
+
         this.requestRedraw();
     };
     

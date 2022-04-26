@@ -212,9 +212,6 @@ export let HpxImageSurvey = (function() {
             if (url.startsWith('http://alasky')) {
                 // From alasky one can directly use the https access
                 url = url.replace('http', 'https');
-            } else {
-                // Pass by a proxy for extern http urls
-                url = 'https://alasky.u-strasbg.fr/cgi/JSONProxy?url=' + url;
             }
 
             // HiPS order

@@ -1,9 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .aladin-container {
 	position: relative;
 	border: 1px solid #ddd;
     height: 100%;
     /*overflow: hidden;*/
 }
+
 
 .aladin-imageCanvas {
 	position: absolute;
@@ -554,6 +559,19 @@ word-wrap:break-word;
 }
 .aladin-chevron-right {
   transform: rotate(270deg);
+}
+
+.indicator {
+    font-family: monospace;
+    cursor: pointer;
+}
+
+.right-triangle:before {
+    content: '\25b6';
+}
+
+.down-triangle:before {
+    content: '\25bc';
 }
 
 

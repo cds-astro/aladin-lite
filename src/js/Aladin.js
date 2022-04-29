@@ -1139,14 +1139,18 @@ export let Aladin = (function () {
             self.showHealpixGrid($(this).is(':checked'));
         });
 
-        // Equatorial grid plot
+        // Coordinates grid plot
         checked = '';
         if (this.view.showCooGrid) {
             checked = 'checked="checked"';
         }
-        var equatorialGridCb = $('<input type="checkbox" ' + checked + ' id="displayEquatorialGrid"/>');
-        layerBox.append(equatorialGridCb).append('<label for="displayEquatorialGrid">Equatorial grid</label><br/>');
-        equatorialGridCb.change(function () {
+        let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
+        let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
+        let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
+        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color"></td></tr><tr><td>Opacity</td><td><input type="range" min="0" max="1" step="0.05"></td></tr></table></div>');
+        labelCoordinatesGridCb.prepend(coordinatesGridCb);
+        layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
+        coordinatesGridCb.change(function () {
             let isChecked = $(this).is(':checked');
             if (isChecked) {
                 self.view.setGridConfig({
@@ -1159,6 +1163,32 @@ export let Aladin = (function () {
                 });
             }
         });
+        optionsOpenerForCoordinatesGrid.click(function() {
+            var $this = $(this);
+            if ($this.hasClass('right-triangle')) {
+                $this.removeClass('right-triangle');
+                $this.addClass('down-triangle');
+                $this.parent().find('.layer-options').slideDown(300);
+            }
+            else {
+                $this.removeClass('down-triangle');
+                $this.addClass('right-triangle');
+                $this.parent().find('.layer-options').slideUp(300);
+            }
+        });
+
+        let gridColorInput = cooGridOptions.find('input[type="color"]');
+        let gridOpacityInput = cooGridOptions.find('input[type="range"]');
+        let updateGridcolor = function() {
+            let rgb = Color.hexToRgb(gridColorInput.val());
+            let opacity = gridOpacityInput.val();
+            self.view.setGridConfig({
+                enabled: true,
+                color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, parseFloat(gridOpacityInput.val())]
+            });
+        };
+        gridColorInput.on('input', updateGridcolor);
+        gridOpacityInput.on('input', updateGridcolor);
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Tools</div>');

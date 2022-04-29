@@ -93,9 +93,9 @@ where
         }
     }
 }
-use rand::rngs::StdRng;
+/*use rand::rngs::StdRng;
 use rand::Rng;
-use rand::SeedableRng;
+use rand::SeedableRng;*/
 pub struct BuildCatalogIndex {
     pub sources: Vec<Source>,
     num_sorted_sources: usize,
@@ -149,7 +149,7 @@ impl Stream for BuildCatalogIndex {
             let b = (a + CHUNK_OF_SOURCES_TO_SORT).min(self.sources.len());
             // Get a new chunk and sort it
             if !self.merging {
-                let mut rng = StdRng::seed_from_u64(0);
+                //let mut rng = StdRng::seed_from_u64(0);
                 // Get the chunk to sort
                 (&mut self.sources[a..b]).sort_unstable_by(|s1, s2| {
                     let (s1_lon, s1_lat) = s1.lonlat();
@@ -161,8 +161,11 @@ impl Stream for BuildCatalogIndex {
                     let ordering = idx1.partial_cmp(&idx2).unwrap();
                     match ordering {
                         std::cmp::Ordering::Equal => {
-                            rng.gen::<f64>().partial_cmp(&0.5).unwrap()
+                            //rng.gen::<f64>().partial_cmp(&0.5).unwrap()
+                            let a = (s1_lon * 100000.0).fract();
+                            let b = (s2_lon * 100000.0).fract();
                             //s1.lon.partial_cmp(&s2.lon).unwrap()
+                            a.partial_cmp(&b).unwrap()
                         }
                         _ => ordering,
                     }

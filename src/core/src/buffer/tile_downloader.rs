@@ -16,6 +16,7 @@ use al_core::format::{R32F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
 use al_core::format::{R16I, R32I, R8UI};
+use js_sys::Uint16Array;
 
 
 impl RequestSystem {
@@ -44,61 +45,7 @@ impl RequestSystem {
         }
 
         let free_idx = self.free_slots_idx.pop().unwrap();
-
-        #[cfg(feature = "webgl1")]
-        match format {
-            ImageFormatType::RGBA8U => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::PNGRGBA8UImageReq(
-                    <CompressedImageRequest as ImageRequest<RGBA8U>>::new(),
-                )));
-            }
-            ImageFormatType::RGB8U => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::JPGRGB8UImageReq(
-                    <CompressedImageRequest as ImageRequest<RGB8U>>::new(),
-                )));
-            }
-            ImageFormatType::R32F => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32FImageReq(
-                    <FitsImageRequest as ImageRequest<R32F>>::new(),
-                )));
-            }
-            _ => unimplemented!(),
-        }
-        #[cfg(feature = "webgl2")]
-        match format {
-            ImageFormatType::RGBA8U => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::PNGRGBA8UImageReq(
-                    <CompressedImageRequest as ImageRequest<RGBA8U>>::new(),
-                )));
-            }
-            ImageFormatType::RGB8U => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::JPGRGB8UImageReq(
-                    <CompressedImageRequest as ImageRequest<RGB8U>>::new(),
-                )));
-            }
-            ImageFormatType::R32F => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32FImageReq(
-                    <FitsImageRequest as ImageRequest<R32F>>::new(),
-                )));
-            }
-            ImageFormatType::R8UI => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR8UIImageReq(
-                    <FitsImageRequest as ImageRequest<R8UI>>::new(),
-                )));
-            }
-            ImageFormatType::R16I => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR16IImageReq(
-                    <FitsImageRequest as ImageRequest<R16I>>::new(),
-                )));
-            }
-            ImageFormatType::R32I => {
-                self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::FitsR32IImageReq(
-                    <FitsImageRequest as ImageRequest<R32I>>::new(),
-                )));
-            }
-            _ => unimplemented!(),
-        }
-
+        self.reqs[free_idx] = Some(TileRequest::new(ImageRequestType::new(format)));
         self.reqs[free_idx].as_mut()
     }
 
@@ -136,6 +83,10 @@ impl RequestSystem {
                             TileResolved::Missing { time_req }
                         };
 
+                        // Ensure again if it totally resolved
+                        // for image bitmap, it must need further processing to convert the blob received
+                        // into a ImageBitmap => this is usually done by a JSPromise that we can't know
+                        // when it will be processed.
                         surveys.add_resolved_tile(tile, status);
                         handled_tile = true;
                     },
@@ -221,6 +172,7 @@ pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 use crate::ImageSurveys;
 use al_core::log::*;
 use wasm_bindgen::JsValue;
+use super::request::Request;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
         let requests = RequestSystem::new();
@@ -320,6 +272,47 @@ impl TileDownloader {
     }
 
     pub fn request_base_tiles(&mut self, config: &HiPSConfig) {
+        let allsky_request = Request::new::<Vec<ImageBitmap<RGB8U>>>(
+            "http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg",
+            async move {
+                use wasm_bindgen_futures::JsFuture;
+                use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
+                
+                let mut opts = RequestInit::new();
+                opts.method("GET");
+                opts.mode(RequestMode::Cors);
+
+                let request = Request::new_with_str_and_init("http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg", &opts).unwrap();
+                if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
+                    // `resp_value` is a `Response` object.
+                    debug_assert!(resp_value.is_instance_of::<Response>());
+                    let resp: Response = resp_value.dyn_into().unwrap();
+
+                    let blob = JsFuture::from(resp.blob().unwrap()).await.unwrap().into();
+
+                    for idx in 0..768 {
+                        let sw = 64;
+                        let sh = 64;
+
+                        let sx = (idx % 27) * sw;
+                        let sy = (idx / 27) * sh;
+
+                        let tile_bmp: web_sys::ImageBitmap = JsFuture::from(window.create_image_bitmap_with_blob_and_a_sx_and_a_sy_and_a_sw_and_a_sh(&blob, sx, sy, sw, sh).unwrap()).await
+                            .unwrap()
+                            .into();
+
+                        
+                    }
+                    
+
+                    bmp.set(image_bmp);
+                    resolved.set(ResolvedStatus::Found);
+                } else {
+                    resolved.set(ResolvedStatus::Missing);
+                }
+            }
+        );
+
         // Request base tiles
         for idx in 0..12 {
             let texture_cell = HEALPixCell(0, idx);
@@ -335,7 +328,7 @@ impl TileDownloader {
         }
     }
 
-    fn request_base_tile(&mut self, tile: Tile /*, max_num_requested_tiles: usize*/) {
+    fn request_base_tile(&mut self, tile: Tile) {
         // Resize the requested tiles
         let already_requested = self.requested_tiles.contains(&tile);
         // The cell is not already requested

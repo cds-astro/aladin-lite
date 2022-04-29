@@ -10,15 +10,15 @@ pub enum RetrievedImageType {
     FitsImageR32i { image: FitsImage<R32I> },
     FitsImageR16i { image: FitsImage<R16I> },
     FitsImageR8ui { image: FitsImage<R8UI> },
-    PngImageRgba8u { image: HTMLImage<RGBA8U> },
-    JpgImageRgb8u { image: HTMLImage<RGB8U> },
+    PngImageRgba8u { image: ImageBitmap<RGBA8U> },
+    JpgImageRgb8u { image: ImageBitmap<RGB8U> },
 }
 
 #[cfg(feature = "webgl1")]
 pub enum RetrievedImageType {
     FitsImageR32f { image: FitsImage<R32F> },
-    PngImageRgba8u { image: HTMLImage<RGBA8U> },
-    JpgImageRgb8u { image: HTMLImage<RGB8U> },
+    PngImageRgba8u { image: ImageBitmap<RGBA8U> },
+    JpgImageRgb8u { image: ImageBitmap<RGB8U> },
 }
 
 pub trait ImageRequest<F>
@@ -33,6 +33,7 @@ where
         success: Option<&Function>,
         fail: Option<&Function>,
         url: &str,
+        resolved: Rc<Cell<ResolvedStatus>>,
     ) -> Result<(), JsValue>;
     fn image(&self, tile_width: i32) -> Result<Self::I, JsValue>;
 }
@@ -43,44 +44,101 @@ pub enum ImageRequestType {
     FitsR32IImageReq(FitsImageRequest),
     FitsR16IImageReq(FitsImageRequest),
     FitsR8UIImageReq(FitsImageRequest),
-    PNGRGBA8UImageReq(CompressedImageRequest),
-    JPGRGB8UImageReq(CompressedImageRequest),
+    PNGRGBA8UImageReq(ImageBitmapRequest<RGBA8U>),
+    JPGRGB8UImageReq(ImageBitmapRequest<RGB8U>),
 }
 #[cfg(feature = "webgl1")]
 pub enum ImageRequestType {
     FitsR32FImageReq(FitsImageRequest),
-    PNGRGBA8UImageReq(CompressedImageRequest),
-    JPGRGB8UImageReq(CompressedImageRequest),
+    PNGRGBA8UImageReq(ImageBitmapRequest<RGBA8U>),
+    JPGRGB8UImageReq(ImageBitmapRequest<RGB8U>),
 }
 
+use al_core::format::ImageFormatType;
 impl ImageRequestType {
+    pub fn new(fmt: ImageFormatType) -> Self {
+        #[cfg(feature = "webgl2")]
+        match fmt {
+            ImageFormatType::RGBA8U => {
+                ImageRequestType::PNGRGBA8UImageReq(
+                    <ImageBitmapRequest<RGBA8U> as ImageRequest<RGBA8U>>::new(),
+                )
+            }
+            ImageFormatType::RGB8U => {
+                ImageRequestType::JPGRGB8UImageReq(
+                    <ImageBitmapRequest<RGB8U> as ImageRequest<RGB8U>>::new(),
+                )
+            }
+            ImageFormatType::R32F => {
+                ImageRequestType::FitsR32FImageReq(
+                    <FitsImageRequest as ImageRequest<R32F>>::new(),
+                )
+            }
+            ImageFormatType::R8UI => {
+                ImageRequestType::FitsR8UIImageReq(
+                    <FitsImageRequest as ImageRequest<R8UI>>::new(),
+                )
+            }
+            ImageFormatType::R16I => {
+                ImageRequestType::FitsR16IImageReq(
+                    <FitsImageRequest as ImageRequest<R16I>>::new(),
+                )
+            }
+            ImageFormatType::R32I => {
+                ImageRequestType::FitsR32IImageReq(
+                    <FitsImageRequest as ImageRequest<R32I>>::new(),
+                )
+            }
+            _ => unimplemented!(),
+        }
+        #[cfg(feature = "webgl1")]
+        match fmt {
+            ImageFormatType::RGBA8U => {
+                ImageRequestType::PNGRGBA8UImageReq(
+                    <ImageBitmapRequest as ImageRequest<RGBA8U>>::new()
+                )
+            }
+            ImageFormatType::RGB8U => {
+                ImageRequestType::JPGRGB8UImageReq(
+                    <ImageBitmapRequest as ImageRequest<RGB8U>>::new()
+                )
+            }
+            ImageFormatType::R32F => {
+                ImageRequestType::FitsR32FImageReq(
+                    <FitsImageRequest as ImageRequest<R32F>>::new()
+                )
+            }
+        }
+    }
+
     fn send(
         &self,
         success: Option<&Function>,
         fail: Option<&Function>,
         url: &str,
+        resolved: Rc<Cell<ResolvedStatus>>
     ) -> Result<(), JsValue> {
         match self {
             ImageRequestType::FitsR32FImageReq(r) => {
-                <FitsImageRequest as ImageRequest<R32F>>::send(r, success, fail, url)
+                <FitsImageRequest as ImageRequest<R32F>>::send(r, success, fail, url, resolved)
             }
             #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR32IImageReq(r) => {
-                <FitsImageRequest as ImageRequest<R32I>>::send(r, success, fail, url)
+                <FitsImageRequest as ImageRequest<R32I>>::send(r, success, fail, url, resolved)
             }
             #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR16IImageReq(r) => {
-                <FitsImageRequest as ImageRequest<R16I>>::send(r, success, fail, url)
+                <FitsImageRequest as ImageRequest<R16I>>::send(r, success, fail, url, resolved)
             }
             #[cfg(feature = "webgl2")]
             ImageRequestType::FitsR8UIImageReq(r) => {
-                <FitsImageRequest as ImageRequest<R8UI>>::send(r, success, fail, url)
+                <FitsImageRequest as ImageRequest<R8UI>>::send(r, success, fail, url, resolved)
             }
             ImageRequestType::PNGRGBA8UImageReq(r) => {
-                <CompressedImageRequest as ImageRequest<RGBA8U>>::send(r, success, fail, url)
+                <ImageBitmapRequest<RGBA8U> as ImageRequest<RGBA8U>>::send(r, success, fail, url, resolved)
             }
             ImageRequestType::JPGRGB8UImageReq(r) => {
-                <CompressedImageRequest as ImageRequest<RGB8U>>::send(r, success, fail, url)
+                <ImageBitmapRequest<RGB8U> as ImageRequest<RGB8U>>::send(r, success, fail, url, resolved)
             }
         }
     }
@@ -205,6 +263,7 @@ impl TileRequest {
             Some(self.closures[0].as_ref().unchecked_ref()),
             Some(self.closures[1].as_ref().unchecked_ref()),
             &url,
+            self.resolved.clone()
         )?;
 
         //self.closures = [success, fail];
@@ -290,6 +349,92 @@ where
     }
 }
 
+/*-----------------------------------------------------*/
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct ImageBitmap<F>
+where
+    F: ImageFormat + Clone,
+{
+    pub image: Arc<Mutex<Option<web_sys::ImageBitmap>>>,
+    pub size: Vector2<i32>,
+    format: std::marker::PhantomData<F>,
+}
+use crate::num_traits::Zero;
+impl<F> ImageBitmap<F>
+where
+    F: ImageFormat + Clone,
+{
+    pub fn empty() -> Self {
+        //al_core::log(&format!("size image bitmap received: {:?}", size));
+        Self {
+            image: Arc::new(Mutex::new(None)),
+            size: Vector2::zero(),
+            format: std::marker::PhantomData
+        }
+    }
+
+    pub fn new(bmp: Arc<Mutex<Option<web_sys::ImageBitmap>>>, size: Vector2<i32>) -> Self {
+        al_core::log(&format!("size image bitmap received: {:?}", size));
+        Self {
+            image: bmp,
+            size: size,
+            format: std::marker::PhantomData
+        }
+    }
+
+    pub fn set(&mut self, bmp: web_sys::ImageBitmap) {
+        self.size = Vector2::new(
+            bmp.width() as i32,
+            bmp.height() as i32
+        );
+
+        *(self.image.lock().unwrap()) = Some(bmp);
+    }
+}
+
+impl<F> Image for ImageBitmap<F>
+where
+    F: ImageFormat + Clone,
+{
+    type T = F;
+
+    fn tex_sub_image_3d(
+        &self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>,
+    ) {
+        if let Some(bitmap) = &*self.image.lock().unwrap() {
+            textures[offset.z as usize]
+            .bind()
+            .tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
+                offset.x,
+                offset.y,
+                bitmap,
+            );
+        } else {
+            unreachable!();
+        }
+    }
+
+    // The size of the image
+    fn get_size(&self) -> &Vector2<i32> {
+        &self.size
+    }
+}
+
+impl<F> Drop for ImageBitmap<F>
+where
+    F: ImageFormat + Clone
+{
+    fn drop(&mut self) {
+        //al_core::log("HTML Image dropped!");
+    }
+}
+
+
 pub struct CompressedImageRequest {
     image: web_sys::HtmlImageElement,
 }
@@ -297,7 +442,7 @@ pub struct CompressedImageRequest {
 #[cfg(feature = "webgl2")]
 use al_core::format::{R16I, R32I, R8UI};
 use al_core::format::{R32F, RGB8U, RGBA8U};
-trait CompressedImageFormat: ImageFormat {}
+pub trait CompressedImageFormat: ImageFormat {}
 impl CompressedImageFormat for RGBA8U {}
 impl CompressedImageFormat for RGB8U {}
 
@@ -319,6 +464,7 @@ where
         success: Option<&Function>,
         fail: Option<&Function>,
         url: &str,
+        resolved: Rc<Cell<ResolvedStatus>>,
     ) -> Result<(), JsValue> {
         self.image.set_onload(success);
         self.image.set_onerror(fail);
@@ -486,11 +632,6 @@ where
     }
 }
 
-use web_sys::XmlHttpRequest;
-pub struct FitsImageRequest {
-    image: XmlHttpRequest,
-}
-
 use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
 use web_sys::XmlHttpRequestResponseType;
@@ -544,8 +685,13 @@ impl FitsImageFormat for R8UI {
     }
 }
 
+use web_sys::XmlHttpRequest;
 use std::alloc::{alloc, Layout};
 use fitsrs::FitsMemAligned;
+pub struct FitsImageRequest {
+    image: XmlHttpRequest,
+}
+
 impl<F> ImageRequest<F> for FitsImageRequest
 where
     F: FitsImageFormat,
@@ -564,6 +710,7 @@ where
         success: Option<&Function>,
         fail: Option<&Function>,
         url: &str,
+        _resolved: Rc<Cell<ResolvedStatus>>,
     ) -> Result<(), JsValue> {
         self.image.open_with_async("GET", url, true)?;
         self.image.set_onload(success);
@@ -578,5 +725,79 @@ where
         // We know at this point the request is resolved
         let fits_raw_bytes = js_sys::Uint8Array::new(self.image.response().unwrap().as_ref());
         FitsImage::new(&fits_raw_bytes, size)
+    }
+}
+
+pub struct ImageBitmapRequest<F>
+where
+    F: CompressedImageFormat + Clone + 'static
+{
+    //image: XmlHttpRequest,
+    result: ImageBitmap<F>,
+}
+
+use std::sync::{Mutex, Arc};
+use std::cell::RefCell;
+impl<F> ImageRequest<F> for ImageBitmapRequest<F>
+where
+    F: CompressedImageFormat + Clone + 'static,
+{
+    type I = ImageBitmap<F>;
+
+    fn new() -> Self {
+        /*let image = XmlHttpRequest::new().unwrap();
+        image.set_response_type(XmlHttpRequestResponseType::Blob);
+
+        Self { image }*/
+        Self {
+            result: ImageBitmap::<F>::empty()
+        }
+    }
+
+    fn send(
+        &self,
+        _success: Option<&Function>,
+        _fail: Option<&Function>,
+        url: &str,
+        resolved: Rc<Cell<ResolvedStatus>>,
+    ) -> Result<(), JsValue> {
+        // Define the future to execute
+        let window = web_sys::window().unwrap();
+
+        let mut bmp = self.result.clone();
+        let url = String::from(url);
+        let fut = async move {
+            use wasm_bindgen_futures::JsFuture;
+            use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
+            let mut opts = RequestInit::new();
+            opts.method("GET");
+            opts.mode(RequestMode::Cors);
+
+            let request = Request::new_with_str_and_init(&url, &opts).unwrap();
+            if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
+                // `resp_value` is a `Response` object.
+                debug_assert!(resp_value.is_instance_of::<Response>());
+                let resp: Response = resp_value.dyn_into().unwrap();
+
+                let blob = JsFuture::from(resp.blob().unwrap()).await.unwrap().into();
+
+                let image_bmp = JsFuture::from(window.create_image_bitmap_with_blob(&blob).unwrap()).await
+                    .unwrap()
+                    .into();
+
+                bmp.set(image_bmp);
+                resolved.set(ResolvedStatus::Found);
+            } else {
+                resolved.set(ResolvedStatus::Missing);
+            }
+        };
+
+        wasm_bindgen_futures::spawn_local(fut);
+
+        Ok(())
+    }
+
+    fn image(&self, _size: i32) -> Result<Self::I, JsValue> {
+        Ok(self.result.clone())
     }
 }

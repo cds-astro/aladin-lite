@@ -68,7 +68,8 @@ features = [
   'ImageData',
   'Storage',
   'WebGlActiveInfo',
-  'GpuRenderBundleEncoder'
+  'GpuRenderBundleEncoder',
+  'ImageBitmap'
 ]
 
 [profile.dev]

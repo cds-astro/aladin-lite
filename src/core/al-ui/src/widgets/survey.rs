@@ -299,18 +299,25 @@ impl SurveyWidget {
         } else {
             None
         };
-        let format = if self.properties.hips_tile_format.contains("fits") {
-            HiPSTileFormat::FITS
-        } else if self.properties.hips_tile_format.contains("png") {
-            HiPSTileFormat::PNG
-        } else {
-            HiPSTileFormat::JPG
-        };
+        let mut formats = vec![];
+
+        if self.properties.hips_tile_format.contains("fits") {
+            formats.push(HiPSTileFormat::FITS);
+        }
+
+        if self.properties.hips_tile_format.contains("png") {
+            formats.push(HiPSTileFormat::PNG);
+        }
+
+        if self.properties.hips_tile_format.contains("jpeg") {
+            formats.push(HiPSTileFormat::JPEG);
+        }
 
         let opacity = if !self.visible { 0.0 } else { self.opacity };
 
         SimpleHiPS {
             layer: self.url.clone(),
+            img_format: *formats.first().unwrap(),
             properties: HiPSProperties::new(
                 self.url.clone(),
                 max_order,
@@ -320,7 +327,7 @@ impl SurveyWidget {
                 min_cutout,
                 max_cutout,
                 bitpix,
-                format
+                formats
             ),
             meta: ImageSurveyMeta {
                 color: self.color_cfg.clone(),

@@ -1152,7 +1152,6 @@ export let Aladin = (function () {
             if (isChecked) {
                 self.view.setGridConfig({
                     enabled: true,
-                    color: [0.0, 1.0, 0.0, 0.5],
                 });
             } else {
                 self.view.setGridConfig({

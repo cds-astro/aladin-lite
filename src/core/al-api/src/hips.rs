@@ -31,6 +31,8 @@ pub struct SimpleHiPS {
     pub meta: ImageSurveyMeta,
 
     pub backend: Option<i64>,
+
+    pub img_format: HiPSTileFormat,
 }
 
 /*#[wasm_bindgen]
@@ -61,7 +63,6 @@ use crate::coo_system::CooSystem;
 #[derive(Deserialize, Debug)]
 #[derive(Clone)]
 #[serde(rename_all = "camelCase")]
-#[wasm_bindgen]
 pub struct HiPSProperties {
     // Associated with the HiPS
     url: String,
@@ -69,7 +70,7 @@ pub struct HiPSProperties {
     frame: CooSystem,
     tile_size: i32,
     bitpix: Option<i32>,
-    format: HiPSTileFormat,
+    formats: Vec<HiPSTileFormat>,
 
     // Parametrable by the user
     pub longitude_reversed: bool,
@@ -77,60 +78,52 @@ pub struct HiPSProperties {
     pub max_cutout: Option<f32>,
 }
 
-#[wasm_bindgen]
 impl HiPSProperties {
-    #[wasm_bindgen(constructor)]
-    pub fn new(url: String, max_order: u8, frame: CooSystem, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, format: HiPSTileFormat) -> Self {
+    pub fn new(url: String, max_order: u8, frame: CooSystem, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, formats: Vec<HiPSTileFormat>) -> Self {
         Self {
             url,
             max_order,
             frame,
             longitude_reversed,
             tile_size,
-            format,
+            formats,
             bitpix,
             min_cutout,
             max_cutout
         }
     }
 
-    #[wasm_bindgen(getter)]
     pub fn get_url(&self) -> String {
         self.url.clone()
     }
 
-    #[wasm_bindgen(getter)]
     pub fn get_max_order(&self) -> u8 {
         self.max_order
     }
 
-    #[wasm_bindgen(getter)]
     pub fn get_bitpix(&self) -> Option<i32> {
         self.bitpix
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn get_format(&self) -> HiPSTileFormat {
-        self.format
+    pub fn get_formats(&self) -> &[HiPSTileFormat] {
+        &self.formats[..]
     }
 
-    #[wasm_bindgen(getter)]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
 
-    #[wasm_bindgen(getter)]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
     }
 }
 
 #[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 #[wasm_bindgen]
 pub enum HiPSTileFormat {
     FITS,
-    JPG,
+    JPEG,
     PNG
 }
 

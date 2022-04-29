@@ -171,7 +171,13 @@ use al_api::hips::HiPSTileFormat;
 use wasm_bindgen::JsValue;
 
 impl HiPSConfig {
-    pub fn new(_gl: &WebGlContext, properties: &HiPSProperties) -> Result<HiPSConfig, JsValue> {
+    /// Define a HiPS configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `properties` - A description of the HiPS, its metadata, available formats  etc...
+    /// * `img_format` - Image format wanted by the user
+    pub fn new(properties: &HiPSProperties, img_format: HiPSTileFormat) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
@@ -186,14 +192,20 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let fmt = &properties.get_format();
+        let fmt = properties.get_formats();
         let longitude_reversed = properties.longitude_reversed;
         let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;
 
         let mut tex_storing_fits = false;
-        let tile_config: Result<_, JsValue> = match fmt {
+        
+        
+        if !properties.get_formats().contains(&img_format) {
+            return Err(js_sys::Error::new("HiPS format not available").into());
+        }
+
+        let tile_config: Result<_, JsValue> = match img_format {
             HiPSTileFormat::FITS => {
                 tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
@@ -251,7 +263,7 @@ impl HiPSConfig {
                     config: TileConfig::<RGBA8U>::new(tile_size),
                 })
             },
-            HiPSTileFormat::JPG => {
+            HiPSTileFormat::JPEG => {
                 Ok(TileConfigType::RGB8U {
                     config: TileConfig::<RGB8U>::new(tile_size),
                 })

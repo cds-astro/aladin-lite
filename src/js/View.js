@@ -464,7 +464,7 @@ export let View = (function() {
                     .slice()
                     .reverse()) {
                     const s = view.imageSurveys.get(layer);
-                    if (s.properties.format === "FITS") {
+                    if (s.imgFormat === "FITS") {
                         survey = s;
                         break;
                     }
@@ -1802,10 +1802,12 @@ export let View = (function() {
             let surveys = this.buildSortedImageSurveys()
                 .filter(x => x !== undefined && x.properties )
                 .map((x) => {
+                    console.log("img format: ", x.imgFormat)
                     return {
                         layer: x.layer,
                         properties: x.properties,
                         meta: x.meta,
+                        imgFormat: x.imgFormat,
                     };
                 });
 

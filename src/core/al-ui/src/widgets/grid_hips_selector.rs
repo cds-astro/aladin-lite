@@ -88,9 +88,9 @@ impl SurveyGrid {
         let (user_texture, size_thumbnail_tex) = {
             let size_thumbnail_img = (320, 192);
 
-            let image_buf = img_pixel::load_from_memory_with_format(
+            let image_buf = image_decoder::load_from_memory_with_format(
                 include_bytes!("../../img/tileset.png"),
-                img_pixel::ImageFormat::Png,
+                image_decoder::ImageFormat::Png,
             )
             .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
             //let mut data_rgba = Vec::with_capacity((width_thumbnail_img as usize) * (height_thumbnail_img as usize) * 4);
@@ -189,7 +189,7 @@ impl SurveyGrid {
 }
 
 mod tests {
-    use img_pixel::{ImageBuffer, RgbaImage};
+    use image_decoder::{ImageBuffer, RgbaImage};
 
     #[test]
     fn test_open_png_image() {

@@ -143,18 +143,22 @@ export let HpxImageSurvey = (function() {
         }
 
         // HiPS tile format
-        let tileFormat = null;
-        const tileFormats = (options && options.imgFormat) || "jpeg";
-        if (tileFormats && tileFormats.indexOf('fits') >= 0) {
-            tileFormat = "FITS";
+        //let tileFormat = null;
+        let imgFormat = (options && options.imgFormat) || "jpeg";
+        this.imgFormat = imgFormat.toUpperCase();
+
+        if (this.imgFormat === 'FITS') {
+            console.log("I want a fits hips")
+            //tileFormat = "FITS";
             this.fits = true;
-        } else if (tileFormats && tileFormats.indexOf('png') >= 0) {
-            tileFormat = "PNG";
+        } else if (this.imgFormat === "PNG") {
+            //tileFormat = "PNG";
             this.fits = false;
         } else {
-            tileFormat = "JPG";
+            //tileFormat = "JPG";
             this.fits = false;
         }
+
 
         if (this.fits && (options && options.colormap)) {
             this.meta = {
@@ -223,21 +227,14 @@ export let HpxImageSurvey = (function() {
             }
 
             // HiPS tile format
-            let tileFormat;
-            const tileFormats = metadata.hips_tile_format.split(' ');
+            const tileFormats = metadata.hips_tile_format.split(' ').map((fmt) => fmt.toUpperCase());
             if (this.fits) {
                 // user wants a fits file
-                if (tileFormats.indexOf('fits') >= 0) {
-                    tileFormat = "FITS";
-                } else {
+                if (tileFormats.indexOf('FITS') < 0) {
                     throw name + " has only image tiles and not fits ones";
                 }
             } else {
-                if (tileFormats.indexOf('png') >= 0) {
-                    tileFormat = "PNG";
-                } else if (tileFormats.indexOf('jpeg') >= 0) {
-                    tileFormat = "JPG";
-                } else {
+                if (tileFormats.indexOf('PNG') < 0 && tileFormats.indexOf('JPEG') < 0) {
                     throw name + " has only fits tiles and not image ones";
                 }
             }
@@ -283,7 +280,7 @@ export let HpxImageSurvey = (function() {
                 frame: frame,
                 longitudeReversed: longitudeReversed,
                 tileSize: tileSize,
-                format: tileFormat,
+                formats: tileFormats,
                 minCutout: minCut,
                 maxCutout: maxCut,
                 bitpix: bitpix,

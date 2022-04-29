@@ -1029,7 +1029,7 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 
 use crate::shaders::Colormaps;
 use crate::Resources;
-
+use crate::buffer::ImageBitmap;
 use crate::buffer::Tile;
 use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
@@ -1214,8 +1214,8 @@ impl ImageSurveys {
         self.meta.clear();
         self.layers.clear();
         self.urls.clear();
-        for SimpleHiPS { layer, properties, meta, .. } in hipses.into_iter() {
-            let config = HiPSConfig::new(gl, &properties)?;
+        for SimpleHiPS { layer, properties, meta, img_format, .. } in hipses.into_iter() {
+            let config = HiPSConfig::new(&properties, img_format)?;
 
             // Get the most precise survey from all the ones given
             let url = properties.get_url();
@@ -1321,6 +1321,8 @@ impl ImageSurveys {
                             );
                         }
                         TileConfigType::RGB8U { config } => {
+                            al_core::log("push missing image jpg");
+
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<RGB8U>>>(
                                 tile,
@@ -1410,12 +1412,10 @@ impl ImageSurveys {
                             textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
                         }
                         RetrievedImageType::PngImageRgba8u { image } => {
-                            //al_core::log("push image png");
-                            textures.push::<HTMLImage<RGBA8U>>(tile, image, time_req, missing);
+                            textures.push::<ImageBitmap<RGBA8U>>(tile, image, time_req, missing);
                         }
                         RetrievedImageType::JpgImageRgb8u { image } => {
-                            //al_core::log("push image jpg");
-                            textures.push::<HTMLImage<RGB8U>>(tile, image, time_req, missing);
+                            textures.push::<ImageBitmap<RGB8U>>(tile, image, time_req, missing);
                         }
                     }
                 }

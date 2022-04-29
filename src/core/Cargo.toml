@@ -29,14 +29,15 @@ healpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-heal
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 num = "*"
+image-decoder = { package = "image", version = "0.24.*", default-features = false, features = ["jpeg", "png"] }
 fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'master' }
-rand = { version = "0.7.3", features = ["wasm-bindgen"] }
+#rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 num-traits = "0.2.14"
-img_pixel = { package = "image", version = "0.23.14" }
 egui = "*"
 epi = "*"
 fontdue = "0.7.2"
 enum_dispatch = "0.3.7"
+wasm-rs-async-executor = "0.9.0"
 
 al-core = { path = "./al-core" }
 al-ui = { path = "./al-ui" }
@@ -103,7 +104,10 @@ features = [
   'ImageData',
   'Storage',
   'WebGlActiveInfo',
-  'GpuRenderBundleEncoder'
+  'GpuRenderBundleEncoder',
+  'Url',
+  'Blob',
+  'ImageBitmap'
 ]
 
 [profile.dev]

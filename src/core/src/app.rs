@@ -694,9 +694,59 @@ where
 
         // Once its added, request its tiles
         self.look_for_new_tiles();
-        for survey in self.surveys.surveys.values() {
-            let config = &survey.get_textures().config;
-            self.downloader.request_base_tiles(config);
+        for survey in self.surveys.surveys.values_mut() {
+            // Request for the allsky first
+            // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
+            let url = format!("{}/Norder3/Allsky.jpg", survey.get_textures().config().root_url);
+            al_core::log(&format!("url: {:?}", &url));
+
+            //if let Ok(blob) = crate::utils::request(url.clone()) {
+            //    al_core::log(&format!("url: {:?}", url));
+
+                /*use std::sync::mpsc::channel;
+                let (tx, rx) = channel();
+
+                let fut = async move {
+                    let window = web_sys::window().unwrap();
+
+                    for cell in crate::healpix_cell::HEALPixCell::allsky(3) {        
+                        let offset: Vector2<_> = Vector2::new(
+                            (cell.idx() % 27) * 64,
+                            (cell.idx() / 27) * 64
+                        );
+
+                        use wasm_bindgen_futures::JsFuture;
+                        // Create an image bitmap of that cell
+                        let promise = window.create_image_bitmap_with_blob_and_a_sx_and_a_sy_and_a_sw_and_a_sh(
+                            &blob,
+                            offset.x as i32,
+                            offset.y as i32,
+                            64, 
+                            64
+                            ).unwrap();
+                        let image_bmp = JsFuture::from(promise).await
+                            .unwrap()
+                            .dyn_into::<web_sys::ImageBitmap>()
+                            .unwrap();
+                        use crate::buffer::ImageBitmap;
+                        let size = Vector2::new(offset.x, offset.y);
+                        let image_bmp = ImageBitmap::<al_core::format::RGB8U>::new(image_bmp);
+
+                        tx.send((cell, image_bmp)).unwrap();
+                    }
+                };
+
+                wasm_bindgen_futures::spawn_local(fut);
+
+                let textures = survey.get_textures_mut();
+
+                while let Ok((cell, image_bmp)) = rx.recv() {
+                    let tile = Tile::new(&cell, textures.config());
+                    textures.push(&tile, image_bmp, Time::now(), false);
+                }*/
+            //} else {
+                self.downloader.request_base_tiles(survey.get_textures().config());
+            //}
         }
 
         self.request_redraw = true;

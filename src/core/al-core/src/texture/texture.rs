@@ -411,6 +411,42 @@ impl<'a> Texture2DBound<'a> {
             .expect("Sub texture 2d");
     }
 
+    pub fn tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
+        &self,
+        dx: i32,
+        dy: i32,
+        image: &web_sys::ImageBitmap,
+    ) {
+        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
+
+        #[cfg(feature = "webgl2")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                *format,
+                *type_,
+                &image,
+            )
+            .expect("Sub texture 2d");
+        #[cfg(feature = "webgl1")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                *format,
+                *type_,
+                &image,
+            )
+            .expect("Sub texture 2d");
+    }
+
     pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
         &self,
         dx: i32,

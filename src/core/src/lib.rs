@@ -13,11 +13,11 @@ extern crate egui;
 extern crate epi;
 extern crate fitsrs;
 extern crate fontdue;
-extern crate img_pixel;
+extern crate image_decoder;
 extern crate itertools_num;
 extern crate num;
 extern crate num_traits;
-extern crate rand;
+//extern crate rand;
 extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;

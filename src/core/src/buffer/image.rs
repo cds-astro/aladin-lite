@@ -169,7 +169,7 @@ impl ImageRequestType {
         }
     }
 }
-use super::Tile;
+use super::tile::Tile;
 
 pub struct TileRequest {
     // Is none when it is available for downloading a new fits
@@ -379,7 +379,6 @@ where
             bmp.width() as i32,
             bmp.height() as i32
         );
-        al_core::log(&format!("size image bitmap received: {:?}", size));
         Self {
             image: Arc::new(Mutex::new(Some(bmp))),
             size: size,
@@ -511,14 +510,14 @@ where
     // Raw pointer to the fits in memory
     aligned_raw_bytes_ptr: *mut u8,
     // Raw pointer to the data part of the fits
-    aligned_data_raw_bytes_ptr: *const F::Type,
+    pub aligned_data_raw_bytes_ptr: *const F::Type,
 }
 
 impl<F> FitsImage<F>
 where 
     F: FitsImageFormat,
 {
-    pub fn new(fits_raw_bytes: &js_sys::Uint8Array, size: i32) -> Result<Self, JsValue> {
+    pub fn new(fits_raw_bytes: &js_sys::Uint8Array, width: i32, height: i32) -> Result<Self, JsValue> {
         // Create a correctly aligned buffer to the type F
         let align = std::mem::size_of::<F::Type>();
         let layout = Layout::from_size_align(fits_raw_bytes.length() as usize, align)
@@ -528,10 +527,11 @@ where
 
         let FitsMemAligned { data, header } = unsafe {
             // 2. Copy the raw fits bytes into that aligned memory space
-            fits_raw_bytes.raw_copy_to_ptr(aligned_raw_bytes_ptr);        
-
+            fits_raw_bytes.raw_copy_to_ptr(aligned_raw_bytes_ptr);
+            
             // 3. Convert to a slice of bytes
             let aligned_raw_bytes = std::slice::from_raw_parts(aligned_raw_bytes_ptr, fits_raw_bytes.length() as usize);
+
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
             FitsMemAligned::<F::Type>::from_byte_slice(aligned_raw_bytes)
                 .map_err(|e| {
@@ -540,7 +540,15 @@ where
                     ))
                 })?
         };
-        let num_pixels = (size*size) as usize;
+
+        /*let data = data
+            .chunks(width as usize)
+            .rev()
+            .flatten()
+            .map(|e| e.clone())
+            .collect::<Vec<_>>();*/
+
+        let num_pixels = (width * height) as usize;
         assert_eq!(data.len(), num_pixels);
 
         let bscale = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BSCALE") {
@@ -575,7 +583,7 @@ where
             bzero,
             bscale,
             // Tile size
-            size: Vector2::new(size, size),
+            size: Vector2::new(width, height),
 
             // Allocation info of the layout
             layout,
@@ -644,7 +652,7 @@ use al_core::format::ImageFormat;
 
 use fitsrs::ToBigEndian;
 pub trait FitsImageFormat: ImageFormat {
-    type Type: ToBigEndian;
+    type Type: ToBigEndian + Clone;
     type ArrayBufferView: AsRef<js_sys::Object>;
 
     unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView;
@@ -728,7 +736,7 @@ where
     fn image(&self, size: i32) -> Result<Self::I, JsValue> {
         // We know at this point the request is resolved
         let fits_raw_bytes = js_sys::Uint8Array::new(self.image.response().unwrap().as_ref());
-        FitsImage::new(&fits_raw_bytes, size)
+        FitsImage::new(&fits_raw_bytes, size, size)
     }
 }
 
@@ -749,10 +757,6 @@ where
     type I = ImageBitmap<F>;
 
     fn new() -> Self {
-        /*let image = XmlHttpRequest::new().unwrap();
-        image.set_response_type(XmlHttpRequestResponseType::Blob);
-
-        Self { image }*/
         Self {
             result: ImageBitmap::<F>::empty()
         }

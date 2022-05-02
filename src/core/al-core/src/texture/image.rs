@@ -7,6 +7,9 @@ pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
     fn empty(size: u32, blank_value: Self::Item) -> Self;
 
     fn to_vec(&self) -> Vec<Self::Item>;
+
+    fn set_index(&self, idx: u32, value: Self::Item);
+    fn get(&self, idx: u32) -> Self::Item;
 }
 #[derive(Debug)]
 pub struct ArrayU8(js_sys::Uint8Array);
@@ -32,6 +35,14 @@ impl ArrayBuffer for ArrayU8 {
     fn to_vec(&self) -> Vec<Self::Item> {
         self.0.to_vec()
     }
+
+    fn set_index(&self, idx: u32, value: Self::Item) {
+        self.0.set_index(idx, value);
+    }
+
+    fn get(&self, idx: u32) -> Self::Item {
+        self.0.get_index(idx)
+    }
 }
 #[derive(Debug)]
 pub struct ArrayI16(js_sys::Int16Array);
@@ -55,6 +66,14 @@ impl ArrayBuffer for ArrayI16 {
 
     fn to_vec(&self) -> Vec<Self::Item> {
         self.0.to_vec()
+    }
+
+    fn set_index(&self, idx: u32, value: Self::Item) {
+        self.0.set_index(idx, value);
+    }
+
+    fn get(&self, idx: u32) -> Self::Item {
+        self.0.get_index(idx)
     }
 }
 #[derive(Debug)]
@@ -80,6 +99,14 @@ impl ArrayBuffer for ArrayI32 {
     fn to_vec(&self) -> Vec<Self::Item> {
         self.0.to_vec()
     }
+
+    fn set_index(&self, idx: u32, value: Self::Item) {
+        self.0.set_index(idx, value);
+    }
+
+    fn get(&self, idx: u32) -> Self::Item {
+        self.0.get_index(idx)
+    }
 }
 #[derive(Debug)]
 pub struct ArrayF32(js_sys::Float32Array);
@@ -103,6 +130,14 @@ impl ArrayBuffer for ArrayF32 {
 
     fn to_vec(&self) -> Vec<Self::Item> {
         self.0.to_vec()
+    }
+
+    fn set_index(&self, idx: u32, value: Self::Item) {
+        self.0.set_index(idx, value);
+    }
+
+    fn get(&self, idx: u32) -> Self::Item {
+        self.0.get_index(idx)
     }
 }
 
@@ -129,6 +164,14 @@ impl ArrayBuffer for ArrayF64 {
     fn to_vec(&self) -> Vec<Self::Item> {
         self.0.to_vec()
     }
+
+    fn set_index(&self, idx: u32, value: Self::Item) {
+        self.0.set_index(idx, value);
+    }
+
+    fn get(&self, idx: u32) -> Self::Item {
+        self.0.get_index(idx)
+    }
 }
 
 use super::format::ImageFormat;
@@ -139,34 +182,41 @@ pub struct ImageBuffer<T>
 where
     T: ImageFormat,
 {
-    buf: <<T as ImageFormat>::P as Pixel>::Container,
+    data: Vec<<<T as ImageFormat>::P as Pixel>::Item>,
     size: Vector2<i32>,
-    format: std::marker::PhantomData<T>,
 }
 
 impl<T> ImageBuffer<T>
 where
     T: ImageFormat,
 {
-    pub fn new(buf: &[<<T as ImageFormat>::P as Pixel>::Item], width: i32) -> Self {
-        let size_buf = width * width * (T::NUM_CHANNELS as i32);
-        assert_eq!(size_buf, buf.len() as i32);
-        let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
-        let size = Vector2::new(width, width);
+    pub fn new(data: Vec<<<T as ImageFormat>::P as Pixel>::Item>, width: i32, height: i32) -> Self {
+        let size_buf = width * height * (T::NUM_CHANNELS as i32);
+        debug_assert!(size_buf == data.len() as i32);
+        //let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
+        let size = Vector2::new(width, height);
         Self {
-            buf,
+            data,
             size,
-            format: std::marker::PhantomData,
+        }
+    }
+
+    pub fn empty() -> Self {
+        let size = Vector2::new(0, 0);
+        Self {
+            data: vec![],
+            size,
         }
     }
 
     pub fn allocate(
-        width: i32,
         pixel_fill: &<<Self as Image>::T as ImageFormat>::P,
+        width: i32,
+        height: i32,
     ) -> ImageBuffer<T> {
-        let size_buf = (width * width * (T::NUM_CHANNELS as i32)) as usize;
+        let size_buf = ((width * height) as usize) * (T::NUM_CHANNELS);
 
-        let pixels = pixel_fill
+        let mut data = pixel_fill
             .as_ref()
             .iter()
             .cloned()
@@ -174,8 +224,59 @@ where
             .take(size_buf)
             .collect::<Vec<_>>();
 
-        ImageBuffer::<T>::new(&pixels[..], width)
+        ImageBuffer::<T>::new(data, width, height)
     }
+
+    pub fn tex_sub(&mut self, src: &Self, sx: i32, sy: i32, sw: i32, sh: i32, dx: i32, dy: i32, dw: i32, dh: i32) {
+        let mut di = dx;
+        let mut dj = dy;
+
+        for ix in sx..(sx+sw) {
+            for iy in sy..(sy+sh) {
+                let s_idx = (iy * src.width() + ix) as usize;
+                let d_idx = (di * self.width() + dj) as usize;
+
+                for i in 0..T::NUM_CHANNELS {
+                    let si = s_idx * T::NUM_CHANNELS + i;
+                    let di = d_idx * T::NUM_CHANNELS + i;
+                    let value = src.data[si];
+                    self.data[di] = value;
+                }
+
+                di += 1;
+                if di >= dx + dw {
+                    di = dx;
+                    dj += 1;
+                }
+            }
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &<<T as ImageFormat>::P as Pixel>::Item> {
+        self.data.iter()
+    }
+
+    pub fn get_data(&self) -> &[<<T as ImageFormat>::P as Pixel>::Item] {
+        &self.data
+    }
+
+    pub fn width(&self) -> i32 {
+        self.size.x
+    }
+
+    pub fn height(&self) -> i32 {
+        self.size.y
+    }
+}
+
+use crate::texture::{RGB8U, RGBA8U, R32F, R8UI, R16I, R32I};
+pub enum ImageBufferType {
+    JPG(ImageBuffer<RGB8U>),
+    PNG(ImageBuffer<RGBA8U>),
+    R32F(ImageBuffer<R32F>),
+    R8UI(ImageBuffer<R8UI>),
+    R16I(ImageBuffer<R16I>),
+    R32I(ImageBuffer<R32I>),
 }
 
 use super::Texture2DArray;
@@ -230,6 +331,7 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
+        let js_array = <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
@@ -237,7 +339,7 @@ where
                 offset.y,
                 self.size.x,
                 self.size.y,
-                Some(self.buf.as_ref()),
+                Some(js_array.as_ref()),
             );
     }
 

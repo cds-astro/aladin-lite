@@ -37,7 +37,7 @@ egui = "*"
 epi = "*"
 fontdue = "0.7.2"
 enum_dispatch = "0.3.7"
-wasm-rs-async-executor = "0.9.0"
+
 
 al-core = { path = "./al-core" }
 al-ui = { path = "./al-ui" }
@@ -107,7 +107,8 @@ features = [
   'GpuRenderBundleEncoder',
   'Url',
   'Blob',
-  'ImageBitmap'
+  'ImageBitmap',
+  'Worker'
 ]
 
 [profile.dev]

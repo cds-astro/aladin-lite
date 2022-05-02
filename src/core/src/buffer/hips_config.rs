@@ -5,7 +5,7 @@ where
     F: ImageFormat,
 {
     // The size of the tile in the texture
-    width: i32,
+    size: i32,
     default: Rc<ImageBuffer<F>>,
     pixel_fill: <F as ImageFormat>::P,
 }
@@ -14,12 +14,12 @@ impl<F> TileConfig<F>
 where
     F: ImageFormat,
 {
-    fn new(width: i32) -> TileConfig<F> {
-        debug_assert!(math::is_power_of_two(width as usize));
+    fn new(size: i32) -> TileConfig<F> {
+        debug_assert!(math::is_power_of_two(size as usize));
         let pixel_fill = <<F as ImageFormat>::P as Pixel>::BLACK;
-        let default = Rc::new(ImageBuffer::<F>::allocate(width, &pixel_fill));
+        let default = Rc::new(ImageBuffer::<F>::allocate(&pixel_fill, size, size));
         TileConfig {
-            width,
+            size,
             default,
             pixel_fill,
         }
@@ -70,12 +70,12 @@ impl TileConfigType {
     }
     fn width(&self) -> i32 {
         match self {
-            TileConfigType::RGBA8U { config } => config.width,
-            TileConfigType::RGB8U { config } => config.width,
-            TileConfigType::R32F { config } => config.width,
-            TileConfigType::R8UI { config } => config.width,
-            TileConfigType::R16I { config } => config.width,
-            TileConfigType::R32I { config } => config.width,
+            TileConfigType::RGBA8U { config } => config.size,
+            TileConfigType::RGB8U { config } => config.size,
+            TileConfigType::R32F { config } => config.size,
+            TileConfigType::R8UI { config } => config.size,
+            TileConfigType::R16I { config } => config.size,
+            TileConfigType::R32I { config } => config.size,
         }
     }
 }

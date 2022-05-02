@@ -2,7 +2,7 @@ use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{Build
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         survey::image_survey::ImageSurveys,
-    }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils};
+    }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils, request::RequestSender};
 use al_core::{
     resources::Resources,
     pixel::PixelType, WebGlContext
@@ -74,6 +74,8 @@ where
     pub fbo_ui: FrameBufferObject,
 
     pub colormaps: Colormaps,
+
+    request_sender: RequestSender,
 
     p: std::marker::PhantomData<P>,
 }
@@ -195,8 +197,8 @@ where
 
         let final_rendering_pass =
             RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
+        let request_sender = RequestSender::new();
         //let ui = Gui::new(aladin_div_name, &gl)?;
-
         Ok(App {
             gl,
             //ui,
@@ -231,6 +233,7 @@ where
             catalog_loaded,
 
             colormaps,
+            request_sender,
             p: std::marker::PhantomData,
         })
     }
@@ -246,7 +249,9 @@ where
             //let num_tiles = num_cells * (1 << (2 * delta_depth));
             //let mut already_available_tiles = Vec::with_capacity(num_tiles);
 
-            let mut tile_cells = survey.get_view().get_cells().flat_map(|texture_cell| {
+            let mut tile_cells = survey.get_view()
+                .get_cells()
+                .flat_map(|texture_cell| {
                     texture_cell.get_tile_cells(survey.get_textures().config())
                 })
                 .collect::<Vec<_>>();
@@ -263,7 +268,7 @@ where
 
             for tile_cell in tile_cells {
                 let already_available = survey.get_textures().contains_tile(&tile_cell);
-                let _is_tile_new = survey.get_view().is_new(&tile_cell);
+                //let _is_tile_new = survey.get_view().is_new(&tile_cell);
 
                 if already_available {
                     // Remove and append the texture with an updated
@@ -339,6 +344,11 @@ where
         Ok(tiles_available)
     }
 }
+
+use crate::{
+    request,
+    renderable::survey::{image_survey::AllskyTile, AllskyTilesType},
+};
 
 #[enum_dispatch(AppType)]
 pub trait AppTrait {
@@ -438,38 +448,59 @@ where
 
     fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
-        //let is_there_new_available_tiles = !available_tiles.is_empty();
 
-        //al_core::log(&format!("aaaa {:?}", is_there_new_available_tiles));
+        // Check the requests
+        for resolve in self.request_sender.poll() {
+            match resolve {
+                request::Resolve::Allsky { survey_root_url, tiles } => {
+                    if let Some(survey) = self.surveys.get_mut(&survey_root_url) {
+                        if let Some(tiles) = tiles.lock().unwrap().take() {
+                            al_core::log("received allsky");
+                            match tiles {
+                                AllskyTilesType::RGB8U(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                AllskyTilesType::RGBA8U(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                AllskyTilesType::R32F(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                AllskyTilesType::R32I(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                AllskyTilesType::R16I(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                AllskyTilesType::R8UI(tiles) => {
+                                    for AllskyTile { cell, image } in tiles {
+                                        survey.add_tile(&cell, image, Time::now(), false);
+                                    }
+                                },
+                                _ => {
+                                    return Err(js_sys::Error::new("Format not supported").into());
+                                }
+                            }
+                            
+                            debug_assert!(survey.is_ready());
 
-        // Check if there is an move animation to do
-        /*if let Some(MoveAnimation {
-            start_anim_rot,
-            goal_anim_rot,
-            time_start_anim,
-            ..
-        }) = self.move_animation
-        {
-            let t = (utils::get_current_time() - time_start_anim.as_millis()) / 1000.0;
-
-            // Undamped angular frequency of the oscillator
-            // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
-            //
-            // In a damped harmonic oscillator system: w0 = sqrt(k / m)
-            // where:
-            // * k is the stiffness of the ressort
-            // * m is its mass
-            let alpha = 1.0 + (0.0 - 1.0) * (5.0 * t + 1.0) * (-5.0 * t).exp();
-            let p = start_anim_rot.slerp(&goal_anim_rot, alpha as f64);
-
-            self.camera.set_rotation::<P>(&p);
-            self.look_for_new_tiles();
-
-            // Animation stop criteria
-            if 1.0 - alpha < 1e-5 {
-                self.move_animation = None;
+                            self.request_redraw = true;
+                        }
+                    }
+                },
+                request::Resolve::Tile { .. } => todo!()
             }
-        }*/
+        }
 
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -544,7 +575,9 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera, force);        
+        self.grid.update::<P>(&self.camera, force);      
+        
+        
         /*{
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -688,8 +721,7 @@ where
             hipses,
             &self.gl,
             &mut self.camera,
-            self.exec.clone(),
-            &self.colormaps,
+            &mut self.request_sender,
         )?;
 
         // Once its added, request its tiles
@@ -697,56 +729,7 @@ where
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            let url = format!("{}/Norder3/Allsky.jpg", survey.get_textures().config().root_url);
-            al_core::log(&format!("url: {:?}", &url));
-
-            //if let Ok(blob) = crate::utils::request(url.clone()) {
-            //    al_core::log(&format!("url: {:?}", url));
-
-                /*use std::sync::mpsc::channel;
-                let (tx, rx) = channel();
-
-                let fut = async move {
-                    let window = web_sys::window().unwrap();
-
-                    for cell in crate::healpix_cell::HEALPixCell::allsky(3) {        
-                        let offset: Vector2<_> = Vector2::new(
-                            (cell.idx() % 27) * 64,
-                            (cell.idx() / 27) * 64
-                        );
-
-                        use wasm_bindgen_futures::JsFuture;
-                        // Create an image bitmap of that cell
-                        let promise = window.create_image_bitmap_with_blob_and_a_sx_and_a_sy_and_a_sw_and_a_sh(
-                            &blob,
-                            offset.x as i32,
-                            offset.y as i32,
-                            64, 
-                            64
-                            ).unwrap();
-                        let image_bmp = JsFuture::from(promise).await
-                            .unwrap()
-                            .dyn_into::<web_sys::ImageBitmap>()
-                            .unwrap();
-                        use crate::buffer::ImageBitmap;
-                        let size = Vector2::new(offset.x, offset.y);
-                        let image_bmp = ImageBitmap::<al_core::format::RGB8U>::new(image_bmp);
-
-                        tx.send((cell, image_bmp)).unwrap();
-                    }
-                };
-
-                wasm_bindgen_futures::spawn_local(fut);
-
-                let textures = survey.get_textures_mut();
-
-                while let Ok((cell, image_bmp)) = rx.recv() {
-                    let tile = Tile::new(&cell, textures.config());
-                    textures.push(&tile, image_bmp, Time::now(), false);
-                }*/
-            //} else {
-                self.downloader.request_base_tiles(survey.get_textures().config());
-            //}
+            //self.downloader.request_base_tiles(survey.get_textures().config());
         }
 
         self.request_redraw = true;
@@ -777,6 +760,7 @@ where
         App {
             p: std::marker::PhantomData,
             gl: self.gl,
+            request_sender: self.request_sender,
             //ui: self.ui,
             colormaps: self.colormaps,
             fbo_ui: self.fbo_ui,

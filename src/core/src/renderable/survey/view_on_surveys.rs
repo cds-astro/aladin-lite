@@ -69,7 +69,7 @@ pub struct HEALPixCellsInView {
 
 use crate::camera::{CameraViewPort, UserAction};
 impl HEALPixCellsInView {
-    pub fn new(_survey_tex_size: i32, _max_depth: u8, _camera: &CameraViewPort) -> Self {
+    pub fn new() -> Self {
         let cells = HashMap::new();
         Self {
             cells,

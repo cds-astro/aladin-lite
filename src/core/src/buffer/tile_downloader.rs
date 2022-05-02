@@ -117,30 +117,6 @@ impl RequestSystem {
     }
 }
 
-use crate::healpix_cell::HEALPixCell;
-// A tile is described by an image survey
-// and an HEALPix cell
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct Tile {
-    pub cell: HEALPixCell,
-    pub root_url: String,
-    pub format: ImageFormatType,
-}
-
-impl Tile {
-    pub fn new(cell: &HEALPixCell, config: &HiPSConfig) -> Self {
-        Tile {
-            cell: *cell,
-            root_url: config.root_url.to_string(),
-            format: config.format(),
-        }
-    }
-
-    fn is_root(&self) -> bool {
-        self.cell.is_root()
-    }
-}
-
 use std::collections::{HashSet};
 pub struct TileDownloader {
     // Waiting cells to be loaded
@@ -172,9 +148,11 @@ pub type ResolvedTiles = HashMap<Tile, TileResolved>;
 use crate::ImageSurveys;
 use al_core::log::*;
 use wasm_bindgen::JsValue;
-use super::request::Request;
+use crate::request::Request;
 use wasm_bindgen::JsCast;
 use crate::buffer::ImageBitmap;
+use super::tile::Tile;
+use crate::healpix_cell::HEALPixCell;
 use web_sys::window;
 impl TileDownloader {
     pub fn new() -> TileDownloader {
@@ -214,7 +192,11 @@ impl TileDownloader {
         let already_requested = self.requested_tiles.contains(&tile);
         // The cell is not already requested
         if !already_requested && !tile.is_root() {
-            self.tiles_to_req.push(tile);
+            /*if tile.is_root() {
+                self.base_tiles_to_req.push(tile);
+            } else {*/
+                self.tiles_to_req.push(tile);
+            //}
         }
     }
 
@@ -275,46 +257,6 @@ impl TileDownloader {
     }
 
     pub fn request_base_tiles(&mut self, config: &HiPSConfig) {
-        let allsky_request = Request::new(
-            "http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg",
-            async move {
-                use wasm_bindgen_futures::JsFuture;
-                use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
-                
-                let mut opts = RequestInit::new();
-                opts.method("GET");
-                opts.mode(RequestMode::Cors);
-                let window = web_sys::window().unwrap();
-                let request = Request::new_with_str_and_init("http://alasky.cds.unistra.fr/2MASS/H/Norder3/Allsky.jpg", &opts).unwrap();
-                if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
-                    // `resp_value` is a `Response` object.
-                    debug_assert!(resp_value.is_instance_of::<Response>());
-                    let resp: Response = resp_value.dyn_into().unwrap();
-
-                    let blob = JsFuture::from(resp.blob().unwrap()).await.unwrap().into();
-
-                    let mut tiles = vec![];
-                    for idx in 0..768 {
-                        let sw = 64;
-                        let sh = 64;
-
-                        let sx = (idx % 27) * sw;
-                        let sy = (idx / 27) * sh;
-
-                        let tile_bmp: web_sys::ImageBitmap = JsFuture::from(window.create_image_bitmap_with_blob_and_a_sx_and_a_sy_and_a_sw_and_a_sh(&blob, sx, sy, sw, sh).unwrap()).await
-                            .unwrap()
-                            .into();
-
-                        tiles.push(ImageBitmap::<RGB8U>::new(tile_bmp));
-                    }
-
-                    Ok(tiles)
-                } else {
-                    Err(js_sys::Error::new("Allsky not fetched").into())
-                }
-            }
-        );
-
         // Request base tiles
         for idx in 0..12 {
             let texture_cell = HEALPixCell(0, idx);
@@ -325,18 +267,8 @@ impl TileDownloader {
                     cell,
                 };
 
-                self.request_base_tile(tile);
+                self.request_tile(tile);
             }
-        }
-    }
-
-    fn request_base_tile(&mut self, tile: Tile) {
-        // Resize the requested tiles
-        let already_requested = self.requested_tiles.contains(&tile);
-        // The cell is not already requested
-        if !already_requested {
-            // Add to the tiles requested
-            self.base_tiles_to_req.push(tile);
         }
     }
 }

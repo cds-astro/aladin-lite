@@ -117,6 +117,7 @@ pub struct ImageSurveyTextures {
     size: usize,
 
     pub textures: HashMap<HEALPixCell, Texture>,
+    pub base_textures: [Texture; NUM_HPX_TILES_DEPTH_ZERO],
     //pub cutoff_values_tile: Rc<RefCell<HashMap<HEALPixCell, (f32, f32)>>>,
 
     // Array of 2D textures
@@ -128,7 +129,7 @@ pub struct ImageSurveyTextures {
 
     available_tiles_during_frame: bool,
 
-    exec: Rc<RefCell<TaskExecutor>>,
+    //exec: Rc<RefCell<TaskExecutor>>,
 }
 use crate::async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType};
 use crate::math::LonLatT;
@@ -187,7 +188,7 @@ impl ImageSurveyTextures {
     pub fn new(
         gl: &WebGlContext,
         config: HiPSConfig,
-        exec: Rc<RefCell<TaskExecutor>>,
+        //exec: Rc<RefCell<TaskExecutor>>,
     ) -> Result<ImageSurveyTextures, JsValue> {
         let size = config.num_textures();
         // Ensures there is at least space for the 12
@@ -195,6 +196,22 @@ impl ImageSurveyTextures {
         debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
         let heap = HEALPixCellHeap::with_capacity(size - NUM_HPX_TILES_DEPTH_ZERO);
         let textures = HashMap::with_capacity(size);
+        let base_textures = [
+            Texture::new(&config, &HEALPixCell(0, 0), 0, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 1), 1, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 2), 2, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 3), 3, Time::now()),
+
+            Texture::new(&config, &HEALPixCell(0, 4), 4, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 5), 5, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 6), 6, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 7), 7, Time::now()),
+
+            Texture::new(&config, &HEALPixCell(0, 8), 8, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 9), 9, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 10), 10, Time::now()),
+            Texture::new(&config, &HEALPixCell(0, 11), 11, Time::now()),
+        ];
 
         #[cfg(feature = "webgl2")]
         let texture_2d_array = match config.format() {
@@ -227,11 +244,13 @@ impl ImageSurveyTextures {
             num_root_textures_available,
 
             textures,
+            base_textures,
+
             texture_2d_array,
             available_tiles_during_frame,
 
             ready,
-            exec,
+            //exec,
         })
     }
 
@@ -239,24 +258,67 @@ impl ImageSurveyTextures {
     // It must be ensured that the tile is not already contained into the buffer
     pub fn push<I: Image + 'static  + std::fmt::Debug>(
         &mut self,
-        tile: &Tile,
+        cell: &HEALPixCell,
         image: I,
         time_request: Time,
         missing: bool,
     ) {
-        let tile_cell = &tile.cell;
         // Assert here to prevent pushing doublons
-        if self.contains_tile(tile_cell) {
+        if self.contains_tile(cell) {
             return;
         }
+        /*if self.contains(cell) {
+            return;
+        }*/
 
         // Get the texture cell in which the tile has to be
-        let texture_cell = tile_cell.get_texture_cell(&self.config);
+        let tex_cell = cell.get_texture_cell(&self.config);
         // Check whether the texture is a new texture
-        if !self.textures.contains_key(&texture_cell) {
-            let HEALPixCell(_, idx) = texture_cell;
-            let texture = if texture_cell.is_root() {
+        /*if texture_cell.is_root() {
+            if !self.base_textures.contains_key(&texture_cell) {
+                let HEALPixCell(_, idx) = texture_cell;
+                self.base_textures[idx] = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
+            }
+        } else {
+            // The texture is not among the essential ones
+            // (i.e. is not a root texture)
+            let texture = if self.is_heap_full() {
+                // Pop the oldest requested texture
+                let oldest_texture = self.heap.pop().unwrap();
+                // Ensure this is not a base texture
+                debug_assert!(!oldest_texture.is_root());
+
+                // Remove it from the textures HashMap
+                let mut texture = self.textures.remove(&oldest_texture.cell)
+                    .expect("Texture (oldest one) has not been found in the buffer of textures");
+                // Clear and assign it to texture_cell
+                texture.replace(
+                    &texture_cell,
+                    time_request,
+                    &self.config,
+                    &mut self.exec.borrow_mut(),
+                );
+
+                texture
+            } else {
+                // The heap buffer is not full, let's create a new
+                // texture with an unique idx
+                // The idx is computed based on the current size of the buffer
+                let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
+
                 Texture::new(&self.config, &texture_cell, idx as i32, time_request)
+            };
+            // Push it to the buffer
+            self.heap.push(&texture);
+            
+            // Insert it the texture
+            self.textures.insert(texture_cell, texture);
+        }*/
+
+        if !self.textures.contains_key(&tex_cell) {
+            let HEALPixCell(_, idx) = tex_cell;
+            let texture = if tex_cell.is_root() {
+                Texture::new(&self.config, &tex_cell, idx as i32, time_request)
             } else {
                 // The texture is not among the essential ones
                 // (i.e. is not a root texture)
@@ -269,12 +331,12 @@ impl ImageSurveyTextures {
                     // Remove it from the textures HashMap
                     let mut texture = self.textures.remove(&oldest_texture.cell)
                         .expect("Texture (oldest one) has not been found in the buffer of textures");
-                    // Clear and assign it to texture_cell
+                    // Clear and assign it to tex_cell
                     texture.replace(
-                        &texture_cell,
+                        &tex_cell,
                         time_request,
                         &self.config,
-                        &mut self.exec.borrow_mut(),
+                        //&mut self.exec.borrow_mut(),
                     );
 
                     texture
@@ -284,7 +346,7 @@ impl ImageSurveyTextures {
                     // The idx is computed based on the current size of the buffer
                     let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                    Texture::new(&self.config, &texture_cell, idx as i32, time_request)
+                    Texture::new(&self.config, &tex_cell, idx as i32, time_request)
                 };
                 // Push it to the buffer
                 self.heap.push(&texture);
@@ -292,7 +354,7 @@ impl ImageSurveyTextures {
                 texture
             };
             // Insert it the texture
-            self.textures.insert(texture_cell, texture);
+            self.textures.insert(tex_cell, texture);
         }
 
         // At this point, the texture that should contain the tile
@@ -300,13 +362,7 @@ impl ImageSurveyTextures {
         // and the tile is not already in any textures of the buffer
         // We can safely push it
         // First get the texture
-        let texture = self.textures.get_mut(&texture_cell).expect("the cell has to be in the tile buffer");
-        texture.append(
-            tile_cell, // The tile cell
-            &self.config,
-            missing,
-        );
-
+        let texture = self.textures.get_mut(&tex_cell).expect("the cell has to be in the tile buffer");
         /*
         // Append new async task responsible for writing
         // the image into the texture 2d array for the GPU
@@ -340,29 +396,27 @@ impl ImageSurveyTextures {
 
         task.tex_sub();*/
         send_to_gpu(
-            tile_cell,
+            cell,
             texture,
             image,
             self.texture_2d_array.clone(),
             &self.config,
         );
 
+        //al_core::log(&format!("{:?}", tex_cell));
         // Once the texture has been received in the GPU
-        self.register_available_tile(&tile);
-    }
+        texture.append(
+            cell, // The tile cell
+            &self.config,
+            missing,
+        );
 
-    pub fn register_available_tile(&mut self, available_tile: &Tile) {
-        let Tile { cell, .. } = available_tile;
-        let texture_cell = cell.get_texture_cell(&self.config);
+        let tex_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
 
-        let texture = self.textures
-            .get_mut(&texture_cell)
-            .expect("Textures written have to be in the textures collection");
+        //texture.register_available_tile(cell, &self.config);
 
-        texture.register_available_tile(cell, &self.config);
-
-        if texture_cell.is_root() && texture.is_available() {
+        if tex_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;
             debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
             //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
@@ -671,9 +725,9 @@ impl Drop for ImageSurveyTextures {
 
         // Cancel the tasks that have not been finished
         // by the exec
-        for texture in self.textures.values() {
+        /*for texture in self.textures.values() {
             texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
-        }
+        }*/
         self.textures.clear();
     }
 }

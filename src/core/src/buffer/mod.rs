@@ -11,7 +11,7 @@ pub use image::{FitsImage, HTMLImage, ImageBitmap, ImageRequest, RetrievedImageT
 pub mod hips_config;
 pub use hips_config::{HiPSConfig, TileConfigType};
 
+pub mod tile;
+pub use tile::Tile;
 mod tile_downloader;
-pub use tile_downloader::{ResolvedTiles, Tile, TileDownloader, TileResolved};
-
-mod request;
+pub use tile_downloader::{ResolvedTiles, TileDownloader, TileResolved};

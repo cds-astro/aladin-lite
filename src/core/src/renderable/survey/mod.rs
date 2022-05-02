@@ -1,6 +1,6 @@
 pub mod image_survey;
 pub use image_survey::{
-    ImageSurvey, Move, RecomputeRasterizer, TexturesToDraw, UnZoom, Zoom,
+    ImageSurvey, Move, RecomputeRasterizer, TexturesToDraw, UnZoom, Zoom, AllskyTilesType,
 };
 
 pub mod ray_tracer;

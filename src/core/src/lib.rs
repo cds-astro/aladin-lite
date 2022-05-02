@@ -17,7 +17,6 @@ extern crate image_decoder;
 extern crate itertools_num;
 extern crate num;
 extern crate num_traits;
-//extern crate rand;
 extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
@@ -36,6 +35,7 @@ mod async_task;
 mod buffer;
 mod camera;
 mod cdshealpix;
+mod request;
 
 pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
 

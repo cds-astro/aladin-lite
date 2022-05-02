@@ -1,9 +1,10 @@
-use crate::buffer::Texture;
+use crate::{buffer::Texture, projection::HEALPix};
 
 use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
 #[cfg(feature = "webgl2")]
 use al_core::format::{R16I, R32I, R8UI};
 use egui::epaint::ahash::CallHasher;
+use js_sys::Uint8Array;
 
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
     let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
@@ -73,7 +74,7 @@ impl<'a, 'b> TextureToDraw<'a, 'b> {
     }
 }
 
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, fmt::Debug};
 pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
 
 impl<'a, 'b> TexturesToDraw<'a, 'b> {
@@ -471,17 +472,31 @@ pub struct ImageSurvey {
     vao: VertexArrayObject,
     gl: WebGlContext,
 }
-use crate::camera::UserAction;
-use crate::math::LonLatT;
-use crate::utils;
+use crate::{
+    camera::UserAction,
+    math::LonLatT,
+    utils,
+    request::{
+        Request, 
+        RequestSender
+    },
+    buffer::image::FitsImageFormat
+};
+
 use al_core::pixel::PixelType;
 use web_sys::{WebGl2RenderingContext, WheelEvent};
+use wasm_bindgen::JsCast;
+use al_core::{
+    format::{ImageFormatType, ImageFormat},
+    texture::Pixel,
+    image::Image
+};
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        exec: Rc<RefCell<TaskExecutor>>,
+        sender: &mut RequestSender,
     ) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
@@ -594,11 +609,95 @@ impl ImageSurvey {
 
         let num_idx = 0;
 
-        let textures = ImageSurveyTextures::new(gl, config, exec)?;
+        //let textures = ImageSurveyTextures::new(gl, config, exec)?;
+        let textures = ImageSurveyTextures::new(gl, config)?;
         let conf = textures.config();
-        let view = HEALPixCellsInView::new(conf.get_tile_size(), conf.get_max_depth(), camera);
+        let view = HEALPixCellsInView::new();
 
         let gl = gl.clone();
+
+        // request the allsky texture
+        let url = format!("{}/Norder3/Allsky.{}", &conf.root_url, &conf.format().get_ext_file());
+        al_core::log(&format!("Allsky fetch url: {:?}", &url));
+        let is_fits_survey = conf.tex_storing_fits;
+        let fmt = conf.format();
+        let tile_size = conf.get_tile_size() as usize;
+        let allsky_request = Request::new(async move {
+            use wasm_bindgen_futures::JsFuture;
+            use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
+            
+            let mut opts = RequestInit::new();
+            opts.method("GET");
+            opts.mode(RequestMode::Cors);
+            let window = web_sys::window().unwrap();
+
+            let request = Request::new_with_str_and_init(&url, &opts)?;
+            if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
+                // `resp_value` is a `Response` object.
+                debug_assert!(resp_value.is_instance_of::<Response>());
+                let resp: Response = resp_value.dyn_into()?;
+
+                let buf = JsFuture::from(resp.array_buffer().unwrap()).await?;
+                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                
+                let allsky_tiles = match fmt {
+                    ImageFormatType::RGB8U => {
+                        let bytes = image_decoder::load_from_memory_with_format(
+                                &raw_bytes[..],
+                                image_decoder::ImageFormat::Jpeg,
+                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
+                            .into_bytes();
+
+                        let allsky = ImageBuffer::<RGB8U>::new(bytes, 1728, 1856);
+                        AllskyTilesType::RGB8U(handle_allsky_file::<RGB8U>(allsky).await?)
+                    },
+                    ImageFormatType::RGBA8U => {
+                        let bytes = image_decoder::load_from_memory_with_format(
+                                &raw_bytes[..],
+                                image_decoder::ImageFormat::Png,
+                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
+                            .into_bytes();
+
+                        let allsky = ImageBuffer::<RGBA8U>::new(bytes, 1728, 1856);
+                        AllskyTilesType::RGBA8U(handle_allsky_file::<RGBA8U>(allsky).await?)
+                    },
+                    ImageFormatType::R32F => {
+                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<f32>::from_byte_slice(&raw_bytes[..]).unwrap() };
+                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
+                        AllskyTilesType::R32F(allsky_tiles)
+                    },
+                    ImageFormatType::R32I => {
+                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<i32>::from_byte_slice(&raw_bytes[..]).unwrap() };
+                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
+                        AllskyTilesType::R32I(allsky_tiles)
+                    },
+                    ImageFormatType::R16I => {
+                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<i16>::from_byte_slice(&raw_bytes[..]).unwrap() };
+                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
+                        AllskyTilesType::R16I(allsky_tiles)
+                    },
+                    ImageFormatType::R8UI => {
+                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<u8>::from_byte_slice(&raw_bytes[..]).unwrap() };
+                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
+                        AllskyTilesType::R8UI(allsky_tiles)
+                    },
+                    _ => {
+                        return Err(js_sys::Error::new("Format not supported").into())
+                    }
+                };
+
+                al_core::log("Completed!");
+                Ok(allsky_tiles)
+            } else {
+                Err(js_sys::Error::new("Allsky not fetched").into())
+            }
+        });
+
+        sender.push(crate::request::RequestType::Allsky {
+            survey_root_url: String::from(&conf.root_url),
+            req: allsky_request
+        });
 
         Ok(ImageSurvey {
             //color,
@@ -659,43 +758,6 @@ impl ImageSurvey {
         }
     }
 
-    /*#[cfg(feature = "webgl2")]
-    fn update_vertices<P: Projection, T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
-        let textures = T::get_textures_from_survey(camera, &mut self.view, &self.textures);
-
-        self.vertices.clear();
-        self.idx_vertices.clear();
-
-        let survey_config = self.textures.config();
-
-        for TextureToDraw { cell, starting_texture, ending_texture } in textures.iter() {
-            let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
-            let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
-            let start_time = ending_texture.start_time();
-            let miss_0 = starting_texture.is_missing() as f32;
-            let miss_1 = ending_texture.is_missing() as f32;
-
-            add_vertices_grid::<P, T>(
-                &mut self.vertices,
-                &mut self.idx_vertices,
-                cell,
-                &self.sphere_sub,
-                &uv_0,
-                &uv_1,
-                miss_0,
-                miss_1,
-                start_time.as_millis(),
-                camera,
-            );
-        }
-        self.num_idx = self.idx_vertices.len();
-
-        let mut vao = self.vao.bind_for_update();
-        vao.update_array(0, WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
-            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
-    }*/
-
-    //#[cfg(feature = "webgl1")]
     fn update_vertices<T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
         self.position.clear();
         self.uv_start.clear();
@@ -748,27 +810,6 @@ impl ImageSurvey {
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
     }
 
-    /*fn set_positions<P>(&mut self, camera: &CameraViewPort, reversed_longitude: bool)
-    where
-        P: Projection
-    {
-        self.position.clear();
-        self.idx_vertices.clear();
-        let depth = self.view.get_depth();
-
-        for cell in self.view.get_cells() {
-            let num_subdivision = num_subdivision::<P>(cell);
-            let n_segments_by_side: usize = 1 << num_subdivision;
-            let n_vertices_per_segment = n_segments_by_side + 1;
-
-
-        }
-
-        let mut vao = self.vao.bind_for_update();
-        vao.update_array("position", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.position))
-            .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.idx_vertices));
-    }
-*/
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
 
@@ -779,11 +820,23 @@ impl ImageSurvey {
         self.view.refresh_cells(tile_size, max_depth, camera, hips_frame);
     }
 
+    pub fn add_tile<I: Image + 'static + std::fmt::Debug>(
+        &mut self,
+        cell: &HEALPixCell,
+        image: I,
+        time_request: Time,
+        missing: bool,
+    ) {
+        self.textures.push(cell, image, time_request, missing);
+    }
+
+    /* Accessors */
     #[inline]
     pub fn get_textures(&self) -> &ImageSurveyTextures {
         &self.textures
     }
 
+    #[inline]
     pub fn get_textures_mut(&mut self) -> &mut ImageSurveyTextures {
         &mut self.textures
     }
@@ -792,7 +845,113 @@ impl ImageSurvey {
     pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
     }
+
+    #[inline]
+    pub fn is_ready(&self) -> bool {
+        self.textures.is_ready()
+    }
 }
+
+pub struct AllskyTile<F>
+where
+    F: ImageFormat
+{
+    pub cell: HEALPixCell,
+    pub image: ImageBuffer<F>,
+}
+
+impl<F> Default for AllskyTile<F>
+where
+    F: ImageFormat
+{
+    fn default() -> Self {
+        Self {
+            cell: HEALPixCell(0, 0),
+            image: ImageBuffer::<F>::new(vec![], 0, 0)
+        }
+    }
+}
+
+async fn handle_allsky_file<F: ImageFormat>(allsky: ImageBuffer<F>) -> Result<Vec<AllskyTile<F>>, JsValue> {
+    let mut src_idx = 0;
+    let mut tiles = Vec::with_capacity(12);
+
+    for idx in 0..12 {
+        let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, 512, 512);
+        for idx_tile in 0..64 {
+            let (x, y) = utils::unmortonize(idx_tile);
+            let dx = x << 6;
+            let dy = y << 6;
+
+            let sx = (src_idx % 27) << 6;
+            let sy = (src_idx / 27) << 6;
+            base_tile.tex_sub(
+                &allsky,
+                sx, sy, 64, 64,
+                dx as i32, dy as i32, 64, 64
+            );
+
+            src_idx += 1;
+        }
+
+        tiles.push(AllskyTile {
+            cell: HEALPixCell(0, idx as u64),
+            image: base_tile
+        });
+    }
+
+    Ok(tiles)
+}
+
+async fn handle_allsky_fits<F: FitsImageFormat>(allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item], tile_size: usize) -> Result<Vec<AllskyTile<F>>, JsValue> {
+    // The fits image layout stores rows in reverse
+    let reversed_rows_data = allsky_data
+        .chunks(1728)
+        .rev()
+        .flatten()
+        .map(|e| *e)
+        .collect::<Vec<_>>();
+
+    let allsky = ImageBuffer::<F>::new(reversed_rows_data, 1728, 1856);
+
+    let allsky_tiles = handle_allsky_file::<F>(allsky).await?
+        .into_iter()
+        .map(|tile| {
+            // The GPU does a specific transformation on the UV
+            // for FITS tiles
+            // We must revert this to be compatible with this GPU transformation
+            let AllskyTile { cell, image } = tile;
+
+            let mut new_image_data = Vec::with_capacity(512);
+            for c in image.get_data().chunks(512*tile_size) {
+                new_image_data.extend(
+                    c.chunks(512)
+                    .rev()
+                    .flatten()
+                );
+            }
+
+            let new_image = ImageBuffer::<F>::new(new_image_data, 512, 512);
+
+            AllskyTile {
+                cell,
+                image: new_image
+            }
+        })
+        .collect();
+
+    Ok(allsky_tiles)
+}
+
+pub enum AllskyTilesType {
+    RGB8U(Vec<AllskyTile<RGB8U>>),
+    RGBA8U(Vec<AllskyTile<RGBA8U>>),
+    R32F(Vec<AllskyTile<R32F>>),
+    R8UI(Vec<AllskyTile<R8UI>>),
+    R16I(Vec<AllskyTile<R16I>>),
+    R32I(Vec<AllskyTile<R32I>>),
+}
+
 use cgmath::Matrix4;
 // Identity matrix
 const Id: &'static Matrix4<f64> = &Matrix4::new(
@@ -833,6 +992,7 @@ const IdR: &'static Matrix4<f64> = &Matrix4::new(
     1.0,
 );
 
+use crate::time::Time;
 use cgmath::Matrix;
 use al_api::coo_system::CooBaseFloat;
 impl Draw for ImageSurvey {
@@ -846,12 +1006,6 @@ impl Draw for ImageSurvey {
         opacity: f32,
         colormaps: &Colormaps,
     ) {
-        /*if !self.textures.is_ready() {
-            // Do not render while the 12 base cell textures
-            // are not loaded
-            return;
-        }*/
-
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
         let hips_frame = self.textures
@@ -1030,7 +1184,7 @@ use crate::buffer::{ResolvedTiles, RetrievedImageType, TileResolved};
 use crate::shaders::Colormaps;
 use crate::Resources;
 use crate::buffer::ImageBitmap;
-use crate::buffer::Tile;
+use crate::buffer::tile::Tile;
 use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
     pub fn new<P: Projection>(
@@ -1180,8 +1334,7 @@ impl ImageSurveys {
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
         camera: &mut CameraViewPort,
-        exec: Rc<RefCell<TaskExecutor>>,
-        _colormaps: &Colormaps,
+        downloader: &mut RequestSender,
     ) -> Result<Vec<String>, JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
@@ -1227,7 +1380,7 @@ impl ImageSurveys {
 
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
-                let survey = ImageSurvey::new(config, gl, camera, exec.clone())?;
+                let survey = ImageSurvey::new(config, gl, camera, downloader)?;
                 self.surveys.insert(url.clone(), survey);
                 new_survey_urls.push(url.clone());
             }
@@ -1266,7 +1419,7 @@ impl ImageSurveys {
         let ready = self
             .surveys
             .iter()
-            .map(|(_, survey)| survey.textures.is_ready())
+            .map(|(_, survey)| survey.is_ready())
             .fold(true, |acc, x| acc & x);
 
         ready
@@ -1291,18 +1444,7 @@ impl ImageSurveys {
         }
     }
 
-    // Update the surveys by telling which tiles are available
-    /*pub fn set_available_tiles(&mut self, available_tiles: &HashSet<Tile>) {
-        for tile in available_tiles {
-            let textures = &mut self
-                .surveys
-                .get_mut(&tile.root_url)
-                .unwrap()
-                .get_textures_mut();
-            textures.register_available_tile(tile);
-        }
-    }*/
-
+    // TODO: remove that, use ImageSurvey::add_tile instead
     pub fn add_resolved_tile(&mut self, tile: &Tile, status: TileResolved) {
         if let Some(survey) = self.surveys.get_mut(&tile.root_url) {
             let textures = survey.get_textures_mut();
@@ -1314,7 +1456,7 @@ impl ImageSurveys {
                         TileConfigType::RGBA8U { config } => {
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<RGBA8U>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1325,7 +1467,7 @@ impl ImageSurveys {
 
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<RGB8U>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1334,7 +1476,7 @@ impl ImageSurveys {
                         TileConfigType::R32F { config } => {
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<R32F>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1344,7 +1486,7 @@ impl ImageSurveys {
                         TileConfigType::R8UI { config } => {
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<R8UI>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1354,7 +1496,7 @@ impl ImageSurveys {
                         TileConfigType::R16I { config } => {
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<R16I>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1364,7 +1506,7 @@ impl ImageSurveys {
                         TileConfigType::R32I { config } => {
                             let missing_tile_image = config.get_default_tile();
                             textures.push::<Rc<ImageBuffer<R32I>>>(
-                                tile,
+                                &tile.cell,
                                 missing_tile_image,
                                 time_req,
                                 missing,
@@ -1382,7 +1524,7 @@ impl ImageSurveys {
                                 image.bzero,
                                 image.blank,
                             );
-                            textures.push::<FitsImage<R32F>>(tile, image, time_req, missing);
+                            textures.push::<FitsImage<R32F>>(&tile.cell, image, time_req, missing);
                         }
                         #[cfg(feature = "webgl2")]
                         RetrievedImageType::FitsImageR32i { image } => {
@@ -1391,7 +1533,7 @@ impl ImageSurveys {
                                 image.bzero,
                                 image.blank,
                             );
-                            textures.push::<FitsImage<R32I>>(tile, image, time_req, missing);
+                            textures.push::<FitsImage<R32I>>(&tile.cell, image, time_req, missing);
                         }
                         #[cfg(feature = "webgl2")]
                         RetrievedImageType::FitsImageR16i { image } => {
@@ -1400,7 +1542,7 @@ impl ImageSurveys {
                                 image.bzero,
                                 image.blank,
                             );
-                            textures.push::<FitsImage<R16I>>(tile, image, time_req, missing);
+                            textures.push::<FitsImage<R16I>>(&tile.cell, image, time_req, missing);
                         }
                         #[cfg(feature = "webgl2")]
                         RetrievedImageType::FitsImageR8ui { image } => {
@@ -1409,13 +1551,13 @@ impl ImageSurveys {
                                 image.bzero,
                                 image.blank,
                             );
-                            textures.push::<FitsImage<R8UI>>(tile, image, time_req, missing);
+                            textures.push::<FitsImage<R8UI>>(&tile.cell, image, time_req, missing);
                         }
                         RetrievedImageType::PngImageRgba8u { image } => {
-                            textures.push::<ImageBitmap<RGBA8U>>(tile, image, time_req, missing);
+                            textures.push::<ImageBitmap<RGBA8U>>(&tile.cell, image, time_req, missing);
                         }
                         RetrievedImageType::JpgImageRgb8u { image } => {
-                            textures.push::<ImageBitmap<RGB8U>>(tile, image, time_req, missing);
+                            textures.push::<ImageBitmap<RGB8U>>(&tile.cell, image, time_req, missing);
                         }
                     }
                 }
@@ -1423,17 +1565,13 @@ impl ImageSurveys {
         }
     }
 
-    // Update the surveys by adding to the surveys the tiles
-    // that have been resolved
-    /*pub fn add_resolved_tiles(&mut self, resolved_tiles: ResolvedTiles) {
-        for (tile, result) in resolved_tiles.into_iter() {
-            
-        }
-    }*/
-
     // Accessors
     pub fn get(&self, root_url: &str) -> Option<&ImageSurvey> {
         self.surveys.get(root_url)
+    }
+
+    pub fn get_mut(&mut self, root_url: &str) -> Option<&mut ImageSurvey> {
+        self.surveys.get_mut(root_url)
     }
 
     pub fn iter_mut(&mut self) -> IterMut<'_, String, ImageSurvey> {

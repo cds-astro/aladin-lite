@@ -5,8 +5,8 @@ const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 //const { VueLoaderPlugin } = require('vue-loader')
 
 var ROOT_PATH = path.resolve(__dirname);
-var SHADER_PATH = path.resolve(ROOT_PATH, 'src/core/src/shaders');
-var IMAGES_PATH = path.resolve(ROOT_PATH, 'src/core/img');
+var SHADER_PATH = path.resolve(ROOT_PATH, 'src/glsl');
+var IMAGES_PATH = path.resolve(ROOT_PATH, 'src/img');
 
 module.exports = {
     entry: './src/js/Aladin.js',

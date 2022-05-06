@@ -151,7 +151,7 @@ impl ImageFormat for R32I {
     const TYPE: u32 = WebGlRenderingCtx::INT;
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum ImageFormatType {
     RGBA32F,
     RGB32F,

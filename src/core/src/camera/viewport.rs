@@ -6,8 +6,9 @@ pub enum UserAction {
     Starting = 4,
 }
 
-use super::fov_vertices::{FieldOfViewVertices, ModelCoord};
+use super::fov::{FieldOfViewVertices, ModelCoord};
 use cgmath::{Matrix4, Vector2};
+use crate::math::spherical::BoundingBox;
 
 pub struct CameraViewPort {
     // The field of view angle
@@ -60,7 +61,13 @@ use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
 
 use crate::{
-    angle::Angle, projection::Projection, rotation::Rotation, sphere_geometry::FieldOfViewType,
+    math::{
+        angle::Angle,
+        projection::Projection,
+        rotation::Rotation,
+        spherical::FieldOfViewType
+    },
+    coosys,
 };
 
 use cgmath::{SquareMatrix, Vector4};
@@ -80,8 +87,6 @@ fn set_canvas_size(gl: &WebGlContext, width: u32, height: u32) {
 }
 
 use crate::math;
-
-use crate::sphere_geometry::BoundingBox;
 use crate::time::Time;
 impl CameraViewPort {
     pub fn new<P: Projection>(gl: &WebGlContext, system: CooSystem) -> CameraViewPort {
@@ -188,7 +193,7 @@ impl CameraViewPort {
             self.aperture,
             &self.system
         );
-        self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
+        self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
             self,
         ));
@@ -211,7 +216,7 @@ impl CameraViewPort {
             let lon = aperture.abs() / 2.0;
 
             // Vertex in the WCS of the FOV
-            let v0 = math::radec_to_xyzw(lon, Angle(0.0));
+            let v0 = math::lonlat::radec_to_xyzw(lon, Angle(0.0));
             if let Some(p0) = P::world_to_clip_space(&v0) {
                 self.clip_zoom_factor = p0.x.abs().min(1.0);
             } else {
@@ -242,7 +247,7 @@ impl CameraViewPort {
             self.aperture,
             &self.system
         );
-        self.is_allsky = !P::is_included_inside_projection(&crate::projection::ndc_to_clip_space(
+        self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
             self,
         ));
@@ -286,7 +291,7 @@ impl CameraViewPort {
 
     pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system
-        let new_center = crate::math::apply_coo_system(&self.system, &new_system, &self.center);
+        let new_center = coosys::apply_coo_system(&self.system, &new_system, &self.center);
         // Create a rotation object from that position
         let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view

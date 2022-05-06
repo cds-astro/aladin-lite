@@ -1,8 +1,8 @@
 import { loadShadersWebGL1 } from "./ShadersWebGL1";
 import { loadShadersWebGL2 } from "./ShadersWebGL2";
 // Import resources images
-import kernel from '../core/img/kernel.png';
-import colormaps from '../core/img/colormaps/colormaps.png';
+import kernel from '../img/kernel.png';
+import colormaps from '../img/colormaps/colormaps.png';
 
 export let WebGLCtx = (function() {
     /** Constructor */

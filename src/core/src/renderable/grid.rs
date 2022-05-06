@@ -3,7 +3,7 @@ use web_sys::WebGl2RenderingContext;
 
 
 
-use crate::angle;
+use crate::math::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
@@ -31,8 +31,8 @@ pub struct ProjetedGrid {
     text_renderer: TextRenderManager,
 }
 
-use crate::projection::Projection;
-use crate::ShaderManager;
+use crate::math::projection::Projection;
+use crate::shader::ShaderManager;
 use al_core::WebGlContext;
 use al_core::VecData;
 use wasm_bindgen::JsValue;
@@ -267,14 +267,16 @@ impl ProjetedGrid {
     }
 }
 
-use crate::{projection::*, shader::ShaderId, Shader};
+use crate::shader::{ShaderId};
+use al_core::shader::Shader;
 use std::borrow::Cow;
-use crate::sphere_geometry::BoundingBox;
 
 use cgmath::InnerSpace;
-use crate::math::{self};
-use crate::sphere_geometry::FieldOfViewType;
-use crate::Angle;
+use crate::math::{
+    spherical::{FieldOfViewType, BoundingBox},
+    angle::Angle,
+    projection::*
+};
 use cgmath::Vector2;
 use core::ops::Range;
 
@@ -469,12 +471,15 @@ struct GridLine {
     vertices: Vec<Vector2<f64>>,
     label: Option<Label>,
 }
-use crate::angle::SerializeToString;
+use math::angle::SerializeToString;
 use cgmath::{Rad, Vector3};
 const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
-use crate::math::LonLat;
-use crate::{ArcDeg, LonLatT};
+use crate::math::{
+    self,
+    angle::{ArcDeg},
+    lonlat::{LonLat, LonLatT}   
+};
 impl GridLine {
     fn meridian<P: Projection>(
         lon: f64,
@@ -517,11 +522,11 @@ impl GridLine {
             let system = camera.get_system();
 
             //let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
-            let a = math::radec_to_xyz(Angle(lon.start), Angle(lat));
+            let a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
             //let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
-            let b = math::radec_to_xyz(Angle((lon.start + lon.end)*0.5), Angle(lat));
+            let b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end)*0.5), Angle(lat));
             //let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
-            let c = math::radec_to_xyz(Angle(lon.end), Angle(lat));
+            let c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
 
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,

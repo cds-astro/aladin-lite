@@ -210,7 +210,7 @@ where
     }
 
     pub fn allocate(
-        pixel_fill: &<<Self as Image>::T as ImageFormat>::P,
+        pixel_fill: &<T as ImageFormat>::P,
         width: i32,
         height: i32,
     ) -> ImageBuffer<T> {
@@ -281,8 +281,6 @@ pub enum ImageBufferType {
 
 use super::Texture2DArray;
 pub trait Image {
-    type T: ImageFormat;
-
     fn tex_sub_image_3d(
         &self,
         // The texture array
@@ -292,15 +290,13 @@ pub trait Image {
     );
 
     // The size of the image
-    fn get_size(&self) -> &Vector2<i32>;
+    //fn get_size(&self) -> &Vector2<i32>;
 }
-use std::rc::Rc;
-impl<I> Image for Rc<I>
-where
-    I: Image,
-{
-    type T = I::T;
 
+impl<'a, I> Image for &'a I
+where
+    I: Image
+{
     fn tex_sub_image_3d(
         &self,
         // The texture array
@@ -312,18 +308,64 @@ where
         image.tex_sub_image_3d(textures, offset);
     }
 
-    fn get_size(&self) -> &Vector2<i32> {
+    /*fn get_size(&self) -> &Vector2<i32> {
         let image = &**self;
         image.get_size()
+    }*/
+}
+
+use std::rc::Rc;
+impl<I> Image for Rc<I>
+where
+    I: Image,
+{
+    fn tex_sub_image_3d(
+        &self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>,
+    ) {
+        let image = &**self;
+        image.tex_sub_image_3d(textures, offset);
     }
+
+    /*fn get_size(&self) -> &Vector2<i32> {
+        let image = &**self;
+        image.get_size()
+    }*/
+}
+
+use std::sync::{Arc, Mutex};
+impl<I> Image for Arc<Mutex<Option<I>>>
+where
+    I: Image,
+{
+    fn tex_sub_image_3d(
+        &self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>,
+    ) {
+        if let Some(image) = &*self.lock().unwrap() {
+            image.tex_sub_image_3d(textures, offset);
+        }
+    }
+
+    /*fn get_size(&self) -> &Vector2<i32> {
+        if let Some(image) = &*self.lock().unwrap() {
+            image.get_size()
+        } else {
+            unreachable!();
+        }
+    }*/
 }
 
 impl<I> Image for ImageBuffer<I>
 where
     I: ImageFormat,
 {
-    type T = I;
-
     fn tex_sub_image_3d(
         &self,
         // The texture array
@@ -344,9 +386,9 @@ where
     }
 
     // The size of the image
-    fn get_size(&self) -> &Vector2<i32> {
+    /*fn get_size(&self) -> &Vector2<i32> {
         &self.size
-    }
+    }*/
 }
 
 

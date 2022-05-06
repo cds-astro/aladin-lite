@@ -60,14 +60,14 @@ impl TextRenderManager {
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/webgl1/text/text_vertex.glsl"),
-            include_str!("../shaders/webgl1/text/text_frag.glsl"),
+            include_str!("../../../glsl/webgl1/text/text_vertex.glsl"),
+            include_str!("../../../glsl/webgl1/text/text_frag.glsl"),
         )?;
         #[cfg(feature = "webgl2")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/webgl2/text/text_vertex.glsl"),
-            include_str!("../shaders/webgl2/text/text_frag.glsl"),
+            include_str!("../../../glsl/webgl2/text/text_vertex.glsl"),
+            include_str!("../../../glsl/webgl2/text/text_frag.glsl"),
         )?;
         let mut vao = VertexArrayObject::new(&gl);
         #[cfg(feature = "webgl2")]

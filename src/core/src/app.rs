@@ -1,19 +1,30 @@
-use crate::{angle::{Angle, ArcDeg}, async_task::TaskExecutor, async_task::{BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, buffer::TileDownloader, camera::CameraViewPort, line, math, math::{LonLat, LonLatT}, projection::{Orthographic, Projection}, renderable::{
+use crate::{async_task::{TaskExecutor, BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, camera::CameraViewPort, colormap::Colormaps, downloader::{
+        Downloader,
+        request::RequestSender
+    }, line, math::{
+        self,
+        angle::{Angle, ArcDeg},
+        lonlat::{LonLat, LonLatT},
+        projection::{Orthographic, Projection}
+    }, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
-        survey::image_survey::ImageSurveys,
-    }, shader::ShaderManager, shaders::Colormaps, time::DeltaTime, utils, request::RequestSender};
+    }, shader::ShaderManager, survey::ImageSurveys, tile_fetcher::TileFetcherQueue, time::DeltaTime, utils};
 use al_core::{
     resources::Resources,
     pixel::PixelType, WebGlContext
 };
 
-use al_api::hips::SimpleHiPS;
-use al_api::color::Color;
-use al_api::hips::ImageSurveyMeta;
-use al_api::grid::GridCfg;
-use al_api::coo_system::CooSystem;
+use al_api::{
+    hips::{
+        SimpleHiPS, ImageSurveyMeta
+    },
+    color::Color,
+    grid::GridCfg,
+    coo_system::CooSystem
+};
 
+use super::coosys;
 use cgmath::Vector4;
 
 use wasm_bindgen::prelude::*;
@@ -40,11 +51,11 @@ where
     pub gl: WebGlContext,
 
     //ui: GuiRef,
-
     shaders: ShaderManager,
     camera: CameraViewPort,
 
-    downloader: TileDownloader,
+    downloader: Downloader,
+    tile_fetcher: TileFetcherQueue,
     surveys: ImageSurveys,
 
     time_start_blending: Time,
@@ -83,7 +94,7 @@ where
 use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
-use crate::rotation::Rotation;
+use crate::math::rotation::Rotation;
 
 
 /*struct MoveAnimation {
@@ -109,14 +120,14 @@ struct ZoomAnimation {
     w0: f64,
 }
 
-
+use crate::math::projection::*;
 const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
-use crate::buffer::Tile;
+//use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
 use wasm_bindgen::JsCast;
 
-use crate::projection::*;
+use math::projection::*;
 type OrthoApp = App<Orthographic>;
 type AitoffApp = App<Aitoff>;
 type MollweideApp = App<Mollweide>;
@@ -136,6 +147,7 @@ pub enum AppType {
     MercatorApp,
 }
 
+use crate::downloader::query;
 impl<P> App<P>
 where
     P: Projection,
@@ -160,7 +172,7 @@ where
         gl.cull_face(WebGl2RenderingContext::BACK);
 
         // The tile buffer responsible for the tile requests
-        let downloader = TileDownloader::new();
+        let downloader = Downloader::new();
 
         let camera = CameraViewPort::new::<Orthographic>(&gl, CooSystem::ICRSJ2000);
         let screen_size = &camera.get_screen_size();
@@ -198,6 +210,7 @@ where
         let final_rendering_pass =
             RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let request_sender = RequestSender::new();
+        let tile_fetcher = TileFetcherQueue::new();
         //let ui = Gui::new(aladin_div_name, &gl)?;
         Ok(App {
             gl,
@@ -232,6 +245,8 @@ where
             tasks_finished,
             catalog_loaded,
 
+            tile_fetcher,
+
             colormaps,
             request_sender,
             p: std::marker::PhantomData,
@@ -241,18 +256,13 @@ where
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
         self.surveys.refresh_views(&self.camera);
+        self.tile_fetcher.clear();
         // Loop over the surveys
-        let mut not_available_tiles = Vec::new();
-        for (survey_id, survey) in self.surveys.iter_mut() {
-            //let num_cells = survey.get_view().num_of_cells();
-            //let delta_depth = survey.get_textures().config().delta_depth();
-            //let num_tiles = num_cells * (1 << (2 * delta_depth));
-            //let mut already_available_tiles = Vec::with_capacity(num_tiles);
-
+        for (_, survey) in self.surveys.iter_mut() {
             let mut tile_cells = survey.get_view()
                 .get_cells()
                 .flat_map(|texture_cell| {
-                    texture_cell.get_tile_cells(survey.get_textures().config())
+                    texture_cell.get_tile_cells(survey.get_config())
                 })
                 .collect::<Vec<_>>();
 
@@ -267,39 +277,16 @@ where
             }
 
             for tile_cell in tile_cells {
-                let already_available = survey.get_textures().contains_tile(&tile_cell);
-                //let _is_tile_new = survey.get_view().is_new(&tile_cell);
-
-                if already_available {
-                    // Remove and append the texture with an updated
-                    // time_request
-                    //if is_tile_new {
-                        // The viewport has new cells. So we can potentially do
-                        // some GPU blending between tiles.
-                        // Thus, we update the uniform
-                    //    self.time_start_blending = Time::now();
-                    //}
-
-                    survey.get_textures_mut()
-                        .update_priority(&tile_cell);
-
-                    //already_available_tiles.push((tile_cell, is_tile_new));
-                } else {
+                let tile_found = survey.update_priority_tile(&tile_cell);
+                if !tile_found {
                     // Submit the request to the buffer
-                    let format = survey.get_textures().config().format();
-                    let root_url = survey_id.clone();
-                    let tile = Tile {
-                        root_url,
-                        format,
-                        cell: tile_cell,
-                    };
-
-                    not_available_tiles.push(tile);
+                    let cfg = survey.get_config();
+                    // Launch the new tile requests
+                    //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
+                    self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
                 }
             }
         }
-        // Launch the new tile requests
-        self.downloader.request_tiles(not_available_tiles);
     }
 
     // Run async tasks:
@@ -307,7 +294,7 @@ where
     // - copying textures to GPU
     // Return true when a task is complete. This always lead
     // to a redraw of aladin lite
-    fn run_tasks(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
+    /*fn run_tasks(&mut self, dt: DeltaTime) -> Result<HashSet<Tile>, JsValue> {
         let tasks_time = (dt.0 * 0.5).min(8.3);
         let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
@@ -342,12 +329,44 @@ where
         }
 
         Ok(tiles_available)
+    }*/
+    fn run_tasks(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+        let tasks_time = (dt.0 * 0.5).min(8.3);
+        let results = self.exec.borrow_mut().run(tasks_time);
+        self.tasks_finished = !results.is_empty();
+
+        // Retrieve back all the tiles that have been
+        // copied to the GPU
+        // This is important for the tile buffer to know which
+        // requests can be reused to query more tiles
+        for result in results {
+            match result {
+                TaskResult::TableParsed {
+                    name,
+                    sources,
+                    colormap,
+                } => {
+                    self.manager.add_catalog::<P>(
+                        name,
+                        sources,
+                        colormap,
+                        &mut self.shaders,
+                        &self.camera,
+                        self.surveys.get_view().unwrap(),
+                    );
+                    self.catalog_loaded = true;
+                    self.request_redraw = true;
+                }
+                //TaskResult::TileSentToGPU { tile } => todo!()
+            }
+        }
+
+        Ok(())
     }
 }
 
 use crate::{
-    request,
-    renderable::survey::{image_survey::AllskyTile, AllskyTilesType},
+    survey::{AllskyTile, AllskyTilesType},
 };
 
 #[enum_dispatch(AppType)]
@@ -421,6 +440,11 @@ pub trait AppTrait {
     fn over_ui(&self) -> bool;
 }
 
+use crate::downloader::request::{
+    Resolve,
+    Resource
+};
+
 impl<P> AppTrait for App<P>
 where
     P: Projection,
@@ -450,9 +474,9 @@ where
         //let available_tiles = self.run_tasks(dt)?;
 
         // Check the requests
-        for resolve in self.request_sender.poll() {
+        /*for resolve in self.request_sender.poll() {
             match resolve {
-                request::Resolve::Allsky { survey_root_url, tiles } => {
+                Resolve::Allsky { survey_root_url, tiles } => {
                     if let Some(survey) = self.surveys.get_mut(&survey_root_url) {
                         if let Some(tiles) = tiles.lock().unwrap().take() {
                             al_core::log("received allsky");
@@ -498,9 +522,9 @@ where
                         }
                     }
                 },
-                request::Resolve::Tile { .. } => todo!()
+                //Resolve::Tile { .. } => todo!()
             }
-        }
+        }*/
 
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -542,12 +566,32 @@ where
             // 1. Surveys must be aware of the new available tiles
             //self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
-            let is_there_new_available_tiles = self
+            /*let is_there_new_available_tiles = self
                 .downloader
-                .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);
+                .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
+            let rscs = self.downloader.get_received_resources();
+            let mut num_tile_received = 0;
+            for rsc in rscs.into_iter() {
+                match rsc {
+                    Resource::Tile(tile) => {
+                        // Find the survey is tile is refering to
+                        let hips_url = tile.get_hips_url();
+                        // Get the hips url from that url
+                        if let Some(survey) = self.surveys.get_mut(hips_url) {
+                            survey.add_tile(tile);
+                        }
+
+                        num_tile_received += 1;
+                    },
+                    Resource::Allsky(allsky) => {
+                        todo!();
+                    }
+                }
+            }
             //let is_there_new_available_tiles = !resolved_tiles.is_empty();
             //al_core::log(&format!("resolved tiles {:?}", resolved_tiles));
-            if is_there_new_available_tiles {
+            if num_tile_received > 0 {
+                self.tile_fetcher.notify(num_tile_received, &mut self.downloader);
                 self.time_start_blending = Time::now();
             }
 
@@ -555,7 +599,9 @@ where
 
 
             // 3. Try sending new tile requests after
-            self.downloader.try_sending_tile_requests()?;
+            //self.downloader.try_sending_tile_requests()?;
+
+
         }
 
         // The rendering is done following these different situations:
@@ -715,7 +761,7 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.downloader.clear_requests();
+        self.downloader.abort_queries();
 
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
@@ -729,7 +775,13 @@ where
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            //self.downloader.request_base_tiles(survey.get_textures().config());
+            let cfg = survey.get_config();
+            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                for cell in texture_cell.get_tile_cells(cfg) {
+                    let query = query::Tile::new(&cell, cfg);
+                    self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                }
+            }
         }
 
         self.request_redraw = true;
@@ -758,6 +810,7 @@ where
         self.request_redraw = true;
 
         App {
+            tile_fetcher: self.tile_fetcher,
             p: std::marker::PhantomData,
             gl: self.gl,
             request_sender: self.request_sender,
@@ -952,8 +1005,8 @@ where
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
-        let (ra, dec) = crate::math::xyzw_to_radec(
-            &crate::math::apply_coo_system(&view_system, &CooSystem::ICRSJ2000, &icrsj2000_pos)
+        let (ra, dec) = math::lonlat::xyzw_to_radec(
+            &coosys::apply_coo_system(&view_system, &CooSystem::ICRSJ2000, &icrsj2000_pos)
         );
 
         LonLatT::new(ra, dec)
@@ -963,7 +1016,7 @@ where
         self.prev_cam_position = self.camera.get_center().truncate();
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
 
-        let view_pos = crate::math::apply_coo_system(&CooSystem::ICRSJ2000, self.camera.get_system(), &icrsj2000_pos);
+        let view_pos = coosys::apply_coo_system(&CooSystem::ICRSJ2000, self.camera.get_system(), &icrsj2000_pos);
         let rot = Rotation::from_sky_position(&view_pos);
 
         // Apply the rotation to the camera to go
@@ -1012,7 +1065,7 @@ where
         // center position
         let x = self.prev_cam_position;
         let axis = x.cross(center).normalize();
-        let d0 = math::ang_between_vect(&x, &center);
+        let d0 = math::vector::angle3(&x, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
             d0,
@@ -1079,7 +1132,7 @@ where
                 //let next_pos = w2.truncate();
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();
-                    let d = math::ang_between_vect(&cur_pos, &next_pos);
+                    let d = math::vector::angle3(&cur_pos, &next_pos);
                     self.prev_cam_position = self.camera.get_center().truncate();
 
                     // Apply the rotation to the camera to

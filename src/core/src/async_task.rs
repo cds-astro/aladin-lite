@@ -6,7 +6,6 @@
 use al_task_exec::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
-pub use crate::buffer::Tile;
 pub use crate::renderable::catalog::Source;
 pub use al_api::colormap::Colormap;
 pub enum TaskResult {
@@ -15,14 +14,14 @@ pub enum TaskResult {
         sources: Box<[Source]>,
         colormap: Colormap,
     },
-    TileSentToGPU {
+    /*TileSentToGPU {
         tile: Tile,
-    },
+    },*/
 }
 
 #[derive(Hash, Eq, PartialEq, Clone)]
 pub enum TaskType {
-    ImageTile2GpuTask(Tile),
+    //ImageTile2GpuTask(Tile),
     ParseTableTask,
 }
 
@@ -248,23 +247,24 @@ where
     texture_array: Rc<Texture2DArray>,
 }
 
-use crate::buffer::{HiPSConfig, Texture};
+use crate::{
+    survey::{config::HiPSConfig, texture::Texture},
+    healpix::cell::HEALPixCell,
+};
 use al_core::image::Image;
 use al_core::Texture2DArray;
-
 use std::rc::Rc;
 impl<I> ImageTile2GpuTask<I>
 where
     I: Image + 'static + std::fmt::Debug,
 {
     pub fn new(
-        tile: &Tile, // The tile cell. It must lie in the texture
+        cell: &HEALPixCell, // The tile cell. It must lie in the texture
         texture: &Texture,
         image: I,
         texture_array: Rc<Texture2DArray>,
         conf: &HiPSConfig,
     ) -> ImageTile2GpuTask<I> {
-        let cell = tile.cell;
         // Index of the texture in the total set of textures
         let texture_idx = texture.idx();
         // Index of the slice of textures

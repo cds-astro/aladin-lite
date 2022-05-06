@@ -26,33 +26,28 @@ use std::panic;
 #[macro_use]
 mod utils;
 
-use projection::*;
+use math::projection::*;
 use wasm_bindgen::prelude::*;
 
-mod angle;
 mod app;
 mod async_task;
-mod buffer;
 mod camera;
-mod cdshealpix;
-mod request;
 
-pub use angle::{Angle, ArcDeg, ArcMin, ArcSec, FormatType, SerializeToString};
-
-mod healpix_cell;
+mod downloader;
+mod tile_fetcher;
+mod healpix;
+mod survey;
 mod line;
 mod math;
 mod renderable;
-mod rotation;
 mod shader;
-mod shaders;
-mod sphere_geometry;
 mod time;
-mod projection;
+mod coosys;
+mod colormap;
 
 use crate::{
-    camera::CameraViewPort, math::LonLatT, renderable::survey::image_survey::ImageSurveys,
-    shader::ShaderManager, shaders::Colormaps, time::DeltaTime,
+    camera::CameraViewPort, math::lonlat::LonLatT, survey::ImageSurveys,
+    shader::ShaderManager, colormap::Colormaps, time::DeltaTime,
 };
 use al_api::hips::{HiPSColor, HiPSTileFormat, HiPSProperties, SimpleHiPS};
 use al_core::resources::Resources;
@@ -63,6 +58,10 @@ use al_api::coo_system::CooSystem;
 
 use app::App;
 use cgmath::{Vector2, Vector4};
+
+use math::{
+    angle::{ArcDeg}
+};
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -80,6 +79,8 @@ use al_api::color::Color;
 use crate::app::AppTrait;
 use crate::app::AppType;
 use al_api::hips::ImageSurveyMeta;
+
+use crate::math::projection::*;
 
 #[wasm_bindgen]
 impl WebClient {

@@ -173,7 +173,7 @@ impl Manager {
     ) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
-        let catalog = Catalog::new::<P>(&self.gl, shaders, colormap, sources, view, camera);
+        let catalog = Catalog::new::<P>(&self.gl, colormap, sources);
 
         // Update the number of sources loaded
         //self.num_sources += num_instances_in_catalog as usize;
@@ -204,7 +204,7 @@ impl Manager {
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
         // this cell
         if camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE {
-            let cells = crate::healpix_cell::ALLSKY_HPX_CELLS_D0;
+            let cells = crate::healpix::cell::ALLSKY_HPX_CELLS_D0;
 
             for catalog in self.catalogs.values_mut() {
                 catalog.update::<P>(cells, camera);
@@ -261,23 +261,20 @@ pub struct Catalog {
     vertex_array_object_catalog: VertexArrayObject,
 }
 use al_core::SliceData;
-use crate::healpix_cell::HEALPixCell;
-use crate::{camera::CameraViewPort, projection::Projection, utils};
+use crate::healpix::cell::HEALPixCell;
+use crate::{camera::CameraViewPort, math::projection::Projection, utils};
 use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 
-use crate::renderable::survey::HEALPixCellsInView;
-use crate::shaders::Colormaps;
+use crate::survey::view::HEALPixCellsInView;
+use crate::colormap::Colormaps;
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGlContext,
-        _shaders: &mut ShaderManager,
         colormap: Colormap,
         sources: Box<[Source]>,
-        _view: &HEALPixCellsInView,
-        _camera: &CameraViewPort,
     ) -> Catalog {
         let alpha = 1_f32;
         let strength = 1_f32;
@@ -543,7 +540,7 @@ pub trait CatalogShaderProjection {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
 }
 
-use crate::projection::Aitoff;
+use crate::math::projection::Aitoff;
 use crate::shader::ShaderId;
 use std::borrow::Cow;
 
@@ -557,7 +554,7 @@ impl CatalogShaderProjection for Aitoff {
             .unwrap()
     }
 }
-use crate::projection::Mollweide;
+use crate::math::projection::Mollweide;
 
 impl CatalogShaderProjection for Mollweide {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
@@ -569,7 +566,7 @@ impl CatalogShaderProjection for Mollweide {
             .unwrap()
     }
 }
-use crate::projection::AzimuthalEquidistant;
+use crate::math::projection::AzimuthalEquidistant;
 
 impl CatalogShaderProjection for AzimuthalEquidistant {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
@@ -582,7 +579,7 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
     }
 }
 
-use crate::projection::HEALPix;
+use crate::math::projection::HEALPix;
 impl CatalogShaderProjection for HEALPix {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -594,7 +591,7 @@ impl CatalogShaderProjection for HEALPix {
     }
 }
 
-use crate::projection::Mercator;
+use crate::math::projection::Mercator;
 
 impl CatalogShaderProjection for Mercator {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
@@ -606,8 +603,7 @@ impl CatalogShaderProjection for Mercator {
             .unwrap()
     }
 }
-use crate::projection::Orthographic;
-
+use crate::math::projection::Orthographic;
 impl CatalogShaderProjection for Orthographic {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -621,7 +617,7 @@ impl CatalogShaderProjection for Orthographic {
             .unwrap()
     }
 }
-use crate::projection::Gnomonic;
+use crate::math::projection::Gnomonic;
 impl CatalogShaderProjection for Gnomonic {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders

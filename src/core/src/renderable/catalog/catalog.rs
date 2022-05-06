@@ -1,4 +1,4 @@
-use crate::healpix_cell::HEALPixCell;
+use crate::healpix::cell::HEALPixCell;
 
 use std::ops::Range;
 pub struct SourceIndices {

@@ -16,13 +16,15 @@ impl Eq for Source {}
 
 use cgmath::Vector3;
 
-use crate::math;
-use crate::angle::Angle;
-use crate::math::LonLat;
+use crate::math::{
+    self,
+    angle::Angle,
+    lonlat::LonLat
+};
 
 impl Source {
     pub fn new(lon: Angle<f32>, lat: Angle<f32> /*, mag: f32*/) -> Source {
-        let world_pos = math::radec_to_xyz(lon, lat);
+        let world_pos = math::lonlat::radec_to_xyz(lon, lat);
 
         let x = world_pos.x;
         let y = world_pos.y;
@@ -45,7 +47,7 @@ impl Source {
     }
 }
 
-use crate::angle::ArcDeg;
+use crate::math::angle::ArcDeg;
 impl From<&[f32]> for Source {
     fn from(data: &[f32]) -> Source {
         let lon = ArcDeg(data[0]).into();

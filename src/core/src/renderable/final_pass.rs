@@ -18,14 +18,14 @@ impl RenderPass {
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(
             &gl,
-            include_str!("../shaders/webgl1/passes/post_vertex_100es.glsl"),
-            include_str!("../shaders/webgl1/passes/post_fragment_100es.glsl"),
+            include_str!("../../../glsl/webgl1/passes/post_vertex_100es.glsl"),
+            include_str!("../../../glsl/webgl1/passes/post_fragment_100es.glsl"),
         )?;
         #[cfg(feature = "webgl2")]
         let shader = Shader::new(
             gl,
-            include_str!("../shaders/webgl2/passes/post_vertex_100es.glsl"),
-            include_str!("../shaders/webgl2/passes/post_fragment_100es.glsl"),
+            include_str!("../../../glsl/webgl2/passes/post_vertex_100es.glsl"),
+            include_str!("../../../glsl/webgl2/passes/post_fragment_100es.glsl"),
         )?;
 
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];

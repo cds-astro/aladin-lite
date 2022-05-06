@@ -1,10 +1,11 @@
-use crate::math::LonLatT;
 pub const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
 const MIN_LENGTH_ANGLE: f64 = 0.50;
 
-use crate::math::LonLat;
-use crate::projection::ndc_to_screen_space;
-use crate::projection::Projection;
+use math::lonlat::{LonLatT, LonLat};
+use math::projection::{
+    Projection,
+    ndc_to_screen_space
+};
 
 pub fn project_along_longitudes_and_latitudes<P: Projection>(
     v1: &Vector3<f64>,
@@ -54,8 +55,10 @@ pub fn project_along_great_circles<P: Projection>(
 use crate::ArcDeg;
 const MAX_LENGTH_LINE_SEGMENT_SQUARED: f64 = 2.5e-2;
 const MIN_LENGTH_LINE_SEGMENT_SQUARED: f64 = 1e-4;
-use crate::math;
-use crate::Angle;
+use crate::math::{
+    self,
+    angle::Angle,
+};
 use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
@@ -72,9 +75,9 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
     // Project them. We are always facing the camera
     let system = camera.get_system();
 
-    let aa = math::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
-    let bb = math::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
-    let cc = math::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
+    let aa = math::lonlat::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
+    let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
+    let cc = math::lonlat::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
 
     let a = P::model_to_ndc_space(&aa.extend(1.0), camera);
     let b = P::model_to_ndc_space(&bb.extend(1.0), camera);
@@ -95,13 +98,13 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 
             let ab = ab.normalize();
             let bc = bc.normalize();
-            let theta = math::angle(&ab, &bc);
+            let theta = math::vector::angle2(&ab, &bc);
 
             let vectors_nearly_colinear = theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION;
             let ndc_length_enough_small = (ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 && bc_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 || camera.get_aperture() < ArcDeg(10.0));
-            let is_vertices_near = crate::math::ang_between_vect(&aa, &bb) < ArcDeg(1.0) && crate::math::ang_between_vect(&bb, &cc) < ArcDeg(1.0);
+            let is_vertices_near = math::vector::angle3(&aa, &bb) < ArcDeg(1.0) && math::vector::angle3(&bb, &cc) < ArcDeg(1.0);
 
             if vectors_nearly_colinear && ndc_length_enough_small {
                 // Check if ab and bc are colinear
@@ -323,7 +326,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
 
             let ab = ab.normalize();
             let bc = bc.normalize();
-            let theta = math::angle(&ab, &bc);
+            let theta = math::vector::angle2(&ab, &bc);
 
             let vectors_nearly_colinear = theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION;
             let ndc_length_enough_small = (ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED

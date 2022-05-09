@@ -62,13 +62,8 @@ impl From<query::Allsky> for AllskyRequest {
                 let allsky_tiles = match format {
                     ImageFormatType::RGB8U => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                        let bytes = image_decoder::load_from_memory_with_format(
-                                &raw_bytes[..],
-                                image_decoder::ImageFormat::Jpeg,
-                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
-                            .into_bytes();
-        
-                        let allsky = ImageBuffer::<RGB8U>::new(bytes, 1728, 1856);
+                        let allsky = ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
+
                         handle_allsky_file::<RGB8U>(allsky).await?
                             .into_iter()
                             .map(|image| {
@@ -77,14 +72,9 @@ impl From<query::Allsky> for AllskyRequest {
                             .collect()
                     },
                     ImageFormatType::RGBA8U => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                        let bytes = image_decoder::load_from_memory_with_format(
-                                &raw_bytes[..],
-                                image_decoder::ImageFormat::Png,
-                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
-                            .into_bytes();
-        
-                        let allsky = ImageBuffer::<RGBA8U>::new(bytes, 1728, 1856);
+                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();        
+                        let allsky = ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
+
                         handle_allsky_file::<RGBA8U>(allsky).await?
                             .into_iter()
                             .map(|image| {

@@ -10,6 +10,7 @@ where
     size: Vector2<i32>,
 }
 
+use wasm_bindgen::JsValue;
 impl<T> ImageBuffer<T>
 where
     T: ImageFormat,
@@ -24,6 +25,23 @@ where
             size,
         }
     }
+
+    pub fn from_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
+        let format = <T as ImageFormat>::IMAGE_DECODER_TYPE
+            .ok_or(JsValue::from_str("Format not supported. This image may not be compressed."))?;
+        let mut decoded_bytes = image_decoder::load_from_memory_with_format(
+            raw_bytes,
+            format,
+        ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
+        .into_bytes();
+
+        let decoded_bytes = unsafe {
+            decoded_bytes.set_len(decoded_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>());
+            std::mem::transmute(decoded_bytes)
+        };
+        Ok(Self::new(decoded_bytes, width, height))
+    }
+
 
     pub fn empty() -> Self {
         let size = Vector2::new(0, 0);

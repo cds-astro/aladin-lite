@@ -10,7 +10,7 @@ js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
 fontdue = "0.7.2"
-image = "0.24.2"
+image-decoder = { package = "image", version = "0.24.*", default-features = false, features = ["jpeg", "png"] }
 lazy_static = "1.4.0"
 serde = { version = "^1.0.59", features = ["derive"] }
 fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'master' }

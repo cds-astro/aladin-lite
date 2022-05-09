@@ -1,5 +1,6 @@
 extern crate fontdue;
 extern crate lazy_static;
+extern crate image_decoder;
 pub mod text;
 
 mod object;

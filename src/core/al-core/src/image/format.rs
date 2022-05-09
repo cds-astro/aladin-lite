@@ -9,6 +9,8 @@ pub trait ImageFormat {
     const FORMAT: u32;
     const INTERNAL_FORMAT: i32;
     const TYPE: u32;
+
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat>;
 }
 
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -23,6 +25,8 @@ impl ImageFormat for RGB8U {
     const FORMAT: u32 = WebGlRenderingCtx::RGB as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
+
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Jpeg);
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -37,6 +41,8 @@ impl ImageFormat for RGBA8U {
     const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
+
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Png);
 }
 #[cfg(feature = "webgl1")]
 impl ImageFormat for RGBA8U {
@@ -48,6 +54,8 @@ impl ImageFormat for RGBA8U {
     const FORMAT: u32 = WebGlRenderingCtx::RGBA as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
+
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Png);
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -66,6 +74,7 @@ impl ImageFormat for RGBA32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -83,6 +92,7 @@ impl ImageFormat for RGB32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -104,6 +114,7 @@ impl ImageFormat for R32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[cfg(feature = "webgl2")]
@@ -119,6 +130,7 @@ impl ImageFormat for R8UI {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R8UI as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[cfg(feature = "webgl2")]
@@ -134,6 +146,7 @@ impl ImageFormat for R16I {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R16I as i32;
     const TYPE: u32 = WebGlRenderingCtx::SHORT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[cfg(feature = "webgl2")]
@@ -149,6 +162,7 @@ impl ImageFormat for R32I {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32I as i32;
     const TYPE: u32 = WebGlRenderingCtx::INT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]

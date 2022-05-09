@@ -753,6 +753,7 @@ where
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
         self.downloader.abort_queries();
+        self.tile_fetcher = TileFetcherQueue::new();
 
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
@@ -761,7 +762,6 @@ where
         )?;
 
         // Once its added, request its tiles
-        self.look_for_new_tiles();
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
@@ -773,6 +773,8 @@ where
                 }
             }
         }
+
+        self.look_for_new_tiles();
 
         self.request_redraw = true;
 

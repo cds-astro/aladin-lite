@@ -1101,13 +1101,15 @@ export let View = (function() {
             catalogCanvasCleared = true;
             this.mustClearCatalog = false;
         }
+
         if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
             // TODO : do not clear every time
             //// clear canvas ////
-            if (! catalogCanvasCleared) {
+            if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
+
             for (var i=0; i<this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
                 //console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
@@ -1116,20 +1118,22 @@ export let View = (function() {
         }
         // draw popup catalog
         if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
-            if (! catalogCanvasCleared) {
+            if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
+
             this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
         }
 
         ////// 3. Draw overlays////////
         var overlayCtx = this.catalogCtx;
         if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-            if (! catalogCanvasCleared) {
+            if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
+
             for (var i=0; i<this.overlays.length; i++) {
                 this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
@@ -1138,7 +1142,7 @@ export let View = (function() {
         // Redraw HEALPix grid
         var healpixGridCtx = catalogCtx;
         if( this.displayHpxGrid ) {
-            if (! catalogCanvasCleared) {
+            if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
@@ -1163,12 +1167,13 @@ export let View = (function() {
 
 
         // draw MOCs
-        var mocCtx = this.catalogCtx;
+        var mocCtx = catalogCtx;
         if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
-            if (! catalogCanvasCleared) {
+            if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
+
             for (var i=0; i<this.mocs.length; i++) {
                 this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
             }
@@ -1180,11 +1185,16 @@ export let View = (function() {
         
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        var reticleCtx = this.catalogCtx;
-        /*if (this.mustRedrawReticle || this.mode==View.SELECT) {
-            reticleCtx.clearRect(0, 0, this.width, this.height);
-        }*/
+        var reticleCtx = catalogCtx;
+        //if (this.mustRedrawReticle || this.mode==View.SELECT) {
+        //    reticleCtx.clearRect(0, 0, this.width, this.height);
+        //}
         if (this.displayReticle) {
+            if (! catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
             if (! this.reticleCache) {
                 // build reticle image
                 var c = document.createElement('canvas');
@@ -1209,7 +1219,6 @@ export let View = (function() {
                 
                 this.reticleCache = c;
             }
-                
             reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
 
             this.mustRedrawReticle = false;
@@ -1976,7 +1985,10 @@ export let View = (function() {
     View.prototype.showReticle = function(show) {
         this.displayReticle = show;
 
-        this.mustRedrawReticle = true;
+        if (!this.displayReticle) {
+            this.mustClearCatalog = true;
+        }
+
         this.requestRedraw();
     };
 

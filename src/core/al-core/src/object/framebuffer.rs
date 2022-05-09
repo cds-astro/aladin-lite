@@ -17,7 +17,7 @@ impl FrameBufferObject {
             .ok_or("failed to create framebuffer")?;
         gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&fbo));
 
-        let texture = Texture2D::create_empty_with_format::<crate::format::RGBA8U>(
+        let texture = Texture2D::create_empty_with_format::<crate::image::format::RGBA8U>(
             &gl,
             width as i32,
             height as i32,

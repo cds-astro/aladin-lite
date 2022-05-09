@@ -44,7 +44,7 @@ impl Manager {
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
         let kernel_filename = resources.get_filename("kernel").unwrap();
-        let kernel_texture = Texture2D::create_from_path::<_, al_core::format::RGBA8U>(
+        let kernel_texture = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
             gl,
             "kernel",
             &kernel_filename,

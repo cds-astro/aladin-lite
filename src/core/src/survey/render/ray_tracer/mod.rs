@@ -129,7 +129,7 @@ fn create_f32_texture_from_raw(
     height: i32,
     data: &[f32],
 ) -> Texture2D {
-    let tex = Texture2D::create_empty_with_format::<al_core::format::RGB32F>(
+    let tex = Texture2D::create_empty_with_format::<al_core::image::format::RGB32F>(
         gl,
         width,
         height,

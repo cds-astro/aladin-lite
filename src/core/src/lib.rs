@@ -11,7 +11,6 @@
 extern crate console_error_panic_hook;
 extern crate egui;
 extern crate epi;
-extern crate fitsrs;
 extern crate fontdue;
 extern crate image_decoder;
 extern crate itertools_num;
@@ -34,6 +33,7 @@ mod async_task;
 mod camera;
 
 mod downloader;
+mod tile_fetcher;
 mod healpix;
 mod survey;
 mod line;
@@ -127,7 +127,7 @@ impl WebClient {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
-        // Update the application and get back the
+        // Update the application and get ba    ck the
         // world coordinates of the center of projection in (ra, dec)
         self.app.update(
             // Time of the previous frame rendering

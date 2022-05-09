@@ -30,14 +30,11 @@ serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 num = "*"
 image-decoder = { package = "image", version = "0.24.*", default-features = false, features = ["jpeg", "png"] }
-fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'master' }
-#rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 num-traits = "0.2.14"
 egui = "*"
 epi = "*"
 fontdue = "0.7.2"
 enum_dispatch = "0.3.7"
-
 
 al-core = { path = "./al-core" }
 al-ui = { path = "./al-ui" }

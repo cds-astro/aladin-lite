@@ -49,7 +49,7 @@ impl Colormaps {
         .cloned()
         .collect();
         let colormap_filename = rs.get_filename("colormaps").unwrap();
-        let tex = Texture2D::create_from_path::<_, al_core::format::RGBA8U>(
+        let tex = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
             gl,
             "colormap",
             &colormap_filename,

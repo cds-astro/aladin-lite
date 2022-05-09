@@ -136,7 +136,7 @@ use crate::math::lonlat::LonLatT;
 use crate::JsValue;
 use al_core::WebGlContext;
 
-use al_core::format::ImageFormat;
+use al_core::image::format::ImageFormat;
 use al_core::image::Image;
 use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
@@ -177,10 +177,10 @@ fn create_texture_array<F: ImageFormat>(
 }
 
 use crate::downloader::request::tile::Tile;
-use al_core::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
+use al_core::image::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
-use al_core::format::{R16I, R32I, R8UI};
+use al_core::image::format::{R16I, R32I, R8UI};
 
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
 use cgmath::Vector3;

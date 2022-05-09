@@ -24,7 +24,7 @@ pub struct Texture2D {
 
     metadata: Option<Texture2DMeta>,
 }
-use super::format::ImageFormat;
+use crate::image::format::ImageFormat;
 use super::pixel::Pixel;
 use super::pixel::PixelType;
 use std::path::Path;

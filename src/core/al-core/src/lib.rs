@@ -6,12 +6,11 @@ mod object;
 pub mod shader;
 pub mod texture;
 pub mod webgl_ctx;
+pub mod image;
 #[macro_use]
 pub mod log;
 pub use log::log;
 
-pub use texture::format;
-pub use texture::image;
 pub use texture::pixel;
 pub use texture::texture::{Texture2D, Texture2DBound};
 pub use texture::Texture2DArray;

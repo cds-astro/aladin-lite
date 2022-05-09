@@ -243,7 +243,7 @@ impl WebGl2Painter {
             if user_texture.gl_texture.is_none() {
                 let pixels = std::mem::take(&mut user_texture.pixels);
 
-                let gl_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
+                let gl_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
                     &gl,
                     user_texture.size.0 as i32,
                     user_texture.size.1 as i32,

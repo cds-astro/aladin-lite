@@ -1,4 +1,4 @@
-use super::pixel::Pixel;
+use crate::texture::pixel::Pixel;
 
 pub trait ImageFormat {
     type P: Pixel;

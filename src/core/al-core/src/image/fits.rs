@@ -1,11 +1,4 @@
 use cgmath::{Vector2, Vector3};
-use al_core::{
-    format::{
-        RGB8U, R8UI, RGBA8U, R16I, R32I, R32F
-    }, 
-    Texture2DArray,
-    image::Image,
-};
 use fitsrs::FitsMemAligned;
 
 #[derive(Debug)]
@@ -120,6 +113,8 @@ where
     }
 }
 
+use crate::texture::Texture2DArray;
+use crate::image::Image;
 impl<F> Image for Fits<F>
 where
     F: FitsImageFormat,
@@ -171,9 +166,8 @@ use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
 use web_sys::XmlHttpRequestResponseType;
 
-use al_core::format::ImageFormat;
-
 use fitsrs::ToBigEndian;
+use crate::image::format::ImageFormat;
 pub trait FitsImageFormat: ImageFormat {
     type Type: ToBigEndian + Clone;
     type ArrayBufferView: AsRef<js_sys::Object>;
@@ -189,6 +183,7 @@ impl FitsImageFormat for R32F {
         Self::ArrayBufferView::view(s)
     }
 }
+use crate::image::{R8UI, R16I, R32F, R32I};
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R32I {
     type Type = i32;

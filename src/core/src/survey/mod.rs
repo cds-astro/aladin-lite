@@ -7,9 +7,9 @@ mod buffer;
 use texture::Texture;
 use crate::math::projection::HEALPix;
 
-use al_core::{VecData, format::{R32F, RGB8U, RGBA8U}, image::ImageBuffer};
+use al_core::{VecData, image::format::{R32F, RGB8U, RGBA8U}, image::raw::ImageBuffer};
 #[cfg(feature = "webgl2")]
-use al_core::format::{R16I, R32I, R8UI};
+use al_core::image::format::{R16I, R32I, R8UI};
 use egui::epaint::ahash::CallHasher;
 use js_sys::Uint8Array;
 
@@ -484,7 +484,6 @@ use crate::{
     utils,
     downloader::request::{
         Request, 
-        RequestSender,
         tile::Tile,
     },
 };
@@ -493,7 +492,7 @@ use al_core::pixel::PixelType;
 use web_sys::{WebGl2RenderingContext, WheelEvent};
 use wasm_bindgen::JsCast;
 use al_core::{
-    format::{ImageFormatType, ImageFormat},
+    image::format::{ImageFormatType, ImageFormat},
     texture::Pixel,
     image::Image
 };
@@ -503,7 +502,6 @@ impl ImageSurvey {
         config: HiPSConfig,
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        sender: &mut RequestSender,
     ) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
@@ -629,7 +627,7 @@ impl ImageSurvey {
         al_core::log(&format!("Allsky fetch url: {:?}", &url));
         let is_fits_survey = conf.tex_storing_fits;
         let tile_size = conf.get_tile_size() as usize;
-        let allsky_request = Request::new(async move {
+        /*let allsky_request = Request::new(async move {
             use wasm_bindgen_futures::JsFuture;
             use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
             
@@ -699,13 +697,7 @@ impl ImageSurvey {
             } else {
                 Err(js_sys::Error::new("Allsky not fetched").into())
             }
-        });
-
-        sender.push(crate::downloader::request::RequestType::Allsky {
-            survey_root_url: String::from(&conf.root_url),
-            req: allsky_request
-        });
-
+        });*/
         Ok(ImageSurvey {
             //color,
             // The image survey texture buffer
@@ -1356,7 +1348,6 @@ impl ImageSurveys {
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
         camera: &mut CameraViewPort,
-        downloader: &mut RequestSender,
     ) -> Result<Vec<String>, JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
@@ -1402,7 +1393,7 @@ impl ImageSurveys {
 
             // Add the new surveys
             if !self.surveys.contains_key(&url) {
-                let survey = ImageSurvey::new(config, gl, camera, downloader)?;
+                let survey = ImageSurvey::new(config, gl, camera)?;
                 self.surveys.insert(url.clone(), survey);
                 new_survey_urls.push(url.clone());
             }

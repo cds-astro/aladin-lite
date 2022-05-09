@@ -1,12 +1,11 @@
-use al_core::texture::RGBA32F;
-use al_core::{format::ImageFormat, image::ImageBuffer};
+use al_core::image::format::RGBA32F;
+use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 #[derive(Debug)]
 pub struct EmptyTileImage {
     inner: ImageType,
 }
 
-use crate::downloader::request::image::ImageType;
-use al_core::{pixel::Pixel};
+use al_core::{pixel::Pixel, image::ImageType};
 impl EmptyTileImage {
     fn new(size: i32, format: ImageFormatType) -> EmptyTileImage {
         debug_assert!(math::utils::is_power_of_two(size as usize));
@@ -50,8 +49,7 @@ impl EmptyTileImage {
 use cgmath::Vector3;
 use al_core::{
     Texture2DArray,
-    image::Image,
-    format::{R16I, R32I, R8UI, R32F},
+    image::{Image, format::{R16I, R32I, R8UI, R32F}},
 };
 
 impl Image for EmptyTileImage {
@@ -66,7 +64,7 @@ impl Image for EmptyTileImage {
     }
 }
 
-use al_core::format::{ImageFormatType, RGB8U, RGBA8U};
+use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 
 //use super::TileArrayBuffer;
 use crate::WebGlContext;
@@ -175,6 +173,7 @@ impl HiPSConfig {
         
         
         if !properties.get_formats().contains(&img_format) {
+            al_core::log(&format!("{:?} {:?}", properties.get_formats(), img_format));
             return Err(js_sys::Error::new("HiPS format not available").into());
         }
 

@@ -1,4 +1,4 @@
-use super::format::ImageFormat;
+use crate::image::format::ImageFormat;
 
 use crate::webgl_ctx::WebGlContext;
 pub struct Texture2DArray {

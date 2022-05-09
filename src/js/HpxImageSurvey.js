@@ -144,21 +144,22 @@ export let HpxImageSurvey = (function() {
 
         // HiPS tile format
         //let tileFormat = null;
-        let imgFormat = (options && options.imgFormat) || "jpeg";
-        this.imgFormat = imgFormat.toUpperCase();
+        let imgFormat = (options && options.imgFormat);
+        if (imgFormat) {
+            this.imgFormat = imgFormat.toUpperCase();
 
-        if (this.imgFormat === 'FITS') {
-            console.log("I want a fits hips")
-            //tileFormat = "FITS";
-            this.fits = true;
-        } else if (this.imgFormat === "PNG") {
-            //tileFormat = "PNG";
-            this.fits = false;
-        } else {
-            //tileFormat = "JPG";
-            this.fits = false;
+            if (this.imgFormat === 'FITS') {
+                console.log("I want a fits hips")
+                //tileFormat = "FITS";
+                this.fits = true;
+            } else if (this.imgFormat === "PNG") {
+                //tileFormat = "PNG";
+                this.fits = false;
+            } else {
+                //tileFormat = "JPG";
+                this.fits = false;
+            }
         }
-
 
         if (this.fits && (options && options.colormap)) {
             this.meta = {
@@ -269,6 +270,23 @@ export let HpxImageSurvey = (function() {
 
                 this.meta.color.grayscale.minCut = minCut;
                 this.meta.color.grayscale.maxCut = maxCut;
+            }
+
+            // the output format has not been defined by the user
+            // => we give him one of the available formats
+            if (!this.imgFormat) {
+                this.imgFormat = tileFormats[0];
+                if (this.imgFormat === 'FITS') {
+                    console.log("I want a fits hips")
+                    //tileFormat = "FITS";
+                    this.fits = true;
+                } else if (this.imgFormat === "PNG") {
+                    //tileFormat = "PNG";
+                    this.fits = false;
+                } else {
+                    //tileFormat = "JPG";
+                    this.fits = false;
+                }
             }
 
             // The survey created is associated to no layer when it is created

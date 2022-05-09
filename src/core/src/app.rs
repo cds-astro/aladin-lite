@@ -1,26 +1,14 @@
-use crate::{
-    math::{
+use crate::{async_task::{TaskExecutor, BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, camera::CameraViewPort, colormap::Colormaps, downloader::{
+        Downloader,
+    }, line, math::{
         self,
         angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
         projection::{Orthographic, Projection}
-    },
-    async_task::{TaskExecutor, BuildCatalogIndex, ParseTableTask, TaskResult, TaskType},
-    camera::CameraViewPort,
-    line,
-    renderable::{
+    }, renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
-    },
-    survey::ImageSurveys,
-    shader::ShaderManager, colormap::Colormaps,
-    time::DeltaTime,
-    utils,
-    downloader::{
-        Downloader,
-        request::RequestSender
-    }
-};
+    }, shader::ShaderManager, survey::ImageSurveys, tile_fetcher::TileFetcherQueue, time::DeltaTime, utils};
 use al_core::{
     resources::Resources,
     pixel::PixelType, WebGlContext
@@ -62,11 +50,11 @@ where
     pub gl: WebGlContext,
 
     //ui: GuiRef,
-
     shaders: ShaderManager,
     camera: CameraViewPort,
 
     downloader: Downloader,
+    tile_fetcher: TileFetcherQueue,
     surveys: ImageSurveys,
 
     time_start_blending: Time,
@@ -96,8 +84,6 @@ where
     pub fbo_ui: FrameBufferObject,
 
     pub colormaps: Colormaps,
-
-    request_sender: RequestSender,
 
     p: std::marker::PhantomData<P>,
 }
@@ -220,7 +206,7 @@ where
 
         let final_rendering_pass =
             RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
-        let request_sender = RequestSender::new();
+        let tile_fetcher = TileFetcherQueue::new();
         //let ui = Gui::new(aladin_div_name, &gl)?;
         Ok(App {
             gl,
@@ -255,8 +241,9 @@ where
             tasks_finished,
             catalog_loaded,
 
+            tile_fetcher,
+
             colormaps,
-            request_sender,
             p: std::marker::PhantomData,
         })
     }
@@ -264,6 +251,7 @@ where
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
         self.surveys.refresh_views(&self.camera);
+        self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
             let mut tile_cells = survey.get_view()
@@ -289,7 +277,8 @@ where
                     // Submit the request to the buffer
                     let cfg = survey.get_config();
                     // Launch the new tile requests
-                    self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
+                    //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
+                    self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
                 }
             }
         }
@@ -446,10 +435,7 @@ pub trait AppTrait {
     fn over_ui(&self) -> bool;
 }
 
-use crate::downloader::request::{
-    Resolve,
-    Resource
-};
+use crate::downloader::request::Resource;
 
 impl<P> AppTrait for App<P>
 where
@@ -576,7 +562,7 @@ where
                 .downloader
                 .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
             let rscs = self.downloader.get_received_resources();
-            let mut tile_received = false;
+            let mut num_tile_received = 0;
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
@@ -585,9 +571,8 @@ where
                         // Get the hips url from that url
                         if let Some(survey) = self.surveys.get_mut(hips_url) {
                             survey.add_tile(tile);
+                            num_tile_received += 1;
                         }
-
-                        tile_received = true;
                     },
                     Resource::Allsky(allsky) => {
                         todo!();
@@ -596,7 +581,8 @@ where
             }
             //let is_there_new_available_tiles = !resolved_tiles.is_empty();
             //al_core::log(&format!("resolved tiles {:?}", resolved_tiles));
-            if tile_received {
+            if num_tile_received > 0 {
+                self.tile_fetcher.notify(num_tile_received, &mut self.downloader);
                 self.time_start_blending = Time::now();
             }
 
@@ -772,7 +758,6 @@ where
             hipses,
             &self.gl,
             &mut self.camera,
-            &mut self.request_sender,
         )?;
 
         // Once its added, request its tiles
@@ -780,7 +765,13 @@ where
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            //self.downloader.request_base_tiles(survey.get_textures().config());
+            let cfg = survey.get_config();
+            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                for cell in texture_cell.get_tile_cells(cfg) {
+                    let query = query::Tile::new(&cell, cfg);
+                    self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                }
+            }
         }
 
         self.request_redraw = true;
@@ -809,9 +800,9 @@ where
         self.request_redraw = true;
 
         App {
+            tile_fetcher: self.tile_fetcher,
             p: std::marker::PhantomData,
             gl: self.gl,
-            request_sender: self.request_sender,
             //ui: self.ui,
             colormaps: self.colormaps,
             fbo_ui: self.fbo_ui,

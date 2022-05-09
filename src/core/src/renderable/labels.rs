@@ -115,7 +115,7 @@ impl TextRenderManager {
         let text_size = 12.0;
         let al_core::text::Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
 
-        let font_texture = Texture2D::create_from_raw_pixels::<al_core::format::RGBA8U>(
+        let font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &gl,
             size.x as i32,
             size.y as i32,

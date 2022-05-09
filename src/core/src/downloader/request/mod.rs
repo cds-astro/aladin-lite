@@ -88,30 +88,30 @@ where
 
 use tile::TileRequest;
 use allsky::AllskyRequest;
-pub enum RequestType2 {
+pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
     //..
 }
 
 use super::query::Url;
-impl RequestType2 {
+impl RequestType {
     pub fn url(&self) -> &Url {
         match self {
-            RequestType2::Tile(request) => &request.url,
-            RequestType2::Allsky(request) => todo!(),
+            RequestType::Tile(request) => &request.url,
+            RequestType::Allsky(request) => todo!(),
         }
     }
 }
 
-impl<'a> From<&'a RequestType2> for Option<Resource> {
-    fn from(request: &'a RequestType2) -> Self {
+impl<'a> From<&'a RequestType> for Option<Resource> {
+    fn from(request: &'a RequestType) -> Self {
         match request {
-            RequestType2::Tile(request) => {
+            RequestType::Tile(request) => {
                 Option::<Tile>::from(request)
                     .map(|tile| Resource::Tile(tile))
             },
-            RequestType2::Allsky(request) => todo!()
+            RequestType::Allsky(request) => todo!()
         }
     }
 }
@@ -123,95 +123,4 @@ pub enum Resource {
     Allsky(Allsky)
 }
 
-/* -------------------------------------------- */
-
-//use crate::image::ImageType;
-pub enum RequestType {
-    Allsky {
-        survey_root_url: String,
-        req: Request<AllskyTilesType>
-    },
-    /*Tile {
-        cell: HEALPixCell,
-        req: Request<ImageType>,
-    }*/
-}
-
-impl RequestType {
-    fn resolve_status(&self) -> ResolvedStatus {
-        match self {
-            RequestType::Allsky { req, .. } => {
-                req.resolve_status()
-            },
-            /*RequestType::Tile { req, .. } => {
-                req.resolve_status()
-            }*/
-        }
-    }
-}
-
 use crate::survey::AllskyTilesType;
-pub enum Resolve {
-    Allsky {
-        survey_root_url: String,
-        tiles: Arc<Mutex<Option<AllskyTilesType>>>,
-    },
-    /*Tile {
-        cell: HEALPixCell,
-        image: Arc<Mutex<Option<ImageType>>>,
-    }*/
-}
-
-pub struct RequestSender {
-    requests: Vec<RequestType>,
-}
-
-impl RequestSender {
-    pub fn new() -> Self {
-        Self {
-            requests: vec![]
-        }
-    }
-
-    pub fn push(&mut self, request: RequestType) {
-        self.requests.push(request);
-    }
-
-    pub fn poll(&mut self) -> Vec<Resolve> {
-        let mut resolved = vec![];
-
-        self.requests = self.requests.drain(..)
-            .filter(|r| {
-                let status = r.resolve_status();
-                if status == ResolvedStatus::Found {
-                    resolved.push(
-                        match r {
-                            /*RequestType::Tile { req, cell } => {
-                                Resolve::Tile {
-                                    cell: *cell,
-                                    image: req.get()
-                                }
-                            },*/
-                            RequestType::Allsky { req, survey_root_url } => {
-                                Resolve::Allsky {
-                                    survey_root_url: survey_root_url.clone(),
-                                    tiles: req.get()
-                                }
-                            }
-                        }
-                    );
-
-                    true
-                } else if status == ResolvedStatus::Missing {
-                    false
-                } else {
-                    // Future still in process
-                    true
-                }
-            })
-            .collect();
-   
-        resolved
-    }
-}
-

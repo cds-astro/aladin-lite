@@ -1,9 +1,4 @@
 use cgmath::{Vector2, Vector3};
-use al_core::{
-    format::ImageFormat, 
-    Texture2DArray,
-    image::Image,
-};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -16,7 +11,8 @@ where
     format: std::marker::PhantomData<F>,
 }
 
-use crate::num_traits::Zero;
+use crate::image::Image;
+use crate::image::format::ImageFormat;
 impl<F> Bitmap<F>
 where
     F: ImageFormat + Clone,
@@ -34,6 +30,7 @@ where
     }
 }
 
+use crate::texture::Texture2DArray;
 impl<F> Image for Bitmap<F>
 where
     F: ImageFormat + Clone,

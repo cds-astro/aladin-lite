@@ -2,21 +2,16 @@ use crate::{
     survey::config::HiPSConfig,
     healpix::cell::HEALPixCell
 };
-use al_core::format::ImageFormatType;
+use al_core::image::format::ImageFormatType;
 
-use crate::downloader::{
-    request::{
-        self,
-        image::{
-            ImageType,
-            bitmap::Bitmap,
-            fits::Fits
-        }
-    },
-    query,
+use crate::downloader::{request, query};
+use al_core::image::{
+    ImageType,
+    bitmap::Bitmap,
+    fits::Fits
 };
 
-use super::{Request, RequestType2};
+use super::{Request, RequestType};
 
 pub struct TileRequest {
     pub cell: HEALPixCell,
@@ -26,9 +21,9 @@ pub struct TileRequest {
     request: Request<ImageType>,
 }
 
-impl From<TileRequest> for RequestType2 {
+impl From<TileRequest> for RequestType {
     fn from(request: TileRequest) -> Self {
-        RequestType2::Tile(request)
+        RequestType::Tile(request)
     }
 }
 
@@ -38,14 +33,13 @@ use crate::survey::Url;
 use super::ResolvedStatus;
 
 use wasm_bindgen::JsCast;
-impl<'a, 'b> From<query::Tile<'a, 'b>> for TileRequest {
+impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
-    fn from(query: query::Tile<'a, 'b>) -> Self {
-        let query::Tile { cfg, cell, url, hips_url } = query;
+    fn from(query: query::Tile) -> Self {
+        let query::Tile { format, cell, url, hips_url } = query;
 
         // Retrieve the url from the config
         let url_clone = url.clone();
-        let format = cfg.get_format();
 
         let window = web_sys::window().unwrap();
         let request = match format {
@@ -100,7 +94,7 @@ impl<'a, 'b> From<query::Tile<'a, 'b>> for TileRequest {
                 let array_buffer =  JsFuture::from(resp.array_buffer()?).await?;
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::format::R32F>::new(&bytes)?;
+                let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
                 Ok(ImageType::FitsImageR32f { image })
             }),
             ImageFormatType::R32I => Request::new(async move {
@@ -158,7 +152,7 @@ impl<'a, 'b> From<query::Tile<'a, 'b>> for TileRequest {
         };
 
         Self {
-            cell: *cell,
+            cell,
             hips_url,
             url,
             request

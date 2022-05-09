@@ -10,14 +10,10 @@ where
     format: std::marker::PhantomData<F>,
 }
 use cgmath::{Vector2, Vector3};
-use al_core::{
-    format::{
-        RGB8U, R8UI, RGBA8U, R16I, R32I, R32F, ImageFormat
-    }, 
-    Texture2DArray,
-    image::Image,
-};
 
+use crate::image::Image;
+use crate::image::format::ImageFormat;
+use crate::texture::Texture2DArray;
 impl<F> Image for HTMLImage<F>
 where
     F: ImageFormat,

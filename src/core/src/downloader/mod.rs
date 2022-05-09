@@ -452,7 +452,7 @@ use crate::{
 
 type TileUrl = Url;
 
-use al_core::format::ImageFormatType;
+use al_core::image::format::ImageFormatType;
 use std::collections::HashSet;
 use request::tile::TileRequest;
 pub struct Downloader {
@@ -461,7 +461,7 @@ pub struct Downloader {
     //base_tiles_to_req: Vec<TileQuery>,
 
     // Current requests
-    requests: Vec<RequestType2>,
+    requests: Vec<RequestType>,
     queried_urls: HashSet<Url>,
 }
 
@@ -478,7 +478,7 @@ use std::sync::{Arc, Mutex};
 use query::Query;
 use request::{
     Resource,
-    RequestType2,
+    RequestType,
 };
 impl Downloader {
     pub fn new() -> Downloader {

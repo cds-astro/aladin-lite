@@ -385,7 +385,7 @@ pub trait AppTrait {
     // Setter of the meta data of a layer
     fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue>;
 
-    fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue>;
+    fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<PixelType, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
     //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
@@ -534,7 +534,7 @@ where
 
                         if let Some(survey) = self.surveys.get_mut(&hips_url) {
                             let is_missing = allsky.missing();
-                            if (is_missing) {
+                            if is_missing {
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
@@ -617,10 +617,12 @@ where
         self.set_center(&self.get_center());
     }
 
-    fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<PixelType, JsValue> {
-        let pos = Vector2::new(x, y);
-        if let Some(lonlat) = self.screen_to_world(&pos) {
-            self.surveys.read_pixel(&lonlat, &base_url.to_string())
+    fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<PixelType, JsValue> {
+        if let Some(lonlat) = self.screen_to_world(pos) {
+            let survey = self.surveys.get_from_layer(layer_id)
+                .ok_or(JsValue::from_str(&format!("Did not found the survey {:?}", layer_id)))?;
+
+            survey.read_pixel(&lonlat)
         } else {
             Err(JsValue::from_str(&format!(
                 "{:?} is out of projection",

@@ -1283,7 +1283,7 @@ impl ImageSurveys {
         self.surveys.get(url)
     }
 
-    pub fn get_from_layer(&self, id: &LayerId) -> Option<&ImageSurvey> {
+    pub fn get_from_layer(&self, id: &str) -> Option<&ImageSurvey> {
         self.urls.get(id)
             .map(|url| self.surveys.get(url).unwrap())
     }

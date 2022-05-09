@@ -534,8 +534,6 @@ impl WebClient {
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();
 
-        al_core::log::log(&format!("{:?} {:?}", lon_deg.0, lat_deg.0));
-
         Box::new([lon_deg.0, lat_deg.0])
     }
 
@@ -767,8 +765,8 @@ impl WebClient {
     /// * `y` - The y screen coordinate in pixels
     /// * `base_url` - The base url of the survey identifying it
     #[wasm_bindgen(js_name = readPixel)]
-    pub fn read_pixel(&self, x: f64, y: f64, base_url: &str) -> Result<JsValue, JsValue> {
-        let pixel = self.app.read_pixel(x, y, base_url)?;
+    pub fn read_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
+        let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;
         Ok(pixel.into())
     }
 }

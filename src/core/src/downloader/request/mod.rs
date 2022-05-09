@@ -1,7 +1,7 @@
+// A request image should not be used outside this module
+// but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod tile;
 pub mod allsky;
-
-pub mod image;
 
 /* ------------------------------------- */
 
@@ -99,7 +99,7 @@ impl RequestType {
     pub fn url(&self) -> &Url {
         match self {
             RequestType::Tile(request) => &request.url,
-            RequestType::Allsky(request) => todo!(),
+            RequestType::Allsky(request) => &request.url,
         }
     }
 }
@@ -111,7 +111,10 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
                 Option::<Tile>::from(request)
                     .map(|tile| Resource::Tile(tile))
             },
-            RequestType::Allsky(request) => todo!()
+            RequestType::Allsky(request) => {
+                Option::<Allsky>::from(request)
+                    .map(|allsky| Resource::Allsky(allsky))
+            }
         }
     }
 }
@@ -122,5 +125,3 @@ pub enum Resource {
     Tile(Tile),
     Allsky(Allsky)
 }
-
-use crate::survey::AllskyTilesType;

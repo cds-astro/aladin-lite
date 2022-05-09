@@ -10,7 +10,7 @@ pub struct GridCfg {
     #[serde(default)]
     pub color: Color,
     #[serde(default = "default_labels")]
-    pub labels: bool,
+    pub show_labels: bool,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
 }

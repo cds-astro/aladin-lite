@@ -260,8 +260,8 @@ impl ImageSurveyTextures {
         &mut self,
         cell: &HEALPixCell,
         image: I,
-        time_request: Time,
         missing: bool,
+        time_request: Time,
     ) {
         // Assert here to prevent pushing doublons
         if self.contains_tile(cell) {

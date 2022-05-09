@@ -9,10 +9,10 @@
 //! - All the spherical geometry maths for the computation
 //!   of the equatorial/galactic coordinates grid.
 extern crate console_error_panic_hook;
-extern crate egui;
-extern crate epi;
+//extern crate egui;
+//extern crate epi;
 extern crate fontdue;
-extern crate image_decoder;
+//extern crate image_decoder;
 extern crate itertools_num;
 extern crate num;
 extern crate num_traits;

@@ -189,7 +189,7 @@ where
         let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, GridCfg {
             color: Color::new(0.0, 1.0, 0.0, 1.0),
             enabled: false,
-            labels: true,
+            show_labels: true,
         })?;
 
         // Variable storing the location to move to
@@ -254,7 +254,9 @@ where
         self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
-            let mut tile_cells = survey.get_view()
+            // do not add tiles if the view is already at depth 0
+            if survey.get_view().get_depth() > 0 {
+                let mut tile_cells = survey.get_view()
                 .get_cells()
                 .flat_map(|texture_cell| {
                     texture_cell.get_tile_cells(survey.get_config())
@@ -280,6 +282,7 @@ where
                     //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
                     self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
                 }
+            }
             }
         }
     }
@@ -360,10 +363,6 @@ where
     }
 }
 
-use crate::{
-    survey::{AllskyTile, AllskyTilesType},
-};
-
 #[enum_dispatch(AppType)]
 pub trait AppTrait {
     /// View
@@ -435,7 +434,12 @@ pub trait AppTrait {
     fn over_ui(&self) -> bool;
 }
 
+use crate::healpix::cell::HEALPixCell;
 use crate::downloader::request::Resource;
+use crate::downloader::request::{
+    tile::Tile,
+    allsky::Allsky
+};
 
 impl<P> AppTrait for App<P>
 where
@@ -464,59 +468,6 @@ where
 
     fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
-
-        // Check the requests
-        /*for resolve in self.request_sender.poll() {
-            match resolve {
-                Resolve::Allsky { survey_root_url, tiles } => {
-                    if let Some(survey) = self.surveys.get_mut(&survey_root_url) {
-                        if let Some(tiles) = tiles.lock().unwrap().take() {
-                            al_core::log("received allsky");
-                            match tiles {
-                                AllskyTilesType::RGB8U(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                AllskyTilesType::RGBA8U(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                AllskyTilesType::R32F(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                AllskyTilesType::R32I(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                AllskyTilesType::R16I(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                AllskyTilesType::R8UI(tiles) => {
-                                    for AllskyTile { cell, image } in tiles {
-                                        survey.add_tile(&cell, image, Time::now(), false);
-                                    }
-                                },
-                                _ => {
-                                    return Err(js_sys::Error::new("Format not supported").into());
-                                }
-                            }
-                            
-                            debug_assert!(survey.is_ready());
-
-                            self.request_redraw = true;
-                        }
-                    }
-                },
-                //Resolve::Tile { .. } => todo!()
-            }
-        }*/
 
         if let Some(InertiaAnimation {
             time_start_anim,
@@ -570,29 +521,55 @@ where
                         let hips_url = tile.get_hips_url();
                         // Get the hips url from that url
                         if let Some(survey) = self.surveys.get_mut(hips_url) {
-                            survey.add_tile(tile);
+                            let is_missing = tile.missing();
+                            let Tile { cell, image, time_req, .. } = tile;
+                            survey.add_tile(&cell, image, is_missing, time_req);
                             num_tile_received += 1;
+
+                            self.request_redraw = true;
                         }
                     },
                     Resource::Allsky(allsky) => {
-                        todo!();
+                        let hips_url = allsky.get_hips_url();
+
+                        if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                            let is_missing = allsky.missing();
+                            if (is_missing) {
+                                // The allsky image is missing so we donwload all the tiles contained into
+                                // the 0's cell
+                                let cfg = survey.get_config();
+                                for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                                    for cell in texture_cell.get_tile_cells(cfg) {
+                                        let query = query::Tile::new(&cell, cfg);
+                                        self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                                    }
+                                }
+                            } else {
+                                let Allsky { image, time_req, .. } = allsky;
+                                
+                                {
+                                    let mutex_locked = image.lock().unwrap();
+                                    let images = mutex_locked.as_ref();
+                                    for (idx, image) in images.unwrap().iter().enumerate() {
+                                        survey.add_tile(&HEALPixCell(0, idx as u64), image, false, time_req);
+                                    }
+                                }
+
+                                // Once received ask for redraw
+                                self.request_redraw = true;
+                            }
+                        }
                     }
                 }
             }
-            //let is_there_new_available_tiles = !resolved_tiles.is_empty();
-            //al_core::log(&format!("resolved tiles {:?}", resolved_tiles));
+
             if num_tile_received > 0 {
                 self.tile_fetcher.notify(num_tile_received, &mut self.downloader);
                 self.time_start_blending = Time::now();
             }
-
             //self.surveys.add_resolved_tiles(resolved_tiles);
-
-
             // 3. Try sending new tile requests after
             //self.downloader.try_sending_tile_requests()?;
-
-
         }
 
         // The rendering is done following these different situations:
@@ -761,19 +738,24 @@ where
             &mut self.camera,
         )?;
 
-        // Once its added, request its tiles
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             let cfg = survey.get_config();
-            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg) {
-                    let query = query::Tile::new(&cell, cfg);
-                    self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+            //if cfg.get_tile_size() <= 128 {
+                // Request the allsky
+                self.downloader.fetch(query::Allsky::new(cfg));
+            /*} else {
+                for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                    for cell in texture_cell.get_tile_cells(cfg) {
+                        let query = query::Tile::new(&cell, cfg);
+                        self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                    }
                 }
-            }
+            }*/
         }
 
+        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.look_for_new_tiles();
 
         self.request_redraw = true;

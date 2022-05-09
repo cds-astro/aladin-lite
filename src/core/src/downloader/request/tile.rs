@@ -8,11 +8,10 @@ use crate::downloader::{request, query};
 use al_core::image::{
     ImageType,
     bitmap::Bitmap,
-    fits::Fits
+    fits::Fits,
 };
 
 use super::{Request, RequestType};
-
 pub struct TileRequest {
     pub cell: HEALPixCell,
     pub hips_url: Url,
@@ -38,7 +37,6 @@ impl From<query::Tile> for TileRequest {
     fn from(query: query::Tile) -> Self {
         let query::Tile { format, cell, url, hips_url } = query;
 
-        // Retrieve the url from the config
         let url_clone = url.clone();
 
         let window = web_sys::window().unwrap();
@@ -204,34 +202,3 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
         }
     }
 }
-
-/*
-    FitsImageR32f { image: FitsImage<R32F> },
-    FitsImageR32i { image: FitsImage<R32I> },
-    FitsImageR16i { image: FitsImage<R16I> },
-    FitsImageR8ui { image: FitsImage<R8UI> },
-    PngImageRgba8u { image: ImageBitmap<RGBA8U> },
-    JpgImageRgb8u { image: ImageBitmap<RGB8U> },
-*/
-
-/*
-// Order the by importance (lower resolution tiles will be downloaded first)
-impl PartialOrd for Tile {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let d0 = self.cell.depth();
-        let d1 = other.cell.depth();
-
-        d0.partial_cmp(&d1)
-            .map(|ord| {
-                match ord {
-                    Ordering::Equal => {
-                        let idx0 = self.cell.idx();
-                        let idx1 = other.cell.idx();
-
-                        idx0.partial_cmp(&idx1).unwrap()
-                    },
-                    _ => ord
-                }
-            })
-    }
-}*/

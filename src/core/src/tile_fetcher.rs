@@ -1,5 +1,5 @@
 
-const MAX_NUM_TILE_FETCHING: isize = 64;
+const MAX_NUM_TILE_FETCHING: isize = 32;
 use crate::downloader::query;
 pub struct TileFetcherQueue {
     num_tiles_fetched: isize,

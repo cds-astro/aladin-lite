@@ -63,3 +63,44 @@ impl Query for Tile {
         &self.url
     }
 }
+
+/* ---------------------------------- */
+pub struct Allsky {
+    pub format: ImageFormatType,
+    pub tile_size: usize,
+    // The root url of the HiPS
+    pub hips_url: Url,
+    // The total url of the query
+    pub url: Url,
+}
+
+impl Allsky {
+    pub fn new(cfg: &HiPSConfig) -> Self {
+        let hips_url = cfg.get_root_url().to_string();
+        let tile_size = cfg.get_tile_size() as usize;
+        let format = cfg.get_format();
+        let ext = format.get_ext_file();
+    
+        let url = format!(
+            "{}/Norder3/Allsky.{}",
+            hips_url,
+            ext
+        );
+    
+        Allsky {
+            tile_size,
+            hips_url,
+            url,
+            format,
+        }
+    }
+}
+
+use super::request::allsky::AllskyRequest;
+impl Query for Allsky {
+    type Request = AllskyRequest;
+
+    fn url(&self) -> &Url {
+        &self.url
+    }
+}

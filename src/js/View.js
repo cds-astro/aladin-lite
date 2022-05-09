@@ -1058,10 +1058,6 @@ export let View = (function() {
         };
     };
 
-    View.prototype.setGridColor = function(r, g, b, a) {
-        this.aladin.webglAPI.setGridColor(r, g, b, a);
-    }
-
     /**
      * redraw the whole view
      */

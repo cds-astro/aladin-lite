@@ -152,13 +152,8 @@ export let Aladin = (function () {
             }
         });
 
-
-
-
-
         // Aladin logo
         $("<div class='aladin-logo-container'><a href='https://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
-
 
         // we store the boxes
         this.boxes = [];
@@ -175,7 +170,7 @@ export let Aladin = (function () {
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
-                color: [0.0, 1.0, 0.0, 0.5]
+                color: [0.0, 1.0, 0.0, 1.0]
             });
 
             this.view.showCooGrid = true;

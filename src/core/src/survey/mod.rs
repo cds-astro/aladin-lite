@@ -10,7 +10,6 @@ use crate::math::projection::HEALPix;
 use al_core::{VecData, image::format::{R32F, RGB8U, RGBA8U}, image::raw::ImageBuffer};
 #[cfg(feature = "webgl2")]
 use al_core::image::format::{R16I, R32I, R8UI};
-use egui::epaint::ahash::CallHasher;
 use js_sys::Uint8Array;
 
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
@@ -614,7 +613,6 @@ impl ImageSurvey {
 
         let num_idx = 0;
 
-        //let textures = ImageSurveyTextures::new(gl, config, exec)?;
         let textures = ImageSurveyTextures::new(gl, config)?;
         let conf = textures.config();
         let view = HEALPixCellsInView::new();
@@ -622,82 +620,6 @@ impl ImageSurvey {
         let gl = gl.clone();
 
         // request the allsky texture
-        let fmt = conf.get_format();
-        let url = format!("{}/Norder3/Allsky.{}", &conf.root_url, &fmt.get_ext_file());
-        al_core::log(&format!("Allsky fetch url: {:?}", &url));
-        let is_fits_survey = conf.tex_storing_fits;
-        let tile_size = conf.get_tile_size() as usize;
-        /*let allsky_request = Request::new(async move {
-            use wasm_bindgen_futures::JsFuture;
-            use web_sys::{Blob, Response, Request, RequestInit, RequestMode};
-            
-            let mut opts = RequestInit::new();
-            opts.method("GET");
-            opts.mode(RequestMode::Cors);
-            let window = web_sys::window().unwrap();
-
-            let request = Request::new_with_str_and_init(&url, &opts)?;
-            if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
-                // `resp_value` is a `Response` object.
-                debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
-
-                let buf = JsFuture::from(resp.array_buffer().unwrap()).await?;
-                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                
-                let allsky_tiles = match fmt {
-                    ImageFormatType::RGB8U => {
-                        let bytes = image_decoder::load_from_memory_with_format(
-                                &raw_bytes[..],
-                                image_decoder::ImageFormat::Jpeg,
-                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
-                            .into_bytes();
-
-                        let allsky = ImageBuffer::<RGB8U>::new(bytes, 1728, 1856);
-                        AllskyTilesType::RGB8U(handle_allsky_file::<RGB8U>(allsky).await?)
-                    },
-                    ImageFormatType::RGBA8U => {
-                        let bytes = image_decoder::load_from_memory_with_format(
-                                &raw_bytes[..],
-                                image_decoder::ImageFormat::Png,
-                            ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
-                            .into_bytes();
-
-                        let allsky = ImageBuffer::<RGBA8U>::new(bytes, 1728, 1856);
-                        AllskyTilesType::RGBA8U(handle_allsky_file::<RGBA8U>(allsky).await?)
-                    },
-                    ImageFormatType::R32F => {
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<f32>::from_byte_slice(&raw_bytes[..]).unwrap() };
-                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
-                        AllskyTilesType::R32F(allsky_tiles)
-                    },
-                    ImageFormatType::R32I => {
-                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<i32>::from_byte_slice(&raw_bytes[..]).unwrap() };
-                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
-                        AllskyTilesType::R32I(allsky_tiles)
-                    },
-                    ImageFormatType::R16I => {
-                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<i16>::from_byte_slice(&raw_bytes[..]).unwrap() };
-                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
-                        AllskyTilesType::R16I(allsky_tiles)
-                    },
-                    ImageFormatType::R8UI => {
-                        let fitsrs::FitsMemAligned { data, .. } = unsafe { fitsrs::FitsMemAligned::<u8>::from_byte_slice(&raw_bytes[..]).unwrap() };
-                        let allsky_tiles = handle_allsky_fits(data, tile_size).await?;
-                        AllskyTilesType::R8UI(allsky_tiles)
-                    },
-                    _ => {
-                        return Err(js_sys::Error::new("Format not supported").into())
-                    }
-                };
-
-                al_core::log("Completed!");
-                Ok(allsky_tiles)
-            } else {
-                Err(js_sys::Error::new("Allsky not fetched").into())
-            }
-        });*/
         Ok(ImageSurvey {
             //color,
             // The image survey texture buffer
@@ -710,7 +632,6 @@ impl ImageSurvey {
             vao,
 
             gl,
-            //vertices,
 
             position,
             uv_start,
@@ -830,14 +751,14 @@ impl ImageSurvey {
         }
     }
 
-    pub fn add_tile(
+    pub fn add_tile<I: Image + std::fmt::Debug>(
         &mut self,
-        tile: Tile
+        cell: &HEALPixCell,
+        image: I,
+        missing: bool,
+        time_req: Time
     ) {
-        let missing = tile.missing();
-        let Tile { image, time_req, cell, .. } = tile;
-
-        self.textures.push(&cell, image, time_req, missing);
+        self.textures.push(&cell, image, missing, time_req);
     }
 
     /* Accessors */    
@@ -870,106 +791,6 @@ impl ImageSurvey {
     pub fn is_ready(&self) -> bool {
         self.textures.is_ready()
     }
-}
-
-pub struct AllskyTile<F>
-where
-    F: ImageFormat
-{
-    pub cell: HEALPixCell,
-    pub image: ImageBuffer<F>,
-}
-
-impl<F> Default for AllskyTile<F>
-where
-    F: ImageFormat
-{
-    fn default() -> Self {
-        Self {
-            cell: HEALPixCell(0, 0),
-            image: ImageBuffer::<F>::new(vec![], 0, 0)
-        }
-    }
-}
-
-async fn handle_allsky_file<F: ImageFormat>(allsky: ImageBuffer<F>) -> Result<Vec<AllskyTile<F>>, JsValue> {
-    let mut src_idx = 0;
-    let mut tiles = Vec::with_capacity(12);
-
-    for idx in 0..12 {
-        let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, 512, 512);
-        for idx_tile in 0..64 {
-            let (x, y) = utils::unmortonize(idx_tile);
-            let dx = x << 6;
-            let dy = y << 6;
-
-            let sx = (src_idx % 27) << 6;
-            let sy = (src_idx / 27) << 6;
-            base_tile.tex_sub(
-                &allsky,
-                sx, sy, 64, 64,
-                dx as i32, dy as i32, 64, 64
-            );
-
-            src_idx += 1;
-        }
-
-        tiles.push(AllskyTile {
-            cell: HEALPixCell(0, idx as u64),
-            image: base_tile
-        });
-    }
-
-    Ok(tiles)
-}
-
-async fn handle_allsky_fits<F: ImageFormat>(allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item], tile_size: usize) -> Result<Vec<AllskyTile<F>>, JsValue> {
-    // The fits image layout stores rows in reverse
-    let reversed_rows_data = allsky_data
-        .chunks(1728)
-        .rev()
-        .flatten()
-        .map(|e| *e)
-        .collect::<Vec<_>>();
-
-    let allsky = ImageBuffer::<F>::new(reversed_rows_data, 1728, 1856);
-
-    let allsky_tiles = handle_allsky_file::<F>(allsky).await?
-        .into_iter()
-        .map(|tile| {
-            // The GPU does a specific transformation on the UV
-            // for FITS tiles
-            // We must revert this to be compatible with this GPU transformation
-            let AllskyTile { cell, image } = tile;
-
-            let mut new_image_data = Vec::with_capacity(512);
-            for c in image.get_data().chunks(512*tile_size) {
-                new_image_data.extend(
-                    c.chunks(512)
-                    .rev()
-                    .flatten()
-                );
-            }
-
-            let new_image = ImageBuffer::<F>::new(new_image_data, 512, 512);
-
-            AllskyTile {
-                cell,
-                image: new_image
-            }
-        })
-        .collect();
-
-    Ok(allsky_tiles)
-}
-
-pub enum AllskyTilesType {
-    RGB8U(Vec<AllskyTile<RGB8U>>),
-    RGBA8U(Vec<AllskyTile<RGBA8U>>),
-    R32F(Vec<AllskyTile<R32F>>),
-    R8UI(Vec<AllskyTile<R8UI>>),
-    R16I(Vec<AllskyTile<R16I>>),
-    R32I(Vec<AllskyTile<R32I>>),
 }
 
 use cgmath::Matrix4;

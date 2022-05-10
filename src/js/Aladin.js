@@ -56,6 +56,7 @@ import { DiscoveryTree } from "./DiscoveryTree.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
+import { Stack } from "./gui/Stack.js";
 
 export let Aladin = (function () {
 
@@ -211,18 +212,19 @@ export let Aladin = (function () {
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
-        // TODO : classe LayerBox
+        // TODO : classe Stack
         if (options.showLayersControl) {
+            // button to show Stack interface
             var d = $('<div class="aladin-layersControl-container" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
-
-            var layerBox = $('<div class="aladin-box aladin-layerBox aladin-cb-list"></div>');
-            layerBox.appendTo(aladinDiv);
-
-            this.boxes.push(layerBox);
-
             // we return false so that the default event is not submitted, and to prevent event bubbling
             d.click(function () { self.hideBoxes(); self.showLayerBox(); return false; });
+
+            // Stack interface itself
+            this.stack = new Stack(aladinDiv, this, this.view);
+
+            this.boxes.push(this.stack);
+
 
         }
 
@@ -1040,236 +1042,7 @@ export let Aladin = (function () {
 
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
-        var self = this;
-
-        // first, update
-        var layerBox = $(this.aladinDiv).find('.aladin-layerBox');
-        layerBox.empty();
-        layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-            '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>' +
-            '<select class="aladin-surveySelection"></select>' +
-            '</div>');
-
-        layerBox.append('<div class="aladin-label">Projection</div>');
-
-        let projectionElt = $('<select id="projectionChoice"><option id="SIN" value="SIN">SIN</option><option id="AIT" value="AIT">AIT</option><option id="MOL" value="MOL">MOL</option><option id="MER" value="MER">MER</option><option id="ARC" value="ARC">ARC</option><option id="TAN" value="TAN">TAN</option><option id="HPX" value="HPX">HPX</option></select>');
-        projectionElt.change(function () {
-            const projection = $(this).val();
-            self.setProjection(projection);
-        });
-        layerBox.append(projectionElt)
-            .append('<br />');
-
-        layerBox.append('<div class="aladin-box-separator"></div>' +
-        '<div class="aladin-label">Overlay layers</div>');
-
-        /*var cmDiv = layerBox.find('.aladin-cmap');
-
-        // fill color maps options
-        var cmSelect = layerBox.find('.aladin-cmSelection');
-        for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
-            cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
-        }
-        console.log(self.getBaseImageLayer())
-        console.log(self.getBaseImageLayer().getColorMap())
-        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
-        */
-
-        // loop over all overlay layers
-        var layers = this.view.allOverlayLayers;
-        var str = '<ul>';
-        for (var k = layers.length - 1; k >= 0; k--) {
-            var layer = layers[k];
-            var name = layer.name;
-            var checked = '';
-            if (layer.isShowing) {
-                checked = 'checked="checked"';
-            }
-
-            var tooltipText = '';
-            var iconSvg = '';
-            if (layer.type == 'catalog' || layer.type == 'progressivecat') {
-                var nbSources = layer.getSources().length;
-                tooltipText = nbSources + ' source' + (nbSources > 1 ? 's' : '');
-
-                iconSvg = AladinUtils.SVG_ICONS.CATALOG;
-            }
-            else if (layer.type == 'moc') {
-                tooltipText = 'Coverage: ' + (100 * layer.skyFraction()).toFixed(3) + ' % of sky';
-
-                iconSvg = AladinUtils.SVG_ICONS.MOC;
-            }
-            else if (layer.type == 'overlay') {
-                iconSvg = AladinUtils.SVG_ICONS.OVERLAY;
-            }
-
-            var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)' - does not work for named colors :(
-            var labelColor = Color.getLabelColorForBackground(rgbColor);
-
-            // retrieve SVG icon, and apply the layer color
-            var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
-            str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
-        }
-        str += '</ul>';
-        layerBox.append(str);
-
-        layerBox.append('<div class="aladin-blank-separator"></div>');
-
-        // gestion du réticule
-        var checked = '';
-        if (this.view.displayReticle) {
-            checked = 'checked="checked"';
-        }
-        var reticleCb = $('<input type="checkbox" ' + checked + ' id="displayReticle" />');
-        layerBox.append(reticleCb).append('<label for="displayReticle">Reticle</label><br/>');
-        reticleCb.change(function () {
-            self.showReticle($(this).is(':checked'));
-        });
-
-        // Gestion grille Healpix
-        checked = '';
-        if (this.view.displayHpxGrid) {
-            checked = 'checked="checked"';
-        }
-        var hpxGridCb = $('<input type="checkbox" ' + checked + ' id="displayHpxGrid"/>');
-        layerBox.append(hpxGridCb).append('<label for="displayHpxGrid">HEALPix grid</label><br/>');
-        hpxGridCb.change(function () {
-            self.showHealpixGrid($(this).is(':checked'));
-        });
-
-        // Coordinates grid plot
-        checked = '';
-        if (this.view.showCooGrid) {
-            checked = 'checked="checked"';
-        }
-        let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
-        let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
-        let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color"></td></tr><tr><td>Opacity</td><td><input type="range" min="0" max="1" step="0.05"></td></tr></table></div>');
-        labelCoordinatesGridCb.prepend(coordinatesGridCb);
-        layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
-        coordinatesGridCb.change(function () {
-            let isChecked = $(this).is(':checked');
-            if (isChecked) {
-                self.view.setGridConfig({
-                    enabled: true,
-                    color: [0.0, 1.0, 0.0, 0.5],
-                });
-            } else {
-                self.view.setGridConfig({
-                    enabled: false,
-                });
-            }
-        });
-        optionsOpenerForCoordinatesGrid.click(function() {
-            var $this = $(this);
-            if ($this.hasClass('right-triangle')) {
-                $this.removeClass('right-triangle');
-                $this.addClass('down-triangle');
-                $this.parent().find('.layer-options').slideDown(300);
-            }
-            else {
-                $this.removeClass('down-triangle');
-                $this.addClass('right-triangle');
-                $this.parent().find('.layer-options').slideUp(300);
-            }
-        });
-
-        let gridColorInput = cooGridOptions.find('input[type="color"]');
-        let gridOpacityInput = cooGridOptions.find('input[type="range"]');
-        let updateGridcolor = function() {
-            let rgb = Color.hexToRgb(gridColorInput.val());
-            let opacity = gridOpacityInput.val();
-            self.view.setGridConfig({
-                enabled: true,
-                color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, parseFloat(gridOpacityInput.val())]
-            });
-        };
-        gridColorInput.on('input', updateGridcolor);
-        gridOpacityInput.on('input', updateGridcolor);
-
-        layerBox.append('<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Tools</div>');
-        var exportBtn = $('<button class="aladin-btn" type="button">Export view as PNG</button>');
-        layerBox.append(exportBtn);
-        exportBtn.click(function () {
-            self.exportAsPNG();
-        });
-
-        layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
-
-        // update list of surveys
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
-        surveySelection.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            console.log("survey, chosen ", survey)
-
-            const hpxImageSurvey = new HpxImageSurvey(
-                survey.url,
-                self.view,
-                survey.options
-            );
-            self.setImageSurvey(hpxImageSurvey, function () {
-                var baseImgLayer = self.getBaseImageLayer();
-
-                // !TODO
-                /*
-                if (baseImgLayer.useCors) {
-                    // update color map list with current value color map
-                    cmSelect.val(baseImgLayer.getColorMap().mapName);
-                    cmDiv.show();
-
-                    exportBtn.show();
-                }
-                else {
-                    cmDiv.hide();
-
-                    exportBtn.hide();
-                }*/
-            });
-        });
-
-        //// COLOR MAP management ////////////////////////////////////////////
-        // update color map
-        /*cmDiv.find('.aladin-cmSelection').change(function () {
-            var cmName = $(this).find(':selected').val();
-            self.getBaseImageLayer().getColorMap().update(cmName);
-        });
-
-        // reverse color map
-        cmDiv.find('.aladin-reverseCm').click(function () {
-            self.getBaseImageLayer().getColorMap().reverse();
-        });
-        if (this.getBaseImageLayer().useCors) {
-            cmDiv.show();
-            exportBtn.show();
-        }
-        else {
-            cmDiv.hide();
-            exportBtn.hide();
-        }
-        layerBox.find('.aladin-reverseCm').parent().attr('disabled', true);
-        */
-        //////////////////////////////////////////////////////////////////////
-
-
-        // handler to hide/show overlays
-        $(this.aladinDiv).find('.aladin-layerBox ul input').change(function () {
-            var layerName = ($(this).attr('id').substr(12));
-            var layer = self.layerByName(layerName);
-            if ($(this).is(':checked')) {
-                layer.show();
-            }
-            else {
-                layer.hide();
-            }
-        });
-
-        // finally show
-        layerBox.show();
+        this.stack.show();
 
     };
 

@@ -114,3 +114,9 @@ To generate the Rust backend API documentation
 cd src/core
 cargo doc --no-deps --open
 ```
+
+To generate the CSS
+
+```bash
+npx postcss src/css/aladin.css -o dist/aladin.css --watch
+```

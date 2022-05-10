@@ -52,6 +52,7 @@ import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 export let View = (function() {
 
@@ -1182,9 +1183,9 @@ export let View = (function() {
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
         var reticleCtx = this.catalogCtx;
-        /*if (this.mustRedrawReticle || this.mode==View.SELECT) {
+        if (this.mustRedrawReticle || this.mode==View.SELECT) {
             reticleCtx.clearRect(0, 0, this.width, this.height);
-        }*/
+        }
         if (this.displayReticle) {
             if (! this.reticleCache) {
                 // build reticle image
@@ -1640,6 +1641,23 @@ export let View = (function() {
 
     View.prototype.setGridConfig = function(gridCfg) {
         this.aladin.webglAPI.setGridConfig(gridCfg);
+            console.log('gridCfg', gridCfg);
+
+        // send events
+        if (gridCfg) {
+            if (gridCfg.hasOwnProperty('enabled')) {
+                if (gridCfg.enabled === true) {
+                    ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
+                }
+                else {
+                    ALEvent.COO_GRID_DISABLED.dispatchedTo(this.aladinDiv);
+                }
+            }
+            if (gridCfg.color) {
+                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color});
+            }
+        }
+
         this.requestRedraw();
     };
 

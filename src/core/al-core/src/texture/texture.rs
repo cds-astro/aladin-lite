@@ -274,82 +274,101 @@ impl Texture2D {
             .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, reader.as_ref());
 
         // Attach the texture as the first color attachment
-        self.attach_to_framebuffer();
+        //self.attach_to_framebuffer();
+        self.gl.framebuffer_texture_2d(
+            WebGlRenderingCtx::READ_FRAMEBUFFER,
+            WebGlRenderingCtx::COLOR_ATTACHMENT0,
+            WebGlRenderingCtx::TEXTURE_2D,
+            self.texture.as_ref(),
+            0,
+        );
 
-        // set the viewport as the FBO won't be the same dimension as the screen
-        let Texture2DMeta {
-            width,
-            height,
-            format,
-            type_,
-            ..
-        } = self.metadata.as_ref().unwrap();
-        self.gl.viewport(x, y, *width as i32, *height as i32);
-        #[cfg(feature = "webgl2")]
-        let value = match (*format, *type_) {
-            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
-                let val = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RU8(val))
-            }
-            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
-                let val = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RI16(val))
-            }
-            (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
-                let val = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RI32(val))
-            }
-            (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
-                let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RF32(val))
-            }
-            (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
-                let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RGBU8(val))
-            }
-            (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
-                let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RGBAU8(val))
-            }
-            _ => Err(JsValue::from_str(
-                "Pixel retrieval not implemented for that texture format.",
-            )),
-        };
-        #[cfg(feature = "webgl1")]
-        let value = match (*format, *type_) {
-            (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
-                let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RF32(val))
-            }
-            (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
-                let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RGBU8(val))
-            }
-            (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
-                let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
-                Ok(PixelType::RGBAU8(val))
-            }
-            _ => Err(JsValue::from_str(
-                "Pixel retrieval not implemented for that texture format.",
-            )),
-        };
-        // Unbind the framebuffer
-        self.gl
-            .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
-        // Delete the framebuffer
-        self.gl.delete_framebuffer(reader.as_ref());
+        let status = self.gl.check_framebuffer_status(WebGlRenderingCtx::FRAMEBUFFER);
+        if status != WebGlRenderingCtx::FRAMEBUFFER_COMPLETE {
+            // Unbind the framebuffer
+            self.gl
+                .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+            // Delete the framebuffer
+            self.gl.delete_framebuffer(reader.as_ref());
 
-        // set the viewport as the FBO won't be the same dimension as the screen
-        let canvas = self
-            .gl
-            .canvas()
-            .unwrap()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
-        self.gl
-            .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
+            Err(JsValue::from_str("incomplete framebuffer"))
+        } else {
+            // set the viewport as the FBO won't be the same dimension as the screen
+            let Texture2DMeta {
+                width,
+                height,
+                format,
+                type_,
+                ..
+            } = self.metadata.as_ref().unwrap();
+            crate::log(&format!("{:?} {:?} {:?} {:?}", width, height, format, type_));
+            self.gl.viewport(x, y, *width as i32, *height as i32);
+            #[cfg(feature = "webgl2")]
+            let value = match (*format, *type_) {
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let val = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RU8(val))
+                }
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
+                    let val = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RI16(val))
+                }
+                (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
+                    let val = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RI32(val))
+                }
+                (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
+                    let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RF32(val))
+                }
+                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RGBU8(val))
+                }
+                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RGBAU8(val))
+                }
+                _ => Err(JsValue::from_str(
+                    "Pixel retrieval not implemented for that texture format.",
+                )),
+            };
+            #[cfg(feature = "webgl1")]
+            let value = match (*format, *type_) {
+                (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
+                    let val = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RF32(val))
+                }
+                (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let val = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RGBU8(val))
+                }
+                (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
+                    let val = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
+                    Ok(PixelType::RGBAU8(val))
+                }
+                _ => Err(JsValue::from_str(
+                    "Pixel retrieval not implemented for that texture format.",
+                )),
+            };
+            // Unbind the framebuffer
+            self.gl
+                .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+            // Delete the framebuffer
+            self.gl.delete_framebuffer(reader.as_ref());
 
-        value
+            // set the viewport as the FBO won't be the same dimension as the screen
+            let canvas = self
+                .gl
+                .canvas()
+                .unwrap()
+                .dyn_into::<web_sys::HtmlCanvasElement>()
+                .unwrap();
+            self.gl
+                .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
+
+            value
+        }
     }
 }
 

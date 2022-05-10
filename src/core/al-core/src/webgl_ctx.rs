@@ -59,9 +59,10 @@ impl WebGlContext {
                 .unwrap(),
         );
 
+        #[cfg(feature = "webgl2")]
+        let _ = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")?;
         #[cfg(feature = "webgl1")]
-        let angles_ext =
-            get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+        let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
         #[cfg(feature = "webgl1")]
         let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
         #[cfg(feature = "webgl1")]

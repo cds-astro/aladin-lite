@@ -739,7 +739,6 @@ impl ImageSurvey {
 
         //self.view.refresh_cells(512, max_depth, camera, hips_frame);
         self.view.refresh_cells(max_depth, camera, hips_frame);
-
     }
 
     // Return a boolean to signal if the tile is present or not in the survey

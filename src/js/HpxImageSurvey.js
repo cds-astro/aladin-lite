@@ -565,6 +565,19 @@ export let HpxImageSurvey = (function() {
             maxOrder: 10,
         },
         {
+            id: "P/SDSS9/g",
+            name: "SDSS9 band-g",
+            url: "http://alasky.cds.unistra.fr/SDSS/DR9/band-g/",
+            maxOrder: 10,
+            options: {
+                minCut: -14000,
+                maxCut: -9000,
+                tf: 'Asinh',
+                colormap: "redtemperature",
+                imgFormat: "fits",
+            }
+        },
+        {
             id: "P/SPITZER/color",
             name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
             url: "https://alasky.u-strasbg.fr/SpitzerI1I2I4color",

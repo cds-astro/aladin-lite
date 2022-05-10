@@ -733,11 +733,13 @@ impl ImageSurvey {
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
 
-        let tile_size = cfg.get_tile_size();
+        //let tile_size = cfg.get_tile_size();
         let max_depth = cfg.get_max_depth();
         let hips_frame = cfg.frame;
 
-        self.view.refresh_cells(tile_size, max_depth, camera, hips_frame);
+        //self.view.refresh_cells(512, max_depth, camera, hips_frame);
+        self.view.refresh_cells(max_depth, camera, hips_frame);
+
     }
 
     // Return a boolean to signal if the tile is present or not in the survey

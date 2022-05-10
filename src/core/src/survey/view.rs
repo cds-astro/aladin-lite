@@ -93,9 +93,10 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn refresh_cells(&mut self, texture_size: i32, max_depth: u8, camera: &CameraViewPort, hips_frame: CooSystem) {
+    pub fn refresh_cells(&mut self, /*texture_size: i32,*/ max_depth: u8, camera: &CameraViewPort, hips_frame: CooSystem) {
         // Compute that depth
-        let new_depth = depth_from_pixels_on_screen(camera, texture_size);
+        //let new_depth = depth_from_pixels_on_screen(camera, texture_size);
+        let new_depth = depth_from_pixels_on_screen(camera, 512);
 
         self.depth = new_depth.min(max_depth);
         // Get the cells of that depth in the current field of view

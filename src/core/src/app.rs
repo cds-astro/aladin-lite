@@ -257,32 +257,32 @@ where
             // do not add tiles if the view is already at depth 0
             if survey.get_view().get_depth() > 0 {
                 let mut tile_cells = survey.get_view()
-                .get_cells()
-                .flat_map(|texture_cell| {
-                    texture_cell.get_tile_cells(survey.get_config())
-                })
-                .collect::<Vec<_>>();
-
-            if survey.get_view().get_depth() >= 3 {
-                let tile_cells_ancestor = tile_cells.iter()
-                    .map(|tile_cell| {
-                        tile_cell.ancestor(3)
+                    .get_cells()
+                    .flat_map(|texture_cell| {
+                        texture_cell.get_tile_cells(survey.get_config())
                     })
-                    .collect::<HashSet<_>>();
-            
-                tile_cells.extend(tile_cells_ancestor);
-            }
+                    .collect::<Vec<_>>();
 
-            for tile_cell in tile_cells {
-                let tile_found = survey.update_priority_tile(&tile_cell);
-                if !tile_found {
-                    // Submit the request to the buffer
-                    let cfg = survey.get_config();
-                    // Launch the new tile requests
-                    //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
-                    self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
+                if survey.get_view().get_depth() >= 3 {
+                    let tile_cells_ancestor = tile_cells.iter()
+                        .map(|tile_cell| {
+                            tile_cell.ancestor(3)
+                        })
+                        .collect::<HashSet<_>>();
+                
+                    tile_cells.extend(tile_cells_ancestor);
                 }
-            }
+
+                for tile_cell in tile_cells {
+                    let tile_found = survey.update_priority_tile(&tile_cell);
+                    if !tile_found {
+                        // Submit the request to the buffer
+                        let cfg = survey.get_config();
+                        // Launch the new tile requests
+                        //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
+                        self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
+                    }
+                }
             }
         }
     }
@@ -524,10 +524,11 @@ where
                             let is_missing = tile.missing();
                             let Tile { cell, image, time_req, .. } = tile;
                             survey.add_tile(&cell, image, is_missing, time_req);
-                            num_tile_received += 1;
 
                             self.request_redraw = true;
                         }
+
+                        num_tile_received += 1;
                     },
                     Resource::Allsky(allsky) => {
                         let hips_url = allsky.get_hips_url();
@@ -731,9 +732,6 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.downloader.abort_queries();
-        self.tile_fetcher = TileFetcherQueue::new();
-
         let new_survey_ids = self.surveys.set_image_surveys(
             hipses,
             &self.gl,
@@ -744,10 +742,12 @@ where
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             let cfg = survey.get_config();
-            //if cfg.get_tile_size() <= 128 {
+            /*
+            Request the allsky for the small tile size
+            if cfg.get_tile_size() <= 128 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(cfg));
-            /*} else {
+            } else {
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                     for cell in texture_cell.get_tile_cells(cfg) {
                         let query = query::Tile::new(&cell, cfg);
@@ -755,6 +755,7 @@ where
                     }
                 }
             }*/
+            self.downloader.fetch(query::Allsky::new(cfg));
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

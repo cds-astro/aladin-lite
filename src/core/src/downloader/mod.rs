@@ -483,29 +483,17 @@ use request::{
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);
-        //let tiles_to_req = Vec::new();
         let queried_urls = HashSet::with_capacity(64);
-        //let base_tiles_to_req = Vec::with_capacity(NUM_HPX_TILES_DEPTH_ZERO);
 
         Self {
-            //tiles_to_req,
-            //base_tiles_to_req,
-
             requests,
             queried_urls,
         }
     }
 
-    pub fn abort_queries(&mut self) {
-        //self.tiles_to_req.clear();
-        //self.base_tiles_to_req.clear();
-
-        //self.requests.clear();
-        self.requests.clear();
-        self.queried_urls.clear();
-    }
-
-    pub fn fetch<T>(&mut self, query: T)
+    // Returns true if the fetch has been done
+    // Returns false if the query has already been done
+    pub fn fetch<T>(&mut self, query: T) -> bool
     where
         T: Query
     {
@@ -513,10 +501,10 @@ impl Downloader {
         //self.tiles_to_req.clear();
 
         let url = query.url();
-        let already_requested = self.queried_urls.contains(url);
+        let not_already_requested = !self.queried_urls.contains(url);
 
         // The cell is not already requested
-        if !already_requested {
+        if not_already_requested {
             /*if tile.is_root() {
                 self.base_tiles_to_req.push(tile);
             } else {
@@ -527,6 +515,8 @@ impl Downloader {
             let request = T::Request::from(query);
             self.requests.push(request.into());
         }
+
+        not_already_requested
     }
 
     /*pub fn try_sending_tile_requests(&mut self, surveys: &ImageSurveys) -> Result<(), JsValue> {
@@ -578,7 +568,7 @@ impl Downloader {
         let mut finished_query_urls = vec![];
         self.requests = self.requests.drain(..)
             .filter(|request| {
-                // If the request resolves into a tile
+                // If the request resolves into a resource
                 if let Some(rsc) = request.into() {
                     rscs.push(rsc);
                     finished_query_urls.push(request.url().clone());

@@ -112,9 +112,8 @@ impl TextRenderManager {
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&indices),
             );
-        let text_size = 12.0;
+        let text_size = 16.0;
         let al_core::text::Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
-
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &gl,
             size.x as i32,
@@ -140,8 +139,7 @@ impl TextRenderManager {
                 ),
             ],
             Some(&bitmap),
-        )
-        .unwrap();
+        )?;
 
         let labels = vec![];
 
@@ -162,6 +160,42 @@ impl TextRenderManager {
             indices: vec![],
             labels,
         })
+    }
+
+    pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
+        self.text_size = text_size;
+
+        let al_core::text::Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
+        self.font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
+            &self.gl,
+            size.x as i32,
+            size.y as i32,
+            &[
+                (
+                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+                    WebGl2RenderingContext::LINEAR,
+                ),
+                (
+                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+                    WebGl2RenderingContext::LINEAR,
+                ),
+                // Prevents s-coordinate wrapping (repeating)
+                (
+                    WebGl2RenderingContext::TEXTURE_WRAP_S,
+                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                ),
+                // Prevents t-coordinate wrapping (repeating)
+                (
+                    WebGl2RenderingContext::TEXTURE_WRAP_T,
+                    WebGl2RenderingContext::CLAMP_TO_EDGE,
+                ),
+            ],
+            Some(&bitmap),
+        )?;
+
+        self.letters = letters;
+
+        Ok(())
     }
 
     pub fn text_size(&self) -> f32 {

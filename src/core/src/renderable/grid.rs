@@ -11,8 +11,11 @@ use crate::camera::CameraViewPort;
 use al_core::VertexArrayObject;
 use al_api::grid::GridCfg;
 pub struct ProjetedGrid {
-    // The config
-    cfg: GridCfg,
+    // Properties
+    pub color: Color,
+    pub show_labels: bool,
+    pub enabled: bool,
+    pub label_scale: f32,
 
     // The vertex array object of the screen in NDC
     vao: VertexArrayObject,
@@ -38,14 +41,13 @@ use al_core::VecData;
 use wasm_bindgen::JsValue;
 
 use super::labels::RenderManager;
+use al_api::color::Color;
 
 use super::TextRenderManager;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
         camera: &CameraViewPort,
-        _shaders: &mut ShaderManager,
-        cfg: GridCfg,
     ) -> Result<ProjetedGrid, JsValue> {
         let vao_gpu = {
             let mut vao = VertexArrayObject::new(gl);
@@ -113,7 +115,6 @@ impl ProjetedGrid {
         let size_vertices_buf = 1000;
         let num_vertices = 0;
 
-        let _num_bytes_per_f32 = std::mem::size_of::<f32>() as i32;
         let labels = vec![];
 
         let gl = gl.clone();
@@ -122,8 +123,16 @@ impl ProjetedGrid {
 
         let text_renderer = TextRenderManager::new(gl.clone(), camera)?;
 
+        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+        let show_labels = true;
+        let enabled = false;
+        let label_scale = 1.0;
+
         let grid = ProjetedGrid {
-            cfg,
+            color,
+            show_labels,
+            enabled,
+            label_scale,
 
             vao,
             //vbo,
@@ -143,8 +152,28 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_cfg(&mut self, cfg: GridCfg) {
-        self.cfg = cfg;
+    pub fn set_cfg(&mut self, new_cfg: GridCfg) -> Result<(), JsValue> {
+        let GridCfg { color, show_labels, label_size, enabled } = new_cfg;
+
+        if let Some(color) = color {
+            self.color = color;
+        }
+
+        if let Some(show_labels) = show_labels {
+            self.show_labels = show_labels;
+        }
+
+        if let Some(enabled) = enabled {
+            self.enabled = enabled;
+        }
+
+        if let Some(label_size) = label_size {
+            self.label_scale = label_size;
+
+            self.text_renderer.set_text_size(label_size)?;
+        }
+
+        Ok(())
     }
 
     fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
@@ -173,7 +202,7 @@ impl ProjetedGrid {
         //let scale = Label::size(camera) as f32;
         for label in self.labels.iter() {
             if let Some(label) = label {
-                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.cfg.color, cgmath::Rad(label.rot as f32));
+                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.color, cgmath::Rad(label.rot as f32));
             }
         }
 
@@ -211,7 +240,7 @@ impl ProjetedGrid {
 
     // Update the grid whenever the camera moved
     pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
-        if !self.cfg.enabled {
+        if !self.enabled {
             return;
         }
 
@@ -237,7 +266,7 @@ impl ProjetedGrid {
         let shader = shader.bind(&self.gl);
         shader
             .attach_uniforms_from(camera)
-            .attach_uniform("color", &self.cfg.color);
+            .attach_uniform("color", &self.color);
 
         // The raster vao is bound at the lib.rs level
         let drawer = shader.bind_vertex_array_object_ref(&self.vao);
@@ -253,14 +282,15 @@ impl ProjetedGrid {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
-        if self.cfg.enabled {
+        if self.enabled {
             self.gl.enable(WebGl2RenderingContext::BLEND);
             self.draw_lines_cpu::<P>(camera, shaders);
 
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
-
-            self.text_renderer.draw(camera)?;  
+            if self.show_labels {
+                self.text_renderer.draw(camera)?;
+            }
         }
 
         Ok(())
@@ -327,18 +357,21 @@ impl Label {
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
             // we will have its screen projected position
-            let sp = sp.unwrap();
-            // Distance factor between the label position
-            // and the nearest pole position
-            let dy = sp.y - s1.y;
-            let dx = sp.x - s1.x;
-            let dd2 = dx * dx + dy * dy;
-            let ss = camera.get_screen_size();
-            let ds2 = (ss.x * ss.x + ss.y * ss.y) as f64;
-            // This distance is divided by the size of the
-            // screen diagonal to be pixel agnostic
-            let fdd2 = dd2 / ds2;
-            if fdd2 < 0.004 {
+            if let Some(sp) = sp {
+                // Distance factor between the label position
+                // and the nearest pole position
+                let dy = sp.y - s1.y;
+                let dx = sp.x - s1.x;
+                let dd2 = dx * dx + dy * dy;
+                let ss = camera.get_screen_size();
+                let ds2 = (ss.x * ss.x + ss.y * ss.y) as f64;
+                // This distance is divided by the size of the
+                // screen diagonal to be pixel agnostic
+                let fdd2 = dd2 / ds2;
+                if fdd2 < 0.004 {
+                    return None;
+                }
+            } else {
                 return None;
             }
         }
@@ -615,7 +648,6 @@ fn lines<P: Projection>(
     };
 
     let bbox = camera.get_bounding_box();
-    let _fov = camera.get_field_of_view();
 
     let step_lon = select_grid_step(
         bbox,

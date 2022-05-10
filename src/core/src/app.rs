@@ -186,11 +186,7 @@ where
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &mut shaders, GridCfg {
-            color: Color::new(0.0, 1.0, 0.0, 1.0),
-            enabled: false,
-            show_labels: true,
-        })?;
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera)?;
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
@@ -885,6 +881,8 @@ where
         // launch the new tile requests
         self.look_for_new_tiles();
         self.manager.set_kernel_size(&self.camera);
+
+        self.request_redraw = true;
     }
 
     fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
@@ -927,6 +925,8 @@ where
 
     fn set_grid_cfg(&mut self, cfg: GridCfg) {
         self.grid.set_cfg(cfg);
+
+        self.request_redraw = true;
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {

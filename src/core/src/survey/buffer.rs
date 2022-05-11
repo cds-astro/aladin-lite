@@ -514,46 +514,43 @@ impl ImageSurveyTextures {
         self.heap.update_entry(tex_cell_item);
     }
 
+    // lonlat is given in the 
     pub fn get_pixel_position_in_texture(
         &self,
         lonlat: &LonLatT<f64>,
         depth: u8,
     ) -> Result<Vector3<i32>, JsValue> {
-        let (pix, dx, dy) = healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
+        let (pix, dx, dy) = crate::healpix::utils::hash_with_dxdy(depth, lonlat);
+        let texture_cell = HEALPixCell(depth, pix);
 
-        let cell = HEALPixCell(depth, pix);
-        // Index of the texture in the total set of textures
-        if let Some(texture) = self.textures.get(&cell) {
+        if let Some(texture) = self.textures.get(&texture_cell) {
+            let cfg = &self.config;
+
+            // Index of the texture in the total set of textures
             let texture_idx = texture.idx();
             // Index of the slice of textures
-            let idx_slice = texture_idx / self.config.num_textures_by_slice();
+            let num_textures_by_slice = cfg.num_textures_by_slice();
+            let idx_slice = texture_idx / num_textures_by_slice;
             // Index of the texture in its slice
-            let idx_in_slice = texture_idx % self.config.num_textures_by_slice();
+            let idx_in_slice = texture_idx % num_textures_by_slice;
 
             // Index of the column of the texture in its slice
-            let idx_col_in_slice = idx_in_slice / self.config.num_textures_by_side_slice();
+            let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
+            let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
             // Index of the row of the texture in its slice
-            let idx_row_in_slice = idx_in_slice % self.config.num_textures_by_side_slice();
-
-            // Row and column indexes of the tile in its texture
-            let (idx_col_in_tex, idx_row_in_tex) = cell.get_offset_in_texture_cell(&self.config);
+            let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
 
             // The size of the global texture containing the tiles
-            let texture_size = self.config.get_texture_size();
-            // The size of a tile in its texture
-            let tile_size = self.config.get_tile_size();
+            let texture_size = cfg.get_texture_size();
 
             // Offset in the slice in pixels
             let mut offset = Vector3::new(
-                (idx_row_in_slice as i32) * texture_size
-                    + (idx_row_in_tex as i32) * tile_size
-                    + ((dy * (tile_size as f64)) as i32),
-                (idx_col_in_slice as i32) * texture_size
-                    + (idx_col_in_tex as i32) * tile_size
-                    + ((dx * (tile_size as f64)) as i32),
+                (idx_row_in_slice as i32) * texture_size + ((dy * (texture_size as f64)) as i32),
+                (idx_col_in_slice as i32) * texture_size + ((dx * (texture_size as f64)) as i32),
                 idx_slice,
             );
 
+            // Offset in the slice in pixels
             if self.config.tex_storing_fits {
                 let mut uvy = offset.y as f32 / 4096.0;
                 uvy = self.config.size_tile_uv
@@ -567,7 +564,7 @@ impl ImageSurveyTextures {
         } else {
             Err(JsValue::from_str(&format!(
                 "{:?} not loaded in the GPU, please wait before trying again.",
-                cell
+                texture_cell
             )))
         }
     }

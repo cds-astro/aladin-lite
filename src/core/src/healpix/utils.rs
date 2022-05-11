@@ -46,3 +46,7 @@ pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) ->
         })
         .collect()
 }
+
+pub fn hash_with_dxdy(depth: u8, lonlat: &LonLatT<f64>) -> (u64, f64, f64) {
+    healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0)
+}

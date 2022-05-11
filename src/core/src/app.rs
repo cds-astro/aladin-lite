@@ -11,7 +11,7 @@ use crate::{async_task::{TaskExecutor, BuildCatalogIndex, ParseTableTask, TaskRe
     }, shader::ShaderManager, survey::ImageSurveys, tile_fetcher::TileFetcherQueue, time::DeltaTime, utils};
 use al_core::{
     resources::Resources,
-    pixel::PixelType, WebGlContext
+    WebGlContext
 };
 
 use al_api::{
@@ -381,7 +381,7 @@ pub trait AppTrait {
     // Setter of the meta data of a layer
     fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue>;
 
-    fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<PixelType, JsValue>;
+    fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
     fn set_projection<Q: Projection>(self) -> App<Q>;
     //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
@@ -543,7 +543,7 @@ where
                                 }
                             } else {
                                 let Allsky { image, time_req, .. } = allsky;
-                                
+
                                 {
                                     let mutex_locked = image.lock().unwrap();
                                     let images = mutex_locked.as_ref();
@@ -614,12 +614,12 @@ where
         self.set_center(&self.get_center());
     }
 
-    fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<PixelType, JsValue> {
+    fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
             let survey = self.surveys.get_from_layer(layer_id)
                 .ok_or(JsValue::from_str(&format!("Did not found the survey {:?}", layer_id)))?;
 
-            survey.read_pixel(&lonlat)
+            survey.read_pixel(&lonlat, &self.camera)
         } else {
             Err(JsValue::from_str(&format!(
                 "{:?} is out of projection",

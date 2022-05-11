@@ -465,6 +465,11 @@ export let HpxImageSurvey = (function() {
         return this.meta.opacity;
     };
 
+    // @api
+    HpxImageSurvey.prototype.readPixel = function(x, y) {
+        return this.backend.aladin.webglAPI.readPixel(x, y, this.layer);
+    };
+
     HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
     
     HpxImageSurvey.SURVEYS_OBJECTS = {};

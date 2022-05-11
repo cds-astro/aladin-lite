@@ -487,7 +487,6 @@ use crate::{
     },
 };
 
-use al_core::pixel::PixelType;
 use web_sys::{WebGl2RenderingContext, WheelEvent};
 use wasm_bindgen::JsCast;
 use al_core::{
@@ -496,6 +495,7 @@ use al_core::{
     image::Image
 };
 
+use crate::math::lonlat::LonLat;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -652,11 +652,17 @@ impl ImageSurvey {
         self.view.reset_frame();
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>) -> Result<PixelType, JsValue> {
+    // Position given is in the camera space
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, camera: &CameraViewPort) -> Result<JsValue, JsValue> {
+        // 1. Convert it to the hips frame system
+        let camera_frame = camera.get_system();
+        let hips_frame = &self.get_config().get_frame();
+
+        let pos = crate::coosys::apply_coo_system(camera_frame, hips_frame, &pos.vector());
+
         // Get the array of textures from that survey
-        let pos_tex = self
-            .textures
-            .get_pixel_position_in_texture(pos, self.view.get_depth())?;
+        let pos_tex = self.textures
+            .get_pixel_position_in_texture(&pos.lonlat(), self.view.get_depth())?;
 
         let slice_idx = pos_tex.z as usize;
         let texture_array = self.textures.get_texture_array();
@@ -1079,10 +1085,10 @@ impl ImageSurveys {
         }
     }
 
-    pub fn read_pixel(&self, pos: &LonLatT<f64>, url: &Url) -> Result<PixelType, JsValue> {
+    pub fn read_pixel(&self, pos: &LonLatT<f64>, url: &Url, camera: &CameraViewPort) -> Result<JsValue, JsValue> {
         if let Some(survey) = self.surveys.get(url) {
             // Read the pixel from the first survey of layer
-            survey.read_pixel(pos)
+            survey.read_pixel(pos, camera)
         } else {
             Err(JsValue::from_str("No survey found"))
         }

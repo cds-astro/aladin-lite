@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 
 use crate::webgl_ctx::WebGlContext;
 pub trait Pixel:
-    AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone
+    AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone + serde::ser::Serialize
 {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
     type Container: ArrayBuffer<Item = Self::Item>;
@@ -213,6 +213,15 @@ impl Pixel for [i32; 1] {
     }
 }
 
+/*impl From<T> for JsValue
+where
+    T: Pixel
+{
+    fn from(p: T) -> Self {
+        JsValue::from_serde(&p).unwrap()
+    }
+}*/
+/*
 pub enum PixelType {
     RU8([u8; 1]),
     RI16([i16; 1]),
@@ -233,4 +242,4 @@ impl From<PixelType> for JsValue {
             PixelType::RGBAU8(v) => JsValue::from_serde(&v).unwrap(),
         }
     }
-}
+}*/

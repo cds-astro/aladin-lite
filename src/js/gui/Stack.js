@@ -217,13 +217,11 @@
         gridOpacityInput.on('input', updateGridcolor);
         // coordinates grid - add event listeners
         ALEvent.COO_GRID_ENABLED.listenedBy(this.aladinDiv, function() {
-            console.log('enabled');
             if (! coordinatesGridCb.prop('checked')) {
                 coordinatesGridCb.prop('checked', true);
             }
         });
         ALEvent.COO_GRID_DISABLED.listenedBy(this.aladinDiv, function() {
-            console.log('disabled');
             if (coordinatesGridCb.prop('checked')) {
                 coordinatesGridCb.prop('checked', false);
             }
@@ -234,6 +232,11 @@
             if (gridOpacityInput.val() != opacity) {
                 gridOpacityInput.val(opacity);
             }
+
+            let hexColor = Color.rgbToHex(Math.round(255*c[0]), Math.round(255*c[1]), Math.round(255*c[2]));
+            if (gridColorInput.val() != hexColor) {
+                gridColorInput.val(hexColor);
+            }
         });
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
@@ -241,7 +244,7 @@
         var exportBtn = $('<button class="aladin-btn" type="button">Export view as PNG</button>');
         layerBox.append(exportBtn);
         exportBtn.click(function () {
-            self.exportAsPNG();
+            self.aladin.exportAsPNG();
         });
 
         layerBox.find('.aladin-closeBtn').click(function () { self.aladin.hideBoxes(); return false; });

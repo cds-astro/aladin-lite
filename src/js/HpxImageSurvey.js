@@ -217,6 +217,7 @@ export let HpxImageSurvey = (function() {
             if (url.startsWith('http://alasky')) {
                 // From alasky one can directly use the https access
                 url = url.replace('http', 'https');
+                url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.u-strasbg.fr/');
             }
 
             // HiPS order
@@ -572,7 +573,7 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/SDSS9/g",
             name: "SDSS9 band-g",
-            url: "http://alasky.cds.unistra.fr/SDSS/DR9/band-g/",
+            url: "https://alasky.u-strasbg.fr/SDSS/DR9/band-g",
             maxOrder: 10,
             options: {
                 minCut: -14000,

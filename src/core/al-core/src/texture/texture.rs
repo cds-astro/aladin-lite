@@ -301,25 +301,24 @@ impl Texture2D {
                 type_,
                 ..
             } = self.metadata.as_ref().unwrap();
-            crate::log(&format!("{:?} {:?} {:?} {:?}", width, height, format, type_));
             self.gl.viewport(x, y, *width as i32, *height as i32);
             #[cfg(feature = "webgl2")]
             let value = match (*format, *type_) {
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;

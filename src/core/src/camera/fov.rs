@@ -60,7 +60,8 @@ impl FieldOfViewVertices {
     pub fn new<P: Projection>(
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
-        mat: &Matrix4<f64>
+        mat: &Matrix4<f64>,
+        center: &Vector4<f64>
     ) -> Self {
         let mut x_ndc =
             itertools_num::linspace::<f64>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
@@ -100,9 +101,9 @@ impl FieldOfViewVertices {
         let model_coo = world_coo.as_ref().map(|world_coo| world_to_model(world_coo, mat));
 
         let great_circles = if let Some(vertices) = &model_coo {
-            FieldOfViewType::new_polygon(vertices)
+            FieldOfViewType::new_polygon(vertices, &center)
         } else {
-            FieldOfViewType::new_allsky()
+            FieldOfViewType::Allsky
         };
 
         FieldOfViewVertices {
@@ -120,13 +121,14 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         system: &CooSystem,
+        center: &Vector4<f64>
     ) {
         self.world_coo = ndc_to_world::<P>(
             &self.ndc_coo,
             ndc_to_clip,
             clip_zoom_factor
         );
-        self.set_rotation::<P>(w2m, aperture, system);
+        self.set_rotation::<P>(w2m, aperture, system, center);
     }
 
     pub fn set_rotation<P: Projection>(
@@ -134,6 +136,7 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         system: &CooSystem,
+        center: &Vector4<f64>
     ) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
@@ -141,27 +144,20 @@ impl FieldOfViewVertices {
             self.model_coo = None;
         }
 
-        self.set_great_circles::<P>(aperture, system);
+        self.set_great_circles::<P>(aperture, system, center);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem) {
+    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem, center: &Vector4<f64>) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
-                /*let vertices = vertices
-                    .iter()
-                    .cloned()
-                    .map(|v| {
-                        system.to_gal::<f64>() * v
-                    })
-                    .collect::<Vec<_>>();*/
-                self.great_circles = FieldOfViewType::new_polygon(&vertices);
-            } else if let FieldOfViewType::Polygon(_) = &self.great_circles {
-                self.great_circles = FieldOfViewType::new_allsky();
+                self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
+            } else if let FieldOfViewType::Polygon { .. } = &self.great_circles {
+                self.great_circles = FieldOfViewType::Allsky;
             }
         } else {
             // We are too unzoomed => we plot the allsky grid
-            if let FieldOfViewType::Polygon(_) = &self.great_circles {
-                self.great_circles = FieldOfViewType::new_allsky();
+            if let FieldOfViewType::Polygon { .. } = &self.great_circles {
+                self.great_circles = FieldOfViewType::Allsky;
             }
         }
     }

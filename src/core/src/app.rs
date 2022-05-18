@@ -118,7 +118,7 @@ struct ZoomAnimation {
 }
 
 use crate::math::projection::*;
-const BLEND_TILE_ANIM_DURATION: f32 = 500.0; // in ms
+pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
 //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
@@ -575,8 +575,19 @@ where
 
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
-            (Time::now().0 - self.time_start_blending.0) < BLEND_TILE_ANIM_DURATION;
-        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw;
+            (Time::now().0 - self.time_start_blending.0) < BLENDING_ANIM_DURATION;
+
+        let mut start_fading = false;
+        for survey in self.surveys.values() {
+            if let Some(start_time) = survey.get_ready_time() {
+                start_fading |= Time::now().0 - start_time.0 < BLENDING_ANIM_DURATION;
+                if start_fading {
+                    break;
+                }
+            }
+        }
+
+        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw | start_fading;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed

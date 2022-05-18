@@ -651,7 +651,7 @@ fn lines<P: Projection>(
 
     let step_lon = select_grid_step(
         bbox,
-        bbox.get_lon_size().0 as f64,
+        bbox.get_lon_size() as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
         NUM_LINES,
@@ -659,8 +659,8 @@ fn lines<P: Projection>(
 
     let mut lines = vec![];
     // Add meridians
-    let mut theta = bbox.lon_min().0 - (bbox.lon_min().0 % step_lon);
-    let mut stop_theta = bbox.lon_max().0;
+    let mut theta = bbox.lon_min() - (bbox.lon_min() % step_lon);
+    let mut stop_theta = bbox.lon_max();
     if bbox.all_lon() {
         stop_theta -= 1e-3;
     }
@@ -679,12 +679,12 @@ fn lines<P: Projection>(
     }
 
     // Add parallels
-    let step_lat = select_grid_step(bbox, bbox.get_lat_size().0 as f64, NUM_LINES);
-    let mut alpha = bbox.lat_min().0 - (bbox.lat_min().0 % step_lat);
+    let step_lat = select_grid_step(bbox, bbox.get_lat_size() as f64, NUM_LINES);
+    let mut alpha = bbox.lat_min() - (bbox.lat_min() % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;
     }
-    let mut stop_alpha = bbox.lat_max().0;
+    let mut stop_alpha = bbox.lat_max();
     if stop_alpha == HALF_PI {
         stop_alpha -= 1e-3;
     }

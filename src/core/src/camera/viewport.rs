@@ -118,7 +118,7 @@ impl CameraViewPort {
         let clip_zoom_factor = 1.0;
 
         let vertices =
-            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m);
+            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -191,7 +191,8 @@ impl CameraViewPort {
             self.clip_zoom_factor,
             &self.w2m,
             self.aperture,
-            &self.system
+            &self.system,
+            &self.center,
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -245,7 +246,8 @@ impl CameraViewPort {
             self.clip_zoom_factor,
             &self.w2m,
             self.aperture,
-            &self.system
+            &self.system,
+            &self.center
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -413,7 +415,7 @@ impl CameraViewPort {
 
         // Rotate the fov vertices
         self.vertices
-            .set_rotation::<P>(&self.w2m, self.aperture, &self.system);
+            .set_rotation::<P>(&self.w2m, self.aperture, &self.system, &self.center);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;

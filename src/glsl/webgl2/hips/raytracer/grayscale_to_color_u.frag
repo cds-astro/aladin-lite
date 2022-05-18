@@ -53,6 +53,7 @@ vec4 get_tile_color(vec3 pos) {
 
 uniform sampler2D position_tex;
 uniform mat4 model;
+
 void main() {
     /*vec2 uv = out_clip_pos * 0.5 + 0.5;
     vec3 n = texture(position_tex, uv).rgb;

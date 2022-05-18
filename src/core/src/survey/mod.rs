@@ -655,8 +655,9 @@ impl ImageSurvey {
     // Position given is in the camera space
     pub fn read_pixel(&self, pos: &LonLatT<f64>, camera: &CameraViewPort) -> Result<JsValue, JsValue> {
         // 1. Convert it to the hips frame system
+        let cfg = self.get_config();
         let camera_frame = camera.get_system();
-        let hips_frame = &self.get_config().get_frame();
+        let hips_frame = &cfg.get_frame();
 
         let pos = crate::coosys::apply_coo_system(camera_frame, hips_frame, &pos.vector());
 
@@ -666,7 +667,18 @@ impl ImageSurvey {
 
         let slice_idx = pos_tex.z as usize;
         let texture_array = self.textures.get_texture_array();
-        texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)
+
+        let value = texture_array[slice_idx].read_pixel(pos_tex.x, pos_tex.y)?;
+
+        if cfg.tex_storing_fits {
+            let value = value.as_f64().ok_or(JsValue::from_str("Error unwraping the pixel read value."))?;
+            let scale = cfg.scale as f64;
+            let offset = cfg.offset as f64;
+
+            Ok(JsValue::from_f64(value * scale + offset))
+        } else {
+            Ok(value)
+        }
     }
 
     pub fn recompute_vertices(&mut self, camera: &CameraViewPort) {
@@ -798,6 +810,11 @@ impl ImageSurvey {
     pub fn is_ready(&self) -> bool {
         self.textures.is_ready()
     }
+
+    #[inline]
+    pub fn get_ready_time(&self) -> &Option<Time> {
+        &self.textures.start_time
+    }
 }
 
 use cgmath::Matrix4;
@@ -851,7 +868,7 @@ impl Draw for ImageSurvey {
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         color: &HiPSColor,
-        opacity: f32,
+        mut opacity: f32,
         colormaps: &Colormaps,
     ) {
         // Get the coo system transformation matrix
@@ -870,6 +887,15 @@ impl Draw for ImageSurvey {
         } else {
             Id
         };
+
+        // Add starting fading
+        let fading = self.textures.start_time
+            .and_then(|start_time| {
+                let fading = ((Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION).clamp(0.0, 1.0);
+                Some(fading)
+            })
+            .unwrap_or(0.0);
+        opacity *= fading;
 
         // Retrieve the model and inverse model matrix
         let w2v = C * (*camera.get_w2m()) * RL;
@@ -1301,6 +1327,10 @@ impl ImageSurveys {
 
     pub fn iter_mut(&mut self) -> IterMut<'_, String, ImageSurvey> {
         self.surveys.iter_mut()
+    }
+
+    pub fn values(&mut self) -> impl Iterator<Item = &ImageSurvey> {
+        self.surveys.values()
     }
 }
 

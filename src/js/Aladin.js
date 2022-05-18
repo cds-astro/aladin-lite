@@ -490,12 +490,24 @@ export let Aladin = (function () {
         const baseImgNotLoaded = baseImgLayer.properties;
 
         if (baseImgNotLoaded) {
+            let surveyFound = false;
             surveys.forEach(s => {
                 const isCurSurvey = baseImgLayer.properties.url.endsWith(s.url);
-                console.log("base image", isCurSurvey, baseImgLayer.properties.url)
-
                 select.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
+                surveyFound |= isCurSurvey;
             });
+
+            // The survey has not been found among the ones cached
+            if (!surveyFound) {
+                // Cache it
+                HpxImageSurvey.SURVEYS.push({
+                    id: baseImgLayer.properties.id,
+                    name: baseImgLayer.properties.name,
+                    maxOrder: baseImgLayer.properties.maxOrder,
+                    url: baseImgLayer.properties.url,
+                });
+                select.append($("<option />").attr("selected", true).val(baseImgLayer.properties.id).text(baseImgLayer.properties.name));
+            }
         }
     };
 

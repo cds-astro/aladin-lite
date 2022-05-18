@@ -126,6 +126,7 @@ pub struct ImageSurveyTextures {
     // A boolean ensuring the root textures
     // have already been loaded
     ready: bool,
+    pub start_time: Option<Time>,
 
     available_tiles_during_frame: bool,
 
@@ -236,6 +237,7 @@ impl ImageSurveyTextures {
         let ready = false;
         let num_root_textures_available = 0;
         let available_tiles_during_frame = false;
+        let start_time = None;
         Ok(ImageSurveyTextures {
             config,
             heap,
@@ -250,6 +252,7 @@ impl ImageSurveyTextures {
             available_tiles_during_frame,
 
             ready,
+            start_time,
             //exec,
         })
     }
@@ -432,6 +435,8 @@ impl ImageSurveyTextures {
 
             if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
                 self.ready = true;
+                // The survey is ready
+                self.start_time = Some(Time::now());
             }
         }
     }
@@ -718,7 +723,7 @@ impl SendUniforms for ImageSurveyTextures {
                 }
             }
             let num_tiles = textures.len() as i32;
-            shader
+            let shader = shader
                 .attach_uniform("num_tiles", &num_tiles)
                 .attach_uniforms_from(&self.config)
                 .attach_uniforms_from(&*self.texture_2d_array);

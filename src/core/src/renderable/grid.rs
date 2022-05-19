@@ -199,7 +199,6 @@ impl ProjetedGrid {
             .unzip();
         self.labels = labels;
 
-        //let scale = Label::size(camera) as f32;
         for label in self.labels.iter() {
             if let Some(label) = label {
                 self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.color, cgmath::Rad(label.rot as f32));
@@ -685,9 +684,9 @@ fn lines<P: Projection>(
         alpha += step_lat;
     }
     let mut stop_alpha = bbox.lat_max();
-    if stop_alpha == HALF_PI {
+    /*if stop_alpha == HALF_PI {
         stop_alpha -= 1e-3;
-    }
+    }*/
 
     while alpha < stop_alpha {
         if let Some(line) =

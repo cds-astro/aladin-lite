@@ -81,7 +81,7 @@ where
         let min = *self;
 
         let frac = min.fract();
-        let seconds_per_minute = T::from(60_f32).unwrap();
+        let seconds_per_minute = T::from(60_f64).unwrap();
         ArcSec(seconds_per_minute * frac)
     }
 
@@ -99,7 +99,7 @@ where
         let deg: Deg<T> = angle.into();
 
         // There is 60 minutes in one degree
-        let minutes_per_degree = T::from(60_f32).unwrap();
+        let minutes_per_degree = T::from(60_f64).unwrap();
         let minutes = deg.0 * minutes_per_degree;
         ArcMin(minutes)
     }
@@ -110,7 +110,7 @@ where
     T: BaseFloat,
 {
     fn from(minutes: ArcMin<T>) -> Self {
-        let minutes_per_degree = T::from(60_f32).unwrap();
+        let minutes_per_degree = T::from(60_f64).unwrap();
         let deg: Deg<T> = Deg(*minutes / minutes_per_degree);
 
         deg.into()

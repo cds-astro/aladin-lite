@@ -749,8 +749,8 @@ where
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             let cfg = survey.get_config();
-            /*
-            Request the allsky for the small tile size
+            
+            //Request the allsky for the small tile size
             if cfg.get_tile_size() <= 128 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(cfg));
@@ -761,8 +761,8 @@ where
                         self.tile_fetcher.append_base_tile(query, &mut self.downloader);
                     }
                 }
-            }*/
-            self.downloader.fetch(query::Allsky::new(cfg));
+            }
+            //self.downloader.fetch(query::Allsky::new(cfg));
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

@@ -1610,8 +1610,8 @@ export let View = (function() {
             new_fov = 360.0;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
-        if (new_fov < 2e-10) {
-            new_fov = 2e-10;
+        if (new_fov < 0.00002777777) {
+            new_fov = 0.00002777777;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         }
 
@@ -1634,8 +1634,8 @@ export let View = (function() {
             new_fov = 360.0;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
-        if (new_fov < 2e-10) {
-            new_fov = 2e-10;
+        if (new_fov < 0.00002777777) {
+            new_fov = 0.00002777777;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         } 
 

@@ -62,6 +62,9 @@ impl FieldOfViewType {
             (true, false) => PoleContained::South,
             (true, true) => PoleContained::Both,
         };
+        // The arc length must be < PI, so we create an arc from [(0, -PI/2); (0, PI/2)[
+        // see the cdshealpix doc:
+        // https://docs.rs/cdshealpix/latest/cdshealpix/sph_geom/struct.Polygon.html#method.intersect_great_circle_arc
         let poly_intersects_meridian = poly.is_intersecting_great_circle_arc(
             &Coo3D::from_sph_coo(0.0, -HALF_PI), 
             &Coo3D::from_sph_coo(0.0, HALF_PI - 1e-6)
@@ -98,33 +101,26 @@ impl FieldOfViewType {
                 Some(pos)
             }
             FieldOfViewType::Polygon { poly, bbox, poles } => {
-                /*if *poles != PoleContained::None {
-                    let center = camera.get_center();
-                    let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
-                    return Some(pos);
-                }*/
-
                 let lon = lon.into();
                 let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
-                // Prune meridians that do not intersect the fov
-                //if bbox.contains_meridian(lon) {
-                    al_core::log("contains meridian");
-                    let a = Coo3D::from_sph_coo(lon, -HALF_PI);
-                    let b = Coo3D::from_sph_coo(lon, HALF_PI - 1e-6);
 
-                    // For those intersecting, perform the intersection
-                    poly.intersect_great_circle_arc(&a, &b)
-                        .and_then(|v| Some(Vector3::new(v.y(), v.z(), v.x())))
-                        .or_else(|| {
-                            // If no intersection has been found, e.g. because the
-                            // great circle is fully contained in the bounding box
-                            let center = camera.get_center();
-                            let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
-                            Some(pos)
-                        })
-                //} else {
-                //    None
-                //}
+                // The arc length must be < PI, so we create an arc from [(lon, -PI/2); (lon, PI/2)[
+                // see the cdshealpix doc:
+                // https://docs.rs/cdshealpix/latest/cdshealpix/sph_geom/struct.Polygon.html#method.intersect_great_circle_arc
+                let a = Coo3D::from_sph_coo(lon, -HALF_PI);
+                let b = Coo3D::from_sph_coo(lon, HALF_PI - 1e-6);
+
+                // For those intersecting, perform the intersection
+                poly.intersect_great_circle_arc(&a, &b)
+                    .and_then(|v| Some(Vector3::new(v.y(), v.z(), v.x())))
+                    .or_else(|| {
+                        // If no intersection has been found, e.g. because the
+                        // great circle is fully contained in the bounding box
+                        let center = camera.get_center();
+                        let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
+                        Some(pos)
+                    })
+
             }
         }
     }
@@ -143,14 +139,7 @@ impl FieldOfViewType {
                 Some(pos)
             }
             FieldOfViewType::Polygon { poly, bbox, poles } => {
-                /*if *poles != PoleContained::None {
-                    // If no intersection has been found, e.g. because the
-                    // great circle is fully contained in the bounding box
-                    let center = camera.get_center();
-                    let pos: Vector3<f64> = LonLatT::new(center.lon(), Angle(lat)).vector();
-                    return Some(pos);
-                }*/
-                // Prune meridians that do not intersect the fov
+                // Prune parallels that do not intersect the fov
                 if bbox.contains_latitude(lat) {
                     // For those intersecting, perform the intersection
                     poly.intersect_parallel(lat)

@@ -92,9 +92,9 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            /*if ab_l < 1e-5 || bc_l < 1e-5 {
+            if ab_l == 0.0 || bc_l == 0.0 {
                 return;
-            }*/
+            }
 
             let ab = ab.normalize();
             let bc = bc.normalize();
@@ -372,7 +372,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
                     camera,
                 );
             }
-        }
+        },
         (Some(_), Some(_), None) => {
             subdivide_along_great_circles::<P>(
                 vertices,
@@ -393,7 +393,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
                     camera,
                 );
             }
-        }
+        },
         (None, Some(_), Some(_)) => {
             // relay the subdivision to the second half
             subdivide_along_great_circles::<P>(
@@ -415,7 +415,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
                     camera,
                 );
             }
-        }
+        },
         (Some(_), None, Some(_)) => {
             let e = (mp[0] + mp[1]) * 0.5;
             // relay the subdivision to the second half
@@ -445,7 +445,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
             }
 
             //}
-        }
+        },
         (None, Some(_), None) => {
             let e1 = (mp[0] + mp[1]) * 0.5;
             let e2 = (mp[1] + mp[2]) * 0.5;
@@ -479,7 +479,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
                     camera,
                 );
             }
-        }
+        },
         (Some(_), None, None) => {
             let e1 = (mp[0] + mp[1]) * 0.5;
             subdivide_along_great_circles::<P>(
@@ -496,7 +496,7 @@ pub fn subdivide_along_great_circles<P: Projection>(
                     camera,
                 );
             }
-        }
+        },
         (None, None, Some(_)) => {
             let e2 = (mp[1] + mp[2]) * 0.5;
 

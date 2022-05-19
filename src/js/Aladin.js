@@ -105,7 +105,7 @@ export let Aladin = (function () {
         this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
-
+        this.projection = "SIN";
         // parent div
         $(aladinDiv).addClass("aladin-container");
 
@@ -475,6 +475,15 @@ export let Aladin = (function () {
         var fullScreenToggledFn = this.callbacksByEventName['fullScreenToggled'];
         (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
+
+    Aladin.prototype.updateProjectionCombobox = function (selected) {
+        var select = $(this.aladinDiv).find('.aladin-projSelection');
+        select.empty();
+        
+        ["SIN", "AIT", "MOL", "MER", "ARC", "TAN", "HPX"].forEach(p => {
+            select.append($("<option />").attr("selected", p == selected).val(p).text(p));
+        });
+    }
 
     Aladin.prototype.updateSurveysDropdownList = function (surveys) {
         //console.log(surveys)
@@ -1057,16 +1066,19 @@ export let Aladin = (function () {
             '<div style="clear: both;"></div>' +
             '<div class="aladin-label">Base image layer</div>' +
             '<select class="aladin-surveySelection"></select>' +
+            '<div class="aladin-label">Projection</div>' +
+            '<select class="aladin-projSelection"></select>' +
             '</div>');
 
-        layerBox.append('<div class="aladin-label">Projection</div>');
-
-        let projectionElt = $('<select id="projectionChoice"><option id="SIN" value="SIN">SIN</option><option id="AIT" value="AIT">AIT</option><option id="MOL" value="MOL">MOL</option><option id="MER" value="MER">MER</option><option id="ARC" value="ARC">ARC</option><option id="TAN" value="TAN">TAN</option><option id="HPX" value="HPX">HPX</option></select>');
-        projectionElt.change(function () {
-            const projection = $(this).val();
-            self.setProjection(projection);
+        this.updateProjectionCombobox(this.projection);
+        var projectionSelection = $(this.aladinDiv).find('.aladin-projSelection');
+        console.log("projection selection", projectionSelection)
+        projectionSelection.change(function () {
+            self.projection = $(this).val();
+            self.setProjection(self.projection);
         });
-        layerBox.append(projectionElt)
+
+        layerBox.append(projectionSelection)
             .append('<br />');
 
         layerBox.append('<div class="aladin-box-separator"></div>' +

@@ -391,7 +391,7 @@ export let MOC = (function() {
         //var spVec = _spVec;
 
         //var corners = HealpixCache.corners_nest(ipix, nside);
-        var corners = Aladin.wasmLibs.hpx.nestedVertices(Math.log2(nside), ipix);
+        var corners = view.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
 
         var ra, dec;
         var lon, lat;

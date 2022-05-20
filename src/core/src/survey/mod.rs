@@ -51,11 +51,11 @@ fn num_subdivision(cell: &HEALPixCell) -> u8 {
     }
 
     // Largest deformation cell among the cells of a specific depth
-    let largest_center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, 0.0, healpix::TRANSITION_LATITUDE);
-    let smallest_center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, 0.0, healpix::LAT_OF_SQUARE_CELL);
+    let largest_center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
+    let smallest_center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::LAT_OF_SQUARE_CELL);
 
     let (lon, lat) = cell.center();
-    let center_to_vertex_dist = healpix::largest_center_to_vertex_distance(d, lon, lat);
+    let center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, lon, lat);
 
     let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist) / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
     //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));

@@ -115,7 +115,7 @@ fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
                     .into(),
             );
             let (idx, dx, dy) =
-                healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
+                cdshealpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0);
             data.extend(&[(idx as f32), dx as f32, dy as f32]);
         }
     }

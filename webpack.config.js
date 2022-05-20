@@ -13,6 +13,8 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'aladin.js',
+        // Keep in dist/ only files used 
+        clean: true,
     },
     resolve: {
         extensions: ['.js'],
@@ -46,7 +48,7 @@ module.exports = {
             outDir: "pkg-webgl1",
 
             // The same as the `--out-name` option for `wasm-pack`
-            // outName: "index",
+            outName: "core",
 
             // If defined, `forceWatch` will force activate/deactivate watch mode for
             // `.rs` files.
@@ -61,7 +63,7 @@ module.exports = {
             //
             // the mode `development` makes `wasm-pack` build in `debug` mode.
             // the mode `production` makes `wasm-pack` build in `release` mode.
-            // forceMode: "development",
+            forceMode: "production",
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
@@ -89,7 +91,7 @@ module.exports = {
             outDir: "pkg-webgl2",
 
             // The same as the `--out-name` option for `wasm-pack`
-            // outName: "index",
+            outName: "core",
 
             // If defined, `forceWatch` will force activate/deactivate watch mode for
             // `.rs` files.
@@ -104,7 +106,7 @@ module.exports = {
             //
             // the mode `development` makes `wasm-pack` build in `debug` mode.
             // the mode `production` makes `wasm-pack` build in `release` mode.
-            // forceMode: "development",
+            forceMode: "production",
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
@@ -119,7 +121,7 @@ module.exports = {
         //new VueLoaderPlugin()
     ],
     devServer:{
-        static: 'dist'
+        static: 'examples'
     },
     module: {
         rules: [
@@ -147,6 +149,6 @@ module.exports = {
             },*/
         ],
     },
-    mode: 'development',
+    mode: 'production',
     devtool: 'source-map'
 };

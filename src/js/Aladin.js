@@ -1845,13 +1845,9 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);
 };
 
-A.init = import('@fxpineau/healpix').then(async (hpxAPI) => {
-    // HEALPix library
-    Aladin.wasmLibs.hpx = hpxAPI;
-    // WebGL library
-    let webgl = await WebGLCtx();
-    Aladin.wasmLibs.webgl = webgl;
-});
+A.init = (async () => {
+    Aladin.wasmLibs.webgl = await WebGLCtx();
+})();
 
 // this is ugly for sure and there must be a better way using Webpack magic
 window.A = A;

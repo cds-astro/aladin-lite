@@ -10,7 +10,7 @@ use crate::math::angle::Angle;
 
 use cgmath::InnerSpace;
 
-use healpix::sph_geom::{
+use cdshealpix::sph_geom::{
     Polygon,
     ContainsSouthPoleMethod,
     coo3d::{Coo3D, Vec3}
@@ -41,7 +41,7 @@ impl FieldOfViewType {
     pub fn new_polygon(vertices: &[Vector4<f64>], control_point: &Vector4<f64>) -> FieldOfViewType {
         let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices.iter()
             .map(|v| {
-                let coo = healpix::sph_geom::coo3d::Coo3D::from_vec3(v.z, v.x, v.y);
+                let coo = cdshealpix::sph_geom::coo3d::Coo3D::from_vec3(v.z, v.x, v.y);
                 let (lon, lat) = coo.lonlat();
 
                 (coo, (lon, lat))

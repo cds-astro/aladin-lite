@@ -1,7 +1,5 @@
-use healpix::TWICE_PI;
+use cdshealpix::TWICE_PI;
 use web_sys::WebGl2RenderingContext;
-
-
 
 use crate::math::angle;
 use cgmath::Vector4;

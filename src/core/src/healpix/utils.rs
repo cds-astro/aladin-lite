@@ -13,7 +13,7 @@ use crate::healpix::cell::HEALPixCell;
 use cgmath::BaseFloat;
 #[allow(dead_code)]
 pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
-    let (lon, lat): (Vec<_>, Vec<_>) = healpix::nested::vertices(cell.depth(), cell.idx())
+    let (lon, lat): (Vec<_>, Vec<_>) = cdshealpix::nested::vertices(cell.depth(), cell.idx())
         .iter()
         .map(|(lon, lat)| {
             // Risky wrapping here
@@ -35,7 +35,7 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
 /// Get the grid
 pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) -> Vec<LonLatT<S>> {
     debug_assert!(n_segments_by_side > 0);
-    healpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side)
+    cdshealpix::nested::grid(cell.depth(), cell.idx(), n_segments_by_side)
         .iter()
         .map(|(lon, lat)| {
             // Risky wrapping here
@@ -48,5 +48,5 @@ pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) ->
 }
 
 pub fn hash_with_dxdy(depth: u8, lonlat: &LonLatT<f64>) -> (u64, f64, f64) {
-    healpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0)
+    cdshealpix::nested::hash_with_dxdy(depth, lonlat.lon().0, lonlat.lat().0)
 }

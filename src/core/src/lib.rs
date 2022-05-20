@@ -769,4 +769,25 @@ impl WebClient {
         let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;
         Ok(pixel.into())
     }
+
+    /// TODO! This will be removed when integrating the MOC code in wasm because
+    /// this method is only called in MOC.js
+    /// Computes the location on the unit sphere of the 4 vertices of the given HEALPix cell
+    /// (define by its depth and number).
+    /// # Inputs
+    /// - `order` the order of the cell we look for the vertices
+    /// - `icell`: the cell number value of the cell we look for the unprojected center, in the NESTED scheme
+    /// # Output
+    /// - array containing the longitudes and latitudes (in degrees) of the vertices in the following order:
+    ///   `[SouthLon, SouthLat, EastLon, EastLat, NoethLon, NorthLat, WestLon, WestLat]`
+    #[wasm_bindgen(js_name = hpxNestedVertices)]
+    pub fn hpx_nested_vertices(&self, depth: u8, hash: f64) -> Box<[f64]> {
+        let [(s_lon, s_lat), (e_lon, e_lat), (n_lon, n_lat), (w_lon, w_lat)] = cdshealpix::nested::vertices(depth, hash as u64);
+        Box::new([
+            s_lon.to_degrees(), s_lat.to_degrees(),
+            e_lon.to_degrees(), e_lat.to_degrees(),
+            n_lon.to_degrees(), n_lat.to_degrees(),
+            w_lon.to_degrees(), w_lat.to_degrees(),
+        ])
+    }
 }

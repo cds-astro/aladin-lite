@@ -942,7 +942,7 @@ impl Projection for HEALPix {
             let x = -pos_clip_space.x * 4.0;
             let y = pos_clip_space.y * 2.0;
 
-            let (lon, lat) = healpix::unproj(x, y);
+            let (lon, lat) = cdshealpix::unproj(x, y);
             Some(math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat)))
         } else {
             None
@@ -959,7 +959,7 @@ impl Projection for HEALPix {
     ) -> Option<Vector2<f64>> {
         let (lon, lat) = math::lonlat::xyzw_to_radec(pos_world_space);
 
-        let (x, y) = healpix::proj(lon.0, lat.0);
+        let (x, y) = cdshealpix::proj(lon.0, lat.0);
         let (x, y) = (-x*0.25, y*0.5);
 
         //assert_debug!(x >= -1.0 && x <= 1.0);

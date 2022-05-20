@@ -14,7 +14,7 @@ impl SourceIndices {
 
         for (idx_source, s) in sources.iter().enumerate() {
             let (lon, lat) = s.lonlat();
-            let idx = healpix::nested::hash(7, lon as f64, lat as f64) as usize;
+            let idx = cdshealpix::nested::hash(7, lon as f64, lat as f64) as usize;
 
             if let Some(ref mut healpix_idx) = &mut healpix_idx[idx] {
                 healpix_idx.end += 1;

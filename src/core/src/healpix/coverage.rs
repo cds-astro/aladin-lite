@@ -5,7 +5,7 @@ use crate::{
     }
 };
 use cgmath::{Vector3, Vector4};
-use healpix::nested::bmoc::{Status, BMOC};
+use cdshealpix::nested::bmoc::{Status, BMOC};
 pub struct HEALPixCoverage(BMOC);
 
 pub fn from_polygon(
@@ -24,7 +24,7 @@ pub fn from_polygon(
             (lon.0, lat.0)
         })
         .collect::<Vec<_>>();
-    let moc = healpix::nested::polygon_coverage(depth, &lonlat[..], false);
+    let moc = cdshealpix::nested::polygon_coverage(depth, &lonlat[..], false);
     let inside_lonlat = inside.lonlat();
     let result = moc.test_coo(inside_lonlat.lon().0, inside_lonlat.lat().0);
     let moc = match result {

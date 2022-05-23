@@ -19,7 +19,6 @@ export async function fetchSurveyMetadata(rootURL) {
     }
 
     const url = rootURL + '/properties';
-    console.log("properties url", url);
     let metadata = await fetch(url)
         .then((response) => response.text());
     // We get the property here
@@ -29,6 +28,6 @@ export async function fetchSurveyMetadata(rootURL) {
     if (!metadata) {
         throw 'no surveys matching';
     }
-    console.log(metadata)
+    //console.log(metadata);
     return metadata;
 }

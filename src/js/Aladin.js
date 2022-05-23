@@ -1074,7 +1074,6 @@ export let Aladin = (function () {
 
         this.updateProjectionCombobox(this.projection);
         var projectionSelection = $(this.aladinDiv).find('.aladin-projSelection');
-        console.log("projection selection", projectionSelection)
         projectionSelection.change(function () {
             self.projection = $(this).val();
             self.setProjection(self.projection);
@@ -1196,8 +1195,6 @@ export let Aladin = (function () {
         var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
             var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            console.log("survey, chosen ", survey)
-
             const hpxImageSurvey = new HpxImageSurvey(
                 survey.url,
                 self.view,

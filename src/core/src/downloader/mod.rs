@@ -178,8 +178,6 @@ impl RequestSystem {
                             );
                         }
                         ImageFormatType::RGB8U { config } => {
-                            al_core::log("push missing image jpg");
-
                             let missing_tile_image = config.get_default_tile();
                             survey.add_tile::<Rc<ImageBuffer<RGB8U>>>(
                                 &tile.cell,

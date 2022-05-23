@@ -149,7 +149,6 @@ export let HpxImageSurvey = (function() {
             this.imgFormat = imgFormat.toUpperCase();
 
             if (this.imgFormat === 'FITS') {
-                console.log("I want a fits hips")
                 //tileFormat = "FITS";
                 this.fits = true;
             } else if (this.imgFormat === "PNG") {
@@ -247,7 +246,6 @@ export let HpxImageSurvey = (function() {
             const bitpix = +metadata.hips_pixel_bitpix;
             // HiPS frame
             let frame = (options && options.cooFrame) || metadata.hips_frame || "equatorial";
-            console.log(frame);
 
             if (frame == "equatorial") {
                 frame = "ICRSJ2000";
@@ -265,7 +263,6 @@ export let HpxImageSurvey = (function() {
             if ( this.fits ) {
                 // If the survey received is a fits one
                 // update the cuts
-                console.log("grayscale", this.meta.color, cuts)
                 minCut = this.meta.color.grayscale.minCut || minCut;
                 maxCut = this.meta.color.grayscale.maxCut || maxCut;
 
@@ -278,7 +275,6 @@ export let HpxImageSurvey = (function() {
             if (!this.imgFormat) {
                 this.imgFormat = tileFormats[0];
                 if (this.imgFormat === 'FITS') {
-                    console.log("I want a fits hips")
                     //tileFormat = "FITS";
                     this.fits = true;
                 } else if (this.imgFormat === "PNG") {

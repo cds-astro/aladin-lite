@@ -81,7 +81,6 @@ export let View = (function() {
         this.location = location;
         this.fovDiv = fovDiv;
         this.mustClearCatalog = true;
-        this.mustRedrawReticle = true;
         //this.imageSurveysToSet = [];
         this.mode = View.PAN;
         
@@ -470,7 +469,6 @@ export let View = (function() {
                     }
                 }
 
-                //console.log("change cutout of ", survey);
                 if (survey) {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
@@ -480,9 +478,6 @@ export let View = (function() {
                 }
 
                 view.lastFitsSurvey = survey;
-                //console.log("survey selected: ", view.lastFitsSurvey)
-
-                console.log("press right click")
                 return;
             }
             
@@ -536,7 +531,6 @@ export let View = (function() {
         //$(view.catalogCanvas).bind("click mouseout touchend", function(e) {
         $(view.catalogCanvas).bind("mouseup click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
             if (view.rightClick) {
-                console.log("release right click")
                 view.rightClick = false;
                 view.rightclickx = null;
                 view.rightclicky = null;
@@ -586,14 +580,12 @@ export let View = (function() {
                                  view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
                                                        view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
 
-                view.mustRedrawReticle = true; // pour effacer selection bounding box
                 view.requestRedraw();
 
                 return;
             }
 
             view.mustClearCatalog = true;
-            view.mustRedrawReticle = true; // pour effacer selection bounding box
             view.dragx = view.dragy = null;
 
             if (e.type==="mouseout" || e.type==="touchend") {
@@ -815,8 +807,6 @@ export let View = (function() {
                 */
                 //pos1 = view.projection.unproject(xy1.x, xy1.y);
                 //pos2 = view.projection.unproject(xy2.x, xy2.y);
-                //console.log(view.dragx, view.dragy)
-                //console.log(xymouse)
 
                 /*pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
                 pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
@@ -889,7 +879,6 @@ export let View = (function() {
             view.viewCenter.lon = viewCenter[0];
             view.viewCenter.lat = viewCenter[1];
 
-            //console.log(view.viewCenter);
             view.requestRedraw();
         }); //// endof mousemove ////
         
@@ -1108,7 +1097,6 @@ export let View = (function() {
 
             for (var i=0; i<this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                //console.log( this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
                 cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
@@ -1175,71 +1163,76 @@ export let View = (function() {
             }
         }
 
-        if (this.mode==View.SELECT) {
-            mustRedrawReticle = true;
-        }
-        
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
         var reticleCtx = catalogCtx;
-        //if (this.mustRedrawReticle || this.mode==View.SELECT) {
-        //    reticleCtx.clearRect(0, 0, this.width, this.height);
-        //}
-        if (this.displayReticle) {
+        if (this.mode==View.SELECT) {
+            // VIEW mode, we do not want to display the reticle in this
+            // but draw a selection box
+            if (this.dragging) {
+                if (! catalogCanvasCleared) {
+                    reticleCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+
+                reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
+                var w = this.dragx - this.selectStartCoo.x;
+                var h =  this.dragy - this.selectStartCoo.y;
+                
+                reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
+            }
+        } else {
+            // Normal modes
+            if (this.displayReticle) {
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                if (! this.reticleCache) {
+                    // build reticle image
+                    var c = document.createElement('canvas');
+                    var s = this.options.reticleSize;
+                    c.width = s;
+                    c.height = s;
+                    var ctx = c.getContext('2d');
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = this.options.reticleColor;
+                    ctx.beginPath();
+                    ctx.moveTo(s/2, s/2+(s/2-1));
+                    ctx.lineTo(s/2, s/2+2);
+                    ctx.moveTo(s/2, s/2-(s/2-1));
+                    ctx.lineTo(s/2, s/2-2);
+                    
+                    ctx.moveTo(s/2+(s/2-1), s/2);
+                    ctx.lineTo(s/2+2,  s/2);
+                    ctx.moveTo(s/2-(s/2-1), s/2);
+                    ctx.lineTo(s/2-2,  s/2);
+                    
+                    ctx.stroke();
+                    
+                    this.reticleCache = c;
+                }
+                reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
+            }
+        }  
+        
+        ////// 5. Draw all-sky ring /////
+
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
             if (! catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
+                reticleCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
 
-            if (! this.reticleCache) {
-                // build reticle image
-                var c = document.createElement('canvas');
-                var s = this.options.reticleSize;
-                c.width = s;
-                c.height = s;
-                var ctx = c.getContext('2d');
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = this.options.reticleColor;
-                ctx.beginPath();
-                ctx.moveTo(s/2, s/2+(s/2-1));
-                ctx.lineTo(s/2, s/2+2);
-                ctx.moveTo(s/2, s/2-(s/2-1));
-                ctx.lineTo(s/2, s/2-2);
-                
-                ctx.moveTo(s/2+(s/2-1), s/2);
-                ctx.lineTo(s/2+2,  s/2);
-                ctx.moveTo(s/2-(s/2-1), s/2);
-                ctx.lineTo(s/2-2,  s/2);
-                
-                ctx.stroke();
-                
-                this.reticleCache = c;
-            }
-            reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
-
-            this.mustRedrawReticle = false;
-        }
-        /*
-        ////// 5. Draw all-sky ring /////
-        if (this.projectionMethod==ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
-            imageCtx.strokeStyle = this.aladin.options['allskyRingColor'];
+            reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
             var ringWidth = this.aladin.options['allskyRingWidth'];
-            imageCtx.lineWidth = ringWidth;
-            imageCtx.beginPath();
+            reticleCtx.lineWidth = ringWidth;
+            reticleCtx.beginPath();
             var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-            imageCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) * this.zoomFactor, 0, 2*Math.PI, true);
-            imageCtx.stroke();
+            reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
+            reticleCtx.stroke();
         }
-        
-        // draw selection box
-        if (this.mode==View.SELECT && this.dragging) {
-            reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
-            var w = this.dragx - this.selectStartCoo.x;
-            var h =  this.dragy - this.selectStartCoo.y;
-            
-            reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
-        }
-        */
 
         // TODO : is this the right way?
         if (saveNeedRedraw==this.needRedraw) {
@@ -1450,8 +1443,7 @@ export let View = (function() {
 //            }
             // check if we have a pixel at the edge of the view in allsky projections
             //if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
-               /* console.log(this.largestDim);
-                var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
+                /*var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
                 var ydiff = cornersXYView[0].vy-cornersXYView[2].vy;
                 var distDiag = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
                 if (distDiag>this.largestDim/5) {
@@ -1807,7 +1799,6 @@ export let View = (function() {
             let surveys = this.buildSortedImageSurveys()
                 .filter(x => x !== undefined && x.properties )
                 .map((x) => {
-                    console.log("img format: ", x.imgFormat)
                     return {
                         layer: x.layer,
                         properties: x.properties,
@@ -1816,7 +1807,7 @@ export let View = (function() {
                     };
                 });
 
-            console.log("SURVEYS TO PLOT, ", surveys);
+            //console.log("Surveys plotted ", surveys);
             this.aladin.webglAPI.setImageSurveys(surveys);
         } catch(e) {
             console.error(e)

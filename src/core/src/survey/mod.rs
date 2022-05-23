@@ -14,7 +14,6 @@ use js_sys::Uint8Array;
 
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
     let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
-    al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
 
     if skewed_factor > 0.8 {
         0
@@ -1257,7 +1256,7 @@ impl ImageSurveys {
 
             self.layers.push(layer);
         }
-        al_core::log::log(&format!("List of surveys: {:?}\nmeta: {:?}\nlayers: {:?}\n", self.surveys.keys(), self.meta, self.layers));
+        //al_core::log::log(&format!("List of surveys: {:?}\nmeta: {:?}\nlayers: {:?}\n", self.surveys.keys(), self.meta, self.layers));
 
         // Set the reversed longitude
         if let Some(survey) = self.last() {

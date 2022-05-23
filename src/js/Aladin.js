@@ -60,6 +60,7 @@ import { Stack } from "./gui/Stack.js";
 
 export let Aladin = (function () {
 
+
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
@@ -1275,11 +1276,11 @@ A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
 
-/*//@API
+//@API
 // TODO : lecture de properties
 A.imageLayer = function (rootURLOrHiPSDefinition, options) {
     return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-};*/
+};
 
 // @API
 A.source = function (ra, dec, data, options) {

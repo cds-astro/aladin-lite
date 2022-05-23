@@ -32,11 +32,12 @@
  import { AladinUtils } from "../AladinUtils.js";
  import { Color } from "../Color.js";
  import { ALEvent } from "../events/ALEvent.js";
+import { HiPSSelector } from "./HiPSSelector.js";
 
- export const Stack = (function () {
+ export class Stack {
 
     // Constructor
-    const Stack = function (parentDiv, aladin, view) {
+    constructor(parentDiv, aladin, view) {
         this.aladin = aladin;
         this.view   = view;
 
@@ -44,27 +45,16 @@
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
         this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
-        /*
-        this.mainDiv.insertAdjacentHTML('afterbegin', '<a class="aladin-closeBtn">&times;</a>' +
-            '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>' +
-            '<select class="aladin-surveySelection"></select>' +
-            '<div class="aladin-cmap">Color map:' +
-            '<div><select class="aladin-cmSelection"></select><button class="aladin-btn aladin-btn-small aladin-reverseCm" type="button">Reverse</button></div></div>' +
-            '<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Overlay layers</div>');
-            */
 
         parentDiv.appendChild(this.mainDiv);
         this.aladinDiv = parentDiv;
     };
 
-    Stack.prototype = {
-        // TODO: do not recreate all DOM objects at each show() call
-        show: function() {
-            let self = this;
+    // TODO: do not recreate all DOM objects at each show() call
+    show() {
+        let self = this;
 
-            // first, update
+        // first, update
             let layerBox = $(this.mainDiv);
 
             layerBox.empty();
@@ -73,7 +63,17 @@
             '<div style="clear: both;"></div>' +
             '<div class="aladin-label">Base image layer</div>' +
             '<select class="aladin-surveySelection"></select>' +
+            '<br>' +
+            '<button class="aladin-btn" type="button">Search HiPS</button>' +
             '</div>');
+
+            let searchHiPS4BaseLayerBtn = layerBox.find('button');
+            searchHiPS4BaseLayerBtn.click(function() {
+                if (! self.hipsSelector) {
+                    self.hipsSelector = new HiPSSelector(self.aladinDiv);
+                }
+                self.hipsSelector.show();
+            });
 
             layerBox.append('<div class="aladin-label">Projection</div>');
 
@@ -318,16 +318,11 @@
         });
 
         // finally show
-        //layerBox.show();
         this.mainDiv.style.display = 'block';
-        },
-
-
-        hide: function() {
-            this.mainDiv.style.display = 'none';
         }
+
+
+    hide() {
+        this.mainDiv.style.display = 'none';
     }
-
-
-    return Stack;
-})();
+}

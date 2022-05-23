@@ -137,6 +137,7 @@ module.exports = {
             },
             {
                 test: /.css$/,
+                sideEffects: true,
                 use: [
                   'css-loader',
                 ]

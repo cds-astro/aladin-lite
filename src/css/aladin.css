@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 .aladin-container {
 	position: relative;
 	border: 1px solid #ddd;
@@ -583,4 +584,34 @@ word-wrap:break-word;
 .aladin-sp-cursor {
     cursor: auto;
     cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4gEIEwUMBS20MQAAApRJREFUWEfdV7GO2zAMfXY7x1luzOFwDeB/KHCAB87eumvqmI/JWhTwF3TIrMFAv8JbgWyHG3IpOjbpcKJC02KipECHclIU+j2KfKRlAABRUyFYak3UgKiZiXUJAIt1d1ysu2PYn53DsPCucpbkRE3JAdxKTtQgWo6zJAfGGbAwLuEV7OB9/yrXIbqZ9/0+rMuhdb+RYfWmm+fged8fihzyoXXxlNcYB2KRxwwA6SzI9Crgd973B/5/u3IF8FYSw98M5D2QR86kRE3pfX+AMqKm8iEQoqYaWrfj/4bW7QgokMhCeSs5KeVrDM4K29C6Y6oE0YGEUlndocVGyg/rGZDXBQpr0kmjLiAlOOvk3vf7RJZM5Q+te2W/7coVEq+wnC1yCZYyS3B8MMYF3vBKK9Jz5PWmm8sab1eu4N9D63aaHEAsH88SzmQpnSHsHDmnWvlXIoiJ4JTviY8FRUJ8ZAiOEiJbLpcjARM1M0twpmjZOeGQrXYm1/7yMLz/eH8fnyus6XXOtmLgWBrKtdMguNKYPPystIausn9egsVDfI674KxS6003F/sX357AdOBwcADwWD9EjBKJubxYd0cml4RhP5IPrduFk04GjiZXMyZiRHKdAU3OWeB2lLNAk+tpl9IHY0zSlBo4OgsaTJpFzs+F0pxKYEXK73Nd8+3KFfWmG71qGfgSeQqPN0fvdlZrSvmUoXaJJ7EiocArZaS6tgzA+5RQe3gumUl5gPLXzy+6pEQNzDuhvFKx1ZuuEuTxliwmY/KuoHxGhzGv5QDw9PTx7senz88aLHUpJeOu8OHb17u+//4CTMm97/eFVQK5vqR8y6xOyipByjn3+0C3moUH4O++D1UX3PR9eJWzJCf6Tz5O/wDUeIfTLPlbywAAAABJRU5ErkJggg==') 15 15, auto;
+}
+
+/* *********************************************** */
+
+/* Autocomplete styles (adapted from https://github.com/kraaden/autocomplete ) */
+.autocomplete {
+    background: white;
+    z-index: 20000;
+    font: 14px/22px "-apple-system", BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: auto;
+    box-sizing: border-box;
+    border: 1px solid rgba(50, 50, 50, 0.6);
+}
+
+.autocomplete * {
+    font: inherit;
+}
+
+.autocomplete > div {
+    padding: 0 4px;
+}
+
+.autocomplete .group {
+    background: #eee;
+}
+
+.autocomplete > div:hover:not(.group),
+.autocomplete > div.selected {
+    background: #81ca91;
+    cursor: pointer;
 }

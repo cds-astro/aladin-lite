@@ -52,6 +52,7 @@ import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 export let View = (function() {
 
@@ -689,6 +690,7 @@ export let View = (function() {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (view.rightClick && view.lastFitsSurvey) {
+                // we try to match DS9 contrast adjustment behaviour with right click
                 const cs = {
                     x: view.catalogCanvas.clientWidth * 0.5,
                     y: view.catalogCanvas.clientHeight * 0.5,
@@ -1636,6 +1638,23 @@ export let View = (function() {
 
     View.prototype.setGridConfig = function(gridCfg) {
         this.aladin.webglAPI.setGridConfig(gridCfg);
+            console.log('gridCfg', gridCfg);
+
+        // send events
+        if (gridCfg) {
+            if (gridCfg.hasOwnProperty('enabled')) {
+                if (gridCfg.enabled === true) {
+                    ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
+                }
+                else {
+                    ALEvent.COO_GRID_DISABLED.dispatchedTo(this.aladinDiv);
+                }
+            }
+            if (gridCfg.color) {
+                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color});
+            }
+        }
+
         this.requestRedraw();
     };
 

@@ -110,7 +110,7 @@ module.exports = {
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
-            // pluginLogLevel: 'info'
+            pluginLogLevel: 'info'
         }),
         // Have this example work in Edge which doesn't ship `TextEncoder` or
         // `TextDecoder` at this time.
@@ -139,6 +139,7 @@ module.exports = {
             },
             {
                 test: /.css$/,
+                sideEffects: true,
                 use: [
                   'css-loader',
                 ]
@@ -149,6 +150,6 @@ module.exports = {
             },*/
         ],
     },
-    mode: 'production',
+    mode: 'development',
     devtool: 'source-map'
 };

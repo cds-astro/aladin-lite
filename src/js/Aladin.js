@@ -55,8 +55,11 @@ import { HiPSDefinition } from "./HiPSDefinition.js";
 import { DiscoveryTree } from "./DiscoveryTree.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
+import { AladinLogo } from "./gui/AladinLogo.js";
+import { Stack } from "./gui/Stack.js";
 
 export let Aladin = (function () {
+
 
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
@@ -153,7 +156,7 @@ export let Aladin = (function () {
         });
 
         // Aladin logo
-        $("<div class='aladin-logo-container'><a href='https://aladin.unistra.fr/' title='Powered by Aladin Lite' target='_blank'><div class='aladin-logo'></div></a></div>").appendTo(aladinDiv);
+        new AladinLogo(aladinDiv);
 
         // we store the boxes
         this.boxes = [];
@@ -176,7 +179,7 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
-        // Set thr projection
+        // Set the projection
         let projection = (options && options.projection) || 'SIN';
         this.view.setProjection(projection)
 
@@ -207,18 +210,19 @@ export let Aladin = (function () {
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
-        // TODO : classe LayerBox
+        // TODO : classe Stack
         if (options.showLayersControl) {
+            // button to show Stack interface
             var d = $('<div class="aladin-layersControl-container" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
-
-            var layerBox = $('<div class="aladin-box aladin-layerBox aladin-cb-list"></div>');
-            layerBox.appendTo(aladinDiv);
-
-            this.boxes.push(layerBox);
-
             // we return false so that the default event is not submitted, and to prevent event bubbling
             d.click(function () { self.hideBoxes(); self.showLayerBox(); return false; });
+
+            // Stack interface itself
+            this.stack = new Stack(aladinDiv, this, this.view);
+
+            this.boxes.push(this.stack);
+
 
         }
 
@@ -1059,206 +1063,7 @@ export let Aladin = (function () {
 
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
-        var self = this;
-
-        // first, update
-        var layerBox = $(this.aladinDiv).find('.aladin-layerBox');
-        layerBox.empty();
-        layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-            '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>' +
-            '<select class="aladin-surveySelection"></select>' +
-            '<div class="aladin-label">Projection</div>' +
-            '<select class="aladin-projSelection"></select>' +
-            '</div>');
-
-        this.updateProjectionCombobox(this.projection);
-        var projectionSelection = $(this.aladinDiv).find('.aladin-projSelection');
-        projectionSelection.change(function () {
-            self.projection = $(this).val();
-            self.setProjection(self.projection);
-        });
-
-        layerBox.append(projectionSelection)
-            .append('<br />');
-
-        layerBox.append('<div class="aladin-box-separator"></div>' +
-        '<div class="aladin-label">Overlay layers</div>');
-
-        /*var cmDiv = layerBox.find('.aladin-cmap');
-
-        // fill color maps options
-        var cmSelect = layerBox.find('.aladin-cmSelection');
-        for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
-            cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
-        }
-        console.log(self.getBaseImageLayer())
-        console.log(self.getBaseImageLayer().getColorMap())
-        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);
-        */
-
-        // loop over all overlay layers
-        var layers = this.view.allOverlayLayers;
-        var str = '<ul>';
-        for (var k = layers.length - 1; k >= 0; k--) {
-            var layer = layers[k];
-            var name = layer.name;
-            var checked = '';
-            if (layer.isShowing) {
-                checked = 'checked="checked"';
-            }
-
-            var tooltipText = '';
-            var iconSvg = '';
-            if (layer.type == 'catalog' || layer.type == 'progressivecat') {
-                var nbSources = layer.getSources().length;
-                tooltipText = nbSources + ' source' + (nbSources > 1 ? 's' : '');
-
-                iconSvg = AladinUtils.SVG_ICONS.CATALOG;
-            }
-            else if (layer.type == 'moc') {
-                tooltipText = 'Coverage: ' + (100 * layer.skyFraction()).toFixed(3) + ' % of sky';
-
-                iconSvg = AladinUtils.SVG_ICONS.MOC;
-            }
-            else if (layer.type == 'overlay') {
-                iconSvg = AladinUtils.SVG_ICONS.OVERLAY;
-            }
-
-            var rgbColor = $('<div></div>').css('color', layer.color).css('color'); // trick to retrieve the color as 'rgb(,,)' - does not work for named colors :(
-            var labelColor = Color.getLabelColorForBackground(rgbColor);
-
-            // retrieve SVG icon, and apply the layer color
-            var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
-            str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
-        }
-        str += '</ul>';
-        layerBox.append(str);
-
-        layerBox.append('<div class="aladin-blank-separator"></div>');
-
-        // gestion du réticule
-        var checked = '';
-        if (this.view.displayReticle) {
-            checked = 'checked="checked"';
-        }
-        var reticleCb = $('<input type="checkbox" ' + checked + ' id="displayReticle" />');
-        layerBox.append(reticleCb).append('<label for="displayReticle">Reticle</label><br/>');
-        reticleCb.change(function () {
-            self.showReticle($(this).is(':checked'));
-        });
-
-        // Gestion grille Healpix
-        checked = '';
-        if (this.view.displayHpxGrid) {
-            checked = 'checked="checked"';
-        }
-        var hpxGridCb = $('<input type="checkbox" ' + checked + ' id="displayHpxGrid"/>');
-        layerBox.append(hpxGridCb).append('<label for="displayHpxGrid">HEALPix grid</label><br/>');
-        hpxGridCb.change(function () {
-            self.showHealpixGrid($(this).is(':checked'));
-        });
-
-        // Equatorial grid plot
-        checked = '';
-        if (this.view.showCooGrid) {
-            checked = 'checked="checked"';
-        }
-        var equatorialGridCb = $('<input type="checkbox" ' + checked + ' id="displayEquatorialGrid"/>');
-        layerBox.append(equatorialGridCb).append('<label for="displayEquatorialGrid">Equatorial grid</label><br/>');
-        equatorialGridCb.change(function () {
-            let isChecked = $(this).is(':checked');
-            if (isChecked) {
-                self.view.setGridConfig({
-                    enabled: true,
-                });
-            } else {
-                self.view.setGridConfig({
-                    enabled: false,
-                });
-            }
-        });
-
-        layerBox.append('<div class="aladin-box-separator"></div>' +
-            '<div class="aladin-label">Tools</div>');
-        var exportBtn = $('<button class="aladin-btn" type="button">Export view as PNG</button>');
-        layerBox.append(exportBtn);
-        exportBtn.click(function () {
-            self.exportAsPNG();
-        });
-
-        layerBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
-
-        // update list of surveys
-        this.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        var surveySelection = $(this.aladinDiv).find('.aladin-surveySelection');
-        surveySelection.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            const hpxImageSurvey = new HpxImageSurvey(
-                survey.url,
-                self.view,
-                survey.options
-            );
-            self.setImageSurvey(hpxImageSurvey, function () {
-                var baseImgLayer = self.getBaseImageLayer();
-
-                // !TODO
-                /*
-                if (baseImgLayer.useCors) {
-                    // update color map list with current value color map
-                    cmSelect.val(baseImgLayer.getColorMap().mapName);
-                    cmDiv.show();
-
-                    exportBtn.show();
-                }
-                else {
-                    cmDiv.hide();
-
-                    exportBtn.hide();
-                }*/
-            });
-        });
-
-        //// COLOR MAP management ////////////////////////////////////////////
-        // update color map
-        /*cmDiv.find('.aladin-cmSelection').change(function () {
-            var cmName = $(this).find(':selected').val();
-            self.getBaseImageLayer().getColorMap().update(cmName);
-        });
-
-        // reverse color map
-        cmDiv.find('.aladin-reverseCm').click(function () {
-            self.getBaseImageLayer().getColorMap().reverse();
-        });
-        if (this.getBaseImageLayer().useCors) {
-            cmDiv.show();
-            exportBtn.show();
-        }
-        else {
-            cmDiv.hide();
-            exportBtn.hide();
-        }
-        layerBox.find('.aladin-reverseCm').parent().attr('disabled', true);
-        */
-        //////////////////////////////////////////////////////////////////////
-
-
-        // handler to hide/show overlays
-        $(this.aladinDiv).find('.aladin-layerBox ul input').change(function () {
-            var layerName = ($(this).attr('id').substr(12));
-            var layer = self.layerByName(layerName);
-            if ($(this).is(':checked')) {
-                layer.show();
-            }
-            else {
-                layer.hide();
-            }
-        });
-
-        // finally show
-        layerBox.show();
-
+        this.stack.show();
     };
 
     Aladin.prototype.layerByName = function (name) {
@@ -1490,11 +1295,11 @@ A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
 
-/*//@API
+//@API
 // TODO : lecture de properties
 A.imageLayer = function (rootURLOrHiPSDefinition, options) {
     return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-};*/
+};
 
 // @API
 A.source = function (ra, dec, data, options) {

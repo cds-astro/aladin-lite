@@ -2,11 +2,11 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-//const { VueLoaderPlugin } = require('vue-loader')
 
 var ROOT_PATH = path.resolve(__dirname);
 var SHADER_PATH = path.resolve(ROOT_PATH, 'src/glsl');
 var IMAGES_PATH = path.resolve(ROOT_PATH, 'src/img');
+var CSS_PATH = path.resolve(ROOT_PATH, 'src/css');
 
 module.exports = {
     entry: './src/js/Aladin.js',
@@ -79,7 +79,7 @@ module.exports = {
             // command. Default arguments are `--verbose`.
             args: '',
             // Default arguments are `--typescript --target browser --mode normal`.
-            extraArgs: '--no-typescript -- --features webgl2',
+            extraArgs: '-- --features webgl2',
 
             // Optional array of absolute paths to directories, changes to which
             // will trigger the build.
@@ -112,12 +112,15 @@ module.exports = {
             // Defaults to 'info'.
             pluginLogLevel: 'info'
         }),
+        /*
         // Have this example work in Edge which doesn't ship `TextEncoder` or
         // `TextDecoder` at this time.
+        // Maj 24/05/22: This should be supported by edge versions as of now (to be tested!)
+        // This save 600kB in the project!
         new webpack.ProvidePlugin({
             TextDecoder: ['text-encoding', 'TextDecoder'],
             TextEncoder: ['text-encoding', 'TextEncoder']
-        }),
+        }),*/
         //new VueLoaderPlugin()
     ],
     devServer:{
@@ -139,9 +142,12 @@ module.exports = {
             },
             {
                 test: /.css$/,
-                sideEffects: true,
+                //sideEffects: true,
+                include: CSS_PATH,
                 use: [
+                  'style-loader',
                   'css-loader',
+                  'postcss-loader'
                 ]
             },
             /*{

@@ -177,12 +177,10 @@ import { HiPSSelector } from "./HiPSSelector.js";
         labelCoordinatesGridCb.prepend(coordinatesGridCb);
         layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
         coordinatesGridCb.change(function () {
-            console.log('cb change');
             let isChecked = $(this).is(':checked');
             if (isChecked) {
                 self.view.setGridConfig({
                     enabled: true,
-                    color: [0.0, 1.0, 0.0, 0.5],
                 });
             } else {
                 self.view.setGridConfig({

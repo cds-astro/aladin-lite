@@ -21,7 +21,7 @@ Safari will soon [enable WebGL2 by default](https://developer.apple.com/safari/t
 
 Do not hesitate to give a feedback either by sending a mail to:
 
-- baumannmatthieu0@gmail.com
+- matthieu.baumann@astro.unistra.fr / baumannmatthieu0@gmail.com
 - thomas.boch@astro.unistra.fr
 
 or simply by posting an issue in this repo.
@@ -113,10 +113,4 @@ To generate the Rust backend API documentation
 ```bash
 cd src/core
 cargo doc --no-deps --open
-```
-
-To generate the CSS
-
-```bash
-npx postcss src/css/aladin.css -o examples/aladin.css --watch
 ```

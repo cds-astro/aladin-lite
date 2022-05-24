@@ -1638,7 +1638,6 @@ export let View = (function() {
 
     View.prototype.setGridConfig = function(gridCfg) {
         this.aladin.webglAPI.setGridConfig(gridCfg);
-            console.log('gridCfg', gridCfg);
 
         // send events
         if (gridCfg) {

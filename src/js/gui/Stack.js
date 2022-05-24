@@ -173,7 +173,7 @@ export class Stack {
         let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
         let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
         let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="text" placeholder="px" size=5></td></tr></table></div>');
+        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" min="5" max="30" step="0.01"></td></tr></table></div>');
         labelCoordinatesGridCb.prepend(coordinatesGridCb);
         layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
         coordinatesGridCb.change(function () {
@@ -203,7 +203,7 @@ export class Stack {
         });
 
         let gridColorInput = cooGridOptions.find('input[type="color"]');
-        let gridOpacityInput = cooGridOptions.find('input[type="range"]');
+        let gridOpacityInput = cooGridOptions.find('.opacity');
         let updateGridcolor = function () {
             let rgb = Color.hexToRgb(gridColorInput.val());
             let opacity = gridOpacityInput.val();
@@ -215,10 +215,10 @@ export class Stack {
         gridColorInput.on('input', updateGridcolor);
         gridOpacityInput.on('input', updateGridcolor);
         let gridLabelSizeInput = cooGridOptions.find('.label-size');
-        gridLabelSizeInput.on('input', () => {
+        gridLabelSizeInput.on('input', function () {
             const size = +gridLabelSizeInput.val();
             self.view.setGridConfig({
-                labelSize: Math.max(Math.min(size, 20.0), 1.0)
+                labelSize: size
             });
         });
 

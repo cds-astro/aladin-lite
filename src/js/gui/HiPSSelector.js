@@ -75,17 +75,16 @@ import  autocomplete from 'autocompleter';
         this.parentDiv.appendChild(this.mainDiv);
 
         // setup autocomplete
-        const hipses = MocServer.getAllHiPSes();
-        
         var input = document.getElementById(autocompleteId);
-        console.log(hipses);
         
+        // Query the mocserver
+        MocServer.getAllHiPSes();
         autocomplete({
             input: input,
             fetch: function(text, update) {
                 text = text.toLowerCase();
                 // you can also use AJAX requests instead of preloaded data
-                var suggestions = hipses.filter(n => n.ID.toLowerCase().includes(text) || n.obs_title.toLowerCase().includes(text))
+                var suggestions = MocServer.getAllHiPSes().filter(n => n.ID.toLowerCase().includes(text) || n.obs_title.toLowerCase().includes(text))
                 update(suggestions);
             },
             onSelect: function(item) {

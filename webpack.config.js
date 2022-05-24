@@ -20,10 +20,10 @@ module.exports = {
         extensions: ['.js'],
     },
     experiments: {
-        syncWebAssembly: true,
+        asyncWebAssembly: true
     },
-    performance: {
-        hints: false
+    optimization: {
+        //minimize: true,
     },
     plugins: [
         // WebGL1 app
@@ -79,7 +79,7 @@ module.exports = {
             // command. Default arguments are `--verbose`.
             args: '',
             // Default arguments are `--typescript --target browser --mode normal`.
-            extraArgs: '-- --features webgl2',
+            extraArgs: '--no-typescript -- --features webgl2',
 
             // Optional array of absolute paths to directories, changes to which
             // will trigger the build.
@@ -150,10 +150,6 @@ module.exports = {
                   'postcss-loader'
                 ]
             },
-            /*{
-                test: /\.vue$/,
-                loader: 'vue-loader'
-            },*/
         ],
     },
     mode: 'development',

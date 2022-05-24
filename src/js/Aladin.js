@@ -58,6 +58,7 @@ import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { Stack } from "./gui/Stack.js";
 
+// Import aladin css inside the project
 import './../css/aladin.css';
 
 export let Aladin = (function () {

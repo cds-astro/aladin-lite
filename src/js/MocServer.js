@@ -29,13 +29,7 @@
  *****************************************************************************/
 
 export class MocServer {
-
     static #allHiPSes = undefined;
-
-
-    static {
-        this.getAllHiPSes();
-    }
 
     static getAllHiPSes() {
         if (this.#allHiPSes === undefined) {

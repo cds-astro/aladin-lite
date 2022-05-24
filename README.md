@@ -118,5 +118,5 @@ cargo doc --no-deps --open
 To generate the CSS
 
 ```bash
-npx postcss src/css/aladin.css -o dist/aladin.css --watch
+npx postcss src/css/aladin.css -o examples/aladin.css --watch
 ```

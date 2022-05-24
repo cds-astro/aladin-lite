@@ -83,6 +83,7 @@ import { HiPSSelector } from "./HiPSSelector.js";
                 if (! self.hipsSelector) {
                     self.hipsSelector = new HiPSSelector(self.aladinDiv);
                 }
+                console.log('SHOW');
                 self.hipsSelector.show();
             });
         

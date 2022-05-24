@@ -28,18 +28,18 @@
  * 
  *****************************************************************************/
 
- import { HpxImageSurvey } from "../HpxImageSurvey.js";
- import { AladinUtils } from "../AladinUtils.js";
- import { Color } from "../Color.js";
- import { ALEvent } from "../events/ALEvent.js";
+import { HpxImageSurvey } from "../HpxImageSurvey.js";
+import { AladinUtils } from "../AladinUtils.js";
+import { Color } from "../Color.js";
+import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
 
- export class Stack {
+export class Stack {
 
     // Constructor
     constructor(parentDiv, aladin, view) {
         this.aladin = aladin;
-        this.view   = view;
+        this.view = view;
 
 
         this.mainDiv = document.createElement('div');
@@ -55,10 +55,10 @@ import { HiPSSelector } from "./HiPSSelector.js";
         let self = this;
 
         // first, update
-            let layerBox = $(this.mainDiv);
+        let layerBox = $(this.mainDiv);
 
-            layerBox.empty();
-            layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
+        layerBox.empty();
+        layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
             '<div style="clear: both;"></div>' +
             '<div class="aladin-label">Base image layer</div>' +
             '<select class="aladin-surveySelection"></select>' +
@@ -68,38 +68,38 @@ import { HiPSSelector } from "./HiPSSelector.js";
             '<select class="aladin-projSelection"></select>' +
             '</div>');
 
-            this.aladin.updateProjectionCombobox(this.aladin.projection);
-            var projectionSelection = $(this.aladin.aladinDiv).find('.aladin-projSelection');
-            projectionSelection.change(function () {
-                self.aladin.projection = $(this).val();
-                self.aladin.setProjection(self.aladin.projection);
-            });
+        this.aladin.updateProjectionCombobox(this.aladin.projection);
+        var projectionSelection = $(this.aladin.aladinDiv).find('.aladin-projSelection');
+        projectionSelection.change(function () {
+            self.aladin.projection = $(this).val();
+            self.aladin.setProjection(self.aladin.projection);
+        });
 
-            layerBox.append(projectionSelection)
-                .append('<br />');
+        layerBox.append(projectionSelection)
+            .append('<br />');
 
-            let searchHiPS4BaseLayerBtn = layerBox.find('button');
-            searchHiPS4BaseLayerBtn.click(function() {
-                if (! self.hipsSelector) {
-                    self.hipsSelector = new HiPSSelector(self.aladinDiv);
-                }
-                console.log('SHOW');
-                self.hipsSelector.show();
-            });
-        
-            layerBox.append('<div class="aladin-box-separator"></div>' +
+        let searchHiPS4BaseLayerBtn = layerBox.find('button');
+        searchHiPS4BaseLayerBtn.click(function () {
+            if (!self.hipsSelector) {
+                self.hipsSelector = new HiPSSelector(self.aladinDiv);
+            }
+            console.log('SHOW');
+            self.hipsSelector.show();
+        });
+
+        layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');
 
-            //var cmDiv = layerBox.find('.aladin-cmap');
-    
-            // fill color maps options
-            /*var cmSelect = layerBox.find('.aladin-cmSelection');
-            for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
-                cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
-            }
-            console.log(self.getBaseImageLayer())
-            console.log(self.getBaseImageLayer().getColorMap())
-            cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);*/
+        //var cmDiv = layerBox.find('.aladin-cmap');
+
+        // fill color maps options
+        /*var cmSelect = layerBox.find('.aladin-cmSelection');
+        for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
+            cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
+        }
+        console.log(self.getBaseImageLayer())
+        console.log(self.getBaseImageLayer().getColorMap())
+        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);*/
 
 
         // loop over all overlay layers
@@ -173,7 +173,7 @@ import { HiPSSelector } from "./HiPSSelector.js";
         let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
         let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
         let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color"></td></tr><tr><td>Opacity</td><td><input type="range" min="0" max="1" step="0.05"></td></tr></table></div>');
+        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="text" placeholder="px" size=5></td></tr></table></div>');
         labelCoordinatesGridCb.prepend(coordinatesGridCb);
         layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
         coordinatesGridCb.change(function () {
@@ -188,7 +188,7 @@ import { HiPSSelector } from "./HiPSSelector.js";
                 });
             }
         });
-        optionsOpenerForCoordinatesGrid.click(function() {
+        optionsOpenerForCoordinatesGrid.click(function () {
             var $this = $(this);
             if ($this.hasClass('right-triangle')) {
                 $this.removeClass('right-triangle');
@@ -204,7 +204,7 @@ import { HiPSSelector } from "./HiPSSelector.js";
 
         let gridColorInput = cooGridOptions.find('input[type="color"]');
         let gridOpacityInput = cooGridOptions.find('input[type="range"]');
-        let updateGridcolor = function() {
+        let updateGridcolor = function () {
             let rgb = Color.hexToRgb(gridColorInput.val());
             let opacity = gridOpacityInput.val();
             self.view.setGridConfig({
@@ -214,25 +214,33 @@ import { HiPSSelector } from "./HiPSSelector.js";
         };
         gridColorInput.on('input', updateGridcolor);
         gridOpacityInput.on('input', updateGridcolor);
+        let gridLabelSizeInput = cooGridOptions.find('.label-size');
+        gridLabelSizeInput.on('input', () => {
+            const size = +gridLabelSizeInput.val();
+            self.view.setGridConfig({
+                labelSize: Math.max(Math.min(size, 20.0), 1.0)
+            });
+        });
+
         // coordinates grid - add event listeners
-        ALEvent.COO_GRID_ENABLED.listenedBy(this.aladinDiv, function() {
-            if (! coordinatesGridCb.prop('checked')) {
+        ALEvent.COO_GRID_ENABLED.listenedBy(this.aladinDiv, function () {
+            if (!coordinatesGridCb.prop('checked')) {
                 coordinatesGridCb.prop('checked', true);
             }
         });
-        ALEvent.COO_GRID_DISABLED.listenedBy(this.aladinDiv, function() {
+        ALEvent.COO_GRID_DISABLED.listenedBy(this.aladinDiv, function () {
             if (coordinatesGridCb.prop('checked')) {
                 coordinatesGridCb.prop('checked', false);
             }
         });
-        ALEvent.COO_GRID_UPDATED.listenedBy(this.aladinDiv, function(e) {
+        ALEvent.COO_GRID_UPDATED.listenedBy(this.aladinDiv, function (e) {
             let c = e.detail.color;
             let opacity = c[3].toFixed(2);
             if (gridOpacityInput.val() != opacity) {
                 gridOpacityInput.val(opacity);
             }
 
-            let hexColor = Color.rgbToHex(Math.round(255*c[0]), Math.round(255*c[1]), Math.round(255*c[2]));
+            let hexColor = Color.rgbToHex(Math.round(255 * c[0]), Math.round(255 * c[1]), Math.round(255 * c[2]));
             if (gridColorInput.val() != hexColor) {
                 gridColorInput.val(hexColor);
             }
@@ -318,7 +326,7 @@ import { HiPSSelector } from "./HiPSSelector.js";
 
         // finally show
         this.mainDiv.style.display = 'block';
-        }
+    }
 
 
     hide() {

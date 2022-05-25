@@ -9,10 +9,8 @@
  * 
  *****************************************************************************/
 
-import { SpatialVector }   from "./libs/healpix.js";
 import { astro }   from "./libs/fits.js";
 import { CooFrameEnum }   from "./CooFrameEnum.js";
-import { HealpixCache }   from "./HealpixCache.js";
 import { Aladin }   from "./Aladin.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { AladinUtils }   from "./AladinUtils.js";
@@ -294,7 +292,7 @@ export let MOC = (function() {
         var norderMax = orderedKeys[orderedKeys.length-1];
 
         var nside, xyCorners, ipix;
-        var potentialVisibleHpxCellsOrder3 = this.view.getVisiblePixList(3, CooFrameEnum.J2000);
+        var potentialVisibleHpxCellsOrder3 = this.view.getVisiblePixList(3);
         var visibleHpxCellsOrder3 = [];
         // let's test first all potential visible cells and keep only the one with a projection inside the view
         for (var k=0; k<potentialVisibleHpxCellsOrder3.length; k++) {
@@ -356,7 +354,6 @@ export let MOC = (function() {
     };
 
     var drawCorners = function(ctx, xyCorners) {
-        //console.log(xyCorners);
         ctx.moveTo(xyCorners[0].vx, xyCorners[0].vy);
         ctx.lineTo(xyCorners[1].vx, xyCorners[1].vy);
         ctx.lineTo(xyCorners[2].vx, xyCorners[2].vy);
@@ -389,8 +386,6 @@ export let MOC = (function() {
         var cornersXY = [];
 
         //var spVec = _spVec;
-
-        //var corners = HealpixCache.corners_nest(ipix, nside);
         var corners = view.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
 
         var ra, dec;
@@ -466,7 +461,6 @@ export let MOC = (function() {
             // its vertices order change from counter-clockwise to clockwise!
             // So if the vertices describing a cell are given in clockwise order
             // we know it crosses the projection, so we do not plot them!
-            //console.log("tetet");
             if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
                 !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
                 return null;

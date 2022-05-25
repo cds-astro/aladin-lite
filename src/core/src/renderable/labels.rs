@@ -360,9 +360,11 @@ impl RenderManager for TextRenderManager {
 
     fn draw(&mut self, camera: &CameraViewPort) -> Result<(), JsValue> {
         self.gl.enable(WebGl2RenderingContext::BLEND);
-        self.gl.blend_func(
+        self.gl.blend_func_separate(
+            WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
-            WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+            WebGl2RenderingContext::ONE,
+            WebGl2RenderingContext::ONE,
         ); // premultiplied alpha
 
         self.gl.disable(WebGl2RenderingContext::CULL_FACE);

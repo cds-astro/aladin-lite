@@ -23,7 +23,7 @@ module.exports = {
         asyncWebAssembly: true
     },
     optimization: {
-        //minimize: true,
+        minimize: true,
     },
     plugins: [
         // WebGL1 app

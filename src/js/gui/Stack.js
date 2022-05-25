@@ -218,7 +218,6 @@ hipsDir, 'equatorial', 9, {imgFormat: 'jpg'}));
             let rgb = Color.hexToRgb(gridColorInput.val());
             let opacity = gridOpacityInput.val();
             self.view.setGridConfig({
-                enabled: coordinatesGridCb.is(':checked'),
                 color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, parseFloat(gridOpacityInput.val())]
             });
         };

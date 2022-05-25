@@ -31,7 +31,7 @@
 
 import { Source } from "./Source.js"
 import { Color } from "./Color.js"
-import { HealpixIndex }   from "./libs/healpix.js";
+//import { HealpixIndex }   from "./libs/healpix.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Utils } from "./Utils.js";
 import { AladinUtils } from "./AladinUtils.js";
@@ -56,8 +56,8 @@ export let Catalog = (function() {
 
     	this.indexationNorder = 5; // à quel niveau indexe-t-on les sources
     	this.sources = [];
-    	this.hpxIdx = new HealpixIndex(this.indexationNorder);
-    	this.hpxIdx.init();
+    	//this.hpxIdx = new HealpixIndex(this.indexationNorder);
+    	//this.hpxIdx.init();
 
         this.displayLabel = options.displayLabel || false;
         this.labelColor = options.labelColor || this.color;

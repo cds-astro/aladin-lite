@@ -1504,7 +1504,6 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
             var meta = response.data.meta;
 
             const promise = self.createImageSurvey(response.data.url);
-            console.log("not ready", self.webglAPI.isReady());
             self.setOverlayImageLayer(promise, null, "overlay");
 
             var transparency = (options && options.transparency) || 1.0;

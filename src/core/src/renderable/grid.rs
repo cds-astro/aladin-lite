@@ -171,6 +171,14 @@ impl ProjetedGrid {
             self.text_renderer.set_text_size(label_size)?;
         }
 
+        self.text_renderer.begin_frame();
+        for label in self.labels.iter() {
+            if let Some(label) = label {
+                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.color, cgmath::Rad(label.rot as f32));
+            }
+        }
+        self.text_renderer.end_frame();
+
         Ok(())
     }
 
@@ -236,12 +244,12 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, force: bool) {
+    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
         if !self.enabled {
             return;
         }
 
-        if camera.has_moved() || force {
+        if camera.has_moved() {
             self.force_update::<P>(camera);
         }
     }

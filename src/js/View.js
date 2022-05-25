@@ -36,9 +36,7 @@ import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Projection }     from "./libs/astro/projection.js";
 import { AladinUtils }    from "./AladinUtils.js";
-import { HealpixIndex }   from "./libs/healpix.js";
-import { HealpixCache }   from "./HealpixCache.js";
-import { SpatialVector }  from "./libs/healpix.js";
+//import { HealpixIndex }   from "./libs/healpix.js";
 import { Utils }          from "./Utils.js";
 import { SimbadPointer }  from "./SimbadPointer.js";
 import { TileBuffer }     from "./TileBuffer.js";
@@ -165,7 +163,6 @@ export let View = (function() {
         this.firstHiPS = true;
         this.curNorder = 1;
         this.realNorder = 1;
-        this.curOverlayNorder = 1;
         
         // some variables for mouse handling
         this.dragging = false;
@@ -1055,11 +1052,9 @@ export let View = (function() {
     View.prototype.redraw = function() {
         // calc elapsed time since last loop
         // Put your drawing code here
-        var saveNeedRedraw = this.needRedraw;        
-
         try {
             //var dt = now_update - this.prev;
-            this.aladin.webglAPI.update(Date.now() - this.then, this.needRedraw);
+            this.aladin.webglAPI.update(Date.now() - this.then);
         } catch(e) {
             console.error(e)
         }
@@ -1080,166 +1075,163 @@ export let View = (function() {
 
         ///*
         ////// 2. Draw catalogues////////
-        var catalogCtx = this.catalogCtx;
-
-        var catalogCanvasCleared = false;
-        if (this.mustClearCatalog) {
-            catalogCtx.clearRect(0, 0, this.width, this.height);
-            catalogCanvasCleared = true;
-            this.mustClearCatalog = false;
-        }
-
-        if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-            // TODO : do not clear every time
-            //// clear canvas ////
-            if (!catalogCanvasCleared) {
+        const isViewRendering = this.aladin.webglAPI.isRendering();
+        if (isViewRendering || this.needRedraw) {
+            var catalogCtx = this.catalogCtx;
+            var catalogCanvasCleared = false;
+            if (this.mustClearCatalog) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
+                this.mustClearCatalog = false;
             }
-
-            for (var i=0; i<this.catalogs.length; i++) {
-                var cat = this.catalogs[i];
-                cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-            }
-        }
-        // draw popup catalog
-        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-        }
-
-        ////// 3. Draw overlays////////
-        var overlayCtx = this.catalogCtx;
-        if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            for (var i=0; i<this.overlays.length; i++) {
-                this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-            }
-        }
-        
-        // Redraw HEALPix grid
-        var healpixGridCtx = catalogCtx;
-        if( this.displayHpxGrid ) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            var cornersXYViewMapAllsky = this.getVisibleCells(3);
-            var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
-                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                }
-                else {
-                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                }
-            }
-            if (cornersXYViewMapHighres && this.curNorder>3) {
-                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
-            }
-            else {
-                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
-            }
-        }
-
-
-        // draw MOCs
-        var mocCtx = catalogCtx;
-        if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            for (var i=0; i<this.mocs.length; i++) {
-                this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-            }
-        }
-
-        ////// 4. Draw reticle ///////
-        // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-        var reticleCtx = catalogCtx;
-        if (this.mode==View.SELECT) {
-            // VIEW mode, we do not want to display the reticle in this
-            // but draw a selection box
-            if (this.dragging) {
-                if (! catalogCanvasCleared) {
-                    reticleCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-
-                reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
-                var w = this.dragx - this.selectStartCoo.x;
-                var h =  this.dragy - this.selectStartCoo.y;
-                
-                reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
-            }
-        } else {
-            // Normal modes
-            if (this.displayReticle) {
-                if (! catalogCanvasCleared) {
+    
+            if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+                // TODO : do not clear every time
+                //// clear canvas ////
+                if (!catalogCanvasCleared) {
                     catalogCtx.clearRect(0, 0, this.width, this.height);
                     catalogCanvasCleared = true;
                 }
     
-                if (! this.reticleCache) {
-                    // build reticle image
-                    var c = document.createElement('canvas');
-                    var s = this.options.reticleSize;
-                    c.width = s;
-                    c.height = s;
-                    var ctx = c.getContext('2d');
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = this.options.reticleColor;
-                    ctx.beginPath();
-                    ctx.moveTo(s/2, s/2+(s/2-1));
-                    ctx.lineTo(s/2, s/2+2);
-                    ctx.moveTo(s/2, s/2-(s/2-1));
-                    ctx.lineTo(s/2, s/2-2);
-                    
-                    ctx.moveTo(s/2+(s/2-1), s/2);
-                    ctx.lineTo(s/2+2,  s/2);
-                    ctx.moveTo(s/2-(s/2-1), s/2);
-                    ctx.lineTo(s/2-2,  s/2);
-                    
-                    ctx.stroke();
-                    
-                    this.reticleCache = c;
+                for (var i=0; i<this.catalogs.length; i++) {
+                    var cat = this.catalogs[i];
+                    cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
                 }
-                reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
             }
-        }  
+            // draw popup catalog
+            if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
+                if (!catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
+    
+            ////// 3. Draw overlays////////
+            var overlayCtx = this.catalogCtx;
+            if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+                if (!catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                for (var i=0; i<this.overlays.length; i++) {
+                    this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                }
+            }
+            
+            // Redraw HEALPix grid
+            var healpixGridCtx = catalogCtx;
+            if( this.displayHpxGrid ) {
+                if (!catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                var cornersXYViewMapAllsky = this.getVisibleCells(3);
+                var cornersXYViewMapHighres = null;
+                if (this.curNorder>=3) {
+                    if (this.curNorder==3) {
+                        cornersXYViewMapHighres = cornersXYViewMapAllsky;
+                    }
+                    else {
+                        cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+                    }
+                }
+                if (cornersXYViewMapHighres && this.curNorder>3) {
+                    this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+                }
+                else {
+                    this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
+                }
+            }
+    
+    
+            // draw MOCs
+            var mocCtx = catalogCtx;
+            if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
+                if (!catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                for (var i=0; i<this.mocs.length; i++) {
+                    this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+                }
+            }
+    
+            ////// 4. Draw reticle ///////
+            // TODO: reticle should be placed in a static DIV, no need to waste a canvas
+            var reticleCtx = catalogCtx;
+            if (this.mode==View.SELECT) {
+                // VIEW mode, we do not want to display the reticle in this
+                // but draw a selection box
+                if (this.dragging) {
+                    if (! catalogCanvasCleared) {
+                        reticleCtx.clearRect(0, 0, this.width, this.height);
+                        catalogCanvasCleared = true;
+                    }
+    
+                    reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
+                    var w = this.dragx - this.selectStartCoo.x;
+                    var h =  this.dragy - this.selectStartCoo.y;
+                    
+                    reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
+                }
+            } else {
+                // Normal modes
+                if (this.displayReticle) {
+                    if (! catalogCanvasCleared) {
+                        catalogCtx.clearRect(0, 0, this.width, this.height);
+                        catalogCanvasCleared = true;
+                    }
         
-        ////// 5. Draw all-sky ring /////
-
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
-            if (! catalogCanvasCleared) {
-                reticleCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
+                    if (! this.reticleCache) {
+                        // build reticle image
+                        var c = document.createElement('canvas');
+                        var s = this.options.reticleSize;
+                        c.width = s;
+                        c.height = s;
+                        var ctx = c.getContext('2d');
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = this.options.reticleColor;
+                        ctx.beginPath();
+                        ctx.moveTo(s/2, s/2+(s/2-1));
+                        ctx.lineTo(s/2, s/2+2);
+                        ctx.moveTo(s/2, s/2-(s/2-1));
+                        ctx.lineTo(s/2, s/2-2);
+                        
+                        ctx.moveTo(s/2+(s/2-1), s/2);
+                        ctx.lineTo(s/2+2,  s/2);
+                        ctx.moveTo(s/2-(s/2-1), s/2);
+                        ctx.lineTo(s/2-2,  s/2);
+                        
+                        ctx.stroke();
+                        
+                        this.reticleCache = c;
+                    }
+                    reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
+                }
+            }  
+            
+            ////// 5. Draw all-sky ring /////
+            if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
+                if (! catalogCanvasCleared) {
+                    reticleCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
+                var ringWidth = this.aladin.options['allskyRingWidth'];
+                reticleCtx.lineWidth = ringWidth;
+                reticleCtx.beginPath();
+                var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
+                reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
+                reticleCtx.stroke();
             }
-
-            reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
-            var ringWidth = this.aladin.options['allskyRingWidth'];
-            reticleCtx.lineWidth = ringWidth;
-            reticleCtx.beginPath();
-            var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-            reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
-            reticleCtx.stroke();
         }
-
-        // TODO : is this the right way?
-        if (saveNeedRedraw==this.needRedraw) {
-            this.needRedraw = false;
-        }
+        this.needRedraw = false;
 
         // objects lookup
         if (!this.dragging) {
@@ -1263,64 +1255,14 @@ export let View = (function() {
         }
     };
 
-    View.prototype.getVisiblePixList = function(norder, frameSurvey) {
-        var nside = Math.pow(2, norder);
+    View.prototype.getVisiblePixList = function(norder) {
+        var pixList = [];
+        let centerWorldPosition = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
+        const [lon, lat] = this.aladin.webglAPI.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
-        var pixList;
-        var npix = HealpixIndex.nside2Npix(nside);
-        if (this.fov>80) {
-            pixList = [];
-            for (var ipix=0; ipix<npix; ipix++) {
-                pixList.push(ipix);
-            }
-        }
-        else {
-            var hpxIdx = new HealpixIndex(nside);
-            hpxIdx.init();
-            var spatialVector = new SpatialVector();
-            // if frame != frame image survey, we need to convert to survey frame system
-            //var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
-            //var radec = this.projection.unproject(xy.x, xy.y);
-            let pos_world = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
-            let radec = {
-                ra: pos_world[0],
-                dec: pos_world[1]
-            };
-            var lonlat = [];
-            /*if (frameSurvey && frameSurvey.system != this.cooFrame.system) {
-                if (frameSurvey.system==CooFrameEnum.SYSTEMS.J2000) {
-                    lonlat = CooConversion.GalacticToJ2000([radec.ra, radec.dec]);
-                }
-                else if (frameSurvey.system==CooFrameEnum.SYSTEMS.GAL) {
-                    lonlat = CooConversion.J2000ToGalactic([radec.ra, radec.dec]);
-                }
-            }
-            else {
-                lonlat = [radec.ra, radec.dec];
-            }*/
-            lonlat = [radec.ra, radec.dec];
-            spatialVector.set(lonlat[0], lonlat[1]);
-
-            var radius = this.fov*0.5*this.ratio;
-            // we need to extend the radius
-            if (this.fov>60) {
-                radius *= 1.6;
-            }
-            else if (this.fov>12) {
-                radius *= 1.45;
-            }
-            else {
-                radius *= 1.1;
-            }
-
-            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
-            // add central pixel at index 0
-            var polar = HealpixIndex.utils.radecToPolar(lonlat[0], lonlat[1]);
-            var ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
-            pixList.unshift(ipixCenter);
-
-        }
-
+        var radius = this.fov*0.5*this.ratio;
+        this.aladin.webglAPI.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
+        
         return pixList;
     };
     
@@ -1329,59 +1271,15 @@ export let View = (function() {
     }
 
     // TODO: optimize this method !!
-    View.prototype.getVisibleCells = function(norder, frameSurvey) {
-        if (! frameSurvey && this.imageSurvey) {
-            frameSurvey = this.imageSurvey.cooFrame;
-        }
+    View.prototype.getVisibleCells = function(norder) {
         var cells = []; // array to be returned
         var cornersXY = [];
-        var spVec = new SpatialVector();
         var nside = Math.pow(2, norder); // TODO : to be modified
-        var npix = HealpixIndex.nside2Npix(nside);
+        var npix = 12 * nside * nside;
         var ipixCenter = null;
         
         // build list of pixels
-        // TODO: pixList can be obtained from getVisiblePixList
-        var pixList;
-        if (this.fov>80) {
-            pixList = [];
-            for (var ipix=0; ipix<npix; ipix++) {
-                pixList.push(ipix);
-            }
-        }
-        else {
-            var hpxIdx = new HealpixIndex(nside);
-            hpxIdx.init();
-            var spatialVector = new SpatialVector();
-            // if frame != frame image survey, we need to convert to survey frame system
-            //var xy = AladinUtils.viewToXy(this.cx, this.cy, this.width, this.height, this.largestDim, this.zoomFactor);
-            //var radec = this.projection.unproject(xy.x, xy.y);
-            var radec = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
-            if (this.cooFrame == CooFrameEnum.GAL) {
-                radec = CooConversion.GalacticToJ2000([radec[0], radec[1]]);
-            }
-            
-            spatialVector.set(radec[0], radec[1]);
-
-            var radius = this.fov*0.5*this.ratio;
-            // we need to extend the radius
-            if (this.fov>60) {
-                radius *= 1.6;
-            }
-            else if (this.fov>12) {
-                radius *=1.45;
-            }
-            else {
-                radius *= 1.1;
-            }
-    
-            pixList = hpxIdx.queryDisc(spatialVector, radius*Math.PI/180.0, true, true);
-            // add central pixel at index 0
-            var polar = HealpixIndex.utils.radecToPolar(radec[0], radec[1]);
-            ipixCenter = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
-            pixList.unshift(ipixCenter);
-        }
-
+        var pixList = this.getVisiblePixList(norder)
         var ipix;
         var lon, lat;
         var corners;
@@ -1391,21 +1289,12 @@ export let View = (function() {
                 continue;
             }
             var cornersXYView = [];
-            corners = HealpixCache.corners_nest(ipix, nside);
+            //corners = HealpixCache.corners_nest(ipix, nside);
+            corners = this.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
 
             for (var k=0; k<4; k++) {
-                spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
-                
-                /*if (this.cooFrame == CooFrameEnum.GAL) {
-                    var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
-                    lon = radec[0];
-                    lat = radec[1];
-                }
-                else {*/
-                    lon = spVec.ra();
-                    lat = spVec.dec();
-                //}
-                
+                const lon = corners[k*2];
+                const lat = corners[k*2 + 1];
                 cornersXY[k] = this.aladin.webglAPI.worldToScreen(lon, lat);
             }
 
@@ -1421,7 +1310,6 @@ export let View = (function() {
                 };
             }
 
-            var indulge = 10;
             // detect pixels outside view. Could be improved !
             // we minimize here the number of cells returned
             if( cornersXYView[0].vx<0 && cornersXYView[1].vx<0 && cornersXYView[2].vx<0 &&cornersXYView[3].vx<0) {
@@ -1497,59 +1385,6 @@ export let View = (function() {
         
         return cells;
     };
-
-    // get position in view for a given HEALPix cell
-    View.prototype.getPositionsInView = function(ipix, norder) {
-        var cornersXY = [];
-        var lon, lat;
-        var spVec = new SpatialVector();
-        var nside = Math.pow(2, norder); // TODO : to be modified
-        
-        
-        var cornersXYView = [];  // will be returned
-        var corners = HealpixCache.corners_nest(ipix, nside);
-
-        for (var k=0; k<4; k++) {
-            spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
-                
-            // need for frame transformation ?
-            if (this.imageSurvey && this.imageSurvey.cooFrame.system != this.cooFrame.system) {
-                if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-                    var radec = CooConversion.J2000ToGalactic([spVec.ra(), spVec.dec()]); 
-                    lon = radec[0];
-                    lat = radec[1];
-                }
-                else if (this.imageSurvey.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-                    var radec = CooConversion.GalacticToJ2000([spVec.ra(), spVec.dec()]); 
-                    lon = radec[0];
-                    lat = radec[1];
-                }
-            }
-            else {
-                lon = spVec.ra();
-                lat = spVec.dec();
-            }
-            //cornersXY[k] = this.projection.project(lon, lat);
-            let xy = this.aladin.webglAPI.worldToScreen(lon, lat);
-            cornersXYView[k] = {
-                vx: xy.x,
-                vy: xy.y
-            };
-        }
-        
-        if (cornersXYView[0] == null ||  cornersXYView[1] == null  ||  cornersXYView[2] == null ||  cornersXYView[3] == null ) {
-            return null;
-        }
-        /*if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
-            return null;
-        }*/
-        /*for (var k=0; k<4; k++) {
-            cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, this.width, this.height, this.largestDim, this.zoomFactor);
-        }*/
-
-        return cornersXYView;
-    };
-    
     
     /*View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
@@ -1642,6 +1477,8 @@ export let View = (function() {
         // send events
         if (gridCfg) {
             if (gridCfg.hasOwnProperty('enabled')) {
+                this.showCooGrid = true;
+
                 if (gridCfg.enabled === true) {
                     ALEvent.COO_GRID_ENABLED.dispatchedTo(this.aladinDiv);
                 }
@@ -1707,40 +1544,75 @@ export let View = (function() {
     View.prototype.computeNorder = function() {
         var resolution = this.fov / this.largestDim; // in degree/pixel
         var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
-        var nside = HealpixIndex.calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
+        const calculateNSide = (pixsize) => {
+            const NS_MAX = 536870912;
+            const ORDER_MAX = 29;
+        
+            /** Available nsides ..always power of 2 ..* */
+            const NSIDELIST = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
+                4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
+                                       1048576, 2097152, 4194304, 8388608, 16777216, 33554432,
+                                       67108864, 134217728,  268435456, 536870912];
+
+            let res = 0;
+            const pixelArea = pixsize * pixsize;
+            const degrad = 180. / Math.PI;
+            const skyArea = 4. * Math.PI * degrad * degrad * 3600. * 3600.;
+            const castToInt = function (x) {
+                if (x > 0) {
+                    return Math.floor(x);
+                }
+                else {
+                    return Math.ceil(x);
+                }
+            };
+            const npixels = castToInt(skyArea / pixelArea);
+            const nsidesq = npixels / 12;
+            const nside_req = Math.sqrt(nsidesq);
+            var mindiff = NS_MAX;
+            var indmin = 0;
+            for (var i = 0; i < NSIDELIST.length; i++) {
+                if (Math.abs(nside_req - NSIDELIST[i]) <= mindiff) {
+                    mindiff = Math.abs(nside_req - NSIDELIST[i]);
+                    res = NSIDELIST[i];
+                    indmin = i;
+                }
+                if ((nside_req > res) && (nside_req < NS_MAX))
+                    res = NSIDELIST[indmin + 1];
+                if (nside_req > NS_MAX) {
+                    console.log("nside cannot be bigger than " + NS_MAX);
+                    return NS_MAX;
+                }
+    
+            }
+            return res;
+        };
+
+        var nside = calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
         var norder = Math.log(nside)/Math.log(2);
         norder = Math.max(norder, 1);
-        this.realNorder = norder;
 
-            
+        this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
         if (this.fov<=50 && norder<=2) {
             norder = 3;
         }
-           
 
         // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
         if (this.imageSurvey && norder<=2 && this.imageSurvey.minOrder>2) {
             norder = this.imageSurvey.minOrder;
         }
 
-        var overlayNorder  = norder;
         if (this.imageSurvey && norder>this.imageSurvey.maxOrder) {
             norder = this.imageSurvey.maxOrder;
         }
-        if (this.overlayImageSurvey && overlayNorder>this.overlayImageSurvey.maxOrder) {
-            overlayNorder = this.overlayImageSurvey.maxOrder;
-        }
+
         // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
-        if (norder>HealpixIndex.ORDER_MAX) {
-            norder = HealpixIndex.ORDER_MAX;
-        }
-        if (overlayNorder>HealpixIndex.ORDER_MAX) {
-            overlayNorder = HealpixIndex.ORDER_MAX;
+        if (norder>29) {
+            norder = 29;
         }
             
         this.curNorder = norder;
-        this.curOverlayNorder = overlayNorder;
     };
 
     View.prototype.untaintCanvases = function() {

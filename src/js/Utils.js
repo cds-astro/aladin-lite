@@ -190,45 +190,43 @@ Utils.LRUCache = function (maxsize) {
 };
    
 Utils.LRUCache.prototype = {
-        set: function (key, value) {
-            var keys = this._keys,
-                items = this._items,
-                expires = this._expires,
-                size = this._size,
-                maxsize = this._maxsize;
+    set: function (key, value) {
+        var keys = this._keys,
+            items = this._items,
+            expires = this._expires,
+            size = this._size,
+            maxsize = this._maxsize;
 
-            if (size >= maxsize) { // remove oldest element when no more room
-                keys.sort(function (a, b) {
-                    if (expires[a] > expires[b]) return -1;
-                    if (expires[a] < expires[b]) return 1;
-                    return 0;
-                });
+        if (size >= maxsize) { // remove oldest element when no more room
+            keys.sort(function (a, b) {
+                if (expires[a] > expires[b]) return -1;
+                if (expires[a] < expires[b]) return 1;
+                return 0;
+            });
 
-                size--;
-                delete expires[keys[size]];
-                delete items[keys[size]];
-            }
-
-            keys[size] = key;
-            items[key] = value;
-            expires[key] = Date.now();
-            size++;
-
-            this._keys = keys;
-            this._items = items;
-            this._expires = expires;
-            this._size = size;
-        },
-
-        get: function (key) {
-            var item = this._items[key];
-            if (item) this._expires[key] = Date.now();
-            return item;
-        },
-        
-        keys: function() {
-            return this._keys;
+            size--;
         }
+
+        keys[size] = key;
+        items[key] = value;
+        expires[key] = Date.now();
+        size++;
+
+        this._keys = keys;
+        this._items = items;
+        this._expires = expires;
+        this._size = size;
+    },
+
+    get: function (key) {
+        var item = this._items[key];
+        if (item) { this._expires[key] = Date.now(); }
+        return item;
+    },
+    
+    keys: function() {
+        return this._keys;
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////:
@@ -274,24 +272,24 @@ Utils.loadFromMirrors = function(urls, options) {
 // return the jquery ajax object configured with the requested parameters
 // by default, we use the proxy (safer, as we don't know if the remote server supports CORS)
 Utils.getAjaxObject = function(url, method, dataType, useProxy) {
-        if (useProxy!==false) {
-            useProxy = true;
-        }
+    if (useProxy!==false) {
+        useProxy = true;
+    }
 
-        if (useProxy===true) {
-            var urlToRequest = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(url);
-        }
-        else {
-            urlToRequest = url;
-        }
-        method = method || 'GET';
-        dataType = dataType || null;
+    if (useProxy===true) {
+        var urlToRequest = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(url);
+    }
+    else {
+        urlToRequest = url;
+    }
+    method = method || 'GET';
+    dataType = dataType || null;
 
-        return $.ajax({
-            url: urlToRequest,
-            method: method,
-            dataType: dataType
-        }); 
+    return $.ajax({
+        url: urlToRequest,
+        method: method,
+        dataType: dataType
+    });
 };
 
 // return true if script is executed in a HTTPS context

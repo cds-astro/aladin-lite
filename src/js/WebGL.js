@@ -1,4 +1,4 @@
-import { loadShadersWebGL1 } from "./ShadersWebGL1";
+//import { loadShadersWebGL1 } from "./ShadersWebGL1";
 import { loadShadersWebGL2 } from "./ShadersWebGL2";
 // Import resources images
 import kernel from '../img/kernel.png';
@@ -23,7 +23,8 @@ export let WebGLCtx = (function() {
     WebGLCtx.checkForWebGL2Support = checkForWebGL2Support;
 
     WebGLCtx.init = function(ctx, div) {
-        const shaders = WebGLCtx.checkForWebGL2Support() ? loadShadersWebGL2() : loadShadersWebGL1();
+        //const shaders = WebGLCtx.checkForWebGL2Support() ? loadShadersWebGL2() : loadShadersWebGL1();
+        const shaders = loadShadersWebGL2();
         return new ctx.WebClient(
             div,
             shaders,

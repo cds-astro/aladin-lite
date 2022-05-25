@@ -75,7 +75,7 @@ export let ProgressiveCat = (function() {
         
 
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
-        this.sourcesCache = new Utils.LRUCache(100);
+        this.sourcesCache = new Utils.LRUCache(256);
 
         this.updateShape(options);
 
@@ -345,6 +345,7 @@ export let ProgressiveCat = (function() {
             if (! this.isShowing || ! this.isReady) {
                 return;
             }
+
             this.drawSources(this.order1Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
             this.drawSources(this.order2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
             this.drawSources(this.order3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
@@ -352,6 +353,7 @@ export let ProgressiveCat = (function() {
             if (!this.tilesInView) {
                 return;
             }
+
             var sources, key, t;
             for (var k=0; k<this.tilesInView.length; k++) {
                 t = this.tilesInView[k];
@@ -361,9 +363,6 @@ export let ProgressiveCat = (function() {
                     this.drawSources(sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
                 }
             }
-            
-            
-            
         },
         drawSources: function(sources, ctx, projection, frame, width, height, largestDim, zoomFactor) {
             if (! sources) {
@@ -482,7 +481,8 @@ export let ProgressiveCat = (function() {
             if (norder<=this.maxOrderAllsky) {
                 return; // nothing to do, hurrayh !
             }
-            var cells = this.view.getVisibleCells(norder, this.frame);
+            var cells = this.view.getVisibleCells(norder);
+
             var ipixList, ipix;
             for (var curOrder=3; curOrder<=norder; curOrder++) {
                 ipixList = [];
@@ -518,7 +518,7 @@ export let ProgressiveCat = (function() {
                             //dataType: 'jsonp',
                             success: function(tsv) {
                                 self.sourcesCache.set(key, getSources(self, tsv, self.fields));
-                                //self.view.requestRedraw();
+                                self.view.requestRedraw();
                             },
                             error: function() {
                                 // on suppose qu'il s'agit d'une erreur 404

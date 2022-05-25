@@ -363,10 +363,12 @@ where
 pub trait AppTrait {
     /// View
     fn is_ready(&self) -> Result<bool, JsValue>;
+    fn is_rendering(&self) -> bool;
+
     // Called whenever the canvas changed its dimensions
     fn resize(&mut self, width: f32, height: f32);
     // Low level method for updating the view
-    fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue>;
+    fn update(&mut self, dt: DeltaTime) -> Result<(), JsValue>;
     // Low level method for rendering the view (layers + ui) on the render
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue>;
 
@@ -462,7 +464,7 @@ where
         Ok(res)
     }
 
-    fn update(&mut self, dt: DeltaTime, force: bool) -> Result<(), JsValue> {
+    fn update(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
 
         if let Some(InertiaAnimation {
@@ -597,7 +599,7 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera, force);      
+        self.grid.update::<P>(&self.camera);      
         
         
         /*{
@@ -1150,5 +1152,9 @@ where
 
     fn get_gl_canvas(&self) -> Option<js_sys::Object> {
         self.gl.canvas()
+    }
+
+    fn is_rendering(&self) -> bool {
+        self.rendering
     }
 }

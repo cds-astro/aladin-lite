@@ -123,7 +123,7 @@ impl WebClient {
     /// * `dt` - The time elapsed from the last frame update
     /// * `force` - This parameter ensures to force the update of some elements
     ///   even if the camera has not moved
-    pub fn update(&mut self, dt: f32, force: bool) -> Result<(), JsValue> {
+    pub fn update(&mut self, dt: f32) -> Result<(), JsValue> {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
@@ -133,7 +133,6 @@ impl WebClient {
             // Time of the previous frame rendering
             self.dt, // Force the update of some elements:
             // i.e. the grid
-            force,
         )?;
 
         Ok(())
@@ -789,5 +788,20 @@ impl WebClient {
             n_lon.to_degrees(), n_lat.to_degrees(),
             w_lon.to_degrees(), w_lat.to_degrees(),
         ])
+    }
+
+    #[wasm_bindgen(js_name = queryDisc)]
+    pub fn query_disc(&self, depth: u8, lon_degrees: f64, lat_degrees: f64, radius_degress: f64) -> Box<[u64]> {
+        cdshealpix::nested::cone_coverage_approx(
+            depth,
+            lon_degrees.to_radians(),
+            lat_degrees.to_radians(),
+            radius_degress.to_radians()
+        ).to_flat_array()
+    }
+
+    #[wasm_bindgen(js_name = isRendering)]
+    pub fn is_rendering(&self) -> bool {
+        self.app.is_rendering()
     }
 }

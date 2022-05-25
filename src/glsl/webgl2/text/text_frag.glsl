@@ -14,5 +14,5 @@ void main() {
     // Multiply vertex color with texture color (in linear space).
     // Linear color is written and blended in Framebuffer and converted to sRGB later
     color = v_rgba * alpha;
-    color.a = alpha;
+    //color.a = color.a * alpha;
 }

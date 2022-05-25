@@ -89,7 +89,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
         rootURL = Utils.getAbsoluteURL(rootURL);
 
         // fast fix for HTTPS support --> will work for all HiPS served by CDS
-        if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(rootURL) || /unistra.fr/i.test(rootURL)  ) ) {
+        if (Utils.isHttpsContext() && ( /cds.unistra.fr/i.test(rootURL) || /unistra.fr/i.test(rootURL)  ) ) {
             rootURL = rootURL.replace('http://', 'https://');
         }
 
@@ -216,7 +216,7 @@ export let HpxImageSurvey = (function() {
             if (url.startsWith('http://alasky')) {
                 // From alasky one can directly use the https access
                 url = url.replace('http', 'https');
-                url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.u-strasbg.fr/');
+                url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.cds.unistra.fr/');
             }
 
             // HiPS order
@@ -472,21 +472,21 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
         {
-            id: "P/2MASS/color",
+            id: "CDS/P/2MASS/color",
             name: "2MASS colored",
-            url: "https://alasky.u-strasbg.fr/2MASS/Color",
+            url: "https://alasky.cds.unistra.fr/2MASS/Color",
             maxOrder: 9,
         },
         {
-            id: "P/DSS2/color",
+            id: "CDS/P/DSS2/color",
             name: "DSS colored",
-            url: "https://alasky.u-strasbg.fr/DSS/DSSColor",
+            url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
             maxOrder: 9,
         },
         {
             id: "P/DSS2/red",
             name: "DSS2 Red (F+R)",
-            url: "https://alasky.u-strasbg.fr/DSS/DSS2Merged",
+            url: "https://alasky.cds.unistra.fr/DSS/DSS2Merged",
             maxOrder: 9,
             // options
             options: {
@@ -501,7 +501,7 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/PanSTARRS/DR1/g",
             name: "PanSTARRS DR1 g",
-            url: "https://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
             maxOrder: 11,
             // options
             options: {
@@ -514,25 +514,25 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/PanSTARRS/DR1/color-z-zg-g",
             name: "PanSTARRS DR1 color",
-            url: "https://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
             maxOrder: 11,    
         },
         {
             id: "P/DECaPS/DR1/color",
             name: "DECaPS DR1 color",
-            url: "https://alasky.u-strasbg.fr/DECaPS/DR1/color",
+            url: "https://alasky.cds.unistra.fr/DECaPS/DR1/color",
             maxOrder: 11,
         },
         {
             id: "P/Fermi/color",
             name: "Fermi color",
-            url: "https://alasky.u-strasbg.fr/Fermi/Color",
+            url: "https://alasky.cds.unistra.fr/Fermi/Color",
             maxOrder: 3,
         },
         {
             id: "P/Finkbeiner",
             name: "Halpha",
-            url: "https://alasky.u-strasbg.fr/FinkbeinerHalpha",
+            url: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
             maxOrder: 3,
             // options
             options: {
@@ -551,25 +551,25 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/IRIS/color",
             name: "IRIS colored",
-            url: "https://alasky.u-strasbg.fr/IRISColor",    
+            url: "https://alasky.cds.unistra.fr/IRISColor",    
             maxOrder: 3,
         },
         {
             id: "P/Mellinger/color",
             name: "Mellinger colored",
-            url: "https://alasky.u-strasbg.fr/MellingerRGB",
+            url: "https://alasky.cds.unistra.fr/MellingerRGB",
             maxOrder: 4,
         },
         {
             id: "P/SDSS9/color",
             name: "SDSS9 colored",
-            url: "https://alasky.u-strasbg.fr/SDSS/DR9/color",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
             maxOrder: 10,
         },
         {
             id: "P/SDSS9/g",
             name: "SDSS9 band-g",
-            url: "https://alasky.u-strasbg.fr/SDSS/DR9/band-g",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             maxOrder: 10,
             options: {
                 minCut: -14000,
@@ -582,13 +582,13 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/SPITZER/color",
             name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-            url: "https://alasky.u-strasbg.fr/SpitzerI1I2I4color",
+            url: "https://alasky.cds.unistra.fr/SpitzerI1I2I4color",
             maxOrder: 9,
         },
         {
             id: "P/VTSS/Ha",
             name: "VTSS-Ha",
-            url: "https://alasky.u-strasbg.fr/VTSS/Ha",
+            url: "https://alasky.cds.unistra.fr/VTSS/Ha",
             maxOrder: 3,
             options: {
                 minCut: -10.0,
@@ -602,19 +602,19 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/XMM/EPIC",
             name: "XMM-Newton stacked EPIC images (no phot. normalization)",
-            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.u-strasbg.fr/xmmallsky",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.cds.unistra.fr/xmmallsky",
             maxOrder: 7,
         },*/
         {
-            id: "P/XMM/PN/color",
+            id: "xcatdb/P/XMM/PN/color",
             name: "XMM PN colored",
-            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
             maxOrder: 7,
         },
         {
-            id: "P/allWISE/color",
+            id: "CDS/P/allWISE/color",
             name: "AllWISE color",
-            url: "https://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
+            url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,
         },
         /*
@@ -622,7 +622,7 @@ export let HpxImageSurvey = (function() {
         {
             id: "P/GLIMPSE360",
             name: "GLIMPSE360",
-            url: "https://alasky.u-strasbg.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
             maxOrder: 9,
         },*/
     ];

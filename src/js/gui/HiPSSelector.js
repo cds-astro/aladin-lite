@@ -105,6 +105,7 @@ import  autocomplete from 'autocompleter';
         let firstTabContent = this.mainDiv.querySelectorAll('div div .p-4')[0];
         let secondTabContent = this.mainDiv.querySelectorAll('div div .p-4')[1];
 
+
         $(firstTab).click(function() {
             $(secondTab).removeClass('tab-active');
             $(firstTab).addClass('tab-active');
@@ -124,7 +125,23 @@ import  autocomplete from 'autocompleter';
         var self = this;
         $(closeBtn).add($(cancelBtn)).click(function() {
             self.hide();
-        })
+        });
+
+        // when 'Select' is pressed, call the callbacks
+        let selectBtn = this.mainDiv.querySelectorAll('.btn-primary');
+        $(selectBtn).click(function() {
+            let byIdSelected = $(self.mainDiv.querySelectorAll('div div a')[0]).hasClass('tab-active');
+
+            if (byIdSelected) {
+                let idInput = self.mainDiv.querySelectorAll('div div .p-4')[0].querySelector('input');
+                self.fnIdSelected && self.fnIdSelected(idInput.value);
+            }
+            else {
+                let urlInput = self.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
+                self.fnURLSelected && self.fnURLSelected(urlInput.value);
+            }
+
+        });
 
     }
 

@@ -81,9 +81,19 @@ export class Stack {
         let searchHiPS4BaseLayerBtn = layerBox.find('button');
         searchHiPS4BaseLayerBtn.click(function () {
             if (!self.hipsSelector) {
-                self.hipsSelector = new HiPSSelector(self.aladinDiv);
+                /*
+                aladin.setImageSurvey(aladin.createImageSurvey('2MASS J', '2MASS J',
+
+hipsDir, 'equatorial', 9, {imgFormat: 'jpg'}));
+                */
+                let fnURLSelected = function(url) {
+                    aladin.setBaseImageLayer(url);
+                };
+                let fnIdSelected = function(id) {
+                    aladin.setBaseImageLayer(id);
+                };
+                self.hipsSelector = new HiPSSelector(self.aladinDiv, fnURLSelected, fnIdSelected);
             }
-            console.log('SHOW');
             self.hipsSelector.show();
         });
 

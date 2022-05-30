@@ -65,10 +65,19 @@ export async function fetchSurveyProperties(rootURLOrId) {
         } else {
             if (metadata.length > 1) {
                 let ids = [];
-                metadata.forEach((prop) => {
-                    ids.push(prop.ID)
-                });
-                throw ids + ' surveys are matching. Please use one from this list.';
+                let surveyFound = false;
+                for (let i = 0; i < metadata.length; i++) {
+                    ids.push(metadata[i].ID)
+                    if (metadata[i].ID === id) {
+                        metadata = metadata[i];
+                        surveyFound = true;
+                        break;
+                    }
+                }
+
+                if (!surveyFound) {
+                    throw ids + ' surveys are matching. Please use one from this list.';
+                }
             } else if (metadata.length === 0) {
                 throw 'no surveys matching';
             } else {
@@ -273,16 +282,17 @@ export let HpxImageSurvey = (function() {
             // the output format has not been defined by the user
             // => we give him one of the available formats
             if (!this.imgFormat) {
-                this.imgFormat = tileFormats[0];
-                if (this.imgFormat === 'FITS') {
-                    //tileFormat = "FITS";
+                if (tileFormats.indexOf('PNG') >= 0) {
+                    this.fits = false;
+                    this.imgFormat = "PNG";
+                } else if (tileFormats.indexOf('JPEG') >= 0) {
+                    this.fits = false;
+                    this.imgFormat = "JPEG";
+                } else if (tileFormats.indexOf('FITS') >= 0) {
                     this.fits = true;
-                } else if (this.imgFormat === "PNG") {
-                    //tileFormat = "PNG";
-                    this.fits = false;
+                    this.imgFormat = "FITS";
                 } else {
-                    //tileFormat = "JPG";
-                    this.fits = false;
+                    throw "Unsupported format(s) found in the metadata: " + tileFormats;
                 }
             }
 

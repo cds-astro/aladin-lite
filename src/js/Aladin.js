@@ -899,7 +899,6 @@ export let Aladin = (function () {
         return radec_j2000;
     };
 
-
     /**
      * point to a given position, expressed as a ra,dec coordinate
      * 

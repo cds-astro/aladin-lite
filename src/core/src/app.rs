@@ -715,7 +715,7 @@ where
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             // Render the scene
-            gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            gl.clear_color(0.08, 0.08, 0.08, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw::<P>(camera, shaders, colormaps);

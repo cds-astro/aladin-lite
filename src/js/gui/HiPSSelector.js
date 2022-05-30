@@ -75,7 +75,7 @@ import  autocomplete from 'autocompleter';
         this.parentDiv.appendChild(this.mainDiv);
 
         // setup autocomplete
-        var input = document.getElementById(autocompleteId);
+        let input = document.getElementById(autocompleteId);
         
         // Query the mocserver
         MocServer.getAllHiPSes();
@@ -132,14 +132,20 @@ import  autocomplete from 'autocompleter';
         $(selectBtn).click(function() {
             let byIdSelected = $(self.mainDiv.querySelectorAll('div div a')[0]).hasClass('tab-active');
 
+            let idInput = self.mainDiv.querySelectorAll('div div .p-4')[0].querySelector('input');
+            let urlInput = self.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
+
             if (byIdSelected) {
-                let idInput = self.mainDiv.querySelectorAll('div div .p-4')[0].querySelector('input');
                 self.fnIdSelected && self.fnIdSelected(idInput.value);
             }
             else {
-                let urlInput = self.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
                 self.fnURLSelected && self.fnURLSelected(urlInput.value);
             }
+
+            idInput.value = '';
+            urlInput.value = '';
+        
+            self.hide();
 
         });
 

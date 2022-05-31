@@ -14,7 +14,7 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         filename: 'aladin.js',
         // Keep in dist/ only files used 
-        clean: true,
+        //clean: true,
     },
     resolve: {
         extensions: ['.js'],

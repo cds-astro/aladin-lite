@@ -384,7 +384,7 @@ pub trait AppTrait {
     fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue>;
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
-    fn set_projection<Q: Projection>(self) -> App<Q>;
+    fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
     //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
     // Catalog
@@ -785,8 +785,13 @@ where
         self.surveys.set_image_survey_color_cfg(layer, meta)
     }
 
-    fn set_projection<Q: Projection>(mut self) -> App<Q> {
-        self.camera.set_projection::<Q>();
+    // Width and height given are in pixels
+    fn set_projection<Q: Projection>(mut self, width: f32, height: f32) -> App<Q> {
+        // Recompute the ndc_to_clip
+        self.camera.set_screen_size::<Q>(width, height);
+        // Recompute clip zoom factor
+        self.camera.set_aperture::<Q>(self.camera.get_aperture());
+
         self.surveys.set_projection::<Q>(
             &self.camera,
             &mut self.shaders,
@@ -796,10 +801,9 @@ where
         self.request_redraw = true;
 
         App {
-            tile_fetcher: self.tile_fetcher,
-            p: std::marker::PhantomData,
             gl: self.gl,
-            //ui: self.ui,
+            tile_fetcher: self.tile_fetcher,
+
             colormaps: self.colormaps,
             fbo_ui: self.fbo_ui,
             fbo_view: self.fbo_view,
@@ -807,8 +811,7 @@ where
             manager: self.manager,
             exec: self.exec,
             resources: self.resources,
-            //zoom_animation: self.zoom_animation,
-            //move_animation: self.move_animation,
+
             inertial_move_animation: self.inertial_move_animation,
             prev_cam_position: self.prev_cam_position,
             prev_center: self.prev_center,
@@ -823,6 +826,7 @@ where
             request_redraw: self.request_redraw,
             rendering: self.rendering,
             grid: self.grid,
+            p: std::marker::PhantomData,
         }
     }
 
@@ -872,20 +876,7 @@ where
     }
 
     fn resize(&mut self, width: f32, height: f32) {
-        let dpi = self.camera.get_dpi();
-
-        let canvas = self
-            .gl
-            .canvas()
-            .unwrap()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
-        canvas.style().set_property("width", &format!("{}px", width)).unwrap();
-        canvas.style().set_property("height", &format!("{}px", height)).unwrap();
-
-        let w = (width as f32) * dpi;
-        let h = (height as f32) * dpi;
-        self.camera.set_screen_size::<P>(w, h);
+        self.camera.set_screen_size::<P>(width, height);
         // resize the view fbo
         //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo

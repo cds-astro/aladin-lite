@@ -8,7 +8,7 @@ pub struct TileFetcherQueue {
 }
 
 use crate::downloader::Downloader;
-use crate::survey::Url;
+
 impl TileFetcherQueue {
     pub fn new() -> Self {
         let queries = Vec::new();

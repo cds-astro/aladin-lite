@@ -26,14 +26,13 @@ mod tests {
         };
     }
 
-    use crate::math::{
-        angle::ArcDeg,
-        lonlat::{LonLat, LonLatT},
-    };
-    use al_api::coo_system::CooSystem;
-
     #[test]
     fn j2000_to_gal() {
+        use crate::LonLatT;
+        use crate::ArcDeg;
+        use crate::math::lonlat::LonLat;
+        use super::CooSystem;
+
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let gal_lonlat =
             super::apply_coo_system(&CooSystem::ICRSJ2000, &CooSystem::GAL, &lonlat.vector())
@@ -48,6 +47,11 @@ mod tests {
 
     #[test]
     fn gal_to_j2000() {
+        use crate::LonLatT;
+        use crate::ArcDeg;
+        use crate::math::lonlat::LonLat;
+        use super::CooSystem;
+
         let lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
         let j2000_lonlat =
             super::apply_coo_system(&CooSystem::GAL, &CooSystem::ICRSJ2000, &lonlat.vector())
@@ -61,6 +65,11 @@ mod tests {
 
     #[test]
     fn j2000_gal_roundtrip() {
+        use crate::LonLatT;
+        use crate::ArcDeg;
+        use crate::math::lonlat::LonLat;
+        use super::CooSystem;
+
         let gal_lonlat: LonLatT<f64> = LonLatT::new(ArcDeg(0.0).into(), ArcDeg(0.0).into());
 
         let icrsj2000_pos =

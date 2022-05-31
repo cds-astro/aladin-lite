@@ -144,7 +144,7 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(
         &mut self,
         aperture: Angle<f64>,
-        system: &CooSystem,
+        _system: &CooSystem,
         center: &Vector4<f64>,
     ) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {

@@ -58,7 +58,7 @@ pub enum BlendFunc {
     FuncReverseSubstract,
 }
 
-impl BlendFunc {
+/*impl BlendFunc {
     fn gl(&self) -> u32 {
         match self {
             BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
@@ -68,7 +68,7 @@ impl BlendFunc {
             //BlendFunc::Max => WebGlRenderingCtx::MAX,
         }
     }
-}
+}*/
 
 use std::fmt;
 impl fmt::Display for BlendFactor {

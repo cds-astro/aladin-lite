@@ -22,8 +22,6 @@ struct LabelMeta {
     num_idx: u16,
 }
 
-use fontdue::Font;
-
 pub struct TextRenderManager {
     gl: WebGlContext,
     shader: Shader,
@@ -42,8 +40,6 @@ pub struct TextRenderManager {
 
     indices: Vec<u16>,
     labels: Vec<LabelMeta>,
-
-    font: Font,
 }
 use al_core::VecData;
 use cgmath::{Basis2, Rad, Rotation2, Vector2};
@@ -117,7 +113,7 @@ impl TextRenderManager {
             size,
             bitmap,
             letters,
-            font,
+            ..
         } = al_core::text::rasterize_font(text_size);
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &gl,
@@ -154,7 +150,6 @@ impl TextRenderManager {
             vao,
             letters,
             font_texture,
-            font,
             text_size,
             #[cfg(feature = "webgl2")]
             vertices: vec![],
@@ -174,7 +169,7 @@ impl TextRenderManager {
             size,
             bitmap,
             letters,
-            font,
+            font: _,
         } = al_core::text::rasterize_font(text_size);
         self.font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &self.gl,

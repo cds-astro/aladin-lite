@@ -367,14 +367,11 @@ pub struct ArrayBuffer {
     num_packed_data: usize,
 
     offset_idx: u32,
-    stride: usize,
     sizes: Box<[usize]>,
-    offsets: Box<[usize]>,
 
     gl: WebGlContext,
 }
 use crate::shader::ShaderBound;
-use web_sys::console;
 impl ArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
         gl: &WebGlContext,
@@ -399,9 +396,7 @@ impl ArrayBuffer {
             num_packed_data,
 
             offset_idx,
-            stride,
             sizes: sizes.into(),
-            offsets: offsets.into(),
 
             gl,
         }

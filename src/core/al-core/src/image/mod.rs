@@ -4,8 +4,6 @@ pub mod format;
 pub mod html;
 pub mod raw;
 
-use cgmath::Vector2;
-
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
 
@@ -264,8 +262,6 @@ where
 }
 
 use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
-use js_sys::Function;
-use std::cell::Cell;
 
 use bitmap::Bitmap;
 use fits::Fits;

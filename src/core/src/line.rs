@@ -1,14 +1,14 @@
 pub const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(5.0 * std::f64::consts::PI / 180.0);
 const MIN_LENGTH_ANGLE: f64 = 0.50;
 
-use math::lonlat::{LonLat, LonLatT};
+use math::lonlat::{LonLat};
 use math::projection::{ndc_to_screen_space, Projection};
 
 pub fn project_along_longitudes_and_latitudes<P: Projection>(
     v1: &Vector3<f64>,
     v2: &Vector3<f64>,
     camera: &CameraViewPort,
-    reversed_longitude: bool,
+    _reversed_longitude: bool,
 ) -> Vec<Vector2<f64>> {
     let mid = (v1 + v2).normalize().lonlat();
     let start = v1.lonlat();
@@ -51,15 +51,10 @@ pub fn project_along_great_circles<P: Projection>(
 
 use crate::ArcDeg;
 const MAX_LENGTH_LINE_SEGMENT_SQUARED: f64 = 2.5e-2;
-const MIN_LENGTH_LINE_SEGMENT_SQUARED: f64 = 1e-4;
 use crate::math::{self, angle::Angle};
 use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
-fn vector_to_lonlat(v: &Vector3<f64>) -> Vector2<f64> {
-    let lonlat = v.lonlat();
-    Vector2::new(lonlat.0 .0, lonlat.1 .0)
-}
 
 pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
     vertices: &mut Vec<Vector2<f64>>,
@@ -67,7 +62,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
     camera: &CameraViewPort,
 ) {
     // Project them. We are always facing the camera
-    let system = camera.get_system();
+    let _system = camera.get_system();
 
     let aa = math::lonlat::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
     let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
@@ -95,9 +90,9 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let theta = math::vector::angle2(&ab, &bc);
 
             let vectors_nearly_colinear = theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION;
-            let ndc_length_enough_small = (ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
+            let ndc_length_enough_small = ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 && bc_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
-                || camera.get_aperture() < ArcDeg(10.0));
+                || camera.get_aperture() < ArcDeg(10.0);
             let is_vertices_near = math::vector::angle3(&aa, &bb) < ArcDeg(1.0)
                 && math::vector::angle3(&bb, &cc) < ArcDeg(1.0);
 
@@ -300,7 +295,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 
 pub fn subdivide_along_great_circles<P: Projection>(
     vertices: &mut Vec<Vector2<f64>>,
-    mut mp: &[Vector3<f64>; 3],
+    mp: &[Vector3<f64>; 3],
     camera: &CameraViewPort,
 ) {
     // Project them. We are always facing the camera
@@ -324,9 +319,9 @@ pub fn subdivide_along_great_circles<P: Projection>(
             let theta = math::vector::angle2(&ab, &bc);
 
             let vectors_nearly_colinear = theta.abs() < MAX_ANGLE_BEFORE_SUBDIVISION;
-            let ndc_length_enough_small = (ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
+            let ndc_length_enough_small = ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 && bc_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
-                || camera.get_aperture() < ArcDeg(10.0));
+                || camera.get_aperture() < ArcDeg(10.0);
             let ndc_length_too_small = ab_l < 2e-6 || bc_l < 2e-6;
 
             if (vectors_nearly_colinear && ndc_length_enough_small) || ndc_length_too_small {

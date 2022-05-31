@@ -20,10 +20,10 @@ use crate::{
     time::DeltaTime,
     utils,
 };
-use al_core::{resources::Resources, WebGlContext};
+//use al_core::resources::Resources;
+use al_core::WebGlContext;
 
 use al_api::{
-    color::Color,
     coo_system::CooSystem,
     grid::GridCfg,
     hips::{ImageSurveyMeta, SimpleHiPS},
@@ -40,15 +40,16 @@ use std::rc::Rc;
 
 use std::collections::HashSet;
 
-use serde::Deserialize;
+/*use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 struct S {
     ra: f64,
     dec: f64,
 }
+*/
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
-use al_ui::{Gui, GuiRef};
+
 pub struct App<P>
 where
     P: Projection,
@@ -74,7 +75,7 @@ where
 
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
-    pub resources: Resources,
+    resources: Resources,
 
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
@@ -114,22 +115,22 @@ struct InertiaAnimation {
     // The time when the inertia begins
     time_start_anim: Time,
 }
-
+/*
 struct ZoomAnimation {
     time_start_anim: Time,
     start_fov: Angle<f64>,
     goal_fov: Angle<f64>,
     w0: f64,
 }
-
+*/
 use crate::math::projection::*;
 pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
                                                //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
-use wasm_bindgen::JsCast;
 
-use math::projection::*;
+
+
 type OrthoApp = App<Orthographic>;
 type AitoffApp = App<Aitoff>;
 type MollweideApp = App<Mollweide>;
@@ -148,7 +149,7 @@ pub enum AppType {
     HEALPixApp,
     MercatorApp,
 }
-
+use al_api::resources::Resources;
 use crate::downloader::query;
 impl<P> App<P>
 where
@@ -156,7 +157,7 @@ where
 {
     pub fn new(
         gl: &WebGlContext,
-        aladin_div_name: &str,
+        _aladin_div_name: &str,
         mut shaders: ShaderManager,
         resources: Resources,
     ) -> Result<Self, JsValue> {
@@ -327,7 +328,7 @@ where
 
         Ok(tiles_available)
     }*/
-    fn run_tasks(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    /*fn run_tasks(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
         let tasks_time = (dt.0 * 0.5).min(8.3);
         let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
@@ -358,7 +359,7 @@ where
         }
 
         Ok(())
-    }
+    }*/
 }
 
 #[enum_dispatch(AppType)]
@@ -401,7 +402,7 @@ pub trait AppTrait {
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
 
     // Grid
-    fn set_grid_cfg(&mut self, cfg: GridCfg);
+    fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue>;
 
     // Coo System
     fn set_coo_system(&mut self, coo_system: CooSystem);
@@ -467,7 +468,7 @@ where
         Ok(res)
     }
 
-    fn update(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
 
         if let Some(InertiaAnimation {
@@ -763,7 +764,7 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        let new_survey_ids = self
+        let _new_survey_ids = self
             .surveys
             .set_image_surveys(hipses, &self.gl, &mut self.camera)?;
 
@@ -950,10 +951,12 @@ where
         Ok(())
     }
 
-    fn set_grid_cfg(&mut self, cfg: GridCfg) {
-        self.grid.set_cfg(cfg);
+    fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
+        self.grid.set_cfg(cfg)?;
 
         self.request_redraw = true;
+
+        Ok(())
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {

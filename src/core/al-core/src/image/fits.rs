@@ -23,7 +23,6 @@ where
 }
 
 use std::alloc::{alloc, Layout};
-use wasm_bindgen::prelude::*;
 impl<F> Fits<F>
 where
     F: FitsImageFormat,
@@ -161,7 +160,6 @@ where
 
 use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
-use web_sys::XmlHttpRequestResponseType;
 
 use crate::image::format::ImageFormat;
 use fitsrs::ToBigEndian;

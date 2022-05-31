@@ -103,7 +103,7 @@ impl CameraViewPort {
         let window = web_sys::window().unwrap();
         let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
         let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
-        let mut dpi = window.device_pixel_ratio() as f32;
+        let dpi = window.device_pixel_ratio() as f32;
         /*if width < height {
             dpi = 1.0;
         }*/

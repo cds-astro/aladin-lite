@@ -1,4 +1,3 @@
-use image::GrayAlphaImage;
 use wasm_bindgen::JsValue;
 
 use super::blend::BlendCfg;

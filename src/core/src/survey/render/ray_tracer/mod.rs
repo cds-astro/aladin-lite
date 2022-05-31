@@ -1,7 +1,6 @@
 pub mod triangulation;
 
-use crate::math::{angle::Angle, lonlat::LonLatT};
-use crate::{camera::CameraViewPort, math::projection::Projection, shader::ShaderManager};
+use crate::{camera::CameraViewPort, math::projection::Projection};
 
 use al_core::VecData;
 use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
@@ -29,8 +28,6 @@ fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
 use web_sys::WebGl2RenderingContext;
 
 pub struct RayTracer {
-    gl: WebGlContext,
-
     vao: VertexArrayObject,
     position_tex: Texture2D,
     #[cfg(feature = "webgl1")]
@@ -67,7 +64,7 @@ fn generate_xyz_position<P: Projection>() -> Vec<f32> {
 
     data
 }
-
+/*
 fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
@@ -97,7 +94,10 @@ fn generate_lonlat_position<P: Projection>() -> Vec<f32> {
 
     data
 }
+*/
+#[cfg(feature = "webgl1")]
 use cgmath::Rad;
+#[cfg(feature = "webgl1")]
 fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
@@ -226,10 +226,7 @@ impl RayTracer {
             )
         };
 
-        let gl = gl.clone();
         RayTracer {
-            gl,
-
             vao,
 
             position_tex,
@@ -264,13 +261,5 @@ impl RayTracer {
 
     pub fn is_rendering<P: Projection>(&self, camera: &CameraViewPort) -> bool {
         camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE
-    }
-}
-
-impl Drop for RayTracer {
-    fn drop(&mut self) {
-        /*self.gl.delete_vertex_array(Some(&self.vao));
-        self.gl.delete_buffer(Some(&self.vbo));
-        self.gl.delete_buffer(Some(&self.ebo));*/
     }
 }

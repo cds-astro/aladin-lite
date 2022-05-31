@@ -1,4 +1,3 @@
-#[derive(Debug, Clone, PartialEq)]
 #[repr(C, packed)]
 pub struct Source {
     pub x: f32,
@@ -12,7 +11,18 @@ impl Source {
     }
 }
 
+impl PartialEq for Source {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}
 impl Eq for Source {}
+
+impl Clone for Source {
+    fn clone(&self) -> Self {
+        Source { x: self.x, y: self.y, z: self.z }
+    }
+}
 
 use cgmath::Vector3;
 

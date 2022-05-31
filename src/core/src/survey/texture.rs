@@ -35,7 +35,7 @@ pub struct Texture {
 }
 
 use super::config::HiPSConfig;
-use crate::async_task::{TaskExecutor, TaskType};
+
 impl Texture {
     pub fn new(
         config: &HiPSConfig,
@@ -162,15 +162,15 @@ impl Texture {
     }
 
     // Setter
-    pub fn update_start_time(&mut self, start_time: Time) {
+    /*pub fn update_start_time(&mut self, start_time: Time) {
         self.start_time = Some(start_time);
-    }
+    }*/
 
     pub fn replace(
         &mut self,
         texture_cell: &HEALPixCell,
         time_request: Time,
-        config: &HiPSConfig,
+        _config: &HiPSConfig,
         //exec: &mut TaskExecutor,
     ) {
         // Cancel the tasks copying the tiles contained in the texture

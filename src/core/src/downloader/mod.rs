@@ -443,32 +443,18 @@ impl TileDownloader {
     }*/
 }*/
 
-use crate::{healpix::cell::HEALPixCell, survey::Url};
+use crate::{survey::Url};
 
-type TileUrl = Url;
-
-use al_core::image::format::ImageFormatType;
-use request::tile::TileRequest;
 use std::collections::HashSet;
 pub struct Downloader {
-    // Waiting cells to be loaded
-    //tiles_to_req: Vec<TileQuery>,
-    //base_tiles_to_req: Vec<TileQuery>,
-
     // Current requests
     requests: Vec<RequestType>,
     queried_urls: HashSet<Url>,
 }
 
-use crate::time::Time;
-use std::collections::HashMap;
-
-use al_core::log::*;
 use query::Query;
-use request::{tile::Tile, Request};
 use request::{RequestType, Resource};
-use std::sync::{Arc, Mutex};
-use wasm_bindgen::JsValue;
+
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);

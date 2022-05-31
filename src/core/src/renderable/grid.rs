@@ -1,4 +1,4 @@
-use cdshealpix::TWICE_PI;
+
 use web_sys::WebGl2RenderingContext;
 
 use crate::math::angle;
@@ -17,7 +17,6 @@ pub struct ProjetedGrid {
 
     // The vertex array object of the screen in NDC
     vao: VertexArrayObject,
-    vao_gpu: VertexArrayObject,
 
     labels: Vec<Option<Label>>,
     size_vertices_buf: usize,
@@ -47,37 +46,6 @@ impl ProjetedGrid {
         gl: &WebGlContext,
         camera: &CameraViewPort,
     ) -> Result<ProjetedGrid, JsValue> {
-        let vao_gpu = {
-            let mut vao = VertexArrayObject::new(gl);
-
-            let vertices = vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
-            let indices = vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
-
-            #[cfg(feature = "webgl2")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    "position",
-                    2 * std::mem::size_of::<f32>(),
-                    &[2],
-                    &[0],
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
-                )
-                // Set the element buffer
-                .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData(&indices));
-            #[cfg(feature = "webgl1")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    2,
-                    "position",
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
-                )
-                // Set the element buffer
-                .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, VecData(&indices));
-            vao
-        };
-
         let vao = {
             let mut vao = VertexArrayObject::new(gl);
             let vertices = vec![];
@@ -134,7 +102,6 @@ impl ProjetedGrid {
             offsets,
 
             gl,
-            vao_gpu,
 
             text_renderer,
         };
@@ -316,12 +283,11 @@ impl ProjetedGrid {
 }
 
 use crate::shader::ShaderId;
-use al_core::shader::Shader;
+
 use std::borrow::Cow;
 
 use crate::math::{
     angle::Angle,
-    projection::*,
     spherical::{BoundingBox, FieldOfViewType},
 };
 use cgmath::InnerSpace;
@@ -343,7 +309,7 @@ impl Label {
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
-        let system = camera.get_system();
+        let _system = camera.get_system();
 
         //let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
         let LonLatT(.., lat) = camera.get_center().lonlat();
@@ -445,7 +411,7 @@ impl Label {
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let system = camera.get_system();
+        let _system = camera.get_system();
         let center = camera.get_center().truncate();
         //let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
@@ -543,7 +509,7 @@ impl GridLine {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
 
-        let system = camera.get_system();
+        let _system = camera.get_system();
         let a = Vector2::new(lon, lat.start);
         let c = Vector2::new(lon, lat.end);
         let b = (a + c) * 0.5;
@@ -570,14 +536,14 @@ impl GridLine {
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
             let mut vertices = vec![];
-            let system = camera.get_system();
+            let _system = camera.get_system();
 
             //let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
-            let a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
+            let _a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
             //let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
-            let b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end) * 0.5), Angle(lat));
+            let _b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end) * 0.5), Angle(lat));
             //let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
-            let c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
+            let _c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
 
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,
@@ -644,7 +610,7 @@ fn lines<P: Projection>(
     text_renderer: &TextRenderManager,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
-    let system = camera.get_system();
+    let _system = camera.get_system();
     let fov = camera.get_field_of_view();
     let sp = if fov.contains_pole() {
         if fov.contains_north_pole(camera) {
@@ -702,7 +668,7 @@ fn lines<P: Projection>(
     if alpha == -HALF_PI {
         alpha += step_lat;
     }
-    let mut stop_alpha = bbox.lat_max();
+    let stop_alpha = bbox.lat_max();
     /*if stop_alpha == HALF_PI {
         stop_alpha -= 1e-3;
     }*/

@@ -1,6 +1,5 @@
 extern crate fontdue;
 extern crate image_decoder;
-extern crate lazy_static;
 pub mod text;
 
 pub mod image;
@@ -29,7 +28,3 @@ pub use object::vertex_array_object::vao::{
     ShaderVertexArrayObjectBound, ShaderVertexArrayObjectBoundRef, VertexArrayObject,
     VertexArrayObjectBound,
 };
-
-pub mod resources;
-
-pub use resources::Resources;

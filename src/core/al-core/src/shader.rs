@@ -231,9 +231,9 @@ use super::texture::Texture2D;
 use super::texture::CUR_IDX_TEX_UNIT;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, tex: &Self) {
-        // 1. Active the texture unit of the texture
         unsafe {
-            let tex = tex
+            let _ = tex
+                // 1. Active the texture unit of the texture
                 .active_texture(CUR_IDX_TEX_UNIT)
                 // 2. Bind the texture to that texture unit
                 .bind();

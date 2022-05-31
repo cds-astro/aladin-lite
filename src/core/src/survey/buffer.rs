@@ -7,9 +7,6 @@ pub struct TextureCellItem {
 }
 
 impl TextureCellItem {
-    fn new(cell: HEALPixCell, time_request: Time) -> Self {
-        Self { cell, time_request }
-    }
     fn is_root(&self) -> bool {
         self.cell.is_root()
     }
@@ -104,7 +101,7 @@ impl HEALPixCellHeap {
         self.0.len()
     }
 }
-use std::cell::RefCell;
+
 use std::rc::Rc;
 // Fixed sized binary heap
 pub struct ImageSurveyTextures {
@@ -131,7 +128,7 @@ pub struct ImageSurveyTextures {
     available_tiles_during_frame: bool,
     //exec: Rc<RefCell<TaskExecutor>>,
 }
-use crate::async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType};
+
 use crate::math::lonlat::LonLatT;
 use crate::JsValue;
 use al_core::WebGlContext;
@@ -176,7 +173,7 @@ fn create_texture_array<F: ImageFormat>(
     )
 }
 
-use crate::downloader::request::tile::Tile;
+
 use al_core::image::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
@@ -600,10 +597,6 @@ impl ImageSurveyTextures {
         &self.config
     }
 
-    pub fn config_mut(&mut self) -> &mut HiPSConfig {
-        &mut self.config
-    }
-
     pub fn is_ready(&self) -> bool {
         self.ready
     }
@@ -631,14 +624,14 @@ impl ImageSurveyTextures {
         ]
     }
 
-    // Get the textures in the buffer
+    /*// Get the textures in the buffer
     // The resulting array is uniq sorted
     fn get_textures(&self) -> Vec<&Texture> {
         debug_assert!(self.is_ready());
         let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
         textures
-    }
+    }*/
 
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()

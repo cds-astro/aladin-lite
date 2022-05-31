@@ -29,34 +29,33 @@ use math::projection::*;
 use wasm_bindgen::prelude::*;
 
 mod app;
-mod async_task;
+pub mod async_task;
 mod camera;
 
 mod colormap;
 mod coosys;
 mod downloader;
 mod healpix;
-mod line;
-mod math;
-mod renderable;
+pub mod line;
+pub mod math;
+pub mod renderable;
 mod shader;
 mod survey;
 mod tile_fetcher;
 mod time;
 
 use crate::{
-    camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager,
-    survey::ImageSurveys, time::DeltaTime,
+    camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
 };
 use al_api::grid::GridCfg;
-use al_api::hips::{HiPSColor, HiPSProperties, HiPSTileFormat, SimpleHiPS};
-use al_core::resources::Resources;
-use al_core::{shader::Shader, WebGlContext};
+use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
+use al_api::resources::Resources;
+use al_core::{WebGlContext};
 
 use al_api::coo_system::CooSystem;
 
 use app::App;
-use cgmath::{Vector2, Vector4};
+use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
 
@@ -77,7 +76,7 @@ use crate::app::AppType;
 use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
 
-use crate::math::projection::*;
+
 
 #[wasm_bindgen]
 impl WebClient {
@@ -317,9 +316,7 @@ impl WebClient {
             .into_serde::<GridCfg>()
             .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
 
-        self.app.set_grid_cfg(cfg);
-
-        Ok(())
+        self.app.set_grid_cfg(cfg)
     }
 
     /// Set the coordinate system for the view
@@ -471,7 +468,7 @@ impl WebClient {
 
         let (lon, lat) = (center.lon(), center.lat());
 
-        let mut lon_deg: ArcDeg<f64> = lon.into();
+        let lon_deg: ArcDeg<f64> = lon.into();
         let lat_deg: ArcDeg<f64> = lat.into();
 
         Ok(Box::new([lon_deg.0, lat_deg.0]))

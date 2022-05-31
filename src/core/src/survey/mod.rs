@@ -4,17 +4,14 @@ pub mod render;
 pub mod texture;
 pub mod view;
 
-use crate::math::projection::HEALPix;
+
 use texture::Texture;
 
-#[cfg(feature = "webgl2")]
-use al_core::image::format::{R16I, R32I, R8UI};
+
 use al_core::{
-    image::format::{R32F, RGB8U, RGBA8U},
-    image::raw::ImageBuffer,
     VecData,
 };
-use js_sys::Uint8Array;
+
 
 /*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
     let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
@@ -92,7 +89,6 @@ impl<'a, 'b> TextureToDraw<'a, 'b> {
 
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Debug,
 };
 pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
 
@@ -182,8 +178,8 @@ impl RecomputeRasterizer for Move {
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
 use crate::healpix::cell::HEALPixCell;
-use al_api::coo_system::CooSystem;
-use cgmath::InnerSpace;
+
+
 
 impl RecomputeRasterizer for Zoom {
     // Returns:
@@ -367,7 +363,7 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
-const MAX_NUM_CELLS_TO_DRAW: usize = 768;
+//const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4};
 
 use render::rasterizer::uv::{TileCorner, TileUVW};
@@ -393,7 +389,7 @@ fn add_vertices_grid(
 
     alpha: f32,
 
-    camera: &CameraViewPort,
+    _camera: &CameraViewPort,
 ) {
     let num_subdivision = num_subdivision(cell);
 
@@ -506,25 +502,22 @@ pub struct ImageSurvey {
 }
 use crate::{
     camera::UserAction,
-    downloader::request::{tile::Tile, Request},
     math::lonlat::LonLatT,
     utils,
 };
 
 use al_core::{
-    image::format::{ImageFormat, ImageFormatType},
     image::Image,
-    texture::Pixel,
 };
-use wasm_bindgen::JsCast;
-use web_sys::{WebGl2RenderingContext, WheelEvent};
+
+use web_sys::{WebGl2RenderingContext};
 
 use crate::math::lonlat::LonLat;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
         gl: &WebGlContext,
-        camera: &CameraViewPort,
+        _camera: &CameraViewPort,
     ) -> Result<Self, JsValue> {
         let mut vao = VertexArrayObject::new(gl);
 
@@ -639,7 +632,7 @@ impl ImageSurvey {
         let num_idx = 0;
 
         let textures = ImageSurveyTextures::new(gl, config)?;
-        let conf = textures.config();
+        let _conf = textures.config();
         let view = HEALPixCellsInView::new();
 
         let gl = gl.clone();
@@ -738,7 +731,7 @@ impl ImageSurvey {
         self.idx_vertices.clear();
 
         let survey_config = self.textures.config();
-        let depth = self.view.get_depth();
+        let _depth = self.view.get_depth();
 
         let textures = T::get_textures_from_survey(&self.view, &self.textures);
 
@@ -850,10 +843,10 @@ impl ImageSurvey {
         self.textures.config()
     }
 
-    #[inline]
+    /*#[inline]
     pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
         self.textures.config_mut()
-    }
+    }*/
 
     /*#[inline]
     pub fn get_textures_mut(&mut self) -> &mut ImageSurveyTextures {
@@ -892,7 +885,7 @@ const ID_R: &'static Matrix4<f64> = &Matrix4::new(
 );
 
 use crate::time::Time;
-use al_api::coo_system::CooBaseFloat;
+
 use cgmath::Matrix;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
@@ -908,7 +901,7 @@ impl Draw for ImageSurvey {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
         let hips_frame = self.textures.config().get_frame();
-        let C = selected_frame.to(&hips_frame);
+        let c = selected_frame.to(&hips_frame);
 
         // Get whether the camera mode is longitude reversed
         let longitude_reversed = self.textures.config().longitude_reversed;
@@ -927,7 +920,7 @@ impl Draw for ImageSurvey {
         opacity *= fading;
 
         // Retrieve the model and inverse model matrix
-        let w2v = C * (*camera.get_w2m()) * rl;
+        let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
         let raytracing = raytracer.is_rendering::<P>(camera);
@@ -1015,8 +1008,8 @@ use wasm_bindgen::JsValue;
 //}
 
 use crate::{HiPSColor, SimpleHiPS};
-use std::cell::RefCell;
-use std::rc::Rc;
+
+
 /*impl HiPS for SimpleHiPS {
     fn color(&self, colormaps: &Colormaps) -> Color {
         let color = match self.color.clone() {
@@ -1081,13 +1074,13 @@ enum RenderingMode {
 }
 
 use crate::colormap::Colormaps;
-use crate::Resources;
+
 use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
-        camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
+        _camera: &CameraViewPort,
+        _shaders: &mut ShaderManager,
     ) -> Self {
         let surveys = HashMap::new();
         let meta = HashMap::new();
@@ -1099,7 +1092,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let longitude_reversed = false;
+        let _longitude_reversed = false;
         let raytracer = RayTracer::new::<P>(gl);
         let gl = gl.clone();
         let most_precise_survey = String::new();
@@ -1143,24 +1136,10 @@ impl ImageSurveys {
         }
     }
 
-    pub fn read_pixel(
-        &self,
-        pos: &LonLatT<f64>,
-        url: &Url,
-        camera: &CameraViewPort,
-    ) -> Result<JsValue, JsValue> {
-        if let Some(survey) = self.surveys.get(url) {
-            // Read the pixel from the first survey of layer
-            survey.read_pixel(pos, camera)
-        } else {
-            Err(JsValue::from_str("No survey found"))
-        }
-    }
-
     pub fn set_projection<P: Projection>(
         &mut self,
-        camera: &CameraViewPort,
-        shaders: &mut ShaderManager,
+        _camera: &CameraViewPort,
+        _shaders: &mut ShaderManager,
     ) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl);
@@ -1363,10 +1342,6 @@ impl ImageSurveys {
     }
 
     // Accessors
-    pub fn get(&self, url: &Url) -> Option<&ImageSurvey> {
-        self.surveys.get(url)
-    }
-
     pub fn get_from_layer(&self, id: &str) -> Option<&ImageSurvey> {
         self.urls.get(id).map(|url| self.surveys.get(url).unwrap())
     }
@@ -1384,5 +1359,5 @@ impl ImageSurveys {
     }
 }
 
-use crate::{async_task::TaskExecutor, shader::ShaderManager, survey::config::HiPSConfig};
+use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 use std::collections::hash_map::IterMut;

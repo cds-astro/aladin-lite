@@ -1,4 +1,4 @@
-use al_core::image::format::RGBA32F;
+
 use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 #[derive(Debug)]
 pub struct EmptyTileImage {
@@ -94,8 +94,8 @@ impl Image for EmptyTileImage {
 use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 
 //use super::TileArrayBuffer;
-use crate::WebGlContext;
-use std::rc::Rc;
+
+
 
 /*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
@@ -139,7 +139,6 @@ pub struct HiPSConfig {
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
-    max_depth_tile: u8,
     max_depth_texture: u8,
     num_textures_by_side_slice: i32,
     num_textures_by_slice: i32,
@@ -193,7 +192,7 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let fmt = properties.get_formats();
+        let _fmt = properties.get_formats();
         let longitude_reversed = properties.longitude_reversed;
         let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
@@ -277,7 +276,6 @@ impl HiPSConfig {
             num_tiles_per_texture,
             // Max depth of the current HiPS tiles
             max_depth_texture,
-            max_depth_tile,
             num_textures_by_side_slice,
             num_textures_by_slice,
             num_slices,

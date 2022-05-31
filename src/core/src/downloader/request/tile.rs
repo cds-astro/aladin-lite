@@ -1,7 +1,7 @@
-use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
+use crate::{healpix::cell::HEALPixCell};
 use al_core::image::format::ImageFormatType;
 
-use crate::downloader::{query, request};
+use crate::downloader::{query};
 use al_core::image::{bitmap::Bitmap, fits::Fits, ImageType};
 
 use super::{Request, RequestType};
@@ -19,7 +19,7 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-use super::ResolvedStatus;
+
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, RequestInit, RequestMode, Response};

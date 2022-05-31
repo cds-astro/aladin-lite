@@ -8,7 +8,7 @@ const MINUS_HALF_PI: f64 = -std::f64::consts::PI * 0.5;
 
 use crate::math::angle::Angle;
 
-use cgmath::InnerSpace;
+
 
 use crate::math::lonlat::LonLat;
 use cdshealpix::sph_geom::{
@@ -100,7 +100,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox, poles } => {
+            FieldOfViewType::Polygon { poly, bbox: _, poles: _ } => {
                 let lon = lon.into();
                 let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
 
@@ -137,7 +137,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(center.lon(), Angle(lat)).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox, poles } => {
+            FieldOfViewType::Polygon { poly, bbox, poles: _ } => {
                 // Prune parallels that do not intersect the fov
                 if bbox.contains_latitude(lat) {
                     // For those intersecting, perform the intersection
@@ -168,7 +168,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_north_pole(&self, camera: &CameraViewPort) -> bool {
+    pub fn contains_north_pole(&self, _camera: &CameraViewPort) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -181,7 +181,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_south_pole(&self, camera: &CameraViewPort) -> bool {
+    pub fn contains_south_pole(&self, _camera: &CameraViewPort) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -200,7 +200,7 @@ const ALLSKY_BBOX: BoundingBox = BoundingBox {
     lat: MINUS_HALF_PI..HALF_PI,
 };
 
-use std::ops::{Bound, Range};
+use std::ops::{Range};
 #[derive(Debug)]
 pub struct BoundingBox {
     pub lon: Range<f64>,

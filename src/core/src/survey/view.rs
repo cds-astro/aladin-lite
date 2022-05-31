@@ -164,11 +164,11 @@ impl HEALPixCellsInView {
         self.is_new_cells_added
     }
 
-    #[inline]
+    /*#[inline]
     pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {
         debug_assert!(camera.get_last_user_action() == UserAction::Unzooming);
         self.look_for_parents
-    }
+    }*/
 
     #[inline]
     fn has_depth_decreased(&self) -> bool {

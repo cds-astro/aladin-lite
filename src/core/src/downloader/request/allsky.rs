@@ -1,8 +1,8 @@
-use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
+
 use al_core::image::format::ImageFormatType;
 
-use crate::downloader::{query, request};
-use al_core::image::{bitmap::Bitmap, fits::Fits, ImageType};
+use crate::downloader::{query};
+use al_core::image::{fits::Fits, ImageType};
 
 use super::{Request, RequestType};
 pub struct AllskyRequest {
@@ -18,10 +18,10 @@ impl From<AllskyRequest> for RequestType {
     }
 }
 
-use super::ResolvedStatus;
+
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response};
 
 use al_core::{image::raw::ImageBuffer, texture::Pixel};
 use wasm_bindgen::JsCast;
@@ -171,7 +171,7 @@ async fn handle_allsky_file<F: ImageFormat>(
     let mut src_idx = 0;
     let mut tiles = Vec::with_capacity(12);
 
-    for idx in 0..12 {
+    for _idx in 0..12 {
         let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, 512, 512);
         for idx_tile in 0..64 {
             let (x, y) = crate::utils::unmortonize(idx_tile);

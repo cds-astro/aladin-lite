@@ -10,9 +10,6 @@ pub struct ArrayBufferInstanced {
     offset_idx: u32,
 
     num_instances: i32,
-    num_bytes_per_instance: i32,
-    num_bytes_in_buf: i32,
-    usage: u32,
     sizes: Vec<usize>,
     stride: usize,
 
@@ -41,7 +38,7 @@ impl ArrayBufferInstanced {
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
-        offsets: &[usize],
+        _offsets: &[usize],
         usage: u32,
         data: B,
     ) -> ArrayBufferInstanced {
@@ -49,10 +46,8 @@ impl ArrayBufferInstanced {
         let num_f32_per_instance = sizes.iter().sum::<usize>() as i32;
         // Total length
         let num_f32_in_buf = data.len() as i32;
-        let num_bytes_in_buf = num_f32_in_buf * (std::mem::size_of::<f32>() as i32);
 
         let num_instances = num_f32_in_buf / (num_f32_per_instance as i32);
-        let num_bytes_per_instance = num_f32_per_instance * (std::mem::size_of::<f32>() as i32);
 
         let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
 
@@ -79,13 +74,10 @@ impl ArrayBufferInstanced {
             num_packed_data,
             offset_idx,
 
-            usage,
             sizes: sizes.to_vec(),
             stride,
 
             num_instances,
-            num_bytes_per_instance,
-            num_bytes_in_buf,
             gl,
         }
     }

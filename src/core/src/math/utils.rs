@@ -32,20 +32,13 @@ const fn num_bits<T>() -> usize {
 
 use num::traits::PrimInt;
 use num::traits::Zero;
-#[inline]
-pub fn log_2_checked<T>(x: T) -> u32
-where
-    T: PrimInt + Zero,
-{
-    debug_assert!(x > T::zero());
-    num_bits::<T>() as u32 - x.leading_zeros() - 1
-}
 
 #[inline]
 pub fn log_2_unchecked<T>(x: T) -> u32
 where
     T: PrimInt,
 {
+    debug_assert!(x > T::zero());
     num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 

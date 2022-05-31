@@ -48,7 +48,7 @@ where
     pub fn allocate(pixel_fill: &<T as ImageFormat>::P, width: i32, height: i32) -> ImageBuffer<T> {
         let size_buf = ((width * height) as usize) * (T::NUM_CHANNELS);
 
-        let mut data = pixel_fill
+        let data = pixel_fill
             .as_ref()
             .iter()
             .cloned()
@@ -69,7 +69,7 @@ where
         dx: i32,
         dy: i32,
         dw: i32,
-        dh: i32,
+        _dh: i32,
     ) {
         let mut di = dx;
         let mut dj = dy;

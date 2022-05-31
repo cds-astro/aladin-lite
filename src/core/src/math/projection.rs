@@ -95,7 +95,7 @@ use crate::shader::GetShader;
 use crate::survey::render::ray_tracer::Triangulate;
 use al_api::coo_system::CooSystem;
 use cgmath::InnerSpace;
-use cgmath::Matrix;
+
 use cgmath::Vector4;
 #[enum_dispatch(ProjectionType)]
 pub trait Projection:
@@ -984,5 +984,6 @@ mod tests {
         generate_projection_map::<Mollweide>("./../img/mollweide.png");
         generate_projection_map::<Mercator>("./../img/mercator.png");
         generate_projection_map::<Orthographic>("./../img/sinus.png");
+        generate_projection_map::<HEALPix>("./../img/healpix.png");
     }
 }

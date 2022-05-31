@@ -5,7 +5,7 @@ pub mod tile;
 
 /* ------------------------------------- */
 
-use crate::{healpix::cell::HEALPixCell, time::Time};
+use crate::{time::Time};
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -50,7 +50,7 @@ where
                 if let Ok(resp) = resp {
                     *(data_cloned.lock().unwrap()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
-                } else if let Err(err) = resp {
+                } else if let Err(_err) = resp {
                     resolved_cloned.set(ResolvedStatus::Missing);
                 }
             };
@@ -65,10 +65,6 @@ where
         }
     }
 
-    pub fn get_time_request(&self) -> Time {
-        self.time_request
-    }
-
     pub fn is_resolved(&self) -> bool {
         let resolved = self.resolve_status();
         resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Missing
@@ -76,10 +72,6 @@ where
 
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
-    }
-
-    pub fn get(&self) -> Arc<Mutex<Option<R>>> {
-        self.data.clone()
     }
 }
 

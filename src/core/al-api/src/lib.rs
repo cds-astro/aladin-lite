@@ -8,3 +8,4 @@ pub mod colormap;
 pub mod coo_system;
 pub mod grid;
 pub mod hips;
+pub mod resources;

@@ -7,6 +7,7 @@ use web_sys::HtmlImageElement;
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct Texture2DMeta {
     pub format: u32,
     pub internal_format: i32,

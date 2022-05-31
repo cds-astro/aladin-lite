@@ -9,7 +9,6 @@ pub trait Pixel:
     + std::cmp::PartialEq
     + std::fmt::Debug
     + std::clone::Clone
-    + serde::ser::Serialize
 {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
     type Container: ArrayBuffer<Item = Self::Item>;

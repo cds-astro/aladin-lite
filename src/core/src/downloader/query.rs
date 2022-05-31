@@ -1,6 +1,6 @@
 pub type Url = String;
 
-use super::request::{RequestType, Resource};
+use super::request::{RequestType};
 pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
@@ -18,7 +18,7 @@ pub struct Tile {
     pub url: Url,
 }
 
-use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig, time::Time};
+use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 
 impl Tile {
     pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {

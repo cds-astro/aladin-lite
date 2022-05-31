@@ -1,10 +1,13 @@
 use super::source::Source;
 use crate::ShaderManager;
 use al_api::colormap::Colormap;
+use al_api::resources::Resources;
+
 use al_core::FrameBufferObject;
 use al_core::{
-    resources::Resources, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
+    shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
+
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use web_sys::WebGl2RenderingContext;
@@ -159,9 +162,9 @@ impl Manager {
         name: String,
         sources: Box<[Source]>,
         colormap: Colormap,
-        shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        _shaders: &mut ShaderManager,
+        _camera: &CameraViewPort,
+        _view: &HEALPixCellsInView,
     ) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
@@ -503,7 +506,7 @@ impl Catalog {
         Ok(())
     }
 }
-pub fn get_catalog_shader<'a>(
+/*pub fn get_catalog_shader<'a>(
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
 ) -> Result<&'a Shader, JsValue> {
@@ -516,7 +519,7 @@ pub fn get_catalog_shader<'a>(
             ),
         )
         .map_err(|e| e.into())
-}
+}*/
 
 pub trait CatalogShaderProjection {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;

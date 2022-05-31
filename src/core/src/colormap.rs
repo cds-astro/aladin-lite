@@ -13,7 +13,7 @@ YIOrBr = 10,
 cubehelix = 11,
 eosb = 12,
 */
-use al_core::resources::Resources;
+use al_api::resources::Resources;
 use std::collections::HashMap;
 
 use al_core::Texture2D;

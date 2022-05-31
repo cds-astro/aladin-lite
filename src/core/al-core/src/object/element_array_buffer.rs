@@ -29,7 +29,6 @@ impl VertexBufferObject for ElementArrayBuffer {
 
 use super::array_buffer::VertexAttribPointerType;
 use super::buffer_data::BufferDataStorage;
-use web_sys::console;
 
 impl ElementArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(

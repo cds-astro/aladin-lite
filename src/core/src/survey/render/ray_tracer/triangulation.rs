@@ -103,16 +103,6 @@ pub struct Triangulation {
     pub idx: Vec<u16>,
 }
 
-impl Triangulation {
-    pub fn vertices(&self) -> &Vec<Vector2<f64>> {
-        &self.vertices
-    }
-
-    pub fn idx(&self) -> &Vec<u16> {
-        &self.idx
-    }
-}
-
 fn build<P: Projection>() -> Triangulation {
     let (mut vertices, mut idx) = (Vec::new(), Vec::new());
 

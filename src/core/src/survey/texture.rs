@@ -34,8 +34,8 @@ pub struct Texture {
     missing: bool,
 }
 
-use crate::async_task::{TaskExecutor, TaskType};
 use super::config::HiPSConfig;
+use crate::async_task::{TaskExecutor, TaskType};
 impl Texture {
     pub fn new(
         config: &HiPSConfig,
@@ -110,7 +110,7 @@ impl Texture {
         } else {
             let num_tiles_per_texture = config.num_tiles_per_texture();
             self.num_tiles_written += 1;
-    
+
             // The texture is available to be drawn if all its
             // sub tiles have been written to the texture array
             if self.num_tiles_written == num_tiles_per_texture {

@@ -1,8 +1,8 @@
-pub mod raw;
-pub mod format;
-pub mod fits;
 pub mod bitmap;
+pub mod fits;
+pub mod format;
 pub mod html;
+pub mod raw;
 
 use cgmath::Vector2;
 
@@ -196,7 +196,7 @@ pub trait Image {
 
 impl<'a, I> Image for &'a I
 where
-    I: Image
+    I: Image,
 {
     fn tex_sub_image_3d(
         &self,
@@ -263,8 +263,8 @@ where
     }*/
 }
 
-use crate::image::format::{R8UI, R16I, R32I, R32F, RGBA8U, RGB8U};
-use js_sys::{Function};
+use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use js_sys::Function;
 use std::cell::Cell;
 
 use bitmap::Bitmap;
@@ -314,7 +314,7 @@ impl Image for ImageType {
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawRgba8u { image} => image.tex_sub_image_3d(textures, offset),
+            ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR32i { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR16i { image } => image.tex_sub_image_3d(textures, offset),
@@ -334,7 +334,6 @@ impl Image for ImageType {
         }
     }*/
 }
-
 
 /*
 pub trait ImageRequest<F>

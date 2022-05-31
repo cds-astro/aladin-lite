@@ -32,6 +32,6 @@ pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
 
     let new_len = len * std::mem::size_of::<I>() / std::mem::size_of::<O>();
     let out_slice_ptr = std::slice::from_raw_parts_mut(in_slice_ptr as *mut O, new_len);
-    
+
     Box::from_raw(out_slice_ptr)
 }

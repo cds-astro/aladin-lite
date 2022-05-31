@@ -11,8 +11,8 @@ where
 }
 use cgmath::{Vector2, Vector3};
 
-use crate::image::Image;
 use crate::image::format::ImageFormat;
+use crate::image::Image;
 use crate::texture::Texture2DArray;
 impl<F> Image for HTMLImage<F>
 where

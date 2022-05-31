@@ -3,8 +3,6 @@ use std::cmp::Ordering;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct HEALPixCell(pub u8, pub u64);
 
-
-
 use crate::survey::config::HiPSConfig;
 use crate::utils;
 impl HEALPixCell {
@@ -25,14 +23,13 @@ impl HEALPixCell {
         let HEALPixCell(depth, idx) = self;
         let delta_depth = std::cmp::min(delta_depth, depth);
 
-        
         HEALPixCell(depth - delta_depth, idx >> (2 * delta_depth))
     }
 
     // Get the texture cell in which the tile is
     pub fn get_texture_cell(&self, config: &HiPSConfig) -> HEALPixCell {
         let delta_depth_to_texture = config.delta_depth();
-        
+
         self.ancestor(delta_depth_to_texture)
     }
     pub fn get_offset_in_texture_cell(&self, config: &HiPSConfig) -> (u32, u32) {
@@ -80,7 +77,7 @@ impl HEALPixCell {
 
     // Returns the tile cells being contained into self
     #[inline]
-    pub fn get_tile_cells(&self, config: &HiPSConfig) -> impl Iterator<Item=HEALPixCell> {
+    pub fn get_tile_cells(&self, config: &HiPSConfig) -> impl Iterator<Item = HEALPixCell> {
         let delta_depth = config.delta_depth();
         self.get_children_cells(delta_depth)
     }
@@ -96,7 +93,7 @@ impl HEALPixCell {
     }
 
     #[inline]
-    pub fn allsky(depth: u8) -> impl Iterator<Item=HEALPixCell> {
+    pub fn allsky(depth: u8) -> impl Iterator<Item = HEALPixCell> {
         let npix = 12 << ((depth as usize) << 1);
         (0_u64..(npix as u64)).map(move |pix| HEALPixCell(depth, pix))
     }

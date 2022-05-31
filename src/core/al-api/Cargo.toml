@@ -34,39 +34,41 @@ webgl2 = [
 version = "0.3.56"
 features = [
   'console',
+  'CssStyleDeclaration',
   'Document',
   'Element',
   'HtmlCollection',
   'HtmlElement',
   'HtmlImageElement',
   'HtmlCanvasElement',
+  'Blob',
+  'ImageBitmap',
+  'ImageData',
+
+  'CanvasRenderingContext2d',
+
   'MouseEvent',
   'WheelEvent',
-  'EventTarget',
-  'WebGlBuffer',                  
+
+  'WebGlBuffer',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',
   'WebGlShader',
   'WebGlUniformLocation',
   'WebGlTexture',
+  'WebGlActiveInfo',
+
   'Window',
-  'Headers',
   'Request',
   'RequestInit',
   'RequestMode',
   'Response',
   'XmlHttpRequest',
-  'XmlHttpRequestEventTarget',
   'XmlHttpRequestResponseType',
   'PerformanceTiming',
   'Performance',
-  'CanvasRenderingContext2d',
-  'TextMetrics',
-  'ImageData',
-  'Storage',
-  'WebGlActiveInfo',
-  'GpuRenderBundleEncoder'
+  'Url',
 ]
 
 [profile.dev]

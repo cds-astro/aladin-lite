@@ -1,9 +1,6 @@
 pub mod triangulation;
 
-use crate::math::{
-    angle::Angle,
-    lonlat::LonLatT
-};
+use crate::math::{angle::Angle, lonlat::LonLatT};
 use crate::{camera::CameraViewPort, math::projection::Projection, shader::ShaderManager};
 
 use al_core::VecData;
@@ -12,7 +9,7 @@ use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
-pub use triangulation::{Triangulation, Triangulate};
+pub use triangulation::{Triangulate, Triangulation};
 
 fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
     let Triangulation { vertices, idx } = P::triangulate();
@@ -157,8 +154,7 @@ fn create_f32_texture_from_raw(
     .unwrap();
 
     let buf_data = unsafe { js_sys::Float32Array::view(data) };
-    tex
-        .bind()
+    tex.bind()
         .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
             0,
             0,
@@ -171,9 +167,7 @@ fn create_f32_texture_from_raw(
 }
 
 impl RayTracer {
-    pub fn new<P: Projection>(
-        gl: &WebGlContext,
-    ) -> RayTracer {
+    pub fn new<P: Projection>(gl: &WebGlContext) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>();
 
         let mut vao = VertexArrayObject::new(gl);

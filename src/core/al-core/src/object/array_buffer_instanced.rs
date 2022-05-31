@@ -63,13 +63,7 @@ impl ArrayBufferInstanced {
         // Link to the shader
         let idx = offset_idx;
 
-        f32::vertex_attrib_pointer_with_i32(
-            &gl,
-            idx,
-            *sizes.first().unwrap() as i32,
-            0,
-            0,
-        );
+        f32::vertex_attrib_pointer_with_i32(&gl, idx, *sizes.first().unwrap() as i32, 0, 0);
         gl.enable_vertex_attrib_array(idx);
 
         #[cfg(feature = "webgl2")]
@@ -96,7 +90,11 @@ impl ArrayBufferInstanced {
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
         assert_eq!(self.sizes.len(), 1);
         self.gl.vertex_attrib_pointer_with_i32(
@@ -112,12 +110,19 @@ impl ArrayBufferInstanced {
         #[cfg(feature = "webgl2")]
         self.gl.vertex_attrib_divisor(loc as u32, 1);
         #[cfg(feature = "webgl1")]
-        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 1);
+        self.gl
+            .ext
+            .angles
+            .vertex_attrib_divisor_angle(loc as u32, 1);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
-        
+
         self.gl.disable_vertex_attrib_array(loc as u32);
     }
 

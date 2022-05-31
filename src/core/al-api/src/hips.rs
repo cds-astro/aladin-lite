@@ -18,8 +18,7 @@ impl IntoIterator for CompositeHiPS {
     }
 }
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SimpleHiPS {
     /// Layer name
@@ -60,8 +59,7 @@ impl SimpleHiPS {
 
 use crate::coo_system::CooSystem;
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HiPSProperties {
     // Associated with the HiPS
@@ -79,7 +77,17 @@ pub struct HiPSProperties {
 }
 
 impl HiPSProperties {
-    pub fn new(url: String, max_order: u8, frame: CooSystem, longitude_reversed: bool, tile_size: i32, min_cutout: Option<f32>, max_cutout: Option<f32>, bitpix: Option<i32>, formats: Vec<HiPSTileFormat>) -> Self {
+    pub fn new(
+        url: String,
+        max_order: u8,
+        frame: CooSystem,
+        longitude_reversed: bool,
+        tile_size: i32,
+        min_cutout: Option<f32>,
+        max_cutout: Option<f32>,
+        bitpix: Option<i32>,
+        formats: Vec<HiPSTileFormat>,
+    ) -> Self {
         Self {
             url,
             max_order,
@@ -89,7 +97,7 @@ impl HiPSProperties {
             formats,
             bitpix,
             min_cutout,
-            max_cutout
+            max_cutout,
         }
     }
 
@@ -118,13 +126,12 @@ impl HiPSProperties {
     }
 }
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[wasm_bindgen]
 pub enum HiPSTileFormat {
     FITS,
     JPEG,
-    PNG
+    PNG,
 }
 
 use serde::Serialize;
@@ -150,8 +157,7 @@ impl Default for GrayscaleParameter {
 
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize)]
 pub enum TransferFunction {
     Linear,
     Sqrt,
@@ -184,16 +190,15 @@ impl From<String> for TransferFunction {
 
 use crate::colormap::Colormap;
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum HiPSColor {
     // FITS tile
     Grayscale {
         tf: TransferFunction,
-        #[serde(rename="minCut")]
+        #[serde(rename = "minCut")]
         min_cut: Option<f32>,
-        #[serde(rename="maxCut")]
+        #[serde(rename = "maxCut")]
         max_cut: Option<f32>,
 
         color: GrayscaleColor,
@@ -206,10 +211,7 @@ pub enum HiPSColor {
 #[serde(rename_all = "camelCase")]
 #[derive(Clone, Copy)]
 pub enum GrayscaleColor {
-    Colormap {
-        reversed: bool,
-        name: Colormap,
-    },
+    Colormap { reversed: bool, name: Colormap },
     Color([f32; 4]),
 }
 /*
@@ -251,8 +253,9 @@ fn default_opacity() -> f32 {
 impl ImageSurveyMeta {
     #[wasm_bindgen(setter = color)]
     pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
-        self.color = color.into_serde()
-            .map_err(|e|  JsValue::from_str(&e.to_string()))?;
+        self.color = color
+            .into_serde()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         Ok(())
     }
@@ -263,24 +266,59 @@ impl ImageSurveyMeta {
 
         let color = match &self.color {
             HiPSColor::Color => JsValue::from_str("Colored"),
-            HiPSColor::Grayscale { tf, min_cut, max_cut, color } => {
+            HiPSColor::Grayscale {
+                tf,
+                min_cut,
+                max_cut,
+                color,
+            } => {
                 let js_grayscale = js_sys::Object::new();
 
-                js_sys::Reflect::set(&js_grayscale, &"tf".into(), &JsValue::from_serde(&tf).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale, &"minCut".into(), &JsValue::from_serde(min_cut).unwrap()).unwrap();
-                js_sys::Reflect::set(&js_grayscale, &"maxCut".into(), &JsValue::from_serde(max_cut).unwrap()).unwrap();
+                js_sys::Reflect::set(
+                    &js_grayscale,
+                    &"tf".into(),
+                    &JsValue::from_serde(&tf).unwrap(),
+                )
+                .unwrap();
+                js_sys::Reflect::set(
+                    &js_grayscale,
+                    &"minCut".into(),
+                    &JsValue::from_serde(min_cut).unwrap(),
+                )
+                .unwrap();
+                js_sys::Reflect::set(
+                    &js_grayscale,
+                    &"maxCut".into(),
+                    &JsValue::from_serde(max_cut).unwrap(),
+                )
+                .unwrap();
 
                 let js_color = match color {
                     GrayscaleColor::Color(color) => {
                         let js_color = js_sys::Object::new();
-                        js_sys::Reflect::set(&js_color, &"color".into(), &JsValue::from_serde(&color).unwrap()).unwrap();
+                        js_sys::Reflect::set(
+                            &js_color,
+                            &"color".into(),
+                            &JsValue::from_serde(&color).unwrap(),
+                        )
+                        .unwrap();
 
                         js_color
-                    },
+                    }
                     GrayscaleColor::Colormap { reversed, name } => {
                         let js_colormap = js_sys::Object::new();
-                        js_sys::Reflect::set(&js_colormap, &"reversed".into(), &JsValue::from_bool(*reversed)).unwrap();
-                        js_sys::Reflect::set(&js_colormap, &"colormap".into(), &JsValue::from_serde(name).unwrap()).unwrap();
+                        js_sys::Reflect::set(
+                            &js_colormap,
+                            &"reversed".into(),
+                            &JsValue::from_bool(*reversed),
+                        )
+                        .unwrap();
+                        js_sys::Reflect::set(
+                            &js_colormap,
+                            &"colormap".into(),
+                            &JsValue::from_serde(name).unwrap(),
+                        )
+                        .unwrap();
 
                         js_colormap
                     }

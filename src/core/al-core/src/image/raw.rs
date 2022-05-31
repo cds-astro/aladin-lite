@@ -20,42 +20,32 @@ where
         debug_assert!(size_buf == data.len() as i32);
         //let buf = <<T as ImageFormat>::P as Pixel>::Container::new(buf);
         let size = Vector2::new(width, height);
-        Self {
-            data,
-            size,
-        }
+        Self { data, size }
     }
 
     pub fn from_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
-        let format = <T as ImageFormat>::IMAGE_DECODER_TYPE
-            .ok_or(JsValue::from_str("Format not supported. This image may not be compressed."))?;
-        let mut decoded_bytes = image_decoder::load_from_memory_with_format(
-            raw_bytes,
-            format,
-        ).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
-        .into_bytes();
+        let format = <T as ImageFormat>::IMAGE_DECODER_TYPE.ok_or(JsValue::from_str(
+            "Format not supported. This image may not be compressed.",
+        ))?;
+        let mut decoded_bytes = image_decoder::load_from_memory_with_format(raw_bytes, format)
+            .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?
+            .into_bytes();
 
         let decoded_bytes = unsafe {
-            decoded_bytes.set_len(decoded_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>());
+            decoded_bytes.set_len(
+                decoded_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
+            );
             std::mem::transmute(decoded_bytes)
         };
         Ok(Self::new(decoded_bytes, width, height))
     }
 
-
     pub fn empty() -> Self {
         let size = Vector2::new(0, 0);
-        Self {
-            data: vec![],
-            size,
-        }
+        Self { data: vec![], size }
     }
 
-    pub fn allocate(
-        pixel_fill: &<T as ImageFormat>::P,
-        width: i32,
-        height: i32,
-    ) -> ImageBuffer<T> {
+    pub fn allocate(pixel_fill: &<T as ImageFormat>::P, width: i32, height: i32) -> ImageBuffer<T> {
         let size_buf = ((width * height) as usize) * (T::NUM_CHANNELS);
 
         let mut data = pixel_fill
@@ -69,12 +59,23 @@ where
         ImageBuffer::<T>::new(data, width, height)
     }
 
-    pub fn tex_sub(&mut self, src: &Self, sx: i32, sy: i32, sw: i32, sh: i32, dx: i32, dy: i32, dw: i32, dh: i32) {
+    pub fn tex_sub(
+        &mut self,
+        src: &Self,
+        sx: i32,
+        sy: i32,
+        sw: i32,
+        sh: i32,
+        dx: i32,
+        dy: i32,
+        dw: i32,
+        dh: i32,
+    ) {
         let mut di = dx;
         let mut dj = dy;
 
-        for ix in sx..(sx+sw) {
-            for iy in sy..(sy+sh) {
+        for ix in sx..(sx + sw) {
+            for iy in sy..(sy + sh) {
                 let s_idx = (iy * src.width() + ix) as usize;
                 let d_idx = (di * self.width() + dj) as usize;
 
@@ -111,7 +112,7 @@ where
     }
 }
 
-use crate::image::format::{RGB8U, RGBA8U, R32F, R8UI, R16I, R32I};
+use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 pub enum ImageBufferType {
     JPG(ImageBuffer<RGB8U>),
     PNG(ImageBuffer<RGBA8U>),
@@ -121,9 +122,9 @@ pub enum ImageBufferType {
     R32I(ImageBuffer<R32I>),
 }
 
-use crate::Texture2DArray;
-use cgmath::{Vector3, Vector2};
 use crate::image::{ArrayBuffer, Image};
+use crate::Texture2DArray;
+use cgmath::{Vector2, Vector3};
 impl<I> Image for ImageBuffer<I>
 where
     I: ImageFormat,
@@ -135,7 +136,8 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
-        let js_array = <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
+        let js_array =
+            <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(

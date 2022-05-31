@@ -1,12 +1,7 @@
 use al_core::FrameBufferObject;
-use {
-    wasm_bindgen::{prelude::*},
-    web_sys::{
-        WebGl2RenderingContext,
-    },
-};
-use al_core::{shader::Shader, VecData, VertexArrayObject};
 use al_core::WebGlContext;
+use al_core::{shader::Shader, VecData, VertexArrayObject};
+use {wasm_bindgen::prelude::*, web_sys::WebGl2RenderingContext};
 pub struct RenderPass {
     gl: WebGlContext,
     vao: VertexArrayObject,

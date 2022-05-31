@@ -2,8 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use serde::{Deserialize, Serialize};
 #[wasm_bindgen]
-#[derive(Clone, Debug, Copy, PartialEq)]
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Copy, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Colormap {
     Blues = 0,
@@ -18,5 +17,5 @@ pub enum Colormap {
     Spectral = 9,
     Summer = 10,
     Yignbu = 11,
-    Yiorbr = 12
+    Yiorbr = 12,
 }

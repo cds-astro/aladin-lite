@@ -1,9 +1,5 @@
 use crate::math::angle::Angle;
-use cgmath::{
-    Vector3, Vector2,
-    BaseFloat,
-    InnerSpace
-};
+use cgmath::{BaseFloat, InnerSpace, Vector2, Vector3};
 
 #[inline]
 pub fn angle2<S: BaseFloat>(ab: &Vector2<S>, bc: &Vector2<S>) -> Angle<S> {

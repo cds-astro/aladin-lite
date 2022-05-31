@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy)]
 #[wasm_bindgen]

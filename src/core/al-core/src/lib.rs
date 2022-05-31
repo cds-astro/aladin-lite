@@ -1,13 +1,13 @@
 extern crate fontdue;
-extern crate lazy_static;
 extern crate image_decoder;
+extern crate lazy_static;
 pub mod text;
 
+pub mod image;
 mod object;
 pub mod shader;
 pub mod texture;
 pub mod webgl_ctx;
-pub mod image;
 #[macro_use]
 pub mod log;
 pub use log::log;

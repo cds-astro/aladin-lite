@@ -1,4 +1,4 @@
-use num_traits::Float;
+//use num_traits::Float;
 #[inline]
 pub fn asinc_positive(x: f64) -> f64 {
     debug_assert!(x >= 0.0);
@@ -7,8 +7,8 @@ pub fn asinc_positive(x: f64) -> f64 {
     } else {
         // If a is mall, use Taylor expension of asin(a) / a
         // a = 1e-4 => a^4 = 1.e-16
-        let x2 = x*x;
-        1.0 + x2/6.0 + x2*x2*0.075
+        let x2 = x * x;
+        1.0 + x2 / 6.0 + x2 * x2 * 0.075
     }
 }
 
@@ -20,8 +20,8 @@ pub fn sinc_positive(x: f64) -> f64 {
     } else {
         // If a is mall, use Taylor expension of asin(a) / a
         // a = 1e-4 => a^4 = 1.e-16
-        let x2 = x*x;
-        1.0 - x2/6.0 + x2*x2*0.075
+        let x2 = x * x;
+        1.0 - x2 / 6.0 + x2 * x2 * 0.075
     }
 }
 
@@ -35,7 +35,7 @@ use num::traits::Zero;
 #[inline]
 pub fn log_2_checked<T>(x: T) -> u32
 where
-    T: PrimInt + Zero
+    T: PrimInt + Zero,
 {
     debug_assert!(x > T::zero());
     num_bits::<T>() as u32 - x.leading_zeros() - 1
@@ -44,19 +44,19 @@ where
 #[inline]
 pub fn log_2_unchecked<T>(x: T) -> u32
 where
-    T: PrimInt
+    T: PrimInt,
 {
     num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 
+use num::One;
+use std::cmp::PartialEq;
 use std::ops::BitAnd;
 use std::ops::Sub;
-use std::cmp::PartialEq;
-use num::One;
 #[inline]
 pub fn is_power_of_two<T>(x: T) -> bool
 where
-    T: BitAnd<Output=T> + One + Zero + Sub<Output=T> + PartialEq + Copy
+    T: BitAnd<Output = T> + One + Zero + Sub<Output = T> + PartialEq + Copy,
 {
     x.bitand(x - T::one()) == T::zero()
 }

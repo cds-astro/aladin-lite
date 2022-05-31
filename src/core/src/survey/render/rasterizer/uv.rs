@@ -16,7 +16,11 @@ where
     }
 }
 
-use crate::{survey::{config::HiPSConfig, texture::Texture}, healpix::cell::HEALPixCell, utils};
+use crate::{
+    healpix::cell::HEALPixCell,
+    survey::{config::HiPSConfig, texture::Texture},
+    utils,
+};
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
     // The texture cell passed must be a child of texture

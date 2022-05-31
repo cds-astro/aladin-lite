@@ -22,10 +22,10 @@ where
     pub aligned_data_raw_bytes_ptr: *const F::Type,
 }
 
+use std::alloc::{alloc, Layout};
 use wasm_bindgen::prelude::*;
-use std::alloc::{Layout, alloc};
 impl<F> Fits<F>
-where 
+where
     F: FitsImageFormat,
 {
     pub fn new(fits_raw_bytes: &js_sys::Uint8Array) -> Result<Self, JsValue> {
@@ -39,17 +39,14 @@ where
         let FitsMemAligned { data, header } = unsafe {
             // 2. Copy the raw fits bytes into that aligned memory space
             fits_raw_bytes.raw_copy_to_ptr(aligned_raw_bytes_ptr);
-            
+
             // 3. Convert to a slice of bytes
-            let aligned_raw_bytes = std::slice::from_raw_parts(aligned_raw_bytes_ptr, fits_raw_bytes.length() as usize);
+            let aligned_raw_bytes =
+                std::slice::from_raw_parts(aligned_raw_bytes_ptr, fits_raw_bytes.length() as usize);
 
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
             FitsMemAligned::<F::Type>::from_byte_slice(aligned_raw_bytes)
-                .map_err(|e| {
-                    JsValue::from_str(&format!(
-                        "Parsing FITS error: {:?}", e
-                    ))
-                })?
+                .map_err(|e| JsValue::from_str(&format!("Parsing FITS error: {:?}", e)))?
         };
 
         let bscale = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BSCALE") {
@@ -78,21 +75,19 @@ where
             std::f32::NAN
         };
 
-        let width = header.get("NAXIS1")
-            .and_then(|k| {
-                match k {
-                    FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
-                    _ => None
-                }
+        let width = header
+            .get("NAXIS1")
+            .and_then(|k| match k {
+                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
             })
             .ok_or(JsValue::from_str("NAXIS1 not found in the fits"))?;
-        
-        let height = header.get("NAXIS2")
-            .and_then(|k| {
-                match k {
-                    FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
-                    _ => None
-                }
+
+        let height = header
+            .get("NAXIS2")
+            .and_then(|k| match k {
+                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
             })
             .ok_or(JsValue::from_str("NAXIS2 not found in the fits"))?;
 
@@ -113,8 +108,8 @@ where
     }
 }
 
-use crate::texture::Texture2DArray;
 use crate::image::Image;
+use crate::texture::Texture2DArray;
 impl<F> Image for Fits<F>
 where
     F: FitsImageFormat,
@@ -129,8 +124,8 @@ where
         let num_pixels = self.size.x * self.size.y;
         let slice_raw_bytes = unsafe {
             std::slice::from_raw_parts(
-                self.aligned_data_raw_bytes_ptr as *const _, 
-                num_pixels as usize
+                self.aligned_data_raw_bytes_ptr as *const _,
+                num_pixels as usize,
             )
         };
 
@@ -158,7 +153,9 @@ where
 {
     fn drop(&mut self) {
         //al_core::log("dealloc fits tile");
-        unsafe { std::alloc::dealloc(self.aligned_raw_bytes_ptr, self.layout); }
+        unsafe {
+            std::alloc::dealloc(self.aligned_raw_bytes_ptr, self.layout);
+        }
     }
 }
 
@@ -166,8 +163,8 @@ use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
 use wasm_bindgen::JsValue;
 use web_sys::XmlHttpRequestResponseType;
 
-use fitsrs::ToBigEndian;
 use crate::image::format::ImageFormat;
+use fitsrs::ToBigEndian;
 pub trait FitsImageFormat: ImageFormat {
     type Type: ToBigEndian + Clone;
     type ArrayBufferView: AsRef<js_sys::Object>;
@@ -183,7 +180,7 @@ impl FitsImageFormat for R32F {
         Self::ArrayBufferView::view(s)
     }
 }
-use crate::image::{R8UI, R16I, R32F, R32I};
+use crate::image::{R16I, R32F, R32I, R8UI};
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R32I {
     type Type = i32;

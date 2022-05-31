@@ -31,8 +31,8 @@ where
         s.0.into()
     }
 }
-use al_api::coo_system::CooBaseFloat;
 use crate::math::angle::Angle;
+use al_api::coo_system::CooBaseFloat;
 use cgmath::Matrix;
 use cgmath::Rad;
 impl<S> Rotation<S>
@@ -128,7 +128,7 @@ where
     // Apply a rotation to a position
     pub fn rotate(&self, pos_world_space: &Vector4<S>) -> Vector4<S> {
         let w2m: &Matrix4<S> = &self.into();
-        
+
         w2m * pos_world_space
     }
     pub fn inv_rotate(&self, pos_model_space: &Vector4<S>) -> Vector4<S> {

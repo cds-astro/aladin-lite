@@ -1,8 +1,4 @@
-use cgmath::{
-    Vector3, Vector4,
-    BaseFloat,
-    Rad,
-};
+use cgmath::{BaseFloat, Rad, Vector3, Vector4};
 
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
@@ -148,12 +144,13 @@ where
 }
 
 #[inline]
-pub fn ang_between_lonlat<S: BaseFloat>(
-    lonlat1: LonLatT<S>,
-    lonlat2: LonLatT<S>,
-) -> Angle<S> {
+pub fn ang_between_lonlat<S: BaseFloat>(lonlat1: LonLatT<S>, lonlat2: LonLatT<S>) -> Angle<S> {
     let abs_diff_lon = (lonlat1.lon() - lonlat2.lon()).abs();
-    Angle((lonlat1.lat().sin() * lonlat2.lat().sin() + lonlat1.lat().cos() * lonlat2.lat().cos() * abs_diff_lon.cos()).acos())
+    Angle(
+        (lonlat1.lat().sin() * lonlat2.lat().sin()
+            + lonlat1.lat().cos() * lonlat2.lat().cos() * abs_diff_lon.cos())
+        .acos(),
+    )
 }
 
 #[inline]

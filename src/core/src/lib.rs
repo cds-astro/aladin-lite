@@ -13,9 +13,9 @@ extern crate console_error_panic_hook;
 //extern crate epi;
 extern crate fontdue;
 //extern crate image_decoder;
-extern crate itertools_num;
+//extern crate itertools_num;
 extern crate num;
-extern crate num_traits;
+//extern crate num_traits;
 extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
@@ -32,35 +32,33 @@ mod app;
 mod async_task;
 mod camera;
 
+mod colormap;
+mod coosys;
 mod downloader;
-mod tile_fetcher;
 mod healpix;
-mod survey;
 mod line;
 mod math;
 mod renderable;
 mod shader;
+mod survey;
+mod tile_fetcher;
 mod time;
-mod coosys;
-mod colormap;
 
 use crate::{
-    camera::CameraViewPort, math::lonlat::LonLatT, survey::ImageSurveys,
-    shader::ShaderManager, colormap::Colormaps, time::DeltaTime,
+    camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager,
+    survey::ImageSurveys, time::DeltaTime,
 };
-use al_api::hips::{HiPSColor, HiPSTileFormat, HiPSProperties, SimpleHiPS};
+use al_api::grid::GridCfg;
+use al_api::hips::{HiPSColor, HiPSProperties, HiPSTileFormat, SimpleHiPS};
 use al_core::resources::Resources;
 use al_core::{shader::Shader, WebGlContext};
-use al_api::grid::GridCfg;
 
 use al_api::coo_system::CooSystem;
 
 use app::App;
 use cgmath::{Vector2, Vector4};
 
-use math::{
-    angle::{ArcDeg}
-};
+use math::angle::ArcDeg;
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -74,9 +72,9 @@ pub struct WebClient {
 
 use crate::shader::FileSrc;
 
-use al_api::color::Color;
 use crate::app::AppTrait;
 use crate::app::AppType;
+use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
 
 use crate::math::projection::*;
@@ -132,7 +130,7 @@ impl WebClient {
         self.app.update(
             // Time of the previous frame rendering
             self.dt, // Force the update of some elements:
-            // i.e. the grid
+                    // i.e. the grid
         )?;
 
         Ok(())
@@ -168,7 +166,12 @@ impl WebClient {
     ///
     /// * `name` - Can be aitoff, mollweide, arc, sinus, tan or mercator
     #[wasm_bindgen(js_name = setProjection)]
-    pub fn set_projection(mut self, projection: String, width: f32, height: f32) -> Result<WebClient, JsValue> {
+    pub fn set_projection(
+        mut self,
+        projection: String,
+        width: f32,
+        height: f32,
+    ) -> Result<WebClient, JsValue> {
         match projection.as_str() {
             "AIT" => {
                 self.app = AppType::AitoffApp(self.app.set_projection::<Aitoff>(width, height));
@@ -294,7 +297,8 @@ impl WebClient {
     // Set a new color associated with a layer
     #[wasm_bindgen(js_name = setImageSurveyMeta)]
     pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
-        let meta = meta.into_serde()
+        let meta = meta
+            .into_serde()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         self.app.set_image_survey_color_cfg(layer, meta)
     }
@@ -308,11 +312,9 @@ impl WebClient {
     /// * `blue` - Blue amount (between 0.0 and 1.0)
     /// * `alpha` - Alpha amount (between 0.0 and 1.0)
     #[wasm_bindgen(js_name = setGridConfig)]
-    pub fn set_grid_cfg(
-        &mut self,
-        cfg: &JsValue
-    ) -> Result<(), JsValue> {
-        let cfg = cfg.into_serde::<GridCfg>()
+    pub fn set_grid_cfg(&mut self, cfg: &JsValue) -> Result<(), JsValue> {
+        let cfg = cfg
+            .into_serde::<GridCfg>()
             .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
 
         self.app.set_grid_cfg(cfg);
@@ -720,7 +722,8 @@ impl WebClient {
         let vertices = self.app.project_line(lon1, lat1, lon2, lat2);
 
         let vertices = vertices
-            .into_iter().flat_map(|v| vec![v.x, v.y])
+            .into_iter()
+            .flat_map(|v| vec![v.x, v.y])
             .collect::<Vec<_>>();
 
         Ok(vertices.into_boxed_slice())
@@ -781,23 +784,35 @@ impl WebClient {
     ///   `[SouthLon, SouthLat, EastLon, EastLat, NoethLon, NorthLat, WestLon, WestLat]`
     #[wasm_bindgen(js_name = hpxNestedVertices)]
     pub fn hpx_nested_vertices(&self, depth: u8, hash: f64) -> Box<[f64]> {
-        let [(s_lon, s_lat), (e_lon, e_lat), (n_lon, n_lat), (w_lon, w_lat)] = cdshealpix::nested::vertices(depth, hash as u64);
+        let [(s_lon, s_lat), (e_lon, e_lat), (n_lon, n_lat), (w_lon, w_lat)] =
+            cdshealpix::nested::vertices(depth, hash as u64);
         Box::new([
-            s_lon.to_degrees(), s_lat.to_degrees(),
-            e_lon.to_degrees(), e_lat.to_degrees(),
-            n_lon.to_degrees(), n_lat.to_degrees(),
-            w_lon.to_degrees(), w_lat.to_degrees(),
+            s_lon.to_degrees(),
+            s_lat.to_degrees(),
+            e_lon.to_degrees(),
+            e_lat.to_degrees(),
+            n_lon.to_degrees(),
+            n_lat.to_degrees(),
+            w_lon.to_degrees(),
+            w_lat.to_degrees(),
         ])
     }
 
     #[wasm_bindgen(js_name = queryDisc)]
-    pub fn query_disc(&self, depth: u8, lon_degrees: f64, lat_degrees: f64, radius_degress: f64) -> Box<[u64]> {
+    pub fn query_disc(
+        &self,
+        depth: u8,
+        lon_degrees: f64,
+        lat_degrees: f64,
+        radius_degress: f64,
+    ) -> Box<[u64]> {
         cdshealpix::nested::cone_coverage_approx(
             depth,
             lon_degrees.to_radians(),
             lat_degrees.to_radians(),
-            radius_degress.to_radians()
-        ).to_flat_array()
+            radius_degress.to_radians(),
+        )
+        .to_flat_array()
     }
 
     #[wasm_bindgen(js_name = isRendering)]

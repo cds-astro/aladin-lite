@@ -45,13 +45,13 @@ pub struct TextRenderManager {
 
     font: Font,
 }
-use wasm_bindgen::JsValue;
-use cgmath::{Vector2, Basis2, Rotation2, Rad};
 use al_core::VecData;
+use cgmath::{Basis2, Rad, Rotation2, Vector2};
+use wasm_bindgen::JsValue;
 
-use web_sys::WebGl2RenderingContext;
-use crate::Color;
 use crate::camera::CameraViewPort;
+use crate::Color;
+use web_sys::WebGl2RenderingContext;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
@@ -113,7 +113,12 @@ impl TextRenderManager {
                 VecData::<u16>(&indices),
             );
         let text_size = 16.0;
-        let al_core::text::Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
+        let al_core::text::Font {
+            size,
+            bitmap,
+            letters,
+            font,
+        } = al_core::text::rasterize_font(text_size);
         let font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &gl,
             size.x as i32,
@@ -165,7 +170,12 @@ impl TextRenderManager {
     pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
         self.text_size = text_size;
 
-        let al_core::text::Font { size, bitmap, letters, font } = al_core::text::rasterize_font(text_size);
+        let al_core::text::Font {
+            size,
+            bitmap,
+            letters,
+            font,
+        } = al_core::text::rasterize_font(text_size);
         self.font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &self.gl,
             size.x as i32,
@@ -299,16 +309,14 @@ impl TextRenderManager {
 
         let angle: Rad<_> = angle_rot.into();
         let rot: Basis2<f32> = Rotation2::from_angle(angle);
-        self.labels.push(
-            LabelMeta {
-                off_idx,
-                num_idx,
-                scale,
-                color: *color,
-                screen_pos: *screen_pos,
-                rot: rot.into(),
-            }
-        );
+        self.labels.push(LabelMeta {
+            off_idx,
+            num_idx,
+            scale,
+            color: *color,
+            screen_pos: *screen_pos,
+            rot: rot.into(),
+        });
     }
 
     pub fn get_width_pixel_size(&self, content: &str) -> f64 {
@@ -339,8 +347,13 @@ impl RenderManager for TextRenderManager {
     fn end_frame(&mut self) {
         // update to the GPU
         #[cfg(feature = "webgl2")]
-        self.vao.bind_for_update()
-            .update_array("vertices", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.vertices))
+        self.vao
+            .bind_for_update()
+            .update_array(
+                "vertices",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData(&self.vertices),
+            )
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
         #[cfg(feature = "webgl1")]
         self.vao

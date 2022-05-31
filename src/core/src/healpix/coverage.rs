@@ -1,11 +1,6 @@
-use crate::{
-    math::{
-        self,
-        lonlat::LonLat,
-    }
-};
-use cgmath::{Vector3, Vector4};
+use crate::math::{self, lonlat::LonLat};
 use cdshealpix::nested::bmoc::{Status, BMOC};
+use cgmath::{Vector3, Vector4};
 pub struct HEALPixCoverage(BMOC);
 
 pub fn from_polygon(

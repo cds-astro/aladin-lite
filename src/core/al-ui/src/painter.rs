@@ -243,33 +243,34 @@ impl WebGl2Painter {
             if user_texture.gl_texture.is_none() {
                 let pixels = std::mem::take(&mut user_texture.pixels);
 
-                let gl_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
-                    &gl,
-                    user_texture.size.0 as i32,
-                    user_texture.size.1 as i32,
-                    &[
-                        (
-                            WebGlRenderingCtx::TEXTURE_MIN_FILTER,
-                            WebGlRenderingCtx::LINEAR,
-                        ),
-                        (
-                            WebGlRenderingCtx::TEXTURE_MAG_FILTER,
-                            WebGlRenderingCtx::LINEAR,
-                        ),
-                        // Prevents s-coordinate wrapping (repeating)
-                        (
-                            WebGlRenderingCtx::TEXTURE_WRAP_S,
-                            WebGlRenderingCtx::CLAMP_TO_EDGE,
-                        ),
-                        // Prevents t-coordinate wrapping (repeating)
-                        (
-                            WebGlRenderingCtx::TEXTURE_WRAP_T,
-                            WebGlRenderingCtx::CLAMP_TO_EDGE,
-                        ),
-                    ],
-                    Some(&pixels),
-                )
-                .unwrap();
+                let gl_texture =
+                    Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
+                        &gl,
+                        user_texture.size.0 as i32,
+                        user_texture.size.1 as i32,
+                        &[
+                            (
+                                WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+                                WebGlRenderingCtx::LINEAR,
+                            ),
+                            (
+                                WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+                                WebGlRenderingCtx::LINEAR,
+                            ),
+                            // Prevents s-coordinate wrapping (repeating)
+                            (
+                                WebGlRenderingCtx::TEXTURE_WRAP_S,
+                                WebGlRenderingCtx::CLAMP_TO_EDGE,
+                            ),
+                            // Prevents t-coordinate wrapping (repeating)
+                            (
+                                WebGlRenderingCtx::TEXTURE_WRAP_T,
+                                WebGlRenderingCtx::CLAMP_TO_EDGE,
+                            ),
+                        ],
+                        Some(&pixels),
+                    )
+                    .unwrap();
 
                 user_texture.gl_texture = Some(gl_texture);
             }

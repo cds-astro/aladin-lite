@@ -7,8 +7,8 @@ pub enum UserAction {
 }
 
 use super::fov::{FieldOfViewVertices, ModelCoord};
-use cgmath::{Matrix4, Vector2};
 use crate::math::spherical::BoundingBox;
+use cgmath::{Matrix4, Vector2};
 
 pub struct CameraViewPort {
     // The field of view angle
@@ -61,13 +61,8 @@ use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
 
 use crate::{
-    math::{
-        angle::Angle,
-        projection::Projection,
-        rotation::Rotation,
-        spherical::FieldOfViewType
-    },
     coosys,
+    math::{angle::Angle, projection::Projection, rotation::Rotation, spherical::FieldOfViewType},
 };
 
 use cgmath::{SquareMatrix, Vector4};
@@ -124,8 +119,7 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let vertices =
-            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
+        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -185,8 +179,14 @@ impl CameraViewPort {
             .unwrap()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap();
-        canvas.style().set_property("width", &format!("{}px", width)).unwrap();
-        canvas.style().set_property("height", &format!("{}px", height)).unwrap();
+        canvas
+            .style()
+            .set_property("width", &format!("{}px", width))
+            .unwrap();
+        canvas
+            .style()
+            .set_property("height", &format!("{}px", height))
+            .unwrap();
 
         self.width = (width as f32) * self.dpi;
         self.height = (height as f32) * self.dpi;
@@ -263,7 +263,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             &self.system,
-            &self.center
+            &self.center,
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -433,8 +433,7 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        let center_world_space =
-            P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
+        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space

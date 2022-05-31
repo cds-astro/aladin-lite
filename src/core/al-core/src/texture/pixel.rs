@@ -4,7 +4,12 @@ use wasm_bindgen::JsValue;
 
 use crate::webgl_ctx::WebGlContext;
 pub trait Pixel:
-    AsRef<[Self::Item]> + Default + std::cmp::PartialEq + std::fmt::Debug + std::clone::Clone + serde::ser::Serialize
+    AsRef<[Self::Item]>
+    + Default
+    + std::cmp::PartialEq
+    + std::fmt::Debug
+    + std::clone::Clone
+    + serde::ser::Serialize
 {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
     type Container: ArrayBuffer<Item = Self::Item>;

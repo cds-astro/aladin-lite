@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::color::Color;
 #[wasm_bindgen]

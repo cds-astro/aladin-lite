@@ -817,7 +817,6 @@ impl GetShader for Mercator {
     }
 }
 
-
 impl GetShader for Orthographic {
     fn get_raster_shader_color<'a>(
         gl: &WebGlContext,

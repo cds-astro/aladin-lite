@@ -407,7 +407,11 @@ impl ArrayBuffer {
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
 
         assert_eq!(self.sizes.len(), 1);
@@ -422,10 +426,17 @@ impl ArrayBuffer {
         #[cfg(feature = "webgl2")]
         self.gl.vertex_attrib_divisor(loc as u32, 0);
         #[cfg(feature = "webgl1")]
-        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 0);
+        self.gl
+            .ext
+            .angles
+            .vertex_attrib_divisor_angle(loc as u32, 0);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
         self.gl.disable_vertex_attrib_array(loc as u32);
     }

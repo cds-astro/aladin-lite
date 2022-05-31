@@ -1,4 +1,3 @@
-
 const MAX_NUM_TILE_FETCHING: isize = 32;
 use crate::downloader::query;
 pub struct TileFetcherQueue {
@@ -8,8 +7,8 @@ pub struct TileFetcherQueue {
     base_tile_queries: Vec<query::Tile>,
 }
 
-use crate::survey::Url;
 use crate::downloader::Downloader;
+use crate::survey::Url;
 impl TileFetcherQueue {
     pub fn new() -> Self {
         let queries = Vec::new();
@@ -17,7 +16,7 @@ impl TileFetcherQueue {
         Self {
             num_tiles_fetched: 0,
             queries,
-            base_tile_queries
+            base_tile_queries,
         }
     }
 
@@ -27,7 +26,7 @@ impl TileFetcherQueue {
 
     pub fn append(&mut self, query: query::Tile, downloader: &mut Downloader) {
         self.queries.push(query);
-        self.fetch(downloader);   
+        self.fetch(downloader);
     }
 
     pub fn append_base_tile(&mut self, query: query::Tile, downloader: &mut Downloader) {

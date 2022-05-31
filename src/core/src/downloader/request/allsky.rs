@@ -1,15 +1,8 @@
-use crate::{
-    survey::config::HiPSConfig,
-    healpix::cell::HEALPixCell
-};
+use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 use al_core::image::format::ImageFormatType;
 
-use crate::downloader::{request, query};
-use al_core::image::{
-    ImageType,
-    bitmap::Bitmap,
-    fits::Fits,
-};
+use crate::downloader::{query, request};
+use al_core::image::{bitmap::Bitmap, fits::Fits, ImageType};
 
 use super::{Request, RequestType};
 pub struct AllskyRequest {
@@ -25,22 +18,24 @@ impl From<AllskyRequest> for RequestType {
     }
 }
 
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, Response, RequestInit, RequestMode};
-use crate::survey::Url;
 use super::ResolvedStatus;
+use crate::survey::Url;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Blob, RequestInit, RequestMode, Response};
 
+use al_core::{image::raw::ImageBuffer, texture::Pixel};
 use wasm_bindgen::JsCast;
-use al_core::{
-    image::raw::ImageBuffer,
-    texture::Pixel
-};
 
 use wasm_bindgen::JsValue;
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
-        let query::Allsky { format, tile_size, url, hips_url } = query;
+        let query::Allsky {
+            format,
+            tile_size,
+            url,
+            hips_url,
+        } = query;
 
         let url_clone = url.clone();
 
@@ -49,104 +44,110 @@ impl From<query::Allsky> for AllskyRequest {
             opts.method("GET");
             opts.mode(RequestMode::Cors);
             let window = web_sys::window().unwrap();
-        
+
             let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts)?;
             if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
-        
+
                 let buf = JsFuture::from(resp.array_buffer()?).await?;
-                const NUM_PIXELS_FITS: usize = 1728*1856;
+                const NUM_PIXELS_FITS: usize = 1728 * 1856;
 
                 let allsky_tiles = match format {
                     ImageFormatType::RGB8U => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                        let allsky = ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
+                        let allsky =
+                            ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
 
-                        handle_allsky_file::<RGB8U>(allsky).await?
+                        handle_allsky_file::<RGB8U>(allsky)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawRgb8u { image }
-                            })
+                            .map(|image| ImageType::RawRgb8u { image })
                             .collect()
-                    },
+                    }
                     ImageFormatType::RGBA8U => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();        
-                        let allsky = ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
+                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                        let allsky =
+                            ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], 1728, 1856)?;
 
-                        handle_allsky_file::<RGBA8U>(allsky).await?
+                        handle_allsky_file::<RGBA8U>(allsky)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawRgba8u { image }
-                            })
+                            .map(|image| ImageType::RawRgba8u { image })
                             .collect()
-                    },
+                    }
                     ImageFormatType::R32F => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf);
                         // Parsing the raw bytes coming from the received array buffer (Uint8Array)
                         let image = Fits::<R32F>::new(&raw_bytes)?;
                         let raw = unsafe {
-                            std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr, NUM_PIXELS_FITS)
+                            std::slice::from_raw_parts(
+                                image.aligned_data_raw_bytes_ptr,
+                                NUM_PIXELS_FITS,
+                            )
                         };
 
-                        handle_allsky_fits(raw, tile_size).await?
+                        handle_allsky_fits(raw, tile_size)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawR32f { image }
-                            })
+                            .map(|image| ImageType::RawR32f { image })
                             .collect()
-                    },
+                    }
                     ImageFormatType::R32I => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf);
                         // Parsing the raw bytes coming from the received array buffer (Uint8Array)
                         let image = Fits::<R32I>::new(&raw_bytes)?;
                         let raw = unsafe {
-                            std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr, NUM_PIXELS_FITS)
+                            std::slice::from_raw_parts(
+                                image.aligned_data_raw_bytes_ptr,
+                                NUM_PIXELS_FITS,
+                            )
                         };
 
-                        handle_allsky_fits(raw, tile_size).await?
+                        handle_allsky_fits(raw, tile_size)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawR32i { image }
-                            })
+                            .map(|image| ImageType::RawR32i { image })
                             .collect()
-                    },
+                    }
                     ImageFormatType::R16I => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf);
                         // Parsing the raw bytes coming from the received array buffer (Uint8Array)
                         let image = Fits::<R16I>::new(&raw_bytes)?;
                         let raw = unsafe {
-                            std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr, NUM_PIXELS_FITS)
+                            std::slice::from_raw_parts(
+                                image.aligned_data_raw_bytes_ptr,
+                                NUM_PIXELS_FITS,
+                            )
                         };
 
-                        handle_allsky_fits(raw, tile_size).await?
+                        handle_allsky_fits(raw, tile_size)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawR16i { image }
-                            })
+                            .map(|image| ImageType::RawR16i { image })
                             .collect()
-                    },
+                    }
                     ImageFormatType::R8UI => {
                         let raw_bytes = js_sys::Uint8Array::new(&buf);
                         // Parsing the raw bytes coming from the received array buffer (Uint8Array)
                         let image = Fits::<R8UI>::new(&raw_bytes)?;
                         let raw = unsafe {
-                            std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr, NUM_PIXELS_FITS)
+                            std::slice::from_raw_parts(
+                                image.aligned_data_raw_bytes_ptr,
+                                NUM_PIXELS_FITS,
+                            )
                         };
 
-                        handle_allsky_fits(raw, tile_size).await?
+                        handle_allsky_fits(raw, tile_size)
+                            .await?
                             .into_iter()
-                            .map(|image| {
-                                ImageType::RawR8ui { image }
-                            })
+                            .map(|image| ImageType::RawR8ui { image })
                             .collect()
-                    },
-                    _ => {
-                        return Err(js_sys::Error::new("Format not supported").into())
                     }
+                    _ => return Err(js_sys::Error::new("Format not supported").into()),
                 };
-        
+
                 al_core::log("Completed!");
                 Ok(allsky_tiles)
             } else {
@@ -157,14 +158,16 @@ impl From<query::Allsky> for AllskyRequest {
         Self {
             hips_url,
             url,
-            request
+            request,
         }
     }
 }
 
 use al_core::image::format::ImageFormat;
 
-async fn handle_allsky_file<F: ImageFormat>(allsky: ImageBuffer<F>) -> Result<Vec<ImageBuffer<F>>, JsValue> {
+async fn handle_allsky_file<F: ImageFormat>(
+    allsky: ImageBuffer<F>,
+) -> Result<Vec<ImageBuffer<F>>, JsValue> {
     let mut src_idx = 0;
     let mut tiles = Vec::with_capacity(12);
 
@@ -177,11 +180,7 @@ async fn handle_allsky_file<F: ImageFormat>(allsky: ImageBuffer<F>) -> Result<Ve
 
             let sx = (src_idx % 27) << 6;
             let sy = (src_idx / 27) << 6;
-            base_tile.tex_sub(
-                &allsky,
-                sx, sy, 64, 64,
-                dx as i32, dy as i32, 64, 64
-            );
+            base_tile.tex_sub(&allsky, sx, sy, 64, 64, dx as i32, dy as i32, 64, 64);
 
             src_idx += 1;
         }
@@ -192,7 +191,10 @@ async fn handle_allsky_file<F: ImageFormat>(allsky: ImageBuffer<F>) -> Result<Ve
     Ok(tiles)
 }
 
-async fn handle_allsky_fits<F: ImageFormat>(allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item], tile_size: usize) -> Result<Vec<ImageBuffer<F>>, JsValue> {
+async fn handle_allsky_fits<F: ImageFormat>(
+    allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item],
+    tile_size: usize,
+) -> Result<Vec<ImageBuffer<F>>, JsValue> {
     // The fits image layout stores rows in reverse
     let reversed_rows_data = allsky_data
         .chunks(1728)
@@ -203,19 +205,16 @@ async fn handle_allsky_fits<F: ImageFormat>(allsky_data: &[<<F as ImageFormat>::
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, 1728, 1856);
 
-    let allsky_tiles = handle_allsky_file::<F>(allsky).await?
+    let allsky_tiles = handle_allsky_file::<F>(allsky)
+        .await?
         .into_iter()
         .map(|image| {
             // The GPU does a specific transformation on the UV
             // for FITS tiles
             // We must revert this to be compatible with this GPU transformation
             let mut new_image_data = Vec::with_capacity(512);
-            for c in image.get_data().chunks(512*tile_size) {
-                new_image_data.extend(
-                    c.chunks(512)
-                    .rev()
-                    .flatten()
-                );
+            for c in image.get_data().chunks(512 * tile_size) {
+                new_image_data.extend(c.chunks(512).rev().flatten());
             }
 
             ImageBuffer::<F>::new(new_image_data, 512, 512)
@@ -225,12 +224,10 @@ async fn handle_allsky_fits<F: ImageFormat>(allsky_data: &[<<F as ImageFormat>::
     Ok(allsky_tiles)
 }
 
-use al_core::image::format::{
-    RGB8U, RGBA8U, R32F, R8UI, R16I, R32I
-};
+use al_core::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 
-use std::sync::{Arc, Mutex};
 use crate::time::Time;
+use std::sync::{Arc, Mutex};
 pub struct Allsky {
     pub image: Arc<Mutex<Option<Vec<ImageType>>>>,
     pub time_req: Time,
@@ -241,9 +238,7 @@ pub struct Allsky {
 
 impl Allsky {
     pub fn missing(&self) -> bool {
-        self.image.lock()
-            .unwrap()
-            .is_none()
+        self.image.lock().unwrap().is_none()
     }
 
     pub fn get_hips_url(&self) -> &Url {
@@ -257,15 +252,21 @@ impl Allsky {
 
 impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
     fn from(request: &'a AllskyRequest) -> Self {
-        let AllskyRequest { request, hips_url, url} = request;
+        let AllskyRequest {
+            request,
+            hips_url,
+            url,
+        } = request;
         if request.is_resolved() {
-            let Request::<Vec<ImageType>> { time_request, data, .. } = request;
+            let Request::<Vec<ImageType>> {
+                time_request, data, ..
+            } = request;
             Some(Allsky {
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
                 hips_url: hips_url.clone(),
-                url: url.clone()
+                url: url.clone(),
             })
         } else {
             None

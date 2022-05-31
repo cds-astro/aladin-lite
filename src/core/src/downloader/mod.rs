@@ -1,5 +1,5 @@
-pub mod request;
 pub mod query;
+pub mod request;
 /*
 use super::{CompressedImageRequest, FitsImageRequest, ResolvedStatus, TileRequest};
 use crate::buffer::HiPSConfig;
@@ -97,7 +97,7 @@ impl RequestSystem {
                     // Signals that the tile has been handled (copied for the GPU)
                     self.add_resolved_tile(tile, resp, surveys);
                     tiles_received.push(tile.clone());
-    
+
                     // Free the request to be used to download a new tile
                     self.free_slots_idx.push(idx);
                     *req = None;
@@ -108,7 +108,7 @@ impl RequestSystem {
         }
 
         tiles_received*/
-        let resolved = 
+        let resolved =
         for request in self.reqs.iter_mut() {
             if let Some(request) = request {
                 let response = match request.get_status() {
@@ -128,28 +128,28 @@ impl RequestSystem {
                 };
 
                 if let Some(resp) = response {
-                    
+
 
                     // Free the request to be used to download a new tile
                     self.free_slots_idx.push(idx);
                     *request = None;
                 }
-            }        
+            }
         }
 
             if let Some(request) = request.take() {
-                
+
 
                 /*let tile = resp.get_tile();
                 let time_req = resp.get_time_request();
                 let status = resp.resolve_status();*/
-                
+
 
                 if let Some(resp) = response {
                     // Signals that the tile has been handled (copied for the GPU)
                     self.add_resolved_tile(tile, resp, surveys);
                     tiles_received.push(tile.clone());
-    
+
                     // Free the request to be used to download a new tile
                     self.free_slots_idx.push(idx);
                     *req = None;
@@ -443,16 +443,13 @@ impl TileDownloader {
     }*/
 }*/
 
-use crate::{
-    healpix::cell::HEALPixCell,
-    survey::Url,
-};
+use crate::{healpix::cell::HEALPixCell, survey::Url};
 
 type TileUrl = Url;
 
 use al_core::image::format::ImageFormatType;
-use std::collections::HashSet;
 use request::tile::TileRequest;
+use std::collections::HashSet;
 pub struct Downloader {
     // Waiting cells to be loaded
     //tiles_to_req: Vec<TileQuery>,
@@ -467,17 +464,11 @@ use crate::time::Time;
 use std::collections::HashMap;
 
 use al_core::log::*;
-use wasm_bindgen::JsValue;
-use request::{
-    Request,
-    tile::Tile
-};
-use std::sync::{Arc, Mutex};
 use query::Query;
-use request::{
-    Resource,
-    RequestType,
-};
+use request::{tile::Tile, Request};
+use request::{RequestType, Resource};
+use std::sync::{Arc, Mutex};
+use wasm_bindgen::JsValue;
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);
@@ -493,7 +484,7 @@ impl Downloader {
     // Returns false if the query has already been done
     pub fn fetch<T>(&mut self, query: T) -> bool
     where
-        T: Query
+        T: Query,
     {
         // Remove the ancient requests
         //self.tiles_to_req.clear();
@@ -564,7 +555,9 @@ impl Downloader {
         let mut rscs = vec![];
 
         let mut finished_query_urls = vec![];
-        self.requests = self.requests.drain(..)
+        self.requests = self
+            .requests
+            .drain(..)
             .filter(|request| {
                 // If the request resolves into a resource
                 if let Some(rsc) = request.into() {

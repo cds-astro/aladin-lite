@@ -220,7 +220,6 @@ impl FormatType for DD {
         let angle = Rad(angle.0);
         let degrees: ArcDeg<S> = angle.into();
 
-        
         degrees.to_string()
     }
 }

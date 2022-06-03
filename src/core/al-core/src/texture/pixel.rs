@@ -21,7 +21,7 @@ pub trait Pixel:
 impl Pixel for [f32; 4] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [0.0, 0.0, 0.0, 1.0];
+    const BLACK: Self = [std::f32::NAN; 4];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(4);
@@ -53,7 +53,7 @@ impl Pixel for [f32; 4] {
 impl Pixel for [f32; 3] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [0.0, 0.0, 0.0];
+    const BLACK: Self = [std::f32::NAN; 3];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(3);
@@ -85,7 +85,7 @@ impl Pixel for [f32; 3] {
 impl Pixel for [f32; 1] {
     type Item = f32;
     type Container = ArrayF32;
-    const BLACK: Self = [0.0];
+    const BLACK: Self = [std::f32::NAN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Float32Array::new_with_length(1);
@@ -116,7 +116,8 @@ impl Pixel for [f32; 1] {
 impl Pixel for [u8; 4] {
     type Item = u8;
     type Container = ArrayU8;
-    const BLACK: Self = [0, 0, 0, 255];
+    // Transparency handled
+    const BLACK: Self = [0, 0, 0, 0];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Uint8Array::new_with_length(4);
@@ -178,7 +179,7 @@ impl Pixel for [u8; 1] {
 impl Pixel for [i16; 1] {
     type Item = i16;
     type Container = ArrayI16;
-    const BLACK: Self = [0];
+    const BLACK: Self = [std::i16::MIN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int16Array::new_with_length(1);
@@ -199,7 +200,7 @@ impl Pixel for [i16; 1] {
 impl Pixel for [i32; 1] {
     type Item = i32;
     type Container = ArrayI32;
-    const BLACK: Self = [0];
+    const BLACK: Self = [std::i32::MIN];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Int32Array::new_with_length(1);

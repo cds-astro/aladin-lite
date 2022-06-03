@@ -17,19 +17,13 @@ out vec4 out_frag_color;
 
 uniform float opacity;
 
-vec4 get_color(vec3 uv, float empty) {
-    vec4 c = get_colormap_from_grayscale_texture(uv);
-    vec4 color = mix(c, vec4(0.0), empty);
-    return color;
-}
-
 void main() {
     //vec4 color_start = get_color(frag_uv_start, m_start);
     //vec4 color_end = get_color(frag_uv_end, m_end);
     vec4 color_start = get_colormap_from_grayscale_texture(frag_uv_start);
-    color_start.a *= (1.0 - m_start);
+    //color_start.a *= (1.0 - m_start);
     vec4 color_end = get_colormap_from_grayscale_texture(frag_uv_end);
-    color_end.a *= (1.0 - m_end);
+    //color_end.a *= (1.0 - m_end);
 
     out_frag_color = mix(color_start, color_end, frag_blending_factor);
     out_frag_color.a = out_frag_color.a * opacity;

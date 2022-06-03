@@ -365,9 +365,7 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 // We do want to draw maximum 768 tiles
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4};
-
 use render::rasterizer::uv::{TileCorner, TileUVW};
-
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid(
     cell: &HEALPixCell,
@@ -632,7 +630,6 @@ impl ImageSurvey {
         let num_idx = 0;
 
         let textures = ImageSurveyTextures::new(gl, config)?;
-        let _conf = textures.config();
         let view = HEALPixCellsInView::new();
 
         let gl = gl.clone();
@@ -661,6 +658,10 @@ impl ImageSurvey {
             idx_vertices,
         })
     }
+
+    pub fn is_allsky(&self) -> bool {
+        self.textures.config().is_allsky
+    } 
 
     pub fn longitude_reversed(&self) -> bool {
         self.textures.config().longitude_reversed
@@ -731,9 +732,10 @@ impl ImageSurvey {
         self.idx_vertices.clear();
 
         let survey_config = self.textures.config();
-        let _depth = self.view.get_depth();
-
         let textures = T::get_textures_from_survey(&self.view, &self.textures);
+        //let allow_transparency = !survey_config.is_opaque();
+
+        //al_core::log(&format!("{:?} {:?}", allow_transparency, survey_config.blank));
 
         for TextureToDraw {
             starting_texture,
@@ -744,8 +746,9 @@ impl ImageSurvey {
             let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
             let start_time = ending_texture.start_time();
-            let miss_0 = starting_texture.is_missing() as f32;
-            let miss_1 = ending_texture.is_missing() as f32;
+
+            let miss_0 = (starting_texture.is_missing()) as i32 as f32;
+            let miss_1 = (ending_texture.is_missing()) as i32 as f32;
 
             add_vertices_grid(
                 cell,
@@ -843,10 +846,10 @@ impl ImageSurvey {
         self.textures.config()
     }
 
-    /*#[inline]
+    #[inline]
     pub fn get_config_mut(&mut self) -> &mut HiPSConfig {
         self.textures.config_mut()
-    }*/
+    }
 
     /*#[inline]
     pub fn get_textures_mut(&mut self) -> &mut ImageSurveyTextures {
@@ -1074,6 +1077,20 @@ enum RenderingMode {
 }
 
 use crate::colormap::Colormaps;
+use std::borrow::Cow;
+use crate::shader::ShaderId;
+fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
+    shaders.get(
+        gl,
+        &ShaderId(
+            Cow::Borrowed("RayTracerFontVS"),
+            Cow::Borrowed("RayTracerFontFS"),
+        ),
+    )
+    .unwrap()
+}
+
+use al_core::image::format::ImageFormatType;
 
 use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
@@ -1163,9 +1180,21 @@ impl ImageSurveys {
             }
         }
 
+        let raytracer = &self.raytracer;
+        // Check whether a survey to plot is allsky
+        // if neither are, we draw a font
+        // if there are, we do not draw nothing
+        let has_allsky_hips = self.surveys.values()
+            .any(|s| s.is_allsky() || s.get_config().get_format() == ImageFormatType::RGB8U);
+        if !has_allsky_hips {
+            let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);
+            shader_font
+                .attach_uniforms_from(camera);
+            raytracer.draw_font_color(&shader_font);
+        }
+
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
-        let raytracer = &self.raytracer;
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");

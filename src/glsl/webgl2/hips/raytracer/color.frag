@@ -45,7 +45,7 @@ int binary_search_tile(int uniq) {
 */
 vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);
-    
+
     int idx = result.idx;
     vec2 uv = vec2(result.dy, result.dx);
 
@@ -65,8 +65,8 @@ vec4 get_tile_color(vec3 pos) {
         vec4 color = get_color_from_texture(UV);
         // For empty tiles we set the alpha of the pixel to 0.0
         // so that what is behind will be plotted
-        color.a *= (1.0 - tile.empty);
-        
+        //color.a *= (1.0 - tile.empty);
+
         return color;
     //}
 }

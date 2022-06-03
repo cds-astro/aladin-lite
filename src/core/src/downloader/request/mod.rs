@@ -2,6 +2,7 @@
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
 pub mod allsky;
 pub mod tile;
+pub mod blank;
 
 /* ------------------------------------- */
 
@@ -77,9 +78,11 @@ where
 
 use allsky::AllskyRequest;
 use tile::TileRequest;
+use blank::BlankRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
+    Blank(BlankRequest),
     //..
 }
 
@@ -89,6 +92,7 @@ impl RequestType {
         match self {
             RequestType::Tile(request) => &request.url,
             RequestType::Allsky(request) => &request.url,
+            RequestType::Blank(request) => &request.url,
         }
     }
 }
@@ -102,13 +106,19 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
             RequestType::Allsky(request) => {
                 Option::<Allsky>::from(request).map(|allsky| Resource::Allsky(allsky))
             }
+            RequestType::Blank(request) => {
+                Option::<Blank>::from(request).map(|blank| Resource::BlankValue(blank))
+            }
         }
     }
 }
 
 use allsky::Allsky;
 use tile::Tile;
+use blank::Blank;
+
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
+    BlankValue(Blank)
 }

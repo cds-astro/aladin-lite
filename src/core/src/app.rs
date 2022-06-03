@@ -575,6 +575,11 @@ where
                                 self.request_redraw = true;
                             }
                         }
+                    },
+                    Resource::BlankValue(blank) => {
+                        if let Some(survey) = self.surveys.get_mut(&blank.hips_url) {
+                            survey.get_config_mut().blank = blank.value;
+                        }
                     }
                 }
             }
@@ -776,7 +781,7 @@ where
             //Request the allsky for the small tile size
             if cfg.get_tile_size() <= 128 {
                 // Request the allsky
-                self.downloader.fetch(query::Allsky::new(cfg));
+                self.downloader.fetch(query::Allsky::new(cfg), false);
             } else {
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                     for cell in texture_cell.get_tile_cells(cfg) {
@@ -786,7 +791,7 @@ where
                     }
                 }
             }
-            //self.downloader.fetch(query::Allsky::new(cfg));
+            self.downloader.fetch(query::Blank::new(cfg), true);
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

@@ -89,3 +89,39 @@ impl Query for Allsky {
         &self.url
     }
 }
+
+
+/* ---------------------------------- */
+pub struct Blank {
+    pub format: ImageFormatType,
+    // The root url of the HiPS
+    pub hips_url: Url,
+    // The total url of the query
+    pub url: Url,
+}
+
+impl Blank {
+    pub fn new(cfg: &HiPSConfig) -> Self {
+        let hips_url = cfg.get_root_url().to_string();
+        let format = cfg.get_format();
+        let ext = format.get_ext_file();
+
+        let url = format!("{}/Norder0/Dir0/Npix0.{}", hips_url, ext);
+
+        Blank {
+            hips_url,
+            url,
+            format,
+        }
+    }
+}
+
+use super::request::blank::BlankRequest;
+impl Query for Blank {
+    type Request = BlankRequest;
+
+    fn url(&self) -> &Url {
+        &self.url
+    }
+}
+

@@ -145,6 +145,8 @@ pub struct HiPSConfig {
     num_slices: i32,
     num_textures: usize,
 
+    pub is_allsky: bool,
+
     // TODO: store this values in the ImageSurvey
     // These are proper to the survey (FITS one) and not
     // to a specific survey color
@@ -260,7 +262,8 @@ impl HiPSConfig {
         let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
         let frame = properties.get_frame();
-
+        al_core::log(&format!("sky fraction {:?}", properties.get_sky_fraction()));
+        let is_allsky = properties.get_sky_fraction() >= 1.0;
         let hips_config = HiPSConfig {
             // HiPS name
             root_url,
@@ -281,6 +284,8 @@ impl HiPSConfig {
             num_slices,
             num_textures,
 
+            is_allsky,
+
             scale: 1.0,
             offset: 0.0,
             blank: -1.0, // by default, set it to -1
@@ -297,6 +302,11 @@ impl HiPSConfig {
 
         Ok(hips_config)
     }
+
+    /*#[inline]
+    pub fn is_opaque(&self) -> bool {
+        self.blank.is_nan()
+    }*/
 
     #[inline]
     pub fn get_root_url(&self) -> &str {

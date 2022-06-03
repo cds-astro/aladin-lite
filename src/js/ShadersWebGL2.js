@@ -35,6 +35,9 @@ import RayTracerGrayscale2ColorIntegerFS from '../glsl/webgl2/hips/raytracer/gra
 import RayTracerGrayscale2ColormapIntegerFS from '../glsl/webgl2/hips/raytracer/grayscale_to_colormap_i.frag'
 import RayTracerGrayscale2ColorUnsignedFS from '../glsl/webgl2/hips/raytracer/grayscale_to_color_u.frag'
 import RayTracerGrayscale2ColormapUnsignedFS from '../glsl/webgl2/hips/raytracer/grayscale_to_colormap_u.frag'
+import RayTracerFontVS from '../glsl/webgl2/hips/raytracer/backcolor.vert'
+import RayTracerFontFS from '../glsl/webgl2/hips/raytracer/backcolor.frag'
+
 // Rasterizer
 import RasterizerOrthoVS from '../glsl/webgl2/hips/rasterizer/ortho.vert'
 import RasterizerHEALPixVS from '../glsl/webgl2/hips/rasterizer/healpix.vert'
@@ -168,6 +171,14 @@ let shaders = [
     {
         id: "RayTracerGrayscale2ColormapUnsignedFS",
         content: RayTracerGrayscale2ColormapUnsignedFS,
+    },
+    {
+        id: "RayTracerFontVS",
+        content: RayTracerFontVS,
+    },
+    {
+        id: "RayTracerFontFS",
+        content: RayTracerFontFS,
     },
     /// Rasterizer
     {

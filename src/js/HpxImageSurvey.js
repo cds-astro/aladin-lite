@@ -173,7 +173,7 @@ export let HpxImageSurvey = (function() {
             this.meta = {
                 color: {
                     grayscale: {
-                        tf: (options && options.tf) || "Asinh",
+                        tf: (options && options.tf) || "Linear",
                         minCut: options && options.minCut,
                         maxCut: options && options.maxCut,
                         color: {
@@ -192,7 +192,7 @@ export let HpxImageSurvey = (function() {
             this.meta = {
                 color: {
                     grayscale: {
-                        tf: (options && options.tf) || "Asinh",
+                        tf: (options && options.tf) || "Linear",
                         minCut: options && options.minCut,
                         maxCut: options && options.maxCut,
                         color: {
@@ -295,7 +295,8 @@ export let HpxImageSurvey = (function() {
                     throw "Unsupported format(s) found in the metadata: " + tileFormats;
                 }
             }
-
+            console.log("moc sky fraction: ", metadata.moc_sky_fraction)
+            const skyFraction = +metadata.moc_sky_fraction || 1.0;
             // The survey created is associated to no layer when it is created
             this.properties = {
                 id: id,
@@ -309,6 +310,7 @@ export let HpxImageSurvey = (function() {
                 minCutout: minCut,
                 maxCutout: maxCut,
                 bitpix: bitpix,
+                skyFraction: skyFraction
             };
 
             if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
@@ -346,7 +348,7 @@ export let HpxImageSurvey = (function() {
 
         if ( !this.fits ) {
             // This has a grayscale color associated        
-            const tf = (options && options.tf) || "Asinh";
+            const tf = (options && options.tf) || "Linear";
             const minCut = (options && options.minCut) || 0.0;
             const maxCut = (options && options.maxCut) || 1.0;
 
@@ -398,37 +400,35 @@ export let HpxImageSurvey = (function() {
         if ( !this.fits ) {
             if (colormap === "native") {
                 this.meta.color = "color";
-                return;
-            }
-
-            const tf = (options && options.tf) || "Asinh";
-            const minCut = (options && options.minCut) || 0.0;
-            const maxCut = (options && options.maxCut) || 1.0;
-            const rev = reversed || false;
-
-            const newColor = {
-                grayscale: {
-                    minCut: minCut,
-                    maxCut: maxCut,
-                    tf: tf,
-                    color: {
-                        colormap: {
-                            reversed: rev,
-                            name: colormap,
-                        },
+            } else {
+                const tf = (options && options.tf) || "Linear";
+                const minCut = (options && options.minCut) || 0.0;
+                const maxCut = (options && options.maxCut) || 1.0;
+                const rev = reversed || false;
+    
+                this.meta.color = {
+                    grayscale: {
+                        minCut: minCut,
+                        maxCut: maxCut,
+                        tf: tf,
+                        color: {
+                            colormap: {
+                                reversed: rev,
+                                name: colormap,
+                            },
+                        }
                     }
-                }
-            };
-
-            this.meta.color = newColor;
+                };
+            }
         } else {
             // This has a grayscale color associated        
-            const tf = (options && options.tf) || this.meta.color.grayscale.tf || "Asinh";
+            const tf = (options && options.tf) || this.meta.color.grayscale.tf || "Linear";
             const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
             const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
             const rev = reversed || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
 
-            const newColor = {
+            // Update the color config
+            this.meta.color = {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
@@ -441,9 +441,6 @@ export let HpxImageSurvey = (function() {
                     }
                 }
             };
-
-            // Update the color config
-            this.meta.color = newColor;
         }
 
         // Tell the view its meta have changed
@@ -553,15 +550,15 @@ export let HpxImageSurvey = (function() {
             }
         },
         {
-            id: "P/GALEXGR6/AIS/color",
-            name: "GALEX Allsky Imaging Survey colored",
-            url: "https://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
+            id: "P/GALEXGR6_7/color",
+            name: "GALEX GR6/7 - Color composition",
+            url: "https://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_color/",
             maxOrder: 8,
         },
         {
             id: "P/IRIS/color",
             name: "IRIS colored",
-            url: "https://alasky.cds.unistra.fr/IRISColor",    
+            url: "https://alasky.cds.unistra.fr/IRISColor",
             maxOrder: 3,
         },
         {

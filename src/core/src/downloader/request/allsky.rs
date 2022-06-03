@@ -148,7 +148,6 @@ impl From<query::Allsky> for AllskyRequest {
                     _ => return Err(js_sys::Error::new("Format not supported").into()),
                 };
 
-                al_core::log("Completed!");
                 Ok(allsky_tiles)
             } else {
                 Err(js_sys::Error::new("Allsky not fetched").into())

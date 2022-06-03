@@ -950,7 +950,7 @@ mod tests {
     fn generate_maps() {
         use super::*;
         use cgmath::Vector2;
-        use img_pixel::{Rgb, RgbImage};
+        use image_decoder::{Rgb, RgbImage};
         fn generate_projection_map<P: Projection>(filename: &str) {
             let (w, h) = (1024.0, 1024.0);
             let mut img = RgbImage::new(w as u32, h as u32);

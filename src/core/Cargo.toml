@@ -102,8 +102,8 @@ features = [
   'Url',
 ]
 
-#[dev-dependencies]
-#img_pixel = { package = "image", version = "0.24.2" }
+[dev-dependencies]
+image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
 
 [profile.dev]
 opt-level = 's'

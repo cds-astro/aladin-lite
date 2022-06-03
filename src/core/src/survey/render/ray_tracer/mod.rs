@@ -235,6 +235,17 @@ impl RayTracer {
         }
     }
 
+    pub fn draw_font_color<'a>(&self, shader: &ShaderBound<'a>) {
+        shader
+            .bind_vertex_array_object_ref(&self.vao)
+            .draw_elements_with_i32(
+                WebGl2RenderingContext::TRIANGLES,
+                None,
+                WebGl2RenderingContext::UNSIGNED_SHORT,
+                0,
+            );
+    }
+
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
         #[cfg(feature = "webgl1")]
         shader

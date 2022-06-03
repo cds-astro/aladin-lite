@@ -597,6 +597,10 @@ impl ImageSurveyTextures {
         &self.config
     }
 
+    pub fn config_mut(&mut self) -> &mut HiPSConfig {
+        &mut self.config
+    }
+
     pub fn is_ready(&self) -> bool {
         self.ready
     }

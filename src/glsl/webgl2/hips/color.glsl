@@ -29,7 +29,7 @@ vec4 get_pixels(vec3 uv) {
     } else if (idx_texture == 2) {
         return texture(tex3, uv.xy);
     } else {
-        return vec4(0.0, 0.0, 0.0, 1.0);
+        return vec4(0.0, 1.0, 0.0, 1.0);
     }
 }
 
@@ -54,7 +54,7 @@ vec4 get_colormap_from_grayscale_texture(vec3 UV) {
         float alpha = x * scale + offset;
         alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(colormap_f(alpha), vec4(0.0), float(x == blank));
+        return mix(colormap_f(alpha), vec4(0.0), float(x == blank || isnan(x)));
     //}
 }
 
@@ -71,6 +71,6 @@ vec4 get_color_from_grayscale_texture(vec3 UV) {
         float alpha = x * scale + offset;
         alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(vec4(C.rgb * K * alpha, C.a), vec4(0.0), float(x == blank));
+        return mix(vec4(C.rgb * K * alpha, C.a), vec4(0.0), float(x == blank || isnan(x)));
     //}
 }

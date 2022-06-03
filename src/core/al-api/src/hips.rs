@@ -68,6 +68,7 @@ pub struct HiPSProperties {
     tile_size: i32,
     bitpix: Option<i32>,
     formats: Vec<HiPSTileFormat>,
+    sky_fraction: f32,
 
     // Parametrable by the user
     pub longitude_reversed: bool,
@@ -86,6 +87,7 @@ impl HiPSProperties {
         max_cutout: Option<f32>,
         bitpix: Option<i32>,
         formats: Vec<HiPSTileFormat>,
+        sky_fraction: f32,
     ) -> Self {
         Self {
             url,
@@ -97,6 +99,7 @@ impl HiPSProperties {
             bitpix,
             min_cutout,
             max_cutout,
+            sky_fraction
         }
     }
 
@@ -122,6 +125,10 @@ impl HiPSProperties {
 
     pub fn get_frame(&self) -> CooSystem {
         self.frame
+    }
+
+    pub fn get_sky_fraction(&self) -> f32 {
+        self.sky_fraction
     }
 }
 

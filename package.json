@@ -4,7 +4,7 @@
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "build": "webpack",
+    "build": "webpack && cp index.html dist/",
     "serve": "webpack-dev-server"
   },
   "devDependencies": {
@@ -24,7 +24,6 @@
     "css-loader": "^5.0.1",
     "daisyui": "^2.15.0",
     "file-loader": "^6.1.0",
-    "postcss-cli": "^9.1.0",
     "postcss-preset-env": "^7.6.0",
     "style-loader": "^3.3.1",
     "wasm-pack": "^0.10.1"

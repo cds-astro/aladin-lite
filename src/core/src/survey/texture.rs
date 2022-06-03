@@ -157,8 +157,8 @@ impl Texture {
         self.idx
     }
 
-    pub fn is_missing(&self) -> i32 {
-        self.missing as i32
+    pub fn is_missing(&self) -> bool {
+        self.missing
     }
 
     // Setter

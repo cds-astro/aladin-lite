@@ -468,7 +468,7 @@ impl Downloader {
 
     // Returns true if the fetch has been done
     // Returns false if the query has already been done
-    pub fn fetch<T>(&mut self, query: T) -> bool
+    pub fn fetch<T>(&mut self, query: T, force_request: bool) -> bool
     where
         T: Query,
     {
@@ -479,7 +479,7 @@ impl Downloader {
         let not_already_requested = !self.queried_urls.contains(url);
 
         // The cell is not already requested
-        if not_already_requested {
+        if not_already_requested || force_request {
             /*if tile.is_root() {
                 self.base_tiles_to_req.push(tile);
             } else {

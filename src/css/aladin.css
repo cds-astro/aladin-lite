@@ -502,6 +502,10 @@ word-wrap:break-word;
 .aladin-popupText {
 }
 
+.aladin-options {
+    margin-top: 4px;
+}
+
 .aladin-layer-label {
 	padding: 0 4px 0 4px;
 	color: #ddd;

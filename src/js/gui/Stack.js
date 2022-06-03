@@ -48,25 +48,65 @@ export class Stack {
 
         parentDiv.appendChild(this.mainDiv);
         this.aladinDiv = parentDiv;
-    };
 
-    // TODO: do not recreate all DOM objects at each show() call
-    show() {
+        this.#createComponent();
+    }
+
+    #createComponent() {
         let self = this;
 
         // first, update
         let layerBox = $(this.mainDiv);
 
         layerBox.empty();
+        let optionsOpenerForBaseImageLayer = $('<span class="indicator right-triangle">&nbsp;</span>');
+        let cmListStr = '';
+        for (const cm of aladin.webglAPI.getAvailableColormapList()) {
+            cmListStr += '<option>' + cm + '</option>';
+        }
+
+        let baseImageLayerOptions = $('<div class="layer-options" style="display: none;">' +
+                                        '<table class="aladin-options"><tbody>' +
+                                        '  <tr><td>Color map</td><td><select class="">' + cmListStr + '</select></td></tr>' +
+                                        '  <tr><td></td><td><label><input type="checkbox"> Reverse</label></td></tr>' +
+                                        '  <tr><td>Stretch</td><td><select class=""><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
+                                        '</table> ' +
+                                      '</div>');
+
+        let colorMapSelect4BaseImgLayer = baseImageLayerOptions.find('select').eq(0);
+        colorMapSelect4BaseImgLayer.val('grayscale');
+        let stretchSelect4BaseImgLayer = baseImageLayerOptions.find('select').eq(1);
+
+        let reverseCmCb = baseImageLayerOptions.find('input').eq(0);
+        colorMapSelect4BaseImgLayer.add(reverseCmCb).add(stretchSelect4BaseImgLayer).change(function () {
+            let reverse = reverseCmCb.is(':checked');
+            aladin.getBaseImageLayer().setColormap(colorMapSelect4BaseImgLayer.val(), reverse, {tf: stretchSelect4BaseImgLayer.val()});
+        });
+
+        optionsOpenerForBaseImageLayer.click(function () {
+            var $this = $(this);
+            if ($this.hasClass('right-triangle')) {
+                $this.removeClass('right-triangle');
+                $this.addClass('down-triangle');
+                baseImageLayerOptions.slideDown(300);
+            }
+            else {
+                $this.removeClass('down-triangle');
+                $this.addClass('right-triangle');
+                baseImageLayerOptions.slideUp(300);
+            }
+        });
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-            '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>' +
-            '<select class="aladin-surveySelection"></select>' +
-            '<br>' +
-            '<button class="aladin-btn" type="button">Search HiPS</button>' +
-            '<div class="aladin-label">Projection</div>' +
-            '<select class="aladin-projSelection"></select>' +
-            '</div>');
+                        '<div style="clear: both;"></div>' +
+                        '<div class="aladin-label">Base image layer</div>')
+                .append(optionsOpenerForBaseImageLayer) 
+                .append('<select class="aladin-surveySelection"></select>')
+                .append(baseImageLayerOptions)
+                .append('<br>' +
+                        '<button class="aladin-btn my-1" type="button">Search HiPS</button>' +
+                        '<div class="aladin-label">Projection</div>' +
+                        '<select class="aladin-projSelection"></select>' +
+                        '</div>');
 
         this.aladin.updateProjectionCombobox(this.aladin.projection);
         var projectionSelection = $(this.aladin.aladinDiv).find('.aladin-projSelection');
@@ -81,11 +121,6 @@ export class Stack {
         let searchHiPS4BaseLayerBtn = layerBox.find('button');
         searchHiPS4BaseLayerBtn.click(function () {
             if (!self.hipsSelector) {
-                /*
-                aladin.setImageSurvey(aladin.createImageSurvey('2MASS J', '2MASS J',
-
-hipsDir, 'equatorial', 9, {imgFormat: 'jpg'}));
-                */
                 let fnURLSelected = function(url) {
                     aladin.setBaseImageLayer(url);
                 };
@@ -203,12 +238,12 @@ hipsDir, 'equatorial', 9, {imgFormat: 'jpg'}));
             if ($this.hasClass('right-triangle')) {
                 $this.removeClass('right-triangle');
                 $this.addClass('down-triangle');
-                $this.parent().find('.layer-options').slideDown(300);
+                cooGridOptions.slideDown(300);
             }
             else {
                 $this.removeClass('down-triangle');
                 $this.addClass('right-triangle');
-                $this.parent().find('.layer-options').slideUp(300);
+                cooGridOptions.slideUp(300);
             }
         });
 
@@ -332,11 +367,11 @@ hipsDir, 'equatorial', 9, {imgFormat: 'jpg'}));
                 layer.hide();
             }
         });
-
-        // finally show
-        this.mainDiv.style.display = 'block';
     }
 
+    show() {
+        this.mainDiv.style.display = 'block';
+    }
 
     hide() {
         this.mainDiv.style.display = 'none';

@@ -213,19 +213,12 @@ export let Aladin = (function () {
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
-        // TODO : classe Stack
         if (options.showLayersControl) {
             // button to show Stack interface
             var d = $('<div class="aladin-layersControl-container" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
             // we return false so that the default event is not submitted, and to prevent event bubbling
             d.click(function () { self.hideBoxes(); self.showLayerBox(); return false; });
-
-            // Stack interface itself
-            this.stack = new Stack(aladinDiv, this, this.view);
-
-            this.boxes.push(this.stack);
-
 
         }
 
@@ -1065,6 +1058,13 @@ export let Aladin = (function () {
 
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
+        if (! this.stack) {
+            // Stack GUI
+            this.stack = new Stack(this.aladinDiv, this, this.view);
+
+            this.boxes.push(this.stack);
+        }
+
         this.stack.show();
     };
 

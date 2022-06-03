@@ -3,7 +3,7 @@ use cgmath::BaseFloat;
 #[derive(Clone, Copy)]
 pub struct ArcDeg<T: BaseFloat>(pub T);
 
-pub const TWICE_PI: f64 = 6.28318530718;
+//pub const TWICE_PI: f64 = 6.28318530718;
 pub const PI: f64 = 3.14159265359;
 
 impl<T> ArcDeg<T>
@@ -220,7 +220,6 @@ impl FormatType for DD {
         let angle = Rad(angle.0);
         let degrees: ArcDeg<S> = angle.into();
 
-        
         degrees.to_string()
     }
 }

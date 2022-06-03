@@ -1,10 +1,8 @@
-pub mod raw;
-pub mod format;
-pub mod fits;
 pub mod bitmap;
+pub mod fits;
+pub mod format;
 pub mod html;
-
-use cgmath::Vector2;
+pub mod raw;
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
     type Item: std::cmp::PartialOrd + Clone + Copy + std::fmt::Debug + cgmath::Zero;
@@ -196,7 +194,7 @@ pub trait Image {
 
 impl<'a, I> Image for &'a I
 where
-    I: Image
+    I: Image,
 {
     fn tex_sub_image_3d(
         &self,
@@ -263,9 +261,7 @@ where
     }*/
 }
 
-use crate::image::format::{R8UI, R16I, R32I, R32F, RGBA8U, RGB8U};
-use js_sys::{Function};
-use std::cell::Cell;
+use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
 
 use bitmap::Bitmap;
 use fits::Fits;
@@ -314,7 +310,7 @@ impl Image for ImageType {
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawRgba8u { image} => image.tex_sub_image_3d(textures, offset),
+            ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR32i { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR16i { image } => image.tex_sub_image_3d(textures, offset),
@@ -334,7 +330,6 @@ impl Image for ImageType {
         }
     }*/
 }
-
 
 /*
 pub trait ImageRequest<F>

@@ -32,15 +32,22 @@ features = ["serde-serialize"]
 version = "0.3.56"
 features = [
   'console',
+  'CssStyleDeclaration',
   'Document',
   'Element',
   'HtmlCollection',
   'HtmlElement',
   'HtmlImageElement',
   'HtmlCanvasElement',
+  'Blob',
+  'ImageBitmap',
+  'ImageData',
+
+  'CanvasRenderingContext2d',
+
   'MouseEvent',
   'WheelEvent',
-  'EventTarget',
+
   'WebGlBuffer',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
@@ -48,23 +55,18 @@ features = [
   'WebGlShader',
   'WebGlUniformLocation',
   'WebGlTexture',
+  'WebGlActiveInfo',
+
   'Window',
-  'Headers',
   'Request',
   'RequestInit',
   'RequestMode',
   'Response',
   'XmlHttpRequest',
-  'XmlHttpRequestEventTarget',
   'XmlHttpRequestResponseType',
   'PerformanceTiming',
   'Performance',
-  'CanvasRenderingContext2d',
-  'TextMetrics',
-  'ImageData',
-  'Storage',
-  'WebGlActiveInfo',
-  'GpuRenderBundleEncoder'
+  'Url',
 ]
 
 [features]

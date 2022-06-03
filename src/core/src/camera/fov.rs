@@ -41,6 +41,16 @@ fn world_to_model(world_coo: &[WorldCoord], w2m: &Matrix4<f64>) -> Vec<ModelCoor
     model_coo
 }
 
+fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
+    let step = (b - a) / ((num - 1) as f64);
+    let mut res = vec![];
+    for i in 0..num {
+        res.push(a + (i as f64) * step);
+    }
+
+    res
+}
+
 const NUM_VERTICES_WIDTH: usize = 10;
 const NUM_VERTICES_HEIGHT: usize = 10;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
@@ -61,34 +71,21 @@ impl FieldOfViewVertices {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
-        center: &Vector4<f64>
+        center: &Vector4<f64>,
     ) -> Self {
-        let mut x_ndc =
-            itertools_num::linspace::<f64>(-1., 1., NUM_VERTICES_WIDTH + 2).collect::<Vec<_>>();
+        let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
         x_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_HEIGHT));
-        x_ndc.extend(itertools_num::linspace::<f64>(
-            1.,
-            -1.,
-            NUM_VERTICES_WIDTH + 2,
-        ));
+        x_ndc.extend(linspace(1., -1., NUM_VERTICES_WIDTH + 2));
         x_ndc.extend(iter::repeat(-1.0).take(NUM_VERTICES_HEIGHT));
 
         let mut y_ndc = iter::repeat(-1.0)
             .take(NUM_VERTICES_WIDTH + 1)
             .collect::<Vec<_>>();
 
-        y_ndc.extend(itertools_num::linspace::<f64>(
-            -1.,
-            1.,
-            NUM_VERTICES_HEIGHT + 2,
-        ));
+        y_ndc.extend(linspace(-1., 1., NUM_VERTICES_HEIGHT + 2));
         y_ndc.extend(iter::repeat(1.0).take(NUM_VERTICES_WIDTH));
-        y_ndc.extend(itertools_num::linspace::<f64>(
-            1.,
-            -1.,
-            NUM_VERTICES_HEIGHT + 2,
-        ));
+        y_ndc.extend(linspace(1., -1., NUM_VERTICES_HEIGHT + 2));
         y_ndc.pop();
 
         let mut ndc_coo = Vec::with_capacity(NUM_VERTICES);
@@ -96,9 +93,10 @@ impl FieldOfViewVertices {
             ndc_coo.push(Vector2::new(x_ndc[idx_vertex], y_ndc[idx_vertex]));
         }
 
-        let world_coo =
-            ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
-        let model_coo = world_coo.as_ref().map(|world_coo| world_to_model(world_coo, mat));
+        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
+        let model_coo = world_coo
+            .as_ref()
+            .map(|world_coo| world_to_model(world_coo, mat));
 
         let great_circles = if let Some(vertices) = &model_coo {
             FieldOfViewType::new_polygon(vertices, &center)
@@ -121,13 +119,9 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         system: &CooSystem,
-        center: &Vector4<f64>
+        center: &Vector4<f64>,
     ) {
-        self.world_coo = ndc_to_world::<P>(
-            &self.ndc_coo,
-            ndc_to_clip,
-            clip_zoom_factor
-        );
+        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
         self.set_rotation::<P>(w2m, aperture, system, center);
     }
 
@@ -136,7 +130,7 @@ impl FieldOfViewVertices {
         w2m: &Matrix4<f64>,
         aperture: Angle<f64>,
         system: &CooSystem,
-        center: &Vector4<f64>
+        center: &Vector4<f64>,
     ) {
         if let Some(world_coo) = &self.world_coo {
             self.model_coo = Some(world_to_model(world_coo, w2m));
@@ -147,7 +141,12 @@ impl FieldOfViewVertices {
         self.set_great_circles::<P>(aperture, system, center);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, aperture: Angle<f64>, system: &CooSystem, center: &Vector4<f64>) {
+    fn set_great_circles<P: Projection>(
+        &mut self,
+        aperture: Angle<f64>,
+        _system: &CooSystem,
+        center: &Vector4<f64>,
+    ) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
@@ -174,8 +173,5 @@ impl FieldOfViewVertices {
         &self.great_circles
     }
 }
-use crate::math::{
-    spherical::BoundingBox,
-    projection::Projection,
-};
+use crate::math::{projection::Projection, spherical::BoundingBox};
 use std::iter;

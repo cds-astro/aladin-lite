@@ -7,8 +7,8 @@ pub enum UserAction {
 }
 
 use super::fov::{FieldOfViewVertices, ModelCoord};
-use cgmath::{Matrix4, Vector2};
 use crate::math::spherical::BoundingBox;
+use cgmath::{Matrix4, Vector2};
 
 pub struct CameraViewPort {
     // The field of view angle
@@ -61,13 +61,8 @@ use al_api::coo_system::CooSystem;
 use al_core::WebGlContext;
 
 use crate::{
-    math::{
-        angle::Angle,
-        projection::Projection,
-        rotation::Rotation,
-        spherical::FieldOfViewType
-    },
     coosys,
+    math::{angle::Angle, projection::Projection, rotation::Rotation, spherical::FieldOfViewType},
 };
 
 use cgmath::{SquareMatrix, Vector4};
@@ -109,16 +104,22 @@ impl CameraViewPort {
         let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
         let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
         let dpi = window.device_pixel_ratio() as f32;
-        //let dpi = 1.5;
+        /*if width < height {
+            dpi = 1.0;
+        }*/
+
+        let width = width * dpi;
+        let height = height * dpi;
+
+        //let dpi = 1.0;
         set_canvas_size(gl, width as u32, height as u32);
         //gl.scissor(0, 0, width as i32, height as i32);
 
-        let aspect = width / height;
+        let aspect = height / width;
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let vertices =
-            FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
+        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -172,16 +173,31 @@ impl CameraViewPort {
     }
 
     pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
-        self.width = width;
-        self.height = height;
+        let canvas = self
+            .gl
+            .canvas()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+        canvas
+            .style()
+            .set_property("width", &format!("{}px", width))
+            .unwrap();
+        canvas
+            .style()
+            .set_property("height", &format!("{}px", height))
+            .unwrap();
+
+        self.width = (width as f32) * self.dpi;
+        self.height = (height as f32) * self.dpi;
 
         self.aspect = width / height;
 
-        set_canvas_size(&self.gl, width as u32, height as u32);
+        set_canvas_size(&self.gl, self.width as u32, self.height as u32);
         //self.update_scissor();
 
         // Compute the new clip zoom factor
-        self.ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
+        self.ndc_to_clip = P::compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
 
         self.moved = true;
         self.last_user_action = UserAction::Starting;
@@ -247,7 +263,7 @@ impl CameraViewPort {
             &self.w2m,
             self.aperture,
             &self.system,
-            &self.center
+            &self.center,
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
@@ -278,13 +294,6 @@ impl CameraViewPort {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices::<P>();
-    }
-
-    pub fn set_projection<P: Projection>(&mut self) {
-        // Recompute the ndc_to_clip
-        self.set_screen_size::<P>(self.width, self.height);
-        // Recompute clip zoom factor
-        self.set_aperture::<P>(self.get_aperture());
     }
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
@@ -424,8 +433,7 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        let center_world_space =
-            P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
+        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
         // Change from galactic to icrs if necessary
 
         // Change to model space

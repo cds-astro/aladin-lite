@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use al_api::blend::BlendFunc;
+use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 
@@ -62,7 +62,8 @@ impl WebGlContext {
         #[cfg(feature = "webgl2")]
         let _ = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")?;
         #[cfg(feature = "webgl1")]
-        let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+        let angles_ext =
+            get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
         #[cfg(feature = "webgl1")]
         let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
         #[cfg(feature = "webgl1")]
@@ -107,7 +108,7 @@ pub trait GlWrapper {
     fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ());
 }
 
-use al_api::blend::{BlendFactor, BlendCfg};
+use al_api::blend::{BlendCfg, BlendFactor};
 impl GlWrapper for BlendCfg {
     fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ()) {
         let blend_factor_f = |f: &BlendFactor| -> u32 {

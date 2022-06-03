@@ -3,8 +3,9 @@
    the WASM core of aladin lite v3
 */
 pub mod blend;
-pub mod hips;
 pub mod color;
 pub mod colormap;
-pub mod grid;
 pub mod coo_system;
+pub mod grid;
+pub mod hips;
+pub mod resources;

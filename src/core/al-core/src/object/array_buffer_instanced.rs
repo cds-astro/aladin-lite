@@ -10,9 +10,6 @@ pub struct ArrayBufferInstanced {
     offset_idx: u32,
 
     num_instances: i32,
-    num_bytes_per_instance: i32,
-    num_bytes_in_buf: i32,
-    usage: u32,
     sizes: Vec<usize>,
     stride: usize,
 
@@ -41,7 +38,7 @@ impl ArrayBufferInstanced {
         offset_idx: u32,
         stride: usize,
         sizes: &[usize],
-        offsets: &[usize],
+        _offsets: &[usize],
         usage: u32,
         data: B,
     ) -> ArrayBufferInstanced {
@@ -49,10 +46,8 @@ impl ArrayBufferInstanced {
         let num_f32_per_instance = sizes.iter().sum::<usize>() as i32;
         // Total length
         let num_f32_in_buf = data.len() as i32;
-        let num_bytes_in_buf = num_f32_in_buf * (std::mem::size_of::<f32>() as i32);
 
         let num_instances = num_f32_in_buf / (num_f32_per_instance as i32);
-        let num_bytes_per_instance = num_f32_per_instance * (std::mem::size_of::<f32>() as i32);
 
         let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
 
@@ -63,13 +58,7 @@ impl ArrayBufferInstanced {
         // Link to the shader
         let idx = offset_idx;
 
-        f32::vertex_attrib_pointer_with_i32(
-            &gl,
-            idx,
-            *sizes.first().unwrap() as i32,
-            0,
-            0,
-        );
+        f32::vertex_attrib_pointer_with_i32(&gl, idx, *sizes.first().unwrap() as i32, 0, 0);
         gl.enable_vertex_attrib_array(idx);
 
         #[cfg(feature = "webgl2")]
@@ -85,18 +74,19 @@ impl ArrayBufferInstanced {
             num_packed_data,
             offset_idx,
 
-            usage,
             sizes: sizes.to_vec(),
             stride,
 
             num_instances,
-            num_bytes_per_instance,
-            num_bytes_in_buf,
             gl,
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
         assert_eq!(self.sizes.len(), 1);
         self.gl.vertex_attrib_pointer_with_i32(
@@ -112,12 +102,19 @@ impl ArrayBufferInstanced {
         #[cfg(feature = "webgl2")]
         self.gl.vertex_attrib_divisor(loc as u32, 1);
         #[cfg(feature = "webgl1")]
-        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 1);
+        self.gl
+            .ext
+            .angles
+            .vertex_attrib_divisor_angle(loc as u32, 1);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
-        
+
         self.gl.disable_vertex_attrib_array(loc as u32);
     }
 

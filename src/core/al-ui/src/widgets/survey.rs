@@ -1,5 +1,5 @@
 use al_api::colormap::Colormap;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Default, Deserialize, Serialize)]
 struct Properties {
@@ -192,17 +192,17 @@ pub struct SurveyWidget {
     longitude_reversed: bool,
 }
 
-use al_api::hips::HiPSTileFormat;
 use al_api::coo_system::CooSystem;
+use al_api::hips::HiPSTileFormat;
 
 use cgmath::num_traits::Pow;
 
 use crate::painter::WebGlRenderingCtx;
-use al_api::blend::{
-    BlendCfg, BlendFactor, BlendFunc
-};
+use al_api::blend::{BlendCfg, BlendFactor, BlendFunc};
 use al_api::color::Color;
-use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS, ImageSurveyMeta, TransferFunction, GrayscaleColor};
+use al_api::hips::{
+    GrayscaleColor, HiPSColor, HiPSProperties, ImageSurveyMeta, SimpleHiPS, TransferFunction,
+};
 impl SurveyWidget {
     pub async fn new(url: String) -> Self {
         let properties = request_survey_properties(url.clone()).await;
@@ -224,7 +224,7 @@ impl SurveyWidget {
                 tf: TransferFunction::Asinh,
                 min_cut: None,
                 max_cut: None,
-                color: GrayscaleColor::Color([1.0, 0.0, 0.0, 1.0])
+                color: GrayscaleColor::Color([1.0, 0.0, 0.0, 1.0]),
             }
         } else {
             HiPSColor::Color
@@ -327,14 +327,14 @@ impl SurveyWidget {
                 min_cutout,
                 max_cutout,
                 bitpix,
-                formats
+                formats,
             ),
             meta: ImageSurveyMeta {
                 color: self.color_cfg.clone(),
                 blend_cfg: self.blend_cfg.clone(),
                 opacity: opacity,
             },
-            backend: None
+            backend: None,
         }
     }
 
@@ -374,7 +374,12 @@ impl SurveyWidget {
                         self.color_picker_widget(ui, &mut ui_changed);
 
                         // Longitude reversed
-                        ui_changed |= ui.add(egui::Checkbox::new(&mut self.longitude_reversed, "Longitude reversed")).changed();
+                        ui_changed |= ui
+                            .add(egui::Checkbox::new(
+                                &mut self.longitude_reversed,
+                                "Longitude reversed",
+                            ))
+                            .changed();
 
                         ui.group(|ui| {
                             if let Some(t) = &mut self.transfer_func {
@@ -385,40 +390,32 @@ impl SurveyWidget {
                                         TransferFunction::Linear => plot(ui, |x| x),
                                         TransferFunction::Pow2 => plot(ui, |x| x.pow(2.0)),
                                         TransferFunction::Sqrt => plot(ui, |x| x.sqrt()),
-                                        TransferFunction::Log => plot(ui, |x| (1000.0*x + 1.0).ln()/1000_f32.ln()),
+                                        TransferFunction::Log => {
+                                            plot(ui, |x| (1000.0 * x + 1.0).ln() / 1000_f32.ln())
+                                        }
                                     }
 
                                     // Selection of the transfer function
                                     ui.vertical(|ui| {
-                                        ui_changed |= ui.selectable_value(
-                                            t,
-                                            TransferFunction::Asinh, 
-                                            "asinh"
-                                        ).clicked();
-        
-                                        ui_changed |= ui.selectable_value(
-                                            t,
-                                            TransferFunction::Log,
-                                            "log",
-                                        ).clicked();
-        
-                                        ui_changed |= ui.selectable_value(
-                                            t,
-                                            TransferFunction::Linear,
-                                            "linear",
-                                        ).clicked();
-        
-                                        ui_changed |= ui.selectable_value(
-                                            t,
-                                            TransferFunction::Pow2, 
-                                            "pow2"
-                                        ).clicked();
-        
-                                        ui_changed |= ui.selectable_value(
-                                            t,
-                                            TransferFunction::Sqrt, 
-                                            "sqrt"
-                                        ).clicked();
+                                        ui_changed |= ui
+                                            .selectable_value(t, TransferFunction::Asinh, "asinh")
+                                            .clicked();
+
+                                        ui_changed |= ui
+                                            .selectable_value(t, TransferFunction::Log, "log")
+                                            .clicked();
+
+                                        ui_changed |= ui
+                                            .selectable_value(t, TransferFunction::Linear, "linear")
+                                            .clicked();
+
+                                        ui_changed |= ui
+                                            .selectable_value(t, TransferFunction::Pow2, "pow2")
+                                            .clicked();
+
+                                        ui_changed |= ui
+                                            .selectable_value(t, TransferFunction::Sqrt, "sqrt")
+                                            .clicked();
                                     });
                                     ui.end_row();
                                 });
@@ -500,24 +497,68 @@ impl SurveyWidget {
                 }
                 ColorOption::Colormap => {
                     egui::ComboBox::from_label("Colormap")
-                    .selected_text(format!("{:?}", self.colormap))
-                    .show_ui(ui, |ui| {
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Blues, "blues").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Cubehelix, "cubehelix").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Eosb, "eosb").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Grayscale, "grayscale").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Parula, "parula").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rdbu, "rdbu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Rdyibu, "rdyibu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Redtemperature, "redtemperature").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Spectral, "spectral").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Summer, "summer").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Yignbu, "yignbu").clicked();
-                        *ui_changed |= ui.selectable_value(&mut self.colormap, Colormap::Yiorbr, "yiorbr").clicked();
-                    });
+                        .selected_text(format!("{:?}", self.colormap))
+                        .show_ui(ui, |ui| {
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Blues, "blues")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(
+                                    &mut self.colormap,
+                                    Colormap::Cubehelix,
+                                    "cubehelix",
+                                )
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Eosb, "eosb")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(
+                                    &mut self.colormap,
+                                    Colormap::Grayscale,
+                                    "grayscale",
+                                )
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Parula, "parula")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Rdbu, "rdbu")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Rdyibu, "rdyibu")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(
+                                    &mut self.colormap,
+                                    Colormap::Redtemperature,
+                                    "redtemperature",
+                                )
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(
+                                    &mut self.colormap,
+                                    Colormap::Spectral,
+                                    "spectral",
+                                )
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Summer, "summer")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Yignbu, "yignbu")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Yiorbr, "yiorbr")
+                                .clicked();
+                        });
 
-                    *ui_changed |= ui.add(egui::Checkbox::new(&mut self.reversed, "Reversed")).changed();
+                    *ui_changed |= ui
+                        .add(egui::Checkbox::new(&mut self.reversed, "Reversed"))
+                        .changed();
 
                     self.color_cfg = HiPSColor::Grayscale {
                         tf: transfer,
@@ -525,8 +566,8 @@ impl SurveyWidget {
                         max_cut: Some(cutouts[1]),
                         color: GrayscaleColor::Colormap {
                             reversed: self.reversed,
-                            name: self.colormap.clone()
-                        }
+                            name: self.colormap.clone(),
+                        },
                     };
                 }
                 ColorOption::RGB => {
@@ -591,7 +632,7 @@ fn blend_widget(
                         .clicked();
                 });
         });
-    
+
         /*#[cfg(feature = "webgl2")]
         egui::ComboBox::from_label("Blend Func")
         .selected_text(format!("{:?}", blend.func))

@@ -7,6 +7,7 @@ use web_sys::HtmlImageElement;
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct Texture2DMeta {
     pub format: u32,
     pub internal_format: i32,
@@ -24,8 +25,8 @@ pub struct Texture2D {
 
     metadata: Option<Texture2DMeta>,
 }
-use crate::image::format::ImageFormat;
 use super::pixel::Pixel;
+use crate::image::format::ImageFormat;
 //use super::pixel::PixelType;
 use std::path::Path;
 impl Texture2D {
@@ -283,7 +284,9 @@ impl Texture2D {
             0,
         );
 
-        let status = self.gl.check_framebuffer_status(WebGlRenderingCtx::FRAMEBUFFER);
+        let status = self
+            .gl
+            .check_framebuffer_status(WebGlRenderingCtx::FRAMEBUFFER);
         if status != WebGlRenderingCtx::FRAMEBUFFER_COMPLETE {
             // Unbind the framebuffer
             self.gl
@@ -306,27 +309,33 @@ impl Texture2D {
             let value = match (*format, *type_) {
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0])
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0])
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0])
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p[0]).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p[0])
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p)
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p)
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 _ => Err(JsValue::from_str(
                     "Pixel retrieval not implemented for that texture format.",
@@ -336,15 +345,18 @@ impl Texture2D {
             let value = match (*format, *type_) {
                 (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p)
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p)
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
-                    Ok(JsValue::from_serde(&p).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                    Ok(JsValue::from_serde(&p)
+                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
                 }
                 _ => Err(JsValue::from_str(
                     "Pixel retrieval not implemented for that texture format.",

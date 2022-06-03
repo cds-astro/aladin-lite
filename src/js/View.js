@@ -727,8 +727,9 @@ export let View = (function() {
                 }
 
                 // zoom
-                var dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                view.setZoom(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist);
+                const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), 360.0);
+                view.setZoom(fov);
 
                 return;
             }
@@ -1811,7 +1812,7 @@ export let View = (function() {
 
         }
         // Change the projection here
-        this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName);
+        this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);
 
         this.requestRedraw();
     };

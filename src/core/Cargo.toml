@@ -12,7 +12,7 @@ members = [
     "al-core",
     "al-api",
     "al-task-exec",
-    "al-ui"
+    #"al-ui"
 ]
 
 [lib]
@@ -24,26 +24,24 @@ futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
-itertools-num = "0.1.3"
 cdshealpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-healpix-rust', branch = 'master' }
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 num = "*"
-num-traits = "0.2.14"
 #egui = "*"
 #epi = "*"
 fontdue = "0.7.2"
 enum_dispatch = "0.3.7"
 
 al-core = { path = "./al-core" }
-al-ui = { path = "./al-ui" }
+#al-ui = { path = "./al-ui" }
 al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
 
 [features]
 webgl1 = [
   "al-core/webgl1",
-  "al-ui/webgl1",
+  #"al-ui/webgl1",
   "al-api/webgl1",
   "web-sys/WebGlRenderingContext",
   "web-sys/AngleInstancedArrays",   # Enabling instancing features
@@ -52,7 +50,7 @@ webgl1 = [
 ]
 webgl2 = [
   "al-core/webgl2",
-  "al-ui/webgl2",
+  #"al-ui/webgl2",
   "al-api/webgl2",
   "web-sys/WebGl2RenderingContext",
   "web-sys/WebGlVertexArrayObject",
@@ -67,16 +65,22 @@ features = ["serde-serialize"]
 version = "0.3.56"
 features = [
   'console',
+  'CssStyleDeclaration',
   'Document',
   'Element',
-  'CssStyleDeclaration',
   'HtmlCollection',
   'HtmlElement',
   'HtmlImageElement',
   'HtmlCanvasElement',
+  'Blob',
+  'ImageBitmap',
+  'ImageData',
+
+  'CanvasRenderingContext2d',
+
   'MouseEvent',
   'WheelEvent',
-  'EventTarget',
+
   'WebGlBuffer',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
@@ -84,28 +88,22 @@ features = [
   'WebGlShader',
   'WebGlUniformLocation',
   'WebGlTexture',
+  'WebGlActiveInfo',
+
   'Window',
-  'Headers',
   'Request',
   'RequestInit',
   'RequestMode',
   'Response',
   'XmlHttpRequest',
-  'XmlHttpRequestEventTarget',
   'XmlHttpRequestResponseType',
   'PerformanceTiming',
   'Performance',
-  'CanvasRenderingContext2d',
-  'TextMetrics',
-  'ImageData',
-  'Storage',
-  'WebGlActiveInfo',
-  'GpuRenderBundleEncoder',
   'Url',
-  'Blob',
-  'ImageBitmap',
-  'Worker'
 ]
+
+#[dev-dependencies]
+#img_pixel = { package = "image", version = "0.24.2" }
 
 [profile.dev]
 opt-level = 's'

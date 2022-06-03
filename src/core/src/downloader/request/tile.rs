@@ -1,15 +1,8 @@
-use crate::{
-    survey::config::HiPSConfig,
-    healpix::cell::HEALPixCell
-};
+use crate::{healpix::cell::HEALPixCell};
 use al_core::image::format::ImageFormatType;
 
-use crate::downloader::{request, query};
-use al_core::image::{
-    ImageType,
-    bitmap::Bitmap,
-    fits::Fits,
-};
+use crate::downloader::{query};
+use al_core::image::{bitmap::Bitmap, fits::Fits, ImageType};
 
 use super::{Request, RequestType};
 pub struct TileRequest {
@@ -26,16 +19,21 @@ impl From<TileRequest> for RequestType {
     }
 }
 
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, Response, RequestInit, RequestMode};
+
 use crate::survey::Url;
-use super::ResolvedStatus;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Blob, RequestInit, RequestMode, Response};
 
 use wasm_bindgen::JsCast;
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
-        let query::Tile { format, cell, url, hips_url } = query;
+        let query::Tile {
+            format,
+            cell,
+            url,
+            hips_url,
+        } = query;
 
         let url_clone = url.clone();
 
@@ -45,16 +43,16 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
-                let blob = JsFuture::from(resp.blob()?).await?
-                    .into();
-                let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?).await?
+                let blob = JsFuture::from(resp.blob()?).await?.into();
+                let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
+                    .await?
                     .into();
 
                 let image = Bitmap::new(image);
@@ -64,16 +62,16 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
-                let blob = JsFuture::from(resp.blob()?).await?
-                    .into();
-                let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?).await?
+                let blob = JsFuture::from(resp.blob()?).await?.into();
+                let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
+                    .await?
                     .into();
 
                 let image = Bitmap::new(image);
@@ -83,13 +81,13 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
-                let array_buffer =  JsFuture::from(resp.array_buffer()?).await?;
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
@@ -99,16 +97,15 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
-                let blob: Blob = JsFuture::from(resp.blob()?).await?
-                    .into();
-                let array_buffer =  JsFuture::from(blob.array_buffer()).await?;
+                let blob: Blob = JsFuture::from(resp.blob()?).await?.into();
+                let array_buffer = JsFuture::from(blob.array_buffer()).await?;
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::new(&bytes)?;
@@ -118,13 +115,13 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
-                let array_buffer =  JsFuture::from(resp.array_buffer()?).await?;
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::new(&bytes)?;
@@ -134,13 +131,13 @@ impl From<query::Tile> for TileRequest {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
-    
+
                 let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
-                let array_buffer =  JsFuture::from(resp.array_buffer()?).await?;
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::new(&bytes)?;
@@ -153,13 +150,13 @@ impl From<query::Tile> for TileRequest {
             cell,
             hips_url,
             url,
-            request
+            request,
         }
     }
 }
 
-use std::sync::{Arc, Mutex};
 use crate::time::Time;
+use std::sync::{Arc, Mutex};
 pub struct Tile {
     pub image: Arc<Mutex<Option<ImageType>>>,
     pub time_req: Time,
@@ -170,9 +167,7 @@ pub struct Tile {
 
 impl Tile {
     pub fn missing(&self) -> bool {
-        self.image.lock()
-            .unwrap()
-            .is_none()
+        self.image.lock().unwrap().is_none()
     }
 
     pub fn get_hips_url(&self) -> &Url {
@@ -186,16 +181,23 @@ impl Tile {
 
 impl<'a> From<&'a TileRequest> for Option<Tile> {
     fn from(request: &'a TileRequest) -> Self {
-        let TileRequest { cell, request, hips_url, url} = request;
+        let TileRequest {
+            cell,
+            request,
+            hips_url,
+            url,
+        } = request;
         if request.is_resolved() {
-            let Request::<ImageType> { time_request, data, .. } = request;
+            let Request::<ImageType> {
+                time_request, data, ..
+            } = request;
             Some(Tile {
                 cell: *cell,
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
                 hips_url: hips_url.clone(),
-                url: url.clone()
+                url: url.clone(),
             })
         } else {
             None

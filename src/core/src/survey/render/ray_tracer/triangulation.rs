@@ -1,5 +1,5 @@
-use cgmath::Vector2;
 use crate::math::angle::Angle;
+use cgmath::Vector2;
 
 pub trait Triangulate {
     fn triangulate() -> Triangulation;
@@ -44,8 +44,8 @@ impl Triangulate for HEALPix {
             // | x.x, x.y, 1 |
             // | y.x, y.y, 1 | > 0 => the triangle is given in counterclockwise order
             // | z.x, z.y, 1 |
-        
-            x.x*y.y + x.y*z.x + y.x*z.y - z.x*y.y - z.y*x.x - y.x*x.y >= 0.0
+
+            x.x * y.y + x.y * z.x + y.x * z.y - z.x * y.y - z.y * x.x - y.x * x.y >= 0.0
         }
 
         // The HEALPix 2d projection space is not convex
@@ -57,24 +57,25 @@ impl Triangulate for HEALPix {
         let vertices = HEALPixCell::allsky(3)
             .map(|cell| {
                 idx.extend([
-                    off_idx, off_idx + 1, off_idx + 2,
-                    off_idx + 3, off_idx + 4, off_idx + 5,
+                    off_idx,
+                    off_idx + 1,
+                    off_idx + 2,
+                    off_idx + 3,
+                    off_idx + 4,
+                    off_idx + 5,
                 ]);
 
                 let (c_ra, c_dec) = cell.center();
 
-                let v = cell.vertices()
-                    .map(|(ra, dec)| {
-                        let ra = lerp(ra, c_ra, 1e-5);
-                        let dec = lerp(dec, c_dec, 1e-5);
+                let v = cell.vertices().map(|(ra, dec)| {
+                    let ra = lerp(ra, c_ra, 1e-5);
+                    let dec = lerp(dec, c_dec, 1e-5);
 
-                        let v = math::lonlat::radec_to_xyzw(Angle(ra), Angle(dec));
-                        HEALPix::world_to_clip_space(&v).unwrap()
-                    });
-                
-                let mut vertices = [
-                    v[0], v[3], v[2], v[2], v[1], v[0]
-                ];
+                    let v = math::lonlat::radec_to_xyzw(Angle(ra), Angle(dec));
+                    HEALPix::world_to_clip_space(&v).unwrap()
+                });
+
+                let mut vertices = [v[0], v[3], v[2], v[2], v[1], v[0]];
 
                 if !counter_clockwise_tri(vertices[3], vertices[4], vertices[5]) {
                     // triangles are crossing
@@ -89,10 +90,7 @@ impl Triangulate for HEALPix {
             .flatten()
             .collect::<Vec<_>>();
 
-        Triangulation {
-            vertices,
-            idx
-        }
+        Triangulation { vertices, idx }
     }
 }
 
@@ -103,16 +101,6 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
 pub struct Triangulation {
     pub vertices: Vec<Vector2<f64>>,
     pub idx: Vec<u16>,
-}
-
-impl Triangulation {
-    pub fn vertices(&self) -> &Vec<Vector2<f64>> {
-        &self.vertices
-    }
-
-    pub fn idx(&self) -> &Vec<u16> {
-        &self.idx
-    }
 }
 
 fn build<P: Projection>() -> Triangulation {

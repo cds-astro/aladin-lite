@@ -235,7 +235,6 @@ impl Stream for BuildCatalogIndex {
     }
 }
 
-
 use cgmath::Vector3;
 /// Task that send a tile to the GPU
 pub struct ImageTile2GpuTask<I>
@@ -248,8 +247,8 @@ where
 }
 
 use crate::{
-    survey::{config::HiPSConfig, texture::Texture},
     healpix::cell::HEALPixCell,
+    survey::{config::HiPSConfig, texture::Texture},
 };
 use al_core::image::Image;
 use al_core::Texture2DArray;

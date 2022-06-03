@@ -51,7 +51,6 @@ pub fn rasterize_font(text_size: f32) -> Font {
     let font = fontdue::Font::from_bytes(font, fontdue::FontSettings::default()).unwrap();
 
     // Rasterize and get the layout metrics for the letter 'g' at 17px.
-    let mut h = 0;
     let mut w = 0;
 
     let mut letters = Vec::new();
@@ -68,7 +67,6 @@ pub fn rasterize_font(text_size: f32) -> Font {
             bitmap,
         });
 
-        h += metrics.height;
         w = std::cmp::max(w, metrics.width);
     }
 

@@ -1,26 +1,32 @@
-use crate::{async_task::{TaskExecutor, BuildCatalogIndex, ParseTableTask, TaskResult, TaskType}, camera::CameraViewPort, colormap::Colormaps, downloader::{
-        Downloader,
-    }, line, math::{
+use crate::{
+    async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
+    camera::CameraViewPort,
+    colormap::Colormaps,
+    downloader::Downloader,
+    line,
+    math::{
         self,
         angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
-        projection::{Orthographic, Projection}
-    }, renderable::{
+        projection::{Orthographic, Projection},
+    },
+    renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
-    }, shader::ShaderManager, survey::ImageSurveys, tile_fetcher::TileFetcherQueue, time::DeltaTime, utils};
-use al_core::{
-    resources::Resources,
-    WebGlContext
+    },
+    shader::ShaderManager,
+    survey::ImageSurveys,
+    tile_fetcher::TileFetcherQueue,
+    time::DeltaTime,
+    utils,
 };
+//use al_core::resources::Resources;
+use al_core::WebGlContext;
 
 use al_api::{
-    hips::{
-        SimpleHiPS, ImageSurveyMeta
-    },
-    color::Color,
+    coo_system::CooSystem,
     grid::GridCfg,
-    coo_system::CooSystem
+    hips::{ImageSurveyMeta, SimpleHiPS},
 };
 
 use super::coosys;
@@ -34,15 +40,16 @@ use std::rc::Rc;
 
 use std::collections::HashSet;
 
-use serde::Deserialize;
+/*use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 struct S {
     ra: f64,
     dec: f64,
 }
+*/
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
-use al_ui::{Gui, GuiRef};
+
 pub struct App<P>
 where
     P: Projection,
@@ -68,7 +75,7 @@ where
 
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
-    pub resources: Resources,
+    resources: Resources,
 
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
@@ -93,7 +100,6 @@ use futures::stream::StreamExt; // for `next`
 
 use crate::math::rotation::Rotation;
 
-
 /*struct MoveAnimation {
     start_anim_rot: Rotation<f64>,
     goal_anim_rot: Rotation<f64>,
@@ -109,22 +115,22 @@ struct InertiaAnimation {
     // The time when the inertia begins
     time_start_anim: Time,
 }
-
+/*
 struct ZoomAnimation {
     time_start_anim: Time,
     start_fov: Angle<f64>,
     goal_fov: Angle<f64>,
     w0: f64,
 }
-
+*/
 use crate::math::projection::*;
 pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
-//use crate::buffer::Tile;
+                                               //use crate::buffer::Tile;
 use crate::time::Time;
 use cgmath::InnerSpace;
-use wasm_bindgen::JsCast;
 
-use math::projection::*;
+
+
 type OrthoApp = App<Orthographic>;
 type AitoffApp = App<Aitoff>;
 type MollweideApp = App<Mollweide>;
@@ -143,7 +149,7 @@ pub enum AppType {
     HEALPixApp,
     MercatorApp,
 }
-
+use al_api::resources::Resources;
 use crate::downloader::query;
 impl<P> App<P>
 where
@@ -151,7 +157,7 @@ where
 {
     pub fn new(
         gl: &WebGlContext,
-        aladin_div_name: &str,
+        _aladin_div_name: &str,
         mut shaders: ShaderManager,
         resources: Resources,
     ) -> Result<Self, JsValue> {
@@ -207,7 +213,6 @@ where
         Ok(App {
             gl,
             //ui,
-
             shaders,
 
             camera,
@@ -252,20 +257,18 @@ where
         for (_, survey) in self.surveys.iter_mut() {
             // do not add tiles if the view is already at depth 0
             if survey.get_view().get_depth() > 0 {
-                let mut tile_cells = survey.get_view()
+                let mut tile_cells = survey
+                    .get_view()
                     .get_cells()
-                    .flat_map(|texture_cell| {
-                        texture_cell.get_tile_cells(survey.get_config())
-                    })
+                    .flat_map(|texture_cell| texture_cell.get_tile_cells(survey.get_config()))
                     .collect::<Vec<_>>();
 
                 if survey.get_view().get_depth() >= 3 {
-                    let tile_cells_ancestor = tile_cells.iter()
-                        .map(|tile_cell| {
-                            tile_cell.ancestor(3)
-                        })
+                    let tile_cells_ancestor = tile_cells
+                        .iter()
+                        .map(|tile_cell| tile_cell.ancestor(3))
                         .collect::<HashSet<_>>();
-                
+
                     tile_cells.extend(tile_cells_ancestor);
                 }
 
@@ -276,7 +279,8 @@ where
                         let cfg = survey.get_config();
                         // Launch the new tile requests
                         //self.downloader.fetch(query::Tile::new(&tile_cell, cfg));
-                        self.tile_fetcher.append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
+                        self.tile_fetcher
+                            .append(query::Tile::new(&tile_cell, cfg), &mut self.downloader);
                     }
                 }
             }
@@ -324,7 +328,7 @@ where
 
         Ok(tiles_available)
     }*/
-    fn run_tasks(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    /*fn run_tasks(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
         let tasks_time = (dt.0 * 0.5).min(8.3);
         let results = self.exec.borrow_mut().run(tasks_time);
         self.tasks_finished = !results.is_empty();
@@ -350,13 +354,12 @@ where
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
-                }
-                //TaskResult::TileSentToGPU { tile } => todo!()
+                } //TaskResult::TileSentToGPU { tile } => todo!()
             }
         }
 
         Ok(())
-    }
+    }*/
 }
 
 #[enum_dispatch(AppType)]
@@ -381,10 +384,14 @@ pub trait AppTrait {
     // Getter to access the meta data of a layer
     fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue>;
     // Setter of the meta data of a layer
-    fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue>;
+    fn set_image_survey_color_cfg(
+        &mut self,
+        layer: String,
+        meta: ImageSurveyMeta,
+    ) -> Result<(), JsValue>;
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
-    fn set_projection<Q: Projection>(self) -> App<Q>;
+    fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
     //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
     // Catalog
@@ -395,7 +402,7 @@ pub trait AppTrait {
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
 
     // Grid
-    fn set_grid_cfg(&mut self, cfg: GridCfg);
+    fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue>;
 
     // Coo System
     fn set_coo_system(&mut self, coo_system: CooSystem);
@@ -432,12 +439,9 @@ pub trait AppTrait {
     fn over_ui(&self) -> bool;
 }
 
-use crate::healpix::cell::HEALPixCell;
 use crate::downloader::request::Resource;
-use crate::downloader::request::{
-    tile::Tile,
-    allsky::Allsky
-};
+use crate::downloader::request::{allsky::Allsky, tile::Tile};
+use crate::healpix::cell::HEALPixCell;
 
 impl<P> AppTrait for App<P>
 where
@@ -464,7 +468,7 @@ where
         Ok(res)
     }
 
-    fn update(&mut self, dt: DeltaTime) -> Result<(), JsValue> {
+    fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
 
         if let Some(InertiaAnimation {
@@ -508,8 +512,8 @@ where
             //self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
             /*let is_there_new_available_tiles = self
-                .downloader
-                .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
+            .downloader
+            .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
             let rscs = self.downloader.get_received_resources();
             let mut num_tile_received = 0;
             for rsc in rscs.into_iter() {
@@ -520,14 +524,19 @@ where
                         // Get the hips url from that url
                         if let Some(survey) = self.surveys.get_mut(hips_url) {
                             let is_missing = tile.missing();
-                            let Tile { cell, image, time_req, .. } = tile;
+                            let Tile {
+                                cell,
+                                image,
+                                time_req,
+                                ..
+                            } = tile;
                             survey.add_tile(&cell, image, is_missing, time_req);
 
                             self.request_redraw = true;
                         }
 
                         num_tile_received += 1;
-                    },
+                    }
                     Resource::Allsky(allsky) => {
                         let hips_url = allsky.get_hips_url();
 
@@ -540,17 +549,25 @@ where
                                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                                     for cell in texture_cell.get_tile_cells(cfg) {
                                         let query = query::Tile::new(&cell, cfg);
-                                        self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                                        self.tile_fetcher
+                                            .append_base_tile(query, &mut self.downloader);
                                     }
                                 }
                             } else {
-                                let Allsky { image, time_req, .. } = allsky;
+                                let Allsky {
+                                    image, time_req, ..
+                                } = allsky;
 
                                 {
                                     let mutex_locked = image.lock().unwrap();
                                     let images = mutex_locked.as_ref();
                                     for (idx, image) in images.unwrap().iter().enumerate() {
-                                        survey.add_tile(&HEALPixCell(0, idx as u64), image, false, time_req);
+                                        survey.add_tile(
+                                            &HEALPixCell(0, idx as u64),
+                                            image,
+                                            false,
+                                            time_req,
+                                        );
                                     }
                                 }
 
@@ -563,7 +580,8 @@ where
             }
 
             if num_tile_received > 0 {
-                self.tile_fetcher.notify(num_tile_received, &mut self.downloader);
+                self.tile_fetcher
+                    .notify(num_tile_received, &mut self.downloader);
                 self.time_start_blending = Time::now();
             }
             //self.surveys.add_resolved_tiles(resolved_tiles);
@@ -589,7 +607,8 @@ where
             }
         }
 
-        self.rendering = blending_anim_occuring | has_camera_moved | self.request_redraw | start_fading;
+        self.rendering =
+            blending_anim_occuring | has_camera_moved | self.request_redraw | start_fading;
         self.request_redraw = false;
 
         // Finally update the camera that reset the flag camera changed
@@ -599,9 +618,8 @@ where
             }
         }
 
-        self.grid.update::<P>(&self.camera);      
-        
-        
+        self.grid.update::<P>(&self.camera);
+
         /*{
             let events = self.ui.lock().update();
             let mut events = events.lock().unwrap();
@@ -629,8 +647,13 @@ where
 
     fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
-            let survey = self.surveys.get_from_layer(layer_id)
-                .ok_or(JsValue::from_str(&format!("Did not found the survey {:?}", layer_id)))?;
+            let survey = self
+                .surveys
+                .get_from_layer(layer_id)
+                .ok_or(JsValue::from_str(&format!(
+                    "Did not found the survey {:?}",
+                    layer_id
+                )))?;
 
             survey.read_pixel(&lonlat, &self.camera)
         } else {
@@ -715,7 +738,7 @@ where
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             // Render the scene
-            gl.clear_color(0.0, 0.0, 0.0, 1.0);
+            gl.clear_color(0.08, 0.08, 0.08, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw::<P>(camera, shaders, colormaps);
@@ -741,17 +764,15 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        let new_survey_ids = self.surveys.set_image_surveys(
-            hipses,
-            &self.gl,
-            &mut self.camera,
-        )?;
+        let _new_survey_ids = self
+            .surveys
+            .set_image_surveys(hipses, &self.gl, &mut self.camera)?;
 
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             let cfg = survey.get_config();
-            
+
             //Request the allsky for the small tile size
             if cfg.get_tile_size() <= 128 {
                 // Request the allsky
@@ -760,7 +781,8 @@ where
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                     for cell in texture_cell.get_tile_cells(cfg) {
                         let query = query::Tile::new(&cell, cfg);
-                        self.tile_fetcher.append_base_tile(query, &mut self.downloader);
+                        self.tile_fetcher
+                            .append_base_tile(query, &mut self.downloader);
                     }
                 }
             }
@@ -779,27 +801,33 @@ where
         self.surveys.get_image_survey_color_cfg(layer)
     }
 
-    fn set_image_survey_color_cfg(&mut self, layer: String, meta: ImageSurveyMeta) -> Result<(), JsValue> {
+    fn set_image_survey_color_cfg(
+        &mut self,
+        layer: String,
+        meta: ImageSurveyMeta,
+    ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
         self.surveys.set_image_survey_color_cfg(layer, meta)
     }
 
-    fn set_projection<Q: Projection>(mut self) -> App<Q> {
-        self.camera.set_projection::<Q>();
-        self.surveys.set_projection::<Q>(
-            &self.camera,
-            &mut self.shaders,
-        );
+    // Width and height given are in pixels
+    fn set_projection<Q: Projection>(mut self, width: f32, height: f32) -> App<Q> {
+        // Recompute the ndc_to_clip
+        self.camera.set_screen_size::<Q>(width, height);
+        // Recompute clip zoom factor
+        self.camera.set_aperture::<Q>(self.camera.get_aperture());
+
+        self.surveys
+            .set_projection::<Q>(&self.camera, &mut self.shaders);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
 
         App {
-            tile_fetcher: self.tile_fetcher,
-            p: std::marker::PhantomData,
             gl: self.gl,
-            //ui: self.ui,
+            tile_fetcher: self.tile_fetcher,
+
             colormaps: self.colormaps,
             fbo_ui: self.fbo_ui,
             fbo_view: self.fbo_view,
@@ -807,8 +835,7 @@ where
             manager: self.manager,
             exec: self.exec,
             resources: self.resources,
-            //zoom_animation: self.zoom_animation,
-            //move_animation: self.move_animation,
+
             inertial_move_animation: self.inertial_move_animation,
             prev_cam_position: self.prev_cam_position,
             prev_center: self.prev_center,
@@ -823,6 +850,7 @@ where
             request_redraw: self.request_redraw,
             rendering: self.rendering,
             grid: self.grid,
+            p: std::marker::PhantomData,
         }
     }
 
@@ -872,20 +900,7 @@ where
     }
 
     fn resize(&mut self, width: f32, height: f32) {
-        let dpi = self.camera.get_dpi();
-
-        let canvas = self
-            .gl
-            .canvas()
-            .unwrap()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
-        canvas.style().set_property("width", &format!("{}px", width)).unwrap();
-        canvas.style().set_property("height", &format!("{}px", height)).unwrap();
-
-        let w = (width as f32) * dpi;
-        let h = (height as f32) * dpi;
-        self.camera.set_screen_size::<P>(w, h);
+        self.camera.set_screen_size::<P>(width, height);
         // resize the view fbo
         //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo
@@ -936,10 +951,12 @@ where
         Ok(())
     }
 
-    fn set_grid_cfg(&mut self, cfg: GridCfg) {
-        self.grid.set_cfg(cfg);
+    fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
+        self.grid.set_cfg(cfg)?;
 
         self.request_redraw = true;
+
+        Ok(())
     }
 
     fn set_coo_system(&mut self, coo_system: CooSystem) {
@@ -994,9 +1011,11 @@ where
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
-        let (ra, dec) = math::lonlat::xyzw_to_radec(
-            &coosys::apply_coo_system(&view_system, &CooSystem::ICRSJ2000, &icrsj2000_pos)
-        );
+        let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
+            &view_system,
+            &CooSystem::ICRSJ2000,
+            &icrsj2000_pos,
+        ));
 
         LonLatT::new(ra, dec)
     }
@@ -1005,7 +1024,11 @@ where
         self.prev_cam_position = self.camera.get_center().truncate();
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
 
-        let view_pos = coosys::apply_coo_system(&CooSystem::ICRSJ2000, self.camera.get_system(), &icrsj2000_pos);
+        let view_pos = coosys::apply_coo_system(
+            &CooSystem::ICRSJ2000,
+            self.camera.get_system(),
+            &icrsj2000_pos,
+        );
         let rot = Rotation::from_sky_position(&view_pos);
 
         // Apply the rotation to the camera to go

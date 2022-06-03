@@ -1,8 +1,5 @@
-use crate::math::{
-    angle::Angle,
-    lonlat::LonLatT
-};
 use crate::healpix::cell::HEALPixCell;
+use crate::math::{angle::Angle, lonlat::LonLatT};
 /// A simple wrapper around sore core methods
 /// of cdshealpix
 ///

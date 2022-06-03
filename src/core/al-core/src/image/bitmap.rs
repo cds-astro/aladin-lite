@@ -1,7 +1,6 @@
 use cgmath::{Vector2, Vector3};
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Bitmap<F>
 where
     F: ImageFormat + Clone,
@@ -11,21 +10,18 @@ where
     format: std::marker::PhantomData<F>,
 }
 
-use crate::image::Image;
 use crate::image::format::ImageFormat;
+use crate::image::Image;
 impl<F> Bitmap<F>
 where
     F: ImageFormat + Clone,
 {
     pub fn new(image: web_sys::ImageBitmap) -> Self {
-        let size = Vector2::new(
-            image.width() as i32,
-            image.height() as i32
-        );
+        let size = Vector2::new(image.width() as i32, image.height() as i32);
         Self {
             image,
             size,
-            format: std::marker::PhantomData
+            format: std::marker::PhantomData,
         }
     }
 }
@@ -38,11 +34,7 @@ where
     fn tex_sub_image_3d(&self, textures: &Texture2DArray, offset: &Vector3<i32>) {
         textures[offset.z as usize]
             .bind()
-            .tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(
-                offset.x,
-                offset.y,
-                &self.image,
-            );
+            .tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(offset.x, offset.y, &self.image);
     }
 
     // The size of the image

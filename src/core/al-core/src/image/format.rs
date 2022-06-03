@@ -26,7 +26,8 @@ impl ImageFormat for RGB8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Jpeg);
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
+        Some(image_decoder::ImageFormat::Jpeg);
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -42,7 +43,8 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Png);
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
+        Some(image_decoder::ImageFormat::Png);
 }
 #[cfg(feature = "webgl1")]
 impl ImageFormat for RGBA8U {
@@ -55,7 +57,8 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = Some(image_decoder::ImageFormat::Png);
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
+        Some(image_decoder::ImageFormat::Png);
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]

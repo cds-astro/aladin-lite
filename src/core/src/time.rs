@@ -12,7 +12,6 @@ impl Time {
     }
 }
 
-
 impl Eq for Time {}
 
 use core::ops::Sub;

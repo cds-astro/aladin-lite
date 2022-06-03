@@ -34,8 +34,8 @@ pub struct Texture {
     missing: bool,
 }
 
-use crate::async_task::{TaskExecutor, TaskType};
 use super::config::HiPSConfig;
+
 impl Texture {
     pub fn new(
         config: &HiPSConfig,
@@ -110,7 +110,7 @@ impl Texture {
         } else {
             let num_tiles_per_texture = config.num_tiles_per_texture();
             self.num_tiles_written += 1;
-    
+
             // The texture is available to be drawn if all its
             // sub tiles have been written to the texture array
             if self.num_tiles_written == num_tiles_per_texture {
@@ -162,15 +162,15 @@ impl Texture {
     }
 
     // Setter
-    pub fn update_start_time(&mut self, start_time: Time) {
+    /*pub fn update_start_time(&mut self, start_time: Time) {
         self.start_time = Some(start_time);
-    }
+    }*/
 
     pub fn replace(
         &mut self,
         texture_cell: &HEALPixCell,
         time_request: Time,
-        config: &HiPSConfig,
+        _config: &HiPSConfig,
         //exec: &mut TaskExecutor,
     ) {
         // Cancel the tasks copying the tiles contained in the texture

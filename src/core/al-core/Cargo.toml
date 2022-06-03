@@ -5,20 +5,15 @@ authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
 edition = "2018"
 
 [dependencies]
-futures = "0.3.12"
 js-sys = "0.3.47"
-wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
 fontdue = "0.7.2"
-image-decoder = { package = "image", version = "0.24.*", default-features = false, features = ["jpeg", "png"] }
-lazy_static = "1.4.0"
-serde = { version = "^1.0.59", features = ["derive"] }
+image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
 fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'master' }
 al-api = { path = "../al-api" }
 
 [dependencies.wasm-bindgen]
 version = "0.2.79"
-features = ["serde-serialize"]
 
 [features]
 webgl1 = [
@@ -37,40 +32,41 @@ webgl2 = [
 version = "0.3.56"
 features = [
   'console',
+  'CssStyleDeclaration',
   'Document',
   'Element',
   'HtmlCollection',
   'HtmlElement',
   'HtmlImageElement',
   'HtmlCanvasElement',
+  'Blob',
+  'ImageBitmap',
+  'ImageData',
+
+  'CanvasRenderingContext2d',
+
   'MouseEvent',
   'WheelEvent',
-  'EventTarget',
-  'WebGlBuffer',                  
+
+  'WebGlBuffer',
   'WebGlContextAttributes',
   'WebGlFramebuffer',
   'WebGlProgram',
   'WebGlShader',
   'WebGlUniformLocation',
   'WebGlTexture',
+  'WebGlActiveInfo',
+
   'Window',
-  'Headers',
   'Request',
   'RequestInit',
   'RequestMode',
   'Response',
   'XmlHttpRequest',
-  'XmlHttpRequestEventTarget',
   'XmlHttpRequestResponseType',
   'PerformanceTiming',
   'Performance',
-  'CanvasRenderingContext2d',
-  'TextMetrics',
-  'ImageData',
-  'Storage',
-  'WebGlActiveInfo',
-  'GpuRenderBundleEncoder',
-  'ImageBitmap'
+  'Url',
 ]
 
 [profile.dev]
@@ -89,7 +85,7 @@ opt-level = 3
 debug = false
 debug-assertions = false
 overflow-checks = false
-lto = false
+lto = true
 panic = 'unwind'
 incremental = false
 codegen-units = 16

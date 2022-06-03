@@ -54,7 +54,12 @@ impl FrameBufferObject {
     }
 
     pub fn resize(&mut self, width: usize, height: usize) {
-        if (width, height) != (self.texture.width() as usize, self.texture.height() as usize) {
+        if (width, height)
+            != (
+                self.texture.width() as usize,
+                self.texture.height() as usize,
+            )
+        {
             //let pixels = [0, 0, 0, 0].iter().cloned().cycle().take(4*height*width).collect::<Vec<_>>();
             #[cfg(feature = "webgl2")]
             self.texture
@@ -65,7 +70,7 @@ impl FrameBufferObject {
                     WebGlRenderingCtx::SRGB8_ALPHA8 as i32,
                     WebGlRenderingCtx::RGBA,
                     WebGlRenderingCtx::UNSIGNED_BYTE,
-                    None
+                    None,
                 );
             #[cfg(feature = "webgl1")]
             self.texture
@@ -76,7 +81,7 @@ impl FrameBufferObject {
                     WebGlRenderingCtx::RGBA as i32,
                     WebGlRenderingCtx::RGBA,
                     WebGlRenderingCtx::UNSIGNED_BYTE,
-                    None
+                    None,
                 );
         }
     }
@@ -92,7 +97,11 @@ impl FrameBufferObject {
         self.gl.scissor(0, 0, w, h);
     }
 
-    pub fn draw_onto(&self, f: impl FnOnce() -> Result<(), JsValue>, cur_fbo: Option<&Self>) -> Result<(), JsValue> {
+    pub fn draw_onto(
+        &self,
+        f: impl FnOnce() -> Result<(), JsValue>,
+        cur_fbo: Option<&Self>,
+    ) -> Result<(), JsValue> {
         // bind the fbo
         self.bind();
 
@@ -107,7 +116,8 @@ impl FrameBufferObject {
         if let Some(prev_fbo) = cur_fbo {
             prev_fbo.bind();
         } else {
-            self.gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
+            self.gl
+                .bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, None);
         }
 
         Ok(())

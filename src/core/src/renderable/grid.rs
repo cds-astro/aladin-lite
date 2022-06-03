@@ -1,4 +1,4 @@
-use cdshealpix::TWICE_PI;
+
 use web_sys::WebGl2RenderingContext;
 
 use crate::math::angle;
@@ -6,8 +6,8 @@ use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
 
-use al_core::VertexArrayObject;
 use al_api::grid::GridCfg;
+use al_core::VertexArrayObject;
 pub struct ProjetedGrid {
     // Properties
     pub color: Color,
@@ -17,7 +17,6 @@ pub struct ProjetedGrid {
 
     // The vertex array object of the screen in NDC
     vao: VertexArrayObject,
-    vao_gpu: VertexArrayObject,
 
     labels: Vec<Option<Label>>,
     size_vertices_buf: usize,
@@ -34,8 +33,8 @@ pub struct ProjetedGrid {
 
 use crate::math::projection::Projection;
 use crate::shader::ShaderManager;
-use al_core::WebGlContext;
 use al_core::VecData;
+use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 
 use super::labels::RenderManager;
@@ -47,65 +46,26 @@ impl ProjetedGrid {
         gl: &WebGlContext,
         camera: &CameraViewPort,
     ) -> Result<ProjetedGrid, JsValue> {
-        let vao_gpu = {
-            let mut vao = VertexArrayObject::new(gl);
-
-            let vertices = vec![-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
-            let indices = vec![0_u16, 1_u16, 2_u16, 0_u16, 2_u16, 3_u16];
-
-            #[cfg(feature = "webgl2")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    "position",
-                    2 * std::mem::size_of::<f32>(),
-                    &[2],
-                    &[0],
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
-                )
-                // Set the element buffer
-                .add_element_buffer(
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&indices),
-                );
-            #[cfg(feature = "webgl1")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    2,
-                    "position",
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&vertices),
-                )
-                // Set the element buffer
-                .add_element_buffer(
-                    WebGl2RenderingContext::STATIC_DRAW,
-                    VecData(&indices),
-                );
-            vao
-        };
-
         let vao = {
             let mut vao = VertexArrayObject::new(gl);
-            let vertices= vec![];
+            let vertices = vec![];
             // layout (location = 0) in vec2 ndc_pos;
             #[cfg(feature = "webgl2")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    "ndc_pos",
-                    2 * std::mem::size_of::<f32>(),
-                    &[2],
-                    &[0],
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&vertices),
-                );
+            vao.bind_for_update().add_array_buffer(
+                "ndc_pos",
+                2 * std::mem::size_of::<f32>(),
+                &[2],
+                &[0],
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&vertices),
+            );
             #[cfg(feature = "webgl1")]
-            vao.bind_for_update()
-                .add_array_buffer(
-                    2,
-                    "ndc_pos",
-                    WebGl2RenderingContext::DYNAMIC_DRAW,
-                    VecData::<f32>(&vertices),
-                );
+            vao.bind_for_update().add_array_buffer(
+                2,
+                "ndc_pos",
+                WebGl2RenderingContext::DYNAMIC_DRAW,
+                VecData::<f32>(&vertices),
+            );
 
             vao
         };
@@ -134,7 +94,6 @@ impl ProjetedGrid {
 
             vao,
             //vbo,
-
             labels,
             size_vertices_buf,
             num_vertices,
@@ -143,15 +102,19 @@ impl ProjetedGrid {
             offsets,
 
             gl,
-            vao_gpu,
 
-            text_renderer
+            text_renderer,
         };
         Ok(grid)
     }
 
     pub fn set_cfg(&mut self, new_cfg: GridCfg) -> Result<(), JsValue> {
-        let GridCfg { color, show_labels, label_size, enabled } = new_cfg;
+        let GridCfg {
+            color,
+            show_labels,
+            label_size,
+            enabled,
+        } = new_cfg;
 
         if let Some(color) = color {
             self.color = color;
@@ -174,7 +137,13 @@ impl ProjetedGrid {
         self.text_renderer.begin_frame();
         for label in self.labels.iter() {
             if let Some(label) = label {
-                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.color, cgmath::Rad(label.rot as f32));
+                self.text_renderer.add_label(
+                    &label.content,
+                    &label.position.cast::<f32>().unwrap(),
+                    1.0,
+                    &self.color,
+                    cgmath::Rad(label.rot as f32),
+                );
             }
         }
         self.text_renderer.end_frame();
@@ -207,7 +176,13 @@ impl ProjetedGrid {
 
         for label in self.labels.iter() {
             if let Some(label) = label {
-                self.text_renderer.add_label(&label.content, &label.position.cast::<f32>().unwrap(), 1.0, &self.color, cgmath::Rad(label.rot as f32));
+                self.text_renderer.add_label(
+                    &label.content,
+                    &label.position.cast::<f32>().unwrap(),
+                    1.0,
+                    &self.color,
+                    cgmath::Rad(label.rot as f32),
+                );
             }
         }
 
@@ -231,16 +206,21 @@ impl ProjetedGrid {
         };
 
         self.size_vertices_buf = vertices.len();
-        
+
         #[cfg(feature = "webgl2")]
-        self.vao.bind_for_update()
-            .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
+        self.vao.bind_for_update().update_array(
+            "ndc_pos",
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&vertices),
+        );
         #[cfg(feature = "webgl1")]
-        self.vao.bind_for_update()
-            .update_array("ndc_pos", WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&vertices));
+        self.vao.bind_for_update().update_array(
+            "ndc_pos",
+            WebGl2RenderingContext::DYNAMIC_DRAW,
+            VecData(&vertices),
+        );
 
         self.text_renderer.end_frame();
-        
     }
 
     // Update the grid whenever the camera moved
@@ -302,16 +282,15 @@ impl ProjetedGrid {
     }
 }
 
-use crate::shader::{ShaderId};
-use al_core::shader::Shader;
+use crate::shader::ShaderId;
+
 use std::borrow::Cow;
 
-use cgmath::InnerSpace;
 use crate::math::{
-    spherical::{FieldOfViewType, BoundingBox},
     angle::Angle,
-    projection::*
+    spherical::{BoundingBox, FieldOfViewType},
 };
+use cgmath::InnerSpace;
 use cgmath::Vector2;
 use core::ops::Range;
 
@@ -330,7 +309,7 @@ impl Label {
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
-        let system = camera.get_system();
+        let _system = camera.get_system();
 
         //let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
         let LonLatT(.., lat) = camera.get_center().lonlat();
@@ -432,7 +411,7 @@ impl Label {
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
-        let system = camera.get_system();
+        let _system = camera.get_system();
         let center = camera.get_center().truncate();
         //let center = (system.to_gal::<f64>() * camera.get_center()).truncate();
         if center.dot(d) < 0.0 {
@@ -509,14 +488,14 @@ struct GridLine {
     vertices: Vec<Vector2<f64>>,
     label: Option<Label>,
 }
-use math::angle::SerializeToString;
 use cgmath::{Rad, Vector3};
+use math::angle::SerializeToString;
 const PI: f64 = std::f64::consts::PI;
 const HALF_PI: f64 = 0.5 * PI;
 use crate::math::{
     self,
-    angle::{ArcDeg},
-    lonlat::{LonLat, LonLatT}   
+    angle::ArcDeg,
+    lonlat::{LonLat, LonLatT},
 };
 impl GridLine {
     fn meridian<P: Projection>(
@@ -530,10 +509,10 @@ impl GridLine {
         let fov = camera.get_field_of_view();
         let mut vertices = vec![];
 
-        let system = camera.get_system();
+        let _system = camera.get_system();
         let a = Vector2::new(lon, lat.start);
         let c = Vector2::new(lon, lat.end);
-        let b = (a + c)*0.5;
+        let b = (a + c) * 0.5;
 
         crate::line::subdivide_along_longitude_and_latitudes::<P>(
             &mut vertices,
@@ -557,18 +536,22 @@ impl GridLine {
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
             let mut vertices = vec![];
-            let system = camera.get_system();
+            let _system = camera.get_system();
 
             //let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
-            let a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
+            let _a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
             //let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
-            let b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end)*0.5), Angle(lat));
+            let _b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end) * 0.5), Angle(lat));
             //let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
-            let c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
+            let _c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
 
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,
-                [&Vector2::new(lon.start, lat), &Vector2::new(0.5*(lon.start + lon.end), lat), &Vector2::new(lon.end, lat)],
+                [
+                    &Vector2::new(lon.start, lat),
+                    &Vector2::new(0.5 * (lon.start + lon.end), lat),
+                    &Vector2::new(lon.end, lat),
+                ],
                 camera,
             );
 
@@ -627,7 +610,7 @@ fn lines<P: Projection>(
     text_renderer: &TextRenderManager,
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
-    let system = camera.get_system();
+    let _system = camera.get_system();
     let fov = camera.get_field_of_view();
     let sp = if fov.contains_pole() {
         if fov.contains_north_pole(camera) {
@@ -671,13 +654,9 @@ fn lines<P: Projection>(
     }
 
     while theta < stop_theta {
-        if let Some(line) = GridLine::meridian::<P>(
-            theta,
-            &bbox.get_lat(),
-            sp.as_ref(),
-            camera,
-            text_renderer,
-        ) {
+        if let Some(line) =
+            GridLine::meridian::<P>(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer)
+        {
             lines.push(line);
         }
         theta += step_lon;
@@ -689,15 +668,13 @@ fn lines<P: Projection>(
     if alpha == -HALF_PI {
         alpha += step_lat;
     }
-    let mut stop_alpha = bbox.lat_max();
+    let stop_alpha = bbox.lat_max();
     /*if stop_alpha == HALF_PI {
         stop_alpha -= 1e-3;
     }*/
 
     while alpha < stop_alpha {
-        if let Some(line) =
-            GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer)
-        {
+        if let Some(line) = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer) {
             lines.push(line);
         }
         alpha += step_lat;

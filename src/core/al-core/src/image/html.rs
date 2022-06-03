@@ -6,13 +6,12 @@ where
     F: ImageFormat,
 {
     image: web_sys::HtmlImageElement,
-    size: Vector2<i32>,
     format: std::marker::PhantomData<F>,
 }
-use cgmath::{Vector2, Vector3};
+use cgmath::Vector3;
 
-use crate::image::Image;
 use crate::image::format::ImageFormat;
+use crate::image::Image;
 use crate::texture::Texture2DArray;
 impl<F> Image for HTMLImage<F>
 where
@@ -33,9 +32,4 @@ where
                 &self.image,
             );
     }
-
-    // The size of the image
-    /*fn get_size(&self) -> &Vector2<i32> {
-        &self.size
-    }*/
 }

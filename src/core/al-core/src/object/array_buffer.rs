@@ -367,14 +367,11 @@ pub struct ArrayBuffer {
     num_packed_data: usize,
 
     offset_idx: u32,
-    stride: usize,
     sizes: Box<[usize]>,
-    offsets: Box<[usize]>,
 
     gl: WebGlContext,
 }
 use crate::shader::ShaderBound;
-use web_sys::console;
 impl ArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
         gl: &WebGlContext,
@@ -399,15 +396,17 @@ impl ArrayBuffer {
             num_packed_data,
 
             offset_idx,
-            stride,
             sizes: sizes.into(),
-            offsets: offsets.into(),
 
             gl,
         }
     }
 
-    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn set_vertex_attrib_pointer_by_name<'a, T: VertexAttribPointerType>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
 
         assert_eq!(self.sizes.len(), 1);
@@ -422,10 +421,17 @@ impl ArrayBuffer {
         #[cfg(feature = "webgl2")]
         self.gl.vertex_attrib_divisor(loc as u32, 0);
         #[cfg(feature = "webgl1")]
-        self.gl.ext.angles.vertex_attrib_divisor_angle(loc as u32, 0);
+        self.gl
+            .ext
+            .angles
+            .vertex_attrib_divisor_angle(loc as u32, 0);
     }
 
-    pub fn disable_vertex_attrib_pointer_by_name<'a>(&self, shader: &ShaderBound<'a>, location: &str) {
+    pub fn disable_vertex_attrib_pointer_by_name<'a>(
+        &self,
+        shader: &ShaderBound<'a>,
+        location: &str,
+    ) {
         let loc = shader.get_attrib_location(&self.gl, location);
         self.gl.disable_vertex_attrib_array(loc as u32);
     }

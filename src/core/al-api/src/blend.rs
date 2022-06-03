@@ -7,8 +7,7 @@ pub type WebGlRenderingCtx = web_sys::WebGl2RenderingContext;
 #[cfg(feature = "webgl1")]
 pub type WebGlRenderingCtx = web_sys::WebGlRenderingContext;
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct BlendCfg {
@@ -27,14 +26,12 @@ impl Default for BlendCfg {
     }
 }
 
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
-#[derive(PartialEq)]
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[wasm_bindgen]
 pub enum BlendFactor {
     Zero,
     One,
-    
+
     SrcColor,
     OneMinusSrcColor,
 
@@ -53,10 +50,7 @@ pub enum BlendFactor {
     OneMinusConstantAlpha,
 }
 
-
-#[derive(Deserialize, Debug)]
-#[derive(Clone, Copy)]
-#[derive(PartialEq)]
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[wasm_bindgen]
 pub enum BlendFunc {
     FuncAdd,
@@ -64,7 +58,7 @@ pub enum BlendFunc {
     FuncReverseSubstract,
 }
 
-impl BlendFunc {
+/*impl BlendFunc {
     fn gl(&self) -> u32 {
         match self {
             BlendFunc::FuncAdd => WebGlRenderingCtx::FUNC_ADD,
@@ -74,7 +68,7 @@ impl BlendFunc {
             //BlendFunc::Max => WebGlRenderingCtx::MAX,
         }
     }
-}
+}*/
 
 use std::fmt;
 impl fmt::Display for BlendFactor {

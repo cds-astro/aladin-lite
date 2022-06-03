@@ -7,9 +7,6 @@ pub struct TextureCellItem {
 }
 
 impl TextureCellItem {
-    fn new(cell: HEALPixCell, time_request: Time) -> Self {
-        Self { cell, time_request }
-    }
     fn is_root(&self) -> bool {
         self.cell.is_root()
     }
@@ -104,7 +101,7 @@ impl HEALPixCellHeap {
         self.0.len()
     }
 }
-use std::cell::RefCell;
+
 use std::rc::Rc;
 // Fixed sized binary heap
 pub struct ImageSurveyTextures {
@@ -129,10 +126,9 @@ pub struct ImageSurveyTextures {
     pub start_time: Option<Time>,
 
     available_tiles_during_frame: bool,
-
     //exec: Rc<RefCell<TaskExecutor>>,
 }
-use crate::async_task::{ImageTile2GpuTask, TaskExecutor, TaskResult, TaskType};
+
 use crate::math::lonlat::LonLatT;
 use crate::JsValue;
 use al_core::WebGlContext;
@@ -177,7 +173,7 @@ fn create_texture_array<F: ImageFormat>(
     )
 }
 
-use crate::downloader::request::tile::Tile;
+
 use al_core::image::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
@@ -202,12 +198,10 @@ impl ImageSurveyTextures {
             Texture::new(&config, &HEALPixCell(0, 1), 1, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 2), 2, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 3), 3, Time::now()),
-
             Texture::new(&config, &HEALPixCell(0, 4), 4, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 5), 5, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 6), 6, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 7), 7, Time::now()),
-
             Texture::new(&config, &HEALPixCell(0, 8), 8, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 9), 9, Time::now()),
             Texture::new(&config, &HEALPixCell(0, 10), 10, Time::now()),
@@ -310,7 +304,7 @@ impl ImageSurveyTextures {
             };
             // Push it to the buffer
             self.heap.push(&texture);
-            
+
             // Insert it the texture
             self.textures.insert(texture_cell, texture);
         }*/
@@ -329,8 +323,9 @@ impl ImageSurveyTextures {
                     debug_assert!(!oldest_texture.is_root());
 
                     // Remove it from the textures HashMap
-                    let mut texture = self.textures.remove(&oldest_texture.cell)
-                        .expect("Texture (oldest one) has not been found in the buffer of textures");
+                    let mut texture = self.textures.remove(&oldest_texture.cell).expect(
+                        "Texture (oldest one) has not been found in the buffer of textures",
+                    );
                     // Clear and assign it to tex_cell
                     texture.replace(
                         &tex_cell,
@@ -362,7 +357,10 @@ impl ImageSurveyTextures {
         // and the tile is not already in any textures of the buffer
         // We can safely push it
         // First get the texture
-        let texture = self.textures.get_mut(&tex_cell).expect("the cell has to be in the tile buffer");
+        let texture = self
+            .textures
+            .get_mut(&tex_cell)
+            .expect("the cell has to be in the tile buffer");
         /*
         // Append new async task responsible for writing
         // the image into the texture 2d array for the GPU
@@ -413,8 +411,6 @@ impl ImageSurveyTextures {
             );
         };
 
-
-
         //al_core::log(&format!("{:?}", tex_cell));
         // Once the texture has been received in the GPU
         texture.append(
@@ -452,7 +448,7 @@ impl ImageSurveyTextures {
         // Check that there are no more than num_textures
         // textures in the buffer
         let num_textures_heap = self.heap.len();
-        
+
         num_textures_heap == (self.size - NUM_HPX_TILES_DEPTH_ZERO)
     }
 
@@ -491,7 +487,7 @@ impl ImageSurveyTextures {
 
     // Update the priority of the texture containing the tile
     // It must be ensured that the tile is already contained in the buffer
-    pub fn update_priority(&mut self, cell: &HEALPixCell/*, new_fov_cell: bool*/) {
+    pub fn update_priority(&mut self, cell: &HEALPixCell /*, new_fov_cell: bool*/) {
         debug_assert!(self.contains_tile(cell));
 
         // Get the texture cell in which the tile has to be
@@ -500,7 +496,9 @@ impl ImageSurveyTextures {
             return;
         }
 
-        let texture = self.textures.get_mut(&texture_cell)
+        let texture = self
+            .textures
+            .get_mut(&texture_cell)
             .expect("Texture cell has not been found while the buffer contains one of its tile!");
         // Reset the time the tile has been received if it is a new cell present in the fov
         //if new_fov_cell {
@@ -519,7 +517,7 @@ impl ImageSurveyTextures {
         self.heap.update_entry(tex_cell_item);
     }
 
-    // lonlat is given in the 
+    // lonlat is given in the
     pub fn get_pixel_position_in_texture(
         &self,
         lonlat: &LonLatT<f64>,
@@ -599,11 +597,6 @@ impl ImageSurveyTextures {
         &self.config
     }
 
-    pub fn config_mut(&mut self) -> &mut HiPSConfig {
-        &mut self.config
-    }
-
-
     pub fn is_ready(&self) -> bool {
         self.ready
     }
@@ -631,14 +624,14 @@ impl ImageSurveyTextures {
         ]
     }
 
-    // Get the textures in the buffer
+    /*// Get the textures in the buffer
     // The resulting array is uniq sorted
     fn get_textures(&self) -> Vec<&Texture> {
         debug_assert!(self.is_ready());
         let mut textures = self.textures.values().collect::<Vec<_>>();
         textures.sort_unstable();
         textures
-    }
+    }*/
 
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()
@@ -714,19 +707,19 @@ impl SendUniforms for ImageSurveyTextures {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         //if self.is_ready() {
-            // Send the textures
-            let textures = self.get_allsky_textures();
-            for (idx, texture) in textures.iter().enumerate() {
-                if let Some(texture) = texture {
-                    let texture_uniforms = TextureUniforms::new(texture, idx as i32);
-                    shader.attach_uniforms_from(&texture_uniforms);
-                }
+        // Send the textures
+        let textures = self.get_allsky_textures();
+        for (idx, texture) in textures.iter().enumerate() {
+            if let Some(texture) = texture {
+                let texture_uniforms = TextureUniforms::new(texture, idx as i32);
+                shader.attach_uniforms_from(&texture_uniforms);
             }
-            let num_tiles = textures.len() as i32;
-            let shader = shader
-                .attach_uniform("num_tiles", &num_tiles)
-                .attach_uniforms_from(&self.config)
-                .attach_uniforms_from(&*self.texture_2d_array);
+        }
+        let num_tiles = textures.len() as i32;
+        let shader = shader
+            .attach_uniform("num_tiles", &num_tiles)
+            .attach_uniforms_from(&self.config)
+            .attach_uniforms_from(&*self.texture_2d_array);
         //}
 
         shader

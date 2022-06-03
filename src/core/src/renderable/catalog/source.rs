@@ -1,4 +1,3 @@
-#[derive(Debug, Clone, PartialEq)]
 #[repr(C, packed)]
 pub struct Source {
     pub x: f32,
@@ -12,15 +11,22 @@ impl Source {
     }
 }
 
+impl PartialEq for Source {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}
 impl Eq for Source {}
+
+impl Clone for Source {
+    fn clone(&self) -> Self {
+        Source { x: self.x, y: self.y, z: self.z }
+    }
+}
 
 use cgmath::Vector3;
 
-use crate::math::{
-    self,
-    angle::Angle,
-    lonlat::LonLat
-};
+use crate::math::{self, angle::Angle, lonlat::LonLat};
 
 impl Source {
     pub fn new(lon: Angle<f32>, lat: Angle<f32> /*, mag: f32*/) -> Source {
@@ -34,7 +40,6 @@ impl Source {
             x,
             y,
             z,
-
             //lon,
             //lat,
             //mag
@@ -43,7 +48,7 @@ impl Source {
 
     pub fn lonlat(&self) -> (f32, f32) {
         let lonlat = Vector3::new(self.x, self.y, self.z).lonlat();
-        (lonlat.0.0, lonlat.1.0)
+        (lonlat.0 .0, lonlat.1 .0)
     }
 }
 

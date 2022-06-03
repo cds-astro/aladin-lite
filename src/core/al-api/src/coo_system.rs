@@ -45,22 +45,7 @@ impl CooBaseFloat for f32 {
     );
 
     const ID: &'static Matrix4<Self> = &Matrix4::new(
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
     );
 }
 impl CooBaseFloat for f64 {
@@ -103,31 +88,15 @@ impl CooBaseFloat for f64 {
     );
 
     const ID: &'static Matrix4<Self> = &Matrix4::new(
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-    );}
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+    );
+}
 
 use cgmath::BaseFloat;
-use wasm_bindgen::prelude::*;
 use serde::Deserialize;
+use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Eq)]
-#[derive(Debug)]
-#[derive(Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
 pub enum CooSystem {
     ICRSJ2000,
     GAL,
@@ -140,13 +109,9 @@ impl CooSystem {
         S: BaseFloat + CooBaseFloat,
     {
         match (self, coo_system) {
-            (CooSystem::GAL, CooSystem::ICRSJ2000) => {
-                S::GALACTIC_TO_J2000
-            },
-            (CooSystem::ICRSJ2000, CooSystem::GAL) => {
-                S::J2000_TO_GALACTIC
-            },
-            (_, _) => S::ID
+            (CooSystem::GAL, CooSystem::ICRSJ2000) => S::GALACTIC_TO_J2000,
+            (CooSystem::ICRSJ2000, CooSystem::GAL) => S::J2000_TO_GALACTIC,
+            (_, _) => S::ID,
         }
     }
 }

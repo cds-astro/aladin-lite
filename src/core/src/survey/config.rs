@@ -1,43 +1,67 @@
-use al_core::image::format::RGBA32F;
+
 use al_core::{image::format::ImageFormat, image::raw::ImageBuffer};
 #[derive(Debug)]
 pub struct EmptyTileImage {
     inner: ImageType,
 }
 
-use al_core::{pixel::Pixel, image::ImageType};
+use al_core::{image::ImageType, pixel::Pixel};
 impl EmptyTileImage {
     fn new(size: i32, format: ImageFormatType) -> EmptyTileImage {
         debug_assert!(math::utils::is_power_of_two(size as usize));
         let inner = match format {
             ImageFormatType::RGBA8U => {
-                let image = ImageBuffer::<RGBA8U>::allocate(&<<RGBA8U as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<RGBA8U>::allocate(
+                    &<<RGBA8U as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawRgba8u { image }
-            },
+            }
             ImageFormatType::RGB8U => {
-                let image = ImageBuffer::<RGB8U>::allocate(&<<RGB8U as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<RGB8U>::allocate(
+                    &<<RGB8U as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawRgb8u { image }
-            },
+            }
             ImageFormatType::R32F => {
-                let image = ImageBuffer::<R32F>::allocate(&<<R32F as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<R32F>::allocate(
+                    &<<R32F as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawR32f { image }
-            },
+            }
             #[cfg(feature = "webgl2")]
             ImageFormatType::R8UI => {
-                let image = ImageBuffer::<R8UI>::allocate(&<<R8UI as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<R8UI>::allocate(
+                    &<<R8UI as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawR8ui { image }
-            },
+            }
             #[cfg(feature = "webgl2")]
             ImageFormatType::R16I => {
-                let image = ImageBuffer::<R16I>::allocate(&<<R16I as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<R16I>::allocate(
+                    &<<R16I as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawR16i { image }
-            },
+            }
             #[cfg(feature = "webgl2")]
             ImageFormatType::R32I => {
-                let image = ImageBuffer::<R32I>::allocate(&<<R32I as ImageFormat>::P as Pixel>::BLACK, size, size);
+                let image = ImageBuffer::<R32I>::allocate(
+                    &<<R32I as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
                 ImageType::RawR32i { image }
-            },
-            _ => todo!()
+            }
+            _ => todo!(),
         };
         EmptyTileImage {
             inner,
@@ -46,11 +70,14 @@ impl EmptyTileImage {
     }
 }
 
-use cgmath::Vector3;
 use al_core::{
+    image::{
+        format::{R16I, R32F, R32I, R8UI},
+        Image,
+    },
     Texture2DArray,
-    image::{Image, format::{R16I, R32I, R8UI, R32F}},
 };
+use cgmath::Vector3;
 
 impl Image for EmptyTileImage {
     fn tex_sub_image_3d(
@@ -67,8 +94,8 @@ impl Image for EmptyTileImage {
 use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 
 //use super::TileArrayBuffer;
-use crate::WebGlContext;
-use std::rc::Rc;
+
+
 
 /*use super::{ArrayF32, ArrayF64, ArrayI16, ArrayI32, ArrayU8};
 fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArrayBufferImage {
@@ -112,7 +139,6 @@ pub struct HiPSConfig {
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
-    max_depth_tile: u8,
     max_depth_texture: u8,
     num_textures_by_side_slice: i32,
     num_textures_by_slice: i32,
@@ -135,9 +161,9 @@ pub struct HiPSConfig {
     format: ImageFormatType,
 }
 
-use al_api::coo_system::CooSystem;
 use crate::math;
-use crate::{HiPSProperties};
+use crate::HiPSProperties;
+use al_api::coo_system::CooSystem;
 use al_api::hips::HiPSTileFormat;
 use wasm_bindgen::JsValue;
 
@@ -148,7 +174,10 @@ impl HiPSConfig {
     ///
     /// * `properties` - A description of the HiPS, its metadata, available formats  etc...
     /// * `img_format` - Image format wanted by the user
-    pub fn new(properties: &HiPSProperties, img_format: HiPSTileFormat) -> Result<HiPSConfig, JsValue> {
+    pub fn new(
+        properties: &HiPSProperties,
+        img_format: HiPSTileFormat,
+    ) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
         // characterics of the client
@@ -163,15 +192,14 @@ impl HiPSConfig {
         // Determine the size of the texture to copy
         // it cannot be > to 512x512px
 
-        let fmt = properties.get_formats();
+        let _fmt = properties.get_formats();
         let longitude_reversed = properties.longitude_reversed;
         let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;
 
         let mut tex_storing_fits = false;
-        
-        
+
         if !properties.get_formats().contains(&img_format) {
             al_core::log(&format!("{:?} {:?}", properties.get_formats(), img_format));
             return Err(js_sys::Error::new("HiPS format not available").into());
@@ -206,14 +234,18 @@ impl HiPSConfig {
                             tex_storing_integers = false;
                             Err(JsValue::from_str("f64 FITS files not supported"))
                         }
-                        _ => Err(JsValue::from_str("Fits tiles exists but the BITPIX is not correct in the property file"))
+                        _ => Err(JsValue::from_str(
+                            "Fits tiles exists but the BITPIX is not correct in the property file",
+                        )),
                     }
                 } else {
-                    Err(JsValue::from_str("Fits tiles exists but the BITPIX is not found"))
+                    Err(JsValue::from_str(
+                        "Fits tiles exists but the BITPIX is not found",
+                    ))
                 }
-            },
+            }
             HiPSTileFormat::PNG => Ok(ImageFormatType::RGBA8U),
-            HiPSTileFormat::JPEG => Ok(ImageFormatType::RGB8U)
+            HiPSTileFormat::JPEG => Ok(ImageFormatType::RGB8U),
         }?;
 
         let empty_image = EmptyTileImage::new(tile_size, format);
@@ -244,7 +276,6 @@ impl HiPSConfig {
             num_tiles_per_texture,
             // Max depth of the current HiPS tiles
             max_depth_texture,
-            max_depth_tile,
             num_textures_by_side_slice,
             num_textures_by_slice,
             num_slices,
@@ -362,7 +393,7 @@ impl SendUniforms for HiPSConfig {
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)
             .attach_uniform("blank", &self.blank);
-            //.attach_uniform("inversed_longitude", &self.longitude_reversed);
+        //.attach_uniform("inversed_longitude", &self.longitude_reversed);
 
         shader
     }

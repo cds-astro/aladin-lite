@@ -1,17 +1,14 @@
 // A request image should not be used outside this module
 // but contained inside a more specific type of query (e.g. for a tile or allsky)
-pub mod tile;
 pub mod allsky;
+pub mod tile;
 
 /* ------------------------------------- */
 
-use std::sync::{Arc, Mutex};
+use crate::{time::Time};
 use std::cell::Cell;
 use std::rc::Rc;
-use crate::{
-    healpix::cell::HEALPixCell,
-    time::Time
-};
+use std::sync::{Arc, Mutex};
 pub struct Request<R> {
     data: Arc<Mutex<Option<R>>>,
     time_request: Time,
@@ -27,15 +24,15 @@ pub enum ResolvedStatus {
     Missing,
     Found,
 }
-use wasm_bindgen::JsValue;
 use std::future::Future;
+use wasm_bindgen::JsValue;
 impl<R> Request<R>
 where
-    R: 'static
+    R: 'static,
 {
     pub fn new<F>(f: F) -> Self
     where
-        F: Future< Output = Result<R, JsValue> > + 'static
+        F: Future<Output = Result<R, JsValue>> + 'static,
     {
         // By default, we say the tile is available to be reused
         let resolved = Rc::new(Cell::new(ResolvedStatus::NotResolved));
@@ -53,7 +50,7 @@ where
                 if let Ok(resp) = resp {
                     *(data_cloned.lock().unwrap()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
-                } else if let Err(err) = resp {
+                } else if let Err(_err) = resp {
                     resolved_cloned.set(ResolvedStatus::Missing);
                 }
             };
@@ -68,10 +65,6 @@ where
         }
     }
 
-    pub fn get_time_request(&self) -> Time {
-        self.time_request
-    }
-
     pub fn is_resolved(&self) -> bool {
         let resolved = self.resolve_status();
         resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Missing
@@ -80,14 +73,10 @@ where
     pub fn resolve_status(&self) -> ResolvedStatus {
         self.resolved.get()
     }
-
-    pub fn get(&self) -> Arc<Mutex<Option<R>>> {
-        self.data.clone()
-    }
 }
 
-use tile::TileRequest;
 use allsky::AllskyRequest;
+use tile::TileRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
@@ -108,20 +97,18 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
     fn from(request: &'a RequestType) -> Self {
         match request {
             RequestType::Tile(request) => {
-                Option::<Tile>::from(request)
-                    .map(|tile| Resource::Tile(tile))
-            },
+                Option::<Tile>::from(request).map(|tile| Resource::Tile(tile))
+            }
             RequestType::Allsky(request) => {
-                Option::<Allsky>::from(request)
-                    .map(|allsky| Resource::Allsky(allsky))
+                Option::<Allsky>::from(request).map(|allsky| Resource::Allsky(allsky))
             }
         }
     }
 }
 
-use tile::Tile;
 use allsky::Allsky;
+use tile::Tile;
 pub enum Resource {
     Tile(Tile),
-    Allsky(Allsky)
+    Allsky(Allsky),
 }

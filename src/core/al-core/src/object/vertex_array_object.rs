@@ -29,10 +29,10 @@ pub mod vao {
                 .create_vertex_array()
                 .ok_or("failed to create the vertex array buffer")
                 .unwrap();
-    
+
             let array_buffer = HashMap::new();
             let array_buffer_instanced = HashMap::new();
-    
+
             let element_array_buffer = None;
 
             let idx = 0;
@@ -91,7 +91,11 @@ pub mod vao {
         }
 
         pub fn num_instances(&self) -> i32 {
-            self.array_buffer_instanced.values().next().unwrap().num_instances()
+            self.array_buffer_instanced
+                .values()
+                .next()
+                .unwrap()
+                .num_instances()
         }
     }
 
@@ -116,7 +120,9 @@ pub mod vao {
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer.get_mut(attr)
+            self.vao
+                .array_buffer
+                .get_mut(attr)
                 .unwrap()
                 .update(usage, array_data);
             self
@@ -138,7 +144,9 @@ pub mod vao {
             attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced.get_mut(attr)
+            self.vao
+                .array_buffer_instanced
+                .get_mut(attr)
                 .unwrap()
                 .update(array_data);
             self
@@ -233,9 +241,9 @@ pub mod vao {
 
             // Update the number of vertex attrib
             self.vao.idx += sizes.len() as u32;
-    
+
             self.vao.array_buffer.insert(attr, array_buffer);
-    
+
             self
         }
 
@@ -246,15 +254,8 @@ pub mod vao {
             usage: u32,
             data: B,
         ) -> &mut Self {
-            let array_buffer = ArrayBuffer::new(
-                &self.vao.gl,
-                self.vao.idx,
-                0,
-                &[size],
-                &[0],
-                usage,
-                data,
-            );
+            let array_buffer =
+                ArrayBuffer::new(&self.vao.gl, self.vao.idx, 0, &[size], &[0], usage, data);
 
             // Update the number of vertex attrib
             self.vao.idx += 1;
@@ -263,7 +264,7 @@ pub mod vao {
 
             self
         }
-    
+
         /// Precondition: self must be bound
         pub fn add_instanced_array_buffer<B: BufferDataStorage<'a, f32>>(
             &mut self,
@@ -309,7 +310,9 @@ pub mod vao {
             usage: u32,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer.get_mut(attr)
+            self.vao
+                .array_buffer
+                .get_mut(attr)
                 .unwrap()
                 .update(usage, array_data);
             self
@@ -331,7 +334,9 @@ pub mod vao {
             attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced.get_mut(attr)
+            self.vao
+                .array_buffer_instanced
+                .get_mut(attr)
                 .unwrap()
                 .update(array_data);
             self
@@ -526,8 +531,7 @@ pub mod vao {
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            self.vao.gl
-                .draw_arrays(mode, byte_offset, size);
+            self.vao.gl.draw_arrays(mode, byte_offset, size);
         }
 
         pub fn draw_elements_with_i32(
@@ -569,13 +573,17 @@ pub mod vao {
             let e = self.vao.element_array_buffer.as_ref().unwrap();
             e.bind();
 
-            self.vao.gl.ext.angles.draw_elements_instanced_angle_with_i32(
-                mode,
-                self.vao.num_elements() as i32,
-                WebGlRenderingCtx::UNSIGNED_SHORT,
-                offset_element_idx,
-                num_instances,
-            );
+            self.vao
+                .gl
+                .ext
+                .angles
+                .draw_elements_instanced_angle_with_i32(
+                    mode,
+                    self.vao.num_elements() as i32,
+                    WebGlRenderingCtx::UNSIGNED_SHORT,
+                    offset_element_idx,
+                    num_instances,
+                );
         }
 
         pub fn unbind(&self) {
@@ -685,7 +693,9 @@ pub mod vao {
             attr: &'static str,
             array_data: B,
         ) -> &mut Self {
-            self.vao.array_buffer_instanced.get_mut(attr)
+            self.vao
+                .array_buffer_instanced
+                .get_mut(attr)
                 .expect(&format!("attr: {:?}", attr))
                 .update(array_data);
 

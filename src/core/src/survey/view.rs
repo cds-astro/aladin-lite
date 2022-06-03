@@ -1,9 +1,5 @@
-use crate::{
-    coosys,
-    healpix::cell::HEALPixCell,
-    math,
-};
-use std::collections::{HashMap};
+use crate::{coosys, healpix::cell::HEALPixCell, math};
+use std::collections::HashMap;
 
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
@@ -28,23 +24,31 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
         (depth_pixel - depth_offset_texture) as u8
     }
 }
-use al_api::coo_system::CooSystem;
 use crate::healpix;
-pub fn get_cells_in_camera(depth: u8, camera: &CameraViewPort, hips_frame: CooSystem) -> Vec<HEALPixCell> {
+use al_api::coo_system::CooSystem;
+pub fn get_cells_in_camera(
+    depth: u8,
+    camera: &CameraViewPort,
+    hips_frame: CooSystem,
+) -> Vec<HEALPixCell> {
     if let Some(vertices) = camera.get_vertices() {
         // The vertices coming from the camera are in a specific coo sys
         // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
         let view_system = camera.get_system();
-        let icrsj2000_fov_vertices_pos = vertices.iter()
-            .map(|v| {
-                coosys::apply_coo_system(view_system, &hips_frame, v)
-            })
+        let icrsj2000_fov_vertices_pos = vertices
+            .iter()
+            .map(|v| coosys::apply_coo_system(view_system, &hips_frame, v))
             .collect::<Vec<_>>();
 
         let vs_inside_pos = camera.get_center();
-        let icrsj2000_inside_pos = coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
+        let icrsj2000_inside_pos =
+            coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
         // Prefer to query from_polygon with depth >= 2
-        let coverage = healpix::coverage::from_polygon(depth, &icrsj2000_fov_vertices_pos[..], &icrsj2000_inside_pos.truncate());
+        let coverage = healpix::coverage::from_polygon(
+            depth,
+            &icrsj2000_fov_vertices_pos[..],
+            &icrsj2000_inside_pos.truncate(),
+        );
 
         coverage
             .flat_iter()
@@ -93,7 +97,12 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn refresh_cells(&mut self, /*texture_size: i32,*/ max_depth: u8, camera: &CameraViewPort, hips_frame: CooSystem) {
+    pub fn refresh_cells(
+        &mut self,
+        /*texture_size: i32,*/ max_depth: u8,
+        camera: &CameraViewPort,
+        hips_frame: CooSystem,
+    ) {
         // Compute that depth
         //let new_depth = depth_from_pixels_on_screen(camera, texture_size);
         let new_depth = depth_from_pixels_on_screen(camera, 512);
@@ -126,7 +135,7 @@ impl HEALPixCellsInView {
 
     // Accessors
     #[inline]
-    pub fn get_cells(&self) -> impl Iterator<Item=&HEALPixCell> {
+    pub fn get_cells(&self) -> impl Iterator<Item = &HEALPixCell> {
         self.cells.keys()
     }
 
@@ -155,11 +164,11 @@ impl HEALPixCellsInView {
         self.is_new_cells_added
     }
 
-    #[inline]
+    /*#[inline]
     pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {
         debug_assert!(camera.get_last_user_action() == UserAction::Unzooming);
         self.look_for_parents
-    }
+    }*/
 
     #[inline]
     fn has_depth_decreased(&self) -> bool {

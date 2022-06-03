@@ -1,13 +1,16 @@
 use super::source::Source;
 use crate::ShaderManager;
+use al_api::colormap::Colormap;
+use al_api::resources::Resources;
+
 use al_core::FrameBufferObject;
 use al_core::{
-    resources::Resources, shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
+    shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
-use al_api::colormap::Colormap;
+
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use web_sys::{WebGl2RenderingContext};
+use web_sys::WebGl2RenderingContext;
 
 #[derive(Debug)]
 pub enum Error {
@@ -73,22 +76,14 @@ impl Manager {
         // Create the VAO for the screen
         let vertex_array_object_screen = {
             let vertices = [
-                -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32,
-                1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32,
-                1.0_f32, 1.0_f32, 1.0_f32, 1.0_f32,
-                -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
+                -1.0_f32, -1.0_f32, 0.0_f32, 0.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
+                1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
             let _position = [
-                -1.0_f32, -1.0_f32,
-                1.0_f32, -1.0_f32,
-                1.0_f32, 1.0_f32,
-                -1.0_f32, 1.0_f32,
+                -1.0_f32, -1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32, 1.0_f32, -1.0_f32, 1.0_f32,
             ];
             let _uv = [
-                0.0_f32, 0.0_f32,
-                1.0_f32, 0.0_f32,
-                1.0_f32, 1.0_f32,
-                0.0_f32, 1.0_f32,
+                0.0_f32, 0.0_f32, 1.0_f32, 0.0_f32, 1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
 
             let indices = [0_u16, 1, 2, 0, 2, 3];
@@ -167,9 +162,9 @@ impl Manager {
         name: String,
         sources: Box<[Source]>,
         colormap: Colormap,
-        shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
-        view: &HEALPixCellsInView,
+        _shaders: &mut ShaderManager,
+        _camera: &CameraViewPort,
+        _view: &HEALPixCellsInView,
     ) {
         // Create the HashMap storing the source indices with respect to the
         // HEALPix cell at depth 7 in which they are contained
@@ -209,7 +204,7 @@ impl Manager {
             for catalog in self.catalogs.values_mut() {
                 catalog.update::<P>(cells, camera);
             }
-        } else {            
+        } else {
             let cells = Vec::from_iter(
                 view.get_cells()
                     .map(|&cell| {
@@ -221,8 +216,8 @@ impl Manager {
                         }
                     })
                     // This will delete the doublons if there is
-                    .collect::<HashSet<_>>()
-                );
+                    .collect::<HashSet<_>>(),
+            );
 
             for catalog in self.catalogs.values_mut() {
                 catalog.update::<P>(&cells, camera);
@@ -260,16 +255,15 @@ pub struct Catalog {
     sources: Box<[f32]>,
     vertex_array_object_catalog: VertexArrayObject,
 }
-use al_core::SliceData;
 use crate::healpix::cell::HEALPixCell;
 use crate::{camera::CameraViewPort, math::projection::Projection, utils};
+use al_core::SliceData;
 use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
-
-use crate::survey::view::HEALPixCellsInView;
 use crate::colormap::Colormaps;
+use crate::survey::view::HEALPixCellsInView;
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGlContext,
@@ -286,28 +280,16 @@ impl Catalog {
         let vertex_array_object_catalog = {
             #[cfg(feature = "webgl2")]
             let vertices = [
-                -0.5_f32, -0.5_f32,
-                0.0_f32, 0.0_f32,
-                0.5_f32, -0.5_f32,
-                1.0_f32, 0.0_f32,
-                0.5_f32, 0.5_f32,
-                1.0_f32, 1.0_f32,
-                -0.5_f32, 0.5_f32,
-                0.0_f32, 1.0_f32,
+                -0.5_f32, -0.5_f32, 0.0_f32, 0.0_f32, 0.5_f32, -0.5_f32, 1.0_f32, 0.0_f32, 0.5_f32,
+                0.5_f32, 1.0_f32, 1.0_f32, -0.5_f32, 0.5_f32, 0.0_f32, 1.0_f32,
             ];
             #[cfg(feature = "webgl1")]
             let offset = [
-                -0.5_f32, -0.5_f32,
-                0.5_f32, -0.5_f32,
-                0.5_f32, 0.5_f32,
-                -0.5_f32, 0.5_f32,
+                -0.5_f32, -0.5_f32, 0.5_f32, -0.5_f32, 0.5_f32, 0.5_f32, -0.5_f32, 0.5_f32,
             ];
             #[cfg(feature = "webgl1")]
             let uv = [
-                0.0_f32, 0.0_f32,
-                1.0_f32, 0.0_f32,
-                1.0_f32, 1.0_f32,
-                0.0_f32, 1.0_f32,
+                0.0_f32, 0.0_f32, 1.0_f32, 0.0_f32, 1.0_f32, 1.0_f32, 0.0_f32, 1.0_f32,
             ];
 
             let indices = [0_u16, 1, 2, 0, 2, 3];
@@ -464,28 +446,31 @@ impl Catalog {
         if self.alpha > 0_f32 {
             // Render to the FRAMEBUFFER
             // Render the scene
-            manager.fbo.draw_onto(|| {
-                gl.clear_color(0.0, 0.0, 0.0, 1.0);
-                gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            manager.fbo.draw_onto(
+                || {
+                    gl.clear_color(0.0, 0.0, 0.0, 1.0);
+                    gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                let shader = P::get_catalog_shader(gl, shaders);
-                let shader_bound = shader.bind(gl);
+                    let shader = P::get_catalog_shader(gl, shaders);
+                    let shader_bound = shader.bind(gl);
 
-                shader_bound
-                    .attach_uniforms_from(camera)
-                    // Attach catalog specialized uniforms
-                    .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
-                    .attach_uniform("strength", &self.strength) // Strengh of the kernel
-                    .attach_uniform("current_time", &utils::get_current_time())
-                    .attach_uniform("kernel_size", &manager.kernel_size)
-                    .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
+                    shader_bound
+                        .attach_uniforms_from(camera)
+                        // Attach catalog specialized uniforms
+                        .attach_uniform("kernel_texture", &manager.kernel_texture) // Gaussian kernel texture
+                        .attach_uniform("strength", &self.strength) // Strengh of the kernel
+                        .attach_uniform("current_time", &utils::get_current_time())
+                        .attach_uniform("kernel_size", &manager.kernel_size)
+                        .bind_vertex_array_object_ref(&self.vertex_array_object_catalog)
                         .draw_elements_instanced_with_i32(
                             WebGl2RenderingContext::TRIANGLES,
                             0,
                             self.num_instances as i32,
                         );
-                Ok(())
-            }, fbo)?;
+                    Ok(())
+                },
+                fbo,
+            )?;
 
             // Render to the heatmap to the screen
             {
@@ -509,19 +494,19 @@ impl Catalog {
                     .attach_uniforms_from(colormaps)
                     .attach_uniform("reversed", &0.0)
                     .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
-                        .draw_elements_with_i32(
-                            WebGl2RenderingContext::TRIANGLES,
-                            None,
-                            WebGl2RenderingContext::UNSIGNED_SHORT,
-                            0
-                        );
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        None,
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                        0,
+                    );
             }
         }
 
         Ok(())
     }
 }
-pub fn get_catalog_shader<'a>(
+/*pub fn get_catalog_shader<'a>(
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
 ) -> Result<&'a Shader, JsValue> {
@@ -534,7 +519,7 @@ pub fn get_catalog_shader<'a>(
             ),
         )
         .map_err(|e| e.into())
-}
+}*/
 
 pub trait CatalogShaderProjection {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
@@ -585,7 +570,10 @@ impl CatalogShaderProjection for HEALPix {
         shaders
             .get(
                 gl,
-                &ShaderId(Cow::Borrowed("CatalogHEALPixVS"), Cow::Borrowed("CatalogFS")),
+                &ShaderId(
+                    Cow::Borrowed("CatalogHEALPixVS"),
+                    Cow::Borrowed("CatalogFS"),
+                ),
             )
             .unwrap()
     }

@@ -1,9 +1,6 @@
 pub type Url = String;
 
-use super::request::{
-    RequestType,
-    Resource
-};
+use super::request::{RequestType};
 pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
@@ -11,7 +8,7 @@ pub trait Query: Sized {
 }
 
 use al_core::image::format::ImageFormatType;
-pub struct Tile{
+pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
 
@@ -21,31 +18,23 @@ pub struct Tile{
     pub url: Url,
 }
 
-use crate:: {
-    healpix::cell::HEALPixCell,
-    survey::config::HiPSConfig,
-    time::Time
-};
+use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 
 impl Tile {
     pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
         let hips_url = cfg.get_root_url().to_string();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
-    
+
         let HEALPixCell(depth, idx) = *cell;
-    
+
         let dir_idx = (idx / 10000) * 10000;
-    
+
         let url = format!(
             "{}/Norder{}/Dir{}/Npix{}.{}",
-            hips_url,
-            depth,
-            dir_idx,
-            idx,
-            ext
+            hips_url, depth, dir_idx, idx, ext
         );
-    
+
         Tile {
             hips_url,
             url,
@@ -80,13 +69,9 @@ impl Allsky {
         let tile_size = cfg.get_tile_size() as usize;
         let format = cfg.get_format();
         let ext = format.get_ext_file();
-    
-        let url = format!(
-            "{}/Norder3/Allsky.{}",
-            hips_url,
-            ext
-        );
-    
+
+        let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
+
         Allsky {
             tile_size,
             hips_url,

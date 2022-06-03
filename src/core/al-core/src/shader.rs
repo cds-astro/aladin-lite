@@ -231,9 +231,9 @@ use super::texture::Texture2D;
 use super::texture::CUR_IDX_TEX_UNIT;
 impl UniformType for Texture2D {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, tex: &Self) {
-        // 1. Active the texture unit of the texture
         unsafe {
-            let tex = tex
+            let _ = tex
+                // 1. Active the texture unit of the texture
                 .active_texture(CUR_IDX_TEX_UNIT)
                 // 2. Bind the texture to that texture unit
                 .bind();
@@ -288,26 +288,31 @@ impl SendUniforms for HiPSColor {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {
             HiPSColor::Color => (),
-            HiPSColor::Grayscale { tf, min_cut, max_cut, color } => {
-                match color {
-                    GrayscaleColor::Color(color) => {
-                        shader.attach_uniform("H", tf)
-                            .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
-                            .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
-                            .attach_uniform("C", color)
-                            .attach_uniform("K", &1.0_f32);
-                    },
-                    GrayscaleColor::Colormap { reversed, name } => {
-                        let reversed = *reversed as u8 as f32;
-
-                        shader.attach_uniforms_from(name)
-                            .attach_uniform("H", tf)
-                            .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
-                            .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
-                            .attach_uniform("reversed", &reversed);
-                    }
+            HiPSColor::Grayscale {
+                tf,
+                min_cut,
+                max_cut,
+                color,
+            } => match color {
+                GrayscaleColor::Color(color) => {
+                    shader
+                        .attach_uniform("H", tf)
+                        .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
+                        .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
+                        .attach_uniform("C", color)
+                        .attach_uniform("K", &1.0_f32);
                 }
-            }
+                GrayscaleColor::Colormap { reversed, name } => {
+                    let reversed = *reversed as u8 as f32;
+
+                    shader
+                        .attach_uniforms_from(name)
+                        .attach_uniform("H", tf)
+                        .attach_uniform("min_value", &min_cut.unwrap_or(0.0))
+                        .attach_uniform("max_value", &max_cut.unwrap_or(1.0))
+                        .attach_uniform("reversed", &reversed);
+                }
+            },
         }
 
         shader
@@ -316,7 +321,7 @@ impl SendUniforms for HiPSColor {
 
 impl SendUniforms for Colormap {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        shader.attach_uniform("colormap_id", &((*self as i32) as  f32));
+        shader.attach_uniform("colormap_id", &((*self as i32) as f32));
 
         shader
     }

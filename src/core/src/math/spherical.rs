@@ -8,38 +8,37 @@ const MINUS_HALF_PI: f64 = -std::f64::consts::PI * 0.5;
 
 use crate::math::angle::Angle;
 
-use cgmath::InnerSpace;
 
-use cdshealpix::sph_geom::{
-    Polygon,
-    ContainsSouthPoleMethod,
-    coo3d::{Coo3D, Vec3}
-};
+
 use crate::math::lonlat::LonLat;
+use cdshealpix::sph_geom::{
+    coo3d::{Coo3D, Vec3},
+    ContainsSouthPoleMethod, Polygon,
+};
 pub enum FieldOfViewType {
     Allsky,
     Polygon {
         poly: Polygon,
 
         bbox: BoundingBox,
-        poles: PoleContained
+        poles: PoleContained,
     },
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum PoleContained {
     None,
     South,
     North,
-    Both
+    Both,
 }
 use crate::math::lonlat::LonLatT;
 //use cgmath::Vector2;
 use crate::CameraViewPort;
 impl FieldOfViewType {
     pub fn new_polygon(vertices: &[Vector4<f64>], control_point: &Vector4<f64>) -> FieldOfViewType {
-        let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices.iter()
+        let (vertices, (lon, lat)): (Vec<_>, (Vec<_>, Vec<_>)) = vertices
+            .iter()
             .map(|v| {
                 let coo = cdshealpix::sph_geom::coo3d::Coo3D::from_vec3(v.z, v.x, v.y);
                 let (lon, lat) = coo.lonlat();
@@ -47,10 +46,13 @@ impl FieldOfViewType {
                 (coo, (lon, lat))
             })
             .unzip();
-        
+
         let control_point = Coo3D::from_vec3(control_point.z, control_point.x, control_point.y);
-        let poly = Polygon::new_custom_vec3(vertices.into_boxed_slice(), &ContainsSouthPoleMethod::ControlPointIn(control_point));
-        
+        let poly = Polygon::new_custom_vec3(
+            vertices.into_boxed_slice(),
+            &ContainsSouthPoleMethod::ControlPointIn(control_point),
+        );
+
         let north_pole_coo = &Coo3D::from_sph_coo(0.0, HALF_PI);
         let south_pole_coo = &Coo3D::from_sph_coo(0.0, -HALF_PI);
         let north_pole_contained = poly.contains(north_pole_coo);
@@ -66,8 +68,8 @@ impl FieldOfViewType {
         // see the cdshealpix doc:
         // https://docs.rs/cdshealpix/latest/cdshealpix/sph_geom/struct.Polygon.html#method.intersect_great_circle_arc
         let poly_intersects_meridian = poly.is_intersecting_great_circle_arc(
-            &Coo3D::from_sph_coo(0.0, -HALF_PI), 
-            &Coo3D::from_sph_coo(0.0, HALF_PI - 1e-6)
+            &Coo3D::from_sph_coo(0.0, -HALF_PI),
+            &Coo3D::from_sph_coo(0.0, HALF_PI - 1e-6),
         );
         let bbox = BoundingBox::from_polygon(&poles, lon, &lat, poly_intersects_meridian);
 
@@ -77,9 +79,7 @@ impl FieldOfViewType {
     pub fn get_bounding_box(&self) -> &BoundingBox {
         match self {
             FieldOfViewType::Allsky => &ALLSKY_BBOX,
-            FieldOfViewType::Polygon { bbox, .. } => {
-                bbox
-            }
+            FieldOfViewType::Polygon { bbox, .. } => bbox,
         }
     }
 
@@ -100,7 +100,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox, poles } => {
+            FieldOfViewType::Polygon { poly, bbox: _, poles: _ } => {
                 let lon = lon.into();
                 let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
 
@@ -120,7 +120,6 @@ impl FieldOfViewType {
                         let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
                         Some(pos)
                     })
-
             }
         }
     }
@@ -138,7 +137,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(center.lon(), Angle(lat)).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox, poles } => {
+            FieldOfViewType::Polygon { poly, bbox, poles: _ } => {
                 // Prune parallels that do not intersect the fov
                 if bbox.contains_latitude(lat) {
                     // For those intersecting, perform the intersection
@@ -154,7 +153,7 @@ impl FieldOfViewType {
                 } else {
                     None
                 }
-            },
+            }
         }
     }
 
@@ -169,7 +168,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_north_pole(&self, camera: &CameraViewPort) -> bool {
+    pub fn contains_north_pole(&self, _camera: &CameraViewPort) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -182,7 +181,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_south_pole(&self, camera: &CameraViewPort) -> bool {
+    pub fn contains_south_pole(&self, _camera: &CameraViewPort) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -196,9 +195,12 @@ impl FieldOfViewType {
     }
 }
 
-const ALLSKY_BBOX: BoundingBox = BoundingBox { lon: ZERO..TWICE_PI, lat: MINUS_HALF_PI..HALF_PI };
+const ALLSKY_BBOX: BoundingBox = BoundingBox {
+    lon: ZERO..TWICE_PI,
+    lat: MINUS_HALF_PI..HALF_PI,
+};
 
-use std::ops::{Range, Bound};
+use std::ops::{Range};
 #[derive(Debug)]
 pub struct BoundingBox {
     pub lon: Range<f64>,
@@ -206,14 +208,20 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
-    fn from_polygon(pole_contained: &PoleContained, mut lon: Vec<f64>, lat: &[f64], intersect_zero_meridian: bool) -> Self {
+    fn from_polygon(
+        pole_contained: &PoleContained,
+        mut lon: Vec<f64>,
+        lat: &[f64],
+        intersect_zero_meridian: bool,
+    ) -> Self {
         // The longitudes must be readjust if the
         // polygon crosses the 0deg meridian
         // We make the assumption the polygon is not too big
         // (i.e. < PI length on the longitude so that it does not
         // crosses both the 0 and 180deg meridians)
         if intersect_zero_meridian {
-            lon = lon.iter()
+            lon = lon
+                .iter()
                 .map(|&lon| if lon > PI { lon - TWICE_PI } else { lon })
                 .collect();
         }
@@ -235,18 +243,37 @@ impl BoundingBox {
                     });
 
                 (min_lon..max_lon, min_lat..max_lat)
-            },
+            }
             PoleContained::South => {
                 let max_lat = lat.iter().fold(std::f64::MIN, |a, b| a.max(*b));
-                (if intersect_zero_meridian { -PI..PI } else { ZERO..TWICE_PI }, -HALF_PI..max_lat)
-            },
+                (
+                    if intersect_zero_meridian {
+                        -PI..PI
+                    } else {
+                        ZERO..TWICE_PI
+                    },
+                    -HALF_PI..max_lat,
+                )
+            }
             PoleContained::North => {
                 let min_lat = lat.iter().fold(std::f64::MAX, |a, b| a.min(*b));
-                (if intersect_zero_meridian { -PI..PI } else { ZERO..TWICE_PI }, min_lat..HALF_PI)
-            },
-            PoleContained::Both => {
-                (if intersect_zero_meridian { -PI..PI } else { ZERO..TWICE_PI }, -HALF_PI..HALF_PI)
+                (
+                    if intersect_zero_meridian {
+                        -PI..PI
+                    } else {
+                        ZERO..TWICE_PI
+                    },
+                    min_lat..HALF_PI,
+                )
             }
+            PoleContained::Both => (
+                if intersect_zero_meridian {
+                    -PI..PI
+                } else {
+                    ZERO..TWICE_PI
+                },
+                -HALF_PI..HALF_PI,
+            ),
         };
 
         BoundingBox { lon, lat }

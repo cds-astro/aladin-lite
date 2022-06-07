@@ -57,6 +57,7 @@ import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { Stack } from "./gui/Stack.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 // Import aladin css inside the project
 import './../css/aladin.css';
@@ -964,6 +965,7 @@ export let Aladin = (function () {
         }
 
         this.view.setBaseImageLayer(survey, callback);
+        ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv);
     };
 
     // @api

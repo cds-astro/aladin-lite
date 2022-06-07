@@ -50,6 +50,7 @@ export class Stack {
         this.aladinDiv = parentDiv;
 
         this.#createComponent();
+        this.#addListeners();
     }
 
     #createComponent() {
@@ -65,7 +66,7 @@ export class Stack {
             cmListStr += '<option>' + cm + '</option>';
         }
 
-        let baseImageLayerOptions = $('<div class="layer-options" style="display: none;">' +
+        this.baseImageLayerOptions = $('<div class="layer-options" style="display: none;">' +
                                         '<table class="aladin-options"><tbody>' +
                                         '  <tr><td>Color map</td><td><select class="">' + cmListStr + '</select></td></tr>' +
                                         '  <tr><td></td><td><label><input type="checkbox"> Reverse</label></td></tr>' +
@@ -73,14 +74,24 @@ export class Stack {
                                         '</table> ' +
                                       '</div>');
 
-        let colorMapSelect4BaseImgLayer = baseImageLayerOptions.find('select').eq(0);
+        let colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
         colorMapSelect4BaseImgLayer.val('grayscale');
-        let stretchSelect4BaseImgLayer = baseImageLayerOptions.find('select').eq(1);
+        let stretchSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(1);
 
-        let reverseCmCb = baseImageLayerOptions.find('input').eq(0);
+        let reverseCmCb = this.baseImageLayerOptions.find('input').eq(0);
         colorMapSelect4BaseImgLayer.add(reverseCmCb).add(stretchSelect4BaseImgLayer).change(function () {
-            let reverse = reverseCmCb.is(':checked');
-            aladin.getBaseImageLayer().setColormap(colorMapSelect4BaseImgLayer.val(), reverse, {tf: stretchSelect4BaseImgLayer.val()});
+            const reverse = reverseCmCb[0].checked;
+            const cmap = colorMapSelect4BaseImgLayer.val();
+            const stretch = stretchSelect4BaseImgLayer.val();
+
+            aladin.getBaseImageLayer().setColormap(cmap, {reversed: reverse, stretch: stretch});
+            // update HpxImageSurvey.SURVEYS definition
+            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
+            let options = surveyDef.options || {};
+            options.colormap = cmap;
+            options.stretch = stretch;
+            surveyDef.options = options;
         });
 
         optionsOpenerForBaseImageLayer.click(function () {
@@ -88,20 +99,21 @@ export class Stack {
             if ($this.hasClass('right-triangle')) {
                 $this.removeClass('right-triangle');
                 $this.addClass('down-triangle');
-                baseImageLayerOptions.slideDown(300);
+                self.baseImageLayerOptions.slideDown(300);
             }
             else {
                 $this.removeClass('down-triangle');
                 $this.addClass('right-triangle');
-                baseImageLayerOptions.slideUp(300);
+                self.baseImageLayerOptions.slideUp(300);
             }
         });
+
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
                         '<div style="clear: both;"></div>' +
                         '<div class="aladin-label">Base image layer</div>')
                 .append(optionsOpenerForBaseImageLayer) 
                 .append('<select class="aladin-surveySelection"></select>')
-                .append(baseImageLayerOptions)
+                .append(this.baseImageLayerOptions)
                 .append('<br>' +
                         '<button class="aladin-btn my-1" type="button">Search HiPS</button>' +
                         '<div class="aladin-label">Projection</div>' +
@@ -368,6 +380,34 @@ export class Stack {
                 layer.hide();
             }
         });
+    }
+
+    #addListeners() {
+        const self = this;
+        ALEvent.BASE_HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function () {
+            self.#updateBaseHiPSLayerOptions();
+            console.log('hello');
+        });
+
+    }
+
+    #updateBaseHiPSLayerOptions() {
+        const reverseCmCb                 = this.baseImageLayerOptions.find('input').eq(0);
+        const colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
+        const stretchSelect4BaseImgLayer  = this.baseImageLayerOptions.find('select').eq(1);
+
+        const meta = this.aladin.getBaseImageLayer().meta;
+        console.log('cmap',  meta);
+        const cmap = meta.color.grayscale.color.colormap.name;
+        const reverse = meta.color.grayscale.color.colormap.reversed;
+        const stretch = meta.color.grayscale.stretch;
+
+        console.log('reverse', reverse);
+        console.log('stretch', stretch);
+        reverseCmCb.prop('checked', reverse);
+        colorMapSelect4BaseImgLayer.val(cmap);
+        stretchSelect4BaseImgLayer.val(stretch);
+
     }
 
     show() {

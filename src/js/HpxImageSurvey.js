@@ -29,6 +29,7 @@
  *****************************************************************************/
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
+import { convertToHsl } from "daisyui/src/colors/functions";
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -134,82 +135,30 @@ export let HpxImageSurvey = (function() {
         this.ready = false;
         // Name of the layer
         this.layer = null;
-
-        let blend = null;
-        const additiveBlending = (options && options.additive) || false;
-        if (additiveBlending) {
-            blend = {
-                srcColorFactor: 'SrcAlpha',
-                dstColorFactor: 'One',
-                func: 'FuncAdd' 
-            }
+        // Default options
+        this.options = {
+            ...{
+                longitudeReversed: false,
+                reversed: false,
+                stretch: "Linear",
+                opacity: 1.0,
+            },
+            ...options
+        };
+        
+        if (this.options.imgFormat === 'fits') {
+            //tileFormat = "FITS";
+            this.fits = true;
+        } else if (this.options.imgFormat === "png") {
+            //tileFormat = "PNG";
+            this.fits = false;
         } else {
-            blend = {
-                srcColorFactor: 'SrcAlpha',
-                dstColorFactor: 'OneMinusSrcAlpha',
-                func: 'FuncAdd' 
-            }
+            // jpeg default case
+            //tileFormat = "JPG";
+            this.fits = false;
         }
 
-        // HiPS tile format
-        //let tileFormat = null;
-        let imgFormat = (options && options.imgFormat);
-        if (imgFormat) {
-            this.imgFormat = imgFormat.toUpperCase();
-
-            if (this.imgFormat === 'FITS') {
-                //tileFormat = "FITS";
-                this.fits = true;
-            } else if (this.imgFormat === "PNG") {
-                //tileFormat = "PNG";
-                this.fits = false;
-            } else {
-                //tileFormat = "JPG";
-                this.fits = false;
-            }
-        }
-
-        if (this.fits && (options && options.colormap)) {
-            this.meta = {
-                color: {
-                    grayscale: {
-                        stretch: (options && options.stretch) || "Linear",
-                        minCut: options && options.minCut,
-                        maxCut: options && options.maxCut,
-                        color: {
-                            colormap: {
-                                reversed: (options && options.reversed) || false,
-                                name: (options && options.colormap) || 'grayscale',
-                            }
-                        }
-                    }
-                },
-                blendCfg: blend,
-                opacity: (options && options.opacity) || 1.0,
-            };
-        } else if(this.fits) {
-            const color = (options && options.color) || [1.0, 1.0, 1.0, 1.0];
-            this.meta = {
-                color: {
-                    grayscale: {
-                        stretch: (options && options.stretch) || "Linear",
-                        minCut: options && options.minCut,
-                        maxCut: options && options.maxCut,
-                        color: {
-                            color: color,
-                        }
-                    }
-                },
-                blendCfg: blend,
-                opacity: (options && options.opacity) || 1.0,
-            };
-        } else {
-            this.meta = {
-                color: "color",
-                blendCfg: blend,
-                opacity: (options && options.opacity) || 1.0,
-            };
-        }
+        this.updateMeta();
 
         (async () => {
             const metadata = await fetchSurveyProperties(rootURLOrId);
@@ -232,20 +181,39 @@ export let HpxImageSurvey = (function() {
             const order = (+metadata.hips_order);
             // HiPS cutouts
             let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
-            if (cuts) {
-                cuts = [parseFloat(cuts[0]), parseFloat(cuts[1])]
+            let minCut = undefined;
+            let maxCut = undefined;
+            if ( cuts ) {
+                minCut = parseFloat(cuts[0]);
+                maxCut = parseFloat(cuts[1]);
+
+                this.options.minCut = this.options.minCut || minCut;
+                this.options.maxCut = this.options.maxCut || maxCut;
             }
 
             // HiPS tile format
             const tileFormats = metadata.hips_tile_format.split(' ').map((fmt) => fmt.toUpperCase());
-            if (this.fits) {
-                // user wants a fits file
-                if (tileFormats.indexOf('FITS') < 0) {
+            if (this.options.imgFormat) {
+                // user wants a fits but the metadata tells this format is not available
+                if (this.options.imgFormat === "fits" && tileFormats.indexOf('FITS') < 0) {
                     throw name + " has only image tiles and not fits ones";
+                // user wants jpg/png but the metadata tells these formats are not available
+                } else if (tileFormats.indexOf('PNG') < 0 && tileFormats.indexOf('JPEG') < 0) {
+                    throw name + " has only fits tiles and not image ones";
                 }
             } else {
-                if (tileFormats.indexOf('PNG') < 0 && tileFormats.indexOf('JPEG') < 0) {
-                    throw name + " has only fits tiles and not image ones";
+                // user wants nothing then we choose one from the metadata
+                if (tileFormats.indexOf('PNG') >= 0) {
+                    this.options.imgFormat = "png";
+                    this.fits = false;
+                } else if (tileFormats.indexOf('JPEG') >= 0) {
+                    this.options.imgFormat = "jpeg";
+                    this.fits = false;
+                } else if (tileFormats.indexOf('FITS') >= 0) {
+                    this.options.imgFormat = "fits";
+                    this.fits = true;
+                } else {
+                    throw "Unsupported format(s) found in the metadata: " + tileFormats;
                 }
             }
 
@@ -254,7 +222,8 @@ export let HpxImageSurvey = (function() {
             // HiPS bitpix
             const bitpix = +metadata.hips_pixel_bitpix;
             // HiPS frame
-            let frame = (options && options.cooFrame) || metadata.hips_frame || "equatorial";
+            this.options.cooFrame = this.options.cooFrame || metadata.hips_frame;
+            let frame = this.options.cooFrame;
 
             if (frame == "equatorial") {
                 frame = "ICRSJ2000";
@@ -263,39 +232,7 @@ export let HpxImageSurvey = (function() {
             } else {
                 frame = "ICRSJ2000";
             }
-            // HiPS longitude reversed
-            const longitudeReversed = (options && options.longitudeReversed) || false;
             // HiPS render options
-            let minCut = cuts && cuts[0];
-            let maxCut = cuts && cuts[1];
-
-            if ( this.fits ) {
-                // If the survey received is a fits one
-                // update the cuts
-                minCut = this.meta.color.grayscale.minCut || minCut;
-                maxCut = this.meta.color.grayscale.maxCut || maxCut;
-
-                this.meta.color.grayscale.minCut = minCut;
-                this.meta.color.grayscale.maxCut = maxCut;
-            }
-
-            // the output format has not been defined by the user
-            // => we give him one of the available formats
-            if (!this.imgFormat) {
-                if (tileFormats.indexOf('PNG') >= 0) {
-                    this.fits = false;
-                    this.imgFormat = "PNG";
-                } else if (tileFormats.indexOf('JPEG') >= 0) {
-                    this.fits = false;
-                    this.imgFormat = "JPEG";
-                } else if (tileFormats.indexOf('FITS') >= 0) {
-                    this.fits = true;
-                    this.imgFormat = "FITS";
-                } else {
-                    throw "Unsupported format(s) found in the metadata: " + tileFormats;
-                }
-            }
-            console.log("moc sky fraction: ", metadata.moc_sky_fraction)
             const skyFraction = +metadata.moc_sky_fraction || 1.0;
             // The survey created is associated to no layer when it is created
             this.properties = {
@@ -304,7 +241,7 @@ export let HpxImageSurvey = (function() {
                 url: url,
                 maxOrder: order,
                 frame: frame,
-                longitudeReversed: longitudeReversed,
+                longitudeReversed: this.options.longitudeReversed,
                 tileSize: tileSize,
                 formats: tileFormats,
                 minCutout: minCut,
@@ -312,6 +249,8 @@ export let HpxImageSurvey = (function() {
                 bitpix: bitpix,
                 skyFraction: skyFraction
             };
+
+            this.updateMeta();
 
             if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
                 // discard that
@@ -329,10 +268,76 @@ export let HpxImageSurvey = (function() {
         })();
     };
 
+    HpxImageSurvey.prototype.updateMeta = function() {
+        let blend = {
+            srcColorFactor: 'SrcAlpha',
+            dstColorFactor: 'OneMinusSrcAlpha',
+            func: 'FuncAdd' 
+        };
+
+        const additiveBlending = this.options.additive;
+        if (additiveBlending) {
+            blend = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'One',
+                func: 'FuncAdd' 
+            }
+        }
+        // reset the whole meta object
+        this.meta = {};
+        // populate him with the updated fields
+        this.updateColor();
+        this.meta.blendCfg = blend;
+        this.meta.opacity = this.options.opacity;
+    }
+
+    HpxImageSurvey.prototype.updateColor = function() {
+        if (this.options.colormap) {
+            if (!this.fits && this.options.colormap === "native") {
+                this.meta.color = "color";
+                return;
+            }
+    
+            // fits
+            if (this.options.colormap === "native") {
+                this.options.colormap = "grayscale";
+            }
+    
+            this.meta.color = {
+                grayscale: {
+                    stretch: this.options.stretch,
+                    minCut: this.options.minCut,
+                    maxCut: this.options.maxCut,
+                    color: {
+                        colormap: {
+                            reversed: this.options.reversed,
+                            name: this.options.colormap,
+                        }
+                    }
+                }
+            };
+        } else if (this.options.color) {
+            this.meta.color = {
+                grayscale: {
+                    stretch: this.options.stretch,
+                    minCut: this.options.minCut,
+                    maxCut: this.options.maxCut,
+                    color: {
+                        color: this.options.color
+                    }
+                }
+            };
+        } else {
+            this.meta.color = "color";
+        }
+    }
+
     // @api
     HpxImageSurvey.prototype.setAlpha = function(alpha) {
         alpha = +alpha; // coerce to number
-        this.meta.opacity = Math.max(0, Math.min(alpha, 1));
+        this.options.opacity = Math.max(0, Math.min(alpha, 1));
+
+        this.updateMeta();
 
         // Tell the view its meta have changed
         if( this.ready ) {
@@ -342,49 +347,15 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setColor = function(color, options) {
-        //if (!this.fits) {
-        //    throw 'Can only set the color of a FITS survey but this survey contains tile images.';
-        //}
+        this.options = {...this.options, ...options};
 
-        if ( !this.fits ) {
-            // This has a grayscale color associated        
-            const stretch = (options && options.stretch) || "Linear";
-            const minCut = (options && options.minCut) || 0.0;
-            const maxCut = (options && options.maxCut) || 1.0;
-
-            const newColor = {
-                grayscale: {
-                    minCut: minCut,
-                    maxCut: maxCut,
-                    stretch: stretch,
-                    color: {
-                        color: color
-                    }
-                }
-            };
-
-            // Update the color config
-            this.meta.color = newColor;
-        } else {
-            // This has a grayscale color associated        
-            const stretch = (options && options.stretch) || this.meta.color.grayscale.stretch;
-            const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
-            const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
-
-            const newColor = {
-                grayscale: {
-                    minCut: minCut,
-                    maxCut: maxCut,
-                    stretch: stretch,
-                    color: {
-                        color: color
-                    }
-                }
-            };
-
-            // Update the color config
-            this.meta.color = newColor;
+        // Erase the colormap given first
+        if (this.options.colormap) {
+            delete this.options.colormap;
         }
+        this.options.color = color;
+
+        this.updateColor();
 
         // Tell the view its meta have changed
         if ( this.ready ) {
@@ -392,51 +363,17 @@ export let HpxImageSurvey = (function() {
         }
     };
 
+    // @api
     HpxImageSurvey.prototype.setColormap = function(colormap, options) {
-        if ( !this.fits ) {
-            if (colormap === "native") {
-                this.meta.color = "color";
-            } else {
-                const stretch = (options && options.stretch) || "Linear";
-                const minCut = (options && options.minCut) || 0.0;
-                const maxCut = (options && options.maxCut) || 1.0;
-                const rev = (options && options.reversed === true) || false;
-    
-                this.meta.color = {
-                    grayscale: {
-                        minCut: minCut,
-                        maxCut: maxCut,
-                        stretch: stretch,
-                        color: {
-                            colormap: {
-                                reversed: rev,
-                                name: colormap,
-                            },
-                        }
-                    }
-                };
-            }
-        } else {
-            // This has a grayscale color associated        
-            const stretch = (options && options.stretch) || this.meta.color.grayscale.stretch || "Linear";
-            const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
-            const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
-            const rev = (options && options.reversed === true) || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
-            // Update the color config
-            this.meta.color = {
-                grayscale: {
-                    minCut: minCut,
-                    maxCut: maxCut,
-                    stretch: stretch,
-                    color: {
-                        colormap: {
-                            reversed: rev,
-                            name: colormap,
-                        },
-                    }
-                }
-            };
+        this.options = {...this.options, ...options};
+
+        // Erase the colormap given first
+        if (this.options.color) {
+            delete this.options.color;
         }
+        this.options.colormap = colormap;
+
+        this.updateColor();
 
         // Tell the view its meta have changed
         if ( this.ready ) {
@@ -444,23 +381,23 @@ export let HpxImageSurvey = (function() {
         }
     }
 
-    HpxImageSurvey.prototype.getMeta = function() {
-        return this.meta;
-    };
+    // @api
+    HpxImageSurvey.prototype.setCuts = function(cuts, options) {
+        this.options = {...this.options, ...options};
+        this.options.minCut = cuts[0];
+        this.options.maxCut = cuts[1];
 
-    HpxImageSurvey.prototype.setCuts = function(cuts) {
-        if (!this.fits) {
-            throw 'Can only set the color of a FITS survey but this survey contains tile images.';
-        }
-
-        // Update the mincut/maxcut
-        this.meta.color.grayscale.minCut = cuts[0];
-        this.meta.color.grayscale.maxCut = cuts[1];
+        this.updateColor();
 
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.getMeta = function() {
+        return this.meta;
     };
     
     // @api

@@ -957,7 +957,7 @@ where
     }
 
     fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
-        self.grid.set_cfg(cfg)?;
+        self.grid.set_cfg::<P>(cfg, &self.camera)?;
         self.request_redraw = true;
 
         Ok(())

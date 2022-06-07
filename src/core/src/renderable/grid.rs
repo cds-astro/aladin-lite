@@ -109,7 +109,7 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_cfg(&mut self, new_cfg: GridCfg) -> Result<(), JsValue> {
+    pub fn set_cfg<P: Projection>(&mut self, new_cfg: GridCfg, camera: &CameraViewPort) -> Result<(), JsValue> {
         let GridCfg {
             color,
             show_labels,
@@ -127,6 +127,9 @@ impl ProjetedGrid {
 
         if let Some(enabled) = enabled {
             self.enabled = enabled;
+            if enabled {
+                self.force_update::<P>(camera);
+            }
         }
 
         if let Some(label_size) = label_size {

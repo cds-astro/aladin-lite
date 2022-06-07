@@ -43,14 +43,10 @@ vec4 get_colormap_from_grayscale_texture(vec3 UV) {
     vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
 
     float x = float(get_pixels(uv).r);
-    //if (x == blank) {
-    //    return blank_color;
-    //} else {
-        float alpha = x * scale + offset;
-        alpha = transfer_func(H, alpha, min_value, max_value);
+    float alpha = x * scale + offset;
+    alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(colormap_f(alpha), vec4(0.0), float(x == blank));
-    //}
+    return mix(colormap_f(alpha), vec4(0.0), float(x == blank));
 }
 
 uniform vec4 C;
@@ -60,12 +56,8 @@ vec4 get_color_from_grayscale_texture(vec3 UV) {
     vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
 
     float x = float(get_pixels(uv).r);
-    //if (x == blank) {
-    //    return blank_color;
-    //} else {
-        float alpha = x * scale + offset;
-        alpha = transfer_func(H, alpha, min_value, max_value);
+    float alpha = x * scale + offset;
+    alpha = transfer_func(H, alpha, min_value, max_value);
 
-        return mix(vec4(C.rgb * K * alpha, C.a), vec4(0.0), float(x == blank));
-    //}
+    return mix(vec4(C.rgb * K * alpha, C.a), vec4(0.0), float(x == blank));
 }

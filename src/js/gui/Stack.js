@@ -65,6 +65,10 @@ export class Stack {
         for (const cm of aladin.webglAPI.getAvailableColormapList()) {
             cmListStr += '<option>' + cm + '</option>';
         }
+        // Add the native which is special:
+        // - for FITS hipses, it is changed to grayscale
+        // - for JPG/PNG hipses, we do not use any colormap in the backend
+        cmListStr += '<option>native</option>';
 
         this.baseImageLayerOptions = $('<div class="layer-options" style="display: none;">' +
                                         '<table class="aladin-options"><tbody>' +

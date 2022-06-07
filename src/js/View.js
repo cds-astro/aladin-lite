@@ -460,7 +460,7 @@ export let View = (function() {
                     .slice()
                     .reverse()) {
                     const s = view.imageSurveys.get(layer);
-                    if (s.imgFormat === "FITS") {
+                    if (s.options.imgFormat === "fits") {
                         survey = s;
                         break;
                     }
@@ -470,8 +470,8 @@ export let View = (function() {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    view.cutMinInit = survey.properties.minCutout || survey.meta.color.grayscale.minCut;
-                    view.cutMaxInit = survey.properties.maxCutout || survey.meta.color.grayscale.maxCut;
+                    view.cutMinInit = survey.properties.minCutout || survey.options.minCut;
+                    view.cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
                 }
 
                 view.lastFitsSurvey = survey;
@@ -1691,7 +1691,8 @@ export let View = (function() {
                         layer: x.layer,
                         properties: x.properties,
                         meta: x.meta,
-                        imgFormat: x.imgFormat,
+                        // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
+                        imgFormat: x.options.imgFormat.toUpperCase(),
                     };
                 });
 
@@ -1806,7 +1807,6 @@ export let View = (function() {
             default:
                 this.projection.setProjection(ProjectionEnum.SIN);
                 //this.projectionMethod = ProjectionEnum.SIN;
-
         }
         // Change the projection here
         this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);

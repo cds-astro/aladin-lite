@@ -290,7 +290,6 @@ export let View = (function() {
         }
 
         this.computeNorder();
-        //this.requestRedraw();
     };
 
     var pixelateCanvasContext = function(ctx, pixelateFlag) {
@@ -587,7 +586,7 @@ export let View = (function() {
             view.dragx = view.dragy = null;
 
             if (e.type==="mouseout" || e.type==="touchend") {
-                view.requestRedraw(true);
+                //view.requestRedraw();
                 updateLocation(view, view.width/2, view.height/2, true);
 
 
@@ -676,7 +675,7 @@ export let View = (function() {
             // on avertit les catalogues progressifs
             view.refreshProgressiveCats();
 
-            view.requestRedraw(true);
+            //view.requestRedraw();
             view.aladin.webglAPI.releaseLeftButtonMouse();
         });
         var lastHoveredObject; // save last object hovered by mouse
@@ -879,7 +878,7 @@ export let View = (function() {
             view.viewCenter.lon = viewCenter[0];
             view.viewCenter.lat = viewCenter[1];
 
-            view.requestRedraw();
+            //view.requestRedraw();
         }); //// endof mousemove ////
         
         // disable text selection on IE
@@ -1074,7 +1073,6 @@ export let View = (function() {
             console.error("Error: ", e);
         }
 
-        ///*
         ////// 2. Draw catalogues////////
         const isViewRendering = this.aladin.webglAPI.isRendering();
         if (isViewRendering || this.needRedraw) {
@@ -1491,7 +1489,6 @@ export let View = (function() {
                 ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color});
             }
         }
-
         this.requestRedraw();
     };
 

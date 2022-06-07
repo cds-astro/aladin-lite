@@ -173,7 +173,7 @@ export let HpxImageSurvey = (function() {
             this.meta = {
                 color: {
                     grayscale: {
-                        tf: (options && options.tf) || "Linear",
+                        stretch: (options && options.stretch) || "Linear",
                         minCut: options && options.minCut,
                         maxCut: options && options.maxCut,
                         color: {
@@ -192,7 +192,7 @@ export let HpxImageSurvey = (function() {
             this.meta = {
                 color: {
                     grayscale: {
-                        tf: (options && options.tf) || "Linear",
+                        stretch: (options && options.stretch) || "Linear",
                         minCut: options && options.minCut,
                         maxCut: options && options.maxCut,
                         color: {
@@ -348,7 +348,7 @@ export let HpxImageSurvey = (function() {
 
         if ( !this.fits ) {
             // This has a grayscale color associated        
-            const tf = (options && options.tf) || "Linear";
+            const stretch = (options && options.stretch) || "Linear";
             const minCut = (options && options.minCut) || 0.0;
             const maxCut = (options && options.maxCut) || 1.0;
 
@@ -356,7 +356,7 @@ export let HpxImageSurvey = (function() {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
-                    tf: tf,
+                    stretch: stretch,
                     color: {
                         color: color
                     }
@@ -367,7 +367,7 @@ export let HpxImageSurvey = (function() {
             this.meta.color = newColor;
         } else {
             // This has a grayscale color associated        
-            const tf = (options && options.tf) || this.meta.color.grayscale.tf;
+            const stretch = (options && options.stretch) || this.meta.color.grayscale.stretch;
             const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
             const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
 
@@ -375,7 +375,7 @@ export let HpxImageSurvey = (function() {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
-                    tf: tf,
+                    stretch: stretch,
                     color: {
                         color: color
                     }
@@ -392,25 +392,21 @@ export let HpxImageSurvey = (function() {
         }
     };
 
-    HpxImageSurvey.prototype.setColormap = function(colormap, reversed, options) {
-        //if (!this.fits) {
-        //    throw 'Can only set the color of a FITS survey but this survey contains tile images.';
-        //}
-
+    HpxImageSurvey.prototype.setColormap = function(colormap, options) {
         if ( !this.fits ) {
             if (colormap === "native") {
                 this.meta.color = "color";
             } else {
-                const tf = (options && options.tf) || "Linear";
+                const stretch = (options && options.stretch) || "Linear";
                 const minCut = (options && options.minCut) || 0.0;
                 const maxCut = (options && options.maxCut) || 1.0;
-                const rev = reversed || false;
+                const rev = (options && options.reversed === true) || false;
     
                 this.meta.color = {
                     grayscale: {
                         minCut: minCut,
                         maxCut: maxCut,
-                        tf: tf,
+                        stretch: stretch,
                         color: {
                             colormap: {
                                 reversed: rev,
@@ -422,17 +418,16 @@ export let HpxImageSurvey = (function() {
             }
         } else {
             // This has a grayscale color associated        
-            const tf = (options && options.tf) || this.meta.color.grayscale.tf || "Linear";
+            const stretch = (options && options.stretch) || this.meta.color.grayscale.stretch || "Linear";
             const minCut = (options && options.minCut) || this.meta.color.grayscale.minCut;
             const maxCut = (options && options.maxCut) || this.meta.color.grayscale.maxCut;
-            const rev = reversed || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
-
+            const rev = (options && options.reversed === true) || (this.meta.color.grayscale.color.colormap && this.meta.color.grayscale.color.colormap.reversed) || false;
             // Update the color config
             this.meta.color = {
                 grayscale: {
                     minCut: minCut,
                     maxCut: maxCut,
-                    tf: tf,
+                    stretch: stretch,
                     color: {
                         colormap: {
                             reversed: rev,
@@ -448,6 +443,10 @@ export let HpxImageSurvey = (function() {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
     }
+
+    HpxImageSurvey.prototype.getMeta = function() {
+        return this.meta;
+    };
 
     HpxImageSurvey.prototype.setCuts = function(cuts) {
         if (!this.fits) {
@@ -502,7 +501,7 @@ export let HpxImageSurvey = (function() {
                 color: [1.0, 0.0, 0.0, 1.0],
                 imgFormat: "fits",
                 colormap: "rainbow",
-                tf: 'Linear'
+                stretch: 'Linear'
             }
         },
         {
@@ -514,6 +513,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -34,
                 maxCut: 7000,
+                stretch: 'Asinh',
                 colormap: "redtemperature",
                 imgFormat: "fits",
             }
@@ -581,7 +581,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -14000,
                 maxCut: -9000,
-                tf: 'Asinh',
+                stretch: 'Asinh',
                 colormap: "redtemperature",
                 imgFormat: "fits",
             }

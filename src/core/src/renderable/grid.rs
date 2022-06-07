@@ -19,7 +19,6 @@ pub struct ProjetedGrid {
     vao: VertexArrayObject,
 
     labels: Vec<Option<Label>>,
-    size_vertices_buf: usize,
     sizes: Vec<usize>,
     offsets: Vec<usize>,
 
@@ -41,6 +40,7 @@ use super::labels::RenderManager;
 use al_api::color::Color;
 
 use super::TextRenderManager;
+
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -70,7 +70,6 @@ impl ProjetedGrid {
             vao
         };
 
-        let size_vertices_buf = 1000;
         let num_vertices = 0;
 
         let labels = vec![];
@@ -86,7 +85,7 @@ impl ProjetedGrid {
         let enabled = false;
         let label_scale = 1.0;
 
-        let grid = ProjetedGrid {
+        let mut grid = ProjetedGrid {
             color,
             show_labels,
             enabled,
@@ -95,7 +94,6 @@ impl ProjetedGrid {
             vao,
             //vbo,
             labels,
-            size_vertices_buf,
             num_vertices,
 
             sizes,
@@ -105,6 +103,9 @@ impl ProjetedGrid {
 
             text_renderer,
         };
+        // Initialize the vertices & labels
+        grid.force_update::<P>(camera);
+
         Ok(grid)
     }
 
@@ -204,8 +205,6 @@ impl ProjetedGrid {
             vertices.set_len(self.num_vertices << 1);
             std::mem::transmute::<_, Vec<f32>>(vertices)
         };
-
-        self.size_vertices_buf = vertices.len();
 
         #[cfg(feature = "webgl2")]
         self.vao.bind_for_update().update_array(

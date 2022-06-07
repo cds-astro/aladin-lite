@@ -958,7 +958,6 @@ where
 
     fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
         self.grid.set_cfg(cfg)?;
-
         self.request_redraw = true;
 
         Ok(())

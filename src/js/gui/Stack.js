@@ -224,6 +224,7 @@ export class Stack {
         coordinatesGridCb.change(function () {
             let isChecked = $(this).is(':checked');
             if (isChecked) {
+                console.log("ENABLE grid")
                 self.view.setGridConfig({
                     enabled: true,
                 });

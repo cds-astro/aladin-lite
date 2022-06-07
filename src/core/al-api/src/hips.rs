@@ -201,6 +201,7 @@ use crate::colormap::Colormap;
 pub enum HiPSColor {
     // FITS tile
     Grayscale {
+        #[serde(rename = "stretch")]
         tf: TransferFunction,
         #[serde(rename = "minCut")]
         min_cut: Option<f32>,
@@ -282,7 +283,7 @@ impl ImageSurveyMeta {
 
                 js_sys::Reflect::set(
                     &js_grayscale,
-                    &"tf".into(),
+                    &"stretch".into(),
                     &JsValue::from_serde(&tf).unwrap(),
                 )
                 .unwrap();

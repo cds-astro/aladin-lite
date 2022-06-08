@@ -963,6 +963,11 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, callbck, layer = "overlay") {
+        // layer == "base" is reserved for the base image layer
+        if (layer === "base") {
+            throw 'Layer name "base" is reserved for the base image layer';
+        }
+
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
             const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, {}, callbck);

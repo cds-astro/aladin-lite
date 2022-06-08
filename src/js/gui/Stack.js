@@ -322,8 +322,7 @@ export class Stack {
         var surveySelection = $(this.mainDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
             var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            console.log("survey, chosen ", survey)
-
+            //console.log("survey, chosen ", survey)
             const hpxImageSurvey = new HpxImageSurvey(
                 survey.url,
                 self.view,

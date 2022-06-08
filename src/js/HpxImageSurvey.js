@@ -179,27 +179,21 @@ export let HpxImageSurvey = (function() {
 
             // HiPS order
             const order = (+metadata.hips_order);
-            // HiPS cutouts
-            let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
-            let minCut = undefined;
-            let maxCut = undefined;
-            if ( cuts ) {
-                minCut = parseFloat(cuts[0]);
-                maxCut = parseFloat(cuts[1]);
-
-                this.options.minCut = this.options.minCut || minCut;
-                this.options.maxCut = this.options.maxCut || maxCut;
-            }
 
             // HiPS tile format
             const tileFormats = metadata.hips_tile_format.split(' ').map((fmt) => fmt.toUpperCase());
             if (this.options.imgFormat) {
                 // user wants a fits but the metadata tells this format is not available
                 if (this.options.imgFormat === "fits" && tileFormats.indexOf('FITS') < 0) {
-                    throw name + " has only image tiles and not fits ones";
-                // user wants jpg/png but the metadata tells these formats are not available
-                } else if (tileFormats.indexOf('PNG') < 0 && tileFormats.indexOf('JPEG') < 0) {
-                    throw name + " has only fits tiles and not image ones";
+                    throw name + " does not provide fits tiles";
+                }
+                
+                if (this.options.imgFormat === "png" && tileFormats.indexOf('PNG') < 0) {
+                    throw name + " does not provide png tiles";
+                }
+                
+                if (this.options.imgFormat === "jpeg" && tileFormats.indexOf('JPEG') < 0) {
+                    throw name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the metadata
@@ -219,37 +213,82 @@ export let HpxImageSurvey = (function() {
 
             // HiPS tile size
             const tileSize = +metadata.hips_tile_width;
-            // HiPS bitpix
-            const bitpix = +metadata.hips_pixel_bitpix;
+
+            // HiPS coverage sky fraction
+            const skyFraction = +metadata.moc_sky_fraction || 1.0;
+
             // HiPS frame
             this.options.cooFrame = this.options.cooFrame || metadata.hips_frame;
-            let frame = this.options.cooFrame;
-
-            if (frame == "equatorial") {
+            let frame = null;
+            if (this.options.cooFrame == "ICRS" || this.options.cooFrame == "ICRSd" || this.options.cooFrame == "equatorial") {
                 frame = "ICRSJ2000";
-            } else if (frame == "galactic") {
+            } else if (this.options.cooFrame == "galactic") {
                 frame = "GAL";
             } else {
-                frame = "ICRSJ2000";
+                throw 'Coordinate systems supported: "ICRS", "ICRSd" or "galactic"';
             }
-            // HiPS render options
-            const skyFraction = +metadata.moc_sky_fraction || 1.0;
-            // The survey created is associated to no layer when it is created
-            this.properties = {
-                id: id,
-                name: name,
-                url: url,
-                maxOrder: order,
-                frame: frame,
-                longitudeReversed: this.options.longitudeReversed,
-                tileSize: tileSize,
-                formats: tileFormats,
-                minCutout: minCut,
-                maxCutout: maxCut,
-                bitpix: bitpix,
-                skyFraction: skyFraction
-            };
 
+            // HiPS grayscale
+            this.colored = false;
+            if (metadata.dataproduct_subtype && metadata.dataproduct_subtype === "color") {
+                this.colored = true;
+            }
+
+            if (!this.colored) {
+                // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
+                // For colored HiPS, no fits tiles provided
+
+                // HiPS cutouts
+                let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
+                let propertiesDefaultMinCut = undefined;
+                let propertiesDefaultMaxCut = undefined;
+                if ( cuts ) {
+                    propertiesDefaultMinCut = parseFloat(cuts[0]);
+                    propertiesDefaultMaxCut = parseFloat(cuts[1]);
+                }
+
+                // HiPS bitpix
+                const bitpix = +metadata.hips_pixel_bitpix;
+
+                this.properties = {
+                    id: id,
+                    name: name,
+                    url: url,
+                    maxOrder: order,
+                    frame: frame,
+                    tileSize: tileSize,
+                    formats: tileFormats,
+                    minCutout: propertiesDefaultMinCut,
+                    maxCutout: propertiesDefaultMaxCut,
+                    bitpix: bitpix,
+                    skyFraction: skyFraction
+                };
+            } else {
+                this.properties = {
+                    id: id,
+                    name: name,
+                    url: url,
+                    maxOrder: order,
+                    frame: frame,
+                    tileSize: tileSize,
+                    formats: tileFormats,
+                    skyFraction: skyFraction
+                };
+            }
+
+            if (!this.colored) {
+                // For grayscale JPG/PNG hipses
+                if (!this.fits) {
+                    // Erase the cuts with the default one for image tiles
+                    this.options.minCut = this.options.minCut || 0.0;
+                    this.options.maxCut = this.options.maxCut || 1.0;
+                // For FITS hipses
+                } else {
+                    this.options.minCut = this.options.minCut || this.properties.minCutout;
+                    this.options.maxCut = this.options.maxCut || this.properties.maxCutout;
+                }
+            }
+            
             this.updateMeta();
 
             if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
@@ -292,45 +331,46 @@ export let HpxImageSurvey = (function() {
     }
 
     HpxImageSurvey.prototype.updateColor = function() {
-        if (this.options.colormap) {
-            if (!this.fits && this.options.colormap === "native") {
-                this.meta.color = "color";
-                return;
-            }
-    
-            // fits
-            if (this.options.colormap === "native") {
-                this.options.colormap = "grayscale";
-            }
-    
-            this.meta.color = {
-                grayscale: {
-                    stretch: this.options.stretch,
-                    minCut: this.options.minCut,
-                    maxCut: this.options.maxCut,
-                    color: {
-                        colormap: {
-                            reversed: this.options.reversed,
-                            name: this.options.colormap,
+        if (this.colored) {
+            this.meta.color = "color";
+        } else {
+            if (this.options.color) {
+                this.meta.color = {
+                    grayscale: {
+                        stretch: this.options.stretch,
+                        minCut: this.options.minCut,
+                        maxCut: this.options.maxCut,
+                        color: {
+                            color: this.options.color,
                         }
                     }
+                };
+            } else {
+                // If not defined we set the colormap to grayscale
+                if (!this.options.colormap) {
+                    this.options.colormap = "grayscale";
                 }
-            };
-        } else if (this.options.color) {
-            this.meta.color = {
-                grayscale: {
-                    stretch: this.options.stretch,
-                    minCut: this.options.minCut,
-                    maxCut: this.options.maxCut,
-                    color: {
-                        color: this.options.color
+
+                if (this.options.colormap === "native") {
+                    this.options.colormap = "grayscale";
+                }
+
+                this.meta.color = {
+                    grayscale: {
+                        stretch: this.options.stretch,
+                        minCut: this.options.minCut,
+                        maxCut: this.options.maxCut,
+                        color: {
+                            colormap: {
+                                reversed: this.options.reversed,
+                                name: this.options.colormap,
+                            }
+                        }
                     }
-                }
-            };
-        } else {
-            this.meta.color = "color";
+                };
+            }
         }
-    }
+    };
 
     // @api
     HpxImageSurvey.prototype.setAlpha = function(alpha) {
@@ -435,7 +475,6 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: 10.0,
                 maxCut: 10000.0,
-                color: [1.0, 0.0, 0.0, 1.0],
                 imgFormat: "fits",
                 colormap: "rainbow",
                 stretch: 'Linear'

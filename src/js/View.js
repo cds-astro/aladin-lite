@@ -460,7 +460,8 @@ export let View = (function() {
                     .slice()
                     .reverse()) {
                     const s = view.imageSurveys.get(layer);
-                    if (s.options.imgFormat === "fits") {
+                    // We take the first grayscale hips
+                    if (!s.colored) {
                         survey = s;
                         break;
                     }
@@ -470,8 +471,14 @@ export let View = (function() {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    view.cutMinInit = survey.properties.minCutout || survey.options.minCut;
-                    view.cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
+                    if (survey.fits) {
+                        // properties default cuts always refers to fits tiles
+                        view.cutMinInit = survey.properties.minCutout || survey.options.minCut;
+                        view.cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
+                    } else {
+                        view.cutMinInit = survey.options.minCut;
+                        view.cutMaxInit = survey.options.maxCut;
+                    }
                 }
 
                 view.lastFitsSurvey = survey;
@@ -1693,6 +1700,7 @@ export let View = (function() {
                         meta: x.meta,
                         // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
                         imgFormat: x.options.imgFormat.toUpperCase(),
+                        longitudeReversed: x.options.longitudeReversed,
                     };
                 });
 

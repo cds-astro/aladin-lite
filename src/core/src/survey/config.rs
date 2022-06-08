@@ -179,6 +179,7 @@ impl HiPSConfig {
     pub fn new(
         properties: &HiPSProperties,
         img_format: HiPSTileFormat,
+        longitude_reversed: bool,
     ) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
@@ -195,7 +196,6 @@ impl HiPSConfig {
         // it cannot be > to 512x512px
 
         let _fmt = properties.get_formats();
-        let longitude_reversed = properties.longitude_reversed;
         let bitpix = properties.get_bitpix();
         let mut tex_storing_unsigned_int = false;
         let mut tex_storing_integers = false;

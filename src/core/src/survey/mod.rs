@@ -1286,10 +1286,11 @@ impl ImageSurveys {
             properties,
             meta,
             img_format,
+            longitude_reversed,
             ..
         } in hipses.into_iter()
         {
-            let config = HiPSConfig::new(&properties, img_format)?;
+            let config = HiPSConfig::new(&properties, img_format, longitude_reversed)?;
 
             // Get the most precise survey from all the ones given
             let url = properties.get_url();

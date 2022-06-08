@@ -7,31 +7,14 @@
     <!-- Aladin Lite has a dependency on the jQuery library -->
     <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>
 
-    <!-- Aladin Lite container at requested dimensions -->
-    <script src="https://unpkg.com/vue"></script>
-    <script src="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.umd.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.css" />
-
     <style>
-      /* Place the components */
-      #discovery-tree {
-        position: absolute;
-        top: 106px;
-        left: 4px;
-        z-index: 20;
-      }
-
       #aladin-lite-div {
         width: 1024px;
         height: 768px;
       }
     </style>
 
-    <div id="aladin-lite-div">
-        <div id="ui">
-            <discovery-tree ref="dt" id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>
-        </div>
-    </div>
+    <div id="aladin-lite-div"></div>
 
     <input id="DSS" type="radio" name="survey" value='P/DSS2/Color' checked><label for="DSS">DSS color<label>
     <input id="DSS-blue" type="radio" name="survey" value="P/DSS2/blue"><label for="DSS-blue">DSS blue<label>

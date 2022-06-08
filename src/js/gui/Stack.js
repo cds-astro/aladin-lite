@@ -62,7 +62,7 @@ export class Stack {
         layerBox.empty();
         let optionsOpenerForBaseImageLayer = $('<span class="indicator right-triangle">&nbsp;</span>');
         let cmListStr = '';
-        for (const cm of aladin.webglAPI.getAvailableColormapList()) {
+        for (const cm of self.aladin.webglAPI.getAvailableColormapList()) {
             cmListStr += '<option>' + cm + '</option>';
         }
         // Add the native which is special:
@@ -88,7 +88,7 @@ export class Stack {
             const cmap = colorMapSelect4BaseImgLayer.val();
             const stretch = stretchSelect4BaseImgLayer.val();
 
-            aladin.getBaseImageLayer().setColormap(cmap, {reversed: reverse, stretch: stretch});
+            self.aladin.getBaseImageLayer().setColormap(cmap, {reversed: reverse, stretch: stretch});
             // update HpxImageSurvey.SURVEYS definition
             const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
@@ -138,10 +138,10 @@ export class Stack {
         searchHiPS4BaseLayerBtn.click(function () {
             if (!self.hipsSelector) {
                 let fnURLSelected = function(url) {
-                    aladin.setBaseImageLayer(url);
+                    self.aladin.setBaseImageLayer(url);
                 };
                 let fnIdSelected = function(id) {
-                    aladin.setBaseImageLayer(id);
+                    self.aladin.setBaseImageLayer(id);
                 };
                 self.hipsSelector = new HiPSSelector(self.aladinDiv, fnURLSelected, fnIdSelected);
             }
@@ -329,24 +329,7 @@ export class Stack {
                 self.view,
                 survey.options
             );
-            self.aladin.setImageSurvey(hpxImageSurvey, function () {
-                var baseImgLayer = self.aladin.getBaseImageLayer();
-
-                // !TODO
-                /*
-                if (baseImgLayer.useCors) {
-                    // update color map list with current value color map
-                    cmSelect.val(baseImgLayer.getColorMap().mapName);
-                    cmDiv.show();
-
-                    exportBtn.show();
-                }
-                else {
-                    cmDiv.hide();
-
-                    exportBtn.hide();
-                }*/
-            });
+            self.aladin.setImageSurvey(hpxImageSurvey);
         });
 
         //// COLOR MAP management ////////////////////////////////////////////

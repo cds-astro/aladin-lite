@@ -31,6 +31,7 @@ pub struct SimpleHiPS {
     pub backend: Option<i64>,
 
     pub img_format: HiPSTileFormat,
+    pub longitude_reversed: bool,
 }
 
 /*#[wasm_bindgen]
@@ -71,7 +72,6 @@ pub struct HiPSProperties {
     sky_fraction: f32,
 
     // Parametrable by the user
-    pub longitude_reversed: bool,
     pub min_cutout: Option<f32>,
     pub max_cutout: Option<f32>,
 }
@@ -81,7 +81,6 @@ impl HiPSProperties {
         url: String,
         max_order: u8,
         frame: CooSystem,
-        longitude_reversed: bool,
         tile_size: i32,
         min_cutout: Option<f32>,
         max_cutout: Option<f32>,
@@ -93,7 +92,6 @@ impl HiPSProperties {
             url,
             max_order,
             frame,
-            longitude_reversed,
             tile_size,
             formats,
             bitpix,

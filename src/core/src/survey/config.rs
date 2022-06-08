@@ -262,7 +262,6 @@ impl HiPSConfig {
         let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
         let frame = properties.get_frame();
-        al_core::log(&format!("sky fraction {:?}", properties.get_sky_fraction()));
         let is_allsky = properties.get_sky_fraction() >= 1.0;
         let hips_config = HiPSConfig {
             // HiPS name

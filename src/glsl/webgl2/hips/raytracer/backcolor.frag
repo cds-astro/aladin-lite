@@ -7,6 +7,8 @@ precision highp int;
 
 out vec4 out_frag_color;
 
+uniform vec4 font_color;
+
 void main() {
-    out_frag_color = vec4(0.19215686274, 0.49019607843, 0.55294117647, 1.0);
+    out_frag_color = font_color;
 }

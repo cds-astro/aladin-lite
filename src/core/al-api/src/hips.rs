@@ -28,8 +28,6 @@ pub struct SimpleHiPS {
 
     pub meta: ImageSurveyMeta,
 
-    pub backend: Option<i64>,
-
     pub img_format: HiPSTileFormat,
     pub longitude_reversed: bool,
 }

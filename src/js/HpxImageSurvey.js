@@ -30,6 +30,7 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 import { convertToHsl } from "daisyui/src/colors/functions";
+import { ALEvent } from "./events/ALEvent.js";
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -126,7 +127,7 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(rootURLOrId, view, options) {
+    let HpxImageSurvey = function(rootURLOrId, view, options, callback) {
         // A reference to the view
         this.backend = view;
         // A number used to ensure the correct layer ordering in the aladin lite view
@@ -288,22 +289,32 @@ export let HpxImageSurvey = (function() {
                     this.options.maxCut = this.options.maxCut || this.properties.maxCutout;
                 }
             }
-            
+
             this.updateMeta();
 
-            if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
-                // discard that
+            // Discard further processing if the layer has been removed
+            if (!this.backend.imageSurveys.get(this.layer)) {
                 return;
             }
 
-            const addedToTheView = this.layer !== undefined;
-            if (addedToTheView) {
-                // If the layer has been set then it is linked to the aladin lite view
-                // Update the layer
-                this.backend.setOverlayImageSurvey(this, null, this.layer);
-
-                this.ready = true;
+            // Discard further processing if the layer has been associated to another hips
+            // before the request has been resolved
+            if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
+                return;
             }
+
+            if (callback) {
+                callback(this);
+            }
+
+            if (this.layer === "base") {
+                ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
+            }
+
+            // If the layer has been set then it is linked to the aladin lite view
+            // Update the layer
+            this.backend.setOverlayImageSurvey(this, this.layer);
+            this.ready = true;
         })();
     };
 

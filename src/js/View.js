@@ -36,7 +36,6 @@ import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Projection }     from "./libs/astro/projection.js";
 import { AladinUtils }    from "./AladinUtils.js";
-//import { HealpixIndex }   from "./libs/healpix.js";
 import { Utils }          from "./Utils.js";
 import { SimbadPointer }  from "./SimbadPointer.js";
 import { TileBuffer }     from "./TileBuffer.js";
@@ -46,7 +45,6 @@ import { ColorMap } from "./ColorMap.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
-import { CooConversion } from "./CooConversion.js";
 import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
@@ -1626,11 +1624,11 @@ export let View = (function() {
         this.fixLayoutDimensions();
     };
 
-    View.prototype.setBaseImageLayer = function(baseSurveyPromise, callback) {
-        this.setOverlayImageSurvey(baseSurveyPromise, callback, "base");
+    View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
+        this.setOverlayImageSurvey(baseSurveyPromise, "base");
     };
 
-    View.prototype.setOverlayImageSurvey = function(survey, callback, layer = "overlay") {
+    View.prototype.setOverlayImageSurvey = function(survey, layer = "overlay") {
         const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set(layer, newSurveyIdx);
@@ -1662,10 +1660,6 @@ export let View = (function() {
         if (layer === "base") {
             this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         }
-
-        if (callback) {
-            callback();
-        }
     };
 
     /*View.prototype.setUnknownSurveyIfNeeded = function() {
@@ -1692,19 +1686,17 @@ export let View = (function() {
     View.prototype.updateImageLayerStack = function() {
         try {
             let surveys = this.buildSortedImageSurveys()
-                .filter(x => x !== undefined && x.properties )
-                .map((x) => {
+                .filter(s => s !== undefined && s.properties )
+                .map(s => {
                     return {
-                        layer: x.layer,
-                        properties: x.properties,
-                        meta: x.meta,
+                        layer: s.layer,
+                        properties: s.properties,
+                        meta: s.meta,
                         // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
-                        imgFormat: x.options.imgFormat.toUpperCase(),
-                        longitudeReversed: x.options.longitudeReversed,
+                        imgFormat: s.options.imgFormat.toUpperCase(),
+                        longitudeReversed: s.options.longitudeReversed,
                     };
                 });
-
-            //console.log("Surveys plotted ", surveys);
             this.aladin.webglAPI.setImageSurveys(surveys);
         } catch(e) {
             console.error(e)

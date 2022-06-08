@@ -45,19 +45,15 @@ import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
 import { Location } from "./Location.js";
 import { Source } from "./Source.js";
-import { HpxImageSurvey, fetchSurveyProperties } from "./HpxImageSurvey.js";
+import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
-import { Color } from "./Color.js";
-import { ColorMap } from "./ColorMap.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
-import { DiscoveryTree } from "./DiscoveryTree.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { Stack } from "./gui/Stack.js";
-import { ALEvent } from "./events/ALEvent.js";
 
 // Import aladin css inside the project
 import './../css/aladin.css';
@@ -932,40 +928,32 @@ export let Aladin = (function () {
     };
 
     // @oldAPI
-    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
+    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}, callbck = (survey) => {}) {
         const rootUrlOrId = rootUrl || id;
         if (cooFrame) {
             options.cooFrame = cooFrame;
         }
 
-        //const promise = (async () => {
-            //let metadata = await fetchSurveyProperties(rootUrlOrId);
-            return new HpxImageSurvey(rootUrlOrId, this.view, options);
-        //})();
-
-        //return promise;
+        return new HpxImageSurvey(rootUrlOrId, this.view, options, callbck);
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, callback) {
-        this.setBaseImageLayer(imageSurvey, callback);
+    Aladin.prototype.setImageSurvey = function(imageSurvey, callbck) {
+        this.setBaseImageLayer(imageSurvey, callbck);
     };
 
     // @api
-    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callback) {
-        let survey = null;
+    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callbck) {
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
-            survey = this.createImageSurvey(idOrSurvey);
+            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, {}, callbck);
+            this.view.setBaseImageLayer(survey);
         // 2. User gives a non resolved promise
         } else {
-            survey = idOrSurvey;
+            this.view.setBaseImageLayer(idOrSurvey);
         }
-
-        this.view.setBaseImageLayer(survey, callback);
-        ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv);
     };
 
     // @api
@@ -974,8 +962,15 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (promise, callback, layer = "overlay") {
-        this.view.setOverlayImageSurvey(promise, callback, layer);
+    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, callbck, layer = "overlay") {
+        // 1. User gives an ID
+        if (typeof idOrSurvey === "string") {
+            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, {}, callbck);
+            this.view.setOverlayImageSurvey(survey, layer);
+        // 2. User gives a non resolved promise
+        } else {
+            this.view.setOverlayImageSurvey(idOrSurvey, layer);
+        }
     };
 
     // @api

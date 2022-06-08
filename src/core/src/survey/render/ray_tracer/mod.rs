@@ -165,7 +165,7 @@ fn create_f32_texture_from_raw(
 
     tex
 }
-
+use al_api::color::Color;
 impl RayTracer {
     pub fn new<P: Projection>(gl: &WebGlContext) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>();
@@ -235,8 +235,9 @@ impl RayTracer {
         }
     }
 
-    pub fn draw_font_color<'a>(&self, shader: &ShaderBound<'a>) {
+    pub fn draw_font_color<'a>(&self, shader: &ShaderBound<'a>, color: &Color) {
         shader
+            .attach_uniform("font_color", color)
             .bind_vertex_array_object_ref(&self.vao)
             .draw_elements_with_i32(
                 WebGl2RenderingContext::TRIANGLES,

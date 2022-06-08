@@ -659,6 +659,17 @@ impl ImageSurvey {
         })
     }
 
+    pub fn get_fading_factor(&self) -> f32 {
+        self.textures
+            .start_time
+            .and_then(|start_time| {
+                let fading = ((Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION)
+                    .clamp(0.0, 1.0);
+                Some(fading)
+            })
+            .unwrap_or(0.0)
+    }
+
     pub fn is_allsky(&self) -> bool {
         self.textures.config().is_allsky
     } 
@@ -911,15 +922,7 @@ impl Draw for ImageSurvey {
         let rl = if longitude_reversed { ID_R } else { ID };
 
         // Add starting fading
-        let fading = self
-            .textures
-            .start_time
-            .and_then(|start_time| {
-                let fading = ((Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION)
-                    .clamp(0.0, 1.0);
-                Some(fading)
-            })
-            .unwrap_or(0.0);
+        let fading = self.get_fading_factor();
         opacity *= fading;
 
         // Retrieve the model and inverse model matrix
@@ -1091,7 +1094,7 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
 }
 
 use al_core::image::format::ImageFormatType;
-
+use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
 impl ImageSurveys {
     pub fn new<P: Projection>(
@@ -1181,20 +1184,26 @@ impl ImageSurveys {
         }
 
         let raytracer = &self.raytracer;
-        // Check whether a survey to plot is allsky
-        // if neither are, we draw a font
-        // if there are, we do not draw nothing
-        let has_allsky_hips = self.surveys.values()
-            .any(|s| s.is_allsky() || s.get_config().get_format() == ImageFormatType::RGB8U);
-        if !has_allsky_hips {
-            let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);
-            shader_font
-                .attach_uniforms_from(camera);
-            raytracer.draw_font_color(&shader_font);
-        }
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
+
+        // Check whether a survey to plot is allsky
+        // if neither are, we draw a font
+        // if there are, we do not draw nothing
+        if !self.surveys.is_empty() {
+            let has_allsky_hips = self.surveys.values()
+                .any(|s| s.is_allsky() || s.get_config().get_format() == ImageFormatType::RGB8U);
+
+            if !has_allsky_hips {
+                let opacity = self.surveys.values().fold(std::f32::MAX, |mut a, s| { a = a.min(s.get_fading_factor()); a } );
+
+                let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);
+                shader_font
+                    .attach_uniforms_from(camera);
+                raytracer.draw_font_color(&shader_font, &Color::new(0.19215686274 * opacity, 0.49019607843 * opacity, 0.55294117647 * opacity, opacity));
+            }
+        }
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");

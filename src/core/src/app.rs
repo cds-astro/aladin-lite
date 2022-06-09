@@ -361,7 +361,7 @@ where
         Ok(())
     }*/
 }
-
+use al_api::hips::HiPSTileFormat;
 #[enum_dispatch(AppType)]
 pub trait AppTrait {
     /// View
@@ -389,6 +389,8 @@ pub trait AppTrait {
         layer: String,
         meta: ImageSurveyMeta,
     ) -> Result<(), JsValue>;
+
+    fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue>;
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
     fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
@@ -814,6 +816,39 @@ where
         self.request_redraw = true;
 
         self.surveys.set_image_survey_color_cfg(layer, meta)
+    }
+
+    fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
+
+        let survey = self.surveys.get_mut_from_layer(&layer)
+            .ok_or(JsValue::from_str("Layer not found"))?;
+        survey.set_img_format(format)?;
+        // Request for the allsky first
+        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
+        let cfg = survey.get_config();
+
+        //Request the allsky for the small tile size
+        if cfg.get_tile_size() <= 128 {
+            // Request the allsky
+            self.downloader.fetch(query::Allsky::new(cfg), false);
+        } else {
+            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                for cell in texture_cell.get_tile_cells(cfg) {
+                    let query = query::Tile::new(&cell, cfg);
+                    self.tile_fetcher
+                        .append_base_tile(query, &mut self.downloader);
+                }
+            }
+        }
+        self.downloader.fetch(query::Blank::new(cfg), true);
+        
+
+        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
+        self.look_for_new_tiles();
+
+        self.request_redraw = true;
+
+        Ok(())
     }
 
     // Width and height given are in pixels

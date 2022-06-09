@@ -59,6 +59,7 @@ impl From<&mut Texture> for TextureCellItem {
 }
 
 use super::config::HiPSConfig;
+use al_api::hips::HiPSTileFormat;
 use al_core::Texture2DArray;
 use std::collections::HashMap;
 
@@ -251,6 +252,45 @@ impl ImageSurveyTextures {
         })
     }
 
+    pub fn set_format(&mut self, gl: &WebGlContext, fmt: HiPSTileFormat) -> Result<(), JsValue> {
+        self.config.set_image_fmt(fmt)?;
+
+        self.texture_2d_array = match self.config.get_format() {
+            ImageFormatType::RGBA32F => unimplemented!(),
+            ImageFormatType::RGB32F => unimplemented!(),
+            ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &self.config)?),
+            ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &self.config)?),
+            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
+            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
+            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
+            ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &self.config)?),
+        };
+
+        self.base_textures = [
+            Texture::new(&self.config, &HEALPixCell(0, 0), 0, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 1), 1, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 2), 2, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 3), 3, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 4), 4, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 5), 5, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 6), 6, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 7), 7, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 8), 8, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 9), 9, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 10), 10, Time::now()),
+            Texture::new(&self.config, &HEALPixCell(0, 11), 11, Time::now()),
+        ];
+
+        self.heap.clear();
+        self.textures.clear();
+        self.ready = false;
+        self.num_root_textures_available = 0;
+        self.available_tiles_during_frame = false;
+        self.start_time = None;
+
+        Ok(())
+    }
+
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
     pub fn push<I: Image + std::fmt::Debug>(
@@ -361,38 +401,7 @@ impl ImageSurveyTextures {
             .textures
             .get_mut(&tex_cell)
             .expect("the cell has to be in the tile buffer");
-        /*
-        // Append new async task responsible for writing
-        // the image into the texture 2d array for the GPU
-        let mut exec_ref = self.exec.borrow_mut();
-        let task = ImageTile2GpuTask::<I>::new(
-            &tile,
-            texture,
-            image,
-            self.texture_2d_array.clone(),
-            &self.config,
-        );
 
-        let tile = tile;
-        exec_ref
-            .spawner()
-            .spawn(TaskType::ImageTile2GpuTask(tile.clone()), async move {
-                task.await;
-
-                TaskResult::TileSentToGPU { tile }
-            });
-        */
-
-        // Direct sub
-        /*let task = ImageTile2GpuTask::<I>::new(
-            tile,
-            texture,
-            image,
-            self.texture_2d_array.clone(),
-            &self.config,
-        );
-
-        task.tex_sub();*/
         if missing {
             send_to_gpu(
                 cell,
@@ -411,7 +420,6 @@ impl ImageSurveyTextures {
             );
         };
 
-        //al_core::log(&format!("{:?}", tex_cell));
         // Once the texture has been received in the GPU
         texture.append(
             cell, // The tile cell
@@ -427,7 +435,6 @@ impl ImageSurveyTextures {
         if tex_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;
             debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
-            //console::log_1(&format!("aass {:?}", self.num_root_textures_available).into());
 
             if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
                 self.ready = true;
@@ -627,15 +634,6 @@ impl ImageSurveyTextures {
             self.textures.get(&HEALPixCell(0, 11)),
         ]
     }
-
-    /*// Get the textures in the buffer
-    // The resulting array is uniq sorted
-    fn get_textures(&self) -> Vec<&Texture> {
-        debug_assert!(self.is_ready());
-        let mut textures = self.textures.values().collect::<Vec<_>>();
-        textures.sort_unstable();
-        textures
-    }*/
 
     pub fn get_texture_array(&self) -> Rc<Texture2DArray> {
         self.texture_2d_array.clone()

@@ -45,7 +45,7 @@ module.exports = {
             // ],
 
             // The same as the `--out-dir` option for `wasm-pack`
-            outDir: "pkg-webgl2",
+            outDir: path.resolve(__dirname, 'pkg-webgl2'),
 
             // The same as the `--out-name` option for `wasm-pack`
             outName: "core",

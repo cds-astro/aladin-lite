@@ -75,8 +75,7 @@ use crate::app::AppTrait;
 use crate::app::AppType;
 use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
-
-
+use al_api::hips::HiPSTileFormat;
 
 #[wasm_bindgen]
 impl WebClient {
@@ -300,6 +299,14 @@ impl WebClient {
             .into_serde()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         self.app.set_image_survey_color_cfg(layer, meta)
+    }
+
+    #[wasm_bindgen(js_name = setImageSurveyImageFormat)]
+    pub fn set_image_survey_img_format(&mut self, layer: String, format: JsValue) -> Result<(), JsValue> {
+        let format = format.into_serde()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        self.app.set_image_survey_img_format(layer, format)
     }
 
     /// Set the equatorial grid color

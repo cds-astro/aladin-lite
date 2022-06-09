@@ -126,6 +126,7 @@ fn create_black_tile(format: FormatImageType, width: i32, value: f32) -> TileArr
 pub struct HiPSConfig {
     pub root_url: String,
     // HiPS image format
+    // TODO: Make that independant of the HiPS but of the ImageFormat
     pub empty_image: EmptyTileImage,
 
     // The size of the texture images
@@ -160,6 +161,7 @@ pub struct HiPSConfig {
 
     pub size_tile_uv: f32,
     pub frame: CooSystem,
+    pub bitpix: Option<i32>,
     format: ImageFormatType,
 }
 
@@ -209,30 +211,34 @@ impl HiPSConfig {
 
         let format = match img_format {
             HiPSTileFormat::FITS => {
-                tex_storing_fits = true;
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = bitpix {
                     match bitpix {
                         #[cfg(feature = "webgl2")]
                         8 => {
+                            tex_storing_fits = true;
                             tex_storing_unsigned_int = true;
                             Ok(ImageFormatType::R8UI)
                         }
                         #[cfg(feature = "webgl2")]
                         16 => {
+                            tex_storing_fits = true;
                             tex_storing_integers = true;
                             Ok(ImageFormatType::R16I)
                         }
                         #[cfg(feature = "webgl2")]
                         32 => {
+                            tex_storing_fits = true;
                             tex_storing_integers = true;
                             Ok(ImageFormatType::R32I)
                         }
                         -32 => {
+                            tex_storing_fits = true;
                             tex_storing_integers = false;
                             Ok(ImageFormatType::R32F)
                         }
                         -64 => {
+                            tex_storing_fits = true;
                             tex_storing_integers = false;
                             Err(JsValue::from_str("f64 FITS files not supported"))
                         }
@@ -295,6 +301,7 @@ impl HiPSConfig {
 
             size_tile_uv,
             frame,
+            bitpix,
             format,
             tile_size,
         };
@@ -306,6 +313,72 @@ impl HiPSConfig {
     pub fn is_opaque(&self) -> bool {
         self.blank.is_nan()
     }*/
+
+    pub fn set_image_fmt(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
+        let format = match fmt {
+            HiPSTileFormat::FITS => {
+                // Check the bitpix to determine the internal format of the tiles
+                if let Some(bitpix) = self.bitpix {
+                    match bitpix {
+                        #[cfg(feature = "webgl2")]
+                        8 => {
+                            self.tex_storing_fits = true;
+                            self.tex_storing_unsigned_int = true;
+                            Ok(ImageFormatType::R8UI)
+                        }
+                        #[cfg(feature = "webgl2")]
+                        16 => {
+                            self.tex_storing_fits = true;
+                            self.tex_storing_integers = true;
+                            Ok(ImageFormatType::R16I)
+                        }
+                        #[cfg(feature = "webgl2")]
+                        32 => {
+                            self.tex_storing_fits = true;
+                            self.tex_storing_integers = true;
+                            Ok(ImageFormatType::R32I)
+                        }
+                        -32 => {
+                            self.tex_storing_fits = true;
+                            self.tex_storing_integers = false;
+                            Ok(ImageFormatType::R32F)
+                        }
+                        -64 => {
+                            self.tex_storing_fits = true;
+                            self.tex_storing_integers = false;
+                            Err(JsValue::from_str("f64 FITS files not supported"))
+                        }
+                        _ => Err(JsValue::from_str(
+                            "Fits tiles exists but the BITPIX is not correct in the property file",
+                        )),
+                    }
+                } else {
+                    Err(JsValue::from_str(
+                        "Fits tiles exists but the BITPIX is not found",
+                    ))
+                }
+            }
+            HiPSTileFormat::PNG => {
+                self.tex_storing_fits = false;
+                self.tex_storing_unsigned_int = false;
+                self.tex_storing_integers = false;
+                Ok(ImageFormatType::RGBA8U)
+            },
+            HiPSTileFormat::JPEG => {
+                self.tex_storing_fits = false;
+                self.tex_storing_unsigned_int = false;
+                self.tex_storing_integers = false;
+                Ok(ImageFormatType::RGB8U)
+            }
+        }?;
+
+        self.format = format;
+
+        // Recompute the empty image
+        self.empty_image = EmptyTileImage::new(self.tile_size, self.format);
+
+        Ok(())
+    }
 
     #[inline]
     pub fn get_root_url(&self) -> &str {

@@ -127,7 +127,7 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    let HpxImageSurvey = function(rootURLOrId, view, options, callback) {
+    function HpxImageSurvey(rootURLOrId, view, options, callback) {
         // A reference to the view
         this.backend = view;
         // A number used to ensure the correct layer ordering in the aladin lite view
@@ -397,9 +397,20 @@ export let HpxImageSurvey = (function() {
     };
 
     // @api
+    HpxImageSurvey.prototype.setBlendingConfig = function(additive = false) {
+        this.options.additive = additive;
+
+        this.updateMeta();
+
+        // Tell the view its meta have changed
+        if( this.ready ) {
+            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+    };
+
+    // @api
     HpxImageSurvey.prototype.setColor = function(color, options) {
         this.options = {...this.options, ...options};
-
         // Erase the colormap given first
         if (this.options.colormap) {
             delete this.options.colormap;
@@ -417,8 +428,7 @@ export let HpxImageSurvey = (function() {
     // @api
     HpxImageSurvey.prototype.setColormap = function(colormap, options) {
         this.options = {...this.options, ...options};
-
-        // Erase the colormap given first
+        // Erase the color given first
         if (this.options.color) {
             delete this.options.color;
         }
@@ -433,8 +443,7 @@ export let HpxImageSurvey = (function() {
     }
 
     // @api
-    HpxImageSurvey.prototype.setCuts = function(cuts, options) {
-        this.options = {...this.options, ...options};
+    HpxImageSurvey.prototype.setCuts = function(cuts) {
         this.options.minCut = cuts[0];
         this.options.maxCut = cuts[1];
 
@@ -443,6 +452,47 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.changeImageFormat = function(imgFormat) {
+        if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpeg") {
+            throw 'Formats must lie in ["fits", "png", "jpeg"]';
+        }
+
+        // Check the properties to see if the given format is available among the list
+        // If the properties have not been retrieved yet, it will be tested afterwards
+        if (this.properties) {
+            const availableFormats = this.properties.formats;
+            const idSurvey = this.properties.id;
+            // user wants a fits but the metadata tells this format is not available
+            if (imgFormat === "fits" && availableFormats.indexOf('FITS') < 0) {
+                throw idSurvey + " does not provide fits tiles";
+            }
+            
+            if (imgFormat === "png" && availableFormats.indexOf('PNG') < 0) {
+                throw idSurvey + " does not provide png tiles";
+            }
+            
+            if (imgFormat === "jpeg" && availableFormats.indexOf('JPEG') < 0) {
+                throw idSurvey + " does not provide jpeg tiles";
+            }
+        }
+
+        // Passed the check, we erase the image format with the new one
+        // We do nothing if the imgFormat is the same
+        if (this.options.imgFormat === imgFormat) {
+            return;
+        }
+
+        this.options.imgFormat = imgFormat;
+        // Check if it is a fits
+        this.fits = (this.options.imgFormat === 'fits');
+
+        // Tell the view its meta have changed
+        if ( this.ready ) {
+            this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat.toUpperCase());
         }
     };
 

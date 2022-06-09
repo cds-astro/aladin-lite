@@ -294,7 +294,7 @@ trait Draw {
     );
 }
 
-use al_api::hips::GrayscaleColor;
+use al_api::hips::{GrayscaleColor, HiPSTileFormat};
 use al_core::shader::Shader;
 
 pub fn get_raster_shader<'a, P: Projection>(
@@ -659,6 +659,10 @@ impl ImageSurvey {
         })
     }
 
+    pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
+        self.textures.set_format(&self.gl, fmt)
+    }
+
     pub fn get_fading_factor(&self) -> f32 {
         self.textures
             .start_time
@@ -862,16 +866,6 @@ impl ImageSurvey {
         self.textures.config_mut()
     }
 
-    /*#[inline]
-    pub fn get_textures_mut(&mut self) -> &mut ImageSurveyTextures {
-        &mut self.textures
-    }*/
-
-    /*#[inline]
-    pub fn get_textures(&self) -> &ImageSurveyTextures {
-        &self.textures
-    }*/
-
     #[inline]
     pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
@@ -964,13 +958,13 @@ impl Draw for ImageSurvey {
             // - The UVs are changed if:
             //     * new cells are added/removed (because new cells are added)
             //     * there are new available tiles for the GPU
-            // - The
+            let config = self.get_config();
             let shader = get_raster_shader::<P>(
                 color,
                 &self.gl,
                 shaders,
-                self.textures.config.tex_storing_integers,
-                self.textures.config.tex_storing_unsigned_int,
+                config.tex_storing_integers,
+                config.tex_storing_unsigned_int,
             )
             .bind(&self.gl);
 
@@ -1002,51 +996,7 @@ impl Draw for ImageSurvey {
 }
 
 use wasm_bindgen::JsValue;
-//pub trait HiPS {
-/*fn create(
-    self,
-    gl: &WebGlContext,
-    camera: &CameraViewPort,
-    surveys: &ImageSurveys,
-    exec: Rc<RefCell<TaskExecutor>>,
-) -> Result<ImageSurvey, JsValue>;*/
-//fn color(&self, colormaps: &Colormaps) -> HiPSColor;
-//}
-
 use crate::{HiPSColor, SimpleHiPS};
-
-
-/*impl HiPS for SimpleHiPS {
-    fn color(&self, colormaps: &Colormaps) -> Color {
-        let color = match self.color.clone() {
-            HiPSColor::Color => Color::Colored,
-            HiPSColor::Grayscale2Color { color, transfer, k } => Color::Grayscale2Color {
-                color,
-                k,
-                param: GrayscaleParameter {
-                    h: transfer.into(),
-                    min_value: self.properties.min_cutout.unwrap_or(0.0),
-                    max_value: self.properties.max_cutout.unwrap_or(1.0),
-                },
-            },
-            HiPSColor::Grayscale2Colormap {
-                colormap,
-                transfer,
-                reversed,
-            } => Color::Grayscale2Colormap {
-                colormap: colormaps.get(&colormap),
-                reversed,
-                param: GrayscaleParameter {
-                    h: transfer.into(),
-                    min_value: self.properties.min_cutout.unwrap_or(0.0),
-                    max_value: self.properties.max_cutout.unwrap_or(1.0),
-                },
-            },
-        };
-
-        color
-    }
-}*/
 
 use al_api::hips::ImageSurveyMeta;
 
@@ -1351,6 +1301,24 @@ impl ImageSurveys {
         Ok(())
     }
 
+    /*pub fn set_image_survey_img_format(
+        &mut self,
+        layer: String,
+        format: HiPSTileFormat,
+    ) -> Result<(), JsValue> {
+        // Expect the image survey to be found in the hash map
+        let survey = self
+            .get_mut_from_layer(&layer)
+            .ok_or(JsValue::from_str(&format!(
+                "Did not found the survey {:?}",
+                layer
+            )))?;
+
+        survey.set_img_format(format)?;
+
+        Ok(())
+    }*/
+
     pub fn is_ready(&self) -> bool {
         let ready = self
             .surveys
@@ -1383,6 +1351,15 @@ impl ImageSurveys {
     // Accessors
     pub fn get_from_layer(&self, id: &str) -> Option<&ImageSurvey> {
         self.urls.get(id).map(|url| self.surveys.get(url).unwrap())
+    }
+
+    pub fn get_mut_from_layer(&mut self, id: &str) -> Option<&mut ImageSurvey> {
+        let url = self.urls.get_mut(id);
+        if let Some(url) = url {
+            self.surveys.get_mut(url)
+        } else {
+            None
+        }
     }
 
     pub fn get_mut(&mut self, root_url: &str) -> Option<&mut ImageSurvey> {

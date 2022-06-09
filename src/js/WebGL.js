@@ -11,7 +11,7 @@ export let WebGLCtx = (function() {
         const webGL2support = checkForWebGL2Support();
 
         if (webGL2support) {
-            return await import('../core/pkg-webgl2');
+            return await import('../../pkg-webgl2');
         } else {
             // WebGL1 not supported
             // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users

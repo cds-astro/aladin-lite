@@ -449,7 +449,6 @@ export class Stack {
         const self = this;
         ALEvent.BASE_HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function () {
             self.#updateBaseHiPSLayerOptions();
-            console.log('hello');
         });
 
     }
@@ -506,9 +505,6 @@ export class Stack {
             maxCut.val(options.maxCut);
             maxCutTr.show();
         }
-
-        console.log('properties', properties);
-        console.log('cmap',  meta);
 
         const opacity = meta.opacity;
         opacity4BaseImgLayer.val(opacity);

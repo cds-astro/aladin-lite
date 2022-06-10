@@ -897,6 +897,10 @@ export let View = (function() {
         $(view.catalogCanvas).on('wheel', function(event) {            
             event.preventDefault();
             event.stopPropagation();
+
+            if (view.rightClick) {
+                return;
+            }
             //var xymouse = view.imageCanvas.relMouseCoords(event);
 
             /*if(view.aladin.webglAPI.posOnUi()) {

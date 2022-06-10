@@ -3,16 +3,33 @@ use al_core::image::format::ImageFormatType;
 use crate::downloader::{query};
 use al_core::image::fits::Fits;
 
-use super::{Request, RequestType};
-pub struct BlankRequest {
-    pub url: Url,
-    pub hips_url: Url,
-    request: Request<f32>,
+#[derive(Debug, Clone, Copy)]
+pub struct Metadata {
+    pub blank: f32,
+    pub scale: f32,
+    pub offset: f32,
 }
 
-impl From<BlankRequest> for RequestType {
-    fn from(request: BlankRequest) -> Self {
-        RequestType::Blank(request)
+impl Default for Metadata {
+    fn default() -> Self {
+        Metadata {
+            blank: -1.0,
+            scale: 1.0,
+            offset: 0.0
+        }
+    }
+}
+
+use super::{Request, RequestType};
+pub struct PixelMetadataRequest {
+    pub url: Url,
+    pub hips_url: Url,
+    request: Request<Metadata>,
+}
+
+impl From<PixelMetadataRequest> for RequestType {
+    fn from(request: PixelMetadataRequest) -> Self {
+        RequestType::PixelMetadata(request)
     }
 }
 
@@ -22,10 +39,10 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, RequestInit, RequestMode, Response};
 
 use wasm_bindgen::JsCast;
-impl From<query::Blank> for BlankRequest {
+impl From<query::PixelMetadata> for PixelMetadataRequest {
     // Create a tile request associated to a HiPS
-    fn from(query: query::Blank) -> Self {
-        let query::Blank {
+    fn from(query: query::PixelMetadata) -> Self {
+        let query::PixelMetadata {
             format,
             url,
             hips_url,
@@ -49,7 +66,11 @@ impl From<query::Blank> for BlankRequest {
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
-                Ok(image.blank)
+                Ok(Metadata {
+                    blank: image.blank,
+                    scale: image.bscale,
+                    offset: image.bzero,
+                })
             }),
             ImageFormatType::R32I => Request::new(async move {
                 let mut opts = RequestInit::new();
@@ -67,7 +88,11 @@ impl From<query::Blank> for BlankRequest {
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::<al_core::image::format::R32I>::new(&bytes)?;
-                Ok(image.blank)
+                Ok(Metadata {
+                    blank: image.blank,
+                    scale: image.bscale,
+                    offset: image.bzero,
+                })
             }),
             ImageFormatType::R16I => Request::new(async move {
                 let mut opts = RequestInit::new();
@@ -83,7 +108,11 @@ impl From<query::Blank> for BlankRequest {
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::<al_core::image::format::R16I>::new(&bytes)?;
-                Ok(image.blank)
+                Ok(Metadata {
+                    blank: image.blank,
+                    scale: image.bscale,
+                    offset: image.bzero,
+                })
             }),
             ImageFormatType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
@@ -99,9 +128,13 @@ impl From<query::Blank> for BlankRequest {
 
                 let bytes = js_sys::Uint8Array::new(&array_buffer);
                 let image = Fits::<al_core::image::format::R8UI>::new(&bytes)?;
-                Ok(image.blank)
+                Ok(Metadata {
+                    blank: image.blank,
+                    scale: image.bscale,
+                    offset: image.bzero,
+                })
             }),
-            _ => Request::new(async move { Ok(-1.0) }),
+            _ => Request::new(async move { Ok(Metadata::default()) }),
         };
 
         Self {
@@ -113,25 +146,25 @@ impl From<query::Blank> for BlankRequest {
 }
 
 #[derive(Debug)]
-pub struct Blank {
-    pub value: f32,
+pub struct PixelMetadata {
+    pub value: Metadata,
     pub hips_url: String,
 }
 
-impl<'a> From<&'a BlankRequest> for Option<Blank> {
-    fn from(request: &'a BlankRequest) -> Self {
-        let BlankRequest {
+impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
+    fn from(request: &'a PixelMetadataRequest) -> Self {
+        let PixelMetadataRequest {
             request,
             hips_url,
             ..
         } = request;
         if request.is_resolved() {
-            let Request::<f32> {
+            let Request::<Metadata> {
                 data,
                 ..
             } = request;
             // It will always be resolved and found as we will request a well know tile (Norder0/Tile0)
-            Some(Blank {
+            Some(PixelMetadata {
                 hips_url: hips_url.clone(),
                 value: data.lock().unwrap().unwrap().clone()
             })

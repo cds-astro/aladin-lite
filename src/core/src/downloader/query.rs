@@ -92,7 +92,7 @@ impl Query for Allsky {
 
 
 /* ---------------------------------- */
-pub struct Blank {
+pub struct PixelMetadata {
     pub format: ImageFormatType,
     // The root url of the HiPS
     pub hips_url: Url,
@@ -100,7 +100,7 @@ pub struct Blank {
     pub url: Url,
 }
 
-impl Blank {
+impl PixelMetadata {
     pub fn new(cfg: &HiPSConfig) -> Self {
         let hips_url = cfg.get_root_url().to_string();
         let format = cfg.get_format();
@@ -108,7 +108,7 @@ impl Blank {
 
         let url = format!("{}/Norder0/Dir0/Npix0.{}", hips_url, ext);
 
-        Blank {
+        PixelMetadata {
             hips_url,
             url,
             format,
@@ -116,9 +116,9 @@ impl Blank {
     }
 }
 
-use super::request::blank::BlankRequest;
-impl Query for Blank {
-    type Request = BlankRequest;
+use super::request::blank::PixelMetadataRequest;
+impl Query for PixelMetadata {
+    type Request = PixelMetadataRequest;
 
     fn url(&self) -> &Url {
         &self.url

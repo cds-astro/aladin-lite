@@ -578,9 +578,12 @@ where
                             }
                         }
                     },
-                    Resource::BlankValue(blank) => {
-                        if let Some(survey) = self.surveys.get_mut(&blank.hips_url) {
-                            survey.get_config_mut().blank = blank.value;
+                    Resource::PixelMetadata(metadata) => {
+                        if let Some(survey) = self.surveys.get_mut(&metadata.hips_url) {
+                            let mut cfg = survey.get_config_mut();
+                            cfg.blank = metadata.value.blank;
+                            cfg.offset = metadata.value.offset;
+                            cfg.scale = metadata.value.scale;
                         }
                     }
                 }
@@ -793,7 +796,7 @@ where
                     }
                 }
             }
-            self.downloader.fetch(query::Blank::new(cfg), true);
+            self.downloader.fetch(query::PixelMetadata::new(cfg), true);
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -840,7 +843,7 @@ where
                 }
             }
         }
-        self.downloader.fetch(query::Blank::new(cfg), true);
+        self.downloader.fetch(query::PixelMetadata::new(cfg), true);
         
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

@@ -205,7 +205,6 @@ impl HiPSConfig {
         let mut tex_storing_fits = false;
 
         if !properties.get_formats().contains(&img_format) {
-            al_core::log(&format!("{:?} {:?}", properties.get_formats(), img_format));
             return Err(js_sys::Error::new("HiPS format not available").into());
         }
 

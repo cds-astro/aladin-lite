@@ -543,7 +543,7 @@ export let HpxImageSurvey = (function() {
             maxOrder: 9,
             // options
             options: {
-                minCut: 10.0,
+                minCut: 1000.0,
                 maxCut: 10000.0,
                 imgFormat: "fits",
                 colormap: "rainbow",
@@ -625,8 +625,6 @@ export let HpxImageSurvey = (function() {
             url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             maxOrder: 10,
             options: {
-                minCut: -14000,
-                maxCut: -9000,
                 stretch: 'Asinh',
                 colormap: "redtemperature",
                 imgFormat: "fits",

@@ -41,7 +41,6 @@ export class Stack {
         this.aladin = aladin;
         this.view = view;
 
-
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'none';
         this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
@@ -80,13 +79,47 @@ export class Stack {
                                         '  <tr><td>Format</td><td><select class=""></select></td></tr>' +
                                         '  <tr><td>Min cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
                                         '  <tr><td>Max cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
+                                        '  <tr><td>Opacity</td><td><input class="" type="range" min="0" max="1" step="0.01"></td></tr>' +
                                         '</table> ' +
                                       '</div>');
 
         // create listeners 
+        // image format
+        const format4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(2);
+        const minCutInput = this.baseImageLayerOptions.find('input').eq(1);
+        const maxCutInput = this.baseImageLayerOptions.find('input').eq(2);
+
+        format4BaseImgLayer.change(function() {
+            const imgFormat = format4BaseImgLayer.val();
+            const imgLayer = self.aladin.getBaseImageLayer();
+
+            imgLayer.changeImageFormat(imgFormat);
+
+            let minCut = 0;
+            let maxCut = 1;
+            if (imgFormat === "FITS" ) {
+                // FITS format
+                minCut = imgLayer.properties.minCutout;
+                maxCut = imgLayer.properties.maxCutout;
+            }
+            imgLayer.setCuts([minCut, maxCut]);
+            // update the cuts only
+            
+            minCutInput.val(minCut);
+            maxCutInput.val(maxCut);
+
+            // update HpxImageSurvey.SURVEYS definition
+            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
+            let options = surveyDef.options || {};
+            options.minCut = minCut;
+            options.maxCut = maxCut;
+            options.imgFormat = imgFormat;
+            surveyDef.options = options;
+        });
+        // min/max cut
         const minCut = this.baseImageLayerOptions.find('input').eq(1);
         const maxCut = this.baseImageLayerOptions.find('input').eq(2);
-        const format4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(2);
         minCut.add(maxCut).on('input blur', function (e) {
             let minCutValue = parseFloat(minCut.val());
             let maxCutValue = parseFloat(maxCut.val());
@@ -105,23 +138,41 @@ export class Stack {
             surveyDef.options = options;
         });
 
+        // color
         let colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
         colorMapSelect4BaseImgLayer.val('grayscale');
         let stretchSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(1);
 
         let reverseCmCb = this.baseImageLayerOptions.find('input').eq(0);
+
         colorMapSelect4BaseImgLayer.add(reverseCmCb).add(stretchSelect4BaseImgLayer).change(function () {
             const reverse = reverseCmCb[0].checked;
             const cmap = colorMapSelect4BaseImgLayer.val();
             const stretch = stretchSelect4BaseImgLayer.val();
 
             self.aladin.getBaseImageLayer().setColormap(cmap, {reversed: reverse, stretch: stretch});
+
             // update HpxImageSurvey.SURVEYS definition
             const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
             let options = surveyDef.options || {};
             options.colormap = cmap;
             options.stretch = stretch;
+            options.reversed = reverse;
+            surveyDef.options = options;
+        });
+
+        // opacity
+        let opacity4BaseImgLayer = this.baseImageLayerOptions.find('input').eq(3);
+        opacity4BaseImgLayer.on('input', function() {
+            const opacity = +opacity4BaseImgLayer.val();
+            self.aladin.getBaseImageLayer().setOpacity(opacity);
+
+            // update HpxImageSurvey.SURVEYS definition
+            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
+            let options = surveyDef.options || {};
+            options.opacity = opacity;
             surveyDef.options = options;
         });
 
@@ -406,8 +457,13 @@ export class Stack {
     #updateBaseHiPSLayerOptions() {
         const reverseCmCb                 = this.baseImageLayerOptions.find('input').eq(0);
         const colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
+        const colorMapTr = this.baseImageLayerOptions.find('tr').eq(0);
+        const reverseTr = this.baseImageLayerOptions.find('tr').eq(1);
+        const stretchTr = this.baseImageLayerOptions.find('tr').eq(2);
+
         const stretchSelect4BaseImgLayer  = this.baseImageLayerOptions.find('select').eq(1);
         const formatSelect4BaseImgLayer   = this.baseImageLayerOptions.find('select').eq(2);
+        const opacity4BaseImgLayer        = this.baseImageLayerOptions.find('input').eq(3);
         const formatTr                    = this.baseImageLayerOptions.find('tr').eq(3);
         const minCutTr                    = this.baseImageLayerOptions.find('tr').eq(4);
         const maxCutTr                    = this.baseImageLayerOptions.find('tr').eq(5);
@@ -419,25 +475,7 @@ export class Stack {
         const meta       = this.aladin.getBaseImageLayer().meta;
         const colored    = this.aladin.getBaseImageLayer().colored;
 
-        if (colored) {
-            formatTr.hide();
-            minCutTr.hide();
-            maxCutTr.hide();
-        }
-        else {
-            const imgFormat = this.aladin.getBaseImageLayer().options.imgFormat;
-            formatSelect4BaseImgLayer.val(imgFormat);
-            minCut.val(options.minCut);
-            maxCut.val(options.maxCut);
-
-            formatTr.show();
-            minCutTr.show();
-            maxCutTr.show();
-        }
-
-        console.log('properties', properties);
-        console.log('cmap',  meta);
-
+        // format
         formatSelect4BaseImgLayer.empty();
         $.each(properties.formats, function (i, format) {
             formatSelect4BaseImgLayer.append($('<option>', { 
@@ -445,6 +483,35 @@ export class Stack {
                 text : format
             }));
         });
+
+        const imgFormat = this.aladin.getBaseImageLayer().options.imgFormat;
+        formatSelect4BaseImgLayer.val(imgFormat);
+
+        // cuts
+        if (colored) {
+            colorMapTr.hide();
+            reverseTr.hide();
+            stretchTr.hide();
+
+            minCutTr.hide();
+            maxCutTr.hide();
+        }
+        else {
+            colorMapTr.show();
+            reverseTr.show();
+            stretchTr.show();
+
+            minCut.val(options.minCut);
+            minCutTr.show();
+            maxCut.val(options.maxCut);
+            maxCutTr.show();
+        }
+
+        console.log('properties', properties);
+        console.log('cmap',  meta);
+
+        const opacity = meta.opacity;
+        opacity4BaseImgLayer.val(opacity);
 
         // TODO: traiter ce cas
         if (!meta.color || !meta.color.grayscale) {
@@ -457,7 +524,6 @@ export class Stack {
         reverseCmCb.prop('checked', reverse);
         colorMapSelect4BaseImgLayer.val(cmap);
         stretchSelect4BaseImgLayer.val(stretch);
-
     }
 
     show() {

@@ -34,8 +34,8 @@ Image Opacity: <br/> <input id="slider" type="range" value=1 min=0 max=1 step=0.
         }
 
         $("#slider").on('input', function() {
-            const alpha = $(this).val();
-            aladin.getOverlayImageLayer().setAlpha(alpha);
+            const opacity = $(this).val();
+            aladin.getOverlayImageLayer().setOpacity(opacity);
         });
         aladin.setBaseImageLayer('P/Mellinger/color');
 

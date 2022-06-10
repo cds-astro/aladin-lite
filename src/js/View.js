@@ -707,6 +707,11 @@ export let View = (function() {
                     view.lastFitsSurvey.setCuts([lr, rr])
                 }
 
+                // Tell that the layer has changed
+                if (view.lastFitsSurvey.layer === "base") {
+                    ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
+                }
+
                 return;
             }
             p = xymouse;

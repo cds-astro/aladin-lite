@@ -87,7 +87,7 @@ export class Stack {
         const minCut = this.baseImageLayerOptions.find('input').eq(1);
         const maxCut = this.baseImageLayerOptions.find('input').eq(2);
         const format4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(2);
-        minCut.add(maxCut).on('keypress blur', function (e) {
+        minCut.add(maxCut).on('input blur', function (e) {
             let minCutValue = parseFloat(minCut.val());
             let maxCutValue = parseFloat(maxCut.val());
 

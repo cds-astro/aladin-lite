@@ -235,7 +235,7 @@ export let HpxImageSurvey = (function() {
 
             // HiPS grayscale
             this.colored = false;
-            if (metadata.dataproduct_subtype && metadata.dataproduct_subtype === "color") {
+            if (metadata.dataproduct_subtype && (metadata.dataproduct_subtype === "color" || metadata.dataproduct_subtype[0] === "color") ) {
                 this.colored = true;
             }
 

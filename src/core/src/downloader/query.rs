@@ -106,7 +106,7 @@ impl PixelMetadata {
         let format = cfg.get_format();
         let ext = format.get_ext_file();
 
-        let url = format!("{}/Norder0/Dir0/Npix0.{}", hips_url, ext);
+        let url = format!("{}/Norder3/Allsky.{}", hips_url, ext);
 
         PixelMetadata {
             hips_url,

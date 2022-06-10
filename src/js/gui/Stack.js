@@ -32,7 +32,7 @@ import { HpxImageSurvey } from "../HpxImageSurvey.js";
 import { AladinUtils } from "../AladinUtils.js";
 import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
-import { HiPSSelector } from "./HiPSSelector.js";
+import { HiPSLayer } from "./HiPSLayer.js";
 
 export class Stack {
 
@@ -45,13 +45,14 @@ export class Stack {
         this.mainDiv.style.display = 'none';
         this.mainDiv.classList.add('aladin-box', 'aladin-layerBox', 'aladin-cb-list');
 
-        parentDiv.appendChild(this.mainDiv);
         this.aladinDiv = parentDiv;
+        parentDiv.appendChild(this.mainDiv);
+
+        this.imgLayers = new Map();
+        this.imgLayers.set("base", new HiPSLayer(this.aladin, this.view, "base"));
 
         this.#createComponent();
         this.#addListeners();
-
-        this.#updateBaseHiPSLayerOptions();
     }
 
     #createComponent() {
@@ -59,148 +60,25 @@ export class Stack {
 
         // first, update
         let layerBox = $(this.mainDiv);
-
         layerBox.empty();
-        let optionsOpenerForBaseImageLayer = $('<span class="indicator right-triangle">&nbsp;</span>');
-        let cmListStr = '';
-        for (const cm of self.aladin.webglAPI.getAvailableColormapList()) {
-            cmListStr += '<option>' + cm + '</option>';
-        }
-        // Add the native which is special:
-        // - for FITS hipses, it is changed to grayscale
-        // - for JPG/PNG hipses, we do not use any colormap in the backend
-        cmListStr += '<option>native</option>';
-
-        this.baseImageLayerOptions = $('<div class="layer-options" style="display: none;">' +
-                                        '<table class="aladin-options"><tbody>' +
-                                        '  <tr><td>Color map</td><td><select class="">' + cmListStr + '</select></td></tr>' +
-                                        '  <tr><td></td><td><label><input type="checkbox"> Reverse</label></td></tr>' +
-                                        '  <tr><td>Stretch</td><td><select class=""><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
-                                        '  <tr><td>Format</td><td><select class=""></select></td></tr>' +
-                                        '  <tr><td>Min cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
-                                        '  <tr><td>Max cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
-                                        '  <tr><td>Opacity</td><td><input class="" type="range" min="0" max="1" step="0.01"></td></tr>' +
-                                        '</table> ' +
-                                      '</div>');
-
-        // create listeners 
-        // image format
-        const format4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(2);
-        const minCutInput = this.baseImageLayerOptions.find('input').eq(1);
-        const maxCutInput = this.baseImageLayerOptions.find('input').eq(2);
-
-        format4BaseImgLayer.change(function() {
-            const imgFormat = format4BaseImgLayer.val();
-            const imgLayer = self.aladin.getBaseImageLayer();
-
-            imgLayer.changeImageFormat(imgFormat);
-
-            let minCut = 0;
-            let maxCut = 1;
-            if (imgFormat === "FITS" ) {
-                // FITS format
-                minCut = imgLayer.properties.minCutout;
-                maxCut = imgLayer.properties.maxCutout;
-            }
-            imgLayer.setCuts([minCut, maxCut]);
-            // update the cuts only
-            
-            minCutInput.val(minCut);
-            maxCutInput.val(maxCut);
-
-            // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
-            let options = surveyDef.options || {};
-            options.minCut = minCut;
-            options.maxCut = maxCut;
-            options.imgFormat = imgFormat;
-            surveyDef.options = options;
-        });
-        // min/max cut
-        const minCut = this.baseImageLayerOptions.find('input').eq(1);
-        const maxCut = this.baseImageLayerOptions.find('input').eq(2);
-        minCut.add(maxCut).on('input blur', function (e) {
-            let minCutValue = parseFloat(minCut.val());
-            let maxCutValue = parseFloat(maxCut.val());
-
-            if (isNaN(minCutValue) || isNaN(maxCutValue)) {
-                return;
-            }
-            self.aladin.getBaseImageLayer().setCuts([minCutValue, maxCutValue]);
-
-            // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
-            let options = surveyDef.options || {};
-            options.minCut = minCutValue;
-            options.maxCut = maxCutValue;
-            surveyDef.options = options;
-        });
-
-        // color
-        let colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
-        colorMapSelect4BaseImgLayer.val('grayscale');
-        let stretchSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(1);
-
-        let reverseCmCb = this.baseImageLayerOptions.find('input').eq(0);
-
-        colorMapSelect4BaseImgLayer.add(reverseCmCb).add(stretchSelect4BaseImgLayer).change(function () {
-            const reverse = reverseCmCb[0].checked;
-            const cmap = colorMapSelect4BaseImgLayer.val();
-            const stretch = stretchSelect4BaseImgLayer.val();
-
-            self.aladin.getBaseImageLayer().setColormap(cmap, {reversed: reverse, stretch: stretch});
-
-            // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
-            let options = surveyDef.options || {};
-            options.colormap = cmap;
-            options.stretch = stretch;
-            options.reversed = reverse;
-            surveyDef.options = options;
-        });
-
-        // opacity
-        let opacity4BaseImgLayer = this.baseImageLayerOptions.find('input').eq(3);
-        opacity4BaseImgLayer.on('input', function() {
-            const opacity = +opacity4BaseImgLayer.val();
-            self.aladin.getBaseImageLayer().setOpacity(opacity);
-
-            // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
-            let options = surveyDef.options || {};
-            options.opacity = opacity;
-            surveyDef.options = options;
-        });
-
-        optionsOpenerForBaseImageLayer.click(function () {
-            var $this = $(this);
-            if ($this.hasClass('right-triangle')) {
-                $this.removeClass('right-triangle');
-                $this.addClass('down-triangle');
-                self.baseImageLayerOptions.slideDown(300);
-            }
-            else {
-                $this.removeClass('down-triangle');
-                $this.addClass('right-triangle');
-                self.baseImageLayerOptions.slideUp(300);
-            }
-        });
 
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-                        '<div style="clear: both;"></div>' +
-                        '<div class="aladin-label">Base image layer</div>')
-                .append(optionsOpenerForBaseImageLayer) 
-                .append('<select class="aladin-surveySelection"></select>')
-                .append(this.baseImageLayerOptions)
-                .append('<br>' +
-                        '<button class="aladin-btn my-1" type="button">Search HiPS</button>' +
-                        '<div class="aladin-label">Projection</div>' +
-                        '<select class="aladin-projSelection"></select>' +
-                        '</div>');
+            '<div style="clear: both;"></div>' +
+            '<div class="aladin-label">Base image layer</div>')
+
+        this.imgLayers.forEach((imgLayer) => {
+            imgLayer.attachTo(layerBox);
+        });
+
+
+        layerBox.append('<div class="aladin-label">Add Layer</div>' +
+            '<input type="text" class="layer-name" maxlength="16" size="16">' +
+            '<button class="aladin-btn" type="button">+</button>'
+        );
+
+        layerBox.append('<div class="aladin-label">Projection</div>' +
+            '<select class="aladin-projSelection"></select>' +
+            '</div>');
 
         this.aladin.updateProjectionCombobox(this.aladin.projection);
         var projectionSelection = $(this.aladin.aladinDiv).find('.aladin-projSelection');
@@ -212,34 +90,8 @@ export class Stack {
         layerBox.append(projectionSelection)
             .append('<br />');
 
-        let searchHiPS4BaseLayerBtn = layerBox.find('button');
-        searchHiPS4BaseLayerBtn.click(function () {
-            if (!self.hipsSelector) {
-                let fnURLSelected = function(url) {
-                    self.aladin.setBaseImageLayer(url);
-                };
-                let fnIdSelected = function(id) {
-                    self.aladin.setBaseImageLayer(id);
-                };
-                self.hipsSelector = new HiPSSelector(self.aladinDiv, fnURLSelected, fnIdSelected);
-            }
-            self.hipsSelector.show();
-        });
-
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');
-
-        //var cmDiv = layerBox.find('.aladin-cmap');
-
-        // fill color maps options
-        /*var cmSelect = layerBox.find('.aladin-cmSelection');
-        for (var k = 0; k < ColorMap.MAPS_NAMES.length; k++) {
-            cmSelect.append($("<option />").text(ColorMap.MAPS_NAMES[k]));
-        }
-        console.log(self.getBaseImageLayer())
-        console.log(self.getBaseImageLayer().getColorMap())
-        cmSelect.val(self.getBaseImageLayer().getColorMap().mapName);*/
-
 
         // loop over all overlay layers
         var layers = this.view.allOverlayLayers;
@@ -395,8 +247,8 @@ export class Stack {
         layerBox.find('.aladin-closeBtn').click(function () { self.aladin.hideBoxes(); return false; });
 
         // update list of surveys
-        this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        var surveySelection = $(this.mainDiv).find('.aladin-surveySelection');
+        //this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        /*var surveySelection = $(this.mainDiv).find('.aladin-surveySelection');
         surveySelection.change(function () {
             var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
             //console.log("survey, chosen ", survey)
@@ -406,31 +258,7 @@ export class Stack {
                 survey.options
             );
             self.aladin.setImageSurvey(hpxImageSurvey);
-        });
-
-        //// COLOR MAP management ////////////////////////////////////////////
-        // update color map
-        /*cmDiv.find('.aladin-cmSelection').change(function () {
-            var cmName = $(this).find(':selected').val();
-            self.getBaseImageLayer().getColorMap().update(cmName);
-        });
-
-        // reverse color map
-        cmDiv.find('.aladin-reverseCm').click(function () {
-            self.getBaseImageLayer().getColorMap().reverse();
-        });
-        if (this.getBaseImageLayer().useCors) {
-            cmDiv.show();
-            exportBtn.show();
-        }
-        else {
-            cmDiv.hide();
-            exportBtn.hide();
-        }
-        layerBox.find('.aladin-reverseCm').parent().attr('disabled', true);
-        */
-        //////////////////////////////////////////////////////////////////////
-
+        });*/
 
         // handler to hide/show overlays
         $(this.mainDiv).find('ul input').change(function () {
@@ -446,80 +274,28 @@ export class Stack {
     }
 
     #addListeners() {
-        const self = this;
-        ALEvent.BASE_HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function () {
-            self.#updateBaseHiPSLayerOptions();
+        let self = this;
+        const layerBox = $(this.mainDiv);
+
+        layerBox.find('button').click(function () {
+            const layerName = $(layerBox.find('.layer-name')[0]).val();
+
+            /*if (self.imgLayers.has(layerName)) {
+                throw 'Layer ' + layerName + ' already exist.';
+            }*/
+
+            self.aladin.setOverlayImageLayer(
+                'CDS/P/DSS2/color',
+                (survey) => {
+                    console.log("loaded")
+                    self.imgLayers.set(layerName, new HiPSLayer(self.aladin, self.view, layerName));
+                    survey.setOpacity(0.5)
+
+                    self.#createComponent();
+                },
+                layerName
+            );
         });
-
-    }
-
-    #updateBaseHiPSLayerOptions() {
-        const reverseCmCb                 = this.baseImageLayerOptions.find('input').eq(0);
-        const colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
-        const colorMapTr = this.baseImageLayerOptions.find('tr').eq(0);
-        const reverseTr = this.baseImageLayerOptions.find('tr').eq(1);
-        const stretchTr = this.baseImageLayerOptions.find('tr').eq(2);
-
-        const stretchSelect4BaseImgLayer  = this.baseImageLayerOptions.find('select').eq(1);
-        const formatSelect4BaseImgLayer   = this.baseImageLayerOptions.find('select').eq(2);
-        const opacity4BaseImgLayer        = this.baseImageLayerOptions.find('input').eq(3);
-        const formatTr                    = this.baseImageLayerOptions.find('tr').eq(3);
-        const minCutTr                    = this.baseImageLayerOptions.find('tr').eq(4);
-        const maxCutTr                    = this.baseImageLayerOptions.find('tr').eq(5);
-        const minCut = this.baseImageLayerOptions.find('input').eq(1);
-        const maxCut = this.baseImageLayerOptions.find('input').eq(2);
-
-        const properties = this.aladin.getBaseImageLayer().properties;
-        const options    = this.aladin.getBaseImageLayer().options;
-        const meta       = this.aladin.getBaseImageLayer().meta;
-        const colored    = this.aladin.getBaseImageLayer().colored;
-
-        // format
-        formatSelect4BaseImgLayer.empty();
-        $.each(properties.formats, function (i, format) {
-            formatSelect4BaseImgLayer.append($('<option>', { 
-                value: format,
-                text : format
-            }));
-        });
-
-        const imgFormat = this.aladin.getBaseImageLayer().options.imgFormat;
-        formatSelect4BaseImgLayer.val(imgFormat);
-
-        // cuts
-        if (colored) {
-            colorMapTr.hide();
-            reverseTr.hide();
-            stretchTr.hide();
-
-            minCutTr.hide();
-            maxCutTr.hide();
-        }
-        else {
-            colorMapTr.show();
-            reverseTr.show();
-            stretchTr.show();
-
-            minCut.val(options.minCut);
-            minCutTr.show();
-            maxCut.val(options.maxCut);
-            maxCutTr.show();
-        }
-
-        const opacity = meta.opacity;
-        opacity4BaseImgLayer.val(opacity);
-
-        // TODO: traiter ce cas
-        if (!meta.color || !meta.color.grayscale) {
-            return;
-        }
-        const cmap = meta.color.grayscale.color.colormap.name;
-        const reverse = meta.color.grayscale.color.colormap.reversed;
-        const stretch = meta.color.grayscale.stretch;
-
-        reverseCmCb.prop('checked', reverse);
-        colorMapSelect4BaseImgLayer.val(cmap);
-        stretchSelect4BaseImgLayer.val(stretch);
     }
 
     show() {

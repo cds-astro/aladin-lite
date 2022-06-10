@@ -945,6 +945,15 @@ export let Aladin = (function () {
     };
 
     // @api
+    Aladin.prototype.removeImageSurvey = function(layer) {
+        if (layer === "base") {
+            throw 'Cannot remove base survey layer!';
+        }
+
+        this.view.removeImageSurvey(layer);
+    };
+
+    // @api
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callbck) {
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
@@ -964,9 +973,9 @@ export let Aladin = (function () {
     // @api
     Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, callbck, layer = "overlay") {
         // layer == "base" is reserved for the base image layer
-        if (layer === "base") {
-            throw 'Layer name "base" is reserved for the base image layer';
-        }
+        //if (layer === "base") {
+        //    throw 'Layer name "base" is reserved for the base image layer';
+        //}
 
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {

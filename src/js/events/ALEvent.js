@@ -35,7 +35,7 @@
     static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
     static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
-    static BASE_HIPS_LAYER_CHANGED  = new ALEvent("AL:baseHiPSLayer.changed");
+    static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
   
     constructor(name) {
       this.name = name;

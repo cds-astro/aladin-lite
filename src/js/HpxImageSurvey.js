@@ -311,9 +311,7 @@ export let HpxImageSurvey = (function() {
                 callback(this);
             }
 
-            if (this.layer === "base") {
-                ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
-            }
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {layer: this.layer});
 
             // If the layer has been set then it is linked to the aladin lite view
             // Update the layer

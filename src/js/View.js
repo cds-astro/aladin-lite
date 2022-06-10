@@ -704,9 +704,7 @@ export let View = (function() {
                 }
 
                 // Tell that the layer has changed
-                if (view.selectedGrayscaleSurvey.layer === "base") {
-                    ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
-                }
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {layer: view.lastFitsSurvey.layer});
 
                 return;
             }

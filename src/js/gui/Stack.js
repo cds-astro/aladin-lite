@@ -51,6 +51,8 @@ export class Stack {
 
         this.#createComponent();
         this.#addListeners();
+
+        this.#updateBaseHiPSLayerOptions();
     }
 
     #createComponent() {
@@ -75,8 +77,33 @@ export class Stack {
                                         '  <tr><td>Color map</td><td><select class="">' + cmListStr + '</select></td></tr>' +
                                         '  <tr><td></td><td><label><input type="checkbox"> Reverse</label></td></tr>' +
                                         '  <tr><td>Stretch</td><td><select class=""><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
+                                        '  <tr><td>Format</td><td><select class=""></select></td></tr>' +
+                                        '  <tr><td>Min cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
+                                        '  <tr><td>Max cut</td><td><input type="number" class="aladin-cuts"></td></tr>' +
                                         '</table> ' +
                                       '</div>');
+
+        // create listeners 
+        const minCut = this.baseImageLayerOptions.find('input').eq(1);
+        const maxCut = this.baseImageLayerOptions.find('input').eq(2);
+        const format4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(2);
+        minCut.add(maxCut).on('keypress blur', function (e) {
+            let minCutValue = parseFloat(minCut.val());
+            let maxCutValue = parseFloat(maxCut.val());
+
+            if (isNaN(minCutValue) || isNaN(maxCutValue)) {
+                return;
+            }
+            self.aladin.getBaseImageLayer().setCuts([minCutValue, maxCutValue]);
+
+            // update HpxImageSurvey.SURVEYS definition
+            const idxSelectedBaseHiPS = self.mainDiv.querySelector('.aladin-surveySelection').selectedIndex;
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedBaseHiPS];
+            let options = surveyDef.options || {};
+            options.minCut = minCutValue;
+            options.maxCut = maxCutValue;
+            surveyDef.options = options;
+        });
 
         let colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
         colorMapSelect4BaseImgLayer.val('grayscale');
@@ -380,15 +407,53 @@ export class Stack {
         const reverseCmCb                 = this.baseImageLayerOptions.find('input').eq(0);
         const colorMapSelect4BaseImgLayer = this.baseImageLayerOptions.find('select').eq(0);
         const stretchSelect4BaseImgLayer  = this.baseImageLayerOptions.find('select').eq(1);
+        const formatSelect4BaseImgLayer   = this.baseImageLayerOptions.find('select').eq(2);
+        const formatTr                    = this.baseImageLayerOptions.find('tr').eq(3);
+        const minCutTr                    = this.baseImageLayerOptions.find('tr').eq(4);
+        const maxCutTr                    = this.baseImageLayerOptions.find('tr').eq(5);
+        const minCut = this.baseImageLayerOptions.find('input').eq(1);
+        const maxCut = this.baseImageLayerOptions.find('input').eq(2);
 
-        const meta = this.aladin.getBaseImageLayer().meta;
+        const properties = this.aladin.getBaseImageLayer().properties;
+        const options    = this.aladin.getBaseImageLayer().options;
+        const meta       = this.aladin.getBaseImageLayer().meta;
+        const colored    = this.aladin.getBaseImageLayer().colored;
+
+        if (colored) {
+            formatTr.hide();
+            minCutTr.hide();
+            maxCutTr.hide();
+        }
+        else {
+            const imgFormat = this.aladin.getBaseImageLayer().options.imgFormat;
+            formatSelect4BaseImgLayer.val(imgFormat);
+            minCut.val(options.minCut);
+            maxCut.val(options.maxCut);
+
+            formatTr.show();
+            minCutTr.show();
+            maxCutTr.show();
+        }
+
+        console.log('properties', properties);
         console.log('cmap',  meta);
+
+        formatSelect4BaseImgLayer.empty();
+        $.each(properties.formats, function (i, format) {
+            formatSelect4BaseImgLayer.append($('<option>', { 
+                value: format,
+                text : format
+            }));
+        });
+
+        // TODO: traiter ce cas
+        if (!meta.color || !meta.color.grayscale) {
+            return;
+        }
         const cmap = meta.color.grayscale.color.colormap.name;
         const reverse = meta.color.grayscale.color.colormap.reversed;
         const stretch = meta.color.grayscale.stretch;
 
-        console.log('reverse', reverse);
-        console.log('stretch', stretch);
         reverseCmCb.prop('checked', reverse);
         colorMapSelect4BaseImgLayer.val(cmap);
         stretchSelect4BaseImgLayer.val(stretch);

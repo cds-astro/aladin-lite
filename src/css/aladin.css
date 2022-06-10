@@ -532,6 +532,10 @@ word-wrap:break-word;
     font-size: 11px;
 }
 
+.aladin-cuts {
+    width: 8em;
+}
+
 
 /* Icons figuring layers in the Stack */
 .aladin-stack-icon {

@@ -525,7 +525,7 @@ export let View = (function() {
             return false; // to disable text selection
         });
 
-        $(view.catalogCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
+        $(view.catalogCanvas).bind("mouseup", function(e) {
             if (view.rightClick) {
                 view.rightClick = false;
                 view.rightclickx = null;
@@ -533,7 +533,9 @@ export let View = (function() {
 
                 return;
             }
-            
+        });
+
+        $(view.catalogCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view                 
             if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
@@ -1664,15 +1666,6 @@ export let View = (function() {
             this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
         }
     };
-
-    /*View.prototype.setUnknownSurveyIfNeeded = function() {
-        if (unknownSurveyId) {
-            this.addImageSurvey(unknownSurveyId);
-            unknownSurveyId = undefined;
-        }
-    }*/
-
-    var unknownSurveyId = undefined;
 
     View.prototype.buildSortedImageSurveys = function() {
         let sortedImageSurveys = [];

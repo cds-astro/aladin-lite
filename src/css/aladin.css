@@ -447,8 +447,16 @@ word-wrap:break-word;
     border-color: #357ebd;
 }
 
+.aladin-layer-main {
+    background-color: #ddd;
+}
+
 .aladin-btn-small {
-	font-size: 10px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    color: #ffffff;
+    background-color: #428bca;
+    border-color: #357ebd;
 }
 
 .aladin-button:hover {

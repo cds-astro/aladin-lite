@@ -487,7 +487,7 @@ export let Aladin = (function () {
         });
     }
 
-    Aladin.prototype.updateSurveysDropdownList = function (surveys) {
+    /*Aladin.prototype.updateSurveysDropdownList = function (surveys) {
         //console.log(surveys)
         surveys = surveys.sort(function (a, b) {
             if (!a.order) {
@@ -520,7 +520,7 @@ export let Aladin = (function () {
                 select.append($("<option />").attr("selected", true).val(baseImgLayer.properties.id).text(baseImgLayer.properties.name));
             }
         }
-    };
+    };*/
 
     Aladin.prototype.setAngleRotation = function (theta) {
         this.view.setAngleRotation(theta)

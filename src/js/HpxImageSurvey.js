@@ -148,7 +148,14 @@ export let HpxImageSurvey = (function() {
         };
         
         if (this.options.imgFormat) {
+            // Img format preprocessing
+            // transform to upper case
             this.options.imgFormat = this.options.imgFormat.toUpperCase();
+
+            // convert JPG -> JPEG
+            if (this.options.imgFormat === "JPG") {
+                this.options.imgFormat = "JPEG";
+            }
         }
 
         if (this.options.imgFormat === 'FITS') {
@@ -295,7 +302,7 @@ export let HpxImageSurvey = (function() {
             }
 
             this.updateMeta();
-
+            
             // Discard further processing if the layer has been removed
             if (!this.backend.imageSurveys.get(this.layer)) {
                 return;
@@ -437,7 +444,6 @@ export let HpxImageSurvey = (function() {
         this.options.colormap = colormap;
 
         this.updateColor();
-
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);

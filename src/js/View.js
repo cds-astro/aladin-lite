@@ -1658,11 +1658,6 @@ export let View = (function() {
 
         this.imageSurveys.set(layer, survey);
         this.addImageSurvey(survey, layer);
-
-        // If the base has been changed, we update the survey dropdown list
-        if (layer === "base") {
-            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        }
     };
 
     View.prototype.buildSortedImageSurveys = function() {

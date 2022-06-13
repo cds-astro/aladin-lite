@@ -33,6 +33,7 @@ import { AladinUtils } from "../AladinUtils.js";
 import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { HiPSLayer } from "./HiPSLayer.js";
+import { Utils } from "../Utils.js";
 
 export class Stack {
 
@@ -65,16 +66,36 @@ export class Stack {
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
             '<div style="clear: both;"></div>' +
             '<div class="aladin-label">Base image layer</div>')
+        this.imgLayers.get("base").attachTo(layerBox);
 
-        this.imgLayers.forEach((imgLayer) => {
-            imgLayer.attachTo(layerBox);
-        });
+        if (this.imgLayers.size > 1) {
+            layerBox.append('<div class="aladin-label">Overlay image layers</div>')
 
+            this.imgLayers.forEach((imgLayer) => {
+                if (imgLayer.layer !== "base") {
+                    imgLayer.attachTo(layerBox);
+                }
+            });
+        }
 
-        layerBox.append('<div class="aladin-label">Add Layer</div>' +
-            '<input type="text" class="layer-name" maxlength="16" size="16">' +
-            '<button class="aladin-btn" type="button">+</button>'
+        layerBox.append(
+            '<button class="aladin-btn add-layer-hips" type="button">New layer HiPS</button>'
         );
+
+        $(this.mainDiv).find('.add-layer-hips').click(function () {
+            const layerName = Utils.uuidv4();
+
+            self.aladin.setOverlayImageLayer(
+                'CDS/P/DSS2/color',
+                (survey) => {
+                    console.log("loaded", layerName)
+                    self.imgLayers.set(layerName, new HiPSLayer(self.aladin, self.view, layerName));
+
+                    self.#createComponent();
+                },
+                layerName
+            );
+        });
 
         layerBox.append('<div class="aladin-label">Projection</div>' +
             '<select class="aladin-projSelection"></select>' +
@@ -246,20 +267,6 @@ export class Stack {
 
         layerBox.find('.aladin-closeBtn').click(function () { self.aladin.hideBoxes(); return false; });
 
-        // update list of surveys
-        //this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-        /*var surveySelection = $(this.mainDiv).find('.aladin-surveySelection');
-        surveySelection.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            //console.log("survey, chosen ", survey)
-            const hpxImageSurvey = new HpxImageSurvey(
-                survey.url,
-                self.view,
-                survey.options
-            );
-            self.aladin.setImageSurvey(hpxImageSurvey);
-        });*/
-
         // handler to hide/show overlays
         $(this.mainDiv).find('ul input').change(function () {
             var layerName = ($(this).attr('id').substr(12));
@@ -275,26 +282,14 @@ export class Stack {
 
     #addListeners() {
         let self = this;
-        const layerBox = $(this.mainDiv);
+        this.aladin.aladinDiv.addEventListener('remove-layer', e => {
+            const layerName = e.detail;
+            console.log("ksdlfs", e.detail);
 
-        layerBox.find('button').click(function () {
-            const layerName = $(layerBox.find('.layer-name')[0]).val();
+            self.imgLayers.delete(layerName);
+            self.aladin.view.removeImageSurvey(layerName);
 
-            /*if (self.imgLayers.has(layerName)) {
-                throw 'Layer ' + layerName + ' already exist.';
-            }*/
-
-            self.aladin.setOverlayImageLayer(
-                'CDS/P/DSS2/color',
-                (survey) => {
-                    console.log("loaded")
-                    self.imgLayers.set(layerName, new HiPSLayer(self.aladin, self.view, layerName));
-                    survey.setOpacity(0.5)
-
-                    self.#createComponent();
-                },
-                layerName
-            );
+            self.#createComponent();
         });
     }
 

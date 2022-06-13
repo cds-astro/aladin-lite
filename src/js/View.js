@@ -168,7 +168,7 @@ export let View = (function() {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.lastFitsSurvey = null;
+        this.selectedGrayscaleSurvey = null;
         this.cutMinInit = null;
         this.cutMaxInit = null;
         this.needRedraw = true;
@@ -194,10 +194,9 @@ export let View = (function() {
         this.resizeTimer = null;
         var self = this;
         $(window).resize(function() {
-            clearTimeout(self.resizeTimer);
-            self.resizeTimer = setTimeout(function() {self.fixLayoutDimensions(self)}, 100);
+            self.fixLayoutDimensions(self);
+            self.requestRedraw();
         });
-
 
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
@@ -479,13 +478,9 @@ export let View = (function() {
                     }
                 }
 
-                view.lastFitsSurvey = survey;
+                view.selectedGrayscaleSurvey = survey;
                 return;
             }
-            
-            /*if(view.aladin.webglAPI.posOnUi()) {
-                return;
-            }*/
 
             // zoom pinching
             if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
@@ -530,8 +525,7 @@ export let View = (function() {
             return false; // to disable text selection
         });
 
-        //$(view.catalogCanvas).bind("click mouseout touchend", function(e) {
-        $(view.catalogCanvas).bind("mouseup click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
+        $(view.catalogCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view            
             if (view.rightClick) {
                 view.rightClick = false;
                 view.rightclickx = null;
@@ -556,8 +550,6 @@ export let View = (function() {
 
             var wasDragging = view.realDragging === true;
             var selectionHasEnded = view.mode===View.SELECT && view.dragging;
-
-
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
@@ -606,8 +598,10 @@ export let View = (function() {
 
             const xymouse = view.imageCanvas.relMouseCoords(e);
             if (view.mode==View.TOOL_SIMBAD_POINTER) {
-                const radec = view.aladin.pix2world(xymouse.x, xymouse.y);
-                //var radec = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
+                let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
+
+                // Convert from view to ICRSJ2000
+                radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
@@ -690,7 +684,7 @@ export let View = (function() {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.lastFitsSurvey) {
+            if (view.rightClick && view.selectedGrayscaleSurvey) {
                 // we try to match DS9 contrast adjustment behaviour with right click
                 const cs = {
                     x: view.catalogCanvas.clientWidth * 0.5,
@@ -704,11 +698,11 @@ export let View = (function() {
                 const lr = offset + (1.0 - 2.0*cy)*view.cutMinInit;
                 const rr = offset + (1.0 + 2.0*cy)*view.cutMaxInit;
                 if (lr <= rr) {
-                    view.lastFitsSurvey.setCuts([lr, rr])
+                    view.selectedGrayscaleSurvey.setCuts([lr, rr])
                 }
 
                 // Tell that the layer has changed
-                if (view.lastFitsSurvey.layer === "base") {
+                if (view.selectedGrayscaleSurvey.layer === "base") {
                     ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
                 }
 

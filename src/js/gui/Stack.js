@@ -90,7 +90,6 @@ export class Stack {
             self.aladin.setOverlayImageLayer(
                 'CDS/P/DSS2/color',
                 (survey) => {
-                    console.log("loaded", layerName)
                     self.imgLayers.set(layerName, new HiPSLayer(self.aladin, self.view, layerName));
 
                     self.#createComponent();
@@ -289,7 +288,6 @@ export class Stack {
         let self = this;
         this.aladin.aladinDiv.addEventListener('remove-layer', e => {
             const layerName = e.detail;
-            console.log("ksdlfs", e.detail);
 
             self.imgLayers.delete(layerName);
             self.aladin.view.removeImageSurvey(layerName);

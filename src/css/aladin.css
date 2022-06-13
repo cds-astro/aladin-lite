@@ -448,7 +448,8 @@ word-wrap:break-word;
 }
 
 .aladin-layer-main {
-    background-color: #ddd;
+    border: 1px solid transparent;
+    border-color: #aaa;
 }
 
 .aladin-btn-small {

@@ -55,6 +55,7 @@ import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 // Import aladin css inside the project
 import './../css/aladin.css';
@@ -623,6 +624,7 @@ export let Aladin = (function () {
             return;
         }
         this.view.setProjection(projection);
+        ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
     };
 
     /** point view to a given object (resolved by Sesame) or position

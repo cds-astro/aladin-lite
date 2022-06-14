@@ -290,7 +290,7 @@ export class Stack {
             const layerName = e.detail;
 
             self.imgLayers.delete(layerName);
-            self.aladin.view.removeImageSurvey(layerName);
+            self.aladin.removeImageSurvey(layerName);
 
             self.#createComponent();
         });

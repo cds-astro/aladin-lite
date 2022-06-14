@@ -953,7 +953,7 @@ export let Aladin = (function () {
     // @api
     Aladin.prototype.removeImageSurvey = function(layer) {
         if (layer === "base") {
-            throw 'Cannot remove base survey layer!';
+            throw 'Cannot remove base survey layer.';
         }
 
         this.view.removeImageSurvey(layer);

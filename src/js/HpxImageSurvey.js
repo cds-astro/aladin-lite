@@ -406,6 +406,11 @@ export let HpxImageSurvey = (function() {
     };
 
     // @api
+    HpxImageSurvey.prototype.getOpacity = function() {
+        return this.options.opacity;
+    };
+
+    // @api
     HpxImageSurvey.prototype.setBlendingConfig = function(additive = false) {
         this.options.additive = additive;
 

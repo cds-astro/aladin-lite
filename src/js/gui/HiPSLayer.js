@@ -86,17 +86,25 @@
             '</div>');
 
         this.#addListeners();
-        this.#updateHiPSLayerOptions();
+
+        let self = this;
+        this.layerChangedListener = (e) => {
+            const survey = e.detail.survey;
+            if (survey.layer === self.layer) {
+                self.#updateHiPSLayerOptions(survey);
+                self.#updateSurveysDropdownList();
+            }
+        };
+        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
+    }
+
+    destroy() {
+        ALEvent.HIPS_LAYER_CHANGED.remove(this.aladin.aladinDiv, this.layerChangedListener);
     }
 
     #addListeners() {
         const self = this;
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
-            if (e.detail.layer === self.layer) {
-                self.#updateHiPSLayerOptions();
-                self.#updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-            }
-        });
+
 
         // HEADER DIV listeners
         // Click opener
@@ -116,7 +124,7 @@
         });
 
         // Update list of surveys
-        self.#updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        self.#updateSurveysDropdownList();
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
@@ -167,12 +175,16 @@
             let newOpacity = 0.0;
             if (self.hidden) {
                 self.lastOpacity = imgLayer.getOpacity();
+                hideLayer.html('<p>&emsp;</p>')
             } else {
                 newOpacity = self.lastOpacity;
+                hideLayer.text('👁️')
+
             }
             // Update the opacity slider
             opacitySlider.val(newOpacity);
             opacitySlider.get(0).disabled = self.hidden;
+
 
             imgLayer.setOpacity(newOpacity);
 
@@ -284,7 +296,7 @@
         });
     }
 
-    #updateHiPSLayerOptions() {
+    #updateHiPSLayerOptions(survey) {
         const reverseCmCb                 = this.mainDiv.find('input').eq(0);
         const colorMapSelect4ImgLayer = this.mainDiv.find('select').eq(0);
         const colorMapTr = this.mainDiv.find('tr').eq(0);
@@ -300,10 +312,8 @@
         const minCut = this.mainDiv.find('input').eq(1);
         const maxCut = this.mainDiv.find('input').eq(2);
 
-        const survey = this.aladin.getOverlayImageLayer(this.layer);
         const properties = survey.properties;
         const options    = survey.options;
-        const meta       = survey.meta;
         const colored    = survey.colored;
 
         // format
@@ -338,28 +348,28 @@
             maxCutTr.show();
         }
 
-        const opacity = meta.opacity;
+        const opacity = options.opacity;
         opacity4ImgLayer.val(opacity);
 
         // TODO: traiter ce cas
-        if (!meta.color || !meta.color.grayscale) {
+        if (survey.colored) {
             return;
         }
-        const cmap = meta.color.grayscale.color.colormap.name;
-        const reverse = meta.color.grayscale.color.colormap.reversed;
-        const stretch = meta.color.grayscale.stretch;
+        const cmap = options.colormap;
+        const reverse = options.reversed;
+        const stretch = options.stretch;
 
         reverseCmCb.prop('checked', reverse);
         colorMapSelect4ImgLayer.val(cmap);
         stretchSelect4ImgLayer.val(stretch);
     }
 
-    #updateSurveysDropdownList(surveys) {
+    #updateSurveysDropdownList() {
         const self = this;
 
         let surveySelectionDiv = this.headerDiv.find('.aladin-surveySelection');
 
-        surveys = surveys.sort(function (a, b) {
+        let surveys = HpxImageSurvey.SURVEYS.sort(function (a, b) {
             if (!a.order) {
                 return a.id > b.id;
             }
@@ -367,6 +377,10 @@
         });
         surveySelectionDiv.empty();
         const imgLayer = self.aladin.getOverlayImageLayer(self.layer);
+        if(!imgLayer) {
+            // exit here, this will be called later once AL will emit the HIPS_LAYER_CHANGED event
+            return;
+        }
         const imgNotLoaded = imgLayer.properties;
 
         if (imgNotLoaded) {

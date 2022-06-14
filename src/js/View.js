@@ -704,7 +704,7 @@ export let View = (function() {
                 }
 
                 // Tell that the layer has changed
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {layer: view.selectedGrayscaleSurvey.layer});
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {survey: view.selectedGrayscaleSurvey});
 
                 return;
             }
@@ -1656,7 +1656,6 @@ export let View = (function() {
             Logger.log("setImageLayer", survey.properties.url);
         }
 
-        this.imageSurveys.set(layer, survey);
         this.addImageSurvey(survey, layer);
     };
 
@@ -1710,10 +1709,17 @@ export let View = (function() {
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
         survey.layer = layer;
+        survey.added = true;
+
+        if (!survey.ready) {
+            return;
+        }
 
         this.imageSurveys.set(layer, survey);
-
         this.updateImageLayerStack();
+
+        // Tell that the layer has changed
+        ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {

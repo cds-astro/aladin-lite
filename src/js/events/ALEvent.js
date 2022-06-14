@@ -54,5 +54,9 @@
     listenedBy(domEl, fn) {
         domEl.addEventListener(this.name, fn);
     }
+
+    remove(domEl, fn) {
+      domEl.removeEventListener(this.name, fn);
+    }
   }
   

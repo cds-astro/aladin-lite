@@ -139,10 +139,10 @@ export class Stack {
         }
         str += '</ul>';
 
-        str += '<button class="aladin-btn my-1" type="button">Add catalogue</button>';
+        str += '<button class="aladin-btn my-1 catalogue-selector" type="button">Add catalogue</button>';
         layerBox.append(str);
 
-        let searchCatalogBtn = layerBox.find('button').eq(1);
+        let searchCatalogBtn = layerBox.find('.catalogue-selector');
         searchCatalogBtn.click(function () {
             if (!self.catalogSelector) {
                 let fnURLSelected = function(url) {
@@ -289,6 +289,8 @@ export class Stack {
         this.aladin.aladinDiv.addEventListener('remove-layer', e => {
             const layerName = e.detail;
 
+            let imgLayerToRemove = self.imgLayers.get(layerName);
+            imgLayerToRemove.destroy();
             self.imgLayers.delete(layerName);
             self.aladin.removeImageSurvey(layerName);
 

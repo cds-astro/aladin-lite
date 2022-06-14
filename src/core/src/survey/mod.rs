@@ -1142,10 +1142,16 @@ impl ImageSurveys {
         // if neither are, we draw a font
         // if there are, we do not draw nothing
         if !self.surveys.is_empty() {
-            let has_allsky_hips = self.surveys.values()
-                .any(|s| s.is_allsky() || s.get_config().get_format() == ImageFormatType::RGB8U);
+            let not_render_transparency_font = self.layers.iter()
+                .any(|layer| {
+                    let meta = self.meta.get(layer).unwrap();
+                    let url = self.urls.get(layer).unwrap();
+                    let survey = self.surveys.get(url).unwrap();
 
-            if !has_allsky_hips {
+                    (survey.is_allsky() || survey.get_config().get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
+                });
+
+            if !not_render_transparency_font {
                 let opacity = self.surveys.values().fold(std::f32::MAX, |mut a, s| { a = a.min(s.get_fading_factor()); a } );
 
                 let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);

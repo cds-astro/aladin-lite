@@ -36,6 +36,8 @@
     static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
     static BASE_HIPS_LAYER_CHANGED  = new ALEvent("AL:baseHiPSLayer.changed");
+
+    static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
   
     constructor(name) {
       this.name = name;

@@ -64,6 +64,16 @@
 .aladin-location select {
 }
 
+.aladin-projSelection {
+	z-index: 20;
+	position:absolute;
+    top: 0px;
+    right: 48px;
+	padding: 2px 4px 2px 4px;
+	background-color: rgba(255, 255, 255, 0.5);
+	font-size: 11px;
+}
+
 .aladin-location-text {
 	font-size: 13px;
     margin-left: 4px;

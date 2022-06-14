@@ -33,6 +33,7 @@ import { AladinUtils } from "../AladinUtils.js";
 import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
+import { CatalogSelector } from "./CatalogSelector.js";
 
 export class Stack {
 
@@ -198,19 +199,9 @@ export class Stack {
                 .append(this.baseImageLayerOptions)
                 .append('<br>' +
                         '<button class="aladin-btn my-1" type="button">Search HiPS</button>' +
-                        '<div class="aladin-label">Projection</div>' +
-                        '<select class="aladin-projSelection"></select>' +
                         '</div>');
 
-        this.aladin.updateProjectionCombobox(this.aladin.projection);
-        var projectionSelection = $(this.aladin.aladinDiv).find('.aladin-projSelection');
-        projectionSelection.change(function () {
-            self.aladin.projection = $(this).val();
-            self.aladin.setProjection(self.aladin.projection);
-        });
-
-        layerBox.append(projectionSelection)
-            .append('<br />');
+        layerBox.append('<br>');
 
         let searchHiPS4BaseLayerBtn = layerBox.find('button');
         searchHiPS4BaseLayerBtn.click(function () {
@@ -278,7 +269,24 @@ export class Stack {
             str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
         }
         str += '</ul>';
+
+        str += '<button class="aladin-btn my-1" type="button">Add catalogue</button>';
         layerBox.append(str);
+
+        let searchCatalogBtn = layerBox.find('button').eq(1);
+        searchCatalogBtn.click(function () {
+            if (!self.catalogSelector) {
+                let fnURLSelected = function(url) {
+                    alert(url);
+                };
+                let fnIdSelected = function(id, item, params) {
+                    alert(id);
+                    console.log(item);
+                };
+                self.catalogSelector = new CatalogSelector(self.aladinDiv, fnURLSelected, fnIdSelected);
+            }
+            self.catalogSelector.show();
+        });
 
         layerBox.append('<div class="aladin-blank-separator"></div>');
 

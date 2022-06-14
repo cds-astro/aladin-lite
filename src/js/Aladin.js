@@ -53,6 +53,7 @@ import { HiPSDefinition } from "./HiPSDefinition.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
+import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
 
 // Import aladin css inside the project
@@ -157,6 +158,9 @@ export let Aladin = (function () {
 
         // Aladin logo
         new AladinLogo(aladinDiv);
+
+        // Projection selector
+        new ProjectionSelector(aladinDiv, this);
 
         // we store the boxes
         this.boxes = [];

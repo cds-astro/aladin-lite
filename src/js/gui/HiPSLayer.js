@@ -59,7 +59,7 @@
                     '<select class="aladin-surveySelection"></select>' +
                     '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search a specific HiPS">🔍</button>' +
                     '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
-                    '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">🗑️</button>' +
+                    '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
                 '</div>'
             );
         }

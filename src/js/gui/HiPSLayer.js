@@ -191,11 +191,11 @@
             self.survey.setOpacity(newOpacity);
 
             // Update HpxImageSurvey.SURVEYS definition
-            const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
+            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
             let options = surveyDef.options || {};
             options.opacity = newOpacity;
-            surveyDef.options = options;
+            surveyDef.options = options;*/
         });
 
         // MAIN DIV listeners
@@ -223,13 +223,13 @@
             maxCut4ImgLayer.val(maxCut);
 
             // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
+            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
             let options = surveyDef.options || {};
             options.minCut = minCut;
             options.maxCut = maxCut;
             options.imgFormat = imgFormat;
-            surveyDef.options = options;
+            surveyDef.options = options;*/
         });
         // min/max cut
         minCut4ImgLayer.unbind("input blur");
@@ -244,12 +244,12 @@
             self.survey.setCuts([minCutValue, maxCutValue]);
 
             // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedHiPS = self.surveySelectionDiv[0].selectedIndex;
+            /*const idxSelectedHiPS = self.surveySelectionDiv[0].selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
             let options = surveyDef.options || {};
             options.minCut = minCutValue;
             options.maxCut = maxCutValue;
-            surveyDef.options = options;
+            surveyDef.options = options;*/
         });
 
         // color
@@ -270,13 +270,13 @@
             self.survey.setColormap(cmap, {reversed: reverse, stretch: stretch});
 
             // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
+            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
             let options = surveyDef.options || {};
             options.colormap = cmap;
             options.stretch = stretch;
             options.reversed = reverse;
-            surveyDef.options = options;
+            surveyDef.options = options;*/
         });
 
         // opacity
@@ -287,11 +287,11 @@
             self.survey.setOpacity(opacity);
 
             // update HpxImageSurvey.SURVEYS definition
-            const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
+            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
             let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
             let options = surveyDef.options || {};
             options.opacity = opacity;
-            surveyDef.options = options;
+            surveyDef.options = options;*/
         });
     }
 
@@ -390,8 +390,14 @@
                     name: this.survey.properties.name,
                     maxOrder: this.survey.properties.maxOrder,
                     url: this.survey.properties.url,
+                    options: this.survey.options
                 });
                 surveySelectionDiv.append($("<option />").attr("selected", true).val(this.survey.properties.id).text(this.survey.properties.name));
+            } else {
+                // Update the HpxImageSurvey
+                const idxSelectedHiPS = surveySelectionDiv[0].selectedIndex;
+                let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+                surveyDef.options = this.survey.options;
             }
         }
     }

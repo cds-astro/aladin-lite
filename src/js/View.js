@@ -703,9 +703,6 @@ export let View = (function() {
                     view.selectedGrayscaleSurvey.setCuts([lr, rr])
                 }
 
-                // Tell that the layer has changed
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {survey: view.selectedGrayscaleSurvey});
-
                 return;
             }
 
@@ -1651,6 +1648,8 @@ export let View = (function() {
             Logger.log("setImageLayer", survey.properties.url);
         }
 
+        // We push it to a waiting list of surveys so that the user can still get it
+        // and modify its options while its metadata is not yet received
         if(!this.imageSurveysWaitingList.has(layer) && !this.imageSurveys.has(layer)) {
             this.imageSurveysWaitingList.set(layer, survey);
         }
@@ -1691,6 +1690,7 @@ export let View = (function() {
     };
 
     View.prototype.removeImageSurvey = function(layer) {
+
         this.imageSurveys.delete(layer);
 
         const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
@@ -1700,7 +1700,7 @@ export let View = (function() {
         }
 
         // Remove it from the layer stack
-        this.overlayLayers.splice(idxOverlaidSurveyFound, idxOverlaidSurveyFound);
+        this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
 
         // Update the backend
         this.updateImageLayerStack();
@@ -1716,7 +1716,7 @@ export let View = (function() {
             return;
         }
 
-        // Erase options
+        // Merge the options of the waiting survey with the received one
         const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
         const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
         survey.options = {...survey.options, ...waitingOptions};

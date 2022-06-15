@@ -399,6 +399,10 @@ export let HpxImageSurvey = (function() {
         if( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
     };
 
     // @api
@@ -415,6 +419,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 
@@ -433,6 +441,10 @@ export let HpxImageSurvey = (function() {
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
     };
 
     // @api
@@ -449,6 +461,10 @@ export let HpxImageSurvey = (function() {
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
     }
 
     // @api
@@ -461,6 +477,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 
@@ -507,6 +527,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 

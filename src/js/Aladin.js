@@ -53,7 +53,9 @@ import { HiPSDefinition } from "./HiPSDefinition.js";
 import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
+import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
+import { ALEvent } from "./events/ALEvent.js";
 
 // Import aladin css inside the project
 import './../css/aladin.css';
@@ -158,6 +160,9 @@ export let Aladin = (function () {
         // Aladin logo
         new AladinLogo(aladinDiv);
 
+        // Projection selector
+        new ProjectionSelector(aladinDiv, this);
+
         // we store the boxes
         this.boxes = [];
 
@@ -170,6 +175,10 @@ export let Aladin = (function () {
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+        // Stack GUI
+        this.stack = new Stack(this.aladinDiv, this, this.view);
+        this.boxes.push(this.stack);
+
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
@@ -320,7 +329,7 @@ export let Aladin = (function () {
                         if (i == 0) {
                             this.setBaseImageLayer(options.survey);
                         } else {
-                            this.setOverlayImageLayer(options.survey, "overlay" + i.toString());
+                            this.setOverlayImageLayer(options.survey, null, "overlay" + i.toString());
                         }
                         i++;
                     });
@@ -619,6 +628,7 @@ export let Aladin = (function () {
             return;
         }
         this.view.setProjection(projection);
+        ALEvent.PROJECTION_CHANGED.dispatchedTo(this.aladinDiv, {projection: projection});
     };
 
     /** point view to a given object (resolved by Sesame) or position
@@ -1069,13 +1079,6 @@ export let Aladin = (function () {
 
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
-        if (! this.stack) {
-            // Stack GUI
-            this.stack = new Stack(this.aladinDiv, this, this.view);
-
-            this.boxes.push(this.stack);
-        }
-
         this.stack.show();
     };
 

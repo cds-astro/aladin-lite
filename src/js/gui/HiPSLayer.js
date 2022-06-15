@@ -35,15 +35,15 @@
  export class HiPSLayer {
 
     // Constructor
-    constructor(aladin, view, layer) {
+    constructor(aladin, view, survey) {
         this.aladin = aladin;
         this.view = view;
-        this.layer = layer;
+        this.survey = survey;
         this.hidden = false;
         this.lastOpacity = 1.0;
 
         // HiPS header div
-        if (this.layer === "base") {
+        if (this.survey.layer === "base") {
             this.headerDiv = $(
                 '<div class=".aladin-layer-header">' +
                     '<span class="indicator right-triangle">&nbsp;</span>' +
@@ -87,16 +87,28 @@
 
         this.#addListeners();
         this.#updateHiPSLayerOptions();
+
+        let self = this;
+        this.layerChangedListener = (e) => {
+            const survey = e.detail.survey;
+
+            if (survey.layer === self.survey.layer) {
+                // Update the survey to the new one
+                self.survey = survey;
+
+                self.#updateHiPSLayerOptions();
+                self.#updateSurveysDropdownList();
+            }
+        };
+        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
+    }
+
+    destroy() {
+        ALEvent.HIPS_LAYER_CHANGED.remove(this.aladin.aladinDiv, this.layerChangedListener);
     }
 
     #addListeners() {
         const self = this;
-        ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
-            if (e.detail.layer === self.layer) {
-                self.#updateHiPSLayerOptions();
-                self.#updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
-            }
-        });
 
         // HEADER DIV listeners
         // Click opener
@@ -116,18 +128,17 @@
         });
 
         // Update list of surveys
-        self.#updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        self.#updateSurveysDropdownList();
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
-            var survey = HpxImageSurvey.getAvailableSurveys()[$(this)[0].selectedIndex];
-            //console.log("survey, chosen ", survey)
+            var survey = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
             const hpxImageSurvey = new HpxImageSurvey(
                 survey.url,
                 self.view,
                 survey.options
             );
-            self.aladin.setOverlayImageLayer(hpxImageSurvey, null, self.layer);
+            self.aladin.setOverlayImageLayer(hpxImageSurvey, null, self.survey.layer);
         });
 
         // Search HiPS button
@@ -135,11 +146,12 @@
         hipsSelector.unbind("click");
         hipsSelector.click(function () {
             if (!self.hipsSelector) {
+                const layerName = self.survey.layer;
                 let fnURLSelected = function(url) {
-                    self.aladin.setOverlayImageLayer(url, null, self.layer);
+                    self.aladin.setOverlayImageLayer(url, null, layerName);
                 };
                 let fnIdSelected = function(id) {
-                    self.aladin.setOverlayImageLayer(id, null, self.layer);
+                    self.aladin.setOverlayImageLayer(id, null, layerName);
                 };
                 self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, fnURLSelected, fnIdSelected);
             }
@@ -151,7 +163,7 @@
         deleteLayer.unbind('click');
         deleteLayer.click(function () {
             const removeLayerEvent = new CustomEvent('remove-layer', {
-                detail: self.layer 
+                detail: self.survey.layer 
             });
             self.aladin.aladinDiv.dispatchEvent(removeLayerEvent);
         });
@@ -161,20 +173,22 @@
         hideLayer.unbind("click");
         hideLayer.click(function () {
             self.hidden = !self.hidden;
-            const imgLayer = self.aladin.getOverlayImageLayer(self.layer);
             let opacitySlider = self.mainDiv.find('input').eq(3);
 
             let newOpacity = 0.0;
             if (self.hidden) {
-                self.lastOpacity = imgLayer.getOpacity();
+                self.lastOpacity = self.survey.getOpacity();
+                hideLayer.html('<p>&emsp;&nbsp;</p>')
             } else {
                 newOpacity = self.lastOpacity;
+                hideLayer.text('👁️')
+
             }
             // Update the opacity slider
             opacitySlider.val(newOpacity);
             opacitySlider.get(0).disabled = self.hidden;
 
-            imgLayer.setOpacity(newOpacity);
+            self.survey.setOpacity(newOpacity);
 
             // Update HpxImageSurvey.SURVEYS definition
             const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -182,8 +196,6 @@
             let options = surveyDef.options || {};
             options.opacity = newOpacity;
             surveyDef.options = options;
-
-
         });
 
         // MAIN DIV listeners
@@ -194,18 +206,17 @@
         format4ImgLayer.unbind("change");
         format4ImgLayer.change(function() {
             const imgFormat = format4ImgLayer.val();
-            const imgLayer = self.aladin.getOverlayImageLayer(self.layer);
 
-            imgLayer.changeImageFormat(imgFormat);
+            self.survey.changeImageFormat(imgFormat);
 
             let minCut = 0;
             let maxCut = 1;
             if ( imgFormat === "FITS" ) {
                 // FITS format
-                minCut = imgLayer.properties.minCutout;
-                maxCut = imgLayer.properties.maxCutout;
+                minCut = self.survey.properties.minCutout;
+                maxCut = self.survey.properties.maxCutout;
             }
-            imgLayer.setCuts([minCut, maxCut]);
+            self.survey.setCuts([minCut, maxCut]);
             // update the cuts only
             
             minCut4ImgLayer.val(minCut);
@@ -230,7 +241,7 @@
             if (isNaN(minCutValue) || isNaN(maxCutValue)) {
                 return;
             }
-            self.aladin.getOverlayImageLayer(self.layer).setCuts([minCutValue, maxCutValue]);
+            self.survey.setCuts([minCutValue, maxCutValue]);
 
             // update HpxImageSurvey.SURVEYS definition
             const idxSelectedHiPS = self.surveySelectionDiv[0].selectedIndex;
@@ -256,7 +267,7 @@
             const cmap = colorMapSelect4ImgLayer.val();
             const stretch = stretchSelect4ImgLayer.val();
 
-            self.aladin.getOverlayImageLayer(self.layer).setColormap(cmap, {reversed: reverse, stretch: stretch});
+            self.survey.setColormap(cmap, {reversed: reverse, stretch: stretch});
 
             // update HpxImageSurvey.SURVEYS definition
             const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -273,7 +284,7 @@
         opacity4ImgLayer.unbind("input");
         opacity4ImgLayer.on('input', function() {
             const opacity = +opacity4ImgLayer.val();
-            self.aladin.getOverlayImageLayer(self.layer).setOpacity(opacity);
+            self.survey.setOpacity(opacity);
 
             // update HpxImageSurvey.SURVEYS definition
             const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -300,11 +311,9 @@
         const minCut = this.mainDiv.find('input').eq(1);
         const maxCut = this.mainDiv.find('input').eq(2);
 
-        const survey = this.aladin.getOverlayImageLayer(this.layer);
-        const properties = survey.properties;
-        const options    = survey.options;
-        const meta       = survey.meta;
-        const colored    = survey.colored;
+        const properties = this.survey.properties;
+        const options    = this.survey.options;
+        const colored    = this.survey.colored;
 
         // format
         formatSelect4ImgLayer.empty();
@@ -315,7 +324,7 @@
             }));
         });
 
-        const imgFormat = survey.options.imgFormat;
+        const imgFormat = this.survey.options.imgFormat;
         formatSelect4ImgLayer.val(imgFormat);
 
         // cuts
@@ -338,41 +347,37 @@
             maxCutTr.show();
         }
 
-        const opacity = meta.opacity;
+        const opacity = options.opacity;
         opacity4ImgLayer.val(opacity);
 
         // TODO: traiter ce cas
-        if (!meta.color || !meta.color.grayscale) {
+        if (this.survey.colored) {
             return;
         }
-        const cmap = meta.color.grayscale.color.colormap.name;
-        const reverse = meta.color.grayscale.color.colormap.reversed;
-        const stretch = meta.color.grayscale.stretch;
+        const cmap = options.colormap;
+        const reverse = options.reversed;
+        const stretch = options.stretch;
 
         reverseCmCb.prop('checked', reverse);
         colorMapSelect4ImgLayer.val(cmap);
         stretchSelect4ImgLayer.val(stretch);
     }
 
-    #updateSurveysDropdownList(surveys) {
-        const self = this;
-
+    #updateSurveysDropdownList() {
         let surveySelectionDiv = this.headerDiv.find('.aladin-surveySelection');
 
-        surveys = surveys.sort(function (a, b) {
+        let surveys = HpxImageSurvey.SURVEYS.sort(function (a, b) {
             if (!a.order) {
                 return a.id > b.id;
             }
             return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });
         surveySelectionDiv.empty();
-        const imgLayer = self.aladin.getOverlayImageLayer(self.layer);
-        const imgNotLoaded = imgLayer.properties;
 
-        if (imgNotLoaded) {
+        if (this.survey) {
             let surveyFound = false;
             surveys.forEach(s => {
-                const isCurSurvey = imgLayer.properties.url.endsWith(s.url);
+                const isCurSurvey = this.survey.properties.url.endsWith(s.url);
                 surveySelectionDiv.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
                 surveyFound |= isCurSurvey;
             });
@@ -381,12 +386,12 @@
             if (!surveyFound) {
                 // Cache it
                 HpxImageSurvey.SURVEYS.push({
-                    id: imgLayer.properties.id,
-                    name: imgLayer.properties.name,
-                    maxOrder: imgLayer.properties.maxOrder,
-                    url: imgLayer.properties.url,
+                    id: this.survey.properties.id,
+                    name: this.survey.properties.name,
+                    maxOrder: this.survey.properties.maxOrder,
+                    url: this.survey.properties.url,
                 });
-                surveySelectionDiv.append($("<option />").attr("selected", true).val(imgLayer.properties.id).text(imgLayer.properties.name));
+                surveySelectionDiv.append($("<option />").attr("selected", true).val(this.survey.properties.id).text(this.survey.properties.name));
             }
         }
     }

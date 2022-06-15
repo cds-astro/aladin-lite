@@ -136,6 +136,7 @@ export let HpxImageSurvey = (function() {
         this.ready = false;
         // Name of the layer
         this.layer = null;
+        this.added = false;
         // Default options
         this.options = {
             ...{
@@ -302,11 +303,7 @@ export let HpxImageSurvey = (function() {
             }
 
             this.updateMeta();
-            
-            // Discard further processing if the layer has been removed
-            if (!this.backend.imageSurveys.get(this.layer)) {
-                return;
-            }
+            this.ready = true;
 
             // Discard further processing if the layer has been associated to another hips
             // before the request has been resolved
@@ -318,12 +315,11 @@ export let HpxImageSurvey = (function() {
                 callback(this);
             }
 
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv, {layer: this.layer});
-
             // If the layer has been set then it is linked to the aladin lite view
             // Update the layer
-            this.backend.setOverlayImageSurvey(this, this.layer);
-            this.ready = true;
+            if (this.added) {
+                this.backend.setOverlayImageSurvey(this, this.layer);
+            }
         })();
     };
 

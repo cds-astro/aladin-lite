@@ -153,6 +153,17 @@ import  autocomplete from 'autocompleter';
 
     show() {
         this.mainDiv.style.display = 'flex';
+
+        // focus on text field
+        let byIdSelected = $(this.mainDiv.querySelectorAll('div div a')[0]).hasClass('tab-active');
+        if (byIdSelected) {
+            let idInput = this.mainDiv.querySelectorAll('div div .p-4')[0].querySelector('input');
+            idInput.focus();
+        }
+        else {
+            let urlInput = this.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
+            urlInput.focus();
+        }
     }
 
     hide() {

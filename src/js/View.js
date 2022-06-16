@@ -1492,44 +1492,7 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    //View.prototype.setZoom = function(level) {
     View.prototype.updateZoomState = function() {
-        /*let zoom = {"action": undefined};
-
-        if (this.zoomLevel > level) {
-            console.log("unzoom")
-            zoom["action"] = "unzoom";
-        } else if (this.zoomLevel < level) {
-            zoom["action"] = "zoom";
-        }*/
-
-        /*if (this.minFOV || this.maxFOV) {
-            var newFov = doComputeFov(this, this.computeZoomFactor(Math.max(-2, level)));
-            if (this.maxFOV && newFov>this.maxFOV  ||  this.minFOV && newFov<this.minFOV)  {
-                return;
-            }
-        }*/
-
-        /*if (this.projectionMethod==ProjectionEnum.SIN) {
-            //this.zoomLevel = Math.max(-2, level); // TODO : canvas freezes in firefox when max level is small
-            this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-        } else {
-            this.zoomLevel = Math.max(-7, level); // TODO : canvas freezes in firefox when max level is small
-        }*/
-        //this.zoomLevel = Math.max(-7, level);
-        
-        /// Old
-        /*this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
-        this.fov = computeFov(this);
-
-        if (this.zoomFactor >= 1.0) {
-            this.aladin.webglAPI.setFieldOfView(this.fov);
-        } else {
-            //console.log("FOV, ", this.fov / this.zoomFactor);
-
-            // zoom factor
-            this.aladin.webglAPI.setFieldOfView(this.fov / this.zoomFactor);
-        }*/
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
         this.fov = this.aladin.webglAPI.getFieldOfView();
         
@@ -1709,23 +1672,24 @@ export let View = (function() {
     };
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
-        survey.layer = layer;
         survey.added = true;
+        survey.layer = layer;
 
         if (!survey.ready) {
             return;
         }
 
-        // Merge the options of the waiting survey with the received one
-        const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
-        const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
-        survey.options = {...survey.options, ...waitingOptions};
-        this.imageSurveysWaitingList.delete(layer);
-
         const layerAlreadyContained = this.imageSurveys.has(layer);
         // Replace it anyway
         this.imageSurveys.set(layer, survey);
         this.updateImageLayerStack();
+
+        // Merge the options of the waiting survey with the received one
+        const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
+        const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
+        survey.setOptions(waitingOptions);
+        // Once the layer is added one can remove it from the waiting list of surveys
+        this.imageSurveysWaitingList.delete(layer);
 
         if (layerAlreadyContained) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});

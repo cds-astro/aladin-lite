@@ -110,7 +110,6 @@ export let Aladin = (function () {
         this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
-        this.projection = "SIN";
         // parent div
         $(aladinDiv).addClass("aladin-container");
 
@@ -191,31 +190,6 @@ export let Aladin = (function () {
         // Set the projection
         let projection = (options && options.projection) || 'SIN';
         this.view.setProjection(projection)
-
-        // retrieve available surveys
-        // TODO: replace call with MocServer
-        /*$.ajax({
-            url: "//aladin.unistra.fr/java/nph-aladin.pl",
-            data: { "frame": "aladinLiteDic" },
-            method: 'GET',
-            dataType: 'jsonp', // could this be repaced by json ??
-            success: function (data) {
-                var map = {};
-                for (var k = 0; k < data.length; k++) {
-                    map[data[k].id] = true;
-                }
-                // retrieve existing surveys
-                for (var k = 0; k < HpxImageSurvey.SURVEYS.length; k++) {
-                    if (!map[HpxImageSurvey.SURVEYS[k].id]) {
-                        data.push(HpxImageSurvey.SURVEYS[k]);
-                    }
-                }
-                HpxImageSurvey.SURVEYS = data;
-                self.view.setUnknownSurveyIfNeeded();
-            },
-            error: function () {
-            }
-        });*/
 
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
@@ -481,50 +455,6 @@ export let Aladin = (function () {
         var fullScreenToggledFn = this.callbacksByEventName['fullScreenToggled'];
         (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
-
-    Aladin.prototype.updateProjectionCombobox = function (selected) {
-        var select = $(this.aladinDiv).find('.aladin-projSelection');
-        select.empty();
-        
-        ["SIN", "AIT", "MOL", "MER", "ARC", "TAN", "HPX"].forEach(p => {
-            select.append($("<option />").attr("selected", p == selected).val(p).text(p));
-        });
-    }
-
-    /*Aladin.prototype.updateSurveysDropdownList = function (surveys) {
-        //console.log(surveys)
-        surveys = surveys.sort(function (a, b) {
-            if (!a.order) {
-                return a.id > b.id;
-            }
-            return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
-        });
-        var select = $(this.aladinDiv).find('.aladin-surveySelection');
-        select.empty();
-        const baseImgLayer = this.getBaseImageLayer();
-        const baseImgNotLoaded = baseImgLayer.properties;
-
-        if (baseImgNotLoaded) {
-            let surveyFound = false;
-            surveys.forEach(s => {
-                const isCurSurvey = baseImgLayer.properties.url.endsWith(s.url);
-                select.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
-                surveyFound |= isCurSurvey;
-            });
-
-            // The survey has not been found among the ones cached
-            if (!surveyFound) {
-                // Cache it
-                HpxImageSurvey.SURVEYS.push({
-                    id: baseImgLayer.properties.id,
-                    name: baseImgLayer.properties.name,
-                    maxOrder: baseImgLayer.properties.maxOrder,
-                    url: baseImgLayer.properties.url,
-                });
-                select.append($("<option />").attr("selected", true).val(baseImgLayer.properties.id).text(baseImgLayer.properties.name));
-            }
-        }
-    };*/
 
     Aladin.prototype.setAngleRotation = function (theta) {
         this.view.setAngleRotation(theta)

@@ -172,7 +172,7 @@ export let HpxImageSurvey = (function() {
         }
 
         this.updateMeta();
-
+        let self = this;
         (async () => {
             const metadata = await fetchSurveyProperties(rootURLOrId);
 
@@ -195,30 +195,30 @@ export let HpxImageSurvey = (function() {
 
             // HiPS tile format
             const tileFormats = metadata.hips_tile_format.split(' ').map((fmt) => fmt.toUpperCase());
-            if (this.options.imgFormat) {
+            if (self.options.imgFormat) {
                 // user wants a fits but the metadata tells this format is not available
-                if (this.options.imgFormat === "FITS" && tileFormats.indexOf('FITS') < 0) {
+                if (self.options.imgFormat === "FITS" && tileFormats.indexOf('FITS') < 0) {
                     throw name + " does not provide fits tiles";
                 }
                 
-                if (this.options.imgFormat === "PNG" && tileFormats.indexOf('PNG') < 0) {
+                if (self.options.imgFormat === "PNG" && tileFormats.indexOf('PNG') < 0) {
                     throw name + " does not provide png tiles";
                 }
                 
-                if (this.options.imgFormat === "JPEG" && tileFormats.indexOf('JPEG') < 0) {
+                if (self.options.imgFormat === "JPEG" && tileFormats.indexOf('JPEG') < 0) {
                     throw name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the metadata
                 if (tileFormats.indexOf('PNG') >= 0) {
-                    this.options.imgFormat = "PNG";
-                    this.fits = false;
+                    self.options.imgFormat = "PNG";
+                    self.fits = false;
                 } else if (tileFormats.indexOf('JPEG') >= 0) {
-                    this.options.imgFormat = "JPEG";
-                    this.fits = false;
+                    self.options.imgFormat = "JPEG";
+                    self.fits = false;
                 } else if (tileFormats.indexOf('FITS') >= 0) {
-                    this.options.imgFormat = "FITS";
-                    this.fits = true;
+                    self.options.imgFormat = "FITS";
+                    self.fits = true;
                 } else {
                     throw "Unsupported format(s) found in the metadata: " + tileFormats;
                 }
@@ -231,23 +231,23 @@ export let HpxImageSurvey = (function() {
             const skyFraction = +metadata.moc_sky_fraction || 1.0;
 
             // HiPS frame
-            this.options.cooFrame = this.options.cooFrame || metadata.hips_frame;
+            self.options.cooFrame = self.options.cooFrame || metadata.hips_frame;
             let frame = null;
-            if (this.options.cooFrame == "ICRS" || this.options.cooFrame == "ICRSd" || this.options.cooFrame == "equatorial") {
+            if (self.options.cooFrame == "ICRS" || self.options.cooFrame == "ICRSd" || self.options.cooFrame == "equatorial") {
                 frame = "ICRSJ2000";
-            } else if (this.options.cooFrame == "galactic") {
+            } else if (self.options.cooFrame == "galactic") {
                 frame = "GAL";
             } else {
                 throw 'Coordinate systems supported: "ICRS", "ICRSd" or "galactic"';
             }
 
             // HiPS grayscale
-            this.colored = false;
+            self.colored = false;
             if (metadata.dataproduct_subtype && (metadata.dataproduct_subtype === "color" || metadata.dataproduct_subtype[0] === "color") ) {
-                this.colored = true;
+                self.colored = true;
             }
 
-            if (!this.colored) {
+            if (!self.colored) {
                 // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
                 // For colored HiPS, no fits tiles provided
 
@@ -263,7 +263,7 @@ export let HpxImageSurvey = (function() {
                 // HiPS bitpix
                 const bitpix = +metadata.hips_pixel_bitpix;
 
-                this.properties = {
+                self.properties = {
                     id: id,
                     name: name,
                     url: url,
@@ -277,7 +277,7 @@ export let HpxImageSurvey = (function() {
                     skyFraction: skyFraction
                 };
             } else {
-                this.properties = {
+                self.properties = {
                     id: id,
                     name: name,
                     url: url,
@@ -289,36 +289,36 @@ export let HpxImageSurvey = (function() {
                 };
             }
 
-            if (!this.colored) {
+            if (!self.colored) {
                 // For grayscale JPG/PNG hipses
-                if (!this.fits) {
+                if (!self.fits) {
                     // Erase the cuts with the default one for image tiles
-                    this.options.minCut = this.options.minCut || 0.0;
-                    this.options.maxCut = this.options.maxCut || 1.0;
+                    self.options.minCut = self.options.minCut || 0.0;
+                    self.options.maxCut = self.options.maxCut || 1.0;
                 // For FITS hipses
                 } else {
-                    this.options.minCut = this.options.minCut || this.properties.minCutout;
-                    this.options.maxCut = this.options.maxCut || this.properties.maxCutout;
+                    self.options.minCut = self.options.minCut || self.properties.minCutout;
+                    self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
                 }
             }
 
-            this.updateMeta();
-            this.ready = true;
-
             // Discard further processing if the layer has been associated to another hips
             // before the request has been resolved
-            if (this.orderIdx < this.backend.imageSurveysIdx.get(this.layer)) {
+            if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
                 return;
             }
 
+            self.updateMeta();
+            self.ready = true;
+
             if (callback) {
-                callback(this);
+                callback(self);
             }
 
             // If the layer has been set then it is linked to the aladin lite view
             // Update the layer
-            if (this.added) {
-                this.backend.setOverlayImageSurvey(this, this.layer);
+            if (self.added) {
+                self.backend.setOverlayImageSurvey(self, self.layer);
             }
         })();
     };
@@ -396,11 +396,11 @@ export let HpxImageSurvey = (function() {
         this.updateMeta();
 
         // Tell the view its meta have changed
-        if( this.ready ) {
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
 
-        if (this.added) {
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -417,11 +417,11 @@ export let HpxImageSurvey = (function() {
         this.updateMeta();
 
         // Tell the view its meta have changed
-        if( this.ready ) {
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
 
-        if (this.added) {
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -438,11 +438,11 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
 
         // Tell the view its meta have changed
-        if ( this.ready ) {
+        if ( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
 
-        if (this.added) {
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -457,12 +457,13 @@ export let HpxImageSurvey = (function() {
         this.options.colormap = colormap;
 
         this.updateColor();
+
         // Tell the view its meta have changed
-        if ( this.ready ) {
+        if ( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
 
-        if (this.added) {
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     }
@@ -475,11 +476,24 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
 
         // Tell the view its meta have changed
-        if ( this.ready ) {
+        if ( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
 
         if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
+    };
+
+    HpxImageSurvey.prototype.setOptions = function(options) {
+        this.options = {...this.options, ...options};
+        this.updateMeta();
+
+        if ( this.ready && this.added ) {
+            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -525,11 +539,11 @@ export let HpxImageSurvey = (function() {
         this.fits = (this.options.imgFormat === 'FITS');
 
         // Tell the view its meta have changed
-        if ( this.ready ) {
+        if ( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
         }
 
-        if (this.added) {
+        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };

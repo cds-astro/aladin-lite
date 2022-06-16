@@ -98,6 +98,7 @@
 
                 self.#updateHiPSLayerOptions();
                 self.#updateSurveysDropdownList();
+
             }
         };
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
@@ -178,11 +179,10 @@
             let newOpacity = 0.0;
             if (self.hidden) {
                 self.lastOpacity = self.survey.getOpacity();
-                hideLayer.html('<p>&emsp;&nbsp;</p>')
+                hideLayer.html('<p>&emsp;&nbsp;</p>');
             } else {
                 newOpacity = self.lastOpacity;
-                hideLayer.text('👁️')
-
+                hideLayer.text('👁️');
             }
             // Update the opacity slider
             opacitySlider.val(newOpacity);
@@ -324,7 +324,7 @@
             }));
         });
 
-        const imgFormat = this.survey.options.imgFormat;
+        const imgFormat = options.imgFormat;
         formatSelect4ImgLayer.val(imgFormat);
 
         // cuts

@@ -123,6 +123,7 @@ export let View = (function() {
         this.setZoom(initialFov);
         // current reference image survey displayed
         this.imageSurveys = new Map();
+        this.imageSurveysWaitingList = new Map();
         this.imageSurveysIdx = new Map();
 
         this.overlayLayers = [];
@@ -681,7 +682,6 @@ export let View = (function() {
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        let p = null;
         $(view.catalogCanvas).bind("mousemove touchmove", function(e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
@@ -703,18 +703,8 @@ export let View = (function() {
                     view.selectedGrayscaleSurvey.setCuts([lr, rr])
                 }
 
-                // Tell that the layer has changed
-                if (view.selectedGrayscaleSurvey.layer === "base") {
-                    ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
-                }
-
                 return;
             }
-            p = xymouse;
-
-            /*if(view.aladin.webglAPI.posOnUi()) {
-                return;
-            }*/
 
             if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
 
@@ -1658,13 +1648,13 @@ export let View = (function() {
             Logger.log("setImageLayer", survey.properties.url);
         }
 
-        this.imageSurveys.set(layer, survey);
-        this.addImageSurvey(survey, layer);
-
-        // If the base has been changed, we update the survey dropdown list
-        if (layer === "base") {
-            this.aladin.updateSurveysDropdownList(HpxImageSurvey.getAvailableSurveys());
+        // We push it to a waiting list of surveys so that the user can still get it
+        // and modify its options while its metadata is not yet received
+        if(!this.imageSurveysWaitingList.has(layer) && !this.imageSurveys.has(layer)) {
+            this.imageSurveysWaitingList.set(layer, survey);
         }
+
+        this.addImageSurvey(survey, layer);
     };
 
     View.prototype.buildSortedImageSurveys = function() {
@@ -1700,6 +1690,7 @@ export let View = (function() {
     };
 
     View.prototype.removeImageSurvey = function(layer) {
+
         this.imageSurveys.delete(layer);
 
         const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
@@ -1709,24 +1700,48 @@ export let View = (function() {
         }
 
         // Remove it from the layer stack
-        this.overlayLayers.splice(idxOverlaidSurveyFound, idxOverlaidSurveyFound);
+        this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
 
         // Update the backend
         this.updateImageLayerStack();
+
+        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
     };
 
     View.prototype.addImageSurvey = function(survey, layer = "base") {
         survey.layer = layer;
+        survey.added = true;
 
+        if (!survey.ready) {
+            return;
+        }
+
+        // Merge the options of the waiting survey with the received one
+        const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
+        const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
+        survey.options = {...survey.options, ...waitingOptions};
+        this.imageSurveysWaitingList.delete(layer);
+
+        const layerAlreadyContained = this.imageSurveys.has(layer);
+        // Replace it anyway
         this.imageSurveys.set(layer, survey);
-
         this.updateImageLayerStack();
+
+        if (layerAlreadyContained) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
+        } else {
+            ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, {survey: survey});
+        }
     };
 
     View.prototype.getImageSurvey = function(layer = "base") {
         const survey = this.imageSurveys.get(layer);
 
-        return survey;
+        if (survey) {
+            return survey;
+        } else {
+            return this.imageSurveysWaitingList.get(layer);
+        }
     };
 
     View.prototype.getImageSurveyMeta = function(layer = "base") {

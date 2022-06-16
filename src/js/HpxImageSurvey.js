@@ -136,6 +136,7 @@ export let HpxImageSurvey = (function() {
         this.ready = false;
         // Name of the layer
         this.layer = null;
+        this.added = false;
         // Default options
         this.options = {
             ...{
@@ -148,7 +149,14 @@ export let HpxImageSurvey = (function() {
         };
         
         if (this.options.imgFormat) {
+            // Img format preprocessing
+            // transform to upper case
             this.options.imgFormat = this.options.imgFormat.toUpperCase();
+
+            // convert JPG -> JPEG
+            if (this.options.imgFormat === "JPG") {
+                this.options.imgFormat = "JPEG";
+            }
         }
 
         if (this.options.imgFormat === 'FITS') {
@@ -295,11 +303,7 @@ export let HpxImageSurvey = (function() {
             }
 
             this.updateMeta();
-
-            // Discard further processing if the layer has been removed
-            if (!this.backend.imageSurveys.get(this.layer)) {
-                return;
-            }
+            this.ready = true;
 
             // Discard further processing if the layer has been associated to another hips
             // before the request has been resolved
@@ -311,14 +315,11 @@ export let HpxImageSurvey = (function() {
                 callback(this);
             }
 
-            if (this.layer === "base") {
-                ALEvent.BASE_HIPS_LAYER_CHANGED.dispatchedTo(view.aladinDiv);
-            }
-
             // If the layer has been set then it is linked to the aladin lite view
             // Update the layer
-            this.backend.setOverlayImageSurvey(this, this.layer);
-            this.ready = true;
+            if (this.added) {
+                this.backend.setOverlayImageSurvey(this, this.layer);
+            }
         })();
     };
 
@@ -398,6 +399,15 @@ export let HpxImageSurvey = (function() {
         if( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.getOpacity = function() {
+        return this.options.opacity;
     };
 
     // @api
@@ -409,6 +419,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 
@@ -427,6 +441,10 @@ export let HpxImageSurvey = (function() {
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
         }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
     };
 
     // @api
@@ -439,10 +457,13 @@ export let HpxImageSurvey = (function() {
         this.options.colormap = colormap;
 
         this.updateColor();
-
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     }
 
@@ -456,6 +477,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 
@@ -502,6 +527,10 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if ( this.ready ) {
             this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
+        }
+
+        if (this.added) {
+            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 

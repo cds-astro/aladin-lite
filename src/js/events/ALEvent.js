@@ -35,9 +35,12 @@
     static COO_GRID_DISABLED = new ALEvent("AL:cooGrid.disabled");
     static COO_GRID_UPDATED  = new ALEvent("AL:cooGrid.updated");
 
-    static BASE_HIPS_LAYER_CHANGED  = new ALEvent("AL:baseHiPSLayer.changed");
-
     static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
+
+    static HIPS_LAYER_ADDED  = new ALEvent("AL:HiPSLayer.added");
+    static HIPS_LAYER_REMOVED  = new ALEvent("AL:HiPSLayer.removed");
+
+    static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
   
     constructor(name) {
       this.name = name;
@@ -54,6 +57,10 @@
 
     listenedBy(domEl, fn) {
         domEl.addEventListener(this.name, fn);
+    }
+
+    remove(domEl, fn) {
+      domEl.removeEventListener(this.name, fn);
     }
   }
   

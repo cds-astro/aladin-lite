@@ -72,11 +72,10 @@ export class Stack {
             this.imgLayers.get("base").attachTo(layerBox);
         }
 
-        layerBox.append('<div class="aladin-label">Overlay image layers</div>')
-
         if (this.imgLayers.size > 1) {
+            layerBox.append('<div class="aladin-label">Overlay image layers</div>')
+
             this.imgLayers.forEach((imgLayer) => {
-                console.log(imgLayer.survey.layer)
                 if (imgLayer.survey.layer !== "base") {
                     imgLayer.attachTo(layerBox);
                 }

@@ -50,7 +50,6 @@ import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { URLBuilder } from "./URLBuilder.js";
 import { HiPSDefinition } from "./HiPSDefinition.js";
-import { ImageSurveyLayer } from "./ImageSurveyLayer.js";
 import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { ProjectionSelector } from "./gui/ProjectionSelector";
@@ -1306,15 +1305,6 @@ A.ellipse = function (ra, dec, radiusRaDeg, radiusDecDeg, rotationDeg, options) 
 A.graphicOverlay = function (options) {
     return new Overlay(options);
 };
-
-// Create a new image survey layer
-//
-// One can attach multiple surveys to 1 layer.
-// Those survey colors are blended together.
-// Layers are overlaid to each other
-A.imageSurveyLayer = function(name) {
-    return new ImageSurveyLayer(name);
-}
 
 // @API
 A.catalog = function (options) {

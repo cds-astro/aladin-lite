@@ -32,14 +32,11 @@
 import { Aladin }   from "./Aladin.js";
 import { Popup }          from "./Popup.js";
 import { HealpixGrid }    from "./HealpixGrid.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Projection }     from "./libs/astro/projection.js";
 import { AladinUtils }    from "./AladinUtils.js";
 import { Utils }          from "./Utils.js";
 import { SimbadPointer }  from "./SimbadPointer.js";
-import { TileBuffer }     from "./TileBuffer.js";
-import { Downloader }     from "./Downloader.js";
 import { Stats }          from "./libs/Stats.js";
 import { ColorMap } from "./ColorMap.js";
 import { Footprint } from "./Footprint.js";
@@ -156,7 +153,6 @@ export let View = (function() {
         
 
         
-        this.tileBuffer = new TileBuffer(); // tile buffer is shared across different image surveys
         this.fixLayoutDimensions();
         
         this.firstHiPS = true;
@@ -180,8 +176,6 @@ export let View = (function() {
             initialFingerAngle: undefined,
             rotationInitiated: false
         }
-
-        this.downloader = new Downloader(this); // the downloader object is shared across all HpxImageSurveys
 
         this.fadingLatestUpdate = null;
         

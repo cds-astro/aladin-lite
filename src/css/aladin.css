@@ -187,7 +187,7 @@ word-wrap:break-word;
 .aladin-layerBox {
     top: 30px;
     padding: 4px 4px 10px 10px;
-    max-height: 100%;
+    max-height: 90%;
     overflow-y: auto;
 }
 

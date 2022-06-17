@@ -219,8 +219,8 @@
             self.survey.setCuts([minCut, maxCut]);
             // update the cuts only
             
-            minCut4ImgLayer.val(minCut);
-            maxCut4ImgLayer.val(maxCut);
+            minCut4ImgLayer.val(minCut.toFixed(5));
+            maxCut4ImgLayer.val(maxCut.toFixed(5));
 
             // update HpxImageSurvey.SURVEYS definition
             /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -341,9 +341,9 @@
             reverseTr.show();
             stretchTr.show();
 
-            minCut.val(options.minCut);
+            minCut.val(options.minCut.toFixed(5));
             minCutTr.show();
-            maxCut.val(options.maxCut);
+            maxCut.val(options.maxCut.toFixed(5));
             maxCutTr.show();
         }
 

@@ -25,8 +25,8 @@ struct TileColor {
     bool found;
 };
 
-@import ../color;
-@import ./healpix;
+@include "../color.glsl"
+@include "./healpix.glsl"
 
 vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);

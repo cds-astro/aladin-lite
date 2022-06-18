@@ -18,7 +18,7 @@ uniform int num_parallels;
 
 uniform vec2 window_size;
 
-@import ../hips/projection;
+@include "../hips/projection.glsl"
 
 bool is_included_inside_projection(vec2 pos_clip_space) {
     float px2 = pos_clip_space.x * pos_clip_space.x;

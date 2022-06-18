@@ -1,4 +1,4 @@
-const float PI = 3.1415926535897932384626433832795f;
+const float PI = 3.1415926535897932384626433832795;
 
 const mat4 GAL2J2000 = mat4(
     -0.4448296299195045,
@@ -52,17 +52,17 @@ vec2 world2clip_aitoff(vec3 p) {
     float delta = asin(p.y);
     float theta = atan(-p.x, p.z);
 
-    float theta_by_two = theta * 0.5f;
+    float theta_by_two = theta * 0.5;
 
     float alpha = acos(cos(delta)*cos(theta_by_two));
-    float inv_sinc_alpha = 1.f;
-    if (alpha > 1e-3f) {
+    float inv_sinc_alpha = 1.0;
+    if (alpha > 1e-3) {
         inv_sinc_alpha = alpha / sin(alpha);
     }
 
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left
-    float x = 2.f * inv_sinc_alpha * cos(delta) * sin(theta_by_two);
+    float x = 2.0 * inv_sinc_alpha * cos(delta) * sin(theta_by_two);
     float y = inv_sinc_alpha * sin(delta);
 
     return vec2(x / PI, y / PI);
@@ -79,22 +79,21 @@ vec2 world2clip_mollweide(vec3 p) {
     float cst = PI * sin(delta);
 
     float phi = delta;
-    float f = phi + sin(phi) - cst;
-
+    float dx = phi + sin(phi) - cst;
     int k = 0;
-    while (abs(f) > 1e-6 && k < max_iter) {
-        phi = phi - f / (1.f + cos(phi));
-        f = phi + sin(phi) - cst;
+    while (abs(dx) > 1e-6 && k < max_iter) {
+        phi = phi - dx / (1.0 + cos(phi));
+        dx = phi + sin(phi) - cst;
 
         k = k + 1;
     }
 
-    phi = phi * 0.5f;
+    phi = phi * 0.5;
 
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left
     float x = (-theta / PI) * cos(phi);
-    float y = 0.5f * sin(phi);
+    float y = 0.5 * sin(phi);
 
     return vec2(x, y);
 }
@@ -152,35 +151,35 @@ vec2 world2clip_gnomonic(vec3 p) {
 }
 
 // HEALPix projection
-const float TWICE_PI = 6.28318530718f;
-const float FOUR_OVER_PI = 1.27323954474f;
-const float TRANSITION_Z = 0.66666666666f;
-const float TRANSITION_Z_INV = 1.5f;
+const float TWICE_PI = 6.28318530718;
+const float FOUR_OVER_PI = 1.27323954474;
+const float TRANSITION_Z = 0.66666666666;
+const float TRANSITION_Z_INV = 1.5;
 
 float one_minus_z_pos(vec3 p) {
     //debug_assert!(z > 0.0);
     float d2 = dot(p.xy, p.xy); // z = sqrt(1 - d2) AND sqrt(1 - x) = 1 - x / 2 - x^2 / 8 - x^3 / 16 - 5 x^4/128 - 7 * x^5/256
 
-    if (d2 < 1e-1f) { // <=> dec > 84.27 deg
-        return d2 * (0.5f + d2 * (0.125f + d2 * (0.0625f + d2 * (0.0390625f + d2 * 0.02734375f))));
+    if (d2 < 1e-1) { // <=> dec > 84.27 deg
+        return d2 * (0.5 + d2 * (0.125 + d2 * (0.0625 + d2 * (0.0390625 + d2 * 0.02734375))));
     }
-    return 1.0f - p.z;
+    return 1.0 - p.z;
 }
 
 float one_minus_z_neg(vec3 p) {
     //debug_assert!(z < 0.0);
     float d2 = dot(p.xy, p.xy); // z = sqrt(1 - d2) AND sqrt(1 - x) = 1 - x / 2 - x^2 / 8 - x^3 / 16 - 5 x^4/128 - 7 * x^5/256
-    if (d2 < 1e-1f) { // <=> dec < -84.27 deg
+    if (d2 < 1e-1) { // <=> dec < -84.27 deg
         // 0.5 * d2 + 0.125 * d2 * d2
-        return d2 * (0.5f + d2 * (0.125f + d2 * (0.0625f + d2 * (0.0390625f + d2 * 0.02734375f))));
+        return d2 * (0.5 + d2 * (0.125 + d2 * (0.0625 + d2 * (0.0390625 + d2 * 0.02734375))));
     }
-    return p.z + 1.0f;
+    return p.z + 1.0;
 }
 
 vec2 xpm1_and_offset(vec2 p) {
-    int x_neg = int(p.x < 0.0f);
+    int x_neg = int(p.x < 0.0);
     //debug_assert!(x_neg <= 1);
-    int y_neg = int(p.y < 0.0f);
+    int y_neg = int(p.y < 0.0);
     //debug_assert!(y_neg <= 1);
     int offset = -(y_neg << 2) + 1 + ((x_neg ^ y_neg) << 1);
     // The purpose is to have the same numerical precision for each base cell
@@ -190,9 +189,9 @@ vec2 xpm1_and_offset(vec2 p) {
     float x02 = lon * FOUR_OVER_PI;
     //debug_assert!(0.0 <= x02 && x02 <= 2.0);
     if (x_neg != y_neg) { // Could be replaced by a sign copy from (x_neg ^ y_neg) << 32
-        return vec2(1.0f - x02, float(offset));
+        return vec2(1.0 - x02, float(offset));
     } else {
-        return vec2(x02 - 1.0f, float(offset));
+        return vec2(x02 - 1.0, float(offset));
     }
 }
 

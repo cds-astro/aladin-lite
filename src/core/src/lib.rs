@@ -75,7 +75,6 @@ use crate::app::AppTrait;
 use crate::app::AppType;
 use al_api::color::Color;
 use al_api::hips::ImageSurveyMeta;
-use al_api::hips::HiPSTileFormat;
 
 #[wasm_bindgen]
 impl WebClient {

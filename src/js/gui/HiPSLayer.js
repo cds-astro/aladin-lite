@@ -76,17 +76,17 @@ export class HiPSLayer {
         // - for JPG/PNG hipses, we do not use any colormap in the backend
         this.nameRadioColorChoice = encodeURIComponent(Utils.uuidv4());
         cmListStr += '<option>native</option>';
-        this.mainDiv = $('<div class="aladin-layer-main" style="display: none;">' +
+        this.mainDiv = $('<div class="aladin-frame" style="display: none;">' +
             '<table class="aladin-options"><tbody>' +
             '  <tr><td></td><td><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked> Color map</label> <label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color"> Color</label></td></tr>' +
             '  <tr><td>Color map</td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
-            '  <tr><td>Color</td><td><input type="color" id="color-radio" name="color-radio" value="#e66465" class="color-selector"><label for="color-radio">Color</label></td></tr>' +
+            '  <tr><td>Color</td><td><input type="color" id="color-radio" name="color-radio" value="#ff0000" class="color-selector"><label for="color-radio">Color</label></td></tr>' +
             '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +
             '  <tr><td>Stretch</td><td><select class="stretch"><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
             '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
             '  <tr><td>Min cut</td><td><input type="number" class="min-cut"></td></tr>' +
             '  <tr><td>Max cut</td><td><input type="number" class="max-cut"></td></tr>' +
-            '  <tr><td>Blending mode</td><td><select class="blending"><option>Additive</option><option selected>Default</option></select></td></tr>' +
+            '  <tr title="Additive will add the color of the layer with the previous ones"><td>Blending mode</td><td><select class="blending"><option>Additive</option><option selected>Default</option></select></td></tr>' +
             '  <tr><td>Opacity</td><td><input class="opacity" type="range" min="0" max="1" step="0.01"></td></tr>' +
             '</table> ' +
             '</div>');
@@ -95,18 +95,15 @@ export class HiPSLayer {
         this.#updateHiPSLayerOptions();
 
         let self = this;
-        this.layerChangedListener = (e) => {
+        this.layerChangedListener = function(e) {
             const survey = e.detail.survey;
 
             if (survey.layer === self.survey.layer) {
                 // Update the survey to the new one
                 self.survey = survey;
-
                 self.#updateHiPSLayerOptions();
-                self.#updateSurveysDropdownList();
-
             }
-
+            self.#updateSurveysDropdownList();
         };
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
     }
@@ -140,7 +137,11 @@ export class HiPSLayer {
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
-            var survey = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
+            let survey = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
+            if (self.hidden) {
+                survey.options.opacity = 0.0;
+            }
+
             const hpxImageSurvey = new HpxImageSurvey(
                 survey.url,
                 self.view,
@@ -154,14 +155,10 @@ export class HiPSLayer {
         hipsSelector.unbind("click");
         hipsSelector.click(function () {
             if (!self.hipsSelector) {
-                const layerName = self.survey.layer;
-                let fnURLSelected = function (url) {
-                    self.aladin.setOverlayImageLayer(url, null, layerName);
-                };
-                let fnIdSelected = function (id) {
-                    self.aladin.setOverlayImageLayer(id, null, layerName);
-                };
-                self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, fnURLSelected, fnIdSelected);
+                self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
+                    const layerName = self.survey.layer;
+                    self.aladin.setOverlayImageLayer(IDOrURL, null, layerName);
+                });
             }
             self.hipsSelector.show();
         });
@@ -186,7 +183,7 @@ export class HiPSLayer {
             let newOpacity = 0.0;
             if (self.hidden) {
                 self.lastOpacity = self.survey.getOpacity();
-                hideLayer.html('<p>&emsp;</p>');
+                hideLayer.text('');
             } else {
                 newOpacity = self.lastOpacity;
                 hideLayer.text('👁️');

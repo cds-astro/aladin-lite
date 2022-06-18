@@ -12,7 +12,7 @@ uniform float czf;
 uniform mat4 model;
 uniform sampler2D position_tex;
 
-@import ../projection;
+@include "../projection.glsl"
 
 void main() {
     vec2 uv = pos_clip_space * 0.5 + 0.5;

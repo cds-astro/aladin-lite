@@ -33,10 +33,9 @@ import  autocomplete from 'autocompleter';
 
  export class HiPSSelector {
 
-    constructor(parentDiv, fnURLSelected, fnIdSelected) {
+    constructor(parentDiv, fnIdSelected) {
         this.parentDiv = parentDiv;
 
-        this.fnURLSelected = fnURLSelected;
         this.fnIdSelected  = fnIdSelected;
 
         this.#createComponent();
@@ -44,33 +43,24 @@ import  autocomplete from 'autocompleter';
 
     #createComponent() {
         this.mainDiv = document.createElement('div');
-        this.mainDiv.classList.add('modal', 'modal-open', 'place-items-center', 'h-screen');
-        this.mainDiv.style.display = 'none';
+        this.mainDiv.style.display = 'block';
+        this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 
-        '<div class="modal-box bg-stone-100">' +
-          '<label class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>' +
-          '<h3 class="font-bold text-lg">Select HiPS:</h3>' +
-          '<br>' +
-            '<div tabindex="0" class="tabs">' +
-              '<a class="tab tab-lifted tab-active">By ID, title, keyword</a> ' +
-              '<a class="tab tab-lifted">By URL</a>' +
-            '</div>' +
+          '<a class="aladin-closeBtn">&times;</a>' +
+          '<div class="aladin-box-title">Select HiPS:</div>' +
+          '<div class="aladin-box-content">' +
+
+                '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
+                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword" />' +
+
             '<div>' +
-            '<div class="p-4">' +
-            '<input id="' + autocompleteId + '" type="text" placeholder="Type keyword" class="input input-bordered w-full max-w-xs" />' +
+                '<button class="aladin-btn">Select</button>' +
+                '<button class="aladin-btn aladin-cancelBtn">Cancel</button>' +
             '</div>' +
-            '<div class="hidden p-4">' +
-            '<input type="text" placeholder="Type root URL" class="input input-bordered w-full max-w-xs" />' +
-            '</div>' +
-         ' </div>' +
-            '<div class="flex space-x-2 justify-center pt-6">' +
-            '<button class="btn btn-primary btn-sm">Select</button>' +
-            '<button class="btn btn-outline btn-sm">Cancel</button>' +
-            '</div>' +
-            
-        '</div>');
+          '</div>'
+        );
 
         this.parentDiv.appendChild(this.mainDiv);
 
@@ -99,61 +89,33 @@ import  autocomplete from 'autocompleter';
             }
         });
 
-        // tab management
-        let firstTab = this.mainDiv.querySelectorAll('div div a')[0];
-        let secondTab = this.mainDiv.querySelectorAll('div div a')[1];
-        let firstTabContent = this.mainDiv.querySelectorAll('div div .p-4')[0];
-        let secondTabContent = this.mainDiv.querySelectorAll('div div .p-4')[1];
-
-
-        $(firstTab).click(function() {
-            $(secondTab).removeClass('tab-active');
-            $(firstTab).addClass('tab-active');
-            $(secondTabContent).hide();
-            $(firstTabContent).show();
-        });
-        $(secondTab).click(function() {
-            $(firstTab).removeClass('tab-active');
-            $(secondTab).addClass('tab-active');
-            $(firstTabContent).hide();
-            $(secondTabContent).show();
-        });
-
         // this modal is closed when clicking on the cross at the top right, or on the Cancel button
-        let closeBtn  = this.mainDiv.querySelectorAll('.btn-circle');
-        let cancelBtn = this.mainDiv.querySelectorAll('.btn-outline');
+        let [selectBtn, cancelBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
+        let [closeBtn]  = this.mainDiv.querySelectorAll('.aladin-closeBtn');
+
         var self = this;
         $(closeBtn).add($(cancelBtn)).click(function() {
             self.hide();
         });
 
         // when 'Select' is pressed, call the callbacks
-        let selectBtn = this.mainDiv.querySelectorAll('.btn-primary');
         $(selectBtn).click(function() {
-            let byIdSelected = $(self.mainDiv.querySelectorAll('div div a')[0]).hasClass('tab-active');
-
-            let idInput = self.mainDiv.querySelectorAll('div div .p-4')[0].querySelector('input');
-            let urlInput = self.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
+            let byIdSelected = self.mainDiv.querySelectorAll('input')[0];
 
             if (byIdSelected) {
-                self.fnIdSelected && self.fnIdSelected(idInput.value);
-            }
-            else {
-                self.fnURLSelected && self.fnURLSelected(urlInput.value);
+                self.fnIdSelected(byIdSelected.value);
             }
 
-            idInput.value = '';
-            urlInput.value = '';
+            byIdSelected.value = '';
         
             self.hide();
-
         });
 
     }
 
     show() {
-        this.mainDiv.style.display = 'flex';
-
+        this.mainDiv.style.display = 'block';
+        /*
         // focus on text field
         let byIdSelected = $(this.mainDiv.querySelectorAll('div div a')[0]).hasClass('tab-active');
         if (byIdSelected) {
@@ -163,7 +125,7 @@ import  autocomplete from 'autocompleter';
         else {
             let urlInput = this.mainDiv.querySelectorAll('div div .p-4')[1].querySelector('input');
             urlInput.focus();
-        }
+        }*/
     }
 
     hide() {

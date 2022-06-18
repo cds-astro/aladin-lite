@@ -28,11 +28,9 @@
  * 
  *****************************************************************************/
 
-import { HpxImageSurvey } from "../HpxImageSurvey.js";
 import { AladinUtils } from "../AladinUtils.js";
 import { Color } from "../Color.js";
 import { ALEvent } from "../events/ALEvent.js";
-import { HiPSSelector } from "./HiPSSelector.js";
 import { CatalogSelector } from "./CatalogSelector.js";
 import { HiPSLayer } from "./HiPSLayer.js";
 import { Utils } from "../Utils.js";
@@ -66,20 +64,22 @@ export class Stack {
         layerBox.empty();
 
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-            '<div style="clear: both;"></div>' +
-            '<div class="aladin-label">Base image layer</div>')
-        if (this.imgLayers.has("base")) {
-            this.imgLayers.get("base").attachTo(layerBox);
-        }
+        '<div class="aladin-box-title">Layer manager</div>'
+        )
 
         if (this.imgLayers.size > 1) {
             layerBox.append('<div class="aladin-label">Overlay image layers</div>')
 
-            this.imgLayers.forEach((imgLayer) => {
+            Array.from(this.imgLayers.values()).reverse().forEach((imgLayer) => {
                 if (imgLayer.survey.layer !== "base") {
                     imgLayer.attachTo(layerBox);
                 }
             });
+        }
+
+        layerBox.append('<div class="aladin-label">Base image layer</div>');
+        if (this.imgLayers.has("base")) {
+            this.imgLayers.get("base").attachTo(layerBox);
         }
 
         layerBox.append(
@@ -144,10 +144,6 @@ export class Stack {
         let searchCatalogBtn = layerBox.find('.catalogue-selector');
         searchCatalogBtn.click(function () {
             if (!self.catalogSelector) {
-                let fnURLSelected = function(url) {
-                    let catalogLayer = A.catalogFromURL(url, {onClick: 'showTable'});
-                    self.aladin.addCatalog(catalogLayer);
-                };
                 let fnIdSelected = function(type, params) {
                     if (type=='coneSearch') {
                         let catalogLayer = undefined;
@@ -165,9 +161,14 @@ export class Stack {
                         const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
                         self.aladin.addCatalog(hips);
                     }
+                    else if(type=='votable') {
+                        let catalogLayer = A.catalogFromURL(params.url, {onClick: 'showTable'});
+                        console.log(catalogLayer)
+                        self.aladin.addCatalog(catalogLayer);
+                    }
                 };
 
-                self.catalogSelector = new CatalogSelector(self.aladinDiv, self.aladin, fnURLSelected, fnIdSelected);
+                self.catalogSelector = new CatalogSelector(self.aladinDiv, self.aladin, fnIdSelected);
             }
             self.catalogSelector.show();
         });
@@ -204,7 +205,7 @@ export class Stack {
         let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
         let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
         let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" min="5" max="30" step="0.01"></td></tr></table></div>');
+        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" value="1.0" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" min="5" max="30" step="0.01"></td></tr></table></div>');
         labelCoordinatesGridCb.prepend(coordinatesGridCb);
         layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
         coordinatesGridCb.change(function () {

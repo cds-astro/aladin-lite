@@ -24,8 +24,8 @@ struct TileColor {
     bool found;
 };
 
-@import ../color_u;
-@import ./healpix;
+@include "../color_u.glsl"
+@include "./healpix.glsl"
 
 uniform float opacity;
 

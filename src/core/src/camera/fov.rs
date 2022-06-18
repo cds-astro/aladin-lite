@@ -1,6 +1,7 @@
-use cgmath::Matrix4;
+use cgmath::{Matrix4, Vector3};
 use cgmath::{Vector2, Vector4};
 
+use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::spherical::FieldOfViewType;
 
 pub type NormalizedDeviceCoord = Vector2<f64>;
@@ -63,7 +64,22 @@ pub struct FieldOfViewVertices {
     // Meridians and parallels contained
     // in the field of view
     great_circles: FieldOfViewType,
+    moc: HEALPixCoverage,
+    depth: u8,
 }
+
+fn create_view_moc(vertices: &[Vector4<f64>], inside: &Vector3<f64>) -> HEALPixCoverage {
+    let mut depth = 0;
+    let mut coverage = HEALPixCoverage::new(depth, vertices, inside);
+
+    while coverage.size() < 10 && depth < cdshealpix::DEPTH_MAX {
+        depth += 1;
+        coverage = HEALPixCoverage::new(depth, vertices, inside);
+    }
+
+    coverage
+}
+
 use crate::math::angle::Angle;
 use al_api::coo_system::CooSystem;
 impl FieldOfViewVertices {
@@ -98,17 +114,22 @@ impl FieldOfViewVertices {
             .as_ref()
             .map(|world_coo| world_to_model(world_coo, mat));
 
-        let great_circles = if let Some(vertices) = &model_coo {
-            FieldOfViewType::new_polygon(vertices, &center)
+
+        let (great_circles, moc) = if let Some(vertices) = &model_coo {
+            (FieldOfViewType::new_polygon(vertices, &center), create_view_moc(vertices, &center.truncate()))
         } else {
-            FieldOfViewType::Allsky
+            (FieldOfViewType::Allsky, HEALPixCoverage::allsky())
         };
+
+        let depth = moc.get_depth_max();
 
         FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
             great_circles,
+            moc,
+            depth
         }
     }
 
@@ -150,15 +171,27 @@ impl FieldOfViewVertices {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
+                self.moc = create_view_moc(vertices, &center.truncate());
+                self.depth = self.moc.get_depth_max();
+
             } else if let FieldOfViewType::Polygon { .. } = &self.great_circles {
                 self.great_circles = FieldOfViewType::Allsky;
+                self.moc = HEALPixCoverage::allsky();
+                self.depth = self.moc.get_depth_max();
             }
         } else {
             // We are too unzoomed => we plot the allsky grid
             if let FieldOfViewType::Polygon { .. } = &self.great_circles {
                 self.great_circles = FieldOfViewType::Allsky;
+                self.moc = HEALPixCoverage::allsky();
+                self.depth = self.moc.get_depth_max();
+
             }
         }
+    }
+
+    pub fn get_depth(&self) -> u8 {
+        self.depth
     }
 
     pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {

@@ -18,7 +18,7 @@ uniform int num_parallels;
 
 uniform vec2 window_size;
 
-@import ../hips/projection;
+@include "../hips/projection.glsl"
 
 vec3 clip2world_orthographic(vec2 pos_clip_space) {
     float z = 1.f - dot(pos_clip_space, pos_clip_space);

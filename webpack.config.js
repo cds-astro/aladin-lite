@@ -17,7 +17,7 @@ module.exports = {
         clean: true,
     },
     resolve: {
-        extensions: ['.js'],
+        extensions: ['.js', '.glsl', '.vert', '.frag'],
     },
     experiments: {
         asyncWebAssembly: true
@@ -80,7 +80,7 @@ module.exports = {
         }),*/
         //new VueLoaderPlugin()
     ],
-    devServer:{
+    devServer: {
         static: 'examples'
     },
     module: {
@@ -88,7 +88,14 @@ module.exports = {
             {
                 test: /\.(vert|frag|glsl)$/,
                 include: SHADER_PATH,
-                loader: 'webpack-glsl-loader',
+                use: {
+                    loader: 'webpack-glsl-minify',
+                    options: {
+                        output: 'source',
+                        preserveAll: true,
+                        //nomangle: ['texture'],
+                    }
+                }
             },
             {
                 test: /\.(png|svg|jpg|gif)$/,
@@ -102,9 +109,9 @@ module.exports = {
                 //sideEffects: true,
                 include: CSS_PATH,
                 use: [
-                  'style-loader',
-                  'css-loader',
-                  'postcss-loader'
+                    'style-loader',
+                    'css-loader',
+                    'postcss-loader'
                 ]
             },
         ],

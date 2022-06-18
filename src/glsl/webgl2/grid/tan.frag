@@ -18,7 +18,7 @@ uniform int num_parallels;
 
 uniform vec2 window_size;
 
-@import ../hips/projection;
+@include "../hips/projection.glsl"
 
 /// View to world space transformation
 /// 

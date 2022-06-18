@@ -282,6 +282,10 @@ impl CameraViewPort {
         self.gl.scissor(a.x as i32, a.y as i32, w as i32, h as i32);
     }*/
 
+    pub fn depth(&self) -> u8 {
+        self.vertices.get_depth()
+    }
+
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);

@@ -8,12 +8,12 @@ out vec4 color;
 uniform sampler2D texture_fbo;
 uniform float alpha;
 
-@import ./colormap;
+@include "./colormap.glsl"
 
 void main() {
     float opacity = texture(texture_fbo, out_uv).r;
 
-    float o = smoothstep(0.f, 0.1f, opacity);
+    float o = smoothstep(0.0, 0.1, opacity);
 
     color = colormap_f(opacity);
     color.a = o * alpha;

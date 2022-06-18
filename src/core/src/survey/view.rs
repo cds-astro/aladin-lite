@@ -44,7 +44,7 @@ pub fn get_cells_in_camera(
         let icrsj2000_inside_pos =
             coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
         // Prefer to query from_polygon with depth >= 2
-        let coverage = healpix::coverage::from_polygon(
+        let coverage = healpix::coverage::HEALPixCoverage::new(
             depth,
             &icrsj2000_fov_vertices_pos[..],
             &icrsj2000_inside_pos.truncate(),
@@ -105,7 +105,8 @@ impl HEALPixCellsInView {
     ) {
         // Compute that depth
         //let new_depth = depth_from_pixels_on_screen(camera, texture_size);
-        let new_depth = depth_from_pixels_on_screen(camera, 512);
+        //let new_depth = depth_from_pixels_on_screen(camera, 512);
+        let new_depth = camera.depth();
 
         self.depth = new_depth.min(max_depth);
         // Get the cells of that depth in the current field of view

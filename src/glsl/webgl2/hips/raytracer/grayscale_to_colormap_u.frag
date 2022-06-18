@@ -20,8 +20,8 @@ uniform Tile textures_tiles[12];
 
 uniform float opacity;
 
-@import ../color_u;
-@import ./healpix;
+@include "../color_u.glsl"
+@include "./healpix.glsl"
 
 vec4 get_tile_color(vec3 pos) {
     HashDxDy result = hash_with_dxdy(0, pos.zxy);

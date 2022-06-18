@@ -12,34 +12,6 @@ use al_core::{
     VecData,
 };
 
-
-/*fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort, reversed_longitude: bool) -> u8 {
-    let skewed_factor = get_skewed_factor::<P>(cell, camera, reversed_longitude);
-
-    if skewed_factor > 0.8 {
-        0
-    } else {
-        let mut subdivide_further = false;
-        for child_cell in cell.get_children_cells(1) {
-            let child_cell_skewed_factor = get_skewed_factor::<P>(&child_cell, camera, reversed_longitude);
-            if child_cell_skewed_factor > skewed_factor {
-                subdivide_further = true;
-                break;
-            }
-        }
-
-        if !subdivide_further {
-            0
-        } else {
-            cell.get_children_cells(1)
-                .map(|child_cell| {
-                    num_subdivision::<P>(&child_cell, camera, reversed_longitude)
-                })
-                .fold(std::u8::MIN, |a, b| a.max(b)) + 1
-        }
-    }
-}*/
-
 fn num_subdivision(cell: &HEALPixCell) -> u8 {
     let d = cell.depth();
     const MAX_SUBDIVISION: u8 = 4;

@@ -22,10 +22,10 @@ uniform float czf;
 // current time in ms
 uniform float current_time;
 
-@import ../projection;
+@include "../projection.glsl"
 
 void main() {
-    vec3 world_pos = vec3(inv_model * vec4(position, 1.f));
+    vec3 world_pos = vec3(inv_model * vec4(position, 1.0));
     //world_pos = check_inversed_longitude(world_pos);
 
     vec2 ndc_pos = world2clip_orthographic(world_pos) / (ndc_to_clip * czf);
@@ -34,7 +34,7 @@ void main() {
     frag_uv_start = uv_start;
     frag_uv_end = uv_end;
 
-    frag_blending_factor = min((current_time - time_tile_received) / 500.f, 1.f);
+    frag_blending_factor = min((current_time - time_tile_received) / 500.0, 1.0);
     m_start = m0;
     m_end = m1;
 }

@@ -13,7 +13,7 @@ in float m_end;
 out vec4 out_frag_color;
 uniform float opacity;
 
-@import ../color;
+@include "../color.glsl"
 
 void main() {
     vec4 color_start = get_color_from_texture(frag_uv_start);

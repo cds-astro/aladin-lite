@@ -18,8 +18,8 @@ struct Tile {
 
 uniform Tile textures_tiles[12];
 
-@import ../color;
-@import ./healpix;
+@include "../color.glsl"
+@include "./healpix.glsl"
 
 uniform float opacity;
 

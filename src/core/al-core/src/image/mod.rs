@@ -251,14 +251,6 @@ where
             image.tex_sub_image_3d(textures, offset);
         }
     }
-
-    /*fn get_size(&self) -> &Vector2<i32> {
-        if let Some(image) = &*self.lock().unwrap() {
-            image.get_size()
-        } else {
-            unreachable!();
-        }
-    }*/
 }
 
 use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};

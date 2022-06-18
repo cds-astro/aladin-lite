@@ -17,8 +17,8 @@ uniform float size_tile_uv;
 
 uniform int tex_storing_fits;
 
-@import ../colormaps/colormap;
-@import ./transfer_funcs;
+@include "../colormaps/colormap.glsl"
+@include "./transfer_funcs.glsl"
 
 vec4 get_pixels(vec3 uv) {
     int idx_texture = int(uv.z);

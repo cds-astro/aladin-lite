@@ -29,7 +29,6 @@
  *****************************************************************************/
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
-import { convertToHsl } from "daisyui/src/colors/functions";
 import { ALEvent } from "./events/ALEvent.js";
 
 export async function fetchSurveyProperties(rootURLOrId) {
@@ -233,12 +232,16 @@ export let HpxImageSurvey = (function() {
             // HiPS frame
             self.options.cooFrame = self.options.cooFrame || metadata.hips_frame;
             let frame = null;
-            if (self.options.cooFrame == "ICRS" || self.options.cooFrame == "ICRSd" || self.options.cooFrame == "equatorial") {
+            if (self.options.cooFrame == "ICRS" || self.options.cooFrame == "ICRSd" || self.options.cooFrame == "equatorial" || self.options.cooFrame == "j2000") {
                 frame = "ICRSJ2000";
             } else if (self.options.cooFrame == "galactic") {
                 frame = "GAL";
+            } else if (self.options.cooFrame === undefined) {
+                frame = "ICRSJ2000";
+                console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
             } else {
-                throw 'Coordinate systems supported: "ICRS", "ICRSd" or "galactic"';
+                frame = "ICRSJ2000";
+                console.warn('Invalid cooframe given: ' + self.options.cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
             }
 
             // HiPS grayscale
@@ -316,7 +319,7 @@ export let HpxImageSurvey = (function() {
             }
 
             // If the layer has been set then it is linked to the aladin lite view
-            // Update the layer
+            // so we add it
             if (self.added) {
                 self.backend.setOverlayImageSurvey(self, self.layer);
             }

@@ -795,15 +795,8 @@ impl ImageSurvey {
         );
     }
 
-    fn refresh_view(&mut self, camera: &CameraViewPort) {
-        let cfg = self.textures.config();
-
-        //let tile_size = cfg.get_tile_size();
-        let max_depth = cfg.get_max_depth();
-        let hips_frame = cfg.frame;
-
-        //self.view.refresh_cells(512, max_depth, camera, hips_frame);
-        self.view.refresh_cells(max_depth, camera, hips_frame);
+    fn refresh_view(&mut self, new_depth: u8, cells: &[HEALPixCell], camera: &CameraViewPort) {
+        self.view.refresh_cells(new_depth, cells, camera);
     }
 
     // Return a boolean to signal if the tile is present or not in the survey
@@ -1321,8 +1314,25 @@ impl ImageSurveys {
     }
 
     pub fn refresh_views(&mut self, camera: &CameraViewPort) {
+        let mut coverages = HashMap::new();
         for survey in self.surveys.values_mut() {
-            survey.refresh_view(camera);
+            let cfg = survey.get_config();
+
+            let max_depth = cfg.get_max_depth();
+            let hips_frame = cfg.frame;
+            // Compute that depth
+            //let new_depth = depth_from_pixels_on_screen(camera, texture_size);
+            //let new_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+            let new_depth = camera.depth();
+    
+            let depth = new_depth.min(max_depth);
+            // Get the cells of that depth in the current field of view
+            if !coverages.contains_key(&depth) {
+                coverages.insert(depth, crate::survey::view::get_cells_in_camera(depth, camera, hips_frame));
+            };
+
+            let cells = coverages.get(&depth).unwrap();
+            survey.refresh_view(depth, cells, camera);
         }
     }
 

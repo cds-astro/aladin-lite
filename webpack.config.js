@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 var ROOT_PATH = path.resolve(__dirname);
 var SHADER_PATH = path.resolve(ROOT_PATH, 'src/glsl');
@@ -24,6 +25,7 @@ module.exports = {
     },
     optimization: {
         minimize: true,
+        minimizer: [new TerserPlugin()],
     },
     plugins: [
         // WebGL2 app
@@ -111,12 +113,11 @@ module.exports = {
                 use: [
                     'style-loader',
                     'css-loader',
-                    'postcss-loader'
                 ]
             },
         ],
     },
-    mode: 'development',
-    //mode: 'production',
+    //mode: 'development',
+    mode: 'production',
     devtool: 'source-map'
 };

@@ -99,20 +99,13 @@ impl HEALPixCellsInView {
     // The new cells obtained are used for sending new requests
     pub fn refresh_cells(
         &mut self,
-        /*texture_size: i32,*/ max_depth: u8,
+        new_depth: u8,
+        cells: &[HEALPixCell],
         camera: &CameraViewPort,
-        hips_frame: CooSystem,
     ) {
-        // Compute that depth
-        //let new_depth = depth_from_pixels_on_screen(camera, texture_size);
-        //let new_depth = depth_from_pixels_on_screen(camera, 512);
-        let new_depth = camera.depth();
-
-        self.depth = new_depth.min(max_depth);
-        // Get the cells of that depth in the current field of view
-        let cells = get_cells_in_camera(self.depth, camera, hips_frame);
+        self.depth = new_depth;
         // Update cells in the fov
-        self.update_cells_in_fov(&cells, camera);
+        self.update_cells_in_fov(cells, camera);
     }
 
     fn update_cells_in_fov(&mut self, cells_in_fov: &[HEALPixCell], camera: &CameraViewPort) {

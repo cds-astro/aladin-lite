@@ -104,15 +104,11 @@ export let Aladin = (function () {
 
         $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
 
-
-
         this.aladinDiv = aladinDiv;
 
         this.reduceDeformations = true;
         // parent div
         $(aladinDiv).addClass("aladin-container");
-
-
         var cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
         // locationDiv is the div where we write the position
         var locationDiv = $('<div class="aladin-location">'

@@ -86,11 +86,11 @@ export class HiPSLayer {
             '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
             '  <tr><td>Min cut</td><td><input type="number" class="min-cut"></td></tr>' +
             '  <tr><td>Max cut</td><td><input type="number" class="max-cut"></td></tr>' +
-            '  <tr title="Additive will add the color of the layer with the previous ones"><td>Blending mode</td><td><select class="blending"><option>Additive</option><option selected>Default</option></select></td></tr>' +
+            '  <tr title="Add the color of different bandwidth HiPSes thanks to the additive mode"><td>Blending mode</td><td><select class="blending"><option>Additive</option><option selected>Default</option></select></td></tr>' +
             '  <tr><td>Opacity</td><td><input class="opacity" type="range" min="0" max="1" step="0.01"></td></tr>' +
             '</table> ' +
             '</div>');
-        
+
         this.#addListeners();
         this.#updateHiPSLayerOptions();
 
@@ -204,12 +204,16 @@ export class HiPSLayer {
 
         // MAIN DIV listeners
         // blending method
-        const blendingSelector = this.mainDiv.find('.blending').eq(0);
-        blendingSelector.unbind("change");
-        blendingSelector.change(function () {
-            let mode = blendingSelector.val()
-            self.survey.setBlendingConfig( mode === "Additive" );
-        });
+        if (self.survey.layer === "base") {
+            this.mainDiv.find('tr').eq(8).hide();
+        } else {
+            const blendingSelector = this.mainDiv.find('.blending').eq(0);
+            blendingSelector.unbind("change");
+            blendingSelector.change(function () {
+                let mode = blendingSelector.val()
+                self.survey.setBlendingConfig( mode === "Additive" );
+            });
+        }
 
         // image format
         const format4ImgLayer = this.mainDiv.find('.format').eq(0);

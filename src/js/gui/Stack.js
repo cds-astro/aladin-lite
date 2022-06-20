@@ -320,7 +320,7 @@ export class Stack {
 
             const headerClassName = "aladin-layer-header-" + layerName;
             let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-            headerLayerElement.style.backgroundColor = "#aaa";
+            headerLayerElement.style.backgroundColor = "#228bca";
 
             self.aladin.view.setActiveHiPSLayer(layerName);
 

@@ -44,7 +44,7 @@ import  autocomplete from 'autocompleter';
     #createComponent() {
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
-        this.mainDiv.classList.add('aladin-dialog', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 

@@ -55,7 +55,7 @@ import  autocomplete from 'autocompleter';
         '<div class="aladin-box-title">Select Catalogue:</div>' +
         '<div class="aladin-box-content">' +
             '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
-            '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword or VOTable URL" />' +
+            '<input style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword or VOTable URL" />' +
             '<div class="aladin-row">' +
                 '<div class="cone-search aladin-col">' +
                     '<div><input type="number" value="1.0"><select><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +

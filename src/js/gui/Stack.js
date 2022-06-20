@@ -50,7 +50,7 @@ export class Stack {
         parentDiv.appendChild(this.mainDiv);
 
         this.imgLayers = new Map();
-        //this.imgLayers.set("base", new HiPSLayer(this.aladin, this.view, "base"));
+        this.selectedLayer = undefined;
 
         this.#createComponent();
         this.#addListeners();
@@ -306,6 +306,25 @@ export class Stack {
             const layerName = e.detail;
             // Just call remove as it will send a HIPS_LAYER_REMOVED after
             self.aladin.removeImageSurvey(layerName);
+        });
+
+        this.aladin.aladinDiv.addEventListener('select-layer', e => {
+            const layerName = e.detail;
+            
+            // Update the color of the selected element
+            if (self.selectedLayer) {
+                const headerClassName = "aladin-layer-header-" + self.selectedLayer;
+                let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
+                headerLayerElement.style.backgroundColor = "#eee";
+            }
+
+            const headerClassName = "aladin-layer-header-" + layerName;
+            let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
+            headerLayerElement.style.backgroundColor = "#aaa";
+
+            self.aladin.view.setActiveHiPSLayer(layerName);
+
+            self.selectedLayer = layerName;
         });
 
         // Events coming from the AL core

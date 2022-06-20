@@ -253,7 +253,9 @@ where
     }
 }
 
-use crate::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+#[cfg(feature = "webgl2")]
+use crate::image::format::{R16I, R32I, R8UI, R64F};
+use crate::image::format::{R32F, RGB8U, RGBA8U};
 
 use bitmap::Bitmap;
 use fits::Fits;
@@ -261,6 +263,7 @@ use raw::ImageBuffer;
 #[derive(Debug)]
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
+    FitsImageR64f { image: Fits<R64F> },
     FitsImageR32f { image: Fits<R32F> },
     FitsImageR32i { image: Fits<R32I> },
     FitsImageR16i { image: Fits<R16I> },
@@ -295,6 +298,14 @@ impl Image for ImageType {
         offset: &Vector3<i32>,
     ) {
         match self {
+            ImageType::FitsImageR64f { image } => {
+                let size = image.get_size();
+                let slice = unsafe { std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr as *const f64, (size.x as usize) * (size.y as usize) ) };
+                let data = slice.iter().map(|&v| v as f32).collect();
+                crate::log(&format!("size array2 {:?}", size));
+                let image = ImageBuffer::<R32F>::new(data, size.x, size.y);
+                image.tex_sub_image_3d(textures, offset)
+            },
             ImageType::FitsImageR32f { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::FitsImageR32i { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::FitsImageR16i { image } => image.tex_sub_image_3d(textures, offset),

@@ -27,7 +27,10 @@ impl<F> Fits<F>
 where
     F: FitsImageFormat,
 {
-    pub fn new(fits_raw_bytes: &js_sys::Uint8Array) -> Result<Self, JsValue> {
+    pub fn new(fits_raw_bytes: &js_sys::Uint8Array) -> Result<Self, JsValue>
+    where
+        <F as FitsImageFormat>::Type: std::fmt::Debug
+    {
         // Create a correctly aligned buffer to the type F
         let align = std::mem::size_of::<F::Type>();
         let layout = Layout::from_size_align(fits_raw_bytes.length() as usize, align)
@@ -105,6 +108,10 @@ where
             aligned_data_raw_bytes_ptr: data.as_ptr(),
         })
     }
+
+    pub fn get_size(&self) -> &Vector2<i32> {
+        &self.size
+    }
 }
 
 use crate::image::Image;
@@ -170,6 +177,7 @@ pub trait FitsImageFormat: ImageFormat {
     unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView;
 }
 
+use crate::image::R32F;
 impl FitsImageFormat for R32F {
     type Type = f32;
     type ArrayBufferView = js_sys::Float32Array;
@@ -178,7 +186,20 @@ impl FitsImageFormat for R32F {
         Self::ArrayBufferView::view(s)
     }
 }
-use crate::image::{R16I, R32F, R32I, R8UI};
+
+#[cfg(feature = "webgl2")]
+use crate::image::{R16I, R32I, R8UI, R64F};
+#[cfg(feature = "webgl2")]
+impl FitsImageFormat for R64F {
+    type Type = f64;
+
+    type ArrayBufferView = js_sys::Float64Array;
+
+    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
+}
+
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R32I {
     type Type = i32;

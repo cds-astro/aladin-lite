@@ -120,6 +120,31 @@ impl ImageFormat for R32F {
     const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
 }
 
+
+#[cfg(feature = "webgl2")]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct R64F;
+#[cfg(feature = "webgl2")]
+impl ImageFormat for R64F {
+    type P = [f32; 1];
+
+    const NUM_CHANNELS: usize = 1;
+    const EXT: &'static str = "fits";
+
+    #[cfg(feature = "webgl2")]
+    const FORMAT: u32 = WebGlRenderingCtx::RED as u32;
+    #[cfg(feature = "webgl1")]
+    const FORMAT: u32 = WebGlRenderingCtx::LUMINANCE as u32;
+
+    #[cfg(feature = "webgl2")]
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32F as i32;
+    #[cfg(feature = "webgl1")]
+    const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
+
+    const TYPE: u32 = WebGlRenderingCtx::FLOAT;
+    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+}
+
 #[cfg(feature = "webgl2")]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct R8UI;
@@ -176,6 +201,8 @@ pub enum ImageFormatType {
     RGB8U,
     R32F,
     #[cfg(feature = "webgl2")]
+    R64F,
+    #[cfg(feature = "webgl2")]
     R8UI,
     #[cfg(feature = "webgl2")]
     R16I,
@@ -191,6 +218,7 @@ impl ImageFormatType {
             ImageFormatType::RGBA8U => RGBA8U::EXT,
             ImageFormatType::RGB8U => RGB8U::EXT,
             ImageFormatType::R32F => R32F::EXT,
+            ImageFormatType::R64F => R64F::EXT,
             #[cfg(feature = "webgl2")]
             ImageFormatType::R8UI => R8UI::EXT,
             #[cfg(feature = "webgl2")]

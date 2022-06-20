@@ -44,7 +44,7 @@ import  autocomplete from 'autocompleter';
     #createComponent() {
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
-        this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
+        this.mainDiv.classList.add('aladin-dialog', 'aladin-cb-list');
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 
@@ -53,7 +53,7 @@ import  autocomplete from 'autocompleter';
           '<div class="aladin-box-content">' +
 
                 '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
-                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword" />' +
+                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type ID, title, keyword or URL" />' +
 
             '<div>' +
                 '<button class="aladin-btn">Select</button>' +

@@ -165,9 +165,8 @@ export let View = (function() {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.selectedGrayscaleSurvey = null;
-        this.cutMinInit = null;
-        this.cutMaxInit = null;
+        this.selectedSurveyLayer = null;
+
         this.needRedraw = true;
 
         // two-fingers rotation
@@ -343,46 +342,14 @@ export let View = (function() {
     };
 
 
-    /**
-     * Compute the FoV in degrees of the view and update mouseMoveIncrement
-     * 
-     * @param view
-     * @returns FoV (array of 2 elements : width and height) in degrees
-     */
-/*   function computeFov(view) {
-        var fov = doComputeFov(view, view.zoomFactor);
-        
-        
-        view.mouseMoveIncrement = fov/view.imageCanvas.width;
-            
-        return fov;
-    }
-
-    function doComputeFov(view, zoomFactor) {
-        // if zoom factor < 1, we view 180°
-        var fov;
-        if (view.zoomFactor<1) {
-            fov = 180.0;
-            //fov = 360;
-        }
-        else {
-            // TODO : fov sur les 2 dimensions !!
-            // to compute FoV, we first retrieve 2 points at coordinates (0, view.cy) and (width-1, view.cy)
-            var xy1 = AladinUtils.viewToXy(0, view.cy, view.width, view.height, view.largestDim, zoomFactor);
-            var lonlat1 = view.projection.unproject(xy1.x, xy1.y);
-            
-            var xy2 = AladinUtils.viewToXy(view.imageCanvas.width-1, view.cy, view.width, view.height, view.largestDim, zoomFactor);
-            var lonlat2 = view.projection.unproject(xy2.x, xy2.y);
-            
-            
-            fov = new Coo(lonlat1.ra, lonlat1.dec).distance(new Coo(lonlat2.ra, lonlat2.dec));
+    View.prototype.setActiveHiPSLayer = function(layer) {
+        if (!this.imageSurveys.has(layer)) {
+            throw layer + ' does not exists. So cannot be selected';
         }
 
-        fov = Math.min(180.0, fov);
-        
-        return fov;
-    }
-    */
+        this.selectedSurveyLayer = layer;
+    };
+
     View.prototype.updateFovDiv = function() {
         if (isNaN(this.fov)) {
             this.fovDiv.html("FoV:");
@@ -433,6 +400,9 @@ export let View = (function() {
             e.preventDefault(); 
         }, false);
 
+        let cutMinInit = null
+        let cutMaxInit = null;
+
         $(view.catalogCanvas).bind("mousedown touchstart", function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -444,36 +414,25 @@ export let View = (function() {
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
-                // Check if there is at least one fits image layer
-                // if there is one, choose the last
-                let survey = null;
-                for (let layer of view.overlayLayers
-                    // creates a shallow copy, overlayLayers will not change
-                    .slice()
-                    .reverse()) {
-                    const s = view.imageSurveys.get(layer);
-                    // We take the first grayscale hips
-                    if (!s.colored) {
-                        survey = s;
-                        break;
-                    }
-                }
-
+                const survey = view.imageSurveys.get(view.selectedSurveyLayer);
                 if (survey) {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    if (survey.fits) {
-                        // properties default cuts always refers to fits tiles
-                        view.cutMinInit = survey.properties.minCutout || survey.options.minCut;
-                        view.cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
+                    if (!survey.colored) {
+                        if (survey.fits) {
+                            // properties default cuts always refers to fits tiles
+                            cutMinInit = survey.properties.minCutout || survey.options.minCut;
+                            cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
+                        } else {
+                            cutMinInit = survey.options.minCut;
+                            cutMaxInit = survey.options.maxCut;
+                        }
                     } else {
-                        view.cutMinInit = survey.options.minCut;
-                        view.cutMaxInit = survey.options.maxCut;
+                        // todo: contrast
                     }
                 }
 
-                view.selectedGrayscaleSurvey = survey;
                 return;
             }
 
@@ -581,7 +540,7 @@ export let View = (function() {
 
             if (e.type==="mouseout" || e.type==="touchend") {
                 //view.requestRedraw();
-                updateLocation(view, view.width/2, view.height/2, true);
+                view.updateLocation(true);
 
 
                 if (e.type==="mouseout") {
@@ -680,24 +639,27 @@ export let View = (function() {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.selectedGrayscaleSurvey) {
-                // we try to match DS9 contrast adjustment behaviour with right click
-                const cs = {
-                    x: view.catalogCanvas.clientWidth * 0.5,
-                    y: view.catalogCanvas.clientHeight * 0.5,
-                };
-                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
-                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+            if (view.rightClick && view.selectedSurveyLayer) {
+                let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
+                if (!selectedSurvey.colored) {
+                    // we try to match DS9 contrast adjustment behaviour with right click
+                    const cs = {
+                        x: view.catalogCanvas.clientWidth * 0.5,
+                        y: view.catalogCanvas.clientHeight * 0.5,
+                    };
+                    const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                    const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
-                const offset = (view.cutMaxInit - view.cutMinInit) * cx;
+                    const offset = (cutMaxInit - cutMinInit) * cx;
 
-                const lr = offset + (1.0 - 2.0*cy)*view.cutMinInit;
-                const rr = offset + (1.0 + 2.0*cy)*view.cutMaxInit;
-                if (lr <= rr) {
-                    view.selectedGrayscaleSurvey.setCuts([lr, rr])
+                    const lr = offset + (1.0 - 2.0*cy)*cutMinInit;
+                    const rr = offset + (1.0 + 2.0*cy)*cutMaxInit;
+                    if (lr <= rr) {
+                        selectedSurvey.setCuts([lr, rr])
+                    }
+
+                    return;
                 }
-
-                return;
             }
 
             if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
@@ -725,7 +687,7 @@ export let View = (function() {
 
             if (!view.dragging || hasTouchEvents) {
                 // update location box
-                updateLocation(view, xymouse.x, xymouse.y);
+                view.updateLocation(true);
                 // call listener of 'mouseMove' event
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
@@ -832,43 +794,18 @@ export let View = (function() {
                   return;
             }
 
-            //view.viewCenter.lon += xoffset*view.mouseMoveIncrement/Math.cos(view.viewCenter.lat*Math.PI/180.0);
-            /*
-            view.viewCenter.lon += xoffset*view.mouseMoveIncrement;
-            view.viewCenter.lat += yoffset*view.mouseMoveIncrement;
-            */
-            
-            //view.viewCenter.lon = pos2.ra -  pos1.ra;
-            //view.viewCenter.lat = pos2.dec - pos1.dec;
-            //view.viewCenter.lon = pos2.ra;
-            //view.viewCenter.lon = pos2.ra;
-
-            
-            // can not go beyond poles
-            if (view.viewCenter.lat>90) {
-                view.viewCenter.lat = 90;
-            }
-            else if (view.viewCenter.lat < -90) {
-                view.viewCenter.lat = -90;
-            }
-            
-            // limit lon to [0, 360]
-            if (view.viewCenter.lon < 0) {
-                view.viewCenter.lon = 360 + view.viewCenter.lon;
-            }
-            else if (view.viewCenter.lon > 360) {
-                view.viewCenter.lon = view.viewCenter.lon % 360;
-            }
             view.realDragging = true;
 
             //webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
             view.aladin.webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
             //webglAPI.setCenter(pos2[0], pos2[1]);
-            let viewCenter = view.aladin.webglAPI.getCenter();
-            view.viewCenter.lon = viewCenter[0];
-            view.viewCenter.lat = viewCenter[1];
-
-            //view.requestRedraw();
+            const [ra, dec] = view.aladin.webglAPI.getCenter();
+            view.viewCenter.lon = ra;
+            view.viewCenter.lat = dec;
+            if (view.viewCenter.lon < 0.0) {
+                view.viewCenter.lon += 360.0;
+            }
+            view.updateLocation(true);
         }); //// endof mousemove ////
         
         // disable text selection on IE
@@ -977,25 +914,14 @@ export let View = (function() {
         //view.redraw();
     };
 
-    function updateLocation(view, x, y, isViewCenterPosition) {
-        if (!view.projection) {
+    View.prototype.updateLocation = function(isViewCenterPosition) {
+        if (!this.projection) {
             return;
         }
         //var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
 
-        var lonlat;
-        try {
-            lonlat = view.aladin.webglAPI.screenToWorld(x, y);
-        } catch(err) {
-        }
-        
-        if (lonlat) {
-            let [lon, lat] = lonlat;
-
-            if (lon < 0.0) {
-                lon += 360.0;
-            }
-            view.location.update(lon, lat, view.cooFrame, isViewCenterPosition);
+        if(this.viewCenter) {
+            this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, isViewCenterPosition);
         }
     }
     
@@ -1662,6 +1588,10 @@ export let View = (function() {
         // Update the backend
         this.updateImageLayerStack();
 
+        if (this.selectedSurveyLayer === layer) {
+            this.selectedSurveyLayer = null;
+        }
+
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
     };
 
@@ -1676,19 +1606,44 @@ export let View = (function() {
         const layerAlreadyContained = this.imageSurveys.has(layer);
         // Replace it anyway
         this.imageSurveys.set(layer, survey);
-        this.updateImageLayerStack();
+        try {
+            this.updateImageLayerStack();
 
-        // Merge the options of the waiting survey with the received one
-        const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
-        const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
-        survey.setOptions(waitingOptions);
-        // Once the layer is added one can remove it from the waiting list of surveys
-        this.imageSurveysWaitingList.delete(layer);
+            // Merge the options of the waiting survey with the received one
+            const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
+            const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
+            survey.setOptions(waitingOptions);
+            // Once the layer is added one can remove it from the waiting list of surveys
+            this.imageSurveysWaitingList.delete(layer);
 
-        if (layerAlreadyContained) {
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
-        } else {
-            ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, {survey: survey});
+            if (layerAlreadyContained) {
+                if (this.selectedSurveyLayer && this.selectedSurveyLayer === layer) {
+                    this.selectedSurveyLayer = layer;
+                }
+
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
+            } else {
+                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, {survey: survey});
+            }
+        } catch(e) {
+            // En error occured while loading the HiPS
+            // Remove it from the View
+            // - First, from the image dict
+            this.imageSurveys.delete(layer);
+            // - Secondly, from the waiting survey list
+            this.imageSurveysWaitingList.delete(layer);
+            
+            // Tell the survey object that it is not linked to the view anymore
+            survey.added = false;
+
+            // Finally delete the layer
+            const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
+            if (idxOverlaidSurveyFound >= 0) {    
+                // Remove it from the layer stack
+                this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
+            }
+
+            throw 'Error loading the HiPS ' + survey + ':' + e;
         }
     };
 
@@ -1795,7 +1750,12 @@ export let View = (function() {
         }
 
         // Get the new view center position (given in icrsj2000)
-        this.viewCenter = this.aladin.webglAPI.getCenter();
+        let [ra, dec] = this.aladin.webglAPI.getCenter();
+        this.viewCenter.lon = ra;
+        this.viewCenter.lat = dec;
+        if (this.viewCenter.lon < 0.0) {
+            this.viewCenter.lon += 360.0;
+        }
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         this.requestRedraw();
@@ -1855,11 +1815,13 @@ export let View = (function() {
         }
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
-
+        if (this.viewCenter.lon < 0.0) {
+            this.viewCenter.lon += 360.0;
+        }
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation
-        this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        //this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         
         this.requestRedraw();

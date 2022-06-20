@@ -47,7 +47,7 @@ export class HiPSLayer {
         // HiPS header div
         if (this.survey.layer === "base") {
             this.headerDiv = $(
-                '<div class=".aladin-layer-header">' +
+                '<div class="aladin-layer-header-' + survey.layer + '">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
                 '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
@@ -56,7 +56,7 @@ export class HiPSLayer {
             );
         } else {
             this.headerDiv = $(
-                '<div class=".aladin-layer-header">' +
+                '<div class="aladin-layer-header-' + survey.layer + '">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
                 '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search a specific HiPS">🔍</button>' +
@@ -114,7 +114,6 @@ export class HiPSLayer {
 
     #addListeners() {
         const self = this;
-
         // HEADER DIV listeners
         // Click opener
         const clickOpener = this.headerDiv.find('.indicator');
@@ -124,6 +123,10 @@ export class HiPSLayer {
                 clickOpener.removeClass('right-triangle');
                 clickOpener.addClass('down-triangle');
                 self.mainDiv.slideDown(300);
+
+                self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
+                    detail: self.survey.layer
+                }));
             }
             else {
                 clickOpener.removeClass('down-triangle');
@@ -148,6 +151,10 @@ export class HiPSLayer {
                 survey.options
             );
             self.aladin.setOverlayImageLayer(hpxImageSurvey, null, self.survey.layer);
+
+            self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
+                detail: self.survey.layer
+            }));
         });
 
         // Search HiPS button

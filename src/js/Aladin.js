@@ -943,21 +943,20 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.increaseZoom = function (step) {
-        //if (!step) {
-        //    step = 5;
-        //}
-        //this.view.setZoomLevel(this.view.zoomLevel + step);
+    Aladin.prototype.increaseZoom = function () {
         this.view.increaseZoom();
     };
 
-    Aladin.prototype.decreaseZoom = function (step) {
-        //if (!step) {
-        //    step = 5;
-        //}
-        //this.view.setZoomLevel(this.view.zoomLevel - step);
+    Aladin.prototype.decreaseZoom = function () {
         this.view.decreaseZoom();
     };
+
+    // @api
+    // Set the current layer that is targeted
+    // Rightclicking for changing the cuts is done the targeted layer
+    Aladin.prototype.setActiveHiPSLayer = function (layer) {
+        this.view.setActiveHiPSLayer(layer);
+    }
 
     Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {
         return new ProgressiveCat(url, frame, maxOrder, options);

@@ -93,6 +93,22 @@ impl From<query::Tile> for TileRequest {
                 let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
                 Ok(ImageType::FitsImageR32f { image })
             }),
+            ImageFormatType::R64F => Request::new(async move {
+                let mut opts = RequestInit::new();
+                opts.method("GET");
+                opts.mode(RequestMode::Cors);
+
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+                // `resp_value` is a `Response` object.
+                debug_assert!(resp_value.is_instance_of::<Response>());
+                let resp: Response = resp_value.dyn_into()?;
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+
+                let bytes = js_sys::Uint8Array::new(&array_buffer);
+                let image = Fits::<al_core::image::format::R64F>::new(&bytes)?;
+                Ok(ImageType::FitsImageR64f { image })
+            }),
             ImageFormatType::R32I => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");

@@ -175,7 +175,7 @@ fn create_texture_array<F: ImageFormat>(
 }
 
 
-use al_core::image::format::{ImageFormatType, R32F, RGB8U, RGBA8U};
+use al_core::image::format::{ImageFormatType, R32F, R64F, RGB8U, RGBA8U};
 
 #[cfg(feature = "webgl2")]
 use al_core::image::format::{R16I, R32I, R8UI};
@@ -219,6 +219,7 @@ impl ImageSurveyTextures {
             ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &config)?),
             ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &config)?),
             ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &config)?),
+            ImageFormatType::R64F => Rc::new(create_texture_array::<R64F>(gl, &config)?),
         };
         #[cfg(feature = "webgl1")]
         let texture_2d_array = match config.get_format() {
@@ -260,10 +261,15 @@ impl ImageSurveyTextures {
             ImageFormatType::RGB32F => unimplemented!(),
             ImageFormatType::RGBA8U => Rc::new(create_texture_array::<RGBA8U>(gl, &self.config)?),
             ImageFormatType::RGB8U => Rc::new(create_texture_array::<RGB8U>(gl, &self.config)?),
-            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
-            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
-            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
             ImageFormatType::R32F => Rc::new(create_texture_array::<R32F>(gl, &self.config)?),
+            #[cfg(feature = "webgl2")]
+            ImageFormatType::R8UI => Rc::new(create_texture_array::<R8UI>(gl, &self.config)?),
+            #[cfg(feature = "webgl2")]
+            ImageFormatType::R16I => Rc::new(create_texture_array::<R16I>(gl, &self.config)?),
+            #[cfg(feature = "webgl2")]
+            ImageFormatType::R32I => Rc::new(create_texture_array::<R32I>(gl, &self.config)?),
+            #[cfg(feature = "webgl2")]
+            ImageFormatType::R64F => Rc::new(create_texture_array::<R64F>(gl, &self.config)?),
         };
 
         self.base_textures = [
@@ -307,47 +313,6 @@ impl ImageSurveyTextures {
 
         // Get the texture cell in which the tile has to be
         let tex_cell = cell.get_texture_cell(&self.config);
-        // Check whether the texture is a new texture
-        /*if texture_cell.is_root() {
-            if !self.base_textures.contains_key(&texture_cell) {
-                let HEALPixCell(_, idx) = texture_cell;
-                self.base_textures[idx] = Texture::new(&self.config, &texture_cell, idx as i32, time_request);
-            }
-        } else {
-            // The texture is not among the essential ones
-            // (i.e. is not a root texture)
-            let texture = if self.is_heap_full() {
-                // Pop the oldest requested texture
-                let oldest_texture = self.heap.pop().unwrap();
-                // Ensure this is not a base texture
-                debug_assert!(!oldest_texture.is_root());
-
-                // Remove it from the textures HashMap
-                let mut texture = self.textures.remove(&oldest_texture.cell)
-                    .expect("Texture (oldest one) has not been found in the buffer of textures");
-                // Clear and assign it to texture_cell
-                texture.replace(
-                    &texture_cell,
-                    time_request,
-                    &self.config,
-                    &mut self.exec.borrow_mut(),
-                );
-
-                texture
-            } else {
-                // The heap buffer is not full, let's create a new
-                // texture with an unique idx
-                // The idx is computed based on the current size of the buffer
-                let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
-
-                Texture::new(&self.config, &texture_cell, idx as i32, time_request)
-            };
-            // Push it to the buffer
-            self.heap.push(&texture);
-
-            // Insert it the texture
-            self.textures.insert(texture_cell, texture);
-        }*/
 
         if !self.textures.contains_key(&tex_cell) {
             let HEALPixCell(_, idx) = tex_cell;
@@ -429,8 +394,6 @@ impl ImageSurveyTextures {
 
         let tex_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
-
-        //texture.register_available_tile(cell, &self.config);
 
         if tex_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;

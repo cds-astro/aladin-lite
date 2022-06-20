@@ -34,6 +34,14 @@ impl EmptyTileImage {
                 );
                 ImageType::RawR32f { image }
             }
+            ImageFormatType::R64F => {
+                let image = ImageBuffer::<R32F>::allocate(
+                    &<<R32F as ImageFormat>::P as Pixel>::BLACK,
+                    size,
+                    size,
+                );
+                ImageType::RawR32f { image }
+            }
             #[cfg(feature = "webgl2")]
             ImageFormatType::R8UI => {
                 let image = ImageBuffer::<R8UI>::allocate(
@@ -239,7 +247,8 @@ impl HiPSConfig {
                         -64 => {
                             tex_storing_fits = true;
                             tex_storing_integers = false;
-                            Err(JsValue::from_str("f64 FITS files not supported"))
+                            //Err(JsValue::from_str("f64 FITS files not supported"))
+                            Ok(ImageFormatType::R64F)
                         }
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",
@@ -346,6 +355,7 @@ impl HiPSConfig {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = false;
                             Err(JsValue::from_str("f64 FITS files not supported"))
+                            //Ok(ImageFormatType::R64F)
                         }
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",

@@ -72,7 +72,7 @@ fn create_view_moc(vertices: &[Vector4<f64>], inside: &Vector3<f64>) -> HEALPixC
     let mut depth = 0;
     let mut coverage = HEALPixCoverage::new(depth, vertices, inside);
 
-    while coverage.size() < 10 && depth < cdshealpix::DEPTH_MAX {
+    while coverage.size() < 7 && depth < cdshealpix::DEPTH_MAX {
         depth += 1;
         coverage = HEALPixCoverage::new(depth, vertices, inside);
     }

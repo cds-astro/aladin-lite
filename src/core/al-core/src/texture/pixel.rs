@@ -113,6 +113,38 @@ impl Pixel for [f32; 1] {
         Ok([pixels.to_vec()[0]])
     }
 }
+/*use crate::image::ArrayF64;
+impl Pixel for [f64; 1] {
+    type Item = f64;
+    type Container = ArrayF64;
+    const BLACK: Self = [std::f64::NAN];
+
+    fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
+        let pixels = js_sys::Float32Array::new_with_length(1);
+        #[cfg(feature = "webgl2")]
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            WebGlRenderingCtx::RED,
+            WebGlRenderingCtx::FLOAT,
+            Some(&pixels),
+        )?;
+        #[cfg(feature = "webgl1")]
+        gl.read_pixels_with_opt_array_buffer_view(
+            x,
+            y,
+            1,
+            1,
+            WebGlRenderingCtx::LUMINANCE_ALPHA,
+            WebGlRenderingCtx::FLOAT,
+            Some(&pixels),
+        )?;
+
+        Ok([pixels.to_vec()[0] as f64])
+    }
+}*/
 impl Pixel for [u8; 4] {
     type Item = u8;
     type Container = ArrayU8;

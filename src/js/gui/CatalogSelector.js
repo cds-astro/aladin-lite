@@ -95,8 +95,8 @@ import  autocomplete from 'autocompleter';
         // listener to load CS data
         //const loadCSBtn = this.divCS.querySelector('div:nth-child(1) > button');
         $(loadCSBtn).click(function() {
-            const radius = parseFloat(self.divCS.querySelector('div:nth-child(2) > input').value);
-            const radiusUnit = self.divCS.querySelector('div:nth-child(2) > select').value;
+            const radius = parseFloat(self.divCS.querySelector('div:nth-child(1) > input').value);
+            const radiusUnit = self.divCS.querySelector('div:nth-child(1) > select').value;
             let radiusDeg = radius;
             if (radiusUnit=='arcmin') {
                 radiusDeg /= 60.0;
@@ -104,7 +104,7 @@ import  autocomplete from 'autocompleter';
             else if (radiusUnit=='arcsec') {
                 radiusDeg /= 3600.0;
             }
-            const maxNbSources = parseInt(self.divCS.querySelector('div:nth-child(3) > input').value);
+            const maxNbSources = parseInt(self.divCS.querySelector('div:nth-child(2) > input').value);
             const baseURL = self.selectedItem.cs_service_url;
 
             const [ra, dec] = self.aladin.getRaDec();

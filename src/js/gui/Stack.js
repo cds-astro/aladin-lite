@@ -306,6 +306,10 @@ export class Stack {
             const layerName = e.detail;
             // Just call remove as it will send a HIPS_LAYER_REMOVED after
             self.aladin.removeImageSurvey(layerName);
+
+            if (self.selectedLayer === layerName) {
+                self.selectedLayer = null;
+            }
         });
 
         this.aladin.aladinDiv.addEventListener('select-layer', e => {
@@ -320,7 +324,7 @@ export class Stack {
 
             const headerClassName = "aladin-layer-header-" + layerName;
             let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-            headerLayerElement.style.backgroundColor = "#228bca";
+            headerLayerElement.style.backgroundColor = "#026baa";
 
             self.aladin.view.setActiveHiPSLayer(layerName);
 

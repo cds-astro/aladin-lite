@@ -825,6 +825,11 @@ export let Aladin = (function () {
         let radec = this.webglAPI.getCenter(); // This is given in the frame of the view
         // We must convert it to ICRSJ2000
         const radec_j2000 = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
+
+        if (radec_j2000[0]<0) {
+            return [radec_j2000[0] + 360.0, radec_j2000[1]];
+        }
+
         return radec_j2000;
     };
 

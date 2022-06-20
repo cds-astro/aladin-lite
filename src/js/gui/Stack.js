@@ -145,13 +145,29 @@ export class Stack {
         searchCatalogBtn.click(function () {
             if (!self.catalogSelector) {
                 let fnURLSelected = function(url) {
-                    alert(url);
+                    let catalogLayer = A.catalogFromURL(url, {onClick: 'showTable'});
+                    self.aladin.addCatalog(catalogLayer);
                 };
-                let fnIdSelected = function(id, item, params) {
-                    alert(id);
-                    console.log(item);
+                let fnIdSelected = function(type, params) {
+                    if (type=='coneSearch') {
+                        let catalogLayer = undefined;
+                        if (params.baseURL.includes('/vizier.')) {
+                            catalogLayer = A.catalogFromVizieR(params.id.replace('CDS/', ''), params.ra + ' ' + params.dec,
+                                                               params.radiusDeg, {limit: params.limit, onClick: 'showTable'});
+                        }
+                        else {
+                            const url = params.baseURL + 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
+                            catalogLayer = A.catalogFromURL(url, {limit: params.limit, onClick: 'showTable'});
+                        }
+                        self.aladin.addCatalog(catalogLayer);
+                    }
+                    else if (type=='hips') {
+                        const hips = A.catalogHiPS(params.hipsURL, {onClick: 'showTable', name: params.id});
+                        self.aladin.addCatalog(hips);
+                    }
                 };
-                self.catalogSelector = new CatalogSelector(self.aladinDiv, fnURLSelected, fnIdSelected);
+
+                self.catalogSelector = new CatalogSelector(self.aladinDiv, self.aladin, fnURLSelected, fnIdSelected);
             }
             self.catalogSelector.show();
         });

@@ -49,7 +49,7 @@ import  autocomplete from 'autocompleter';
 
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 
-        '<div class="modal-box">' +
+        '<div class="modal-box bg-stone-100">' +
           '<label class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>' +
           '<h3 class="font-bold text-lg">Select HiPS:</h3>' +
           '<br>' +

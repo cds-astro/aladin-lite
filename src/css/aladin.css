@@ -450,6 +450,8 @@ word-wrap:break-word;
 .aladin-layer-main {
     border: 1px solid transparent;
     border-color: #aaa;
+    margin: 4px;
+    padding: 4px 4px 4px 6px;
 }
 
 .aladin-btn-small {
@@ -458,6 +460,7 @@ word-wrap:break-word;
     color: #ffffff;
     background-color: #428bca;
     border-color: #357ebd;
+    margin-left: 2px;
 }
 
 .aladin-button:hover {
@@ -555,6 +558,10 @@ word-wrap:break-word;
 
 .aladin-cuts {
     width: 8em;
+}
+
+.add-layer-hips {
+    margin-top: 0.2em;
 }
 
 

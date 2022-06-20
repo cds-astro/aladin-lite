@@ -78,7 +78,7 @@ export class HiPSLayer {
         cmListStr += '<option>native</option>';
         this.mainDiv = $('<div class="aladin-layer-main" style="display: none;">' +
             '<table class="aladin-options"><tbody>' +
-            '  <tr><td></td><td><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked><label>Colormap</label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color"><label>Color</label></td></tr>' +
+            '  <tr><td></td><td><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked> Color map</label> <label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color"> Color</label></td></tr>' +
             '  <tr><td>Color map</td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
             '  <tr><td>Color</td><td><input type="color" id="color-radio" name="color-radio" value="#e66465" class="color-selector"><label for="color-radio">Color</label></td></tr>' +
             '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +

@@ -354,8 +354,8 @@ impl HiPSConfig {
                         -64 => {
                             self.tex_storing_fits = true;
                             self.tex_storing_integers = false;
-                            Err(JsValue::from_str("f64 FITS files not supported"))
-                            //Ok(ImageFormatType::R64F)
+                            //Err(JsValue::from_str("f64 FITS files not supported"))
+                            Ok(ImageFormatType::R64F)
                         }
                         _ => Err(JsValue::from_str(
                             "Fits tiles exists but the BITPIX is not correct in the property file",

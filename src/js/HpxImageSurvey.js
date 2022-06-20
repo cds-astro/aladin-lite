@@ -503,6 +503,7 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.changeImageFormat = function(format) {
+        const prevImageFmt = this.options.imgFormat;
         let imgFormat = format.toUpperCase();
         if (imgFormat !== "FITS" && imgFormat !== "PNG" && imgFormat !== "JPG" && imgFormat !== "JPEG") {
             throw 'Formats must lie in ["fits", "png", "jpg"]';
@@ -542,12 +543,20 @@ export let HpxImageSurvey = (function() {
         this.fits = (this.options.imgFormat === 'FITS');
 
         // Tell the view its meta have changed
-        if ( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
-        }
+        
+        try {
+            if ( this.ready && this.added ) {
+                this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
+            }
 
-        if ( this.added ) {
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            if ( this.added ) {
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            }
+        } catch(e) {
+            console.error(e);
+
+            this.options.imgFormat = prevImageFmt;
+            this.fits = (this.options.imgFormat === 'FITS');
         }
     };
 
@@ -596,6 +605,20 @@ export let HpxImageSurvey = (function() {
                 stretch: 'Linear'
             }
         },
+        /*{
+            id: "P/MeerKAT/Galactic-Centre-1284MHz-StokesI",
+            name: "MeerKAT Galactic Centre 1284MHz StokesI",
+            url: "https://alasky.cds.unistra.fr/MeerKAT/CDS_P_MeerKAT_Galactic-Centre-1284MHz-StokesI",
+            maxOrder: 9,
+            // options
+            options: {
+                minCut: -4e-4,
+                maxCut: 0.01,
+                imgFormat: "fits",
+                colormap: "rainbow",
+                stretch: 'Linear'
+            }
+        },*/
         {
             id: "P/PanSTARRS/DR1/g",
             name: "PanSTARRS DR1 g",

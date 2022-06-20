@@ -302,7 +302,6 @@ impl Image for ImageType {
                 let size = image.get_size();
                 let slice = unsafe { std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr as *const f64, (size.x as usize) * (size.y as usize) ) };
                 let data = slice.iter().map(|&v| v as f32).collect();
-                crate::log(&format!("size array2 {:?}", size));
                 let image = ImageBuffer::<R32F>::new(data, size.x, size.y);
                 image.tex_sub_image_3d(textures, offset)
             },

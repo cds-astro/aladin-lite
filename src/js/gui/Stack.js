@@ -52,11 +52,11 @@ export class Stack {
         this.imgLayers = new Map();
         this.selectedLayer = undefined;
 
-        this.#createComponent();
-        this.#addListeners();
+        this._createComponent();
+        this._addListeners();
     }
 
-    #createComponent() {
+    _createComponent() {
         let self = this;
 
         // first, update
@@ -308,7 +308,7 @@ export class Stack {
         });
     }
 
-    #addListeners() {
+    _addListeners() {
         let self = this;
         this.aladin.aladinDiv.addEventListener('remove-layer', e => {
             const layerName = e.detail;
@@ -346,7 +346,7 @@ export class Stack {
             const survey = e.detail.survey;
             self.imgLayers.set(survey.layer, new HiPSLayer(self.aladin, self.view, survey));
 
-            self.#createComponent();
+            self._createComponent();
         });
 
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
@@ -357,14 +357,14 @@ export class Stack {
             hipsLayer.destroy();
             self.imgLayers.delete(layer);
     
-            self.#createComponent();
+            self._createComponent();
         });
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
-            self.#createComponent();
+            self._createComponent();
         });
         ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
-            self.#createComponent();
+            self._createComponent();
         });
     }
 

@@ -40,10 +40,10 @@ import  autocomplete from 'autocompleter';
 
         this.aladin = aladin;
 
-        this.#createComponent();
+        this._createComponent();
     }
 
-    #createComponent() {
+    _createComponent() {
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
         this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
@@ -116,8 +116,14 @@ import  autocomplete from 'autocompleter';
         });
 
         $(loadMOCBtn).click(function() {
-            console.log(self.selectedItem);
-            let url = self.selectedItem.hips_service_url + '/Moc.fits';
+            let url;
+            let byIdSelected = self.mainDiv.querySelectorAll('input')[0];
+            if (byIdSelected.value.startsWith('http')) {
+                url = byIdSelected.value + '/Moc.fits';
+            }
+            else {
+                url = self.selectedItem.hips_service_url + '/Moc.fits';
+            }
             if (url.includes('alasky')) {
                 url = url.replace('http:', 'https:');
             }

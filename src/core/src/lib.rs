@@ -808,7 +808,7 @@ impl WebClient {
         lon_degrees: f64,
         lat_degrees: f64,
         radius_degress: f64,
-    ) -> Box<[u64]> {
+    ) -> Box<[f64]> {
         cdshealpix::nested::cone_coverage_approx(
             depth,
             lon_degrees.to_radians(),
@@ -816,6 +816,10 @@ impl WebClient {
             radius_degress.to_radians(),
         )
         .to_flat_array()
+        .iter()
+        .map(|&v| v as f64)
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
     }
 
     #[wasm_bindgen(js_name = isRendering)]

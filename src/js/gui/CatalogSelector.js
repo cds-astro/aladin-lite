@@ -39,10 +39,10 @@ import  autocomplete from 'autocompleter';
 
         this.fnIdSelected  = fnIdSelected;
 
-        this.#createComponent();
+        this._createComponent();
     }
 
-    #createComponent() {
+    _createComponent() {
         const self = this;
 
         this.mainDiv = document.createElement('div');

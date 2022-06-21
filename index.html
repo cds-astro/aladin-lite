@@ -14,7 +14,15 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 360, fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {target: '0 0', fov: 360, fullScreen: true});
+        aladin.setProjection('MOL');
+
+        let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, {
+            imgFormat: 'fits',
+            colormap: 'redtemperature'
+        });
+        aladin.setBaseImageLayer(survey);
+        aladin.getBaseImageLayer().setColormap("redtemperature", {stretch: "Asinh"});
     });
 </script>
 

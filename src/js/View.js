@@ -67,7 +67,7 @@ export let View = (function() {
         } catch(e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
-            console.log(e)
+            console.error(e)
             // 2. Add a more explicite message to the end user
             alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite")
         }
@@ -165,7 +165,7 @@ export let View = (function() {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.selectedSurveyLayer = null;
+        this.selectedSurveyLayer = 'base';
 
         this.needRedraw = true;
 

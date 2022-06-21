@@ -29,29 +29,29 @@
  *****************************************************************************/
 
 export class MocServer {
-    static #allHiPSes = undefined;
-    static #allCatalogHiPSes = undefined;
+    static _allHiPSes = undefined;
+    static _allCatalogHiPSes = undefined;
 
     static getAllHiPSes() {
-        if (this.#allHiPSes === undefined) {
+        if (this._allHiPSes === undefined) {
             (async () => {
-                this.#allHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dimage+%7C%7C%A0dataproduct_type%3Dcube&get=record&fmt=json&fields=ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url')
+                this._allHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dimage+%7C%7C%A0dataproduct_type%3Dcube&get=record&fmt=json&fields=ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url')
                                          .then(response => {return response.json();});
             })();
         }
 
-        return this.#allHiPSes;
+        return this._allHiPSes;
     }
 
     static getAllCatalogHiPSes() {
-        if (this.#allCatalogHiPSes === undefined) {
+        if (this._allCatalogHiPSes === undefined) {
             (async () => {
-                this.#allCatalogHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dcatalog&get=record&fmt=json&fields=ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url')
+                this._allCatalogHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dcatalog&get=record&fmt=json&fields=ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url')
                                          .then(response => {return response.json();});
             })();
         }
 
-        return this.#allCatalogHiPSes;
+        return this._allCatalogHiPSes;
     }
 
 

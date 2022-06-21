@@ -224,7 +224,10 @@ word-wrap:break-word;
 
 select {
     padding: 4px;
+}
 
+.aladin-surveySelection {
+    max-width: 230px;
 }
 
 input[type=text], input[type=number] {

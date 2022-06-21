@@ -79,8 +79,8 @@ export class HiPSLayer {
         this.mainDiv = $('<div class="aladin-frame" style="display: none;">' +
             '<table class="aladin-options"><tbody>' +
             '  <tr><td></td><td><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked> Color map</label> <label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color"> Color</label></td></tr>' +
-            '  <tr><td>Color map</td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
-            '  <tr><td>Color</td><td><input type="color" id="color-radio" name="color-radio" value="#ff0000" class="color-selector"><label for="color-radio">Color</label></td></tr>' +
+            '  <tr><td></td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
+            '  <tr><td></td><td><input type="color" id="color-radio" name="color-radio" value="#ff0000" class="color-selector"></td></tr>' +
             '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +
             '  <tr><td>Stretch</td><td><select class="stretch"><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
             '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
@@ -110,6 +110,7 @@ export class HiPSLayer {
 
     destroy() {
         ALEvent.HIPS_LAYER_CHANGED.remove(this.aladin.aladinDiv, this.layerChangedListener);
+        this.mainDiv[0].removeEventListener("click", this.clickOnAladinFrameListener);
     }
 
     #addListeners() {
@@ -134,6 +135,15 @@ export class HiPSLayer {
                 self.mainDiv.slideUp(300);
             }
         });
+
+        // Click on aladin options should select the layer clicked
+        let aladinOptionsFrame = self.mainDiv[0];
+        this.clickOnAladinFrameListener = function(e) {
+            self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
+                detail: self.survey.layer
+            }));
+        };
+        aladinOptionsFrame.addEventListener("click", this.clickOnAladinFrameListener);
 
         // Update list of surveys
         self.#updateSurveysDropdownList();

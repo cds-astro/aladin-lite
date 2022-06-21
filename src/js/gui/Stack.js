@@ -64,28 +64,13 @@ export class Stack {
         layerBox.empty();
 
         layerBox.append('<a class="aladin-closeBtn">&times;</a>' +
-        '<div class="aladin-box-title">Layer manager</div>'
+        '<div class="aladin-box-title">Stack</div>'
         )
 
-        if (this.imgLayers.size > 1) {
-            layerBox.append('<div class="aladin-label">Overlay image layers</div>')
-
-            Array.from(this.imgLayers.values()).reverse().forEach((imgLayer) => {
-                if (imgLayer.survey.layer !== "base") {
-                    imgLayer.attachTo(layerBox);
-                }
-            });
-        }
-
-        layerBox.append('<div class="aladin-label">Base image layer</div>');
-        if (this.imgLayers.has("base")) {
-            this.imgLayers.get("base").attachTo(layerBox);
-        }
-
-        layerBox.append(
+        layerBox.append('<div class="aladin-box-separator"></div>' +
+            '<div class="aladin-label">Image layers</div>' +
             '<button class="aladin-btn add-layer-hips" type="button">Add image layer</button>'
         );
-
         $(this.mainDiv).find('.add-layer-hips').click(function () {
             const layerName = Utils.uuidv4();
 
@@ -96,6 +81,21 @@ export class Stack {
                 layerName
             );
         });
+
+        if (this.imgLayers.size > 1) {
+            layerBox.append('<div class="aladin-label">Overlay layers</div>')
+
+            Array.from(this.imgLayers.values()).reverse().forEach((imgLayer) => {
+                if (imgLayer.survey.layer !== "base") {
+                    imgLayer.attachTo(layerBox);
+                }
+            });
+        }
+
+        layerBox.append('<div class="aladin-label">Base layer</div>');
+        if (this.imgLayers.has("base")) {
+            this.imgLayers.get("base").attachTo(layerBox);
+        }
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');
@@ -322,11 +322,13 @@ export class Stack {
                 const headerClassName = "aladin-layer-header-" + self.selectedLayer;
                 let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
                 headerLayerElement.style.backgroundColor = "#eee";
+                headerLayerElement.nextSibling.style.backgroundColor = "#eee";
             }
 
             const headerClassName = "aladin-layer-header-" + layerName;
             let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-            headerLayerElement.style.backgroundColor = "#026baa";
+            headerLayerElement.style.backgroundColor = "#aaa";
+            headerLayerElement.nextSibling.style.backgroundColor = "#aaa";
 
             self.aladin.view.setActiveHiPSLayer(layerName);
 

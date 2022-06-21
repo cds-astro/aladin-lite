@@ -620,6 +620,20 @@ export let HpxImageSurvey = (function() {
             }
         },*/
         {
+            id: "P/DM/I/350/gaiaedr3",
+            name: "Density map for Gaia EDR3 (I/350/gaiaedr3)",
+            url: "https://alasky.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
+            maxOrder: 7,
+            // options
+            options: {
+                minCut: 0,
+                maxCut: 12000,
+                stretch: 'Asinh',
+                colormap: "rdyibu",
+                imgFormat: "fits",
+            }
+        },
+        {
             id: "P/PanSTARRS/DR1/g",
             name: "PanSTARRS DR1 g",
             url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",

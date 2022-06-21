@@ -289,15 +289,26 @@ export class HiPSLayer {
         const colorMapSelect4ImgLayer = this.mainDiv.find('.colormap-selector').eq(0);
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
+        const colorSelect4ImgLayer = self.mainDiv.find('.color-selector').eq(0);
+
         reverseCmCb.unbind("change");
         colorMapSelect4ImgLayer.unbind("change");
         stretchSelect4ImgLayer.unbind("change");
+        const colorMode = this.mainDiv[0].getElementsByClassName('colormap-color-selector');
         colorMapSelect4ImgLayer.add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
             const stretch = stretchSelect4ImgLayer.val();
 
-            const cmap = colorMapSelect4ImgLayer.val();
-            const reverse = reverseCmCb[0].checked;
-            self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
+            if (colorMode.checked) {
+                // Color map case
+                const cmap = colorMapSelect4ImgLayer.val();
+                const reverse = reverseCmCb[0].checked;
+                self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
+            } else {
+                // Single color case
+                const colorHex = colorSelect4ImgLayer.val();
+                let colorRgb = Color.hexToRgb(colorHex);
+                self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], { stretch: stretch });
+            }
 
             // update HpxImageSurvey.SURVEYS definition
             /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -310,7 +321,6 @@ export class HiPSLayer {
         });
 
         // Redefine the event for the newly added DOM
-        const colorSelect4ImgLayer = self.mainDiv.find('.color-selector').eq(0);
         colorSelect4ImgLayer.unbind("input");
         colorSelect4ImgLayer.on('input', function () {
             const colorHex = colorSelect4ImgLayer.val();
@@ -402,10 +412,10 @@ export class HiPSLayer {
             colorModeTr.show();
             if (!colorMode[0].checked) {
                 colorTr.show();
+                stretchTr.show();
 
                 colorMapTr.hide();
                 reverseTr.hide();
-                stretchTr.hide();
             } else {
                 colorTr.hide();
 

@@ -54,36 +54,36 @@ import  autocomplete from 'autocompleter';
         '<a class="aladin-closeBtn">&times;</a>' +
         '<div class="aladin-box-title">Select Catalogue:</div>' +
         '<div class="aladin-box-content">' +
-            '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
+            '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword</div>' +
             '<input style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type keyword or VOTable URL" />' +
-            '<div class="aladin-row">' +
+            '<div class="aladin-row" style="font-size: 12px;">' +
                 '<div class="cone-search aladin-col">' +
-                    '<div><input type="number" value="1.0"><select><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +
-                    '<div>Limit to <input type="number" min="1" max="10000" value="1000" class="w-20"> sources</div>' +
+                    '<div><input type="number" value="1.0" style="width: 4em;" maxlength="5" size="5"> <select style="padding: 4px 0!important;"><option>deg<option>arcmin<option>arcsec</select> around view center</div>' +
+                    '<div>Limit to <input type="number" min="1" max="10000" value="1000" style="width: 5em;"> sources</div>' +
                 '</div>' +
-                '<div class="hips aladin-col">A HiPS catalogue is a progressive catalogue. Only the sources inside the view will be fetched</div>' +
-                '<div class="votable aladin-col">When a VOTable is available, load it</div>' +
             '</div>' +
             '<div class="aladin-row">' +
                 '<div class="cone-search aladin-col">' +
                     '<div><button class="aladin-btn">Load cone</button></div>' +
                 '</div>' +
                 '<div class="hips aladin-col"><button class="aladin-btn">Load catalogue HiPS</button></div>' +
-                '<div class="votable aladin-col"><button class="aladin-btn">Load VOTable</button></div>' +
             '</div>' +
-            '<div style="content: \"\"; display: table; clear: both;">' +
-                '<button class="aladin-btn aladin-cancelBtn">Cancel</button>' +
-            '</div>' +
+            '<div class="aladin-box-separator"></div>' +
+            '<div class="aladin-label" for="' + autocompleteId + '">By VOTable URL</div>' +
+            '<input style="width:100%;" name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Enter VOTable URL" />' +
+            '<div class="votable"><button class="aladin-btn">Load VOTable</button></div>' +
         '</div>'
         );
 
         this.parentDiv.appendChild(this.mainDiv);
 
-        this.idOrURLInput = self.mainDiv.querySelectorAll('input')[0];
+        this.idInput = self.mainDiv.querySelectorAll('input')[0];
+        this.votInput = self.mainDiv.querySelectorAll('input')[3];
 
-        let [loadCSBtn, loadHiPSBtn, loadVOTableBtn, cancelBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
+        let [loadCSBtn, loadHiPSBtn, loadVOTableBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
         this.divCS = this.mainDiv.querySelector('.cone-search');
-        //this.divLoadHiPS = loadCatalogueHiPS;
+        this.divLoadHiPS = this.mainDiv.querySelector('.hips');
+        this.divLoadHiPS.style.display = "none";
 
 
         // retrieve cone search div and load HiPS div
@@ -109,19 +109,19 @@ import  autocomplete from 'autocompleter';
 
             const [ra, dec] = self.aladin.getRaDec();
 
-            self.fnIdSelected && self.fnIdSelected('coneSearch', {id: self.idOrURLInput.value, baseURL: baseURL, limit: maxNbSources, radiusDeg: radiusDeg, ra: ra, dec: dec});
+            self.fnIdSelected && self.fnIdSelected('coneSearch', {id: self.idInput.value, baseURL: baseURL, limit: maxNbSources, radiusDeg: radiusDeg, ra: ra, dec: dec});
         });
 
         // listener to load HiPS catalogue
         //const loadHiPSBtn = this.divLoadHiPS.querySelector('button');
         $(loadHiPSBtn).click(function() {
-            self.fnIdSelected && self.fnIdSelected('hips', {id: self.idOrURLInput.value, hipsURL: self.selectedItem.hips_service_url});
+            self.fnIdSelected && self.fnIdSelected('hips', {id: self.idInput.value, hipsURL: self.selectedItem.hips_service_url});
         });
 
         // listener to load catalogue from VOTable URL
         //const loadVOTableBtn = document.querySelector('div > div:nth-child(5) > div:nth-child(2) > div > button');
         $(loadVOTableBtn).click(function() {
-            self.fnIdSelected && self.fnIdSelected('votable', {url: self.idOrURLInput.value});
+            self.fnIdSelected && self.fnIdSelected('votable', {url: self.votInput.value});
         });
 
 
@@ -177,7 +177,7 @@ import  autocomplete from 'autocompleter';
         // this modal is closed when clicking on the cross at the top right, or on the Cancel button
         let [closeBtn]  = this.mainDiv.querySelectorAll('.aladin-closeBtn');
 
-        $(closeBtn).add($(cancelBtn)).click(function() {
+        $(closeBtn).click(function() {
             self.hide();
         });
 

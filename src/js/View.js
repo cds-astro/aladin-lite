@@ -1858,6 +1858,28 @@ export let View = (function() {
         this.requestRedraw();
     };
 
+    View.prototype.removeLayer = function(layer) {
+        let indexToDelete = this.allOverlayLayers.indexOf(layer);
+        this.allOverlayLayers.splice(indexToDelete, 1);
+
+        if (layer.type=='catalog' || layer.type=='progressivecat') {
+            indexToDelete = this.catalogs.indexOf(layer);
+            this.catalogs.splice(indexToDelete, 1);
+        }
+        else if (layer.type=='moc') {
+            indexToDelete = this.mocs.indexOf(layer);
+            this.mocs.splice(indexToDelete, 1);
+        }
+        else if (layer.type=='overlay') {
+            indexToDelete = this.overlays.indexOf(layer);
+            this.overlays.splice(indexToDelete, 1);
+        }
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
+
+        this.requestRedraw();
+    };
+
     View.prototype.addCatalog = function(catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);

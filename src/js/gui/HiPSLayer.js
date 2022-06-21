@@ -175,7 +175,7 @@ export class HiPSLayer {
                 self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
                     const layerName = self.survey.layer;
                     self.aladin.setOverlayImageLayer(IDOrURL, null, layerName);
-                });
+                }, self.aladin);
             }
             self.hipsSelector.show();
         });

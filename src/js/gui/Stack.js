@@ -135,13 +135,19 @@ export class Stack {
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
             str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
-            str += ' <button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: unset!important;">❌</button>';
+            str += ' <button class="aladin-btn-small aladin-delete-graphic-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: text-bottom!important; background-color: unset!important;">❌</button>';
             str += '</li>';
         }
         str += '</ul>';
 
         str += '<button class="aladin-btn my-1 catalogue-selector" type="button">Add catalogue</button>';
         layerBox.append(str);
+
+        layerBox.find('.aladin-delete-graphic-layer').click(function() {
+            const layerToDelete = self.aladin.findLayerByUUID($(this).data('uuid'));
+            self.aladin.removeLayer(layerToDelete);
+        });
+
 
         let searchCatalogBtn = layerBox.find('.catalogue-selector');
         searchCatalogBtn.click(function () {
@@ -355,6 +361,9 @@ export class Stack {
         });
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
+            self.#createComponent();
+        });
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
             self.#createComponent();
         });
     }

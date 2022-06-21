@@ -33,10 +33,12 @@ import  autocomplete from 'autocompleter';
 
  export class HiPSSelector {
 
-    constructor(parentDiv, fnIdSelected) {
+    constructor(parentDiv, fnIdSelected, aladin) {
         this.parentDiv = parentDiv;
 
         this.fnIdSelected  = fnIdSelected;
+
+        this.aladin = aladin;
 
         this.#createComponent();
     }
@@ -49,15 +51,16 @@ import  autocomplete from 'autocompleter';
         const autocompleteId = 'autocomplete-' + Utils.uuidv4();
         this.mainDiv.insertAdjacentHTML('afterbegin', 
           '<a class="aladin-closeBtn">&times;</a>' +
-          '<div class="aladin-box-title">Select HiPS:</div>' +
+          '<div class="aladin-box-title">Select image HiPS:</div>' +
           '<div class="aladin-box-content">' +
 
                 '<div class="aladin-label" for="' + autocompleteId + '">By ID, title, keyword or URL</div>' +
-                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type ID, title, keyword or URL" />' +
+                '<input name="' + autocompleteId + '" id="' + autocompleteId + '" type="text" placeholder="Type ID, title, keyword or URL" /><br>' +
 
             '<div>' +
-                '<button class="aladin-btn">Select</button>' +
-                '<button class="aladin-btn aladin-cancelBtn">Cancel</button>' +
+                '<button class="aladin-btn">Select HiPS</button>' +
+                '<button class="aladin-btn">Load coverage</button>' +
+                '<button class="aladin-btn aladin-cancelBtn">Close</button>' +
             '</div>' +
           '</div>'
         );
@@ -78,6 +81,7 @@ import  autocomplete from 'autocompleter';
                 update(suggestions);
             },
             onSelect: function(item) {
+                self.selectedItem = item;
                 input.value = item.ID;
             },
             render: function(item, currentValue) {
@@ -90,7 +94,7 @@ import  autocomplete from 'autocompleter';
         });
 
         // this modal is closed when clicking on the cross at the top right, or on the Cancel button
-        let [selectBtn, cancelBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
+        let [selectBtn, loadMOCBtn, cancelBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
         let [closeBtn]  = this.mainDiv.querySelectorAll('.aladin-closeBtn');
 
         var self = this;
@@ -108,7 +112,17 @@ import  autocomplete from 'autocompleter';
 
             byIdSelected.value = '';
         
-            self.hide();
+            //self.hide();
+        });
+
+        $(loadMOCBtn).click(function() {
+            console.log(self.selectedItem);
+            let url = self.selectedItem.hips_service_url + '/Moc.fits';
+            if (url.includes('alasky')) {
+                url = url.replace('http:', 'https:');
+            }
+            const moc = A.MOCFromURL(url);
+            self.aladin.addMOC(moc);
         });
 
     }

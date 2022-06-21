@@ -35,7 +35,7 @@ export class MocServer {
     static getAllHiPSes() {
         if (this.#allHiPSes === undefined) {
             (async () => {
-                this.#allHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dimage+%7C%7C%A0dataproduct_type%3Dcube&get=record&fmt=json&fields=ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range')
+                this.#allHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dimage+%7C%7C%A0dataproduct_type%3Dcube&get=record&fmt=json&fields=ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url')
                                          .then(response => {return response.json();});
             })();
         }

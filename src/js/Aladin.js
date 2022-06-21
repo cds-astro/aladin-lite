@@ -875,6 +875,7 @@ export let Aladin = (function () {
     };
 
 
+    // @API
     Aladin.prototype.findLayerByUUID = function(uuid) {
         const result = this.view.allOverlayLayers.filter(layer => layer.uuid===uuid);
         if (result.length==0) {
@@ -883,6 +884,12 @@ export let Aladin = (function () {
 
         return result[0];
     }
+
+    // @API
+    Aladin.prototype.removeLayer = function(layer) {
+        this.view.removeLayer(layer);
+    };
+
 
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}, callbck = (survey) => {}) {

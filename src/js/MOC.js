@@ -16,6 +16,7 @@ import { ProjectionEnum } from "./ProjectionEnum.js";
 import { Utils }   from "./Utils.js";
 import { AladinUtils }   from "./AladinUtils.js";
 import { CooConversion }   from "./CooConversion.js";
+import { Color } from "./Color";
 
 
 export let MOC = (function() {

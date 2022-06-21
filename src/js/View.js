@@ -165,7 +165,7 @@ export let View = (function() {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.selectedSurveyLayer = null;
+        this.selectedSurveyLayer = 'base';
 
         this.needRedraw = true;
 

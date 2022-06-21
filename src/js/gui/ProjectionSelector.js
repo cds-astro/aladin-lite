@@ -41,11 +41,11 @@
  
          parentDiv.appendChild(this.mainDiv);
  
-         this.#createComponent();
-         this.#addListeners();
+         this._createComponent();
+         this._addListeners();
      }
  
-     #createComponent() {
+     _createComponent() {
         $(this.mainDiv).append('<select title="Projection"></select>');
 
         this.selectProjection = $(this.mainDiv).find('select');
@@ -61,7 +61,7 @@
         });
      }
  
-     #addListeners() {
+     _addListeners() {
          const self = this;
          ALEvent.PROJECTION_CHANGED.listenedBy(this.aladin.aladinDiv, function (e) {
             self.selectProjection.val(e.detail.projection);

@@ -91,8 +91,8 @@ export class HiPSLayer {
             '</table> ' +
             '</div>');
 
-        this.#addListeners();
-        this.#updateHiPSLayerOptions();
+        this._addListeners();
+        this._updateHiPSLayerOptions();
 
         let self = this;
         this.layerChangedListener = function(e) {
@@ -101,9 +101,9 @@ export class HiPSLayer {
             if (survey.layer === self.survey.layer) {
                 // Update the survey to the new one
                 self.survey = survey;
-                self.#updateHiPSLayerOptions();
+                self._updateHiPSLayerOptions();
             }
-            self.#updateSurveysDropdownList();
+            self._updateSurveysDropdownList();
         };
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
     }
@@ -113,7 +113,7 @@ export class HiPSLayer {
         this.mainDiv[0].removeEventListener("click", this.clickOnAladinFrameListener);
     }
 
-    #addListeners() {
+    _addListeners() {
         const self = this;
         // HEADER DIV listeners
         // Click opener
@@ -146,7 +146,7 @@ export class HiPSLayer {
         aladinOptionsFrame.addEventListener("click", this.clickOnAladinFrameListener);
 
         // Update list of surveys
-        self.#updateSurveysDropdownList();
+        self._updateSurveysDropdownList();
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
@@ -359,7 +359,7 @@ export class HiPSLayer {
         });
     }
 
-    #updateHiPSLayerOptions() {
+    _updateHiPSLayerOptions() {
         const colorModeTr = this.mainDiv.find('tr').eq(0);
         const colorMapTr = this.mainDiv.find('tr').eq(1);
         const colorTr = this.mainDiv.find('tr').eq(2);
@@ -445,7 +445,7 @@ export class HiPSLayer {
         stretchSelect4ImgLayer.val(stretch);
     }
 
-    #updateSurveysDropdownList() {
+    _updateSurveysDropdownList() {
         let surveySelectionDiv = this.headerDiv.find('.aladin-surveySelection');
 
         let surveys = HpxImageSurvey.SURVEYS.sort(function (a, b) {
@@ -488,7 +488,7 @@ export class HiPSLayer {
         parentDiv.append(this.headerDiv)
             .append(this.mainDiv);
 
-        this.#addListeners();
+        this._addListeners();
     }
 
     show() {

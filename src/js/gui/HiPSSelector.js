@@ -40,10 +40,10 @@ import  autocomplete from 'autocompleter';
 
         this.aladin = aladin;
 
-        this.#createComponent();
+        this._createComponent();
     }
 
-    #createComponent() {
+    _createComponent() {
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
         this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');

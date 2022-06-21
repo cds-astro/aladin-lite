@@ -859,13 +859,30 @@ export let Aladin = (function () {
     // these 3 methods should be merged into a unique "add" method
     Aladin.prototype.addCatalog = function (catalog) {
         this.view.addCatalog(catalog);
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: catalog});
+        
     };
     Aladin.prototype.addOverlay = function (overlay) {
         this.view.addOverlay(overlay);
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: overlay});
     };
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: moc});
     };
+
+
+    Aladin.prototype.findLayerByUUID = function(uuid) {
+        const result = this.view.allOverlayLayers.filter(layer => layer.uuid===uuid);
+        if (result.length==0) {
+            return null;
+        }
+
+        return result[0];
+    }
 
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}, callbck = (survey) => {}) {

@@ -83,7 +83,7 @@ export class Stack {
         }
 
         layerBox.append(
-            '<button class="aladin-btn add-layer-hips" type="button">New layer HiPS</button>'
+            '<button class="aladin-btn add-layer-hips" type="button">Add image layer</button>'
         );
 
         $(this.mainDiv).find('.add-layer-hips').click(function () {
@@ -134,7 +134,9 @@ export class Stack {
             // retrieve SVG icon, and apply the layer color
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label></li>';
+            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
+            str += ' <button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: unset!important;">❌</button>';
+            str += '</li>';
         }
         str += '</ul>';
 
@@ -347,6 +349,10 @@ export class Stack {
             hipsLayer.destroy();
             self.imgLayers.delete(layer);
     
+            self.#createComponent();
+        });
+
+        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
             self.#createComponent();
         });
     }

@@ -34,11 +34,13 @@ import { AladinUtils } from "./AladinUtils.js";
 import { Footprint } from "./Footprint.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Line } from './Line.js';
+import { Utils } from './Utils.js';
 
 export let Overlay = (function() {
    let Overlay = function(options) {
         options = options || {};
 
+        this.uuid = Utils.uuidv4();
         this.type = 'overlay';
 
     	this.name = options.name || "overlay";

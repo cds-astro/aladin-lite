@@ -46,6 +46,7 @@ export let ProgressiveCat = (function() {
     let ProgressiveCat = function(rootUrl, frameStr, maxOrder, options) {
         options = options || {};
 
+        this.uuid = Utils.uuidv4();
         this.type = 'progressivecat';
         
         this.rootUrl = rootUrl; // TODO: method to sanitize rootURL (absolute, no duplicate slashes, remove end slash if existing)

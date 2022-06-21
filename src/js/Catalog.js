@@ -43,7 +43,9 @@ export let Catalog = (function() {
    function Catalog(options) {
         options = options || {};
 
-        this.type = 'catalog';    	this.name = options.name || "catalog";
+        this.uuid = Utils.uuidv4();
+        this.type = 'catalog';
+        this.name = options.name || "catalog";
     	this.color = options.color || Color.getNextColor();
     	this.sourceSize = options.sourceSize || 8;
     	this.markerSize = options.sourceSize || 12;

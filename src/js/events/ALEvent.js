@@ -41,6 +41,11 @@
     static HIPS_LAYER_REMOVED  = new ALEvent("AL:HiPSLayer.removed");
 
     static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
+
+    static GRAPHIC_OVERLAY_LAYER_ADDED  = new ALEvent("AL:GraphicOverlayLayer.added");
+    static GRAPHIC_OVERLAY_LAYER_REMOVED  = new ALEvent("AL:GraphicOverlayLayer.removed");
+
+    static GRAPHIC_OVERLAY_LAYER_CHANGED  = new ALEvent("AL:GraphicOverlayLayer.changed");
   
     constructor(name) {
       this.name = name;

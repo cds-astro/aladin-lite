@@ -13,6 +13,7 @@ import { astro }   from "./libs/fits.js";
 import { CooFrameEnum }   from "./CooFrameEnum.js";
 import { Aladin }   from "./Aladin.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
+import { Utils }   from "./Utils.js";
 import { AladinUtils }   from "./AladinUtils.js";
 import { CooConversion }   from "./CooConversion.js";
 
@@ -21,6 +22,7 @@ export let MOC = (function() {
     let MOC = function(options) {
         this.order = undefined;
 
+        this.uuid = Utils.uuidv4();
         this.type = 'moc';
 
         // TODO homogenize options parsing for all kind of overlay (footprints, catalog, MOC)

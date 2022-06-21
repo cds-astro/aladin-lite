@@ -116,8 +116,14 @@ import  autocomplete from 'autocompleter';
         });
 
         $(loadMOCBtn).click(function() {
-            console.log(self.selectedItem);
-            let url = self.selectedItem.hips_service_url + '/Moc.fits';
+            let url;
+            let byIdSelected = self.mainDiv.querySelectorAll('input')[0];
+            if (byIdSelected.value.startsWith('http')) {
+                url = byIdSelected.value + '/Moc.fits';
+            }
+            else {
+                url = self.selectedItem.hips_service_url + '/Moc.fits';
+            }
             if (url.includes('alasky')) {
                 url = url.replace('http:', 'https:');
             }

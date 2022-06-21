@@ -24,12 +24,13 @@ module.exports = {
         asyncWebAssembly: true
     },
     optimization: {
-        minimize: true,
+        minimize: false,
+        /*
         minimizer: [new TerserPlugin({
             terserOptions: {
                 safari10: true
             }
-        })],
+        })],*/
     },
     plugins: [
         // WebGL2 app
@@ -91,6 +92,17 @@ module.exports = {
     },
     module: {
         rules: [
+            {
+                test: /\.m?js$/,
+                exclude: /(node_modules|bower_components)/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                        plugins: ['@babel/plugin-proposal-object-rest-spread']
+                    }
+                }
+            },
             {
                 test: /\.(vert|frag|glsl)$/,
                 include: SHADER_PATH,

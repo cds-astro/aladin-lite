@@ -99,7 +99,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
         rootURL = Utils.getAbsoluteURL(rootURL);
 
         // fast fix for HTTPS support --> will work for all HiPS served by CDS
-        if (Utils.isHttpsContext() && ( /cds.unistra.fr/i.test(rootURL) || /unistra.fr/i.test(rootURL)  ) ) {
+        if (Utils.isHttpsContext() && ( /alasky/i.test(rootURL)  ) ) {
             rootURL = rootURL.replace('http://', 'https://');
         }
 

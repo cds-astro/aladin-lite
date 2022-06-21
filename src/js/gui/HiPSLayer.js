@@ -297,8 +297,7 @@ export class HiPSLayer {
         const colorMode = this.mainDiv[0].getElementsByClassName('colormap-color-selector');
         colorMapSelect4ImgLayer.add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
             const stretch = stretchSelect4ImgLayer.val();
-
-            if (colorMode.checked) {
+            if (colorMode[0].checked) {
                 // Color map case
                 const cmap = colorMapSelect4ImgLayer.val();
                 const reverse = reverseCmCb[0].checked;

@@ -1,18 +1,3 @@
-/*
-grayscale = 0,
-blues = 1,
-parula = 2,
-rainbow = 3,
-redtemperature = 4,
-RdBu = 5,
-RdYiBu = 6,
-spectral = 7,
-summer = 8,
-YIGnBu = 9,
-YIOrBr = 10,
-cubehelix = 11,
-eosb = 12,
-*/
 use al_api::resources::Resources;
 use std::collections::HashMap;
 
@@ -32,16 +17,21 @@ impl Colormaps {
     pub fn new(gl: &WebGlContext, rs: &Resources) -> Result<Self, JsValue> {
         let colormaps: HashMap<&str, Colormap> = [
             ("blues", Colormap::Blues),
+            ("cividis", Colormap::Cividis),
             ("cubehelix", Colormap::Cubehelix),
             ("eosb", Colormap::Eosb),
             ("grayscale", Colormap::Grayscale),
+            ("inferno", Colormap::Inferno),
+            ("magma", Colormap::Magma),
             ("parula", Colormap::Parula),
+            ("plasma", Colormap::Plasma),
             ("rainbow", Colormap::Rainbow),
             ("rdbu", Colormap::Rdbu),
             ("rdyibu", Colormap::Rdyibu),
             ("redtemperature", Colormap::Redtemperature),
             ("spectral", Colormap::Spectral),
             ("summer", Colormap::Summer),
+            ("viridis", Colormap::Viridis),
             ("yignbu", Colormap::Yignbu),
             ("yiorbr", Colormap::Yiorbr),
         ]
@@ -82,16 +72,21 @@ impl Colormaps {
     pub const fn get_list_available_colormaps() -> &'static [&'static str] {
         &[
             "blues",
+            "cividis",
             "cubehelix",
             "eosb",
             "grayscale",
+            "inferno",
+            "magma",
             "parula",
+            "plasma",
             "rainbow",
             "rdbu",
             "rdyibu",
             "redtemperature",
             "spectral",
             "summer",
+            "viridis",
             "yignbu",
             "yiorbr",
         ]

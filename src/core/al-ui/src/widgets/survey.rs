@@ -503,6 +503,9 @@ impl SurveyWidget {
                                 .selectable_value(&mut self.colormap, Colormap::Blues, "blues")
                                 .clicked();
                             *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Cividis, "cividis")
+                                .clicked();
+                            *ui_changed |= ui
                                 .selectable_value(
                                     &mut self.colormap,
                                     Colormap::Cubehelix,
@@ -520,7 +523,16 @@ impl SurveyWidget {
                                 )
                                 .clicked();
                             *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Inferno, "inferno")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Magma, "magma")
+                                .clicked();
+                            *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Parula, "parula")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Plasma, "plasma")
                                 .clicked();
                             *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow")
@@ -547,6 +559,9 @@ impl SurveyWidget {
                                 .clicked();
                             *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Summer, "summer")
+                                .clicked();
+                            *ui_changed |= ui
+                                .selectable_value(&mut self.colormap, Colormap::Viridis, "viridis")
                                 .clicked();
                             *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Yignbu, "yignbu")

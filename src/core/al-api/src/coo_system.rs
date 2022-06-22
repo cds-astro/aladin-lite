@@ -96,7 +96,7 @@ use cgmath::BaseFloat;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum CooSystem {
     ICRSJ2000,
     GAL,

@@ -13,15 +13,20 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: 'M51', fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        /*aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
         aladin.setProjection('MOL');
 
-        let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, {
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {
             imgFormat: 'fits',
-            colormap: 'redtemperature'
-        });
-        aladin.setBaseImageLayer(survey);
-        aladin.getBaseImageLayer().setColormap("redtemperature", {stretch: "Asinh"});
+            colormap: 'redtemperature',
+            stretch: 'Asinh'
+        });*/
+
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        aladin.setProjection('MOL');
+
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
+        aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});
     });
 </script>
 

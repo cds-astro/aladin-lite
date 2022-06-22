@@ -75,11 +75,7 @@ export class Stack {
             const layerName = Utils.uuidv4();
 
             // A HIPS_LAYER_ADDED will be called after the hips is added to the view
-            self.aladin.setOverlayImageLayer(
-                'CDS/P/DSS2/color',
-                null,
-                layerName
-            );
+            self.aladin.setOverlayImageLayer('CDS/P/DSS2/color', layerName);
         });
 
         if (this.imgLayers.size > 1) {

@@ -160,7 +160,7 @@ export class HiPSLayer {
                 self.view,
                 survey.options
             );
-            self.aladin.setOverlayImageLayer(hpxImageSurvey, null, self.survey.layer);
+            self.aladin.setOverlayImageLayer(hpxImageSurvey, self.survey.layer);
 
             self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
                 detail: self.survey.layer
@@ -174,7 +174,7 @@ export class HiPSLayer {
             if (!self.hipsSelector) {
                 self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
                     const layerName = self.survey.layer;
-                    self.aladin.setOverlayImageLayer(IDOrURL, null, layerName);
+                    self.aladin.setOverlayImageLayer(IDOrURL, layerName);
                 }, self.aladin);
             }
             self.hipsSelector.show();

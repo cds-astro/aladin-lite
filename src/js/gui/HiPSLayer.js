@@ -252,8 +252,8 @@ export class HiPSLayer {
             self.survey.setCuts([minCut, maxCut]);
             // update the cuts only
             
-            minCut4ImgLayer.val(minCut.toFixed(5));
-            maxCut4ImgLayer.val(maxCut.toFixed(5));
+            minCut4ImgLayer.val(parseFloat(minCut.toFixed(5)));
+            maxCut4ImgLayer.val(parseFloat(maxCut.toFixed(5)));
 
             // update HpxImageSurvey.SURVEYS definition
             /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
@@ -423,9 +423,24 @@ export class HiPSLayer {
                 stretchTr.show();
             }
 
-            minCut.val(options.minCut.toFixed(5));
+            if (options.minCut) {
+                if (parseFloat(minCut.val()) != options.minCut) {
+                    minCut.val(parseFloat(options.minCut.toFixed(5)));
+                }
+            }
+            else {
+                minCut.val(0.0);
+            }
             minCutTr.show();
-            maxCut.val(options.maxCut.toFixed(5));
+
+            if (options.maxCut) {
+                if (parseFloat(maxCut.val()) != options.maxCut) {
+                    maxCut.val(parseFloat(options.maxCut.toFixed(5)));
+                }
+            }
+            else {
+                maxCut.val(10.0);
+            }
             maxCutTr.show();
         }
 

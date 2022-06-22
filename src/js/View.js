@@ -537,11 +537,11 @@ export let View = (function() {
 
             view.mustClearCatalog = true;
             view.dragx = view.dragy = null;
+            const xymouse = view.imageCanvas.relMouseCoords(e);
 
             if (e.type==="mouseout" || e.type==="touchend") {
                 //view.requestRedraw();
-                view.updateLocation(true);
-
+                view.updateLocation(xymouse.x, xymouse.y, true);
 
                 if (e.type==="mouseout") {
                     if (view.mode===View.TOOL_SIMBAD_POINTER) {
@@ -552,7 +552,6 @@ export let View = (function() {
                 }
             }
 
-            const xymouse = view.imageCanvas.relMouseCoords(e);
             if (view.mode==View.TOOL_SIMBAD_POINTER) {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
@@ -687,7 +686,7 @@ export let View = (function() {
 
             if (!view.dragging || hasTouchEvents) {
                 // update location box
-                view.updateLocation(true);
+                view.updateLocation(xymouse.x, xymouse.y, false);
                 // call listener of 'mouseMove' event
                 var onMouseMoveFunction = view.aladin.callbacksByEventName['mouseMove'];
                 if (typeof onMouseMoveFunction === 'function') {
@@ -805,7 +804,6 @@ export let View = (function() {
             if (view.viewCenter.lon < 0.0) {
                 view.viewCenter.lon += 360.0;
             }
-            view.updateLocation(true);
         }); //// endof mousemove ////
         
         // disable text selection on IE
@@ -914,14 +912,22 @@ export let View = (function() {
         //view.redraw();
     };
 
-    View.prototype.updateLocation = function(isViewCenterPosition) {
+    View.prototype.updateLocation = function(mouseX, mouseY, isViewCenterPosition) {
         if (!this.projection) {
             return;
         }
-        //var xy = AladinUtils.viewToXy(x, y, view.width, view.height, view.largestDim, view.zoomFactor);
 
-        if(this.viewCenter) {
-            this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, isViewCenterPosition);
+        if(isViewCenterPosition) {
+            this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
+        } else {
+            let radec = this.aladin.webglAPI.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
+            if (radec) {
+                if (radec[0]<0) {
+                    radec = [radec[0] + 360.0, radec[1]];
+                }
+
+                this.location.update(radec[0], radec[1], this.cooFrame, false);
+            }
         }
     }
     

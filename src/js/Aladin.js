@@ -291,21 +291,20 @@ export let Aladin = (function () {
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
         if (options.survey) {
-            (async () => {
-                if (typeof options.survey === Array) {
-                    let i = 0;
-                    options.survey.forEach(async (rootUrlOrId) => {
-                        if (i == 0) {
-                            this.setBaseImageLayer(options.survey);
-                        } else {
-                            this.setOverlayImageLayer(options.survey, null, "overlay" + i.toString());
-                        }
-                        i++;
-                    });
-                } else {
-                    this.setBaseImageLayer(options.survey);
-                }
-            })();
+            if (Array.isArray(options.survey)) {
+
+                let i = 0;
+                options.survey.forEach((rootURLOrId) => {
+                    if (i == 0) {
+                        this.setBaseImageLayer(rootURLOrId);
+                    } else {
+                        this.setOverlayImageLayer(rootURLOrId, Utils.uuidv4());
+                    }
+                    i++;
+                });
+            } else {
+                this.setBaseImageLayer(options.survey);
+            }
         } else {
             this.setBaseImageLayer(DEFAULT_OPTIONS.survey);
         }
@@ -892,20 +891,20 @@ export let Aladin = (function () {
 
 
     // @oldAPI
-    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}, callbck = (survey) => {}) {
+    Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
         const rootUrlOrId = rootUrl || id;
         if (cooFrame) {
             options.cooFrame = cooFrame;
         }
 
-        return new HpxImageSurvey(rootUrlOrId, this.view, options, callbck);
+        return new HpxImageSurvey(rootUrlOrId, this.view, options);
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey, callbck) {
-        this.setBaseImageLayer(imageSurvey, callbck);
+    Aladin.prototype.setImageSurvey = function(imageSurvey) {
+        this.setBaseImageLayer(imageSurvey);
     };
 
     // @api
@@ -918,10 +917,10 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, callbck) {
+    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, options) {
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
-            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, {}, callbck);
+            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, options);
             this.view.setBaseImageLayer(survey);
         // 2. User gives a non resolved promise
         } else {
@@ -935,15 +934,10 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, callbck, layer = "overlay") {
-        // layer == "base" is reserved for the base image layer
-        //if (layer === "base") {
-        //    throw 'Layer name "base" is reserved for the base image layer';
-        //}
-
+    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, layer = "overlay", options = {}) {
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
-            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, {}, callbck);
+            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, options);
             this.view.setOverlayImageSurvey(survey, layer);
         // 2. User gives a non resolved promise
         } else {
@@ -1461,7 +1455,7 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
             var meta = response.data.meta;
 
             const promise = self.createImageSurvey(response.data.url);
-            self.setOverlayImageLayer(promise, null, "overlay");
+            self.setOverlayImageLayer(promise, "overlay");
 
             var transparency = (options && options.transparency) || 1.0;
 

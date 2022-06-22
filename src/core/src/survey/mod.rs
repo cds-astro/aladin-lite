@@ -1011,6 +1011,8 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
 use al_core::image::format::ImageFormatType;
 use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
+use std::collections::hash_map::{Entry, DefaultHasher};
+use std::hash::{Hasher, Hash};
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -1326,12 +1328,20 @@ impl ImageSurveys {
             let new_depth = camera.depth();
     
             let depth = new_depth.min(max_depth);
+
+            let mut hasher = DefaultHasher::new();
+            (depth, hips_frame).hash(&mut hasher);
+            let key = hasher.finish();
+
             // Get the cells of that depth in the current field of view
-            if !coverages.contains_key(&depth) {
-                coverages.insert(depth, crate::survey::view::get_cells_in_camera(depth, camera, hips_frame));
+            let cells = match coverages.entry(key) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let cells = crate::survey::view::get_cells_in_camera(depth, camera, hips_frame);
+                    v.insert(cells)
+                }
             };
 
-            let cells = coverages.get(&depth).unwrap();
             survey.refresh_view(depth, cells, camera);
         }
     }

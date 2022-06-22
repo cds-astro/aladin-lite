@@ -69,7 +69,7 @@ export let View = (function() {
             // 1. Print the original exception message in the console
             console.error(e)
             // 2. Add a more explicite message to the end user
-            alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite")
+            alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
 
         this.location = location;
@@ -1533,9 +1533,9 @@ export let View = (function() {
 
         // We push it to a waiting list of surveys so that the user can still get it
         // and modify its options while its metadata is not yet received
-        if(!this.imageSurveysWaitingList.has(layer) && !this.imageSurveys.has(layer)) {
-            this.imageSurveysWaitingList.set(layer, survey);
-        }
+        //if(!this.imageSurveysWaitingList.has(layer) && !this.imageSurveys.has(layer)) {
+        this.imageSurveysWaitingList.set(layer, survey);
+        //}
 
         this.addImageSurvey(survey, layer);
     };

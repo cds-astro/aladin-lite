@@ -137,7 +137,7 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    function HpxImageSurvey(rootURLOrId, view, options, callback) {
+    function HpxImageSurvey(rootURLOrId, view, options) {
         // A reference to the view
         this.backend = view;
         // A number used to ensure the correct layer ordering in the aladin lite view
@@ -148,15 +148,7 @@ export let HpxImageSurvey = (function() {
         this.layer = null;
         this.added = false;
         // Default options
-        this.options = {
-            ...{
-                longitudeReversed: false,
-                reversed: false,
-                stretch: "Linear",
-                opacity: 1.0,
-            },
-            ...options
-        };
+        this.options = options || {};
         
         if (this.options.imgFormat) {
             // Img format preprocessing
@@ -179,6 +171,14 @@ export let HpxImageSurvey = (function() {
             // jpeg default case
             //tileFormat = "JPG";
             this.fits = false;
+        }
+
+        if (this.options.longitudeReversed === undefined) {
+            this.options.longitudeReversed = false;
+        }
+
+        if (this.options.opacity === undefined) {
+            this.options.opacity = 1.0;
         }
 
         this.updateMeta();
@@ -266,7 +266,7 @@ export let HpxImageSurvey = (function() {
 
             // HiPS grayscale
             self.colored = false;
-            if (metadata.dataproduct_subtype && (metadata.dataproduct_subtype === "color" || metadata.dataproduct_subtype[0] === "color") ) {
+            if (metadata.dataproduct_subtype && (metadata.dataproduct_subtype.includes("color") || metadata.dataproduct_subtype[0].includes("color") )) {
                 self.colored = true;
             }
 
@@ -334,10 +334,6 @@ export let HpxImageSurvey = (function() {
             self.updateMeta();
             self.ready = true;
 
-            if (callback) {
-                callback(self);
-            }
-
             // If the layer has been set then it is linked to the aladin lite view
             // so we add it
             if (self.added) {
@@ -361,6 +357,7 @@ export let HpxImageSurvey = (function() {
                 func: 'FuncAdd' 
             }
         }
+
         // reset the whole meta object
         this.meta = {};
         // populate him with the updated fields
@@ -376,7 +373,7 @@ export let HpxImageSurvey = (function() {
             if (this.options.color) {
                 this.meta.color = {
                     grayscale: {
-                        stretch: this.options.stretch,
+                        stretch: this.options.stretch || "Linear",
                         minCut: this.options.minCut,
                         maxCut: this.options.maxCut,
                         color: {
@@ -394,14 +391,19 @@ export let HpxImageSurvey = (function() {
                     this.options.colormap = "grayscale";
                 }
 
+                let reversed = this.options.reversed;
+                if (this.options.reversed === undefined) {
+                    reversed = false;
+                }
+
                 this.meta.color = {
                     grayscale: {
-                        stretch: this.options.stretch,
+                        stretch: this.options.stretch || "Linear",
                         minCut: this.options.minCut,
                         maxCut: this.options.maxCut,
                         color: {
                             colormap: {
-                                reversed: this.options.reversed,
+                                reversed: reversed,
                                 name: this.options.colormap,
                             }
                         }

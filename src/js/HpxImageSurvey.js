@@ -194,7 +194,7 @@ export let HpxImageSurvey = (function() {
                 throw 'no valid service URL for retrieving the tiles'
             }
 
-            if (Utils.isHttpsContext() && url.startsWith('http://alasky')) {
+            if (Utils.isHttpsContext()) {
                 const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
                     if (url.includes(element)) {
                       return true;

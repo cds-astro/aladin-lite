@@ -54,7 +54,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
         // Use the MOCServer to retrieve the
         // properties
         const id = rootURLOrId;
-        const MOCServerUrl = 'https://alasky.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
+        const MOCServerUrl = 'https://alasky.cds.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
 
         metadata = await request(MOCServerUrl);
 
@@ -99,8 +99,19 @@ export async function fetchSurveyProperties(rootURLOrId) {
         rootURL = Utils.getAbsoluteURL(rootURL);
 
         // fast fix for HTTPS support --> will work for all HiPS served by CDS
-        if (Utils.isHttpsContext() && ( /alasky/i.test(rootURL)  ) ) {
-            rootURL = rootURL.replace('http://', 'https://');
+        if (Utils.isHttpsContext()) {
+            const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
+                if (rootURL.includes(element)) {
+                  return true;
+                }
+              
+                return false;
+            });
+                console.log('switch', switchToHttps)
+
+            if (switchToHttps) {
+                rootURL = rootURL.replace('http://', 'https://');
+            }
         }
 
         const url = rootURL + '/properties';
@@ -183,10 +194,19 @@ export let HpxImageSurvey = (function() {
                 throw 'no valid service URL for retrieving the tiles'
             }
 
-            if (url.startsWith('http://alasky')) {
-                // From alasky one can directly use the https access
-                url = url.replace('http', 'https');
-                url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.cds.unistra.fr/');
+            if (Utils.isHttpsContext() && url.startsWith('http://alasky')) {
+                const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
+                    if (url.includes(element)) {
+                      return true;
+                    }
+                  
+                    return false;
+                });
+                console.log('switch', switchToHttps)
+                if (switchToHttps) {
+                    url = url.replace('http', 'https');
+                    url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.cds.unistra.fr/');
+                }
             }
 
             // HiPS order

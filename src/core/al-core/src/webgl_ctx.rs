@@ -60,24 +60,26 @@ impl WebGlContext {
         );
 
         #[cfg(feature = "webgl2")]
-        let _ = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float")?;
-        #[cfg(feature = "webgl1")]
-        let angles_ext =
-            get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
-        #[cfg(feature = "webgl1")]
-        let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
-        #[cfg(feature = "webgl1")]
-        let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
+        {
+            if let Ok(r) = get_extension::<web_sys::ExtColorBufferFloat>(&gl, "EXT_color_buffer_float") {
+                let _ = r;
+            }
+
+            let ctx = WebGlContext { inner: gl };
+            Ok(ctx)
+        }
 
         #[cfg(feature = "webgl1")]
-        let ctx = WebGlContext {
-            inner: gl,
-            ext: WebGlExt { angles: angles_ext },
-        };
-        #[cfg(feature = "webgl2")]
-        let ctx = WebGlContext { inner: gl };
+        {
+            let angles_ext = get_extension::<web_sys::AngleInstancedArrays>(&gl, "ANGLE_instanced_arrays")?;
+            let _ = get_extension::<web_sys::OesTextureFloat>(&gl, "OES_texture_float")?;
+            let _ = get_extension::<web_sys::ExtSRgb>(&gl, "EXT_sRGB")?;
 
-        Ok(ctx)
+            Ok(WebGlContext {
+                inner: gl,
+                ext: WebGlExt { angles: angles_ext },
+            })
+        }
     }
 }
 

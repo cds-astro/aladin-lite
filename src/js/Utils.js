@@ -36,7 +36,7 @@ export let Utils = {};
 // list of URL domains that can be safely switched from HTTP to HTTPS
 Utils.HTTPS_WHITELIIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alasky.unistra.fr', 'alaskybis.unistra.fr',
                           'alasky.cds.unistra.fr', 'alaskybis.cds.unistra.fr', 'hips.astron.nl', 'jvo.nao.ac.jp',
-                          'archive.cefca.es', 'cade.irap.omp.eu'];
+                          'archive.cefca.es', 'cade.irap.omp.eu', 'skies.esac.esa.int'];
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 

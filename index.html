@@ -15,7 +15,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
-        aladin.setProjection('MOL');
+        aladin.setProjection('AIT');
 
         let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, {
             imgFormat: 'fits',

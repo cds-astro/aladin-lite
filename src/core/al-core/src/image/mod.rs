@@ -178,6 +178,8 @@ impl ArrayBuffer for ArrayF64 {
     }
 }
 
+use self::html::HTMLImage;
+
 use super::Texture2DArray;
 pub trait Image {
     fn tex_sub_image_3d(
@@ -270,6 +272,8 @@ pub enum ImageType {
     FitsImageR8ui { image: Fits<R8UI> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
     JpgImageRgb8u { image: Bitmap<RGB8U> },
+    PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
+    JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     RawRgb8u { image: ImageBuffer<RGB8U> },
     RawRgba8u { image: ImageBuffer<RGBA8U> },
     RawR32f { image: ImageBuffer<R32F> },
@@ -281,6 +285,8 @@ pub enum ImageType {
 #[cfg(feature = "webgl1")]
 pub enum ImageType {
     FitsImageR32f { image: Fits<R32F> },
+    PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
+    JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
     JpgImageRgb8u { image: Bitmap<RGB8U> },
     RawRgb8u { image: ImageBuffer<RGB8U> },
@@ -311,6 +317,8 @@ impl Image for ImageType {
             ImageType::FitsImageR8ui { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
+            ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
+            ImageType::JpgHTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset),

@@ -29,7 +29,7 @@ use std::future::Future;
 use wasm_bindgen::JsValue;
 impl<R> Request<R>
 where
-    R: 'static,
+    R: 'static
 {
     pub fn new<F>(f: F) -> Self
     where

@@ -1,8 +1,13 @@
 use crate::{healpix::cell::HEALPixCell};
-use al_core::image::format::ImageFormatType;
+use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 
 use crate::downloader::{query};
-use al_core::image::{bitmap::Bitmap, fits::Fits, ImageType};
+use al_core::image::{
+    //bitmap::Bitmap,
+    fits::Fits,
+    //raw::ImageBuffer,
+    ImageType
+};
 
 use super::{Request, RequestType};
 pub struct TileRequest {
@@ -18,12 +23,10 @@ impl From<TileRequest> for RequestType {
         RequestType::Tile(request)
     }
 }
-
-
+use al_core::image::html::HTMLImage;
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, RequestInit, RequestMode, Response};
-
 use wasm_bindgen::JsCast;
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
@@ -50,13 +53,45 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
+                /*
+                /// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
                     .await?
                     .into();
 
                 let image = Bitmap::new(image);
-                Ok(ImageType::JpgImageRgb8u { image })
+                Ok(ImageType::JpgImageRgb8u { image })*/
+                /*
+                /// Raw image decoding
+                
+                let buf = JsFuture::from(resp.array_buffer()?).await?;
+                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                let image = ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], 512, 512)?;
+
+                Ok(ImageType::RawRgb8u { image })
+                */
+                // HTMLImageElement
+                let blob = JsFuture::from(resp.blob()?).await?.into();
+                let image = web_sys::HtmlImageElement::new().unwrap();
+                let image_cloned = image.clone();
+
+                let html_img_elt_promise = js_sys::Promise::new(
+                    &mut (Box::new(move |resolve, reject| {
+                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                        image_cloned.set_src(&url);
+                        image_cloned.set_onload(
+                            Some(&resolve)
+                        );
+                        image_cloned.set_onerror(
+                            Some(&reject)
+                        );
+                    }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
+                );
+
+                let _ = JsFuture::from(html_img_elt_promise).await?;
+                // The image has been resolved
+                Ok(ImageType::JpgHTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
             }),
             ImageFormatType::RGBA8U => Request::new(async move {
                 let mut opts = RequestInit::new();
@@ -69,6 +104,8 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
+                /*
+                /// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
                     .await?
@@ -76,6 +113,36 @@ impl From<query::Tile> for TileRequest {
 
                 let image = Bitmap::new(image);
                 Ok(ImageType::PngImageRgba8u { image })
+                */
+                /*
+                /// Raw image decoding
+                let buf = JsFuture::from(resp.array_buffer()?).await?;
+                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                let image = ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], 512, 512)?;
+
+                Ok(ImageType::RawRgba8u { image })
+                */
+                // HTMLImageElement
+                let blob = JsFuture::from(resp.blob()?).await?.into();
+                let image = web_sys::HtmlImageElement::new().unwrap();
+                let image_cloned = image.clone();
+
+                let html_img_elt_promise = js_sys::Promise::new(
+                    &mut (Box::new(move |resolve, reject| {
+                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                        image_cloned.set_src(&url);
+                        image_cloned.set_onload(
+                            Some(&resolve)
+                        );
+                        image_cloned.set_onerror(
+                            Some(&reject)
+                        );
+                    }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
+                );
+
+                let _ = JsFuture::from(html_img_elt_promise).await?;
+                // The image has been resolved
+                Ok(ImageType::PngHTMLImageRgba8u { image: HTMLImage::<RGBA8U>::new(image) })
             }),
             ImageFormatType::R32F => Request::new(async move {
                 let mut opts = RequestInit::new();

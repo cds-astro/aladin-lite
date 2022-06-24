@@ -1,5 +1,4 @@
 /* ------------------------------------------------------ */
-
 #[derive(Debug)]
 pub struct HTMLImage<F>
 where
@@ -8,6 +7,19 @@ where
     image: web_sys::HtmlImageElement,
     format: std::marker::PhantomData<F>,
 }
+
+impl<F> HTMLImage<F>
+where
+    F: ImageFormat + Clone,
+{
+    pub fn new(image: web_sys::HtmlImageElement) -> Self {
+        Self {
+            image,
+            format: std::marker::PhantomData,
+        }
+    }
+}
+
 use cgmath::Vector3;
 
 use crate::image::format::ImageFormat;

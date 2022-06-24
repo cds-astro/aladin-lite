@@ -18,7 +18,6 @@ impl From<AllskyRequest> for RequestType {
     }
 }
 
-
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};

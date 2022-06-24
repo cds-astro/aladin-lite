@@ -48,6 +48,7 @@ vec2 world2clip_orthographic(vec3 p) {
     return vec2(-p.x, p.y);
 }
 
+
 vec2 world2clip_aitoff(vec3 p) {
     float delta = asin(p.y);
     float theta = atan(-p.x, p.z);
@@ -56,9 +57,11 @@ vec2 world2clip_aitoff(vec3 p) {
 
     float alpha = acos(cos(delta)*cos(theta_by_two));
     float inv_sinc_alpha = 1.0;
-    if (alpha > 1e-3) {
+    if (alpha > 1e-5) {
         inv_sinc_alpha = alpha / sin(alpha);
     }
+    //float inv_sinc_alpha = alpha / sin(alpha);
+    //float inv_sinc_alpha = 1.0;
 
     // The minus is an astronomical convention.
     // longitudes are increasing from right to left
@@ -67,6 +70,30 @@ vec2 world2clip_aitoff(vec3 p) {
 
     return vec2(x / PI, y / PI);
 }
+
+/*
+vec2 world2clip_aitoff(vec3 p) {
+    //p = normalize(p);
+    float x = p.z;
+    float y = -p.x;
+    float z = p.y;
+
+    float r = sqrt(x * x + y * y);
+    float w = sqrt(0.5 * r * (r + x)); // = cos(b) cos(l/2)
+    if (w > 1e-3) {
+      w = sqrt(0.5 * (1.0 + w));            // = 1 / gamma
+    } else {
+      w = sqrt(0.5) * (1.0 + 0.5 * w - w*w*0.125);
+    }
+    float y2d = z / w;
+    w = sqrt(2.0 * r * (r - x)) / w;       // = 2 * gamma * cos(b) sin(l/2)
+    float x2d = w;
+    if (y < 0.0) {
+        x2d = -w;
+    }
+    //float x2d = y < 0.0 ? -w : w;
+    return vec2(x2d / PI, y2d / PI);
+}*/
 
 vec2 world2clip_mollweide(vec3 p) {
     // X in [-1, 1]

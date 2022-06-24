@@ -323,7 +323,7 @@ impl Projection for Aitoff {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let u = pos_clip_space.x * PI * 0.5;
             let v = pos_clip_space.y * PI;
@@ -346,7 +346,32 @@ impl Projection for Aitoff {
         } else {
             None
         }
+    }*/
+
+    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+        if Self::is_included_inside_projection(pos_clip_space) {
+            let x2d = -pos_clip_space.x;
+            let y2d = pos_clip_space.y;
+            let mut r = 0.125 * x2d * x2d + 0.5 * y2d * y2d; //  = 1 - cos(b) cos(l/2)
+
+            let mut x = 1.0 - r; // cos(b) cos(l/2)
+            let mut w = (1.0 - 0.5 * r).sqrt(); // sqrt(HALF * (1 + x)) ;  //  = Z = sqrt[ (1 + cos(b) cos(l/2)) / 2]
+            let mut y = 0.5 * x2d * PI * w; // cos(b) sin(l/2)
+            let z = PI * y2d * w; // z
+            // Convert from Cartesian (l/2, b) to Cartesian (l, b) 
+            r = (x * x + y * y).sqrt();  // cos(b)
+            if r > 0.0 {
+                w = x;
+                x = (w * w - y * y) / r; // cos(b) cos(l)
+                y = 2.0 * w * y / r; // cos(b) sin(l)
+            }
+
+            Some(Vector4::new(y, z, x, 1.0))
+        } else {
+            None
+        }
     }
+
 
     /// World to screen space transformation
     /// X is between [-1, 1]
@@ -355,7 +380,7 @@ impl Projection for Aitoff {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+    /*fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
@@ -383,6 +408,21 @@ impl Projection for Aitoff {
             x / std::f64::consts::PI,
             y / std::f64::consts::PI,
         ))
+    }*/
+
+    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        let x = pos_world_space.z;
+        let y = -pos_world_space.x;
+        let z = pos_world_space.y;
+
+        let r = (x * x + y * y).sqrt();
+        let mut w = (0.5 * r * (r + x)).sqrt(); // = cos(b) cos(l/2)
+        w = (0.5 * (1.0 + w)).sqrt();            // = 1 / gamma
+        let y2d = z / w;
+        w = (2.0 * r * (r - x)).sqrt() / w;       // = 2 * gamma * cos(b) sin(l/2)
+        let x2d = if y < 0.0 { -w } else { w };
+        
+        Some(Vector2::new(x2d / PI, y2d / PI))
     }
 
     fn aperture_start() -> Angle<f64> {

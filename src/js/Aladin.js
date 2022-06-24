@@ -1604,6 +1604,6 @@ A.init = (async () => {
     Aladin.wasmLibs.webgl = await WebGLCtx();
 })();
 
-// this is ugly for sure and there must be a better way using Webpack magic
+// this is ugly for sure and there must be a better way (export A ??)
 window.A = A;
 

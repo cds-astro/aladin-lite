@@ -44,6 +44,8 @@ import  autocomplete from 'autocompleter';
     }
 
     _createComponent() {
+        const self = this;
+
         this.mainDiv = document.createElement('div');
         this.mainDiv.style.display = 'block';
         this.mainDiv.classList.add('aladin-dialog', 'aladin-layerBox', 'aladin-cb-list');
@@ -60,7 +62,6 @@ import  autocomplete from 'autocompleter';
             '<div>' +
                 '<button class="aladin-btn">Select HiPS</button>' +
                 '<button class="aladin-btn">Load coverage</button>' +
-                '<button class="aladin-btn aladin-cancelBtn">Close</button>' +
             '</div>' +
           '</div>'
         );
@@ -83,6 +84,9 @@ import  autocomplete from 'autocompleter';
             onSelect: function(item) {
                 self.selectedItem = item;
                 input.value = item.ID;
+
+                self.fnIdSelected && self.fnIdSelected(item.ID);
+
             },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");
@@ -93,12 +97,11 @@ import  autocomplete from 'autocompleter';
             }
         });
 
-        // this modal is closed when clicking on the cross at the top right, or on the Cancel button
-        let [selectBtn, loadMOCBtn, cancelBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
+        // this modal is closed when clicking on the cross at the top right
+        let [selectBtn, loadMOCBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
         let [closeBtn]  = this.mainDiv.querySelectorAll('.aladin-closeBtn');
 
-        var self = this;
-        $(closeBtn).add($(cancelBtn)).click(function() {
+        $(closeBtn).click(function() {
             self.hide();
         });
 
@@ -107,7 +110,7 @@ import  autocomplete from 'autocompleter';
             let byIdSelected = self.mainDiv.querySelectorAll('input')[0];
 
             if (byIdSelected) {
-                self.fnIdSelected(byIdSelected.value);
+                self.fnIdSelected && self.fnIdSelected(byIdSelected.value);
             }
 
             byIdSelected.value = '';

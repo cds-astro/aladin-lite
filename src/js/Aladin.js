@@ -360,7 +360,7 @@ export let Aladin = (function () {
     };
 
     /**** CONSTANTS ****/
-    Aladin.VERSION = "{ALADIN-LITE-VERSION-NUMBER}"; // will be filled by the build.sh script
+    Aladin.VERSION = "3.0-beta0";
 
     Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";

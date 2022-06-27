@@ -44,7 +44,7 @@ impl From<query::Tile> for TileRequest {
         let window = web_sys::window().unwrap();
         let request = match format {
             ImageFormatType::RGB8U => Request::new(async move {
-                let mut opts = RequestInit::new();
+                /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
@@ -52,7 +52,7 @@ impl From<query::Tile> for TileRequest {
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
+                let resp: Response = resp_value.dyn_into()?;*/
 
                 
                 /*/// Bitmap version
@@ -73,14 +73,15 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::RawRgb8u { image })
                 */
                 // HTMLImageElement
-                let blob = JsFuture::from(resp.blob()?).await?.into();
+                //let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = web_sys::HtmlImageElement::new().unwrap();
                 let image_cloned = image.clone();
 
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
-                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                        image_cloned.set_src(&url);
+                       // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                        image_cloned.set_src(&url_clone);
+                        image_cloned.set_cross_origin(Some("cors"));
                         image_cloned.set_onload(
                             Some(&resolve)
                         );
@@ -95,7 +96,7 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::JpgHTMLImageRgb8u { image: HTMLImage::<RGB8U>::new(image) })
             }),
             ImageFormatType::RGBA8U => Request::new(async move {
-                let mut opts = RequestInit::new();
+                /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
@@ -103,7 +104,7 @@ impl From<query::Tile> for TileRequest {
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
+                let resp: Response = resp_value.dyn_into()?;*/
 
                 
                 /*/// Bitmap version
@@ -124,14 +125,15 @@ impl From<query::Tile> for TileRequest {
                 Ok(ImageType::RawRgba8u { image })
                 */
                 // HTMLImageElement
-                let blob = JsFuture::from(resp.blob()?).await?.into();
+                //let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = web_sys::HtmlImageElement::new().unwrap();
                 let image_cloned = image.clone();
 
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
-                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                        image_cloned.set_src(&url);
+                        //let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                        image_cloned.set_src(&url_clone);
+                        image_cloned.set_cross_origin(Some("cors"));
                         image_cloned.set_onload(
                             Some(&resolve)
                         );

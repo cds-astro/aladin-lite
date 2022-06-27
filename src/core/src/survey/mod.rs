@@ -259,7 +259,7 @@ trait Draw {
         raytracer: &RayTracer,
         switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         color: &HiPSColor,
         opacity: f32,
         colormaps: &Colormaps,
@@ -654,9 +654,10 @@ impl ImageSurvey {
         self.textures.config().is_allsky
     } 
 
-    pub fn longitude_reversed(&self) -> bool {
+    /*pub fn longitude_reversed(&self) -> bool {
+        let meta = self.meta.get(layer).expect("Meta should be found");
         self.textures.config().longitude_reversed
-    }
+    }*/
 
     fn reset_frame(&mut self) {
         self.view.reset_frame();
@@ -874,7 +875,7 @@ impl Draw for ImageSurvey {
         raytracer: &RayTracer,
         switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         color: &HiPSColor,
         mut opacity: f32,
         colormaps: &Colormaps,
@@ -885,8 +886,8 @@ impl Draw for ImageSurvey {
         let c = selected_frame.to(&hips_frame);
 
         // Get whether the camera mode is longitude reversed
-        let longitude_reversed = self.textures.config().longitude_reversed;
-        let rl = if longitude_reversed { ID_R } else { ID };
+        //let longitude_reversed = self.textures.config().longitude_reversed;
+        let rl = if camera.get_longitude_reversed() { ID_R } else { ID };
 
         // Add starting fading
         let fading = self.get_fading_factor();
@@ -941,10 +942,7 @@ impl Draw for ImageSurvey {
             )
             .bind(&self.gl);
 
-            let vertices_recomputation_needed = self.view.is_there_new_cells_added()
-                | self.textures.is_there_available_tiles()
-                | switch_from_raytrace_to_raster
-                | camera.has_moved();
+            let vertices_recomputation_needed = self.textures.is_there_available_tiles() | camera.has_moved();
             if vertices_recomputation_needed {
                 self.recompute_vertices::<P>(camera);
             }
@@ -1093,7 +1091,7 @@ impl ImageSurveys {
 
     pub fn draw<P: Projection>(
         &mut self,
-        camera: &CameraViewPort,
+        camera: &mut CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
@@ -1137,6 +1135,14 @@ impl ImageSurveys {
             }
         }
 
+        let longitude_reversed = camera.get_longitude_reversed();
+        // Get the reverse longitude flag
+        if raytracing || !longitude_reversed {
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
+        } else {
+            self.gl.cull_face(WebGl2RenderingContext::FRONT);
+        }
+
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
             if meta.visible() {
@@ -1144,18 +1150,11 @@ impl ImageSurveys {
                     color,
                     opacity,
                     blend_cfg,
+                    ..
                 } = meta;
 
                 let url = self.urls.get(layer).expect("Url should be found");
                 let survey = self.surveys.get_mut(url).unwrap();
-
-                // Get the reverse longitude flag
-                let longitude_reversed = survey.get_config().longitude_reversed;
-                if raytracing || !longitude_reversed {
-                    self.gl.cull_face(WebGl2RenderingContext::BACK);
-                } else {
-                    self.gl.cull_face(WebGl2RenderingContext::FRONT);
-                }
 
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
@@ -1222,16 +1221,18 @@ impl ImageSurveys {
         self.meta.clear();
         self.layers.clear();
         self.urls.clear();
+
+        let mut longitude_reversed = false;
         for SimpleHiPS {
             layer,
             properties,
             meta,
             img_format,
-            longitude_reversed,
             ..
         } in hipses.into_iter()
         {
-            let config = HiPSConfig::new(&properties, img_format, longitude_reversed)?;
+            let config = HiPSConfig::new(&properties, img_format)?;
+            //camera.set_longitude_reversed(meta.longitude_reversed);
 
             // Get the most precise survey from all the ones given
             let url = properties.get_url();
@@ -1248,17 +1249,20 @@ impl ImageSurveys {
                 new_survey_urls.push(url.clone());
             }
 
+            longitude_reversed |= meta.longitude_reversed;
+
             self.meta.insert(layer.clone(), meta);
             self.urls.insert(layer.clone(), url);
 
             self.layers.push(layer);
         }
-        //al_core::log::log(&format!("List of surveys: {:?}\nmeta: {:?}\nlayers: {:?}\n", self.surveys.keys(), self.meta, self.layers));
+
+        camera.set_longitude_reversed(longitude_reversed);
 
         // Set the reversed longitude
-        if let Some(survey) = self.last() {
+        /*if let Some(survey) = self.last() {
             camera.set_longitude_reversed(survey.longitude_reversed());
-        }
+        }*/
 
         Ok(new_survey_urls)
     }

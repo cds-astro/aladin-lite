@@ -231,9 +231,7 @@ impl ProjetedGrid {
             return;
         }
 
-        if camera.has_moved() {
-            self.force_update::<P>(camera);
-        }
+        self.force_update::<P>(camera);
     }
 
     fn draw_lines_cpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {

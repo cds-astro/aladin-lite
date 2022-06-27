@@ -98,6 +98,7 @@ export class HiPSLayer {
         this.layerChangedListener = function(e) {
             const survey = e.detail.survey;
 
+
             if (survey.layer === self.survey.layer) {
                 // Update the survey to the new one
                 self.survey = survey;
@@ -156,6 +157,8 @@ export class HiPSLayer {
             }
 
             const hpxImageSurvey = new HpxImageSurvey(
+                survey.id,
+                survey.name,
                 survey.url,
                 self.view,
                 survey.options
@@ -378,18 +381,16 @@ export class HiPSLayer {
         const minCut = this.mainDiv.find('.min-cut').eq(0);
         const maxCut = this.mainDiv.find('.max-cut').eq(0);
 
-        const properties = this.survey.properties;
-        const options = this.survey.options;
-        const colored = this.survey.colored;
-
-        // format
         formatSelect4ImgLayer.empty();
-        $.each(properties.formats, function (i, format) {
+        this.survey.properties.formats.forEach(format => {
             formatSelect4ImgLayer.append($('<option>', {
                 value: format,
                 text: format
             }));
         });
+
+        const options = this.survey.options;
+        const colored = this.survey.colored;
 
         const imgFormat = options.imgFormat;
         formatSelect4ImgLayer.val(imgFormat);
@@ -474,7 +475,7 @@ export class HiPSLayer {
         if (this.survey) {
             let surveyFound = false;
             surveys.forEach(s => {
-                const isCurSurvey = this.survey.properties.url.endsWith(s.url);
+                const isCurSurvey = this.survey.id.endsWith(s.id);
                 surveySelectionDiv.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
                 surveyFound |= isCurSurvey;
             });
@@ -482,14 +483,16 @@ export class HiPSLayer {
             // The survey has not been found among the ones cached
             if (!surveyFound) {
                 // Cache it
-                HpxImageSurvey.SURVEYS.push({
+                /*HpxImageSurvey.SURVEYS.push({
                     id: this.survey.properties.id,
                     name: this.survey.properties.name,
                     maxOrder: this.survey.properties.maxOrder,
                     url: this.survey.properties.url,
                     options: this.survey.options
                 });
-                surveySelectionDiv.append($("<option />").attr("selected", true).val(this.survey.properties.id).text(this.survey.properties.name));
+                surveySelectionDiv.append($("<option />").attr("selected", true).val(this.survey.properties.id).text(this.survey.properties.name));*/
+
+                console.warn(this.survey, " has not been found in SURVEYS!")
             } else {
                 // Update the HpxImageSurvey
                 const idxSelectedHiPS = surveySelectionDiv[0].selectedIndex;

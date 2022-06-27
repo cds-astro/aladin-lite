@@ -394,7 +394,6 @@ pub trait AppTrait {
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
     fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
-    //fn set_longitude_reversed(&mut self, longitude_reversed: bool);
 
     // Catalog
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
@@ -435,6 +434,7 @@ pub trait AppTrait {
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
+    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     //fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
 
     // UI
@@ -507,6 +507,10 @@ where
             }
         }
 
+        // The rendering is done following these different situations:
+        // - the camera has moved
+        let has_camera_moved = self.camera.has_moved();
+
         {
             // Newly available tiles must lead to
             //al_core::log(&format!("{:?}, ready {:?}", self.surveys.urls, self.is_ready()));
@@ -521,22 +525,25 @@ where
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
-                        // Find the survey is tile is refering to
-                        let hips_url = tile.get_hips_url();
-                        // Get the hips url from that url
-                        if let Some(survey) = self.surveys.get_mut(hips_url) {
-                            let is_missing = tile.missing();
-                            let Tile {
-                                cell,
-                                image,
-                                time_req,
-                                ..
-                            } = tile;
-                            survey.add_tile(&cell, image, is_missing, time_req);
+                        if self.camera.coverage().contains(&tile.cell) || tile.cell.is_root() {
+                            // Find the survey is tile is refering to
+                            let hips_url = tile.get_hips_url();
+                            // Get the hips url from that url
+                            if let Some(survey) = self.surveys.get_mut(hips_url) {
+                                let is_missing = tile.missing();
+                                let Tile {
+                                    cell,
+                                    image,
+                                    time_req,
+                                    ..
+                                } = tile;
+                                survey.add_tile(&cell, image, is_missing, time_req);
 
-                            self.request_redraw = true;
+                                self.request_redraw = true;
+                            }
+                        } else {
+                            //al_core::log("discard tex sub");
                         }
-
                         num_tile_received += 1;
                     }
                     Resource::Allsky(allsky) => {
@@ -599,10 +606,6 @@ where
             //self.downloader.try_sending_tile_requests()?;
         }
 
-        // The rendering is done following these different situations:
-        // - the camera has moved
-        let has_camera_moved = self.camera.has_moved();
-
         // - there is at least one tile in its blending phase
         let blending_anim_occuring =
             (Time::now().0 - self.time_start_blending.0) < BLENDING_ANIM_DURATION;
@@ -626,9 +629,9 @@ where
             if let Some(view) = self.surveys.get_view() {
                 self.manager.update::<P>(&self.camera, view);
             }
-        }
 
-        self.grid.update::<P>(&self.camera);
+            self.grid.update::<P>(&self.camera);
+        }
 
         /*{
             let events = self.ui.lock().update();
@@ -741,7 +744,7 @@ where
         if scene_redraw {
             let shaders = &mut self.shaders;
             let gl = self.gl.clone();
-            let camera = &self.camera;
+            let camera = &mut self.camera;
 
             let grid = &mut self.grid;
             let surveys = &mut self.surveys;
@@ -801,8 +804,8 @@ where
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.look_for_new_tiles();
-
         self.request_redraw = true;
+        self.grid.update::<P>(&self.camera);
 
         Ok(())
     }
@@ -904,13 +907,6 @@ where
     fn get_max_fov(&self) -> f64 {
         P::aperture_start().0
     }
-
-    /*fn set_longitude_reversed(&mut self, longitude_reversed: bool) {
-        self.camera.set_longitude_reversed(reversed);
-
-        self.look_for_new_tiles();
-        self.request_redraw = true;
-    }*/
 
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
@@ -1056,6 +1052,18 @@ where
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
             &view_system,
             &CooSystem::ICRSJ2000,
+            &icrsj2000_pos,
+        ));
+
+        LonLatT::new(ra, dec)
+    }
+
+    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+        let view_system = self.camera.get_system();
+        let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
+            &CooSystem::ICRSJ2000,
+            &view_system,
             &icrsj2000_pos,
         ));
 

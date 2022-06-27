@@ -57,7 +57,7 @@ vec2 world2clip_aitoff(vec3 p) {
 
     float alpha = acos(cos(delta)*cos(theta_by_two));
     float inv_sinc_alpha = 1.0;
-    if (alpha > 1e-5) {
+    if (alpha > 1e-4) {
         inv_sinc_alpha = alpha / sin(alpha);
     }
     //float inv_sinc_alpha = alpha / sin(alpha);

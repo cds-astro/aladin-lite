@@ -29,7 +29,6 @@ pub struct SimpleHiPS {
     pub meta: ImageSurveyMeta,
 
     pub img_format: HiPSTileFormat,
-    pub longitude_reversed: bool,
 }
 
 /*#[wasm_bindgen]
@@ -246,6 +245,7 @@ pub struct ImageSurveyMeta {
     pub blend_cfg: BlendCfg,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
+    pub longitude_reversed: bool,
 }
 
 fn default_opacity() -> f32 {

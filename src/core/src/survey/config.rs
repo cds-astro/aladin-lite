@@ -141,8 +141,6 @@ pub struct HiPSConfig {
     pub texture_size: i32,
     tile_size: i32,
 
-    // Longitude reversed
-    pub longitude_reversed: bool,
     // Delta depth i.e. log2(texture_size / tile_size)
     delta_depth: u8,
     // Num tiles per texture
@@ -189,7 +187,6 @@ impl HiPSConfig {
     pub fn new(
         properties: &HiPSProperties,
         img_format: HiPSTileFormat,
-        longitude_reversed: bool,
     ) -> Result<HiPSConfig, JsValue> {
         let root_url = properties.get_url();
         // Define the size of the 2d texture array depending on the
@@ -282,7 +279,6 @@ impl HiPSConfig {
             root_url,
             // Tile size & blank tile data
             empty_image,
-            longitude_reversed,
             // Texture config
             // The size of the texture images
             texture_size,
@@ -484,7 +480,6 @@ impl SendUniforms for HiPSConfig {
             .attach_uniform("scale", &self.scale)
             .attach_uniform("offset", &self.offset)
             .attach_uniform("blank", &self.blank);
-        //.attach_uniform("inversed_longitude", &self.longitude_reversed);
 
         shader
     }

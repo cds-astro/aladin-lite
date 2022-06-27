@@ -156,7 +156,7 @@ export class Stack {
                                                                params.radiusDeg, {limit: params.limit, onClick: 'showTable'});
                         }
                         else {
-                            const url = params.baseURL + 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
+                            const url = params.baseURL + '?RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
                             catalogLayer = A.catalogFromURL(url, {limit: params.limit, onClick: 'showTable'});
                         }
                         self.aladin.addCatalog(catalogLayer);
@@ -332,7 +332,7 @@ export class Stack {
             headerLayerElement.style.backgroundColor = "#aaa";
             headerLayerElement.nextSibling.style.backgroundColor = "#aaa";
 
-            self.aladin.view.setActiveHiPSLayer(layerName);
+            self.aladin.setActiveHiPSLayer(layerName);
 
             self.selectedLayer = layerName;
         });

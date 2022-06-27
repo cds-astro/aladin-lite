@@ -4,6 +4,7 @@ use cgmath::{Vector3, Vector4};
 pub struct HEALPixCoverage(pub BMOC);
 
 use cdshealpix::nested::bmoc::BMOCBuilderFixedDepth;
+use crate::healpix::cell::HEALPixCell;
 impl HEALPixCoverage {
     pub fn new(
         // The depth of the smallest HEALPix cells contained in it
@@ -39,6 +40,15 @@ impl HEALPixCoverage {
 
         let bmoc = moc_builder.to_bmoc().unwrap();
         Self(bmoc)
+    }
+
+    pub fn contains(&self, cell: &HEALPixCell) -> bool {
+        let HEALPixCell(depth, idx) = *cell;
+        let mut builder = BMOCBuilderFixedDepth::new(depth, true);
+        builder.push(idx);
+
+        let bmoc = builder.to_bmoc().unwrap();
+        self.0.and(&bmoc).size() > 0
     }
 }
 

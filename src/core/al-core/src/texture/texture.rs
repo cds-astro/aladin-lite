@@ -440,6 +440,7 @@ impl<'a> Texture2DBound<'a> {
                 &image,
             )
             .expect("Sub texture 2d");
+        //self.texture_2d.gl.flush();
     }
 
     pub fn tex_sub_image_2d_with_u32_and_u32_and_image_bitmap(

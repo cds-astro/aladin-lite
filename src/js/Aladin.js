@@ -169,6 +169,7 @@ export let Aladin = (function () {
 
         // set different options
         this.view = new View(this, location, fovDiv, cooFrame, options.fov);
+        this.cacheSurveys = new Map();
         // Stack GUI
         this.stack = new Stack(this.aladinDiv, this, this.view);
         this.boxes.push(this.stack);
@@ -340,8 +341,6 @@ export let Aladin = (function () {
         zoomMinus.bind('mousedown', function (e) {
             e.preventDefault(); // to prevent text selection
         });
-
-
 
         this.callbacksByEventName = {}; // we store the callback functions (on 'zoomChanged', 'positionChanged', ...) here
 
@@ -873,7 +872,6 @@ export let Aladin = (function () {
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: moc});
     };
 
-
     // @API
     Aladin.prototype.findLayerByUUID = function(uuid) {
         const result = this.view.allOverlayLayers.filter(layer => layer.uuid===uuid);
@@ -889,15 +887,21 @@ export let Aladin = (function () {
         this.view.removeLayer(layer);
     };
 
-
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
-        const rootUrlOrId = rootUrl || id;
-        if (cooFrame) {
-            options.cooFrame = cooFrame;
+        const idOrUrl = id || rootUrl;
+        let survey = this.cacheSurveys.get(idOrUrl);
+
+        if (survey === undefined) {
+            if (cooFrame) {
+                options.cooFrame = cooFrame;
+            }
+
+            survey = new HpxImageSurvey(id, name, rootUrl, this.view, options);
+            this.cacheSurveys.set(idOrUrl, survey);
         }
 
-        return new HpxImageSurvey(rootUrlOrId, this.view, options);
+        return survey;
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
@@ -917,15 +921,8 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setBaseImageLayer = function(idOrSurvey, options) {
-        // 1. User gives an ID
-        if (typeof idOrSurvey === "string") {
-            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, options);
-            this.view.setBaseImageLayer(survey);
-        // 2. User gives a non resolved promise
-        } else {
-            this.view.setBaseImageLayer(idOrSurvey);
-        }
+    Aladin.prototype.setBaseImageLayer = function(idOrSurvey) {
+        this.setOverlayImageLayer(idOrSurvey, "base");
     };
 
     // @api
@@ -934,15 +931,52 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, layer = "overlay", options = {}) {
+    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, layer = "overlay") {
+        let survey = null;
+
         // 1. User gives an ID
         if (typeof idOrSurvey === "string") {
-            const survey = this.createImageSurvey(idOrSurvey, null, null, null, null, options);
-            this.view.setOverlayImageSurvey(survey, layer);
+            const id = idOrSurvey;
+
+            // Check if the survey has already been added
+            // Create a new HpxImageSurvey
+            let isUrl = false;
+            if (id.includes("http")) {
+                isUrl = true;
+            }
+
+            if (isUrl) {
+                const url = id;
+                // Url
+                survey = this.createImageSurvey(id, undefined, url, null, null);
+            } else {
+                // ID
+                // Check if the ID is found among the ones added, otherwise create a new ImageSurvey
+                let idxSelectedHiPS = 0;
+                const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
+                    let res = id.endsWith(s.id);
+                    if (!res) {
+                        idxSelectedHiPS += 1;
+                    }
+
+                    return res;
+                });
+
+                // The survey has not been found among the ones cached
+                if (!surveyFound) {
+                    survey = this.createImageSurvey(id, undefined, undefined, null, null);
+                } else {
+                    const surveyConfig = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+                    // if no options have been given, take the one stored
+                    survey = this.createImageSurvey(surveyConfig.id, surveyConfig.name, surveyConfig.url, null, null, surveyConfig.options);
+                }
+            }
         // 2. User gives a non resolved promise
         } else {
-            this.view.setOverlayImageSurvey(idOrSurvey, layer);
+            survey = idOrSurvey;
         }
+
+        this.view.setOverlayImageSurvey(survey, layer);
     };
 
     // @api
@@ -1258,11 +1292,11 @@ A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
 
-//@API
+/*//@API
 // TODO : lecture de properties
 A.imageLayer = function (rootURLOrHiPSDefinition, options) {
-    return new HpxImageSurvey(rootURLOrHiPSDefinition, options);
-};
+    return new HpxImageSurvey(rootURLOrHiPSDefinition, null, null, options);
+};*/
 
 // @API
 A.source = function (ra, dec, data, options) {
@@ -1412,7 +1446,7 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = async function (url, layer, options, successCallback, errorCallback) {
+Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback) {
     options = options || {};
     var data = { url: url };
     if (options.color) {
@@ -1454,8 +1488,8 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
             var label = options.label || "FITS image";
             var meta = response.data.meta;
 
-            const promise = self.createImageSurvey(response.data.url);
-            self.setOverlayImageLayer(promise, "overlay");
+            const survey = self.createImageSurvey(response.data.url, label);
+            self.setOverlayImageLayer(survey, "overlay");
 
             var transparency = (options && options.transparency) || 1.0;
 
@@ -1481,12 +1515,12 @@ Aladin.prototype.displayFITS = async function (url, layer, options, successCallb
  * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
  * and display it
  */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = async function (url, layerName, options, successCallback, errorCallback) {
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
     options = options || {};
     options.color = true;
     options.label = "JPG/PNG image";
     options.outputFormat = 'png';
-    this.displayFITS(url, layerName, options, successCallback, errorCallback);
+    this.displayFITS(url, options, successCallback, errorCallback);
 };
 
 Aladin.prototype.setReduceDeformations = function (reduce) {

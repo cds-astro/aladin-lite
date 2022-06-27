@@ -202,6 +202,10 @@ impl FieldOfViewVertices {
         self.great_circles.get_bounding_box()
     }
 
+    pub fn get_coverage(&self) -> &HEALPixCoverage {
+        &self.moc
+    }
+
     pub fn _type(&self) -> &FieldOfViewType {
         &self.great_circles
     }

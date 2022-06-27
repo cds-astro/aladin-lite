@@ -59,7 +59,6 @@ export async function fetchSurveyProperties(rootURLOrId) {
         metadata = await request(MOCServerUrl);
 
         // We get the property here
-
         // 1. Ensure there is exactly one survey matching
         if (!metadata) {
             throw 'no surveys matching';
@@ -132,7 +131,7 @@ export let HpxImageSurvey = (function() {
      * They will be determined by reading the properties file
      *  
      */
-    function HpxImageSurvey(rootURLOrId, view, options) {
+    function HpxImageSurvey(id, name, rootURL, view, options) {
         // A reference to the view
         this.backend = view;
         // A number used to ensure the correct layer ordering in the aladin lite view
@@ -142,6 +141,8 @@ export let HpxImageSurvey = (function() {
         // Name of the layer
         this.layer = null;
         this.added = false;
+        this.id = id;
+        this.name = name;
         // Default options
         this.options = options || {};
         
@@ -172,18 +173,39 @@ export let HpxImageSurvey = (function() {
             this.options.longitudeReversed = false;
         }
 
+
         if (this.options.opacity === undefined) {
             this.options.opacity = 1.0;
+        }
+
+        let idxSelectedHiPS = 0;
+        const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
+            let res = this.id.endsWith(s.id);
+            if (!res) {
+                idxSelectedHiPS += 1;
+            }
+
+            return res;
+        });
+        // The survey has not been found among the ones cached
+        if (!surveyFound) {
+            HpxImageSurvey.SURVEYS.push({
+                id: this.id,
+                name: this.name,
+                options: this.options
+            });
+        } else {
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+            surveyDef.options = this.options;
         }
 
         this.updateMeta();
         let self = this;
         (async () => {
-            const metadata = await fetchSurveyProperties(rootURLOrId);
+            const metadata = await fetchSurveyProperties(rootURL || id);
 
             // HiPS url
-            let id = metadata.creator_did;
-            let name = metadata.obs_title;
+            self.name = self.name || metadata.obs_title;
             let url = metadata.hips_service_url;
             if (!url) {
                 throw 'no valid service URL for retrieving the tiles'
@@ -206,15 +228,15 @@ export let HpxImageSurvey = (function() {
             if (self.options.imgFormat) {
                 // user wants a fits but the metadata tells this format is not available
                 if (self.options.imgFormat === "FITS" && tileFormats.indexOf('FITS') < 0) {
-                    throw name + " does not provide fits tiles";
+                    throw self.name + " does not provide fits tiles";
                 }
                 
                 if (self.options.imgFormat === "PNG" && tileFormats.indexOf('PNG') < 0) {
-                    throw name + " does not provide png tiles";
+                    throw self.name + " does not provide png tiles";
                 }
                 
                 if (self.options.imgFormat === "JPEG" && tileFormats.indexOf('JPEG') < 0) {
-                    throw name + " does not provide jpeg tiles";
+                    throw self.name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the metadata
@@ -233,7 +255,11 @@ export let HpxImageSurvey = (function() {
             }
 
             // HiPS tile size
-            const tileSize = +metadata.hips_tile_width;
+            let tileSize = +metadata.hips_tile_width;
+            if (tileSize & (tileSize - 1) !== 0) {
+                // not a power of 2
+                tileSize = 512;
+            }
 
             // HiPS coverage sky fraction
             const skyFraction = +metadata.moc_sky_fraction || 1.0;
@@ -276,8 +302,6 @@ export let HpxImageSurvey = (function() {
                 const bitpix = +metadata.hips_pixel_bitpix;
 
                 self.properties = {
-                    id: id,
-                    name: name,
                     url: url,
                     maxOrder: order,
                     frame: frame,
@@ -290,8 +314,6 @@ export let HpxImageSurvey = (function() {
                 };
             } else {
                 self.properties = {
-                    id: id,
-                    name: name,
                     url: url,
                     maxOrder: order,
                     frame: frame,
@@ -313,6 +335,30 @@ export let HpxImageSurvey = (function() {
                     self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
                 }
             }
+            self.updateMeta();
+            self.ready = true;
+
+            ////// Update SURVEYS
+            let idxSelectedHiPS = 0;
+            const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
+                let res = self.id.endsWith(s.id);
+                if (!res) {
+                    idxSelectedHiPS += 1;
+                }
+
+                return res;
+            });
+            // The survey has not been found among the ones cached
+            if (!surveyFound) {
+                throw 'Should have been found!'
+            } else {
+                // Update the HpxImageSurvey
+                let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+                surveyDef.options = self.options;
+                surveyDef.maxOrder = self.properties.maxOrder;
+                surveyDef.url = self.properties.url;
+            }
+            /////
 
             // Discard further processing if the layer has been associated to another hips
             // before the request has been resolved
@@ -320,13 +366,10 @@ export let HpxImageSurvey = (function() {
                 return;
             }
 
-            self.updateMeta();
-            self.ready = true;
-
             // If the layer has been set then it is linked to the aladin lite view
             // so we add it
             if (self.added) {
-                self.backend.setOverlayImageSurvey(self, self.layer);
+                self.backend.commitSurveysToBackend(self, self.layer);
             }
         })();
     };
@@ -353,6 +396,7 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
         this.meta.blendCfg = blend;
         this.meta.opacity = this.options.opacity;
+        this.meta.longitudeReversed = this.options.longitudeReversed;
     }
 
     HpxImageSurvey.prototype.updateColor = function() {
@@ -412,12 +456,11 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
+
+    HpxImageSurvey.prototype.setAlpha = HpxImageSurvey.prototype.setOpacity;
 
     // @api
     HpxImageSurvey.prototype.getOpacity = function() {
@@ -433,9 +476,6 @@ export let HpxImageSurvey = (function() {
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -452,11 +492,8 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
 
         // Tell the view its meta have changed
-        if ( this.ready && this.added ) {
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -473,11 +510,8 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
 
         // Tell the view its meta have changed
-        if ( this.ready && this.added ) {
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     }
@@ -490,24 +524,19 @@ export let HpxImageSurvey = (function() {
         this.updateColor();
 
         // Tell the view its meta have changed
-        if ( this.ready && this.added ) {
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if (this.added) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
 
     HpxImageSurvey.prototype.setOptions = function(options) {
-        this.options = {...this.options, ...options};
+        this.options = options;
         this.updateMeta();
 
-        if ( this.ready && this.added ) {
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-        }
-
-        if ( this.added ) {
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
         }
     };
@@ -554,13 +583,9 @@ export let HpxImageSurvey = (function() {
         this.fits = (this.options.imgFormat === 'FITS');
 
         // Tell the view its meta have changed
-        
         try {
             if ( this.ready && this.added ) {
                 this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
-            }
-
-            if ( this.added ) {
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
             }
         } catch(e) {

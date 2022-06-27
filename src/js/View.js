@@ -918,6 +918,7 @@ export let View = (function() {
         }
 
         if(isViewCenterPosition) {
+            //const [ra, dec] = this.aladin.webglAPI.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
             let radec = this.aladin.webglAPI.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
@@ -1520,6 +1521,7 @@ export let View = (function() {
 
         // Check whether this layer already exist
         const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+
         if (idxOverlaySurveyFound == -1) {
             if (layer === "base") {
                 // insert at the beginning
@@ -1537,13 +1539,20 @@ export let View = (function() {
             Logger.log("setImageLayer", survey.properties.url);
         }
 
-        // We push it to a waiting list of surveys so that the user can still get it
-        // and modify its options while its metadata is not yet received
-        //if(!this.imageSurveysWaitingList.has(layer) && !this.imageSurveys.has(layer)) {
-        this.imageSurveysWaitingList.set(layer, survey);
-        //}
+        survey.added = true;
+        survey.layer = layer;
+        survey.existedBefore = false;
 
-        this.addImageSurvey(survey, layer);
+        const pastSurvey = this.imageSurveys.get(layer);
+        if (pastSurvey && pastSurvey.ready && pastSurvey.added) {
+            survey.existedBefore = true;
+        }
+
+        this.imageSurveys.set(layer, survey);
+
+        if (survey.ready) {
+            this.commitSurveysToBackend(survey, layer);
+        }
     };
 
     View.prototype.buildSortedImageSurveys = function() {
@@ -1563,13 +1572,14 @@ export let View = (function() {
             let surveys = this.buildSortedImageSurveys()
                 .filter(s => s !== undefined && s.properties )
                 .map(s => {
+                    //let {backend, ...survey} = s;
+                    //return survey;
                     return {
                         layer: s.layer,
                         properties: s.properties,
                         meta: s.meta,
                         // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
                         imgFormat: s.options.imgFormat.toUpperCase(),
-                        longitudeReversed: s.options.longitudeReversed,
                     };
                 });
             this.aladin.webglAPI.setImageSurveys(surveys);
@@ -1579,7 +1589,6 @@ export let View = (function() {
     };
 
     View.prototype.removeImageSurvey = function(layer) {
-
         this.imageSurveys.delete(layer);
 
         const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
@@ -1601,34 +1610,19 @@ export let View = (function() {
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
     };
 
-    View.prototype.addImageSurvey = function(survey, layer = "base") {
-        survey.added = true;
-        survey.layer = layer;
+    View.prototype.commitSurveysToBackend = function(survey, layer = "base") {
+        //const layerAlreadyContained = this.imageSurveys.has(layer); true
 
-        if (!survey.ready) {
-            return;
-        }
-
-        const layerAlreadyContained = this.imageSurveys.has(layer);
-        // Replace it anyway
-        this.imageSurveys.set(layer, survey);
         try {
             this.updateImageLayerStack();
 
-            // Merge the options of the waiting survey with the received one
-            const imageSurveyWaiting = this.imageSurveysWaitingList.get(layer);
-            const waitingOptions = (imageSurveyWaiting && imageSurveyWaiting.options) || {};
-            survey.setOptions(waitingOptions);
-            // Once the layer is added one can remove it from the waiting list of surveys
-            this.imageSurveysWaitingList.delete(layer);
-
-            if (layerAlreadyContained) {
-                if (this.selectedSurveyLayer && this.selectedSurveyLayer === layer) {
-                    this.selectedSurveyLayer = layer;
-                }
-
+            if (survey.existedBefore) {
+                //if (this.selectedSurveyLayer && this.selectedSurveyLayer === layer) {
+                //    this.selectedSurveyLayer = layer;
+                //}
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
             } else {
+                survey.existedBefore = true;
                 ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, {survey: survey});
             }
         } catch(e) {
@@ -1636,8 +1630,6 @@ export let View = (function() {
             // Remove it from the View
             // - First, from the image dict
             this.imageSurveys.delete(layer);
-            // - Secondly, from the waiting survey list
-            this.imageSurveysWaitingList.delete(layer);
             
             // Tell the survey object that it is not linked to the view anymore
             survey.added = false;
@@ -1651,16 +1643,11 @@ export let View = (function() {
 
             throw 'Error loading the HiPS ' + survey + ':' + e;
         }
-    };
+    }
 
     View.prototype.getImageSurvey = function(layer = "base") {
         const survey = this.imageSurveys.get(layer);
-
-        if (survey) {
-            return survey;
-        } else {
-            return this.imageSurveysWaitingList.get(layer);
-        }
+        return survey;
     };
 
     View.prototype.getImageSurveyMeta = function(layer = "base") {

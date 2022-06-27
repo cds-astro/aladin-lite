@@ -1,0 +1,533 @@
+<!doctype html>
+<html>
+    <head>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!--<link rel="manifest" href="manifest.json">-->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+        <script type="text/javascript" defer="" async="" src="https://cdsannotations.u-strasbg.fr/piwik/piwik.js"></script><script type="text/javascript" src="js/libs/jquery-3.5.1.min.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css" integrity="sha384-cg6SkqEOCV1NbJoCu11+bm0NvBRc8IYLRGXkmNrqUBfTjmMYwNKPWBTIKyw9mHNJ" crossorigin="anonymous">
+        <!--link rel="stylesheet" href="css/pure-min.css"-->
+        <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/base-min.css">
+        <!--link rel="stylesheet" href="css/base-min.css"-->
+        <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/grids-min.css">
+        <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/grids-responsive-min.css">
+        <!--link rel="stylesheet" href="css/grids-responsive-min.css"-->
+        <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons.css">
+        <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/buttons-core.css">
+    
+        <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css">
+        <!--meta name="viewport" content="initial-scale=1.0, user-scalable=no"-->
+        <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    </head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width:100vw;height:100vh;">
+    <div id="calibCircle" style="display: none;"></div>
+    <div id="explain" class="aladin-box"></div>
+
+    <div id="overlayDiv" style="position: absolute; width: 100%; height: 100%; z-index:4; display: none;"><canvas id="drawOverlay"></canvas></div>
+
+    <div id="layersControlLeft" class="aladin-box" style="display: block;">
+
+    <!-- temporaire gestion cercle -->
+    <label for="circle-checkbox">Cercle</label> <input id="circle-checkbox" type="checkbox" unchecked=""><br><br>
+    <!-- fin temporaire gestion cercle -->
+
+	<b>Orientation</b><br>
+              <button id="hips-coronelli" class="pure-button" name="ref-hips" onclick="aladin.setImageSurvey('Coronelli')">Normal</button><br>
+              <button id="hips-illenoroc" class="pure-button" name="ref-hips" onclick="aladin.setImageSurvey('illenoroC')">Inversé</button>
+	<br><br>
+
+	<b>Constellations</b>
+	<br>
+            <a id="constellations-boundaries" class="pure-button catlayer" href="#">Frontières</a><br>
+            <a id="const-outlines" class="pure-button img-hips" href="#">Tracé</a><br>
+            <a id="const-jaxa" class="pure-button img-hips" href="#">JAXA</a>
+	<br>
+
+        <b>Ciel</b>
+	<br>
+            <a id="P/Mellinger/color" class="pure-button img-hips" href="#">Mellinger</a><br>
+            <a id="dss2" class="pure-button img-hips" href="#">DSS</a><br>
+            <a id="decaps" class="pure-button img-hips" href="#">DECaPS</a><br>
+            <a id="panstarrs" class="pure-button img-hips" href="#">PanSTARRS</a><br>
+            <a id="gaiamap" class="pure-button img-hips" href="#">Gaia</a>
+	    <br><br><label for="overlay-checkbox">Dessin</label> <input id="overlay-checkbox" type="checkbox" unchecked="">
+    </div>
+    <div id="layersCL2" class="aladin-box" style="display: block;">
+            Opacité<br>
+            <input id="opacity-slider" type="range" min="0" max="1" step="0.01" value="0.0"><br>
+    </div>
+
+    <div id="layersControlRight" class="aladin-box" style="display: block;">
+       <b>Data</b><br>
+            <a id="simbad" class="pure-button catlayer" href="#">SIMBAD</a><br>
+            <a id="gaia" class="pure-button catlayer" href="#">Gaia DR2</a>
+	    <br><br>
+	    <div>Coronelli<br>
+	    <!--a id="coronelli-stars" class="pure-button catcoro" href="#">Coronelli</a-->
+	       <a href="#"><img id="coronelli-stars-white" class="catcoro coro-star" src="star_white.png"></a>
+	       <a href="#"><img id="coronelli-stars-yellow" class="catcoro coro-star" src="star_yellow.png"></a><br>
+	       <a href="#"><img id="coronelli-stars-red" class="catcoro coro-star" src="star_red.png"></a>
+	       <a href="#"><img id="coronelli-stars-blue" class="catcoro coro-star" src="star_blue.png"></a>
+	    </div>
+	<br><br>
+
+        <b>Navigation</b>&nbsp;&nbsp;<br><button id="stop">Stop</button>
+	<br>
+	<div id="coo_epoca">
+            <a class="pure-button nav-button nav-goto" href="#">De Epoca</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>	
+	<div id="coo_legende">
+            <a class="pure-button nav-button nav-goto" href="#">Légende</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>	
+	<div id="coo_orion">
+            <a class="pure-button nav-button nav-goto" href="#">Orion</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>	
+	<div id="coo_magellan">
+            <a class="pure-button nav-button nav-goto" href="#">Magellan</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>
+	<div id="coo_halley">
+            <a class="pure-button nav-button nav-goto" href="#">Halley</a><br>
+            &nbsp;→&nbsp;<a class="pure-button nav-button nav-flyto" href="#">Move</a>
+	</div>	
+</div>
+
+<style type="text/css"> .aladin-reticleColor { color: rgb(178, 50, 178); font-weight:bold;} </style>
+
+<style type="text/css">
+    html, body {
+        height: 100%;
+    }
+    
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .aladin-zoomControl {
+        top: 10% !important;
+        left: unset !important;
+        right: 4px !important;
+    }
+    
+    .aladin-zoomControl a {
+        font-size: 24px !important;
+        padding: 22px !important;
+    }
+    
+    #aladin{
+        flex: 1 1 0;
+    }
+    
+    #explain {
+        padding: 4px;
+        top: 30%;
+        max-height: 50%;
+        font-size: 11pt;
+        overflow: scroll;
+    }
+    
+    #explain tbody tr:nth-child(even) {
+        background-color: #ffffff;
+    }
+    
+    #explain tbody tr:nth-child(odd) {
+        background-color: #ccdaeb;
+    }
+    
+    #layersControlLeft {
+        padding: 10px;
+        right: unset;
+        left: 4px;
+        top: 20vh;
+    }
+    
+    #layersCL2 {
+        padding: 10px;
+        right: unset;
+        left: 4px;
+        top: 90vh;
+    }
+    
+    #layersControlRight {
+        padding: 4px;
+        left: unset;
+        right: 4px;
+        top: 25vh;
+    }
+    
+    #layersControlLeft, #layersControlRight, #layersCL2 input {
+        margin-right: 5px;
+    }
+    
+    .img-hips {
+        padding: 5px;
+        margin: 5px;
+    }
+    
+    #opacity-slider {
+        -webkit-appearance: none !important;  /* Override default CSS styles */
+        width: 220px;
+        height: 25px;
+    }
+    
+    #opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none !important; /* Override default look */
+      appearance: none;
+      width: 25px; /* Set a specific slider handle width */
+      height: 25px; /* Slider handle height */
+      background: #4CAF50; /* Green background */
+      cursor: pointer; /* Cursor on hover */
+    }
+    
+    #opacity-slider::-moz-range-thumb {
+      width: 25px; /* Set a specific slider handle width */
+      height: 25px; /* Slider handle height */
+      background: #4CAF50; /* Green background */
+      cursor: pointer; /* Cursor on hover */
+    }
+    
+    .aladin-box {
+        font-size: 12px !important;
+    }
+    
+    #calibCircle {
+        position: fixed;
+        border: 8px solid red;
+        border-radius: min(50vw, 50vh);
+        height: min(100vw, 100vh);
+        width: min(100vw, 100vh);
+        top: -8px;
+        left: calc(max(50vw, 50vh) - min(50vw, 50vh) - 8px);
+        z-index: 1000;
+        pointer-events: none;
+    }
+    
+    .pure-table {
+        font-size: small;
+    }
+    
+    .catcoro {
+        display: inline;
+        vertical-align: middle;
+    }
+    
+    .coro-star {
+        vertical-align: middle;
+    }
+    
+
+</style>
+
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        var hipsDir="http://alasky.u-strasbg.fr/CDS_P_Coronelli";
+        aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false, showCooGrid: true });
+        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false, minOrder: 3});
+        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true, minOrder: 3});
+        aladin.setImageSurvey('Coronelli');
+
+        $('#layersControlLeft').show();
+        $('#layersCL2').show();
+        $('#layersControlRight').show();
+
+        var hipsCats = {
+        'constellations-boundaries': A.catalogFromVizieR('VI/49/bound_20', '0 +0', 180, {color: 'red'}),
+        'simbad': A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/Simbad', {name: 'Simbad', color: '#6dbdce'}),
+        'gaia': A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {name: 'Gaia DR2', color: '#6666cc', shape: 'circle', sourceSize: 6})
+        };
+        hipsCats['simbad'].hide();
+        hipsCats['constellations-boundaries'].hide();
+        hipsCats['gaia'].hide();
+        aladin.addCatalog(hipsCats['simbad']);
+        aladin.addCatalog(hipsCats['constellations-boundaries']);
+        aladin.addCatalog(hipsCats['gaia']);
+
+
+        var coronelliStars = {
+        'coronelli-stars-white': A.catalogFromURL("http://cdsweb.u-strasbg.fr/~derriere/coronelli/white.xml", {name: 'Coronelli white', color: '#ffffff', shape: 'rhomb', sourceSize: 10}),
+        'coronelli-stars-yellow': A.catalogFromURL("http://cdsweb.u-strasbg.fr/~derriere/coronelli/yellow.xml", {name: 'Coronelli yellow', color: '#f6f874', shape: 'rhomb', sourceSize: 10}),
+        'coronelli-stars-red': A.catalogFromURL("http://cdsweb.u-strasbg.fr/~derriere/coronelli/red.xml", {name: 'Coronelli red', color: '#ff5555', shape: 'rhomb', sourceSize: 10}),
+        'coronelli-stars-blue': A.catalogFromURL("http://cdsweb.u-strasbg.fr/~derriere/coronelli/blue.xml", {name: 'Coronelli blue', color: '#1ca5ec', shape: 'rhomb', sourceSize: 10})
+        };
+        coronelliStars['coronelli-stars-white'].hide();
+        coronelliStars['coronelli-stars-yellow'].hide();
+        coronelliStars['coronelli-stars-red'].hide();
+        coronelliStars['coronelli-stars-blue'].hide();
+        aladin.addCatalog(coronelliStars['coronelli-stars-white']);
+        aladin.addCatalog(coronelliStars['coronelli-stars-yellow']);
+        aladin.addCatalog(coronelliStars['coronelli-stars-red']);
+        aladin.addCatalog(coronelliStars['coronelli-stars-blue']);
+
+        // ajout de nouveaux relevÃ©s custom ?
+        // Mellinger : P/Mellinger/color
+        // PanSTARRS couleur : CDS/P/PanSTARRS/DR1/color-i-r-g
+        // gaia flux : CDS/P/DM/flux-color-Rp-G-Bp/I/345/gaia2
+        aladin.createImageSurvey("dss2", "DSS color", "http://alasky.u-strasbg.fr/DSS/DSSColor/", "equatorial", 9, {imgFormat: 'jpg'});
+        aladin.createImageSurvey("decaps", "DECaPS DR1", "http://alasky.u-strasbg.fr/DECaPS/DR1/color/", "equatorial", 11, {imgFormat: 'png'});
+        aladin.createImageSurvey("gaiamap", "Gaia Flux", "http://alasky.u-strasbg.fr/ancillary/GaiaDR2/color-Rp-G-Bp-flux-map/", "equatorial", 4, {imgFormat: 'jpg'});
+        aladin.createImageSurvey("panstarrs", "PanSTARRS", "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-i-r-g/", "equatorial", 11, {imgFormat: 'jpg'});
+        aladin.createImageSurvey('const-outlines', 'Constellation outlines', 'http://alaskybis.u-strasbg.fr/JAXA/JAXA_P_CONSTELLATIONS5/', 'equatorial', 6, {imgFormat: 'png'});
+        aladin.createImageSurvey('const-jaxa', 'Constellation by JAXA', 'http://alaskybis.u-strasbg.fr/JAXA/JAXA_P_CONSTELLATIONS6/', 'equatorial', 6, {imgFormat: 'png'});
+
+        var curSelectedSource = null;
+        aladin.setOverlayImageLayer('P/Mellinger/color');
+        aladin.getOverlayImageLayer().setAlpha(0.0);
+
+        // listen changes on HiPS image background selection
+        $('.img-hips').click(function() {
+        if (!$(this).hasClass("selected")) {
+            $('.img-hips').removeClass("selected pure-button-active");
+            $(this).addClass("selected pure-button-active");
+            aladin.setOverlayImageLayer(this.id);
+            aladin.getOverlayImageLayer().setAlpha(0.75);
+            $('#opacity-slider').val(0.75);
+        }
+        else {
+            $(this).removeClass("selected pure-button-active");
+            // possibilitÃ© ?     aladin.setOverlayImageLayer(null);
+            aladin.getOverlayImageLayer().setAlpha(0);
+            $('#opacity-slider').val(0);
+        }
+        });
+
+
+        $('#opacity-slider').on('input', function() {
+            aladin.getOverlayImageLayer().setAlpha($(this).val());
+        });
+
+
+        // listen changes on HiPS catalogues selection
+        $('.catlayer').click(function() {
+        var cat = hipsCats[$(this).attr('id')];
+
+        if (!$(this).hasClass("selected")) {
+            $(this).addClass("selected pure-button-active");
+            cat.show();
+        }
+        else {
+            $(this).removeClass("selected pure-button-active");
+            cat.hide();
+        }
+        });
+
+        // listen changes on Coronelli catalogues selection
+        $('.catcoro').click(function() {
+        var cat = coronelliStars[$(this).attr('id')];
+
+        if (!$(this).hasClass("selected")) {
+            $(this).addClass("selected");
+            cat.show();
+        }
+        else {
+            $(this).removeClass("selected");
+            cat.hide();
+        }
+        });
+
+        var cooNav = {
+        'coo_epoca': {ra: 4.0, dec: -30.0, time: 10},
+        'coo_legende': {ra: 33.0, dec: -32.0, time: 10},
+        'coo_orion': {ra: 85.2, dec: -2.5, time: 10},
+        'coo_magellan': {ra: 45.0, dec: -79.0, time: 10},
+        'coo_halley': {ra: 219.6, dec: 7.0, time: 10}
+        };
+
+        // listen click on navigation buttons
+        $('.nav-button').click(function() {
+        var cooTarget = $(this).parent().attr('id');
+
+        if ($(this).hasClass("nav-goto")) {
+            aladin.gotoRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec);
+        }
+        else if ($(this).hasClass("nav-flyto")) {
+            aladin.animateToRaDec(cooNav[cooTarget].ra, cooNav[cooTarget].dec, cooNav[cooTarget].time);
+        }
+        });
+
+        // stop animations
+        $('#stop').click(function() {
+            aladin.stopAnimation();
+        });
+
+        // listen to click on objects
+        aladin.on('objectClicked', function(source) {
+            var html = '<table class="pure-table">';
+
+            if (curSelectedSource != null) {
+                curSelectedSource.deselect();
+            }
+            if (source==null) {
+                $('#explain').html('');
+                $('#explain').hide();
+                return;
+            }
+
+            source.select();
+            curSelectedSource = source;
+            html += '<tbody>';
+            if (source.catalog.name == 'Simbad') {
+                console.log(source.data);
+                html += '<h3>Simbad object <em>' + source.data.main_id + '</em></h3>';
+                html += '<tr class="pure-table-odd"><td><b>ra</b></td><td>' + source.data.ra + '</td><td><em>deg</em></td></tr>';
+                html += '<tr><td><b>dec</b></td><td>' + source.data.dec + '</td><td><em>deg</em></td></tr>';
+                html += '<tr><td><b>main_type</b></td><td>' + source.data.main_type + '</td><td><em>deg</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>pmra</b></td><td>' + source.data.pmra + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr><td><b>pmdec</b></td><td>' + source.data.pmdec + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>parallax</b></td><td>' + source.data.plx + '</td><td><em>mas</em></td></tr>';
+                html += '<tr><td><b>B mag.</b></td><td>' + source.data.B + '</td><td><em>mag</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>V mag.</b></td><td>' + source.data.V + '</td><td><em>mag</em></td></tr>';
+                html += '</tbody>';
+                html += '</table>';
+
+                html += '<br/><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=' + encodeURIComponent(source.data.main_id) + '">More details</a>';
+            }
+
+
+            $('#explain').html(html);
+            $('#explain').show();
+
+        });
+
+        aladin.on('fullScreenToggled', function(fullScreenFlag) {
+            setTimeout(initOverlayCanvas, 500);
+            if (fullScreenFlag) {
+                $('#calibCircle').show();
+            //temporaire gestion cercle
+            document.getElementById("circle-checkbox").checked = true;
+            }
+            else {
+                $('#calibCircle').hide();
+            //temporaire gestion cercle
+            document.getElementById("circle-checkbox").checked = false;
+            }
+        });
+
+        //temporaire gestion cercle
+        document.getElementById("circle-checkbox").addEventListener('change', (event) => {
+        if (event.target.checked) {
+                $('#calibCircle').show();
+        } else {
+                $('#calibCircle').hide();
+        }
+        })
+
+        // enable/disable overlay layer
+        document.getElementById("overlay-checkbox").addEventListener('change', (event) => {
+        if (!drawOverlayCanvas) {
+            return;
+        }
+        if (event.target.checked) {
+                $('#overlayDiv').show();
+                initOverlayCanvas();
+        } else {
+                $('#overlayDiv').hide();
+        }
+        })
+
+        /*
+        document.addEventListener('touchmove', function (event) {
+        if (event.scale !== 1) { event.preventDefault(); }
+        }, false);
+
+        var lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+        var now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+        }, false);
+        */
+
+        /*
+        document.addEventListener("touchstart", event => {
+            if(event.touches.length > 1) {
+                console.log("zoom plz stahp");
+                event.preventDefault();
+                //event.stopPropagation(); // maybe useless
+            }
+        }, {passive: false});
+        */
+
+
+        // initialize drawOverlay
+        var drawOverlayCanvas = document.getElementById('drawOverlay');
+
+        var timeBeforeDeletion = 7 * 1000; // in ms
+
+        var drawOverlayCtx;
+        var deleteOverlayTimeout;
+        var points = [];
+        function initOverlayCanvas() {
+            drawOverlayCanvas.style.width='100%';
+            drawOverlayCanvas.style.height='100%';
+
+            drawOverlayCanvas.width  = drawOverlayCanvas.offsetWidth;
+            drawOverlayCanvas.height = drawOverlayCanvas.offsetHeight;
+            drawOverlayCtx = drawOverlayCanvas.getContext('2d');
+
+            drawOverlayCtx.lineWidth = 10;
+            drawOverlayCtx.lineJoin = drawOverlayCtx.lineCap = 'round';
+            drawOverlayCtx.strokeStyle = 'rgba(240, 0, 0, 0.7)';
+
+            points = [];
+        }
+
+        function deleteOverlayCanvas() {
+            drawOverlayCtx.clearRect(0, 0, drawOverlayCtx.canvas.width, drawOverlayCtx.canvas.height);
+            points = [];
+        }
+
+        if (drawOverlayCanvas) {
+
+            var isDrawing = false;
+
+            $(drawOverlayCanvas).on('mousedown touchstart', function(e) {
+                if (deleteOverlayTimeout) {
+                    clearTimeout(deleteOverlayTimeout);
+                    deleteOverlayTimeout = undefined;
+                }
+                isDrawing = true;
+                points.push([drawOverlayCanvas.relMouseCoords(e)]);
+            });
+
+
+            $(drawOverlayCanvas).on('mousemove touchmove', function(e) {
+                if (!isDrawing) return;
+            e.preventDefault();
+
+                drawOverlayCtx.clearRect(0, 0, drawOverlayCtx.canvas.width, drawOverlayCtx.canvas.height);
+                points[points.length-1].push(drawOverlayCanvas.relMouseCoords(e));
+
+                drawOverlayCtx.beginPath();
+                
+                for (var k=0; k<points.length; k++) {
+                    drawOverlayCtx.moveTo(points[k][0].x, points[k][0].y);
+                    for (var i = 1; i < points[k].length; i++) {
+                        drawOverlayCtx.lineTo(points[k][i].x, points[k][i].y);
+                    }
+                }
+                drawOverlayCtx.stroke();
+            });
+
+            drawOverlayCanvas.onmouseup = drawOverlayCanvas.ontouchend = function() {
+                isDrawing = false;
+                deleteOverlayTimeout = setTimeout(deleteOverlayCanvas, timeBeforeDeletion);
+            };
+        }
+    });
+</script>
+
+</body>
+</html>

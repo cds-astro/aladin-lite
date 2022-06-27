@@ -80,7 +80,7 @@ fn set_canvas_size(gl: &WebGlContext, width: u32, height: u32) {
     gl.viewport(0, 0, width as i32, height as i32);
     gl.scissor(0, 0, width as i32, height as i32);
 }
-
+use crate::healpix::coverage::HEALPixCoverage;
 use crate::math;
 use crate::time::Time;
 impl CameraViewPort {
@@ -304,6 +304,10 @@ impl CameraViewPort {
         self.vertices._type()
     }
 
+    pub fn coverage(&self) -> &HEALPixCoverage {
+        self.vertices.get_coverage()
+    }
+
     pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system
         let new_center = coosys::apply_coo_system(&self.system, &new_system, &self.center);
@@ -318,6 +322,8 @@ impl CameraViewPort {
 
     pub fn set_longitude_reversed(&mut self, reversed_longitude: bool) {
         self.reversed_longitude = reversed_longitude;
+        // The camera is reversed => it has moved
+        self.moved = true;
     }
 
     pub fn get_longitude_reversed(&self) -> bool {

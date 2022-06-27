@@ -521,7 +521,7 @@ impl WebClient {
         Ok(())
     }
 
-    /// World to screen projection
+    /// View frame to ICRS/J2000 coosys conversion
     ///
     /// Coordinates must be given in the ICRS coo system
     ///
@@ -534,6 +534,26 @@ impl WebClient {
         let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
         let res = self.app.view_to_icrsj2000_coosys(&lonlat);
+
+        let lon_deg: ArcDeg<f64> = res.lon().into();
+        let lat_deg: ArcDeg<f64> = res.lat().into();
+
+        Box::new([lon_deg.0, lat_deg.0])
+    }
+
+    /// ICRS/J2000 to view frame coosys conversion
+    ///
+    /// Coordinates must be given in the ICRS coo system
+    ///
+    /// # Arguments
+    ///
+    /// * `lon` - A longitude in degrees
+    /// * `lat` - A latitude in degrees
+    #[wasm_bindgen(js_name = ICRSJ2000ToViewCooSys)]
+    pub fn icrsj2000_to_view_coosys(&self, lon: f64, lat: f64) -> Box<[f64]> {
+        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        let res = self.app.icrsj2000_to_view_coosys(&lonlat);
 
         let lon_deg: ArcDeg<f64> = res.lon().into();
         let lat_deg: ArcDeg<f64> = res.lat().into();

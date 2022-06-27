@@ -101,13 +101,8 @@ export async function fetchSurveyProperties(rootURLOrId) {
         // fast fix for HTTPS support --> will work for all HiPS served by CDS
         if (Utils.isHttpsContext()) {
             const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
-                if (rootURL.includes(element)) {
-                  return true;
-                }
-              
-                return false;
+                return rootURL.includes(element);
             });
-                console.log('switch', switchToHttps)
 
             if (switchToHttps) {
                 rootURL = rootURL.replace('http://', 'https://');
@@ -196,16 +191,10 @@ export let HpxImageSurvey = (function() {
 
             if (Utils.isHttpsContext()) {
                 const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
-                    if (url.includes(element)) {
-                      return true;
-                    }
-                  
-                    return false;
+                    return url.includes(element);
                 });
-                console.log('switch', switchToHttps)
                 if (switchToHttps) {
-                    url = url.replace('http', 'https');
-                    url = url.replace('https://alasky.cds.unistra.fr/', 'https://alasky.cds.unistra.fr/');
+                    url = url.replace('http://', 'https://');
                 }
             }
 

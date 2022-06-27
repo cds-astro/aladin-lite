@@ -23,6 +23,7 @@ impl From<TileRequest> for RequestType {
         RequestType::Tile(request)
     }
 }
+use al_core::image::bitmap::Bitmap;
 use al_core::image::html::HTMLImage;
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
@@ -53,8 +54,8 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
-                /*
-                /// Bitmap version
+                
+                /*/// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
                     .await?
@@ -104,16 +105,16 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
 
-                /*
-                /// Bitmap version
+                
+                /*/// Bitmap version
                 let blob = JsFuture::from(resp.blob()?).await?.into();
                 let image = JsFuture::from(window.create_image_bitmap_with_blob(&blob)?)
                     .await?
                     .into();
 
                 let image = Bitmap::new(image);
-                Ok(ImageType::PngImageRgba8u { image })
-                */
+                Ok(ImageType::PngImageRgba8u { image })*/
+                
                 /*
                 /// Raw image decoding
                 let buf = JsFuture::from(resp.array_buffer()?).await?;

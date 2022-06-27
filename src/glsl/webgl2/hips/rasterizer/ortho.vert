@@ -2,7 +2,8 @@
 precision highp float;
 precision mediump int;
 
-layout (location = 0) in vec3 position;
+//layout (location = 0) in vec3 position;
+layout (location = 0) in vec2 ndc_pos;
 layout (location = 1) in vec3 uv_start;
 layout (location = 2) in vec3 uv_end;
 layout (location = 3) in float time_tile_received;
@@ -25,10 +26,10 @@ uniform float current_time;
 @include "../projection.glsl"
 
 void main() {
-    vec3 world_pos = vec3(inv_model * vec4(position, 1.0));
+    //vec3 world_pos = vec3(inv_model * vec4(position, 1.0));
     //world_pos = check_inversed_longitude(world_pos);
 
-    vec2 ndc_pos = world2clip_orthographic(world_pos) / (ndc_to_clip * czf);
+    //vec2 ndc_pos = world2clip_orthographic(world_pos) / (ndc_to_clip * czf);
     gl_Position = vec4(ndc_pos, 0.0, 1.0);
 
     frag_uv_start = uv_start;

@@ -222,6 +222,23 @@ pub trait Projection:
         }
     }
 
+    fn world_to_normalized_device_space_unchecked(
+        pos_world_space: &Vector4<f64>,
+        camera: &CameraViewPort,
+    ) -> Vector2<f64> {
+        let mut pos_clip_space = Self::world_to_clip_space_unchecked(pos_world_space);
+        if camera.get_longitude_reversed() {
+            pos_clip_space.x = -pos_clip_space.x;
+        }
+        let ndc_to_clip = camera.get_ndc_to_clip();
+        let clip_zoom_factor = camera.get_clip_zoom_factor();
+
+        Vector2::new(
+            pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
+            pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
+        )
+    }
+
     fn world_to_screen_space(
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
@@ -242,6 +259,7 @@ pub trait Projection:
     ///
     /// * ``pos_world_space`` - The position in the world space
     fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>>;
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64>;
 
     // Aperture angle at the start of the application (full view)
     // - 180 degrees for the 3D projections (i.e. ortho)
@@ -323,7 +341,7 @@ impl Projection for Aitoff {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let u = pos_clip_space.x * PI * 0.5;
             let v = pos_clip_space.y * PI;
@@ -346,9 +364,9 @@ impl Projection for Aitoff {
         } else {
             None
         }
-    }*/
+    }
 
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let x2d = -pos_clip_space.x;
             let y2d = pos_clip_space.y;
@@ -370,7 +388,7 @@ impl Projection for Aitoff {
         } else {
             None
         }
-    }
+    }*/
 
 
     /// World to screen space transformation
@@ -380,7 +398,18 @@ impl Projection for Aitoff {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    /*fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    }
+
+    /// World to screen space transformation
+    /// X is between [-1, 1]
+    /// Y is between [-0.5, 0.5]
+    ///
+    /// # Arguments
+    ///
+    /// * `pos_world_space` - Position in the world space. Must be a normalized vector
+    /*fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         //return vec3(X / PI, aspect * Y / PI, 0.f);
@@ -404,13 +433,13 @@ impl Projection for Aitoff {
         let x = 2.0 * inv_sinc_alpha * delta.0.cos() * theta_by_two.0.sin();
         let y = inv_sinc_alpha * delta.0.sin();
 
-        Some(Vector2::new(
+        Vector2::new(
             x / std::f64::consts::PI,
             y / std::f64::consts::PI,
-        ))
+        )
     }*/
 
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let x = pos_world_space.z;
         let y = -pos_world_space.x;
         let z = pos_world_space.y;
@@ -421,8 +450,8 @@ impl Projection for Aitoff {
         let y2d = z / w;
         w = (2.0 * r * (r - x)).sqrt() / w;       // = 2 * gamma * cos(b) sin(l/2)
         let x2d = if y < 0.0 { -w } else { w };
-        
-        Some(Vector2::new(x2d / PI, y2d / PI))
+
+        Vector2::new(x2d / PI, y2d / PI)
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -513,7 +542,7 @@ impl Projection for Mollweide {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         let epsilon = 1e-12;
@@ -542,7 +571,11 @@ impl Projection for Mollweide {
         let x = (-lon.0 / std::f64::consts::PI) * theta.cos();
         let y = 0.5 * theta.sin();
 
-        Some(Vector2::new(x, y))
+        Vector2::new(x, y)
+    }
+
+    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(Self::world_to_clip_space_unchecked(pos_world_space))
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -621,8 +654,17 @@ impl Projection for Orthographic {
         if pos_world_space.z < 0.0_f64 {
             None
         } else {
-            Some(Vector2::new(-pos_world_space.x, pos_world_space.y))
+            Some(Self::world_to_clip_space_unchecked(pos_world_space))
         }
+    }
+
+    /// World to screen space transformation
+    ///
+    /// # Arguments
+    ///
+    /// * `pos_world_space` - Position in the world space. Must be a normalized vector
+    fn world_to_clip_space_unchecked(pos_world_space: &cgmath::Vector4<f64>) -> Vector2<f64> {
+        Vector2::new(-pos_world_space.x, pos_world_space.y)
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -699,8 +741,8 @@ impl Projection for AzimuthalEquidistant {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        if pos_world_space.z > -1.0 {
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+        //if pos_world_space.z > -1.0 {
             // Distance in the Euclidean plane (xy)
             // Angular distance is acos(x), but for small separation, asin(r)
             // is more accurate.
@@ -715,13 +757,17 @@ impl Projection for AzimuthalEquidistant {
                 r = pos_world_space.z.acos() / r;
             }
 
-            Some(Vector2::new(
+            Vector2::new(
                 -pos_world_space.x * r / std::f64::consts::PI,
                 pos_world_space.y * r / std::f64::consts::PI,
-            ))
-        } else {
-            Some(Vector2::new(1.0, 0.0))
-        }
+            )
+        //} else {
+        //    Some(Vector2::new(1.0, 0.0))
+        //}
+    }
+
+    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(Self::world_to_clip_space_unchecked(pos_world_space))
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -740,7 +786,11 @@ impl Projection for Gnomonic {
     const ALLOW_UNZOOM_MORE: bool = false;
 
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
-        Vector2::new(1_f64, height / width)
+        if width > height {
+            Vector2::new(1_f64, height / width)
+        } else {
+            Vector2::new(width / height, 1.0)
+        }
     }
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
@@ -802,12 +852,20 @@ impl Projection for Gnomonic {
             // Back hemisphere (z < 0) + diverges near z=0
             None
         } else {
-            let pos_clip_space = Vector2::new(
-                (-pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
-                (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
-            );
-            Some(pos_clip_space)
+            Some(Self::world_to_clip_space_unchecked(pos_world_space))
         }
+    }
+
+    /// World to screen space transformation
+    ///
+    /// # Arguments
+    ///
+    /// * `pos_world_space` - Position in the world space. Must be a normalized vector
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+        Vector2::new(
+            (-pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
+            (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
+        )
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -876,12 +934,16 @@ impl Projection for Mercator {
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    }
+
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let (theta, delta) = math::lonlat::xyzw_to_radec(pos_world_space);
 
-        Some(Vector2::new(
+        Vector2::new(
             -theta.0 / std::f64::consts::PI,
             ((delta.0 / std::f64::consts::PI).tan()).asinh() as f64,
-        ))
+        )
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -964,13 +1026,17 @@ impl Projection for HEALPix {
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    }
+
+    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let (lon, lat) = math::lonlat::xyzw_to_radec(pos_world_space);
 
         let (x, y) = cdshealpix::proj(lon.0, lat.0);
         let (x, y) = (-x * 0.25, y * 0.5);
 
         //assert_debug!(x >= -1.0 && x <= 1.0);
-        Some(Vector2::new(x, y))
+        Vector2::new(x, y)
     }
 
     fn aperture_start() -> Angle<f64> {

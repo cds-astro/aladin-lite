@@ -339,7 +339,7 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 use cgmath::{Vector3, Vector4};
 use render::rasterizer::uv::{TileCorner, TileUVW};
 //#[cfg(feature = "webgl1")]
-fn add_vertices_grid(
+fn add_vertices_grid<P: Projection>(
     cell: &HEALPixCell,
     position: &mut Vec<f32>,
     uv_start: &mut Vec<f32>,
@@ -359,7 +359,8 @@ fn add_vertices_grid(
 
     alpha: f32,
 
-    _camera: &CameraViewPort,
+    camera: &CameraViewPort,
+    v2w: &Matrix4<f64>,
 ) {
     let num_subdivision = num_subdivision(cell);
 
@@ -367,15 +368,17 @@ fn add_vertices_grid(
     let n_vertices_per_segment = n_segments_by_side + 1;
 
     // Indices overwritten
-    let off_idx_vertices = (position.len() / 3) as u16;
+    let off_idx_vertices = (position.len() / 2) as u16;
 
     let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+            let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
 
-            let model_pos: Vector4<f64> = ll[id_vertex_0].vector();
-            position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
+            //position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
+            let screen_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
+            position.extend(&[screen_pos.x as f32, screen_pos.y as f32]);
 
             let hj0 = (j as f32) / (n_segments_by_side as f32);
             let hi0 = (i as f32) / (n_segments_by_side as f32);
@@ -513,8 +516,8 @@ impl ImageSurvey {
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
             .add_array_buffer_single(
-                3,
-                "position",
+                2,
+                "ndc_pos",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&position),
             )
@@ -557,8 +560,8 @@ impl ImageSurvey {
         #[cfg(feature = "webgl1")]
         vao.bind_for_update()
             .add_array_buffer(
-                3,
-                "position",
+                2,
+                "ndc_pos",
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&position),
             )
@@ -694,22 +697,22 @@ impl ImageSurvey {
         }
     }
 
-    pub fn recompute_vertices(&mut self, camera: &CameraViewPort) {
+    pub fn recompute_vertices<P: Projection>(&mut self, v2w: &Matrix4<f64>, camera: &CameraViewPort) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_vertices::<UnZoom>(camera);
+                self.update_vertices::<UnZoom, P>(v2w, camera);
             }
             UserAction::Zooming => {
-                self.update_vertices::<Zoom>(camera);
+                self.update_vertices::<Zoom, P>(v2w, camera);
             }
             _ => {
-                self.update_vertices::<Move>(camera);
+                self.update_vertices::<Move, P>(v2w, camera);
             }
         }
     }
 
-    fn update_vertices<T: RecomputeRasterizer>(&mut self, camera: &CameraViewPort) {
+    fn update_vertices<T: RecomputeRasterizer, P: Projection>(&mut self, v2w: &Matrix4<f64>, camera: &CameraViewPort) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -728,8 +731,7 @@ impl ImageSurvey {
             starting_texture,
             ending_texture,
             cell,
-        } in textures.iter()
-        {
+        } in textures.iter() {
             let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
             let start_time = ending_texture.start_time();
@@ -737,7 +739,7 @@ impl ImageSurvey {
             let miss_0 = (starting_texture.is_missing()) as i32 as f32;
             let miss_1 = (ending_texture.is_missing()) as i32 as f32;
 
-            add_vertices_grid(
+            add_vertices_grid::<P>(
                 cell,
                 &mut self.position,
                 &mut self.uv_start,
@@ -746,21 +748,20 @@ impl ImageSurvey {
                 &mut self.m0,
                 &mut self.m1,
                 &mut self.idx_vertices,
-                //&cell,
-                //&self.sphere_sub,
                 &uv_0,
                 &uv_1,
                 miss_0,
                 miss_1,
                 start_time.as_millis(),
                 camera,
+                v2w,
             );
         }
         self.num_idx = self.idx_vertices.len();
 
         let mut vao = self.vao.bind_for_update();
         vao.update_array(
-            "position",
+            "ndc_pos",
             WebGl2RenderingContext::DYNAMIC_DRAW,
             VecData(&self.position),
         )
@@ -935,9 +936,10 @@ impl Draw for ImageSurvey {
 
             let vertices_recomputation_needed = self.view.is_there_new_cells_added()
                 | self.textures.is_there_available_tiles()
-                | switch_from_raytrace_to_raster;
+                | switch_from_raytrace_to_raster
+                | camera.has_moved();
             if vertices_recomputation_needed {
-                self.recompute_vertices(camera);
+                self.recompute_vertices::<P>(&v2w, camera);
             }
 
             shader
@@ -1273,24 +1275,6 @@ impl ImageSurveys {
 
         Ok(())
     }
-
-    /*pub fn set_image_survey_img_format(
-        &mut self,
-        layer: String,
-        format: HiPSTileFormat,
-    ) -> Result<(), JsValue> {
-        // Expect the image survey to be found in the hash map
-        let survey = self
-            .get_mut_from_layer(&layer)
-            .ok_or(JsValue::from_str(&format!(
-                "Did not found the survey {:?}",
-                layer
-            )))?;
-
-        survey.set_img_format(format)?;
-
-        Ok(())
-    }*/
 
     pub fn is_ready(&self) -> bool {
         let ready = self

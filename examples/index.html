@@ -22,11 +22,21 @@
             stretch: 'Asinh'
         });*/
 
-        aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        /*aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
         aladin.setProjection('AIT');
 
         aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
-        aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});
+        aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});*/
+
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        aladin.setProjection('AIT');
+
+        //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {
+            imgFormat: 'fits',
+            colormap: 'viridis',
+            stretch: "Asinh"
+        });
     });
 </script>
 

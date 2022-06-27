@@ -183,6 +183,30 @@ pub trait Projection:
         Self::world_to_screen_space(&pos_world_space, camera)
     }
 
+    fn view_to_normalized_device_space(
+        pos_view_space: &Vector4<f64>,
+        camera: &CameraViewPort,
+    ) -> Option<Vector2<f64>> {
+        let view_coosys = camera.get_system();
+        let c = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
+
+        let m2w = camera.get_m2w();
+        let pos_world_space = m2w * c * pos_view_space;
+        Self::world_to_normalized_device_space(&pos_world_space, camera)
+    }
+
+    fn view_to_normalized_device_space_unchecked(
+        pos_view_space: &Vector4<f64>,
+        camera: &CameraViewPort,
+    ) -> Vector2<f64> {
+        let view_coosys = camera.get_system();
+        let c = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
+
+        let m2w = camera.get_m2w();
+        let pos_world_space = m2w * c * pos_view_space;
+        Self::world_to_normalized_device_space_unchecked(&pos_world_space, camera)
+    }
+
     fn model_to_ndc_space(
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
@@ -341,7 +365,7 @@ impl Projection for Aitoff {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         if Self::is_included_inside_projection(pos_clip_space) {
             let u = pos_clip_space.x * PI * 0.5;
             let v = pos_clip_space.y * PI;
@@ -364,6 +388,33 @@ impl Projection for Aitoff {
         } else {
             None
         }
+    }*/
+
+    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+        let x2d = -pos_clip_space.x * TWO_SQRT_TWO;
+        let y2d = pos_clip_space.y * TWO_SQRT_TWO;
+        let mut r = 0.125 * x2d * x2d + 0.5 * y2d * y2d; //  = 1 - cos(b) cos(l/2)
+        if r > 1.0  {
+          if r < 1.0 + 1e-15 { // Accept approximations in the projection
+            r = 1.0;
+          } else {
+            return None;
+          }
+        }
+
+        let mut x = 1.0 - r; // cos(b) cos(l/2)
+        let mut w = (1.0 - 0.5 * r).sqrt(); // sqrt(HALF * (1 + x)) ;  //  = Z = sqrt[ (1 + cos(b) cos(l/2)) / 2]
+        let mut y = 0.5 * x2d * w; // cos(b) sin(l/2)
+        let z = y2d * w ; // z
+        // Convert from Cartesian (l/2, b) to Cartesian (l, b) 
+        r = (x * x + y * y).sqrt();  // cos(b)
+        if r > 0.0 {
+            w = x;
+            x = (w * w - y * y) / r; // cos(b) cos(l)
+            y = 2.0 * w * y / r; // cos(b) sin(l)
+        }
+
+        Some(Vector4::new(y, z, x, 1.0))
     }
 
     /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
@@ -441,7 +492,7 @@ impl Projection for Aitoff {
 
     fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let x = pos_world_space.z;
-        let y = -pos_world_space.x;
+        let y = pos_world_space.x;
         let z = pos_world_space.y;
 
         let r = (x * x + y * y).sqrt();
@@ -451,7 +502,7 @@ impl Projection for Aitoff {
         w = (2.0 * r * (r - x)).sqrt() / w;       // = 2 * gamma * cos(b) sin(l/2)
         let x2d = if y < 0.0 { -w } else { w };
 
-        Vector2::new(x2d / PI, y2d / PI)
+        Vector2::new(-x2d / TWO_SQRT_TWO, y2d / TWO_SQRT_TWO)
     }
 
     fn aperture_start() -> Angle<f64> {
@@ -463,7 +514,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((200.0 / 180.0) * std::f64::consts::PI);
+    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((170.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::math;
@@ -591,6 +642,8 @@ impl Projection for Mollweide {
 }
 
 use crate::math::angle::Angle;
+
+use super::TWO_SQRT_TWO;
 impl Projection for Orthographic {
     const ALLOW_UNZOOM_MORE: bool = true;
 

@@ -22,7 +22,6 @@
         aladin.setBaseImageLayer("https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/", {longitudeReversed: true});
         //aladin.setBaseImageLayer("https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/", {longitudeReversed: false});
 
-
         var c = document.createElement('canvas'); c.width = c.height = 11; var ctx = c.getContext('2d'); ctx.beginPath(); ctx.arc(5, 5, 4, 0, 2 * Math.PI, false); ctx.closePath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2; ctx.stroke();
 
         var geoFeatures = A.catalog({shape: c, labelColumn: 'name', displayLabel: true, labelColor: '#fff', labelFont: '14px sans-serif'});

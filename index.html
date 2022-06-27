@@ -16,12 +16,13 @@
         aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
         aladin.setProjection('AIT');
 
-        let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, {
+        //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {
             imgFormat: 'fits',
-            colormap: 'redtemperature'
+            colormap: 'viridis',
+            stretch: "Asinh"
         });
-        aladin.setBaseImageLayer(survey);
-        aladin.getBaseImageLayer().setColormap("redtemperature", {stretch: "Asinh"});
+        //aladin.getBaseImageLayer().setColormap("redtemperature", {stretch: "Asinh"});
     });
 </script>
 

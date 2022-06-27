@@ -338,6 +338,7 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4};
 use render::rasterizer::uv::{TileCorner, TileUVW};
+use al_api::coo_system::CooSystem;
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid<P: Projection>(
     cell: &HEALPixCell,
@@ -377,8 +378,8 @@ fn add_vertices_grid<P: Projection>(
             let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
 
             //position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
-            let screen_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
-            position.extend(&[screen_pos.x as f32, screen_pos.y as f32]);
+            let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
+            position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
 
             let hj0 = (j as f32) / (n_segments_by_side as f32);
             let hi0 = (i as f32) / (n_segments_by_side as f32);
@@ -697,22 +698,22 @@ impl ImageSurvey {
         }
     }
 
-    pub fn recompute_vertices<P: Projection>(&mut self, v2w: &Matrix4<f64>, camera: &CameraViewPort) {
+    pub fn recompute_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
         let last_user_action = camera.get_last_user_action();
         match last_user_action {
             UserAction::Unzooming => {
-                self.update_vertices::<UnZoom, P>(v2w, camera);
+                self.update_vertices::<UnZoom, P>(camera);
             }
             UserAction::Zooming => {
-                self.update_vertices::<Zoom, P>(v2w, camera);
+                self.update_vertices::<Zoom, P>(camera);
             }
             _ => {
-                self.update_vertices::<Move, P>(v2w, camera);
+                self.update_vertices::<Move, P>(camera);
             }
         }
     }
 
-    fn update_vertices<T: RecomputeRasterizer, P: Projection>(&mut self, v2w: &Matrix4<f64>, camera: &CameraViewPort) {
+    fn update_vertices<T: RecomputeRasterizer, P: Projection>(&mut self, camera: &CameraViewPort) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -723,9 +724,15 @@ impl ImageSurvey {
 
         let survey_config = self.textures.config();
         let textures = T::get_textures_from_survey(&self.view, &self.textures);
-        //let allow_transparency = !survey_config.is_opaque();
 
-        //al_core::log(&format!("{:?} {:?}", allow_transparency, survey_config.blank));
+        // Get the coo system transformation matrix
+        let selected_frame = camera.get_system();
+        let hips_frame = self.textures.config().get_frame();
+        let c = selected_frame.to(&hips_frame);
+
+        // Retrieve the model and inverse model matrix
+        let w2v = c * (*camera.get_w2m());
+        let v2w = w2v.transpose();
 
         for TextureToDraw {
             starting_texture,
@@ -754,7 +761,7 @@ impl ImageSurvey {
                 miss_1,
                 start_time.as_millis(),
                 camera,
-                v2w,
+                &v2w
             );
         }
         self.num_idx = self.idx_vertices.len();
@@ -939,7 +946,7 @@ impl Draw for ImageSurvey {
                 | switch_from_raytrace_to_raster
                 | camera.has_moved();
             if vertices_recomputation_needed {
-                self.recompute_vertices::<P>(&v2w, camera);
+                self.recompute_vertices::<P>(camera);
             }
 
             shader

@@ -85,7 +85,7 @@
 .aladin-measurement-div {
 	z-index: 77;
 	position:absolute;
-    bottom: 0px;
+    bottom: 20px;
 	background-color: rgba(255, 255, 255, 0.8);
     font-family: monospace;
 	font-size: 12px;

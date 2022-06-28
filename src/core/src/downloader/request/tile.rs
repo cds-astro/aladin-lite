@@ -80,14 +80,14 @@ impl From<query::Tile> for TileRequest {
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
                        // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                        image_cloned.set_src(&url_clone);
-                        image_cloned.set_cross_origin(Some("cors"));
+                        image_cloned.set_cross_origin(Some(""));
                         image_cloned.set_onload(
                             Some(&resolve)
                         );
                         image_cloned.set_onerror(
                             Some(&reject)
                         );
+                        image_cloned.set_src(&url_clone);
                     }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
                 );
 
@@ -132,14 +132,14 @@ impl From<query::Tile> for TileRequest {
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
                         //let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                        image_cloned.set_src(&url_clone);
-                        image_cloned.set_cross_origin(Some("cors"));
+                        image_cloned.set_cross_origin(Some(""));
                         image_cloned.set_onload(
                             Some(&resolve)
                         );
                         image_cloned.set_onerror(
                             Some(&reject)
                         );
+                        image_cloned.set_src(&url_clone);
                     }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
                 );
 

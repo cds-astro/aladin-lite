@@ -889,19 +889,18 @@ export let Aladin = (function () {
 
     // @oldAPI
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
-        const idOrUrl = id || rootUrl;
-        let survey = this.cacheSurveys.get(idOrUrl);
-
-        if (survey === undefined) {
+        let cfg = this.cacheSurveys.get(id);
+        if (!cfg) {
             if (cooFrame) {
                 options.cooFrame = cooFrame;
             }
-
-            survey = new HpxImageSurvey(id, name, rootUrl, this.view, options);
-            this.cacheSurveys.set(idOrUrl, survey);
+    
+            this.cacheSurveys.set(id, {id, name, rootUrl, options});
+            return new HpxImageSurvey(id, name, rootUrl, this.view, options);
+        } else {
+            cfg = Utils.clone(cfg)
+            return new HpxImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
         }
-
-        return survey;
     };
 
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
@@ -931,50 +930,33 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (idOrSurvey, layer = "overlay") {
+    Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrSurvey, layer = "overlay") {
         let survey = null;
 
         // 1. User gives an ID
-        if (typeof idOrSurvey === "string") {
-            const id = idOrSurvey;
-
+        if (typeof idOrUrlOrSurvey === "string") {
+            const idOrUrl = idOrUrlOrSurvey;
             // Check if the survey has already been added
             // Create a new HpxImageSurvey
             let isUrl = false;
-            if (id.includes("http")) {
+            if (idOrUrl.includes("http")) {
                 isUrl = true;
             }
+            const name = idOrUrl;
 
             if (isUrl) {
-                const url = id;
+                const url = idOrUrl;
+                const id = url;
                 // Url
-                survey = this.createImageSurvey(id, id, url, null, null);
+                survey = this.createImageSurvey(id, name, url, null, null);
             } else {
+                const id = idOrUrl;
                 // ID
-                // Check if the ID is found among the ones added, otherwise create a new ImageSurvey
-                let idxSelectedHiPS = 0;
-                const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
-                    let res = id.endsWith(s.id);
-                    if (!res) {
-                        idxSelectedHiPS += 1;
-                    }
-
-                    return res;
-                });
-
-                // The survey has not been found among the ones cached
-                if (!surveyFound) {
-                    const name = id;
-                    survey = this.createImageSurvey(id, name, undefined, null, null);
-                } else {
-                    const surveyConfig = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-                    // if no options have been given, take the one stored
-                    survey = this.createImageSurvey(surveyConfig.id, surveyConfig.name, surveyConfig.url, null, null, surveyConfig.options);
-                }
+                survey = this.createImageSurvey(id, name, undefined, null, null);
             }
         // 2. User gives a non resolved promise
         } else {
-            survey = idOrSurvey;
+            survey = idOrUrlOrSurvey;
         }
 
         this.view.setOverlayImageSurvey(survey, layer);

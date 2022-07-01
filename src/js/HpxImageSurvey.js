@@ -324,11 +324,13 @@ export let HpxImageSurvey = (function() {
             }
 
             if (!self.colored) {
+                self.options.stretch = self.options.stretch || "Linear";
+
                 // For grayscale JPG/PNG hipses
                 if (!self.fits) {
                     // Erase the cuts with the default one for image tiles
                     self.options.minCut = self.options.minCut || 0.0;
-                    self.options.maxCut = self.options.maxCut || 1.0;
+                    self.options.maxCut = self.options.maxCut || 255.0;
                 // For FITS hipses
                 } else {
                     self.options.minCut = self.options.minCut || self.properties.minCutout;
@@ -403,12 +405,20 @@ export let HpxImageSurvey = (function() {
         if (this.colored) {
             this.meta.color = "color";
         } else {
+            let minCut = this.options.minCut;
+            let maxCut = this.options.maxCut;
+
+            if (this.options.imgFormat !== "FITS") {
+                minCut /= 255.0;
+                maxCut /= 255.0;
+            }
+
             if (this.options.color) {
                 this.meta.color = {
                     grayscale: {
-                        stretch: this.options.stretch || "Linear",
-                        minCut: this.options.minCut,
-                        maxCut: this.options.maxCut,
+                        stretch: this.options.stretch,
+                        minCut: minCut,
+                        maxCut: maxCut,
                         color: {
                             color: this.options.color,
                         }
@@ -431,9 +441,9 @@ export let HpxImageSurvey = (function() {
 
                 this.meta.color = {
                     grayscale: {
-                        stretch: this.options.stretch || "Linear",
-                        minCut: this.options.minCut,
-                        maxCut: this.options.maxCut,
+                        stretch: this.options.stretch,
+                        minCut: minCut,
+                        maxCut: maxCut,
                         color: {
                             colormap: {
                                 reversed: reversed,
@@ -637,7 +647,7 @@ export let HpxImageSurvey = (function() {
                 minCut: 1000.0,
                 maxCut: 10000.0,
                 imgFormat: "fits",
-                colormap: "native",
+                colormap: "magma",
                 stretch: 'Linear'
             }
         },

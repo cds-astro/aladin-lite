@@ -151,19 +151,20 @@ export class HiPSLayer {
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
-            let survey = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
+            let cfg = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
             if (self.hidden) {
-                survey.options.opacity = 0.0;
+                cfg.options.opacity = 0.0;
             }
 
-            const hpxImageSurvey = new HpxImageSurvey(
-                survey.id,
-                survey.name,
-                survey.url,
-                self.view,
-                survey.options
+            const survey = self.aladin.createImageSurvey(
+                cfg.id,
+                cfg.name,
+                cfg.url,
+                undefined,
+                cfg.maxOrder,
+                cfg.options
             );
-            self.aladin.setOverlayImageLayer(hpxImageSurvey, self.survey.layer);
+            self.aladin.setOverlayImageLayer(survey, self.survey.layer);
 
             self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
                 detail: self.survey.layer
@@ -245,16 +246,17 @@ export class HiPSLayer {
 
             self.survey.changeImageFormat(imgFormat);
 
+
             let minCut = 0;
-            let maxCut = 1;
+            let maxCut = 255;
             if (imgFormat === "FITS") {
                 // FITS format
                 minCut = self.survey.properties.minCutout;
                 maxCut = self.survey.properties.maxCutout;
             }
             self.survey.setCuts([minCut, maxCut]);
+
             // update the cuts only
-            
             minCut4ImgLayer.val(parseFloat(minCut.toFixed(5)));
             maxCut4ImgLayer.val(parseFloat(maxCut.toFixed(5)));
 

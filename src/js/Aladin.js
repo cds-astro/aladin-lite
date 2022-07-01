@@ -948,7 +948,7 @@ export let Aladin = (function () {
             if (isUrl) {
                 const url = id;
                 // Url
-                survey = this.createImageSurvey(id, undefined, url, null, null);
+                survey = this.createImageSurvey(id, id, url, null, null);
             } else {
                 // ID
                 // Check if the ID is found among the ones added, otherwise create a new ImageSurvey
@@ -964,7 +964,8 @@ export let Aladin = (function () {
 
                 // The survey has not been found among the ones cached
                 if (!surveyFound) {
-                    survey = this.createImageSurvey(id, undefined, undefined, null, null);
+                    const name = id;
+                    survey = this.createImageSurvey(id, name, undefined, null, null);
                 } else {
                     const surveyConfig = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
                     // if no options have been given, take the one stored

@@ -55,9 +55,9 @@
         ["SIN", "AIT", "MOL", "MER", "ARC", "TAN", "HPX"].forEach(p => {
             this.selectProjection.append($("<option />").attr("selected", p == this.aladin.projection).val(p).text(p));
         });
-
+        let self = this;
         this.selectProjection.change(function () {
-            aladin.setProjection($(this).val());
+            self.aladin.setProjection($(this).val());
         });
      }
  

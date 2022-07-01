@@ -637,7 +637,7 @@ export let HpxImageSurvey = (function() {
                 minCut: 1000.0,
                 maxCut: 10000.0,
                 imgFormat: "fits",
-                colormap: "rainbow",
+                colormap: "native",
                 stretch: 'Linear'
             }
         },

@@ -347,7 +347,6 @@ export class Stack {
 
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
-            console.log("remove listener on:", layer)
             let hipsLayer = self.imgLayers.get(layer);
             // unbind the events
             hipsLayer.destroy();

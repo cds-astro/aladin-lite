@@ -338,7 +338,6 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4};
 use render::rasterizer::uv::{TileCorner, TileUVW};
-use al_api::coo_system::CooSystem;
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid<P: Projection>(
     cell: &HEALPixCell,
@@ -1058,19 +1057,6 @@ impl ImageSurveys {
             current_rendering_mode,
 
             gl,
-        }
-    }
-
-    pub fn last(&self) -> Option<&ImageSurvey> {
-        if let Some(last_rendered_layer) = self.layers.last() {
-            let url = self
-                .urls
-                .get(last_rendered_layer)
-                .expect("Url from layer name not found.");
-
-            self.surveys.get(url)
-        } else {
-            None
         }
     }
 

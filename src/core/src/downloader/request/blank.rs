@@ -149,6 +149,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
 pub struct PixelMetadata {
     pub value: Metadata,
     pub hips_url: String,
+    pub url: String,
 }
 
 impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
@@ -156,7 +157,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
         let PixelMetadataRequest {
             request,
             hips_url,
-            ..
+            url,
         } = request;
         if request.is_resolved() {
             let Request::<Metadata> {
@@ -166,7 +167,8 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             // It will always be resolved and found as we will request a well know tile (Norder0/Tile0)
             Some(PixelMetadata {
                 hips_url: hips_url.clone(),
-                value: data.lock().unwrap().unwrap().clone()
+                url: url.to_string(),
+                value: data.lock().unwrap().unwrap().clone(),
             })
         } else {
             None

@@ -542,7 +542,7 @@ where
                                 self.request_redraw = true;
                             }
                         } else {
-                            //al_core::log("discard tex sub");
+                            self.downloader.cache_rsc(Resource::Tile(tile));
                         }
                         num_tile_received += 1;
                     }

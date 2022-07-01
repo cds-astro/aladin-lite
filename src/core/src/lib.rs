@@ -43,6 +43,7 @@ mod shader;
 mod survey;
 mod tile_fetcher;
 mod time;
+mod fifo_cache;
 
 use crate::{
     camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,

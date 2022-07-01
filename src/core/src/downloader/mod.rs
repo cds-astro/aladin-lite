@@ -443,26 +443,34 @@ impl TileDownloader {
     }*/
 }*/
 
-use crate::{survey::Url};
-
+use crate::survey::Url;
 use std::collections::HashSet;
 pub struct Downloader {
     // Current requests
     requests: Vec<RequestType>,
     queried_urls: HashSet<Url>,
+
+    cache: Cache<Url, Resource>,
+    queried_cached_urls: HashSet<Url>,
 }
+
+use crate::fifo_cache::Cache;
 
 use query::Query;
 use request::{RequestType, Resource};
+
 
 impl Downloader {
     pub fn new() -> Downloader {
         let requests = Vec::with_capacity(32);
         let queried_urls = HashSet::with_capacity(64);
-
+        let cache = Cache::new();
+        let queried_cached_urls = HashSet::with_capacity(64);
         Self {
             requests,
             queried_urls,
+            cache,
+            queried_cached_urls
         }
     }
 
@@ -476,66 +484,28 @@ impl Downloader {
         //self.tiles_to_req.clear();
 
         let url = query.url();
-        let not_already_requested = !self.queried_urls.contains(url);
+        if self.cache.contains(url) {
+            self.queried_cached_urls.insert(url.to_string());
+            false
+        } else {
+            let not_already_requested = !self.queried_urls.contains(url);
 
-        // The cell is not already requested
-        if not_already_requested || force_request {
-            /*if tile.is_root() {
-                self.base_tiles_to_req.push(tile);
-            } else {
-                self.tiles_to_req.push(tile);
-            }*/
-            self.queried_urls.insert(url.to_string());
-
-            let request = T::Request::from(query);
-            self.requests.push(request.into());
-        }
-
-        not_already_requested
-    }
-
-    /*pub fn try_sending_tile_requests(&mut self, surveys: &ImageSurveys) -> Result<(), JsValue> {
-        // Try sending the fits tile requests
-        let mut is_remaining_req =
-            !self.tiles_to_req.is_empty() || !self.base_tiles_to_req.is_empty();
-
-        let mut downloader_overloaded = false;
-
-        while is_remaining_req && !downloader_overloaded {
-            let mut base_tile_requested = false;
-            let tile = if let Some(base_tile) = self.base_tiles_to_req.last() {
-                base_tile_requested = true;
-                base_tile
-            } else {
-                self.tiles_to_req.last().unwrap()
-            };
-            //let tile = self.tiles_to_req.last();
-
-            if let Some(available_req) = self.requests.check_send(tile.format.clone()) {
-                let tile = if base_tile_requested {
-                    // Send in priority requests to get the base tiles
-                    self.base_tiles_to_req.pop().unwrap()
+            // The cell is not already requested
+            if not_already_requested || force_request {
+                /*if tile.is_root() {
+                    self.base_tiles_to_req.push(tile);
                 } else {
-                    // Otherwise requests the other tiles
-                    self.tiles_to_req.pop().unwrap()
-                };
-                //let tile = self.tiles_to_req.pop().unwrap();
-
-                is_remaining_req =
-                    !self.tiles_to_req.is_empty() || !self.base_tiles_to_req.is_empty();
-                //is_remaining_req = !self.tiles_to_req.is_empty();
-                self.requested_tiles.insert(tile.clone());
-
-                available_req.fetch(&tile, surveys)?;
-            } else {
-                // We have to wait for more requests
-                // to be available
-                downloader_overloaded = true;
+                    self.tiles_to_req.push(tile);
+                }*/
+                self.queried_urls.insert(url.to_string());
+    
+                let request = T::Request::from(query);
+                self.requests.push(request.into());
             }
+    
+            not_already_requested
         }
-
-        Ok(())
-    }*/
+    }
 
     pub fn get_received_resources(&mut self) -> Vec<Resource> {
         let mut rscs = vec![];
@@ -562,6 +532,17 @@ impl Downloader {
             self.queried_urls.remove(&url);
         }
 
+        for url in self.queried_cached_urls.iter() {
+            let rsc = self.cache.extract(url).unwrap();
+            rscs.push(rsc);
+        }
+
+        self.queried_cached_urls.clear();
+
         rscs
+    }
+
+    pub fn cache_rsc(&mut self, rsc: Resource) {
+        self.cache.insert(rsc.url().clone(), rsc);
     }
 }

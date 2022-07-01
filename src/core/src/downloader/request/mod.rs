@@ -122,3 +122,13 @@ pub enum Resource {
     Allsky(Allsky),
     PixelMetadata(PixelMetadata)
 }
+
+impl Resource {
+    pub fn url(&self) -> &Url {
+        match self {
+            Resource::Tile(tile) => tile.get_url(),
+            Resource::Allsky(allsky) => allsky.get_url(),
+            Resource::PixelMetadata(PixelMetadata { url, ..}) => url, 
+        }
+    }
+}

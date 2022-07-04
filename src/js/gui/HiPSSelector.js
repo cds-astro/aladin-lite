@@ -77,9 +77,49 @@ import  autocomplete from 'autocompleter';
             input: input,
             fetch: function(text, update) {
                 text = text.toLowerCase();
-                // you can also use AJAX requests instead of preloaded data
-                var suggestions = MocServer.getAllHiPSes().filter(n => n.ID.toLowerCase().includes(text) || n.obs_title.toLowerCase().includes(text))
-                update(suggestions);
+                // filter suggestions
+                const suggestions = MocServer.getAllHiPSes().filter(n => n.ID.toLowerCase().includes(text) || n.obs_title.toLowerCase().includes(text))
+
+                // sort suggestions
+                suggestions.sort( function(a , b) {
+                    let scoreForA = 0;
+                    let scoreForB = 0;
+
+                    if (a.ID.toLowerCase().includes(text)) {
+                        scoreForA += 100;
+                    }
+                    if (b.ID.toLowerCase().includes(text)) {
+                        scoreForB += 100;
+                    }
+
+                    if (a.obs_title.toLowerCase().includes(text)) {
+                        scoreForA += 50;
+                    }
+                    if (b.obs_title.toLowerCase().includes(text)) {
+                        scoreForB += 50;
+                    }
+
+                    if (a.obs_description && a.obs_description.toLowerCase().includes(text)) {
+                        scoreForA += 10;
+                    }
+                    if (b.obs_description && b.obs_description.toLowerCase().includes(text)) {
+                        scoreForB += 10;
+                    }
+
+                    if (scoreForA > scoreForB) {
+                        return -1;
+                    }
+                    if (scoreForB > scoreForA) {
+                        return  1;
+                    }
+
+                    return 0;
+                });
+
+                // limit to 50 first suggestions
+                const returnedSuggestions = suggestions.slice(0, 50);
+
+                update(returnedSuggestions);
             },
             onSelect: function(item) {
                 self.selectedItem = item;

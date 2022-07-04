@@ -156,7 +156,11 @@ export class Stack {
                                                                params.radiusDeg, {limit: params.limit, onClick: 'showTable'});
                         }
                         else {
-                            const url = params.baseURL + '?RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
+                            let url = params.baseURL;
+                            if (! url.endsWith('?')) {
+                                url += '?';
+                            }
+                            url += 'RA=' + params.ra + '&DEC=' + params.dec + '&SR=' + params.radiusDeg;
                             catalogLayer = A.catalogFromURL(url, {limit: params.limit, onClick: 'showTable'});
                         }
                         self.aladin.addCatalog(catalogLayer);

@@ -143,9 +143,56 @@ import  autocomplete from 'autocompleter';
 
                     return ID.toLowerCase().includes(text) || obsTitle.toLowerCase().includes(text) || obsDescription.toLowerCase().includes(text);
                 }
-                // you can also use AJAX requests instead of preloaded data
+                // filter suggestions
                 const suggestions = MocServer.getAllCatalogHiPSes().filter(filterCats);
-                update(suggestions);
+                // sort suggestions
+                suggestions.sort( function(a , b) {
+                    let scoreForA = 0;
+                    let scoreForB = 0;
+
+                    if (a.ID.toLowerCase().includes(text)) {
+                        scoreForA += 100;
+                    }
+                    if (b.ID.toLowerCase().includes(text)) {
+                        scoreForB += 100;
+                    }
+
+                    if (a.obs_title.toLowerCase().includes(text)) {
+                        scoreForA += 50;
+                    }
+                    if (b.obs_title.toLowerCase().includes(text)) {
+                        scoreForB += 50;
+                    }
+
+                    if (a.obs_description.toLowerCase().includes(text)) {
+                        scoreForA += 10;
+                    }
+                    if (b.obs_description.toLowerCase().includes(text)) {
+                        scoreForB += 10;
+                    }
+
+                    // HiPS catalogue available
+                    if (a.hips_service_url) {
+                        scoreForA += 20;
+                    }
+                    if (b.hips_service_url) {
+                        scoreForB += 20;
+                    }
+
+                    if (scoreForA > scoreForB) {
+                        return -1;
+                    }
+                    if (scoreForB > scoreForA) {
+                        return  1;
+                    }
+
+                    return 0;
+                });
+
+                // limit to 50 first suggestions
+                const returnedSuggestions = suggestions.slice(0, 50);
+
+                update(returnedSuggestions);
             },
             onSelect: function(item) {
                 // adapt UI to selected catalogue

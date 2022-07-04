@@ -50,8 +50,8 @@ export class HiPSLayer {
                 '<div class="aladin-layer-header-' + survey.layer + '">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
-                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
                 '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
+                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
                 '</div>'
             );
         } else {
@@ -59,8 +59,8 @@ export class HiPSLayer {
                 '<div class="aladin-layer-header-' + survey.layer + '">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
-                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search a specific HiPS">🔍</button>' +
                 '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
+                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search a specific HiPS">🔍</button>' +
                 '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
                 '</div>'
             );

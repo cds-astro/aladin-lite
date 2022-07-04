@@ -223,6 +223,11 @@ impl WebClient {
         self.app.is_ready()
     }
 
+    #[wasm_bindgen(js_name = getNOrder)]
+    pub fn get_norder(&mut self) -> Result<i32, JsValue> {
+        Ok(self.app.get_norder())
+    }
+
     /// Set new image surveys
     ///
     /// Send the image surveys to render inside the Aladin Lite view
@@ -581,7 +586,7 @@ impl WebClient {
         }
     }
 
-    /*/// World to screen projection of a list of sources
+    /// World to screen projection of a list of sources
     ///
     /// Coordinates must be given in the ICRS coo system
     ///
@@ -590,9 +595,8 @@ impl WebClient {
     /// * `sources` - An array of sources
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
-        let screen_positions = self.app.world_to_screen_vec(&sources)?;
-        Ok(screen_positions.into_boxed_slice())
-    }*/
+        self.app.world_to_screen_vec(&sources)
+    }
 
     /// Screen to world unprojection
     ///

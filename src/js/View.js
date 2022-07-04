@@ -846,13 +846,17 @@ export let View = (function() {
                 view.decreaseZoom();
             }
 
-            if (! view.debounceProgCatOnZoom) {
+            if (!view.debounceProgCatOnZoom) {
                 var self = view;
-                view.debounceProgCatOnZoom = Utils.debounce(function() {self.refreshProgressiveCats();}, 300);
+                view.debounceProgCatOnZoom = Utils.debounce(function() {
+                    self.refreshProgressiveCats();
+                    self.drawAllOverlays();
+                }, 300);
             }
             view.debounceProgCatOnZoom();
             //view.setZoomLevel(level);
             //view.refreshProgressiveCats();
+
             return false;
         });
     };
@@ -1003,159 +1007,7 @@ export let View = (function() {
         ////// 2. Draw catalogues////////
         const isViewRendering = this.aladin.webglAPI.isRendering();
         if (isViewRendering || this.needRedraw) {
-            var catalogCtx = this.catalogCtx;
-            var catalogCanvasCleared = false;
-            if (this.mustClearCatalog) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-                this.mustClearCatalog = false;
-            }
-    
-            if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-                // TODO : do not clear every time
-                //// clear canvas ////
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                for (var i=0; i<this.catalogs.length; i++) {
-                    var cat = this.catalogs[i];
-                    cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-                }
-            }
-            // draw popup catalog
-            if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-            }
-    
-            ////// 3. Draw overlays////////
-            var overlayCtx = this.catalogCtx;
-            if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                for (var i=0; i<this.overlays.length; i++) {
-                    this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
-                }
-            }
-            
-            // Redraw HEALPix grid
-            var healpixGridCtx = catalogCtx;
-            if( this.displayHpxGrid ) {
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                var cornersXYViewMapAllsky = this.getVisibleCells(3);
-                var cornersXYViewMapHighres = null;
-                if (this.curNorder>=3) {
-                    if (this.curNorder==3) {
-                        cornersXYViewMapHighres = cornersXYViewMapAllsky;
-                    }
-                    else {
-                        cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
-                    }
-                }
-                if (cornersXYViewMapHighres && this.curNorder>3) {
-                    this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
-                }
-                else {
-                    this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
-                }
-            }
-    
-    
-            // draw MOCs
-            var mocCtx = catalogCtx;
-            if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
-                if (!catalogCanvasCleared) {
-                    catalogCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                for (var i=0; i<this.mocs.length; i++) {
-                    this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-                }
-            }
-    
-            ////// 4. Draw reticle ///////
-            // TODO: reticle should be placed in a static DIV, no need to waste a canvas
-            var reticleCtx = catalogCtx;
-            if (this.mode==View.SELECT) {
-                // VIEW mode, we do not want to display the reticle in this
-                // but draw a selection box
-                if (this.dragging) {
-                    if (! catalogCanvasCleared) {
-                        reticleCtx.clearRect(0, 0, this.width, this.height);
-                        catalogCanvasCleared = true;
-                    }
-    
-                    reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
-                    var w = this.dragx - this.selectStartCoo.x;
-                    var h =  this.dragy - this.selectStartCoo.y;
-                    
-                    reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
-                }
-            } else {
-                // Normal modes
-                if (this.displayReticle) {
-                    if (! catalogCanvasCleared) {
-                        catalogCtx.clearRect(0, 0, this.width, this.height);
-                        catalogCanvasCleared = true;
-                    }
-        
-                    if (! this.reticleCache) {
-                        // build reticle image
-                        var c = document.createElement('canvas');
-                        var s = this.options.reticleSize;
-                        c.width = s;
-                        c.height = s;
-                        var ctx = c.getContext('2d');
-                        ctx.lineWidth = 2;
-                        ctx.strokeStyle = this.options.reticleColor;
-                        ctx.beginPath();
-                        ctx.moveTo(s/2, s/2+(s/2-1));
-                        ctx.lineTo(s/2, s/2+2);
-                        ctx.moveTo(s/2, s/2-(s/2-1));
-                        ctx.lineTo(s/2, s/2-2);
-                        
-                        ctx.moveTo(s/2+(s/2-1), s/2);
-                        ctx.lineTo(s/2+2,  s/2);
-                        ctx.moveTo(s/2-(s/2-1), s/2);
-                        ctx.lineTo(s/2-2,  s/2);
-                        
-                        ctx.stroke();
-                        
-                        this.reticleCache = c;
-                    }
-                    reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
-                }
-            }  
-            
-            ////// 5. Draw all-sky ring /////
-            if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
-                if (! catalogCanvasCleared) {
-                    reticleCtx.clearRect(0, 0, this.width, this.height);
-                    catalogCanvasCleared = true;
-                }
-    
-                reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
-                var ringWidth = this.aladin.options['allskyRingWidth'];
-                reticleCtx.lineWidth = ringWidth;
-                reticleCtx.beginPath();
-                var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-                reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
-                reticleCtx.stroke();
-            }
+            this.drawAllOverlays();
         }
         this.needRedraw = false;
 
@@ -1167,6 +1019,162 @@ export let View = (function() {
         this.then = Date.now();
         // request another frame
         requestAnimFrame(this.redraw.bind(this));
+    };
+
+    View.prototype.drawAllOverlays = function() {
+        var catalogCtx = this.catalogCtx;
+        var catalogCanvasCleared = false;
+        if (this.mustClearCatalog) {
+            catalogCtx.clearRect(0, 0, this.width, this.height);
+            catalogCanvasCleared = true;
+            this.mustClearCatalog = false;
+        }
+
+        if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+            // TODO : do not clear every time
+            //// clear canvas ////
+            if (!catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            for (var i=0; i<this.catalogs.length; i++) {
+                var cat = this.catalogs[i];
+                cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
+        }
+        // draw popup catalog
+        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
+            if (!catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+        }
+
+        ////// 3. Draw overlays////////
+        var overlayCtx = this.catalogCtx;
+        if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+            if (!catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            for (var i=0; i<this.overlays.length; i++) {
+                this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            }
+        }
+        
+        // Redraw HEALPix grid
+        var healpixGridCtx = catalogCtx;
+        if( this.displayHpxGrid ) {
+            if (!catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            var cornersXYViewMapAllsky = this.getVisibleCells(3);
+            var cornersXYViewMapHighres = null;
+            if (this.curNorder>=3) {
+                if (this.curNorder==3) {
+                    cornersXYViewMapHighres = cornersXYViewMapAllsky;
+                }
+                else {
+                    cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
+                }
+            }
+            if (cornersXYViewMapHighres && this.curNorder>3) {
+                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
+            }
+            else {
+                this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
+            }
+        }
+
+
+        // draw MOCs
+        var mocCtx = catalogCtx;
+        if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
+            if (!catalogCanvasCleared) {
+                catalogCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            for (var i=0; i<this.mocs.length; i++) {
+                this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
+            }
+        }
+
+        ////// 4. Draw reticle ///////
+        // TODO: reticle should be placed in a static DIV, no need to waste a canvas
+        var reticleCtx = catalogCtx;
+        if (this.mode==View.SELECT) {
+            // VIEW mode, we do not want to display the reticle in this
+            // but draw a selection box
+            if (this.dragging) {
+                if (! catalogCanvasCleared) {
+                    reticleCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+
+                reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
+                var w = this.dragx - this.selectStartCoo.x;
+                var h =  this.dragy - this.selectStartCoo.y;
+                
+                reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
+            }
+        } else {
+            // Normal modes
+            if (this.displayReticle) {
+                if (! catalogCanvasCleared) {
+                    catalogCtx.clearRect(0, 0, this.width, this.height);
+                    catalogCanvasCleared = true;
+                }
+    
+                if (! this.reticleCache) {
+                    // build reticle image
+                    var c = document.createElement('canvas');
+                    var s = this.options.reticleSize;
+                    c.width = s;
+                    c.height = s;
+                    var ctx = c.getContext('2d');
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = this.options.reticleColor;
+                    ctx.beginPath();
+                    ctx.moveTo(s/2, s/2+(s/2-1));
+                    ctx.lineTo(s/2, s/2+2);
+                    ctx.moveTo(s/2, s/2-(s/2-1));
+                    ctx.lineTo(s/2, s/2-2);
+                    
+                    ctx.moveTo(s/2+(s/2-1), s/2);
+                    ctx.lineTo(s/2+2,  s/2);
+                    ctx.moveTo(s/2-(s/2-1), s/2);
+                    ctx.lineTo(s/2-2,  s/2);
+                    
+                    ctx.stroke();
+                    
+                    this.reticleCache = c;
+                }
+                reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
+            }
+        }  
+        
+        ////// 5. Draw all-sky ring /////
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
+            if (! catalogCanvasCleared) {
+                reticleCtx.clearRect(0, 0, this.width, this.height);
+                catalogCanvasCleared = true;
+            }
+
+            reticleCtx.strokeStyle = this.aladin.options['allskyRingColor'];
+            var ringWidth = this.aladin.options['allskyRingWidth'];
+            reticleCtx.lineWidth = ringWidth;
+            reticleCtx.beginPath();
+            var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
+            reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
+            reticleCtx.stroke();
+        }
     };
     
     View.prototype.refreshProgressiveCats = function() {
@@ -1430,13 +1438,13 @@ export let View = (function() {
      * compute and set the norder corresponding to the current view resolution
      */
     View.prototype.computeNorder = function() {
-        var resolution = this.fov / this.largestDim; // in degree/pixel
+        /*var resolution = this.fov / this.largestDim; // in degree/pixel
         var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
         const calculateNSide = (pixsize) => {
             const NS_MAX = 536870912;
             const ORDER_MAX = 29;
         
-            /** Available nsides ..always power of 2 ..* */
+            // Available nsides ..always power of 2 ..
             const NSIDELIST = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
                 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
                                        1048576, 2097152, 4194304, 8388608, 16777216, 33554432,
@@ -1474,11 +1482,13 @@ export let View = (function() {
     
             }
             return res;
-        };
+        };*/
 
-        var nside = calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
-        var norder = Math.log(nside)/Math.log(2);
-        norder = Math.max(norder, 1);
+        //var nside = calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
+        //var norder = Math.log(nside)/Math.log(2);
+        //norder = Math.max(norder, 1);
+
+        var norder = this.aladin.webglAPI.getNOrder();
 
         this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)

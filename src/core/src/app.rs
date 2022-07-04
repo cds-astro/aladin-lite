@@ -40,13 +40,13 @@ use std::rc::Rc;
 
 use std::collections::HashSet;
 
-/*use serde::Deserialize;
+use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 struct S {
     ra: f64,
     dec: f64,
 }
-*/
+
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 
@@ -428,14 +428,16 @@ pub trait AppTrait {
     fn get_gl_canvas(&self) -> Option<js_sys::Object>;
     fn get_max_fov(&self) -> f64;
     fn get_coo_system(&self) -> &CooSystem;
+    fn get_norder(&self) -> i32;
 
     // Utils
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
+    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Box<[f64]>, JsValue>;
+
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
-    //fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Vec<f64>, JsValue>;
 
     // UI
     fn over_ui(&self) -> bool;
@@ -1012,34 +1014,30 @@ where
         Ok(screen_pos)
     }
 
-    /*/// World to screen projection
+    /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(
-        &self,
-        sources: &Vec<JsValue>,
-    ) -> Result<Vec<f64>, JsValue> {
+    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
         // Select the HiPS layer rendered lastly
-        let reversed_longitude = self.is_reversed_longitude();
+        let mut r = Vec::with_capacity(sources.len() * 2);
+        for s in sources {
+            let source: S = s
+                .into_serde()
+                .map_err(|e| JsValue::from_str(&e.to_string()))?;
+            let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
 
-        let res: Vec<f64> = sources
-            .iter()
-            .filter_map(|s| {
-                let source: S = s
-                    .into_serde()
-                    .map_err(|e| JsValue::from_str(&e.to_string()))
-                    .unwrap();
-                let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
-                //let lonlat = self.app.system.icrs_to_system(lonlat);
+            let xyz = lonlat.vector();
+            if let Some(s_xy) = P::view_to_screen_space(&xyz, &self.camera) {
+                r.push(s_xy.x);
+                r.push(s_xy.y);
+            } else {
+                r.push(std::f64::NAN);
+                r.push(std::f64::NAN);
+            }
+        }
 
-                let xyz = lonlat.vector();
-
-                P::model_to_screen_space(&xyz, &self.camera, reversed_longitude).map(|s_xy| vec![s_xy.x, s_xy.y])
-            })
-            .flatten()
-            .collect::<Vec<_>>();
-        Ok(res)
-    }*/
+        Ok(r.into_boxed_slice())
+    }
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         // Select the HiPS layer rendered lastly
@@ -1212,6 +1210,10 @@ where
     // Accessors
     fn get_center(&self) -> LonLatT<f64> {
         self.camera.get_center().lonlat()
+    }
+
+    fn get_norder(&self) -> i32 {
+        self.camera.depth() as i32
     }
 
     fn get_clip_zoom_factor(&self) -> f64 {

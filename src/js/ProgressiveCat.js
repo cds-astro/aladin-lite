@@ -347,9 +347,9 @@ export let ProgressiveCat = (function() {
                 return;
             }
 
-            this.drawSources(this.order1Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
-            this.drawSources(this.order2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
-            this.drawSources(this.order3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+            this.drawSources(this.order1Sources, ctx, width, height);
+            this.drawSources(this.order2Sources, ctx, width, height);
+            this.drawSources(this.order3Sources, ctx, width, height);
             
             if (!this.tilesInView) {
                 return;
@@ -361,11 +361,11 @@ export let ProgressiveCat = (function() {
                 key = t[0] + '-' + t[1];
                 sources = this.sourcesCache.get(key);
                 if (sources) {
-                    this.drawSources(sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                    this.drawSources(sources, ctx, width, height);
                 }
             }
         },
-        drawSources: function(sources, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        drawSources: function(sources, ctx, width, height) {
             if (! sources) {
                 return;
             }
@@ -373,9 +373,10 @@ export let ProgressiveCat = (function() {
             for (var k=0, len = sources.length; k<len; k++) {
                 s = sources[k];
                 if (!this.filterFn || this.filterFn(s)) {
-                    Catalog.drawSource(this, s, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                    Catalog.drawSource(this, s, ctx, width, height);
                 }
             }
+            var s;
             for (var k=0, len = sources.length; k<len; k++) {
                 s = sources[k];
                 if (! s.isSelected) {

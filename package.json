@@ -4,7 +4,7 @@
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "build": "webpack && cp index.html dist/",
+    "build": "webpack && cp examples/index.html dist/",
     "serve": "webpack-dev-server"
   },
   "devDependencies": {

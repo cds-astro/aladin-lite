@@ -359,7 +359,9 @@ impl Label {
                 return None;
             }
         }
+
         let s2 = P::model_to_screen_space(&m2, camera)?;
+
         //let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();

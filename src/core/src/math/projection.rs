@@ -888,7 +888,7 @@ impl Projection for Gnomonic {
         let y_2d = pos_clip_space.y * PI;
         let r = x_2d * x_2d + y_2d * y_2d;
 
-        let z = (1.0 + r).sqrt();
+        let z = 1.0 / (1.0 + r).sqrt();
         let pos_world_space = Vector4::new(-z * x_2d, z * y_2d, z, 1.0);
 
         Some(pos_world_space)

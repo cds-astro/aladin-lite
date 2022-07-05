@@ -56,7 +56,8 @@ impl Query for Tile {
 /* ---------------------------------- */
 pub struct Allsky {
     pub format: ImageFormatType,
-    pub tile_size: usize,
+    pub tile_size: i32,
+    pub texture_size: i32,
     // The root url of the HiPS
     pub hips_url: Url,
     // The total url of the query
@@ -66,7 +67,8 @@ pub struct Allsky {
 impl Allsky {
     pub fn new(cfg: &HiPSConfig) -> Self {
         let hips_url = cfg.get_root_url().to_string();
-        let tile_size = cfg.get_tile_size() as usize;
+        let tile_size = cfg.get_tile_size();
+        let texture_size = cfg.get_texture_size();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
 
@@ -74,6 +76,7 @@ impl Allsky {
 
         Allsky {
             tile_size,
+            texture_size,
             hips_url,
             url,
             format,

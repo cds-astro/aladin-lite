@@ -54,6 +54,7 @@ import { WebGLCtx } from "./WebGL.js";
 import { AladinLogo } from "./gui/AladinLogo.js";
 import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
+import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
 
 // Import aladin css inside the project
@@ -172,7 +173,10 @@ export let Aladin = (function () {
         this.cacheSurveys = new Map();
         // Stack GUI
         this.stack = new Stack(this.aladinDiv, this, this.view);
+        this.coogrid = new CooGrid(this.aladinDiv, this, this.view);
+
         this.boxes.push(this.stack);
+        this.boxes.push(this.coogrid);
 
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
@@ -187,20 +191,22 @@ export let Aladin = (function () {
         let projection = (options && options.projection) || 'SIN';
         this.view.setProjection(projection)
 
+        let top_px = 30;
+
         // layers control panel
         // TODO : valeur des checkbox en fonction des options
         if (options.showLayersControl) {
             // button to show Stack interface
-            var d = $('<div class="aladin-layersControl-container" title="Manage layers"><div class="aladin-layersControl"></div></div>');
+            var d = $('<div class="aladin-layersControl-container" style="top: ' + top_px + 'px" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
             // we return false so that the default event is not submitted, and to prevent event bubbling
             d.click(function () { self.hideBoxes(); self.showLayerBox(); return false; });
-
+            top_px += 38;
         }
 
         // goto control panel
         if (options.showGotoControl) {
-            var d = $('<div class="aladin-gotoControl-container" title="Go to position"><div class="aladin-gotoControl"></div></div>');
+            var d = $('<div class="aladin-gotoControl-container" style="top: ' + top_px + 'px" title="Go to position"><div class="aladin-gotoControl"></div></div>');
             d.appendTo(aladinDiv);
 
             var gotoBox =
@@ -228,16 +234,29 @@ export let Aladin = (function () {
                 return false;
             });
             gotoBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
+            top_px += 38;
         }
 
         // simbad pointer tool
         if (options.showSimbadPointerControl) {
-            var d = $('<div class="aladin-simbadPointerControl-container" title="SIMBAD pointer"><div class="aladin-simbadPointerControl"></div></div>');
+            var d = $('<div class="aladin-simbadPointerControl-container" style="top: ' + top_px + 'px" title="SIMBAD pointer"><div class="aladin-simbadPointerControl"></div></div>');
             d.appendTo(aladinDiv);
 
             d.click(function () {
                 self.view.setMode(View.TOOL_SIMBAD_POINTER);
             });
+            top_px += 38;
+        }
+
+        // Coo grid pointer tool
+        if (options.showCooGridControl) {
+            var d = $('<div class="aladin-cooGridControl-container" style="top: ' + top_px + 'px" title="Coo grid"><div class="aladin-cooGridControl"></div></div>');
+            d.appendTo(aladinDiv);
+
+            d.click(function () {
+                self.hideBoxes(); self.showCooGridBox(); return false;
+            });
+            top_px += 38;
         }
 
         // share control panel
@@ -267,6 +286,7 @@ export let Aladin = (function () {
                 return false;
             });
             shareBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
+            top_px += 38;
         }
 
 
@@ -1044,6 +1064,10 @@ export let Aladin = (function () {
     // TODO : LayerBox (or Stack?) must be extracted as a separate object
     Aladin.prototype.showLayerBox = function () {
         this.stack.show();
+    };
+
+    Aladin.prototype.showCooGridBox = function () {
+        this.coogrid.show();
     };
 
     Aladin.prototype.layerByName = function (name) {

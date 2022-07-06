@@ -171,6 +171,7 @@ where
             WebGl2RenderingContext::ONE,
         );
 
+        gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
@@ -209,6 +210,7 @@ where
         let final_rendering_pass =
             RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
         let tile_fetcher = TileFetcherQueue::new();
+
         //let ui = Gui::new(aladin_div_name, &gl)?;
         Ok(App {
             gl,

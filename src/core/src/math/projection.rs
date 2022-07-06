@@ -298,6 +298,7 @@ pub trait Projection:
 
     fn solve_along_abscissa(y: f64) -> Option<(f64, f64)>;
     fn solve_along_ordinate(x: f64) -> Option<(f64, f64)>;
+    fn clip_size() -> (f64, f64);
 
     const ALLOW_UNZOOM_MORE: bool;
 
@@ -337,6 +338,10 @@ impl Projection for Aitoff {
         (px2 * b2 + py2 * a2) < a2 * b2
     }
 
+    fn clip_size() -> (f64, f64) {
+        (2.0, 1.0)
+    }
+
     fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
         if y.abs() > 0.5 {
             None
@@ -345,6 +350,7 @@ impl Projection for Aitoff {
             Some((-x + 1e-3, x - 1e-3))
         }
     }
+
     fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1.0 {
             None
@@ -521,6 +527,10 @@ use crate::math;
 impl Projection for Mollweide {
     const ALLOW_UNZOOM_MORE: bool = true;
 
+    fn clip_size() -> (f64, f64) {
+        (2.0, 1.0)
+    }
+
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, height / width)
     }
@@ -647,6 +657,10 @@ use super::TWO_SQRT_TWO;
 impl Projection for Orthographic {
     const ALLOW_UNZOOM_MORE: bool = true;
 
+    fn clip_size() -> (f64, f64) {
+        (2.0, 2.0)
+    }
+
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, height / width)
     }
@@ -733,6 +747,10 @@ impl Projection for Orthographic {
 
 impl Projection for AzimuthalEquidistant {
     const ALLOW_UNZOOM_MORE: bool = true;
+
+    fn clip_size() -> (f64, f64) {
+        (2.0, 2.0)
+    }
 
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(width / height, 1.0)
@@ -838,6 +856,10 @@ impl Projection for AzimuthalEquidistant {
 impl Projection for Gnomonic {
     const ALLOW_UNZOOM_MORE: bool = false;
 
+    fn clip_size() -> (f64, f64) {
+        (2.0, 2.0)
+    }
+
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         if width > height {
             Vector2::new(1_f64, height / width)
@@ -936,6 +958,10 @@ impl Projection for Gnomonic {
 impl Projection for Mercator {
     const ALLOW_UNZOOM_MORE: bool = false;
 
+    fn clip_size() -> (f64, f64) {
+        (2.0, 2.0)
+    }
+
     fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, 0.5_f64)
     }
@@ -1013,6 +1039,10 @@ impl Projection for Mercator {
 
 impl Projection for HEALPix {
     const ALLOW_UNZOOM_MORE: bool = false;
+
+    fn clip_size() -> (f64, f64) {
+        (2.0, 2.0)
+    }
 
     fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, 1_f64)

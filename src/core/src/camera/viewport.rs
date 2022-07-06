@@ -67,19 +67,7 @@ use crate::{
 
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
-fn set_canvas_size(gl: &WebGlContext, width: u32, height: u32) {
-    let canvas = gl
-        .canvas()
-        .unwrap()
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .unwrap();
 
-    canvas.set_width(width as u32);
-    canvas.set_height(height as u32);
-
-    gl.viewport(0, 0, width as i32, height as i32);
-    gl.scissor(0, 0, width as i32, height as i32);
-}
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::math;
 use crate::time::Time;
@@ -112,7 +100,6 @@ impl CameraViewPort {
         let height = height * dpi;
 
         //let dpi = 1.0;
-        set_canvas_size(gl, width as u32, height as u32);
         //gl.scissor(0, 0, width as i32, height as i32);
 
         let aspect = height / width;
@@ -127,7 +114,7 @@ impl CameraViewPort {
         let rotation_center_angle = Angle(0.0);
         let reversed_longitude = false;
 
-        CameraViewPort {
+        let camera = CameraViewPort {
             // The field of view angle
             aperture,
             center,
@@ -169,7 +156,46 @@ impl CameraViewPort {
             system,
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
-        }
+        };
+        camera.set_canvas_size::<P>();
+
+        camera
+    }
+
+    fn set_canvas_size<P: Projection>(&self) {
+        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
+        self.gl.scissor(0, 0, self.width as i32, self.height as i32);
+
+        let canvas = self.gl
+            .canvas()
+            .unwrap()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap();
+
+        canvas.set_width(self.width as u32);
+        canvas.set_height(self.height as u32);
+
+        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+        self.update_scissor::<P>();
+    }
+
+    fn update_scissor<P: Projection>(&self) {
+        let clip_size = P::clip_size();
+        let tl_c = Vector2::new(-clip_size.0 * 0.5, clip_size.1 * 0.5);
+        let tr_c = Vector2::new(clip_size.0 * 0.5, clip_size.1 * 0.5);
+        let bl_c = Vector2::new(-clip_size.0 * 0.5, -clip_size.1 * 0.5);
+        let br_c = Vector2::new(clip_size.0 * 0.5, -clip_size.1 * 0.5);
+
+        let tl_s = crate::math::projection::clip_to_screen_space(&tl_c, self);
+        let tr_s = crate::math::projection::clip_to_screen_space(&tr_c, self);
+        let bl_s = crate::math::projection::clip_to_screen_space(&bl_c, self);
+        let br_s = crate::math::projection::clip_to_screen_space(&br_c, self);
+
+        let w = (tr_s.x - tl_s.x).min(self.width as f64);
+        let h = (br_s.y - tr_s.y).min(self.height as f64);
+        self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
     }
 
     pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
@@ -193,9 +219,6 @@ impl CameraViewPort {
 
         self.aspect = width / height;
 
-        set_canvas_size(&self.gl, self.width as u32, self.height as u32);
-        //self.update_scissor();
-
         // Compute the new clip zoom factor
         self.ndc_to_clip = P::compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
 
@@ -214,6 +237,8 @@ impl CameraViewPort {
             &Vector2::new(-1.0, -1.0),
             self,
         ));
+
+        self.set_canvas_size::<P>();
     }
 
     pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
@@ -270,17 +295,10 @@ impl CameraViewPort {
             self,
         ));
 
-        //self.update_scissor();
+        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        self.update_scissor::<P>();
     }
-
-    /*fn update_scissor(&mut self) {
-        let a = crate::renderable::projection::clip_to_screen_space(&Vector2::new(-1.0, 1.0), self);
-        let b = crate::renderable::projection::clip_to_screen_space(&Vector2::new(1.0, -1.0), self);
-
-        let w = (b.x - a.x).abs();
-        let h = (b.y - a.y).abs();
-        self.gl.scissor(a.x as i32, a.y as i32, w as i32, h as i32);
-    }*/
 
     pub fn depth(&self) -> u8 {
         self.vertices.get_depth()

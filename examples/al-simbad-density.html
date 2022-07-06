@@ -16,8 +16,9 @@
     let aladin;
     A.init.then(() => {
         // Start up Aladin Lite
-        aladin = A.aladin('#aladin-lite-div', {fov: 360.0, fullScreen: true, survey: "CDS/P/DM/simbad-biblio/allObjects", target: '12 25 41.512 +12 48 47.2', fov: 0.8, showSimbadPointerControl: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {fov: 180.0, fullScreen: true, survey: "CDS/P/DM/simbad-biblio/allObjects", target: '12 25 41.512 +12 48 47.2', showCooGrid: true});
         aladin.setProjection("TAN");
+        aladin.getBaseImageLayer().setColormap("redtemperature")
     });
 </script>
 

@@ -1592,7 +1592,6 @@ export let View = (function() {
                         imgFormat: s.options.imgFormat.toUpperCase(),
                     };
                 });
-            console.log(surveys)
             this.aladin.webglAPI.setImageSurveys(surveys);
         } catch(e) {
             console.error(e)

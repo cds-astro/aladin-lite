@@ -182,19 +182,26 @@ impl CameraViewPort {
     }
 
     fn update_scissor<P: Projection>(&self) {
-        let clip_size = P::clip_size();
-        let tl_c = Vector2::new(-clip_size.0 * 0.5, clip_size.1 * 0.5);
-        let tr_c = Vector2::new(clip_size.0 * 0.5, clip_size.1 * 0.5);
-        let bl_c = Vector2::new(-clip_size.0 * 0.5, -clip_size.1 * 0.5);
-        let br_c = Vector2::new(clip_size.0 * 0.5, -clip_size.1 * 0.5);
+        let (wc, hc) = P::clip_size();
 
-        let tl_s = crate::math::projection::clip_to_screen_space(&tl_c, self);
-        let tr_s = crate::math::projection::clip_to_screen_space(&tr_c, self);
-        let bl_s = crate::math::projection::clip_to_screen_space(&bl_c, self);
-        let br_s = crate::math::projection::clip_to_screen_space(&br_c, self);
+        let tl_c = Vector2::new(-wc * 0.5, hc * 0.5);
+        let tr_c = Vector2::new(wc * 0.5, hc * 0.5);
+        let br_c = Vector2::new(wc * 0.5, -hc * 0.5);
+        let mut tl_s = crate::math::projection::clip_to_screen_space(&tl_c, self);
+        let mut tr_s = crate::math::projection::clip_to_screen_space(&tr_c, self);
+        let mut br_s = crate::math::projection::clip_to_screen_space(&br_c, self);
 
-        let w = (tr_s.x - tl_s.x).min(self.width as f64);
-        let h = (br_s.y - tr_s.y).min(self.height as f64);
+        tl_s.x *= (self.dpi as f64);
+        tl_s.y *= (self.dpi as f64);
+
+        tr_s.x *= (self.dpi as f64);
+        tr_s.y *= (self.dpi as f64);
+
+        br_s.x *= (self.dpi as f64);
+        br_s.y *= (self.dpi as f64);
+
+        let w = (tr_s.x - tl_s.x).min((self.width as f64));
+        let h = (br_s.y - tr_s.y).min((self.height as f64));
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
     }
 

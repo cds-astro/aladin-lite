@@ -597,6 +597,9 @@ where
                             cfg.scale = metadata.value.scale;
                         }
                     }
+                    Resource::MOC(moc) => {
+                        // todo!()
+                    }
                 }
             }
 

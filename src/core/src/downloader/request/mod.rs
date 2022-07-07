@@ -3,9 +3,11 @@
 pub mod allsky;
 pub mod tile;
 pub mod blank;
+pub mod moc;
 
 /* ------------------------------------- */
 
+use crate::healpix::coverage::HEALPixCoverage;
 use crate::{time::Time};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -79,10 +81,12 @@ where
 use allsky::AllskyRequest;
 use tile::TileRequest;
 use blank::PixelMetadataRequest;
+use moc::MOCRequest;
 pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
     PixelMetadata(PixelMetadataRequest),
+    MOC(MOCRequest)
     //..
 }
 
@@ -93,6 +97,7 @@ impl RequestType {
             RequestType::Tile(request) => &request.url,
             RequestType::Allsky(request) => &request.url,
             RequestType::PixelMetadata(request) => &request.url,
+            RequestType::MOC(request) => &request.url,
         }
     }
 }
@@ -109,6 +114,9 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
             RequestType::PixelMetadata(request) => {
                 Option::<PixelMetadata>::from(request).map(|metadata| Resource::PixelMetadata(metadata))
             }
+            RequestType::MOC(request) => {
+                Option::<MOC>::from(request).map(|moc| Resource::MOC(moc))
+            }
         }
     }
 }
@@ -116,11 +124,12 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
 use allsky::Allsky;
 use tile::Tile;
 use blank::PixelMetadata;
-
+use moc::MOC;
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
-    PixelMetadata(PixelMetadata)
+    PixelMetadata(PixelMetadata),
+    MOC(MOC)
 }
 
 impl Resource {
@@ -129,6 +138,7 @@ impl Resource {
             Resource::Tile(tile) => tile.get_url(),
             Resource::Allsky(allsky) => allsky.get_url(),
             Resource::PixelMetadata(PixelMetadata { url, ..}) => url, 
+            Resource::MOC(moc) => moc.get_url(),
         }
     }
 }

@@ -30,6 +30,8 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 import { ALEvent } from "./events/ALEvent.js";
+import { Location } from "./Location.js";
+import { CooFrameEnum } from "./CooFrameEnum.js"
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -248,6 +250,17 @@ export let HpxImageSurvey = (function() {
 
             // HiPS coverage sky fraction
             const skyFraction = +metadata.moc_sky_fraction || 1.0;
+            
+            let removeAllChildNodes = function removeAllChildNodes(parent) {
+                while (parent.firstChild) {
+                    parent.removeChild(parent.firstChild);
+                }
+            };
+            // HiPS planet/planetoïde
+            if (metadata.hips_body !== undefined) {
+                self.options.cooFrame = "ICRSd";
+                self.options.longitudeReversed = true;
+            }
 
             // HiPS frame
             self.options.cooFrame = self.options.cooFrame || metadata.hips_frame;
@@ -260,7 +273,7 @@ export let HpxImageSurvey = (function() {
                 frame = "ICRSJ2000";
                 console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
             } else {
-                frame = "ICRSJ2000";
+                frame = "ICRSd";
                 console.warn('Invalid cooframe given: ' + self.options.cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
             }
 
@@ -322,6 +335,28 @@ export let HpxImageSurvey = (function() {
                     self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
                 }
             }
+            // Discard further processing if the layer has been associated to another hips
+            // before the request has been resolved
+            if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
+                return;
+            }
+
+            if (metadata.hips_body !== undefined) {
+                if (self.backend.options.showFrame) {
+                    let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                    frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
+                }
+            } else {
+                if (self.backend.options.showFrame) {
+                    const cooFrame = CooFrameEnum.fromString(self.backend.options.cooFrame, CooFrameEnum.J2000);
+                    let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                    frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000.label + '" '
+                    + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
+                    + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
+                    + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
+                }
+            }
+
             self.updateMeta();
             self.ready = true;
 
@@ -346,12 +381,6 @@ export let HpxImageSurvey = (function() {
                 surveyDef.url = self.properties.url;
             }
             /////
-
-            // Discard further processing if the layer has been associated to another hips
-            // before the request has been resolved
-            if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
-                return;
-            }
 
             // If the layer has been set then it is linked to the aladin lite view
             // so we add it

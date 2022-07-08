@@ -19,7 +19,7 @@
     A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', { target: '0 0', cooFrame: 'j2000d', showCooGrid: true, fov: 90, fullScreen: true});
-        var mars = aladin.createImageSurvey('Mars', 'Mars', 'https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/', 'j2000', 5, {longitudeReversed: true});
+        var mars = aladin.createImageSurvey('Mars', 'Mars', 'https://alasky.u-strasbg.fr/Planets/Mars_Viking_MDIM21/', 'j2000', 5);
         aladin.setImageSurvey(mars);
 
         var c = document.createElement('canvas'); c.width = c.height = 11; var ctx = c.getContext('2d'); ctx.beginPath(); ctx.arc(5, 5, 4, 0, 2 * Math.PI, false); ctx.closePath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2; ctx.stroke();

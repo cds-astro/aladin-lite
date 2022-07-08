@@ -97,16 +97,8 @@ export async function fetchSurveyProperties(rootURLOrId) {
         // make URL absolute
         rootURL = Utils.getAbsoluteURL(rootURL);
 
-        // fast fix for HTTPS support --> will work for all HiPS served by CDS
-        if (Utils.isHttpsContext()) {
-            const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
-                return rootURL.includes(element);
-            });
-
-            if (switchToHttps) {
-                rootURL = rootURL.replace('http://', 'https://');
-            }
-        }
+        // fix for HTTPS support --> will work for all HiPS served by CDS
+        rootURL = Utils.fixURLForHTTPS(rootURL)
 
         const url = rootURL + '/properties';
         metadata = await fetch(url)
@@ -211,14 +203,7 @@ export let HpxImageSurvey = (function() {
                 throw 'no valid service URL for retrieving the tiles'
             }
 
-            if (Utils.isHttpsContext()) {
-                const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
-                    return url.includes(element);
-                });
-                if (switchToHttps) {
-                    url = url.replace('http://', 'https://');
-                }
-            }
+            url = Utils.fixURLForHTTPS(url);
 
             // HiPS order
             const order = (+metadata.hips_order);

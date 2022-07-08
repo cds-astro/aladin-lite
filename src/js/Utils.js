@@ -34,7 +34,7 @@ import { Aladin } from "./Aladin.js";
 export let Utils = {};
 
 // list of URL domains that can be safely switched from HTTP to HTTPS
-Utils.HTTPS_WHITELIIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alasky.unistra.fr', 'alaskybis.unistra.fr',
+Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alasky.unistra.fr', 'alaskybis.unistra.fr',
                           'alasky.cds.unistra.fr', 'alaskybis.cds.unistra.fr', 'hips.astron.nl', 'jvo.nao.ac.jp',
                           'archive.cefca.es', 'cade.irap.omp.eu', 'skies.esac.esa.int'];
 
@@ -297,6 +297,18 @@ Utils.getAjaxObject = function(url, method, dataType, useProxy) {
 // return false otherwise
 Utils.isHttpsContext = function() {
     return ( window.location.protocol === 'https:' );
+};
+
+Utils.fixURLForHTTPS = function(url) {
+    const switchToHttps = Utils.isHttpsContext() && Utils.HTTPS_WHITELIST.some(element => {
+        return url.includes(element);
+    });
+
+    if (switchToHttps) {
+        return url.replace('http://', 'https://');
+    }
+
+    return url;
 };
 
 // generate an absolute URL from a relative URL

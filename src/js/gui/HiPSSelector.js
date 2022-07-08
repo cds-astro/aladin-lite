@@ -167,9 +167,8 @@ import  autocomplete from 'autocompleter';
             else {
                 url = self.selectedItem.hips_service_url + '/Moc.fits';
             }
-            if (url.includes('alasky')) {
-                url = url.replace('http:', 'https:');
-            }
+            url = Utils.fixURLForHTTPS(url);
+
             const moc = A.MOCFromURL(url);
             self.aladin.addMOC(moc);
         });

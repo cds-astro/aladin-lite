@@ -149,7 +149,7 @@ impl RecomputeRasterizer for Move {
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
-use crate::healpix::cell::HEALPixCell;
+use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 
 
 
@@ -994,6 +994,9 @@ pub struct ImageSurveys {
     past_rendering_mode: RenderingMode,
     current_rendering_mode: RenderingMode,
 
+    coverages: HashMap<u64, HEALPixCoverage>,
+    depth: u8,
+
     gl: WebGlContext,
 }
 
@@ -1022,6 +1025,8 @@ use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
 use std::collections::hash_map::{Entry, DefaultHasher};
 use std::hash::{Hasher, Hash};
+use crate::math::angle::Angle;
+use al_api::coo_system::CooSystem;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -1046,15 +1051,19 @@ impl ImageSurveys {
         let past_rendering_mode = RenderingMode::Raytrace;
         let current_rendering_mode = RenderingMode::Raytrace;
 
+        let coverages = HashMap::new();
+        let depth = 0;
         ImageSurveys {
             surveys,
             meta,
             urls,
             layers,
+            coverages,
 
             most_precise_survey,
 
             raytracer,
+            depth,
 
             past_rendering_mode,
             current_rendering_mode,
@@ -1247,6 +1256,7 @@ impl ImageSurveys {
         }
 
         camera.set_longitude_reversed(longitude_reversed);
+        self.coverages.clear();
 
         // Set the reversed longitude
         /*if let Some(survey) = self.last() {
@@ -1299,35 +1309,109 @@ impl ImageSurveys {
         }
     }
 
-    pub fn refresh_views(&mut self, camera: &CameraViewPort) {
-        let mut coverages = HashMap::new();
+    pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
+        use crate::healpix::coverage::HEALPixCoverage;
+        let mut coverage_cells = HashMap::new();
+        //let camera_depth = camera.depth();
+        let camera_frame = camera.get_system();
+        self.depth = 0;
+
         for survey in self.surveys.values_mut() {
             let cfg = survey.get_config();
 
             let max_depth = cfg.get_max_depth();
             let hips_frame = cfg.frame;
             // Compute that depth
-            //let new_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-            //let new_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-            let new_depth = camera.depth();
-    
-            let depth = new_depth.min(max_depth);
+            //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
+            let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
+            //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+            let depth = camera_depth.min(max_depth);
 
             let mut hasher = DefaultHasher::new();
             (depth, hips_frame).hash(&mut hasher);
             let key = hasher.finish();
 
+            self.depth = self.depth.max(depth);
+
             // Get the cells of that depth in the current field of view
-            let cells = match coverages.entry(key) {
+            let cells = match coverage_cells.entry(key) {
                 Entry::Occupied(o) => o.into_mut(),
                 Entry::Vacant(v) => {
-                    let cells = crate::survey::view::get_cells_in_camera(depth, camera, hips_frame);
+                    /*let delta_depth = if camera_depth > max_depth {
+                        camera_depth - max_depth
+                    } else {
+                        0
+                    };
+
+                    //let cells = crate::survey::view::get_cells_in_camera(depth, camera, hips_frame);
+                    let cells: HashSet<_> = camera.get_coverage(&hips_frame)
+                        .flatten_to_fixed_depth_cells()
+                        .map(|idx| {
+                            let cell = HEALPixCell(camera_depth, idx).ancestor(delta_depth);
+
+                            /*let center = cell.center();
+                            let pos = crate::math::lonlat::radec_to_xyzw(Angle(center.0), Angle(center.1));
+                            let center_hips_frame = crate::coosys::apply_coo_system(camera_system, &hips_frame, &pos);
+                            let idx = cdshealpix::nested::hash(depth, center_hips_frame.lon().0, center_hips_frame.lat().0);
+
+                            HEALPixCell(depth, idx)*/
+                            cell
+                        })
+                        .collect();
+
+                    v.insert(cells.into_iter().collect::<Vec<_>>())*/
+                    let coverage = if let Some(vertices) = &camera.get_vertices() {
+                        let vertices = vertices
+                            .iter()
+                            .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
+                            .collect::<Vec<_>>();
+        
+                        let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &camera.get_center());
+                        // Prefer to query from_polygon with depth >= 2
+                        crate::healpix::coverage::HEALPixCoverage::new(
+                            depth,
+                            &vertices[..],
+                            &inside.truncate(),
+                        )
+                    } else {
+                        HEALPixCoverage::allsky()
+                    };
+
+                    let cells = coverage.flatten_to_fixed_depth_cells()
+                        .map(|idx| {
+                            //let cell = HEALPixCell(camera_depth, idx).ancestor(delta_depth);
+
+                            /*let center = cell.center();
+                            let pos = crate::math::lonlat::radec_to_xyzw(Angle(center.0), Angle(center.1));
+                            let center_hips_frame = crate::coosys::apply_coo_system(camera_system, &hips_frame, &pos);
+                            let idx = cdshealpix::nested::hash(depth, center_hips_frame.lon().0, center_hips_frame.lat().0);
+
+                            HEALPixCell(depth, idx)*/
+                            //cell
+                            HEALPixCell(depth, idx)
+                        })
+                        .collect::<Vec<_>>();
+
+                    self.coverages.insert(key, coverage);
+
                     v.insert(cells)
                 }
             };
 
             survey.refresh_view(depth, cells, camera);
         }
+    }
+
+    pub fn get_coverage(&self, frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
+        let mut hasher = DefaultHasher::new();
+        (depth, frame).hash(&mut hasher);
+        let key = hasher.finish();
+
+        self.coverages.get(&key)
+    }
+
+    pub fn get_depth(&self) -> u8 {
+        self.depth
     }
 
     // Accessors

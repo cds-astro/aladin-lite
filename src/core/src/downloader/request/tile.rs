@@ -1,4 +1,5 @@
 use crate::{healpix::cell::HEALPixCell};
+use al_api::coo_system::CooSystem;
 use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 
 use crate::downloader::{query};
@@ -14,6 +15,7 @@ pub struct TileRequest {
     pub cell: HEALPixCell,
     pub hips_url: Url,
     pub url: Url,
+    pub system: CooSystem,
 
     request: Request<ImageType>,
 }
@@ -23,7 +25,6 @@ impl From<TileRequest> for RequestType {
         RequestType::Tile(request)
     }
 }
-use al_core::image::bitmap::Bitmap;
 use al_core::image::html::HTMLImage;
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
@@ -37,6 +38,7 @@ impl From<query::Tile> for TileRequest {
             cell,
             url,
             hips_url,
+            system,
         } = query;
 
         let url_clone = url.clone();
@@ -237,6 +239,7 @@ impl From<query::Tile> for TileRequest {
             hips_url,
             url,
             request,
+            system
         }
     }
 }
@@ -249,6 +252,7 @@ pub struct Tile {
     pub cell: HEALPixCell,
     hips_url: Url,
     url: Url,
+    pub system: CooSystem
 }
 
 impl Tile {
@@ -272,6 +276,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             request,
             hips_url,
             url,
+            system,
         } = request;
         if request.is_resolved() {
             let Request::<ImageType> {
@@ -284,6 +289,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
                 image: data.clone(),
                 hips_url: hips_url.clone(),
                 url: url.clone(),
+                system: *system,
             })
         } else {
             None

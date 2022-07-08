@@ -253,7 +253,7 @@ where
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
-        self.surveys.refresh_views(&self.camera);
+        self.surveys.refresh_views(&mut self.camera);
         self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
@@ -529,21 +529,26 @@ where
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
-                        if self.camera.coverage().contains(&tile.cell) || tile.cell.is_root() {
-                            // Find the survey is tile is refering to
-                            let hips_url = tile.get_hips_url();
-                            // Get the hips url from that url
-                            if let Some(survey) = self.surveys.get_mut(hips_url) {
-                                let is_missing = tile.missing();
-                                let Tile {
-                                    cell,
-                                    image,
-                                    time_req,
-                                    ..
-                                } = tile;
-                                survey.add_tile(&cell, image, is_missing, time_req);
+                        if let Some(coverage) = self.surveys.get_coverage(&tile.system, tile.cell.depth()) {
+                            //al_core::log(&format!("{:?} {:?}", tile.cell.depth() == coverage.depth_max(), coverage.contains(tile.cell.idx())));
+                            if coverage.contains(tile.cell.idx()) || tile.cell.is_root() {
+                                // Find the survey is tile is refering to
+                                let hips_url = tile.get_hips_url();
+                                // Get the hips url from that url
+                                if let Some(survey) = self.surveys.get_mut(hips_url) {
+                                    let is_missing = tile.missing();
+                                    let Tile {
+                                        cell,
+                                        image,
+                                        time_req,
+                                        ..
+                                    } = tile;
+                                    survey.add_tile(&cell, image, is_missing, time_req);
 
-                                self.request_redraw = true;
+                                    self.request_redraw = true;
+                                }
+                            } else {
+                                self.downloader.cache_rsc(Resource::Tile(tile));
                             }
                         } else {
                             self.downloader.cache_rsc(Resource::Tile(tile));
@@ -1218,7 +1223,7 @@ where
     }
 
     fn get_norder(&self) -> i32 {
-        self.camera.depth() as i32
+        self.surveys.get_depth() as i32
     }
 
     fn get_clip_zoom_factor(&self) -> f64 {

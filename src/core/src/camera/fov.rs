@@ -52,6 +52,7 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
+use std::collections::HashMap;
 const NUM_VERTICES_WIDTH: usize = 10;
 const NUM_VERTICES_HEIGHT: usize = 10;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
@@ -64,30 +65,46 @@ pub struct FieldOfViewVertices {
     // Meridians and parallels contained
     // in the field of view
     great_circles: FieldOfViewType,
-    moc: HEALPixCoverage,
-    depth: u8,
+    //moc: [Option<HEALPixCoverage>; al_api::coo_system::NUM_COOSYSTEM],
+    //depth: u8,
 }
-
-fn create_view_moc(vertices: &[Vector4<f64>], inside: &Vector3<f64>) -> HEALPixCoverage {
+/*
+fn create_coverage(vertices: &[Vector4<f64>], inside: &Vector3<f64>, camera_frame: &CooSystem, hips_frame: &CooSystem) -> HEALPixCoverage {
     let mut depth = 0;
     let mut coverage = HEALPixCoverage::new(depth, vertices, inside);
 
-    while coverage.size() < 7 && depth < cdshealpix::DEPTH_MAX {
+    let vertices = vertices
+        .iter()
+        .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
+        .collect::<Vec<_>>();
+
+    let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &inside);
+    // Prefer to query from_polygon with depth >= 2
+    let mut coverage = crate::healpix::coverage::HEALPixCoverage::new(
+        self.depth,
+        &vertices[..],
+        &inside.truncate(),
+    );
+
+    while coverage.n_depth_max_cells() < 7 && depth < cdshealpix::DEPTH_MAX {
         depth += 1;
-        coverage = HEALPixCoverage::new(depth, vertices, inside);
+        coverage = HEALPixCoverage::new(depth, &vertices, &inside.truncate());
     }
 
     coverage
-}
+}*/
 
 use crate::math::angle::Angle;
 use al_api::coo_system::CooSystem;
+
+use std::collections::hash_map::Entry;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
         center: &Vector4<f64>,
+        system: &CooSystem,
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
@@ -115,21 +132,27 @@ impl FieldOfViewVertices {
             .map(|world_coo| world_to_model(world_coo, mat));
 
 
-        let (great_circles, moc) = if let Some(vertices) = &model_coo {
+        /*let (great_circles, coverage) = if let Some(vertices) = &model_coo {
             (FieldOfViewType::new_polygon(vertices, &center), create_view_moc(vertices, &center.truncate()))
         } else {
             (FieldOfViewType::Allsky, HEALPixCoverage::allsky())
+        };*/
+        let great_circles = if let Some(vertices) = &model_coo {
+            FieldOfViewType::new_polygon(vertices, &center)
+        } else {
+            FieldOfViewType::Allsky
         };
-
-        let depth = moc.get_depth_max();
+        //let depth = coverage.depth_max();
+        //let mut moc = [None, None];
+        //moc[*system as usize] = Some(coverage);
 
         FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
             great_circles,
-            moc,
-            depth
+            //moc,
+            //depth
         }
     }
 
@@ -165,34 +188,41 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(
         &mut self,
         aperture: Angle<f64>,
-        _system: &CooSystem,
+        system: &CooSystem,
         center: &Vector4<f64>,
     ) {
         if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
-                self.moc = create_view_moc(vertices, &center.truncate());
-                self.depth = self.moc.get_depth_max();
 
+                /*let coverage = create_view_moc(vertices, &center.truncate());
+                self.depth = coverage.depth_max();
+
+                self.moc[*system as usize] = Some(coverage);*/
             } else if let FieldOfViewType::Polygon { .. } = &self.great_circles {
                 self.great_circles = FieldOfViewType::Allsky;
-                self.moc = HEALPixCoverage::allsky();
-                self.depth = self.moc.get_depth_max();
+
+                /*let coverage = HEALPixCoverage::allsky();
+                self.depth = coverage.depth_max();
+
+                self.moc[*system as usize] = Some(coverage);*/
             }
         } else {
             // We are too unzoomed => we plot the allsky grid
             if let FieldOfViewType::Polygon { .. } = &self.great_circles {
                 self.great_circles = FieldOfViewType::Allsky;
-                self.moc = HEALPixCoverage::allsky();
-                self.depth = self.moc.get_depth_max();
 
+                /*let coverage = HEALPixCoverage::allsky();
+                self.depth = coverage.depth_max();
+
+                self.moc[*system as usize] = Some(coverage);*/
             }
         }
     }
 
-    pub fn get_depth(&self) -> u8 {
+    /*pub fn get_depth(&self) -> u8 {
         self.depth
-    }
+    }*/
 
     pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
         self.model_coo.as_ref()
@@ -202,9 +232,30 @@ impl FieldOfViewVertices {
         self.great_circles.get_bounding_box()
     }
 
-    pub fn get_coverage(&self) -> &HEALPixCoverage {
-        &self.moc
-    }
+    /*pub fn get_coverage(&mut self, camera_frame: &CooSystem, hips_frame: &CooSystem, inside: &Vector4<f64>) -> &HEALPixCoverage {
+        if self.moc[*hips_frame as usize].is_none() {
+            let coverage = if let Some(vertices) = &self.model_coo {
+                let vertices = vertices
+                    .iter()
+                    .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
+                    .collect::<Vec<_>>();
+
+                let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &inside);
+                // Prefer to query from_polygon with depth >= 2
+                crate::healpix::coverage::HEALPixCoverage::new(
+                    self.depth,
+                    &vertices[..],
+                    &inside.truncate(),
+                )
+            } else {
+                HEALPixCoverage::allsky()
+            };
+
+            self.moc[*hips_frame as usize] = Some(coverage);
+        }
+
+        self.moc[*hips_frame as usize].as_ref().unwrap()
+    }*/
 
     pub fn _type(&self) -> &FieldOfViewType {
         &self.great_circles

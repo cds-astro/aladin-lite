@@ -51,8 +51,13 @@ pub fn get_cells_in_camera(
         );
 
         coverage
-            .flat_iter()
-            .map(|idx| HEALPixCell(depth, idx))
+            .flatten_to_fixed_depth_cells()
+            .map(|idx| {
+                /*let cell = HEALPixCell(depth, idx);
+                al_core::log(&format!("cell {:?}", cell));
+                cell*/
+                HEALPixCell(depth, idx)
+            })
             .collect()
     } else {
         HEALPixCell::allsky(depth).collect()

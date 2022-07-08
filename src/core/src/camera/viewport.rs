@@ -106,7 +106,7 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
+        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center, &system);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -307,9 +307,9 @@ impl CameraViewPort {
         self.update_scissor::<P>();
     }
 
-    pub fn depth(&self) -> u8 {
+    /*pub fn depth(&self) -> u8 {
         self.vertices.get_depth()
-    }
+    }*/
 
     pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
         // Rotate the axis:
@@ -329,9 +329,9 @@ impl CameraViewPort {
         self.vertices._type()
     }
 
-    pub fn coverage(&self) -> &HEALPixCoverage {
-        self.vertices.get_coverage()
-    }
+    /*pub fn get_coverage(&mut self, hips_frame: &CooSystem) -> &HEALPixCoverage {
+        self.vertices.get_coverage(&self.system, hips_frame, &self.center)
+    }*/
 
     pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem) {
         // Compute the center position according to the new coordinate frame system

@@ -11,7 +11,7 @@ use al_core::image::format::ImageFormatType;
 pub struct Tile {
     pub cell: HEALPixCell,
     pub format: ImageFormatType,
-
+    pub system: CooSystem,
     // The root url of the HiPS
     pub hips_url: Url,
     // The total url of the query
@@ -19,12 +19,13 @@ pub struct Tile {
 }
 
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
-
+use al_api::coo_system::CooSystem;
 impl Tile {
     pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
         let hips_url = cfg.get_root_url().to_string();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
+        let system = cfg.get_frame();
 
         let HEALPixCell(depth, idx) = *cell;
 
@@ -40,6 +41,7 @@ impl Tile {
             url,
             cell: *cell,
             format,
+            system
         }
     }
 }

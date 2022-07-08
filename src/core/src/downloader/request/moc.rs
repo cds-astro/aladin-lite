@@ -1,15 +1,15 @@
-use crate::{healpix::cell::HEALPixCell};
 use crate::downloader::query;
 
 use super::{Request, RequestType};
 use moclib::qty::Hpx;
 use moclib::moc::range::RangeMOC;
 use moclib::deser::fits::MocType;
+use crate::healpix::coverage::SMOC;
 pub struct MOCRequest {
     pub hips_url: Url,
     pub url: Url,
 
-    request: Request<RangeMOC<u64, Hpx<u64>>>,
+    request: Request<SMOC>,
 }
 
 impl From<MOCRequest> for RequestType {
@@ -17,19 +17,15 @@ impl From<MOCRequest> for RequestType {
         RequestType::MOC(request)
     }
 }
-use al_core::image::bitmap::Bitmap;
-use al_core::image::html::HTMLImage;
-use num::iter::Range;
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response};
 use wasm_bindgen::JsCast;
 use moclib::deser::fits;
 
 use moclib::moc::range::op::convert::convert_to_u64;
 
 /// Convenient type for Space-MOCs
-type SMOC = RangeMOC<u64, Hpx<u64>>;
 fn from_fits_hpx<T: Idx>(
     moc: MocType<T, Hpx<T>, Cursor<&[u8]>>
 ) -> SMOC {
@@ -88,7 +84,6 @@ impl From<query::MOC> for MOCRequest {
     }
 }
 
-use crate::time::Time;
 use std::sync::{Arc, Mutex};
 pub struct MOC {
     pub moc: Arc<Mutex<Option<RangeMOC<u64, Hpx<u64>>>>>,

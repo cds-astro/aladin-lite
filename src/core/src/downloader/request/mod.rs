@@ -7,7 +7,6 @@ pub mod moc;
 
 /* ------------------------------------- */
 
-use crate::healpix::coverage::HEALPixCoverage;
 use crate::{time::Time};
 use std::cell::Cell;
 use std::rc::Rc;

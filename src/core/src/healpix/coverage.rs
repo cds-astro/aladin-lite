@@ -1,10 +1,14 @@
 use crate::math::{self, lonlat::LonLat};
-use cdshealpix::nested::bmoc::{Status, BMOC};
+use moclib::{
+    moc::range::RangeMOC,
+    qty::Hpx
+};
 use cgmath::{Vector3, Vector4};
-pub struct HEALPixCoverage(pub BMOC);
 
-use cdshealpix::nested::bmoc::BMOCBuilderFixedDepth;
-use crate::healpix::cell::HEALPixCell;
+pub type SMOC = RangeMOC<u64, Hpx<u64>>;
+
+pub struct HEALPixCoverage(pub SMOC);
+
 impl HEALPixCoverage {
     pub fn new(
         // The depth of the smallest HEALPix cells contained in it
@@ -22,39 +26,30 @@ impl HEALPixCoverage {
                 (lon.0, lat.0)
             })
             .collect::<Vec<_>>();
-        let moc = cdshealpix::nested::polygon_coverage(depth, &lonlat[..], false);
         let inside_lonlat = inside.lonlat();
-        let result = moc.test_coo(inside_lonlat.lon().0, inside_lonlat.lat().0);
-        let moc = match result {
-            Status::OUT => moc.not(),
-            _ => moc,
-        };
+        let inside_hpx = cdshealpix::nested::hash(depth, inside_lonlat.lon().0, inside_lonlat.lat().0);
+
+        let mut moc = RangeMOC::from_polygon(&lonlat[..], false, depth);
+        if !moc.contains_depth_max_val(&inside_hpx) {
+            moc = moc.complement();
+        }
+
         HEALPixCoverage(moc)
     }
 
     pub fn allsky() -> Self {
-        let mut moc_builder = BMOCBuilderFixedDepth::new(0, true);
-        for hash in 0..12 {
-            moc_builder.push(hash);
-        }
-
-        let bmoc = moc_builder.to_bmoc().unwrap();
-        Self(bmoc)
+        let moc = RangeMOC::from_full_domain(0);
+        HEALPixCoverage(moc)
     }
 
-    pub fn contains(&self, cell: &HEALPixCell) -> bool {
-        let HEALPixCell(depth, idx) = *cell;
-        let mut builder = BMOCBuilderFixedDepth::new(depth, true);
-        builder.push(idx);
-
-        let bmoc = builder.to_bmoc().unwrap();
-        self.0.and(&bmoc).size() > 0
+    pub fn contains(&self, idx: u64) -> bool {
+        self.0.contains_depth_max_val(&idx)
     }
 }
 
 use core::ops::Deref;
 impl Deref for HEALPixCoverage {
-    type Target = BMOC;
+    type Target = SMOC;
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0

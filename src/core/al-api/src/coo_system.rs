@@ -98,9 +98,11 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum CooSystem {
-    ICRSJ2000,
-    GAL,
+    ICRSJ2000 = 0,
+    GAL = 1,
 }
+
+pub const NUM_COOSYSTEM: usize = 2;
 
 impl CooSystem {
     #[inline]

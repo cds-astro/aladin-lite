@@ -34,6 +34,21 @@
         /*aladin.setBaseImageLayer("P/PanSTARRS/DR1/g");
         aladin.getBaseImageLayer().setColormap('viridis', {stretch: "Asinh"});*/
 
+        // manage URL parameters
+        const searchParams = new URL(document.location).searchParams;
+        if (searchParams.has('baseImageLayer')) {
+            aladin.setBaseImageLayer(searchParams.get('baseImageLayer'));
+        }
+        if (searchParams.has('overlayImageLayer')) {
+            aladin.setOverlayImageLayer(searchParams.get('overlayImageLayer'));
+        }
+        if (searchParams.has('fov')) {
+            aladin.setFoV(parseFloat(searchParams.get('fov')));
+        }
+        if (searchParams.has('ra') && searchParams.has('dec')) {
+            aladin.gotoRaDec(parseFloat(searchParams.get('ra')), parseFloat(searchParams.get('dec')));
+        }
+
 
     });
 </script>

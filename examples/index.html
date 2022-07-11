@@ -42,6 +42,9 @@
         if (searchParams.has('overlayImageLayer')) {
             aladin.setOverlayImageLayer(searchParams.get('overlayImageLayer'));
         }
+        if (searchParams.has('cooFrame')) {
+            aladin.setFrame(searchParams.get('cooFrame'));
+        }
         if (searchParams.has('fov')) {
             aladin.setFoV(parseFloat(searchParams.get('fov')));
         }

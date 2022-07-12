@@ -12,31 +12,39 @@ use al_core::{
     VecData,
 };
 
-fn num_subdivision(cell: &HEALPixCell) -> u8 {
+fn num_subdivision(cell: &HEALPixCell, delta_depth: u8) -> u8 {
     let d = cell.depth();
-    const MAX_SUBDIVISION: u8 = 4;
+    let max_num_sub = 6 - delta_depth;
 
     if d == 0 {
-        return MAX_SUBDIVISION;
+        if delta_depth > 3 {
+            0
+        } else {
+            3 - delta_depth
+        }
     } else if d == 1 {
-        return MAX_SUBDIVISION;
+        if delta_depth > 2 {
+            0
+        } else {
+            2 - delta_depth
+        }
+    } else {
+        // Largest deformation cell among the cells of a specific depth
+        let largest_center_to_vertex_dist =
+            cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
+        let smallest_center_to_vertex_dist =
+            cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::LAT_OF_SQUARE_CELL);
+
+        let (lon, lat) = cell.center();
+        let center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, lon, lat);
+
+        let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
+            / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
+        //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
+        debug_assert!(skewed_factor <= 1.0 && skewed_factor >= 0.0);
+
+        (skewed_factor * ((max_num_sub - 1) as f64)) as u8 + 1
     }
-
-    // Largest deformation cell among the cells of a specific depth
-    let largest_center_to_vertex_dist =
-        cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
-    let smallest_center_to_vertex_dist =
-        cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::LAT_OF_SQUARE_CELL);
-
-    let (lon, lat) = cell.center();
-    let center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, lon, lat);
-
-    let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
-        / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
-    //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
-    debug_assert!(skewed_factor <= 1.0 && skewed_factor >= 0.0);
-
-    (skewed_factor * ((MAX_SUBDIVISION - 1) as f64)) as u8 + 1
 }
 
 pub struct TextureToDraw<'a, 'b> {
@@ -256,6 +264,7 @@ use render::ray_tracer::RayTracer;
 trait Draw {
     fn draw<P: Projection>(
         &mut self,
+        depth: u8,
         raytracer: &RayTracer,
         switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
@@ -361,8 +370,9 @@ fn add_vertices_grid<P: Projection>(
 
     camera: &CameraViewPort,
     v2w: &Matrix4<f64>,
+    delta_depth: u8,
 ) {
-    let num_subdivision = num_subdivision(cell);
+    let num_subdivision = num_subdivision(cell, delta_depth);
 
     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
     let n_vertices_per_segment = n_segments_by_side + 1;
@@ -736,6 +746,7 @@ impl ImageSurvey {
         // Retrieve the model and inverse model matrix
         let w2v = c * (*camera.get_w2m());
         let v2w = w2v.transpose();
+        let delta_depth = self.get_config().delta_depth();
 
         for TextureToDraw {
             starting_texture,
@@ -748,7 +759,6 @@ impl ImageSurvey {
 
             let miss_0 = (starting_texture.is_missing()) as i32 as f32;
             let miss_1 = (ending_texture.is_missing()) as i32 as f32;
-
             add_vertices_grid::<P>(
                 cell,
                 &mut self.position,
@@ -764,7 +774,8 @@ impl ImageSurvey {
                 miss_1,
                 start_time.as_millis(),
                 camera,
-                &v2w
+                &v2w,
+                delta_depth
             );
         }
         self.num_idx = self.idx_vertices.len();
@@ -874,6 +885,7 @@ use cgmath::Matrix;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
+        depth: u8,
         raytracer: &RayTracer,
         switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
@@ -899,7 +911,7 @@ impl Draw for ImageSurvey {
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        let raytracing = raytracer.is_rendering::<P>(camera);
+        let raytracing = raytracer.is_rendering::<P>(camera, depth);
         if raytracing {
             let shader = get_raytracer_shader::<P>(
                 color,
@@ -1093,7 +1105,7 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = self.raytracer.is_rendering::<P>(camera);
+        let raytracing = self.raytracer.is_rendering::<P>(camera, self.depth);
 
         let mut switch_from_raytrace_to_raster = false;
         if raytracing {
@@ -1140,6 +1152,7 @@ impl ImageSurveys {
         } else {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
+        let depth = self.depth;
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
@@ -1156,6 +1169,7 @@ impl ImageSurveys {
 
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
+                        depth,
                         raytracer,
                         switch_from_raytrace_to_raster,
                         shaders,
@@ -1256,7 +1270,7 @@ impl ImageSurveys {
         }
 
         camera.set_longitude_reversed(longitude_reversed);
-        self.coverages.clear();
+        //self.coverages.clear();
 
         // Set the reversed longitude
         /*if let Some(survey) = self.last() {
@@ -1310,102 +1324,80 @@ impl ImageSurveys {
     }
 
     pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
-        use crate::healpix::coverage::HEALPixCoverage;
+        self.coverages.clear();
+
         let mut coverage_cells = HashMap::new();
-        //let camera_depth = camera.depth();
+
         let camera_frame = camera.get_system();
         self.depth = 0;
 
-        for survey in self.surveys.values_mut() {
+        for (url, survey) in self.surveys.iter_mut() {
             let cfg = survey.get_config();
+            let max_tile_depth = cfg.get_max_tile_depth();
 
-            let max_depth = cfg.get_max_depth();
-            let hips_frame = cfg.frame;
+            let hips_frame = cfg.get_frame();
             // Compute that depth
             //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-            let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
+            let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_tile_size());
             //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-            let depth = camera_depth.min(max_depth);
+            let depth_tile = camera_tile_depth.min(max_tile_depth);
 
             let mut hasher = DefaultHasher::new();
-            (depth, hips_frame).hash(&mut hasher);
+            (depth_tile, hips_frame).hash(&mut hasher);
             let key = hasher.finish();
-
-            self.depth = self.depth.max(depth);
 
             // Get the cells of that depth in the current field of view
             let cells = match coverage_cells.entry(key) {
                 Entry::Occupied(o) => o.into_mut(),
                 Entry::Vacant(v) => {
-                    /*let delta_depth = if camera_depth > max_depth {
-                        camera_depth - max_depth
-                    } else {
-                        0
-                    };
-
-                    //let cells = crate::survey::view::get_cells_in_camera(depth, camera, hips_frame);
-                    let cells: HashSet<_> = camera.get_coverage(&hips_frame)
-                        .flatten_to_fixed_depth_cells()
-                        .map(|idx| {
-                            let cell = HEALPixCell(camera_depth, idx).ancestor(delta_depth);
-
-                            /*let center = cell.center();
-                            let pos = crate::math::lonlat::radec_to_xyzw(Angle(center.0), Angle(center.1));
-                            let center_hips_frame = crate::coosys::apply_coo_system(camera_system, &hips_frame, &pos);
-                            let idx = cdshealpix::nested::hash(depth, center_hips_frame.lon().0, center_hips_frame.lat().0);
-
-                            HEALPixCell(depth, idx)*/
-                            cell
-                        })
-                        .collect();
-
-                    v.insert(cells.into_iter().collect::<Vec<_>>())*/
-                    let coverage = if let Some(vertices) = &camera.get_vertices() {
-                        let vertices = vertices
-                            .iter()
-                            .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
-                            .collect::<Vec<_>>();
-        
-                        let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &camera.get_center());
-                        // Prefer to query from_polygon with depth >= 2
-                        crate::healpix::coverage::HEALPixCoverage::new(
-                            depth,
-                            &vertices[..],
-                            &inside.truncate(),
-                        )
-                    } else {
-                        HEALPixCoverage::allsky()
-                    };
-
-                    let cells = coverage.flatten_to_fixed_depth_cells()
-                        .map(|idx| {
-                            //let cell = HEALPixCell(camera_depth, idx).ancestor(delta_depth);
-
-                            /*let center = cell.center();
-                            let pos = crate::math::lonlat::radec_to_xyzw(Angle(center.0), Angle(center.1));
-                            let center_hips_frame = crate::coosys::apply_coo_system(camera_system, &hips_frame, &pos);
-                            let idx = cdshealpix::nested::hash(depth, center_hips_frame.lon().0, center_hips_frame.lat().0);
-
-                            HEALPixCell(depth, idx)*/
-                            //cell
-                            HEALPixCell(depth, idx)
-                        })
-                        .collect::<Vec<_>>();
+                    let (coverage, cells) = crate::survey::view::get_tile_cells_in_camera(depth_tile, camera, hips_frame);
 
                     self.coverages.insert(key, coverage);
-
                     v.insert(cells)
                 }
             };
+            // Set the depth of the HiPS textures
+            let depth = if depth_tile > cfg.delta_depth() {
+                depth_tile - cfg.delta_depth()
+            } else {
+                0
+            };
+            self.depth = self.depth.max(depth);
+            //al_core::log(&format!("depth {:?} delta d {:?} max tile order {:?} depth tile {:?}", depth, cfg.delta_depth(), max_tile_depth, depth_tile));
 
-            survey.refresh_view(depth, cells, camera);
+            survey.refresh_view(depth_tile, cells, camera);
         }
     }
 
-    pub fn get_coverage(&self, frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
+    pub fn get_coverage(&mut self, hips_frame: &CooSystem, depth: u8, camera: &CameraViewPort) -> Option<&HEALPixCoverage> {
         let mut hasher = DefaultHasher::new();
-        (depth, frame).hash(&mut hasher);
+        (depth, hips_frame).hash(&mut hasher);
         let key = hasher.finish();
+
+        /*let camera_frame = camera.get_system();
+        match self.coverages.entry(key) {
+            Entry::Occupied(c) => c.into_mut(),
+            Entry::Vacant(v) => {
+                let c = if let Some(vertices) = camera.get_vertices() {
+                    let vertices = vertices
+                        .iter()
+                        .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
+                        .collect::<Vec<_>>();
+
+                    let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &camera.get_center());
+                    // Prefer to query from_polygon with depth >= 2
+                    crate::healpix::coverage::HEALPixCoverage::new(
+                        depth,
+                        &vertices[..],
+                        &inside.truncate(),
+                    )
+                } else {
+                    HEALPixCoverage::allsky()
+                };
+
+                v.insert(c)
+            }
+        }*/
 
         self.coverages.get(&key)
     }

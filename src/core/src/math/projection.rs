@@ -302,7 +302,7 @@ pub trait Projection:
 
     const ALLOW_UNZOOM_MORE: bool;
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64>;
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64>;
 }
 
 pub struct Aitoff;
@@ -520,7 +520,7 @@ impl Projection for Aitoff {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((170.0 / 180.0) * std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((170.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::math;
@@ -648,7 +648,7 @@ impl Projection for Mollweide {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 use crate::math::angle::Angle;
@@ -742,7 +742,7 @@ impl Projection for Orthographic {
         pos_world_space.z > 0_f64
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((120.0 / 180.0) * std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((120.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for AzimuthalEquidistant {
@@ -850,7 +850,7 @@ impl Projection for AzimuthalEquidistant {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((160.0 / 180.0) * std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((160.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Gnomonic {
@@ -952,7 +952,7 @@ impl Projection for Gnomonic {
         pos_world_space.z >= 1e-2
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((90.0 / 180.0) * std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((90.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Mercator {
@@ -1034,7 +1034,7 @@ impl Projection for Mercator {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 impl Projection for HEALPix {
@@ -1131,7 +1131,7 @@ impl Projection for HEALPix {
         true
     }
 
-    const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(140.0 * math::angle::PI / 180.0);
+    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(140.0 * math::angle::PI / 180.0);
 }
 
 mod tests {

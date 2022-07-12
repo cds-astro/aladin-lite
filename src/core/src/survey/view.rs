@@ -26,42 +26,52 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
 }
 use crate::healpix;
 use al_api::coo_system::CooSystem;
-pub fn get_cells_in_camera(
-    depth: u8,
+use crate::survey::HEALPixCoverage;
+pub fn get_tile_cells_in_camera(
+    depth_tile: u8,
     camera: &CameraViewPort,
     hips_frame: CooSystem,
-) -> Vec<HEALPixCell> {
-    if let Some(vertices) = camera.get_vertices() {
-        // The vertices coming from the camera are in a specific coo sys
-        // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
-        let view_system = camera.get_system();
-        let icrsj2000_fov_vertices_pos = vertices
-            .iter()
-            .map(|v| coosys::apply_coo_system(view_system, &hips_frame, v))
-            .collect::<Vec<_>>();
-
-        let vs_inside_pos = camera.get_center();
-        let icrsj2000_inside_pos =
-            coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
-        // Prefer to query from_polygon with depth >= 2
-        let coverage = healpix::coverage::HEALPixCoverage::new(
-            depth,
-            &icrsj2000_fov_vertices_pos[..],
-            &icrsj2000_inside_pos.truncate(),
-        );
-
-        coverage
-            .flatten_to_fixed_depth_cells()
-            .map(|idx| {
-                /*let cell = HEALPixCell(depth, idx);
-                al_core::log(&format!("cell {:?}", cell));
-                cell*/
-                HEALPixCell(depth, idx)
-            })
-            .collect()
+) -> (HEALPixCoverage, Vec<HEALPixCell>) {
+    let coverage = if depth_tile <= 1 {
+        HEALPixCoverage::allsky(depth_tile)
     } else {
-        HEALPixCell::allsky(depth).collect()
-    }
+        if let Some(vertices) = camera.get_vertices() {
+            // The vertices coming from the camera are in a specific coo sys
+            // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
+            let view_system = camera.get_system();
+            let icrsj2000_fov_vertices_pos = vertices
+                .iter()
+                .map(|v| coosys::apply_coo_system(view_system, &hips_frame, v))
+                .collect::<Vec<_>>();
+
+            let vs_inside_pos = camera.get_center();
+            let icrsj2000_inside_pos =
+                coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
+
+            // Prefer to query from_polygon with depth >= 2
+            let mut coverage = healpix::coverage::HEALPixCoverage::new(
+                depth_tile,
+                &icrsj2000_fov_vertices_pos[..],
+                &icrsj2000_inside_pos.truncate(),
+            );
+
+            if !coverage.contains_coo(&icrsj2000_fov_vertices_pos[0]) {
+                coverage.0 = coverage.expanded();
+            }
+
+            coverage
+        } else {
+            HEALPixCoverage::allsky(depth_tile)
+        }
+    };
+
+    let cells = coverage.flatten_to_fixed_depth_cells()
+        .map(|idx| {
+            HEALPixCell(depth_tile, idx)
+        })
+        .collect();
+    
+    (coverage, cells)
 }
 
 // Contains the cells being in the FOV for a specific

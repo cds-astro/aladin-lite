@@ -5,7 +5,7 @@ pub struct Cache<K, V> {
     order: VecDeque<K>,
 }
 
-const SIZE_RESOURCE_CACHE: usize = 256;
+const SIZE_RESOURCE_CACHE: usize = 1024;
 
 use std::hash::Hash;
 impl<K, V> Cache<K, V>

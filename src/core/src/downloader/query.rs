@@ -16,6 +16,7 @@ pub struct Tile {
     pub hips_url: Url,
     // The total url of the query
     pub url: Url,
+    pub is_root: bool,
 }
 
 use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
@@ -36,12 +37,22 @@ impl Tile {
             hips_url, depth, dir_idx, idx, ext
         );
 
+        // Check if this is a root tile
+        let delta_depth = cfg.delta_depth();
+        let texture_depth = if depth > delta_depth {
+            depth - delta_depth
+        } else {
+            0
+        };
+        let is_root = texture_depth == 0;
+
         Tile {
             hips_url,
             url,
             cell: *cell,
             format,
-            system
+            system,
+            is_root,
         }
     }
 }

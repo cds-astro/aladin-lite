@@ -262,7 +262,8 @@ where
                 let mut tile_cells = survey
                     .get_view()
                     .get_cells()
-                    .flat_map(|texture_cell| texture_cell.get_tile_cells(survey.get_config()))
+                    //.flat_map(|texture_cell| texture_cell.get_tile_cells(survey.get_config()))
+                    .map(|&c| c)
                     .collect::<Vec<_>>();
 
                 if survey.get_view().get_depth() >= 3 {
@@ -529,30 +530,35 @@ where
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
-                        if let Some(coverage) = self.surveys.get_coverage(&tile.system, tile.cell.depth()) {
-                            //al_core::log(&format!("{:?} {:?}", tile.cell.depth() == coverage.depth_max(), coverage.contains(tile.cell.idx())));
-                            if coverage.contains(tile.cell.idx()) || tile.cell.is_root() {
-                                // Find the survey is tile is refering to
-                                let hips_url = tile.get_hips_url();
-                                // Get the hips url from that url
-                                if let Some(survey) = self.surveys.get_mut(hips_url) {
-                                    let is_missing = tile.missing();
-                                    let Tile {
-                                        cell,
-                                        image,
-                                        time_req,
-                                        ..
-                                    } = tile;
-                                    survey.add_tile(&cell, image, is_missing, time_req);
+                        let coverage = self.surveys.get_coverage(&tile.system, tile.cell.depth(), &self.camera);
+                        /*if coverage.is_none() {
+                            //al_core::log("coverage not found");
+                        }*/
+                        if (coverage.is_some() && coverage.unwrap().contains_tile(&tile.cell)) || tile.is_root {
+                            //al_core::log("tex sub");
 
-                                    self.request_redraw = true;
-                                }
-                            } else {
-                                self.downloader.cache_rsc(Resource::Tile(tile));
+                            // Find the survey is tile is refering to
+                            let hips_url = tile.get_hips_url();
+                            // Get the hips url from that url
+                            if let Some(survey) = self.surveys.get_mut(hips_url) {
+                                let is_missing = tile.missing();
+                                let Tile {
+                                    cell,
+                                    image,
+                                    time_req,
+                                    ..
+                                } = tile;
+                                survey.add_tile(&cell, image, is_missing, time_req);
+
+                                self.request_redraw = true;
                             }
                         } else {
                             self.downloader.cache_rsc(Resource::Tile(tile));
                         }
+
+
+                        //al_core::log(&format!("{:?} {:?}", tile.cell.depth() == coverage.depth_max(), coverage.contains(tile.cell.idx())));
+
                         num_tile_received += 1;
                     }
                     Resource::Allsky(allsky) => {

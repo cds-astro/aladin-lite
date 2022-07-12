@@ -1582,6 +1582,7 @@ export let View = (function() {
             let surveys = this.buildSortedImageSurveys()
                 .filter(s => s !== undefined && s.properties )
                 .map(s => {
+                    console.log(s.options)
                     //let {backend, ...survey} = s;
                     //return survey;
                     return {

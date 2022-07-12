@@ -18,6 +18,7 @@ pub struct TileRequest {
     pub system: CooSystem,
 
     request: Request<ImageType>,
+    pub is_root: bool,
 }
 
 impl From<TileRequest> for RequestType {
@@ -39,6 +40,7 @@ impl From<query::Tile> for TileRequest {
             url,
             hips_url,
             system,
+            is_root,
         } = query;
 
         let url_clone = url.clone();
@@ -239,7 +241,8 @@ impl From<query::Tile> for TileRequest {
             hips_url,
             url,
             request,
-            system
+            system,
+            is_root
         }
     }
 }
@@ -252,7 +255,8 @@ pub struct Tile {
     pub cell: HEALPixCell,
     hips_url: Url,
     url: Url,
-    pub system: CooSystem
+    pub system: CooSystem,
+    pub is_root: bool,
 }
 
 impl Tile {
@@ -277,12 +281,14 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             hips_url,
             url,
             system,
+            is_root,
         } = request;
         if request.is_resolved() {
             let Request::<ImageType> {
                 time_request, data, ..
             } = request;
             Some(Tile {
+                is_root: *is_root,
                 cell: *cell,
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast

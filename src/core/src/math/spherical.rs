@@ -168,7 +168,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_north_pole(&self, _camera: &CameraViewPort) -> bool {
+    pub fn contains_north_pole(&self) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -181,7 +181,7 @@ impl FieldOfViewType {
         }
     }
 
-    pub fn contains_south_pole(&self, _camera: &CameraViewPort) -> bool {
+    pub fn contains_south_pole(&self) -> bool {
         match self {
             FieldOfViewType::Allsky => {
                 //let center = camera.get_center();
@@ -190,6 +190,17 @@ impl FieldOfViewType {
             }
             FieldOfViewType::Polygon { poles, .. } => {
                 *poles == PoleContained::South || *poles == PoleContained::Both
+            }
+        }
+    }
+
+    pub fn contains_both_poles(&self) -> bool {
+        match self {
+            FieldOfViewType::Allsky => {
+                true
+            }
+            FieldOfViewType::Polygon { poles, .. } => {
+                *poles == PoleContained::Both
             }
         }
     }

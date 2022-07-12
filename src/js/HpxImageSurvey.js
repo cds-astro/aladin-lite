@@ -119,6 +119,71 @@ export async function fetchSurveyProperties(rootURLOrId) {
     return metadata;
 }
 
+async function searchForValidSurveyUrl(metadata) {
+    const pingHipsServiceUrl = (hipsServiceUrl) => {
+        const controller = new AbortController()
+
+        const startRequestTime = Date.now();
+        const maxTime = 2000;
+        // 5 second timeout:
+        const timeoutId = setTimeout(() => controller.abort(), maxTime)
+        const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "no-cors"}).then(response => {
+            const endRequestTime = Date.now();
+            const duration = endRequestTime - startRequestTime;//the time needed to do the request
+            // completed request before timeout fired
+            clearTimeout(timeoutId)
+            // Resolve with the time duration of the request
+            return { duration: duration, baseUrl: hipsServiceUrl };
+        }).catch((e) => {
+            console.warn(hipsServiceUrl, " responding very slowly: ", e)
+            return { duration: maxTime, baseUrl: hipsServiceUrl };
+        });
+    
+        return promise;
+    };
+
+    // Get all the possible hips_service_url urls
+    let promises = new Array();
+    promises.push(pingHipsServiceUrl(metadata.hips_service_url));
+
+    let numHiPSServiceURL = 1;
+    while (metadata.hasOwnProperty("hips_service_url_" + numHiPSServiceURL.toString())) {
+        const key = "hips_service_url_" + numHiPSServiceURL.toString();
+
+        let curUrl = metadata[key];
+        promises.push(pingHipsServiceUrl(curUrl))
+        numHiPSServiceURL += 1;
+    }
+
+    const getRandomIntInclusive = function(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min +1)) + min;
+    };
+
+    const url = await Promise.all(promises).then((results) => {
+        results.sort((r1, r2) => {
+            return r1.duration - r2.duration;
+        });
+
+        if (results.length >= 2) {
+            const isSecondUrlOk = ((results[1].duration - results[0].duration) / results[0].duration) < 0.20;
+            console.log(isSecondUrlOk, results, getRandomIntInclusive(0, 1))
+
+            if (isSecondUrlOk) {
+                return results[getRandomIntInclusive(0, 1)].baseUrl;
+            } else {
+                return results[0].baseUrl;
+            }
+        } else {
+            return results[0].baseUrl;
+        }
+    });
+
+    return url;
+}
+
+
 export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
@@ -200,7 +265,11 @@ export let HpxImageSurvey = (function() {
 
             // HiPS url
             self.name = self.name || metadata.obs_title;
-            let url = metadata.hips_service_url;
+            //let url = metadata.hips_service_url;
+            // Check if the hips_service_url is valid
+            const url = await searchForValidSurveyUrl(metadata);
+            //const url = metadata.hips_service_url;
+
             if (!url) {
                 throw 'no valid service URL for retrieving the tiles'
             }
@@ -211,7 +280,8 @@ export let HpxImageSurvey = (function() {
             const order = (+metadata.hips_order);
 
             // HiPS tile format
-            const tileFormats = metadata.hips_tile_format.split(' ').map((fmt) => fmt.toUpperCase());
+            const formats = metadata.hips_tile_format || "jpeg";
+            const tileFormats = formats.split(' ').map((fmt) => fmt.toUpperCase());
             if (self.options.imgFormat) {
                 // user wants a fits but the metadata tells this format is not available
                 if (self.options.imgFormat === "FITS" && tileFormats.indexOf('FITS') < 0) {
@@ -242,9 +312,15 @@ export let HpxImageSurvey = (function() {
             }
 
             // HiPS tile size
-            let tileSize = +metadata.hips_tile_width;
+            let tileSize = null;
+            if (metadata.hips_tile_width === undefined) {
+                tileSize = 512;
+            } else {
+                tileSize = +metadata.hips_tile_width;
+            }
+
+            // Check if the tile width size is a power of 2
             if (tileSize & (tileSize - 1) !== 0) {
-                // not a power of 2
                 tileSize = 512;
             }
 
@@ -270,6 +346,7 @@ export let HpxImageSurvey = (function() {
             } else if (self.options.cooFrame == "galactic") {
                 frame = "GAL";
             } else if (self.options.cooFrame === undefined) {
+                //self.options.cooFrame = "ICRS";
                 frame = "ICRSJ2000";
                 console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
             } else {
@@ -811,8 +888,7 @@ export let HpxImageSurvey = (function() {
             url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,
         },
-        /*
-        The page is down
+        /*//The page is down
         {
             id: "P/GLIMPSE360",
             name: "GLIMPSE360",

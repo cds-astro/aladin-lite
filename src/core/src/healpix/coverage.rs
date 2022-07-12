@@ -7,6 +7,7 @@ use cgmath::{Vector3, Vector4};
 
 pub type SMOC = RangeMOC<u64, Hpx<u64>>;
 
+use crate::healpix::cell::HEALPixCell;
 pub struct HEALPixCoverage(pub SMOC);
 
 impl HEALPixCoverage {
@@ -37,13 +38,21 @@ impl HEALPixCoverage {
         HEALPixCoverage(moc)
     }
 
-    pub fn allsky() -> Self {
-        let moc = RangeMOC::from_full_domain(0);
+    pub fn allsky(depth_max: u8) -> Self {
+        let moc = RangeMOC::from_full_domain(depth_max);
         HEALPixCoverage(moc)
     }
 
-    pub fn contains(&self, idx: u64) -> bool {
-        self.0.contains_depth_max_val(&idx)
+    pub fn contains_coo(&self, vertex: &Vector4<f64>) -> bool {
+        let lonlat = vertex.lonlat();
+        let depth = self.depth_max();
+        let hash = cdshealpix::nested::hash(depth, lonlat.lon().0, lonlat.lat().0);
+
+        self.contains_tile(&HEALPixCell(depth, hash))
+    }
+
+    pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
+        self.0.contains_depth_max_val(&cell.idx())
     }
 }
 

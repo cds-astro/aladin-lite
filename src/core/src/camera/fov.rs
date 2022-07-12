@@ -53,8 +53,8 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
 }
 
 use std::collections::HashMap;
-const NUM_VERTICES_WIDTH: usize = 10;
-const NUM_VERTICES_HEIGHT: usize = 10;
+const NUM_VERTICES_WIDTH: usize = 5;
+const NUM_VERTICES_HEIGHT: usize = 5;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
@@ -191,15 +191,18 @@ impl FieldOfViewVertices {
         system: &CooSystem,
         center: &Vector4<f64>,
     ) {
-        if aperture < P::RASTER_THRESHOLD_ANGLE {
+        //if aperture < P::RASTER_THRESHOLD_ANGLE {
             if let Some(vertices) = &self.model_coo {
                 self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
-
+                if self.great_circles.contains_both_poles() {
+                    self.great_circles = FieldOfViewType::Allsky;
+                }
+                
                 /*let coverage = create_view_moc(vertices, &center.truncate());
                 self.depth = coverage.depth_max();
 
                 self.moc[*system as usize] = Some(coverage);*/
-            } else if let FieldOfViewType::Polygon { .. } = &self.great_circles {
+            } else {
                 self.great_circles = FieldOfViewType::Allsky;
 
                 /*let coverage = HEALPixCoverage::allsky();
@@ -207,7 +210,7 @@ impl FieldOfViewVertices {
 
                 self.moc[*system as usize] = Some(coverage);*/
             }
-        } else {
+        /*} else {
             // We are too unzoomed => we plot the allsky grid
             if let FieldOfViewType::Polygon { .. } = &self.great_circles {
                 self.great_circles = FieldOfViewType::Allsky;
@@ -217,7 +220,7 @@ impl FieldOfViewVertices {
 
                 self.moc[*system as usize] = Some(coverage);*/
             }
-        }
+        }*/
     }
 
     /*pub fn get_depth(&self) -> u8 {

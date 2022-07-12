@@ -64,8 +64,8 @@ impl From<query::Allsky> for AllskyRequest {
                         let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                         let allsky =
                             ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
-
-                        handle_allsky_file::<RGB8U>(allsky, tile_size, texture_size)
+                        let allsky_tile_size = std::cmp::min(tile_size, 64);
+                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawRgb8u { image })
@@ -75,8 +75,8 @@ impl From<query::Allsky> for AllskyRequest {
                         let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                         let allsky =
                             ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
-
-                        handle_allsky_file::<RGBA8U>(allsky, tile_size, texture_size)
+                        let allsky_tile_size = std::cmp::min(tile_size, 64);
+                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawRgba8u { image })
@@ -171,7 +171,7 @@ use al_core::image::format::ImageFormat;
 
 async fn handle_allsky_file<F: ImageFormat>(
     allsky: ImageBuffer<F>,
-    tile_size: i32,
+    allsky_tile_size: i32,
     texture_size: i32,
 ) -> Result<Vec<ImageBuffer<F>>, JsValue> {
     let mut src_idx = 0;
@@ -181,12 +181,12 @@ async fn handle_allsky_file<F: ImageFormat>(
         let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, texture_size, texture_size);
         for idx_tile in 0..64 {
             let (x, y) = crate::utils::unmortonize(idx_tile);
-            let dx = x * (tile_size as u32);
-            let dy = y * (tile_size as u32);
+            let dx = x * (allsky_tile_size as u32);
+            let dy = y * (allsky_tile_size as u32);
 
-            let sx = (src_idx % 27) * tile_size;
-            let sy = (src_idx / 27) * tile_size;
-            base_tile.tex_sub(&allsky, sx, sy, tile_size, tile_size, dx as i32, dy as i32, tile_size, tile_size);
+            let sx = (src_idx % 27) * allsky_tile_size;
+            let sy = (src_idx / 27) * allsky_tile_size;
+            base_tile.tex_sub(&allsky, sx, sy, allsky_tile_size, allsky_tile_size, dx as i32, dy as i32, allsky_tile_size, allsky_tile_size);
 
             src_idx += 1;
         }
@@ -202,8 +202,9 @@ async fn handle_allsky_fits<F: ImageFormat>(
     tile_size: i32,
     texture_size: i32
 ) -> Result<Vec<ImageBuffer<F>>, JsValue> {
-    let width_allsky_px = 27 * std::cmp::min(tile_size, 64);
-    let height_allsky_px = 29 * std::cmp::min(tile_size, 64);
+    let allsky_tile_size = std::cmp::min(tile_size, 64);
+    let width_allsky_px = 27 * allsky_tile_size;
+    let height_allsky_px = 29 * allsky_tile_size;
     // The fits image layout stores rows in reverse
     let reversed_rows_data = allsky_data
         .chunks(width_allsky_px as usize)
@@ -214,7 +215,7 @@ async fn handle_allsky_fits<F: ImageFormat>(
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);
 
-    let allsky_tiles = handle_allsky_file::<F>(allsky, tile_size, texture_size)
+    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size)
         .await?
         .into_iter()
         .map(|image| {

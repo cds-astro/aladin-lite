@@ -325,9 +325,9 @@ impl Label {
             }
         }
 
-        let d = if fov.contains_north_pole(camera) {
+        let d = if fov.contains_north_pole() {
             Vector3::new(0.0, 1.0, 0.0)
-        } else if fov.contains_south_pole(camera) {
+        } else if fov.contains_south_pole() {
             Vector3::new(0.0, -1.0, 0.0)
         } else {
             Vector3::new(0.0, 1.0, 0.0)
@@ -615,7 +615,7 @@ fn lines<P: Projection>(
     let _system = camera.get_system();
     let fov = camera.get_field_of_view();
     let sp = if fov.contains_pole() {
-        if fov.contains_north_pole(camera) {
+        if fov.contains_north_pole() {
             // Project the pole into the screen
             // This is an information needed
             // for plotting labels

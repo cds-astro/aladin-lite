@@ -30,7 +30,6 @@
 import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { Location } from "./Location.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
 
 export async function fetchSurveyProperties(rootURLOrId) {
@@ -179,12 +178,11 @@ async function searchForValidSurveyUrl(metadata, backend) {
         }
     });
     // Change the backend survey url
-    console.log("change image survey url", metadata.hips_service_url, url)
     if (metadata.hips_service_url !== url) {
+        console.info("Change fetching tile from ", metadata.hips_service_url, " to ", url)
         backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
     }
 }
-
 
 export let HpxImageSurvey = (function() {
     /** Constructor

@@ -68,7 +68,6 @@ use crate::{
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
-use crate::healpix::coverage::HEALPixCoverage;
 use crate::math;
 use crate::time::Time;
 impl CameraViewPort {
@@ -106,7 +105,7 @@ impl CameraViewPort {
         let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center, &system);
+        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -236,8 +235,6 @@ impl CameraViewPort {
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            self.aperture,
-            &self.system,
             &self.center,
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
@@ -293,8 +290,6 @@ impl CameraViewPort {
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
-            self.aperture,
-            &self.system,
             &self.center,
         );
         self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
@@ -459,7 +454,7 @@ impl CameraViewPort {
 
         // Rotate the fov vertices
         self.vertices
-            .set_rotation::<P>(&self.w2m, self.aperture, &self.system, &self.center);
+            .set_rotation::<P>(&self.w2m, &self.center);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;

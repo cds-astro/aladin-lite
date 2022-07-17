@@ -531,7 +531,7 @@ where
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
-                        let coverage = self.surveys.get_coverage(&tile.system, tile.cell.depth(), &self.camera);
+                        let coverage = self.surveys.get_coverage(&tile.system, tile.cell.depth());
                         /*if coverage.is_none() {
                             //al_core::log("coverage not found");
                         }*/
@@ -609,7 +609,7 @@ where
                             cfg.scale = metadata.value.scale;
                         }
                     }
-                    Resource::MOC(moc) => {
+                    Resource::MOC(_moc) => {
                         // todo!()
                     }
                 }

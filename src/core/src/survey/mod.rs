@@ -264,9 +264,8 @@ use render::ray_tracer::RayTracer;
 trait Draw {
     fn draw<P: Projection>(
         &mut self,
-        depth: u8,
         raytracer: &RayTracer,
-        switch_from_raytrace_to_raster: bool,
+        //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &mut CameraViewPort,
         color: &HiPSColor,
@@ -885,9 +884,8 @@ use cgmath::Matrix;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &mut self,
-        depth: u8,
         raytracer: &RayTracer,
-        switch_from_raytrace_to_raster: bool,
+        //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &mut CameraViewPort,
         color: &HiPSColor,
@@ -911,7 +909,7 @@ impl Draw for ImageSurvey {
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        let raytracing = raytracer.is_rendering::<P>(camera, depth);
+        let raytracing = raytracer.is_rendering::<P>(camera);
         if raytracing {
             let shader = get_raytracer_shader::<P>(
                 color,
@@ -1037,7 +1035,6 @@ use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
 use std::collections::hash_map::{Entry, DefaultHasher};
 use std::hash::{Hasher, Hash};
-use crate::math::angle::Angle;
 use al_api::coo_system::CooSystem;
 impl ImageSurveys {
     pub fn new<P: Projection>(
@@ -1123,9 +1120,9 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = self.raytracer.is_rendering::<P>(camera, self.depth);
+        let raytracing = self.raytracer.is_rendering::<P>(camera);
 
-        let mut switch_from_raytrace_to_raster = false;
+        /*let mut switch_from_raytrace_to_raster = false;
         if raytracing {
             self.current_rendering_mode = RenderingMode::Raytrace;
         } else {
@@ -1133,7 +1130,7 @@ impl ImageSurveys {
             if self.past_rendering_mode == RenderingMode::Raytrace {
                 switch_from_raytrace_to_raster = true;
             }
-        }
+        }*/
 
         let raytracer = &self.raytracer;
 
@@ -1170,7 +1167,6 @@ impl ImageSurveys {
         } else {
             self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
-        let depth = self.depth;
 
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
@@ -1187,9 +1183,8 @@ impl ImageSurveys {
 
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
-                        depth,
                         raytracer,
-                        switch_from_raytrace_to_raster,
+                        //switch_from_raytrace_to_raster,
                         shaders,
                         camera,
                         color,
@@ -1326,11 +1321,9 @@ impl ImageSurveys {
         self.coverages.clear();
 
         let mut coverage_cells = HashMap::new();
-
-        let camera_frame = camera.get_system();
         self.depth = 0;
 
-        for (url, survey) in self.surveys.iter_mut() {
+        for survey in self.surveys.values_mut() {
             let cfg = survey.get_config();
             let max_tile_depth = cfg.get_max_tile_depth();
 
@@ -1369,7 +1362,7 @@ impl ImageSurveys {
     }
 
     // Accessors
-    pub fn get_coverage(&mut self, hips_frame: &CooSystem, depth: u8, camera: &CameraViewPort) -> Option<&HEALPixCoverage> {
+    pub fn get_coverage(&mut self, hips_frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
         let mut hasher = DefaultHasher::new();
         (depth, hips_frame).hash(&mut hasher);
         let key = hasher.finish();

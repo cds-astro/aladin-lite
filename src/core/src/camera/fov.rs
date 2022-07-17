@@ -1,7 +1,5 @@
-use cgmath::{Matrix4, Vector3};
-use cgmath::{Vector2, Vector4};
+use cgmath::{Vector2, Vector4, Matrix4};
 
-use crate::healpix::coverage::HEALPixCoverage;
 use crate::math::spherical::FieldOfViewType;
 
 pub type NormalizedDeviceCoord = Vector2<f64>;
@@ -52,7 +50,6 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-use std::collections::HashMap;
 const NUM_VERTICES_WIDTH: usize = 5;
 const NUM_VERTICES_HEIGHT: usize = 5;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
@@ -94,17 +91,12 @@ fn create_coverage(vertices: &[Vector4<f64>], inside: &Vector3<f64>, camera_fram
     coverage
 }*/
 
-use crate::math::angle::Angle;
-use al_api::coo_system::CooSystem;
-
-use std::collections::hash_map::Entry;
 impl FieldOfViewVertices {
     pub fn new<P: Projection>(
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
         center: &Vector4<f64>,
-        system: &CooSystem,
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
@@ -161,19 +153,15 @@ impl FieldOfViewVertices {
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
-        aperture: Angle<f64>,
-        system: &CooSystem,
         center: &Vector4<f64>,
     ) {
         self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        self.set_rotation::<P>(w2m, aperture, system, center);
+        self.set_rotation::<P>(w2m, center);
     }
 
     pub fn set_rotation<P: Projection>(
         &mut self,
         w2m: &Matrix4<f64>,
-        aperture: Angle<f64>,
-        system: &CooSystem,
         center: &Vector4<f64>,
     ) {
         if let Some(world_coo) = &self.world_coo {
@@ -182,45 +170,18 @@ impl FieldOfViewVertices {
             self.model_coo = None;
         }
 
-        self.set_great_circles::<P>(aperture, system, center);
+        self.set_great_circles::<P>(center);
     }
 
-    fn set_great_circles<P: Projection>(
-        &mut self,
-        aperture: Angle<f64>,
-        system: &CooSystem,
-        center: &Vector4<f64>,
-    ) {
-        //if aperture < P::RASTER_THRESHOLD_ANGLE {
-            if let Some(vertices) = &self.model_coo {
-                self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
-                if self.great_circles.contains_both_poles() {
-                    self.great_circles = FieldOfViewType::Allsky;
-                }
-                
-                /*let coverage = create_view_moc(vertices, &center.truncate());
-                self.depth = coverage.depth_max();
-
-                self.moc[*system as usize] = Some(coverage);*/
-            } else {
+    fn set_great_circles<P: Projection>(&mut self, center: &Vector4<f64>) {
+        if let Some(vertices) = &self.model_coo {
+            self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
+            if self.great_circles.contains_both_poles() {
                 self.great_circles = FieldOfViewType::Allsky;
-
-                /*let coverage = HEALPixCoverage::allsky();
-                self.depth = coverage.depth_max();
-
-                self.moc[*system as usize] = Some(coverage);*/
             }
-        /*} else {
-            // We are too unzoomed => we plot the allsky grid
-            if let FieldOfViewType::Polygon { .. } = &self.great_circles {
-                self.great_circles = FieldOfViewType::Allsky;
-
-                /*let coverage = HEALPixCoverage::allsky();
-                self.depth = coverage.depth_max();
-
-                self.moc[*system as usize] = Some(coverage);*/
-            }
-        }*/
+        } else {
+            self.great_circles = FieldOfViewType::Allsky;
+        }
     }
 
     /*pub fn get_depth(&self) -> u8 {

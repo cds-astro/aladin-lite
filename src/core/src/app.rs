@@ -185,7 +185,7 @@ where
         let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new::<Orthographic>(&gl, &camera, &mut shaders);
+        let surveys = ImageSurveys::new::<Orthographic>(&gl);
 
         let time_start_blending = Time::now();
 
@@ -392,8 +392,9 @@ pub trait AppTrait {
         layer: String,
         meta: ImageSurveyMeta,
     ) -> Result<(), JsValue>;
-
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue>;
+    // This method is used to change the root url when a better mirror has been found
+    fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue>;
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
     fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
@@ -882,8 +883,7 @@ where
         // Recompute clip zoom factor
         self.camera.set_aperture::<Q>(self.camera.get_aperture());
 
-        self.surveys
-            .set_projection::<Q>(&self.camera, &mut self.shaders);
+        self.surveys.set_projection::<Q>();
 
         self.look_for_new_tiles();
         self.request_redraw = true;
@@ -968,6 +968,10 @@ where
         self.manager.set_kernel_size(&self.camera);
 
         self.request_redraw = true;
+    }
+
+    fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue> {
+        self.surveys.set_survey_url(past_url, new_url)
     }
 
     fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {

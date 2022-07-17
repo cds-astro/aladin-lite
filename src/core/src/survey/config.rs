@@ -393,6 +393,11 @@ impl HiPSConfig {
     }
 
     #[inline]
+    pub fn set_root_url(&mut self, root_url: String) {
+        self.root_url = root_url;
+    }
+
+    #[inline]
     pub fn set_fits_metadata(&mut self, bscale: f32, bzero: f32, blank: f32) {
         self.scale = bscale;
         self.offset = bzero;

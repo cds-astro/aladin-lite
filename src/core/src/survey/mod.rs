@@ -1042,8 +1042,6 @@ use al_api::coo_system::CooSystem;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
-        _camera: &CameraViewPort,
-        _shaders: &mut ShaderManager,
     ) -> Self {
         let surveys = HashMap::new();
         let meta = HashMap::new();
@@ -1055,7 +1053,6 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let _longitude_reversed = false;
         let raytracer = RayTracer::new::<P>(gl);
         let gl = gl.clone();
         let most_precise_survey = String::new();
@@ -1084,17 +1081,38 @@ impl ImageSurveys {
         }
     }
 
+    pub fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue> {
+        if let Some(mut survey) = self.surveys.remove(past_url) {
+            // update the root_url
+            survey.get_config_mut()
+                .set_root_url(new_url.to_string());
+            
+            self.surveys.insert(new_url.to_string(), survey);
+
+            // update all the layer urls
+            for url in self.urls.values_mut() {
+                if *url == past_url {
+                    *url = new_url.to_string(); 
+                }
+            }
+
+            if self.most_precise_survey == past_url {
+                self.most_precise_survey = new_url.to_string();
+            }
+
+            Ok(())
+        } else {
+            Err(JsValue::from_str(&format!("{:?} not found", past_url)))
+        }
+    }
+
     pub fn reset_frame(&mut self) {
         for survey in self.surveys.values_mut() {
             survey.reset_frame();
         }
     }
 
-    pub fn set_projection<P: Projection>(
-        &mut self,
-        _camera: &CameraViewPort,
-        _shaders: &mut ShaderManager,
-    ) {
+    pub fn set_projection<P: Projection>(&mut self) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl);
     }
@@ -1270,12 +1288,6 @@ impl ImageSurveys {
         }
 
         camera.set_longitude_reversed(longitude_reversed);
-        //self.coverages.clear();
-
-        // Set the reversed longitude
-        /*if let Some(survey) = self.last() {
-            camera.set_longitude_reversed(survey.longitude_reversed());
-        }*/
 
         Ok(new_survey_urls)
     }
@@ -1308,19 +1320,6 @@ impl ImageSurveys {
             .fold(true, |acc, x| acc & x);
 
         ready
-    }
-
-    pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
-        if self.surveys.is_empty() {
-            None
-        } else {
-            Some(
-                self.surveys
-                    .get(&self.most_precise_survey)
-                    .unwrap()
-                    .get_view(),
-            )
-        }
     }
 
     pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
@@ -1369,35 +1368,11 @@ impl ImageSurveys {
         }
     }
 
+    // Accessors
     pub fn get_coverage(&mut self, hips_frame: &CooSystem, depth: u8, camera: &CameraViewPort) -> Option<&HEALPixCoverage> {
         let mut hasher = DefaultHasher::new();
         (depth, hips_frame).hash(&mut hasher);
         let key = hasher.finish();
-
-        /*let camera_frame = camera.get_system();
-        match self.coverages.entry(key) {
-            Entry::Occupied(c) => c.into_mut(),
-            Entry::Vacant(v) => {
-                let c = if let Some(vertices) = camera.get_vertices() {
-                    let vertices = vertices
-                        .iter()
-                        .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
-                        .collect::<Vec<_>>();
-
-                    let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &camera.get_center());
-                    // Prefer to query from_polygon with depth >= 2
-                    crate::healpix::coverage::HEALPixCoverage::new(
-                        depth,
-                        &vertices[..],
-                        &inside.truncate(),
-                    )
-                } else {
-                    HEALPixCoverage::allsky()
-                };
-
-                v.insert(c)
-            }
-        }*/
 
         self.coverages.get(&key)
     }
@@ -1406,7 +1381,6 @@ impl ImageSurveys {
         self.depth
     }
 
-    // Accessors
     pub fn get_from_layer(&self, id: &str) -> Option<&ImageSurvey> {
         self.urls.get(id).map(|url| self.surveys.get(url).unwrap())
     }
@@ -1430,6 +1404,19 @@ impl ImageSurveys {
 
     pub fn values(&mut self) -> impl Iterator<Item = &ImageSurvey> {
         self.surveys.values()
+    }
+
+    pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
+        if self.surveys.is_empty() {
+            None
+        } else {
+            Some(
+                self.surveys
+                    .get(&self.most_precise_survey)
+                    .unwrap()
+                    .get_view(),
+            )
+        }
     }
 }
 

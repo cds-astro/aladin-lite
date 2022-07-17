@@ -119,7 +119,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
     return metadata;
 }
 
-async function searchForValidSurveyUrl(metadata) {
+async function searchForValidSurveyUrl(metadata, backend) {
     const pingHipsServiceUrl = (hipsServiceUrl) => {
         const controller = new AbortController()
 
@@ -155,20 +155,19 @@ async function searchForValidSurveyUrl(metadata) {
         numHiPSServiceURL += 1;
     }
 
-    const getRandomIntInclusive = function(min, max) {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-        return Math.floor(Math.random() * (max - min +1)) + min;
-    };
-
     const url = await Promise.all(promises).then((results) => {
+        const getRandomIntInclusive = function(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min +1)) + min;
+        };
+
         results.sort((r1, r2) => {
             return r1.duration - r2.duration;
         });
 
         if (results.length >= 2) {
             const isSecondUrlOk = ((results[1].duration - results[0].duration) / results[0].duration) < 0.20;
-            console.log(isSecondUrlOk, results, getRandomIntInclusive(0, 1))
 
             if (isSecondUrlOk) {
                 return results[getRandomIntInclusive(0, 1)].baseUrl;
@@ -179,8 +178,11 @@ async function searchForValidSurveyUrl(metadata) {
             return results[0].baseUrl;
         }
     });
-
-    return url;
+    // Change the backend survey url
+    console.log("change image survey url", metadata.hips_service_url, url)
+    if (metadata.hips_service_url !== url) {
+        backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
+    }
 }
 
 
@@ -265,10 +267,9 @@ export let HpxImageSurvey = (function() {
 
             // HiPS url
             self.name = self.name || metadata.obs_title;
-            //let url = metadata.hips_service_url;
-            // Check if the hips_service_url is valid
-            const url = await searchForValidSurveyUrl(metadata);
-            //const url = metadata.hips_service_url;
+            // Run this async, when it completes, reset the properties url
+            searchForValidSurveyUrl(metadata, self.backend);
+            const url = metadata.hips_service_url;
 
             if (!url) {
                 throw 'no valid service URL for retrieving the tiles'

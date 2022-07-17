@@ -314,6 +314,11 @@ impl WebClient {
         self.app.set_image_survey_img_format(layer, format)
     }
 
+    #[wasm_bindgen(js_name = setImageSurveyUrl)]
+    pub fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        self.app.set_survey_url(&past_url, &new_url)
+    }
+
     /// Set the equatorial grid color
     ///
     /// # Arguments

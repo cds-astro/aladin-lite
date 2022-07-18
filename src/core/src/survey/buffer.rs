@@ -335,8 +335,6 @@ impl ImageSurveyTextures {
                     texture.replace(
                         &tex_cell,
                         time_request,
-                        &self.config,
-                        //&mut self.exec.borrow_mut(),
                     );
 
                     texture

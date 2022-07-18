@@ -62,8 +62,6 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
     camera: &CameraViewPort,
 ) {
     // Project them. We are always facing the camera
-    let _system = camera.get_system();
-
     let aa = math::lonlat::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
     let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
     let cc = math::lonlat::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
@@ -81,7 +79,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            if ab_l == 0.0 || bc_l == 0.0 {
+            if ab_l < 1e-6 || bc_l < 1e-6 {
                 return;
             }
 

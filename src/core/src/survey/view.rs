@@ -55,10 +55,6 @@ pub fn get_tile_cells_in_camera(
                 &icrsj2000_inside_pos.truncate(),
             );
 
-            if !coverage.contains_coo(&icrsj2000_fov_vertices_pos[0]) {
-                coverage.0 = coverage.expanded();
-            }
-
             coverage
         } else {
             HEALPixCoverage::allsky(depth_tile)
@@ -70,6 +66,8 @@ pub fn get_tile_cells_in_camera(
             HEALPixCell(depth_tile, idx)
         })
         .collect();
+    
+    //al_core::log(&format!("cells: {:?}", cells));
     
     (coverage, cells)
 }

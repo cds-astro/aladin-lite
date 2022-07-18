@@ -71,8 +71,8 @@ impl Texture {
     // Return true if the tile is newly added
     pub fn append(&mut self, cell: &HEALPixCell, config: &HiPSConfig, missing: bool) {
         let texture_cell = cell.get_texture_cell(config);
-        debug_assert!(texture_cell == self.texture_cell);
-        debug_assert!(!self.full);
+        assert!(texture_cell == self.texture_cell);
+        assert!(!self.full);
 
         self.missing &= missing;
 
@@ -98,29 +98,6 @@ impl Texture {
             }
         }
     }
-
-    /*pub fn register_available_tile(&mut self, cell: &HEALPixCell, config: &HiPSConfig) {
-        let texture_cell = cell.get_texture_cell(config);
-        debug_assert!(texture_cell == self.texture_cell);
-
-        if *cell == texture_cell {
-            debug_assert!(self.is_full());
-            self.is_available = true;
-            self.start_time = Some(Time::now());
-        } else {
-            let num_tiles_per_texture = config.num_tiles_per_texture();
-            self.num_tiles_written += 1;
-
-            // The texture is available to be drawn if all its
-            // sub tiles have been written to the texture array
-            if self.num_tiles_written == num_tiles_per_texture {
-                debug_assert!(self.is_full());
-                self.is_available = true;
-                // The texture is available to be drawn, we set the start time
-                self.start_time = Some(Time::now());
-            }
-        }
-    }*/
 
     // Cell must be contained in the texture
     pub fn contains(&self, cell: &HEALPixCell) -> bool {
@@ -162,16 +139,10 @@ impl Texture {
     }
 
     // Setter
-    /*pub fn update_start_time(&mut self, start_time: Time) {
-        self.start_time = Some(start_time);
-    }*/
-
     pub fn replace(
         &mut self,
         texture_cell: &HEALPixCell,
         time_request: Time,
-        _config: &HiPSConfig,
-        //exec: &mut TaskExecutor,
     ) {
         // Cancel the tasks copying the tiles contained in the texture
         // which have not yet been completed.

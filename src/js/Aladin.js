@@ -1173,8 +1173,13 @@ export let Aladin = (function () {
         }
 
         try {
-            //radec = this.view.projection.unproject(xy.x, xy.y);
-            return this.view.aladin.webglAPI.screenToWorld(x, y);
+            const [ra, dec] = this.view.aladin.webglAPI.screenToWorld(x, y);
+
+            if (ra < 0) {
+                return [ra + 360.0, dec];
+            }
+
+            return [ra, dec];
         } catch (e) {
             return undefined;
         }
@@ -1197,20 +1202,10 @@ export let Aladin = (function () {
             return;
         }
 
-        var xy;
-        if (this.view.cooFrame == CooFrameEnum.GAL) {
-            var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-            xy = this.view.projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            xy = this.view.projection.project(ra, dec);
-        }
-        if (xy) {
-            var xyview = AladinUtils.xyToView(xy.X, xy.Y, this.view.width, this.view.height, this.view.largestDim, this.view.zoomFactor);
-            return [xyview.vx, xyview.vy];
-        }
-        else {
-            return null;
+        try {
+            return this.view.aladin.webglAPI.worldToScreen(ra, dec);
+        } catch (e) {
+            return undefined;
         }
     };
 

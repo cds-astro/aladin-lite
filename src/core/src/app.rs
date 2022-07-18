@@ -258,7 +258,7 @@ where
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
             // do not add tiles if the view is already at depth 0
-            if survey.get_view().get_depth() > 0 {
+            if survey.get_view().get_depth() > survey.get_min_depth() {
                 let mut tile_cells = survey
                     .get_view()
                     .get_cells()
@@ -532,12 +532,7 @@ where
                 match rsc {
                     Resource::Tile(tile) => {
                         let coverage = self.surveys.get_coverage(&tile.system, tile.cell.depth());
-                        /*if coverage.is_none() {
-                            //al_core::log("coverage not found");
-                        }*/
                         if (coverage.is_some() && coverage.unwrap().contains_tile(&tile.cell)) || tile.is_root {
-                            //al_core::log("tex sub");
-
                             // Find the survey is tile is refering to
                             let hips_url = tile.get_hips_url();
                             // Get the hips url from that url
@@ -568,6 +563,7 @@ where
                         if let Some(survey) = self.surveys.get_mut(&hips_url) {
                             let is_missing = allsky.missing();
                             if is_missing {
+                                survey.set_min_depth(0);
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
@@ -580,15 +576,15 @@ where
                                 }
                             } else {
                                 let Allsky {
-                                    image, time_req, ..
+                                    image, time_req, depth_tile, ..
                                 } = allsky;
-
+                                al_core::log(&format!("depth tile {}", depth_tile));
                                 {
                                     let mutex_locked = image.lock().unwrap();
                                     let images = mutex_locked.as_ref();
                                     for (idx, image) in images.unwrap().iter().enumerate() {
                                         survey.add_tile(
-                                            &HEALPixCell(0, idx as u64),
+                                            &HEALPixCell(depth_tile, idx as u64),
                                             image,
                                             false,
                                             time_req,
@@ -803,22 +799,26 @@ where
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            let cfg = survey.get_config();
+            let tile_size = survey.get_config().get_tile_size();
 
             //Request the allsky for the small tile size
-            if cfg.get_tile_size() <= 128 {
+            if tile_size <= 128 {
                 // Request the allsky
-                self.downloader.fetch(query::Allsky::new(cfg), false);
+                self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
+                // tell the survey to not download tiles which order is <= 3 because the allsky
+                // give them already
+                survey.set_min_depth(survey.get_config().delta_depth());
             } else {
+                let cfg = survey.get_config();
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    for cell in texture_cell.get_tile_cells(cfg) {
-                        let query = query::Tile::new(&cell, cfg);
+                    for cell in texture_cell.get_tile_cells(survey.get_config()) {
+                        let query = query::Tile::new(&cell, survey.get_config());
                         self.tile_fetcher
                             .append_base_tile(query, &mut self.downloader);
                     }
                 }
             }
-            self.downloader.fetch(query::PixelMetadata::new(cfg), true);
+            self.downloader.fetch(query::PixelMetadata::new(survey.get_config()), true);
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -844,7 +844,6 @@ where
     }
 
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
-
         let survey = self.surveys.get_mut_from_layer(&layer)
             .ok_or(JsValue::from_str("Layer not found"))?;
         survey.set_img_format(format)?;
@@ -853,19 +852,26 @@ where
         let cfg = survey.get_config();
 
         //Request the allsky for the small tile size
-        if cfg.get_tile_size() <= 128 {
+        let tile_size = survey.get_config().get_tile_size();
+        al_core::log(&format!("tile size {}", tile_size));
+        //Request the allsky for the small tile size
+        if tile_size <= 128 {
             // Request the allsky
-            self.downloader.fetch(query::Allsky::new(cfg), false);
+            self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
+            // tell the survey to not download tiles which order is <= 3 because the allsky
+            // give them already
+            survey.set_min_depth(survey.get_config().delta_depth());
         } else {
+            let cfg = survey.get_config();
             for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg) {
-                    let query = query::Tile::new(&cell, cfg);
+                for cell in texture_cell.get_tile_cells(survey.get_config()) {
+                    let query = query::Tile::new(&cell, survey.get_config());
                     self.tile_fetcher
                         .append_base_tile(query, &mut self.downloader);
                 }
             }
         }
-        self.downloader.fetch(query::PixelMetadata::new(cfg), true);
+        self.downloader.fetch(query::PixelMetadata::new(survey.get_config()), true);
         
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

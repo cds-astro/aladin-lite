@@ -292,8 +292,6 @@ pub trait Projection:
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool;
 
-    fn is_front_of_camera(pos_world_space: &Vector4<f64>) -> bool;
-
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64>;
 
     fn solve_along_abscissa(y: f64) -> Option<(f64, f64)>;
@@ -515,11 +513,6 @@ impl Projection for Aitoff {
         ArcDeg(360.0).into()
     }
 
-    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        true
-    }
-
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((170.0 / 180.0) * std::f64::consts::PI);
 }
 
@@ -643,11 +636,6 @@ impl Projection for Mollweide {
         ArcDeg(360_f64).into()
     }
 
-    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        true
-    }
-
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
@@ -736,10 +724,6 @@ impl Projection for Orthographic {
 
     fn aperture_start() -> Angle<f64> {
         ArcDeg(180_f64).into()
-    }
-
-    fn is_front_of_camera(pos_world_space: &Vector4<f64>) -> bool {
-        pos_world_space.z > 0_f64
     }
 
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((120.0 / 180.0) * std::f64::consts::PI);
@@ -845,11 +829,6 @@ impl Projection for AzimuthalEquidistant {
         ArcDeg(360.0).into()
     }
 
-    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        true
-    }
-
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((160.0 / 180.0) * std::f64::consts::PI);
 }
 
@@ -947,11 +926,6 @@ impl Projection for Gnomonic {
         ArcDeg(180.0).into()
     }
 
-    fn is_front_of_camera(pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        pos_world_space.z >= 1e-2
-    }
-
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((90.0 / 180.0) * std::f64::consts::PI);
 }
 
@@ -1027,11 +1001,6 @@ impl Projection for Mercator {
 
     fn aperture_start() -> Angle<f64> {
         ArcDeg(360_f64).into()
-    }
-
-    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        true
     }
 
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
@@ -1124,11 +1093,6 @@ impl Projection for HEALPix {
 
     fn aperture_start() -> Angle<f64> {
         ArcDeg(360_f64).into()
-    }
-
-    fn is_front_of_camera(_pos_world_space: &Vector4<f64>) -> bool {
-        // 2D projections always faces the camera
-        true
     }
 
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(140.0 * math::angle::PI / 180.0);

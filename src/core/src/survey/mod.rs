@@ -484,6 +484,8 @@ pub struct ImageSurvey {
 
     vao: VertexArrayObject,
     gl: WebGlContext,
+
+    min_depth: u8,
 }
 use crate::{
     camera::UserAction,
@@ -620,7 +622,7 @@ impl ImageSurvey {
         let view = HEALPixCellsInView::new();
 
         let gl = gl.clone();
-
+        let min_depth = 0;
         // request the allsky texture
         Ok(ImageSurvey {
             //color,
@@ -643,11 +645,20 @@ impl ImageSurvey {
             m1,
 
             idx_vertices,
+            min_depth,
         })
     }
 
     pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
         self.textures.set_format(&self.gl, fmt)
+    }
+
+    pub fn set_min_depth(&mut self, min_depth: u8) {
+        self.min_depth = min_depth;
+    }
+
+    pub fn get_min_depth(&mut self) -> u8 {
+        self.min_depth
     }
 
     pub fn get_fading_factor(&self) -> f32 {
@@ -909,7 +920,12 @@ impl Draw for ImageSurvey {
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        let raytracing = raytracer.is_rendering::<P>(camera);
+        let depth_texture = if self.view.get_depth() > self.get_config().delta_depth() {
+            self.view.get_depth() - self.get_config().delta_depth()
+        } else {
+            0
+        };
+        let raytracing = raytracer.is_rendering::<P>(camera, depth_texture);
         if raytracing {
             let shader = get_raytracer_shader::<P>(
                 color,
@@ -1120,7 +1136,7 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = self.raytracer.is_rendering::<P>(camera);
+        let raytracing = self.raytracer.is_rendering::<P>(camera, 0);
 
         /*let mut switch_from_raytrace_to_raster = false;
         if raytracing {

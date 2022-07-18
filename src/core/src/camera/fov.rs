@@ -50,8 +50,8 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-const NUM_VERTICES_WIDTH: usize = 5;
-const NUM_VERTICES_HEIGHT: usize = 5;
+const NUM_VERTICES_WIDTH: usize = 10;
+const NUM_VERTICES_HEIGHT: usize = 10;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
@@ -176,9 +176,9 @@ impl FieldOfViewVertices {
     fn set_great_circles<P: Projection>(&mut self, center: &Vector4<f64>) {
         if let Some(vertices) = &self.model_coo {
             self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
-            if self.great_circles.contains_both_poles() {
+            /*if self.great_circles.contains_both_poles() {
                 self.great_circles = FieldOfViewType::Allsky;
-            }
+            }*/
         } else {
             self.great_circles = FieldOfViewType::Allsky;
         }

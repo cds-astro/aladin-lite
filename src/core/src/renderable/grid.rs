@@ -304,14 +304,11 @@ impl Label {
     fn meridian<P: Projection>(
         fov: &FieldOfViewType,
         lon: f64,
-        m1: &Vector4<f64>,
+        m1: &Vector3<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
-        let _system = camera.get_system();
-
-        //let LonLatT(_, lat) = &(system.to_gal::<f64>() * camera.get_center()).lonlat();
         let LonLatT(.., lat) = camera.get_center().lonlat();
         // Do not plot meridian labels when the center of fov
         // is above 80deg
@@ -333,10 +330,10 @@ impl Label {
             Vector3::new(0.0, 1.0, 0.0)
         };
 
-        let m2 = ((m1.truncate() + d * 1e-3).normalize()).extend(1.0);
+        let m2 = ((m1 + d * 1e-3).normalize()).extend(1.0);
 
         //let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
-        let s1 = P::model_to_screen_space(&m1, camera)?;
+        let s1 = P::model_to_screen_space(&m1.extend(1.0), camera)?;
 
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
@@ -509,23 +506,25 @@ impl GridLine {
         text_renderer: &TextRenderManager,
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
-        let mut vertices = vec![];
+        if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
+            let mut vertices = vec![];
 
-        let _system = camera.get_system();
-        let a = Vector2::new(lon, lat.start);
-        let c = Vector2::new(lon, lat.end);
-        let b = (a + c) * 0.5;
+            crate::line::subdivide_along_longitude_and_latitudes::<P>(
+                &mut vertices,
+                [
+                    &Vector2::new(lon, lat.start),
+                    &Vector2::new(lon, 0.5*(lat.start + lat.end)),
+                    &Vector2::new(lon, lat.end)
+                ],
+                camera,
+            );
 
-        crate::line::subdivide_along_longitude_and_latitudes::<P>(
-            &mut vertices,
-            [&a, &b, &c],
-            camera,
-        );
+            let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
 
-        let p = (fov.intersect_meridian(Rad(lon), camera)?).extend(1.0);
-        let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
-
-        Some(GridLine { vertices, label })
+            Some(GridLine { vertices, label })
+        } else {
+            None
+        }
     }
 
     fn parallel<P: Projection>(
@@ -538,14 +537,6 @@ impl GridLine {
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
             let mut vertices = vec![];
-            let _system = camera.get_system();
-
-            //let a = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.start), Angle(lat))).truncate();
-            let _a = math::lonlat::radec_to_xyz(Angle(lon.start), Angle(lat));
-            //let b = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle((lon.start + lon.end)*0.5), Angle(lat))).truncate();
-            let _b = math::lonlat::radec_to_xyz(Angle((lon.start + lon.end) * 0.5), Angle(lat));
-            //let c = (system.to_icrs_j2000::<f64>() * math::radec_to_xyzw(Angle(lon.end), Angle(lat))).truncate();
-            let _c = math::lonlat::radec_to_xyz(Angle(lon.end), Angle(lat));
 
             crate::line::subdivide_along_longitude_and_latitudes::<P>(
                 &mut vertices,

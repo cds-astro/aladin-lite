@@ -28,27 +28,20 @@ impl HEALPixCoverage {
             })
             .collect::<Vec<_>>();
         let (inside_lon, inside_lat) = math::lonlat::xyz_to_radec(inside);
-        let inside_hpx = cdshealpix::nested::hash(depth, inside_lon.0, inside_lat.0);
 
-        let mut moc = RangeMOC::from_polygon(&lonlat[..], false, depth);
-        if !moc.contains_depth_max_val(&inside_hpx) {
-            moc = RangeMOC::from_polygon(&lonlat[..], true, depth);
-        }
+        let mut moc = RangeMOC::from_polygon_with_control_point(&lonlat[..], (inside_lon.0, inside_lat.0), depth);
 
         HEALPixCoverage(moc)
     }
 
     pub fn allsky(depth_max: u8) -> Self {
-        let moc = RangeMOC::from_full_domain(depth_max);
+        let moc = RangeMOC::new_full_domain(depth_max);
         HEALPixCoverage(moc)
     }
 
     pub fn contains_coo(&self, vertex: &Vector4<f64>) -> bool {
         let (lon, lat) = math::lonlat::xyzw_to_radec(vertex);
-        let depth = self.depth_max();
-        let hash = cdshealpix::nested::hash(depth, lon.0, lat.0);
-
-        self.contains_tile(&HEALPixCell(depth, hash))
+        self.0.is_in(lon.0, lat.0)
     }
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {

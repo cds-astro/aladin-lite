@@ -68,7 +68,7 @@ impl From<query::Allsky> for AllskyRequest {
                         let allsky =
                             ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
                         let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, tile_size)
+                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, texture_size, tile_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawRgb8u { image })
@@ -79,7 +79,7 @@ impl From<query::Allsky> for AllskyRequest {
                         let allsky =
                             ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
                         let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, tile_size)
+                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size, tile_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawRgba8u { image })
@@ -96,7 +96,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size)
+                        handle_allsky_fits(raw, tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawR32f { image })
@@ -113,7 +113,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size)
+                        handle_allsky_fits(raw, tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawR32i { image })
@@ -130,7 +130,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size)
+                        handle_allsky_fits(raw, tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawR16i { image })
@@ -147,7 +147,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size)
+                        handle_allsky_fits(raw, tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawR8ui { image })
@@ -176,15 +176,16 @@ use al_core::image::format::ImageFormat;
 async fn handle_allsky_file<F: ImageFormat>(
     allsky: ImageBuffer<F>,
     allsky_tile_size: i32,
+    texture_size: i32,
     tile_size: i32,
 ) -> Result<Vec<ImageBuffer<F>>, JsValue> {
     let mut src_idx = 0;
 
-    let num_tiles_per_texture = (512 / tile_size)*(512 / tile_size);
+    let num_tiles_per_texture = (texture_size / tile_size)*(texture_size / tile_size);
     let num_tiles = num_tiles_per_texture*12;
     let mut tiles = Vec::with_capacity(num_tiles as usize);
 
-    let num_allsky_tiles_per_tile = (tile_size / 64)*(tile_size / 64);
+    let num_allsky_tiles_per_tile = (tile_size / allsky_tile_size)*(tile_size / allsky_tile_size);
 
     for _ in 0..num_tiles {
         let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, tile_size, tile_size);
@@ -209,6 +210,7 @@ async fn handle_allsky_file<F: ImageFormat>(
 async fn handle_allsky_fits<F: ImageFormat>(
     allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item],
     tile_size: i32,
+    texture_size: i32,
 ) -> Result<Vec<ImageBuffer<F>>, JsValue> {
     let allsky_tile_size = std::cmp::min(tile_size, 64);
     let width_allsky_px = 27 * allsky_tile_size;
@@ -223,7 +225,7 @@ async fn handle_allsky_fits<F: ImageFormat>(
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);
 
-    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, tile_size)
+    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size, tile_size)
         .await?
         .into_iter()
         .map(|image| {

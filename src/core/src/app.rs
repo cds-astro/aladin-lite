@@ -258,7 +258,9 @@ where
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
             // do not add tiles if the view is already at depth 0
-            if survey.get_view().get_depth() > survey.get_min_depth() {
+            let view = survey.get_view();
+            let depth_tile = view.get_depth();
+            if depth_tile > survey.get_min_depth() {
                 let mut tile_cells = survey
                     .get_view()
                     .get_cells()
@@ -266,7 +268,8 @@ where
                     .map(|&c| c)
                     .collect::<Vec<_>>();
 
-                if survey.get_view().get_depth() >= 3 {
+                if depth_tile > 3 {
+                    // Retrieve the grand-grand parent cells but not if it is root ones as it may interfere with already done requests
                     let tile_cells_ancestor = tile_cells
                         .iter()
                         .map(|tile_cell| tile_cell.ancestor(3))
@@ -578,11 +581,12 @@ where
                                 let Allsky {
                                     image, time_req, depth_tile, ..
                                 } = allsky;
-                                al_core::log(&format!("depth tile {}", depth_tile));
+                                //al_core::log(&format!("depth tile {}", depth_tile));
                                 {
                                     let mutex_locked = image.lock().unwrap();
                                     let images = mutex_locked.as_ref();
                                     for (idx, image) in images.unwrap().iter().enumerate() {
+                                        //al_core::log(&format!("idx {}", idx));
                                         survey.add_tile(
                                             &HEALPixCell(depth_tile, idx as u64),
                                             image,
@@ -853,9 +857,10 @@ where
 
         //Request the allsky for the small tile size
         let tile_size = survey.get_config().get_tile_size();
-        al_core::log(&format!("tile size {}", tile_size));
+        //al_core::log(&format!("tile size {}", tile_size));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
+            al_core::log("allsky fetching");
             // Request the allsky
             self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
             // tell the survey to not download tiles which order is <= 3 because the allsky

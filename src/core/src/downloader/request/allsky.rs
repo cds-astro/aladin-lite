@@ -179,14 +179,13 @@ async fn handle_allsky_file<F: ImageFormat>(
     texture_size: i32,
     tile_size: i32,
 ) -> Result<Vec<ImageBuffer<F>>, JsValue> {
-    let mut src_idx = 0;
-
     let num_tiles_per_texture = (texture_size / tile_size)*(texture_size / tile_size);
     let num_tiles = num_tiles_per_texture*12;
     let mut tiles = Vec::with_capacity(num_tiles as usize);
 
     let num_allsky_tiles_per_tile = (tile_size / allsky_tile_size)*(tile_size / allsky_tile_size);
 
+    let mut src_idx = 0;
     for _ in 0..num_tiles {
         let mut base_tile = ImageBuffer::<F>::allocate(&<F as ImageFormat>::P::BLACK, tile_size, tile_size);
         for idx_tile in 0..num_allsky_tiles_per_tile {
@@ -196,7 +195,7 @@ async fn handle_allsky_file<F: ImageFormat>(
 
             let sx = (src_idx % 27) * allsky_tile_size;
             let sy = (src_idx / 27) * allsky_tile_size;
-            base_tile.tex_sub(&allsky, sx, sy, allsky_tile_size, allsky_tile_size, dx as i32, dy as i32, allsky_tile_size, allsky_tile_size);
+            base_tile.tex_sub(&allsky, sx as i32, sy, allsky_tile_size, allsky_tile_size, dx as i32, dy as i32, allsky_tile_size, allsky_tile_size);
 
             src_idx += 1;
         }

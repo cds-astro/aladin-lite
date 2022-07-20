@@ -75,7 +75,8 @@ impl Texture {
         assert!(!self.full);
 
         self.missing &= missing;
-
+        //self.start_time = Some(Time::now());
+        //self.full = true;
         let num_tiles_per_texture = config.num_tiles_per_texture();
         if *cell == texture_cell {
             self.num_tiles_written = num_tiles_per_texture;
@@ -88,7 +89,7 @@ impl Texture {
             // Ensures the tile was not already present in the buffer
             // This is the case because already contained cells do not
             // lead to new requests
-            debug_assert!(new_tile);
+            assert!(new_tile);
             self.num_tiles_written += 1;
 
             if self.num_tiles_written == num_tiles_per_texture {

@@ -265,6 +265,7 @@ impl HiPSConfig {
         let empty_image = EmptyTileImage::new(tile_size, format);
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
+        //let texture_size = tile_size;
         let num_tile_per_side_texture = (texture_size / tile_size) as usize;
 
         let delta_depth = math::utils::log_2_unchecked(num_tile_per_side_texture) as u8;

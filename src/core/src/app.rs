@@ -265,8 +265,11 @@ where
                     .get_view()
                     .get_cells()
                     //.flat_map(|texture_cell| texture_cell.get_tile_cells(survey.get_config()))
-                    .map(|&c| c)
-                    .collect::<Vec<_>>();
+                    .flat_map(|cell| {
+                        let texture_cell = cell.get_texture_cell(survey.get_config());
+                        texture_cell.get_tile_cells(survey.get_config())
+                    })
+                    .collect::<HashSet<_>>();
 
                 if depth_tile > 3 {
                     // Retrieve the grand-grand parent cells but not if it is root ones as it may interfere with already done requests
@@ -534,8 +537,36 @@ where
             for rsc in rscs.into_iter() {
                 match rsc {
                     Resource::Tile(tile) => {
-                        let coverage = self.surveys.get_coverage(&tile.system, tile.cell.depth());
-                        if (coverage.is_some() && coverage.unwrap().contains_tile(&tile.cell)) || tile.is_root {
+                        let is_tile_root = tile.is_root;
+
+                        if let Some((survey, coverage)) = self.surveys.get_survey_and_coverage(&tile) {
+                            let cfg = survey.get_config();
+                            let texture_cell = tile.cell.get_texture_cell(cfg);
+                            let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                .any(|neighbor_tile_cell| {
+                                    coverage.contains_tile(&neighbor_tile_cell)
+                                });
+
+                            if is_tile_root || included_or_near_coverage {
+                                let is_missing = tile.missing();
+                                let Tile {
+                                    cell,
+                                    image,
+                                    time_req,
+                                    ..
+                                } = tile;
+                                survey.add_tile(&cell, image, is_missing, time_req);
+
+                                self.request_redraw = true;
+                            } else {
+                                self.downloader.cache_rsc(Resource::Tile(tile));
+                            }
+                            
+                        } else {
+                            self.downloader.cache_rsc(Resource::Tile(tile));
+                        }
+
+                        /*if (coverage.is_some() && coverage.unwrap().contains_tile(&tile.cell)) || tile.is_root {
                             // Find the survey is tile is refering to
                             let hips_url = tile.get_hips_url();
                             // Get the hips url from that url
@@ -551,9 +582,7 @@ where
 
                                 self.request_redraw = true;
                             }
-                        } else {
-                            self.downloader.cache_rsc(Resource::Tile(tile));
-                        }
+                        }*/
 
 
                         //al_core::log(&format!("{:?} {:?}", tile.cell.depth() == coverage.depth_max(), coverage.contains(tile.cell.idx())));
@@ -578,24 +607,7 @@ where
                                     }
                                 }
                             } else {
-                                let Allsky {
-                                    image, time_req, depth_tile, ..
-                                } = allsky;
-                                //al_core::log(&format!("depth tile {}", depth_tile));
-                                {
-                                    let mutex_locked = image.lock().unwrap();
-                                    let images = mutex_locked.as_ref();
-                                    for (idx, image) in images.unwrap().iter().enumerate() {
-                                        //al_core::log(&format!("idx {}", idx));
-                                        survey.add_tile(
-                                            &HEALPixCell(depth_tile, idx as u64),
-                                            image,
-                                            false,
-                                            time_req,
-                                        );
-                                    }
-                                }
-
+                                survey.add_allsky(allsky);
                                 // Once received ask for redraw
                                 self.request_redraw = true;
                             }
@@ -806,7 +818,7 @@ where
             let tile_size = survey.get_config().get_tile_size();
 
             //Request the allsky for the small tile size
-            if tile_size <= 128 {
+            if tile_size <= 512 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
                 // tell the survey to not download tiles which order is <= 3 because the allsky
@@ -859,8 +871,7 @@ where
         let tile_size = survey.get_config().get_tile_size();
         //al_core::log(&format!("tile size {}", tile_size));
         //Request the allsky for the small tile size
-        if tile_size <= 128 {
-            al_core::log("allsky fetching");
+        if tile_size <= 512 {
             // Request the allsky
             self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
             // tell the survey to not download tiles which order is <= 3 because the allsky

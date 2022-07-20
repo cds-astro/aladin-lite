@@ -159,8 +159,6 @@ impl RecomputeRasterizer for Move {
 // to not be too much skewed
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 
-
-
 impl RecomputeRasterizer for Zoom {
     // Returns:
     // * The UV of the starting tile in the global 4096x4096 texture
@@ -500,6 +498,7 @@ use al_core::{
 use web_sys::{WebGl2RenderingContext};
 
 use crate::math::lonlat::LonLat;
+use crate::downloader::request::allsky::Allsky;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -852,6 +851,13 @@ impl ImageSurvey {
         self.textures.push(&cell, image, missing, time_req);
     }
 
+    pub fn add_allsky(
+        &mut self,
+        allsky: Allsky,
+    ) {
+        self.textures.push_allsky(allsky);
+    }
+
     /* Accessors */
     #[inline]
     pub fn get_config(&self) -> &HiPSConfig {
@@ -1052,6 +1058,7 @@ use al_core::webgl_ctx::GlWrapper;
 use std::collections::hash_map::{Entry, DefaultHasher};
 use std::hash::{Hasher, Hash};
 use al_api::coo_system::CooSystem;
+use crate::downloader::request::tile::Tile;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -1346,7 +1353,7 @@ impl ImageSurveys {
             let hips_frame = cfg.get_frame();
             // Compute that depth
             //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-            let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_tile_size());
+            let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
             //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
             let depth_tile = camera_tile_depth.min(max_tile_depth);
 
@@ -1378,12 +1385,26 @@ impl ImageSurveys {
     }
 
     // Accessors
-    pub fn get_coverage(&mut self, hips_frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
+    pub fn get_coverage(&self, hips_frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
         let mut hasher = DefaultHasher::new();
         (depth, hips_frame).hash(&mut hasher);
         let key = hasher.finish();
 
         self.coverages.get(&key)
+    }
+
+    pub fn get_survey_and_coverage(&mut self, tile: &Tile) -> Option<(&mut ImageSurvey, &HEALPixCoverage)> {
+        let depth = tile.cell.depth();
+        let hips_frame = tile.system;
+
+        let mut hasher = DefaultHasher::new();
+        (depth, hips_frame).hash(&mut hasher);
+        let key = hasher.finish();
+
+        let coverage = self.coverages.get(&key);
+        let survey = self.surveys.get_mut(tile.get_hips_url());
+
+        Some((survey?, coverage?))
     }
 
     pub fn get_depth(&self) -> u8 {

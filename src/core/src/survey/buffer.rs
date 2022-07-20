@@ -181,6 +181,7 @@ use al_core::image::format::{ImageFormatType, R32F, R64F, RGB8U, RGBA8U};
 use al_core::image::format::{R16I, R32I, R8UI};
 
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
+use crate::downloader::request::allsky::Allsky;
 use cgmath::Vector3;
 impl ImageSurveyTextures {
     pub fn new(
@@ -297,6 +298,38 @@ impl ImageSurveyTextures {
         Ok(())
     }
 
+    pub fn push_allsky(
+        &mut self,
+        allsky: Allsky,
+    ) {
+        let Allsky {
+            image, time_req, depth_tile, ..
+        } = allsky;
+        //al_core::log(&format!("depth tile {}", depth_tile));
+        {
+            let mutex_locked = image.lock().unwrap();
+            let images = mutex_locked.as_ref().unwrap();
+            for (idx, image) in images.iter().enumerate() {
+                al_core::log(&format!("idx {}", idx));
+                self.push(
+                    &HEALPixCell(depth_tile, idx as u64),
+                    image,
+                    false,
+                    time_req,
+                );
+            }
+        }
+
+        self.set_ready();
+    }
+
+    pub fn set_ready(&mut self) {
+        self.ready = true;
+        // The survey is ready
+        self.start_time = Some(Time::now());
+        self.num_root_textures_available = NUM_HPX_TILES_DEPTH_ZERO;
+    }
+
     // This method pushes a new downloaded tile into the buffer
     // It must be ensured that the tile is not already contained into the buffer
     pub fn push<I: Image + std::fmt::Debug>(
@@ -306,13 +339,41 @@ impl ImageSurveyTextures {
         missing: bool,
         time_request: Time,
     ) {
-        // Assert here to prevent pushing doublons
         if self.contains_tile(cell) {
             return;
         }
 
         // Get the texture cell in which the tile has to be
         let tex_cell = cell.get_texture_cell(&self.config);
+        // Assert here to prevent pushing doublons
+        /*if self.contains_tile(cell) {
+            let texture = self
+            .textures
+            .get_mut(&tex_cell)
+            .expect("the cell has to be in the tile buffer");
+
+            if missing {
+                send_to_gpu(
+                    cell,
+                    texture,
+                    self.config.get_default_image(),
+                    self.texture_2d_array.clone(),
+                    &self.config,
+                );
+            } else {
+                send_to_gpu(
+                    cell,
+                    texture,
+                    image,
+                    self.texture_2d_array.clone(),
+                    &self.config,
+                );
+            };
+
+            return;
+        }*/
+
+
 
         if !self.textures.contains_key(&tex_cell) {
             let HEALPixCell(_, idx) = tex_cell;

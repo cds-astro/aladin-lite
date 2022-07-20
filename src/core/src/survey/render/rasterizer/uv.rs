@@ -25,43 +25,47 @@ pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
     // The texture cell passed must be a child of texture
     pub fn new(
-        child_texture_cell: &HEALPixCell,
+        cell: &HEALPixCell,
         texture: &Texture,
-        config: &HiPSConfig,
+        cfg: &HiPSConfig,
     ) -> TileUVW {
-        let HEALPixCell(depth, idx) = *child_texture_cell;
-        let HEALPixCell(parent_depth, parent_idx) = *texture.cell();
+        // Index of the texture in the total set of textures
+        let texture_idx = texture.idx();
+        // Index of the slice of textures
+        let num_textures_by_slice = cfg.num_textures_by_slice();
+        let idx_slice = texture_idx / num_textures_by_slice;
+        // Index of the texture in its slice
+        let idx_in_slice = texture_idx % num_textures_by_slice;
 
-        let idx_off = parent_idx << (2 * (depth - parent_depth));
+        // Index of the column of the texture in its slice
+        let num_textures_by_side_slice = cfg.num_textures_by_side_slice();
+        let idx_col_in_slice = idx_in_slice / num_textures_by_side_slice;
+        // Index of the row of the texture in its slice
+        let idx_row_in_slice = idx_in_slice % num_textures_by_side_slice;
 
-        debug_assert!(idx >= idx_off);
-        debug_assert!(depth >= parent_depth);
-        let nside = (1 << (depth - parent_depth)) as f32;
+        // Row and column indexes of the tile in its texture
+        let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(texture.cell());
 
-        let (x, y) = utils::unmortonize(idx - idx_off);
-        let x = x as f32;
-        let y = y as f32;
-        debug_assert!(x < nside);
-        debug_assert!(y < nside);
+        // Offset in the slice in pixels
+        /*let offset = Vector3::new(
+            (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size,
+            (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size,
+            idx_slice,
+        );*/
 
-        let parent_idx_texture = texture.idx();
-        let idx_texture = (parent_idx_texture / config.num_textures_by_slice()) as f32;
-        let parent_idx_in_texture = parent_idx_texture % config.num_textures_by_slice();
-
-        let parent_idx_row = (parent_idx_in_texture / config.num_textures_by_side_slice()) as f32; // in [0; 7]
-        let parent_idx_col = (parent_idx_in_texture % config.num_textures_by_side_slice()) as f32; // in [0; 7]
-
-        let num_textures_by_side_slice_f32 = config.num_textures_by_side_slice() as f32;
-        let u = (parent_idx_col + (y / nside)) / num_textures_by_side_slice_f32;
-        let v = (parent_idx_row + (x / nside)) / num_textures_by_side_slice_f32;
+        let num_textures_by_side_slice_f32 = num_textures_by_side_slice as f32;
+        let nside = (1 << (cell.depth() - texture.cell().depth())) as f32;
+        let u = ((idx_row_in_slice as f32) + ((idx_row_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
+        let v = ((idx_col_in_slice as f32) + ((idx_col_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
 
         let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
 
+        let w = (texture_idx as f32) / (num_textures_by_slice as f32);
         TileUVW([
-            Vector3::new(u, v, idx_texture),
-            Vector3::new(u + ds, v, idx_texture),
-            Vector3::new(u, v + ds, idx_texture),
-            Vector3::new(u + ds, v + ds, idx_texture),
+            Vector3::new(u, v, w),
+            Vector3::new(u + ds, v, w),
+            Vector3::new(u, v + ds, w),
+            Vector3::new(u + ds, v + ds, w),
         ])
     }
 }

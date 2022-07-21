@@ -310,7 +310,6 @@ impl ImageSurveyTextures {
             let mutex_locked = image.lock().unwrap();
             let images = mutex_locked.as_ref().unwrap();
             for (idx, image) in images.iter().enumerate() {
-                al_core::log(&format!("idx {}", idx));
                 self.push(
                     &HEALPixCell(depth_tile, idx as u64),
                     image,
@@ -372,8 +371,6 @@ impl ImageSurveyTextures {
 
             return;
         }*/
-
-
 
         if !self.textures.contains_key(&tex_cell) {
             let HEALPixCell(_, idx) = tex_cell;

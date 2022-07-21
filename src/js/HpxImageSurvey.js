@@ -118,72 +118,6 @@ export async function fetchSurveyProperties(rootURLOrId) {
     return metadata;
 }
 
-async function searchForValidSurveyUrl(metadata, backend) {
-    const pingHipsServiceUrl = (hipsServiceUrl) => {
-        const controller = new AbortController()
-
-        const startRequestTime = Date.now();
-        const maxTime = 2000;
-        // 5 second timeout:
-        const timeoutId = setTimeout(() => controller.abort(), maxTime)
-        const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "no-cors"}).then(response => {
-            const endRequestTime = Date.now();
-            const duration = endRequestTime - startRequestTime;//the time needed to do the request
-            // completed request before timeout fired
-            clearTimeout(timeoutId)
-            // Resolve with the time duration of the request
-            return { duration: duration, baseUrl: hipsServiceUrl };
-        }).catch((e) => {
-            console.warn(hipsServiceUrl, " responding very slowly: ", e)
-            return { duration: maxTime, baseUrl: hipsServiceUrl };
-        });
-    
-        return promise;
-    };
-
-    // Get all the possible hips_service_url urls
-    let promises = new Array();
-    promises.push(pingHipsServiceUrl(metadata.hips_service_url));
-
-    let numHiPSServiceURL = 1;
-    while (metadata.hasOwnProperty("hips_service_url_" + numHiPSServiceURL.toString())) {
-        const key = "hips_service_url_" + numHiPSServiceURL.toString();
-
-        let curUrl = metadata[key];
-        promises.push(pingHipsServiceUrl(curUrl))
-        numHiPSServiceURL += 1;
-    }
-
-    const url = await Promise.all(promises).then((results) => {
-        const getRandomIntInclusive = function(min, max) {
-            min = Math.ceil(min);
-            max = Math.floor(max);
-            return Math.floor(Math.random() * (max - min +1)) + min;
-        };
-
-        results.sort((r1, r2) => {
-            return r1.duration - r2.duration;
-        });
-
-        if (results.length >= 2) {
-            const isSecondUrlOk = ((results[1].duration - results[0].duration) / results[0].duration) < 0.20;
-
-            if (isSecondUrlOk) {
-                return results[getRandomIntInclusive(0, 1)].baseUrl;
-            } else {
-                return results[0].baseUrl;
-            }
-        } else {
-            return results[0].baseUrl;
-        }
-    });
-    // Change the backend survey url
-    if (metadata.hips_service_url !== url) {
-        console.info("Change fetching tile from ", metadata.hips_service_url, " to ", url)
-        backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
-    }
-}
-
 export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
@@ -266,7 +200,7 @@ export let HpxImageSurvey = (function() {
             // HiPS url
             self.name = self.name || metadata.obs_title;
             // Run this async, when it completes, reset the properties url
-            searchForValidSurveyUrl(metadata, self.backend);
+            self.searchForValidSurveyUrl(metadata);
             const url = metadata.hips_service_url;
 
             if (!url) {
@@ -465,6 +399,92 @@ export let HpxImageSurvey = (function() {
             }
         })();
     };
+
+    HpxImageSurvey.prototype.searchForValidSurveyUrl = async function(metadata) {
+        let self = this;
+        const pingHipsServiceUrl = (hipsServiceUrl) => {
+            const controller = new AbortController()
+
+            const startRequestTime = Date.now();
+            const maxTime = 2000;
+            // 5 second timeout:
+            const timeoutId = setTimeout(() => controller.abort(), maxTime)
+            const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "no-cors"}).then(response => {
+                const endRequestTime = Date.now();
+                const duration = endRequestTime - startRequestTime;//the time needed to do the request
+                // completed request before timeout fired
+                clearTimeout(timeoutId)
+                // Resolve with the time duration of the request
+                return { duration: duration, baseUrl: hipsServiceUrl };
+            }).catch((e) => {
+                console.warn(hipsServiceUrl, " responding very slowly: ", e)
+                return { duration: maxTime, baseUrl: hipsServiceUrl };
+            });
+
+            return promise;
+        };
+
+        // Get all the possible hips_service_url urls
+        let promises = new Array();
+        promises.push(pingHipsServiceUrl(metadata.hips_service_url));
+
+        let numHiPSServiceURL = 1;
+        while (metadata.hasOwnProperty("hips_service_url_" + numHiPSServiceURL.toString())) {
+            const key = "hips_service_url_" + numHiPSServiceURL.toString();
+
+            let curUrl = metadata[key];
+            promises.push(pingHipsServiceUrl(curUrl))
+            numHiPSServiceURL += 1;
+        }
+
+        let url = await Promise.all(promises).then((results) => {
+            const getRandomIntInclusive = function(min, max) {
+                min = Math.ceil(min);
+                max = Math.floor(max);
+                return Math.floor(Math.random() * (max - min +1)) + min;
+            };
+
+            results.sort((r1, r2) => {
+                return r1.duration - r2.duration;
+            });
+
+            if (results.length >= 2) {
+                const isSecondUrlOk = ((results[1].duration - results[0].duration) / results[0].duration) < 0.20;
+
+                if (isSecondUrlOk) {
+                    return results[getRandomIntInclusive(0, 1)].baseUrl;
+                } else {
+                    return results[0].baseUrl;
+                }
+            } else {
+                return results[0].baseUrl;
+            }
+        });
+
+        if (Utils.isHttpsContext()) {
+            const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
+                return url.includes(element);
+            });
+            if (switchToHttps) {
+                url = url.replace('http://', 'https://');
+            }
+        }
+
+        // Change the backend survey url
+        if (metadata.hips_service_url !== url) {
+            console.info("Change fetching tile from ", metadata.hips_service_url, " to ", url)
+            //self.backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
+            if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
+                return;
+            }
+
+            self.properties.url = metadata.hips_service_url;
+
+            if (self.added) {
+                self.backend.commitSurveysToBackend(self, self.layer);
+            }
+        }
+    }
 
     HpxImageSurvey.prototype.updateMeta = function() {
         let blend = {

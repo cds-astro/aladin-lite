@@ -45,7 +45,7 @@ impl TileFetcherQueue {
         while self.num_tiles_fetched < MAX_NUM_TILE_FETCHING && !self.base_tile_queries.is_empty() {
             let query = self.base_tile_queries.pop().unwrap();
 
-            if downloader.fetch(query, false) {
+            if downloader.fetch(query) {
                 // The fetch has succed
                 self.num_tiles_fetched += 1;
             }
@@ -54,7 +54,7 @@ impl TileFetcherQueue {
         while self.num_tiles_fetched < MAX_NUM_TILE_FETCHING && !self.queries.is_empty() {
             let query = self.queries.pop().unwrap();
 
-            if downloader.fetch(query, false) {
+            if downloader.fetch(query) {
                 self.num_tiles_fetched += 1;
             }
         }

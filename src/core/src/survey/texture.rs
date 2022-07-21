@@ -71,8 +71,8 @@ impl Texture {
     // Return true if the tile is newly added
     pub fn append(&mut self, cell: &HEALPixCell, config: &HiPSConfig, missing: bool) {
         let texture_cell = cell.get_texture_cell(config);
-        assert!(texture_cell == self.texture_cell);
-        assert!(!self.full);
+        debug_assert!(texture_cell == self.texture_cell);
+        debug_assert!(!self.full);
 
         self.missing &= missing;
         //self.start_time = Some(Time::now());
@@ -89,7 +89,7 @@ impl Texture {
             // Ensures the tile was not already present in the buffer
             // This is the case because already contained cells do not
             // lead to new requests
-            assert!(new_tile);
+            debug_assert!(new_tile);
             self.num_tiles_written += 1;
 
             if self.num_tiles_written == num_tiles_per_texture {

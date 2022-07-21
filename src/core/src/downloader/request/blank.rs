@@ -21,7 +21,10 @@ impl Default for Metadata {
 }
 
 use super::{Request, RequestType};
+use crate::downloader::QueryId;
+
 pub struct PixelMetadataRequest {
+    pub id: QueryId,
     pub url: Url,
     pub hips_url: Url,
     request: Request<Metadata>,
@@ -37,11 +40,12 @@ impl From<PixelMetadataRequest> for RequestType {
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, RequestInit, RequestMode, Response};
-
+use crate::downloader::query::Query;
 use wasm_bindgen::JsCast;
 impl From<query::PixelMetadata> for PixelMetadataRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::PixelMetadata) -> Self {
+        let id = query.id();
         let query::PixelMetadata {
             format,
             url,
@@ -138,6 +142,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
         };
 
         Self {
+            id,
             url,
             hips_url,
             request,
@@ -158,6 +163,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             request,
             hips_url,
             url,
+            ..
         } = request;
         if request.is_resolved() {
             let Request::<Metadata> {

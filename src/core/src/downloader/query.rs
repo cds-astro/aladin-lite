@@ -5,7 +5,10 @@ pub trait Query: Sized {
     type Request: From<Self> + Into<RequestType>;
 
     fn url(&self) -> &Url;
+    fn id(&self) -> QueryId;
 }
+
+pub type QueryId = (&'static str, Url);
 
 use al_core::image::format::ImageFormatType;
 pub struct Tile {
@@ -64,6 +67,10 @@ impl Query for Tile {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn id(&self) -> QueryId {
+        ("Tile", self.url().to_string())
+    }
 }
 
 /* ---------------------------------- */
@@ -104,6 +111,10 @@ impl Query for Allsky {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn id(&self) -> QueryId {
+        ("Allsky", self.url().to_string())
+    }
 }
 
 
@@ -139,6 +150,10 @@ impl Query for PixelMetadata {
     fn url(&self) -> &Url {
         &self.url
     }
+
+    fn id(&self) -> QueryId {
+        ("PixelMetadata", self.url().to_string())
+    }
 }
 
 /* ---------------------------------- */
@@ -167,5 +182,9 @@ impl Query for MOC {
 
     fn url(&self) -> &Url {
         &self.url
+    }
+
+    fn id(&self) -> QueryId {
+        ("MOC", self.url().to_string())
     }
 }

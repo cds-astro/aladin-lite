@@ -11,10 +11,14 @@ use al_core::image::{
 };
 
 use super::{Request, RequestType};
+use crate::downloader::query::Query;
+use crate::downloader::QueryId;
+
 pub struct TileRequest {
     pub cell: HEALPixCell,
     pub hips_url: Url,
     pub url: Url,
+    pub id: QueryId,
     pub system: CooSystem,
 
     request: Request<ImageType>,
@@ -34,6 +38,8 @@ use wasm_bindgen::JsCast;
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {
+        let id = query.id();
+
         let query::Tile {
             format,
             cell,
@@ -238,6 +244,7 @@ impl From<query::Tile> for TileRequest {
 
         Self {
             cell,
+            id,
             hips_url,
             url,
             request,
@@ -282,6 +289,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             url,
             system,
             is_root,
+            ..
         } = request;
         if request.is_resolved() {
             let Request::<ImageType> {

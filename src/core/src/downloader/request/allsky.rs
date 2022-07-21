@@ -5,10 +5,12 @@ use crate::downloader::{query};
 use al_core::image::{fits::Fits, ImageType};
 
 use super::{Request, RequestType};
+use crate::downloader::QueryId;
 pub struct AllskyRequest {
     pub hips_url: Url,
     pub url: Url,
     pub depth_tile: u8,
+    pub id: QueryId,
 
     request: Request<Vec<ImageType>>,
 }
@@ -25,11 +27,12 @@ use web_sys::{RequestInit, RequestMode, Response};
 
 use al_core::{image::raw::ImageBuffer, texture::Pixel};
 use wasm_bindgen::JsCast;
-
+use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
+        let id = query.id();
         let query::Allsky {
             format,
             tile_size,
@@ -163,6 +166,7 @@ impl From<query::Allsky> for AllskyRequest {
         });
 
         Self {
+            id,
             hips_url,
             depth_tile,
             url,
@@ -277,6 +281,7 @@ impl<'a> From<&'a AllskyRequest> for Option<Allsky> {
             hips_url,
             depth_tile,
             url,
+            ..
         } = request;
         if request.is_resolved() {
             let Request::<Vec<ImageType>> {

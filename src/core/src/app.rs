@@ -151,6 +151,14 @@ pub enum AppType {
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
+
+use moclib::deser::fits::MocQtyType::Hpx;
+use moclib::moc::range::RangeMOC;
+use moclib::elemset::range::MocRanges;
+use moclib::ranges::Ranges;
+use crate::healpix::coverage::HEALPixCoverage;
+
+use crate::downloader::request::moc::MOC;
 impl<P> App<P>
 where
     P: Projection,
@@ -279,6 +287,26 @@ where
                         .collect::<HashSet<_>>();
 
                     tile_cells.extend(tile_cells_ancestor);
+                }
+
+                // Do not request the cells where we know from its moc that there is no data
+                {
+                    if let Some(coverage) = *survey.get_footprint_moc().lock().unwrap() {
+                        let tile_cells = tile_cells.into_iter()
+                            .filter(|tile_cell| {
+                                let start_idx = tile_cell.idx() << (2*(29 - tile_cell.depth()));
+                                let end_idx = (tile_cell.idx() + 1) << (2*(29 - tile_cell.depth()));
+
+                                let mut moc = RangeMOC::new(
+                                    tile_cell.depth(),
+                                    MocRanges::<u64, moclib::qty::Hpx<u64>>(
+                                        Ranges::<u64>(Box::new([tile_cell.idx()..(tile_cell.idx() + 1)])),
+                                        std::marker::PhantomData
+                                    )
+                                );
+                                coverage.intersection(&HEALPixCoverage(moc))
+                            });
+                    }
                 }
 
                 for tile_cell in tile_cells {
@@ -539,53 +567,64 @@ where
                     Resource::Tile(tile) => {
                         let is_tile_root = tile.is_root;
 
-                        if let Some((survey, coverage)) = self.surveys.get_survey_and_coverage(&tile) {
-                            let cfg = survey.get_config();
-                            let texture_cell = tile.cell.get_texture_cell(cfg);
-                            let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
-                                .any(|neighbor_tile_cell| {
-                                    coverage.contains_tile(&neighbor_tile_cell)
-                                });
+                        if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
+                            if is_tile_root && tile.missing() {
+                                al_core::log("tile root missing!");
+                                survey.set_min_depth(survey.get_config().delta_depth());
+                                // If at least one tile root is missing, query the allsky!
+                                self.downloader.fetch(query::Allsky::new(survey.get_config()));
 
-                            if is_tile_root || included_or_near_coverage {
-                                let is_missing = tile.missing();
-                                let Tile {
-                                    cell,
-                                    image,
-                                    time_req,
-                                    ..
-                                } = tile;
-                                survey.add_tile(&cell, image, is_missing, time_req);
-
-                                self.request_redraw = true;
                             } else {
-                                self.downloader.cache_rsc(Resource::Tile(tile));
+                                if is_tile_root {
+                                    let is_missing = tile.missing();
+                                    let Tile {
+                                        cell,
+                                        image,
+                                        time_req,
+                                        ..
+                                    } = tile;
+                                    let image = if is_missing {
+                                        None
+                                    } else {
+                                        Some(image)
+                                    };
+                                    survey.add_tile(&cell, image, time_req);
+
+                                    self.request_redraw = true;
+                                } else {
+                                    let cfg = survey.get_config();
+                                    let coverage = survey.get_coverage();
+                                    let texture_cell = tile.cell.get_texture_cell(cfg);
+                                    let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                        .any(|neighbor_tile_cell| {
+                                            coverage.contains_tile(&neighbor_tile_cell)
+                                        });
+        
+                                    if included_or_near_coverage {
+                                        let is_missing = tile.missing();
+                                        let Tile {
+                                            cell,
+                                            image,
+                                            time_req,
+                                            ..
+                                        } = tile;
+
+                                        let image = if is_missing {
+                                            None
+                                        } else {
+                                            Some(image)
+                                        };
+                                        survey.add_tile(&cell, image, time_req);
+        
+                                        self.request_redraw = true;
+                                    } else {
+                                        self.downloader.cache_rsc(Resource::Tile(tile));
+                                    }
+                                }  
                             }
-                            
                         } else {
                             self.downloader.cache_rsc(Resource::Tile(tile));
                         }
-
-                        /*if (coverage.is_some() && coverage.unwrap().contains_tile(&tile.cell)) || tile.is_root {
-                            // Find the survey is tile is refering to
-                            let hips_url = tile.get_hips_url();
-                            // Get the hips url from that url
-                            if let Some(survey) = self.surveys.get_mut(hips_url) {
-                                let is_missing = tile.missing();
-                                let Tile {
-                                    cell,
-                                    image,
-                                    time_req,
-                                    ..
-                                } = tile;
-                                survey.add_tile(&cell, image, is_missing, time_req);
-
-                                self.request_redraw = true;
-                            }
-                        }*/
-
-
-                        //al_core::log(&format!("{:?} {:?}", tile.cell.depth() == coverage.depth_max(), coverage.contains(tile.cell.idx())));
 
                         num_tile_received += 1;
                     }
@@ -595,7 +634,7 @@ where
                         if let Some(survey) = self.surveys.get_mut(&hips_url) {
                             let is_missing = allsky.missing();
                             if is_missing {
-                                survey.set_min_depth(0);
+                                survey.set_min_depth(survey.get_config().delta_depth());
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
@@ -607,6 +646,10 @@ where
                                     }
                                 }
                             } else {
+                                al_core::log("received allsky2");
+
+                                // tell the survey to not download tiles which order is <= 3 because the allsky
+                                // give them already
                                 survey.add_allsky(allsky);
                                 // Once received ask for redraw
                                 self.request_redraw = true;
@@ -621,8 +664,16 @@ where
                             cfg.scale = metadata.value.scale;
                         }
                     }
-                    Resource::MOC(_moc) => {
-                        // todo!()
+                    Resource::MOC(moc) => {
+                        let hips_url = moc.get_hips_url();
+                        if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                            let MOC {
+                                moc,
+                                ..
+                            } = moc;
+
+                            survey.set_footprint_moc(moc);
+                        }
                     }
                 }
             }
@@ -808,9 +859,7 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        let _new_survey_ids = self
-            .surveys
-            .set_image_surveys(hipses, &self.gl, &mut self.camera)?;
+        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera)?;
 
         for survey in self.surveys.surveys.values_mut() {
             // Request for the allsky first
@@ -820,7 +869,7 @@ where
             //Request the allsky for the small tile size
             if tile_size <= 128 {
                 // Request the allsky
-                self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
+                self.downloader.fetch(query::Allsky::new(survey.get_config()));
                 // tell the survey to not download tiles which order is <= 3 because the allsky
                 // give them already
                 survey.set_min_depth(survey.get_config().delta_depth());
@@ -834,7 +883,7 @@ where
                     }
                 }
             }
-            self.downloader.fetch(query::PixelMetadata::new(survey.get_config()), true);
+            self.downloader.fetch(query::PixelMetadata::new(survey.get_config()));
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -873,7 +922,7 @@ where
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky
-            self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
+            self.downloader.fetch(query::Allsky::new(survey.get_config()));
             // tell the survey to not download tiles which order is <= 3 because the allsky
             // give them already
             survey.set_min_depth(survey.get_config().delta_depth());
@@ -887,7 +936,7 @@ where
                 }
             }
         }
-        self.downloader.fetch(query::PixelMetadata::new(survey.get_config()), true);
+        self.downloader.fetch(query::PixelMetadata::new(survey.get_config()));
         
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

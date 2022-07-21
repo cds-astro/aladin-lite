@@ -312,8 +312,7 @@ impl ImageSurveyTextures {
             for (idx, image) in images.iter().enumerate() {
                 self.push(
                     &HEALPixCell(depth_tile, idx as u64),
-                    image,
-                    false,
+                    Some(image),
                     time_req,
                 );
             }
@@ -334,8 +333,7 @@ impl ImageSurveyTextures {
     pub fn push<I: Image + std::fmt::Debug>(
         &mut self,
         cell: &HEALPixCell,
-        image: I,
-        missing: bool,
+        image: Option<I>,
         time_request: Time,
     ) {
         if self.contains_tile(cell) {
@@ -418,20 +416,19 @@ impl ImageSurveyTextures {
         // and the tile is not already in any textures of the buffer
         // We can safely push it
         // First get the texture
+        let parent = tex_cell.parent();
+        let parent_missing = if let Some(parent_tex) = self.textures.get(&parent) {
+            parent_tex.is_missing()
+        } else {
+            true
+        };
+
         let texture = self
             .textures
             .get_mut(&tex_cell)
             .expect("the cell has to be in the tile buffer");
 
-        if missing {
-            send_to_gpu(
-                cell,
-                texture,
-                self.config.get_default_image(),
-                self.texture_2d_array.clone(),
-                &self.config,
-            );
-        } else {
+        if let Some(image) = image {
             send_to_gpu(
                 cell,
                 texture,
@@ -439,14 +436,27 @@ impl ImageSurveyTextures {
                 self.texture_2d_array.clone(),
                 &self.config,
             );
+            // Once the texture has been received in the GPU
+            texture.append(
+                cell, // The tile cell
+                &self.config,
+                false,
+            );
+        } else {
+            send_to_gpu(
+                cell,
+                texture,
+                self.config.get_default_image(),
+                self.texture_2d_array.clone(),
+                &self.config,
+            );
+            // Once the texture has been received in the GPU
+            texture.append(
+                cell, // The tile cell
+                &self.config,
+                true,
+            );
         };
-
-        // Once the texture has been received in the GPU
-        texture.append(
-            cell, // The tile cell
-            &self.config,
-            missing,
-        );
 
         self.available_tiles_during_frame = true;
 

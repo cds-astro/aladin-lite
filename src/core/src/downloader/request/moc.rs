@@ -5,7 +5,9 @@ use moclib::qty::Hpx;
 use moclib::moc::range::RangeMOC;
 use moclib::deser::fits::MocType;
 use crate::healpix::coverage::SMOC;
+use crate::downloader::QueryId;
 pub struct MOCRequest {
+    pub id: QueryId,
     pub hips_url: Url,
     pub url: Url,
 
@@ -36,15 +38,18 @@ fn from_fits_hpx<T: Idx>(
         ).into_range_moc(),
     }
 }
+use crate::downloader::query::Query;
 use std::io::Cursor;
 use moclib::idx::Idx;
 use moclib::moc::{RangeMOCIterator, CellMOCIntoIterator, CellMOCIterator};
 use moclib::deser::fits::MocIdxType;
 use moclib::deser::fits::MocQtyType;
 use wasm_bindgen::JsValue;
+use crate::healpix::coverage::HEALPixCoverage;
 impl From<query::MOC> for MOCRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::MOC) -> Self {
+        let id = query.id();
         let query::MOC {
             url,
             hips_url,
@@ -73,10 +78,11 @@ impl From<query::MOC> for MOCRequest {
                 _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC"))
             }?;
 
-            Ok(smoc)
+            Ok(HEALPixCoverage(smoc))
         });
 
         Self {
+            id,
             hips_url,
             url,
             request,
@@ -86,7 +92,7 @@ impl From<query::MOC> for MOCRequest {
 
 use std::sync::{Arc, Mutex};
 pub struct MOC {
-    pub moc: Arc<Mutex<Option<RangeMOC<u64, Hpx<u64>>>>>,
+    pub moc: Arc<Mutex<Option<HEALPixCoverage>>>,
     hips_url: Url,
     url: Url,
 }
@@ -107,6 +113,7 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
             request,
             hips_url,
             url,
+            ..
         } = request;
         if request.is_resolved() {
             let Request::<RangeMOC<u64, Hpx<u64>>> {

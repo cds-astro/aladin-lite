@@ -481,6 +481,7 @@ export let HpxImageSurvey = (function() {
             self.properties.url = url;
 
             if (self.added) {
+                console.log("Notify change url")
                 self.backend.commitSurveysToBackend(self, self.layer);
             }
         }

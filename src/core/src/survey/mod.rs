@@ -484,6 +484,10 @@ pub struct ImageSurvey {
     gl: WebGlContext,
 
     min_depth: u8,
+    depth: u8,
+
+    coverage: HEALPixCoverage,
+    footprint_moc: Arc<Mutex<Option<HEALPixCoverage>>>,
 }
 use crate::{
     camera::UserAction,
@@ -496,6 +500,7 @@ use al_core::{
 };
 
 use web_sys::{WebGl2RenderingContext};
+use std::sync::{Arc, Mutex};
 
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
@@ -622,6 +627,10 @@ impl ImageSurvey {
 
         let gl = gl.clone();
         let min_depth = 0;
+        let depth = 0;
+        let coverage = HEALPixCoverage::allsky(0);
+
+        let footprint_moc = Arc::new(Mutex::new(None));
         // request the allsky texture
         Ok(ImageSurvey {
             //color,
@@ -645,7 +654,20 @@ impl ImageSurvey {
 
             idx_vertices,
             min_depth,
+            depth,
+            coverage,
+            footprint_moc,
         })
+    }
+
+    #[inline]
+    pub fn get_footprint_moc(&self) -> Arc<Mutex<Option<HEALPixCoverage>>> {
+        self.footprint_moc.clone()
+    }
+
+    #[inline]
+    pub fn set_footprint_moc(&mut self, moc: Arc<Mutex<Option<HEALPixCoverage>>>) {
+        self.footprint_moc = moc;
     }
 
     pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
@@ -654,10 +676,6 @@ impl ImageSurvey {
 
     pub fn set_min_depth(&mut self, min_depth: u8) {
         self.min_depth = min_depth;
-    }
-
-    pub fn get_min_depth(&mut self) -> u8 {
-        self.min_depth
     }
 
     pub fn get_fading_factor(&self) -> f32 {
@@ -675,11 +693,6 @@ impl ImageSurvey {
         self.textures.config().is_allsky
     } 
 
-    /*pub fn longitude_reversed(&self) -> bool {
-        let meta = self.meta.get(layer).expect("Meta should be found");
-        self.textures.config().longitude_reversed
-    }*/
-
     fn reset_frame(&mut self) {
         self.view.reset_frame();
     }
@@ -691,7 +704,7 @@ impl ImageSurvey {
         camera: &CameraViewPort,
     ) -> Result<JsValue, JsValue> {
         // 1. Convert it to the hips frame system
-        let cfg = self.get_config();
+        let cfg = self.textures.config();
         let camera_frame = camera.get_system();
         let hips_frame = &cfg.get_frame();
 
@@ -826,8 +839,29 @@ impl ImageSurvey {
         );
     }
 
-    fn refresh_view(&mut self, new_depth: u8, cells: &[HEALPixCell], camera: &CameraViewPort) {
-        self.view.refresh_cells(new_depth, cells, camera);
+    fn refresh_view(&mut self, camera: &CameraViewPort) {
+        let cfg = self.textures.config();
+        let max_tile_depth = cfg.get_max_tile_depth();
+
+        let hips_frame = cfg.get_frame();
+        // Compute that depth
+        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
+        let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+        let depth_tile = camera_tile_depth.min(max_tile_depth);
+
+        // Get the cells of that depth in the current field of view
+        let (coverage, tile_cells) = crate::survey::view::get_tile_cells_in_camera(depth_tile, camera, hips_frame);
+        self.coverage = coverage;
+
+        // Set the depth of the HiPS textures
+        self.depth = if depth_tile > cfg.delta_depth() {
+            depth_tile - cfg.delta_depth()
+        } else {
+            0
+        };
+
+        self.view.refresh_cells(depth_tile, &tile_cells, camera);
     }
 
     // Return a boolean to signal if the tile is present or not in the survey
@@ -844,11 +878,10 @@ impl ImageSurvey {
     pub fn add_tile<I: Image + std::fmt::Debug>(
         &mut self,
         cell: &HEALPixCell,
-        image: I,
-        missing: bool,
+        image: Option<I>,
         time_req: Time,
     ) {
-        self.textures.push(&cell, image, missing, time_req);
+        self.textures.push(&cell, image, time_req);
     }
 
     pub fn add_allsky(
@@ -872,6 +905,21 @@ impl ImageSurvey {
     #[inline]
     pub fn get_view(&self) -> &HEALPixCellsInView {
         &self.view
+    }
+
+    #[inline]
+    pub fn get_min_depth(&self) -> u8 {
+        self.min_depth
+    }
+
+    #[inline]
+    pub fn get_coverage(&self) -> &HEALPixCoverage {
+        &self.coverage
+    }
+
+    #[inline]
+    pub fn get_depth(&self) -> u8 {
+        self.depth
     }
 
     #[inline]
@@ -1040,7 +1088,6 @@ pub struct ImageSurveys {
     past_rendering_mode: RenderingMode,
     current_rendering_mode: RenderingMode,
 
-    coverages: HashMap<u64, HEALPixCoverage>,
     depth: u8,
 
     gl: WebGlContext,
@@ -1094,14 +1141,12 @@ impl ImageSurveys {
         let past_rendering_mode = RenderingMode::Raytrace;
         let current_rendering_mode = RenderingMode::Raytrace;
 
-        let coverages = HashMap::new();
         let depth = 0;
         ImageSurveys {
             surveys,
             meta,
             urls,
             layers,
-            coverages,
 
             most_precise_survey,
 
@@ -1237,7 +1282,7 @@ impl ImageSurveys {
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
         camera: &mut CameraViewPort,
-    ) -> Result<Vec<String>, JsValue> {
+    ) -> Result<(), JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
             for j in 0..i {
@@ -1250,8 +1295,6 @@ impl ImageSurveys {
                 }
             }
         }
-
-        let mut new_survey_urls = Vec::new();
 
         let mut current_needed_surveys = HashSet::new();
         for hips in hipses.iter() {
@@ -1297,7 +1340,6 @@ impl ImageSurveys {
             if !self.surveys.contains_key(&url) {
                 let survey = ImageSurvey::new(config, gl, camera)?;
                 self.surveys.insert(url.clone(), survey);
-                new_survey_urls.push(url.clone());
             }
 
             longitude_reversed |= meta.longitude_reversed;
@@ -1310,7 +1352,7 @@ impl ImageSurveys {
 
         camera.set_longitude_reversed(longitude_reversed);
 
-        Ok(new_survey_urls)
+        Ok(())
     }
 
     pub fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
@@ -1344,72 +1386,17 @@ impl ImageSurveys {
     }
 
     pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
-        self.coverages.clear();
-
-        let mut coverage_cells = HashMap::new();
         self.depth = 0;
 
         for survey in self.surveys.values_mut() {
-            let cfg = survey.get_config();
-            let max_tile_depth = cfg.get_max_tile_depth();
-
-            let hips_frame = cfg.get_frame();
-            // Compute that depth
-            //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-            let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-            //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-            let depth_tile = camera_tile_depth.min(max_tile_depth);
-
-            let mut hasher = DefaultHasher::new();
-            (depth_tile, hips_frame).hash(&mut hasher);
-            let key = hasher.finish();
-
-            // Get the cells of that depth in the current field of view
-            let cells = match coverage_cells.entry(key) {
-                Entry::Occupied(o) => o.into_mut(),
-                Entry::Vacant(v) => {
-                    let (coverage, cells) = crate::survey::view::get_tile_cells_in_camera(depth_tile, camera, hips_frame);
-
-                    self.coverages.insert(key, coverage);
-                    v.insert(cells)
-                }
-            };
-            // Set the depth of the HiPS textures
-            let depth = if depth_tile > cfg.delta_depth() {
-                depth_tile - cfg.delta_depth()
-            } else {
-                0
-            };
-            self.depth = self.depth.max(depth);
+            survey.refresh_view(camera);
+            
+            self.depth = self.depth.max(survey.get_depth());
             //al_core::log(&format!("depth {:?} delta d {:?} max tile order {:?} depth tile {:?}", depth, cfg.delta_depth(), max_tile_depth, depth_tile));
-
-            survey.refresh_view(depth_tile, cells, camera);
         }
     }
 
     // Accessors
-    pub fn get_coverage(&self, hips_frame: &CooSystem, depth: u8) -> Option<&HEALPixCoverage> {
-        let mut hasher = DefaultHasher::new();
-        (depth, hips_frame).hash(&mut hasher);
-        let key = hasher.finish();
-
-        self.coverages.get(&key)
-    }
-
-    pub fn get_survey_and_coverage(&mut self, tile: &Tile) -> Option<(&mut ImageSurvey, &HEALPixCoverage)> {
-        let depth = tile.cell.depth();
-        let hips_frame = tile.system;
-
-        let mut hasher = DefaultHasher::new();
-        (depth, hips_frame).hash(&mut hasher);
-        let key = hasher.finish();
-
-        let coverage = self.coverages.get(&key);
-        let survey = self.surveys.get_mut(tile.get_hips_url());
-
-        Some((survey?, coverage?))
-    }
-
     pub fn get_depth(&self) -> u8 {
         self.depth
     }

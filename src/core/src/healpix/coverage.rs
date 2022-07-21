@@ -29,7 +29,7 @@ impl HEALPixCoverage {
             .collect::<Vec<_>>();
         let (inside_lon, inside_lat) = math::lonlat::xyz_to_radec(inside);
 
-        let mut moc = RangeMOC::from_polygon_with_control_point(&lonlat[..], (inside_lon.0, inside_lat.0), depth);
+        let moc = RangeMOC::from_polygon_with_control_point(&lonlat[..], (inside_lon.0, inside_lat.0), depth);
 
         HEALPixCoverage(moc)
     }
@@ -46,6 +46,10 @@ impl HEALPixCoverage {
 
     pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
         self.0.contains_depth_max_val(&cell.idx())
+    }
+
+    pub fn intersection(&self, other: &Self) -> bool {
+        self.0.intersection(&other.0).is_empty()
     }
 }
 

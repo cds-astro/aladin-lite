@@ -49,13 +49,11 @@ pub fn get_tile_cells_in_camera(
                 coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
 
             // Prefer to query from_polygon with depth >= 2
-            let mut coverage = healpix::coverage::HEALPixCoverage::new(
+            healpix::coverage::HEALPixCoverage::new(
                 depth_tile,
                 &icrsj2000_fov_vertices_pos[..],
                 &icrsj2000_inside_pos.truncate(),
-            );
-
-            coverage
+            )
         } else {
             HEALPixCoverage::allsky(depth_tile)
         }

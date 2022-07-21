@@ -88,15 +88,15 @@ pub enum RequestType {
     MOC(MOCRequest)
     //..
 }
-
+use crate::downloader::QueryId;
 use super::query::Url;
 impl RequestType {
-    pub fn url(&self) -> &Url {
+    pub fn id(&self) -> &QueryId {
         match self {
-            RequestType::Tile(request) => &request.url,
-            RequestType::Allsky(request) => &request.url,
-            RequestType::PixelMetadata(request) => &request.url,
-            RequestType::MOC(request) => &request.url,
+            RequestType::Tile(request) => &request.id,
+            RequestType::Allsky(request) => &request.id,
+            RequestType::PixelMetadata(request) => &request.id,
+            RequestType::MOC(request) => &request.id,
         }
     }
 }

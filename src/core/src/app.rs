@@ -818,7 +818,7 @@ where
             let tile_size = survey.get_config().get_tile_size();
 
             //Request the allsky for the small tile size
-            if tile_size <= 512 {
+            if tile_size <= 128 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
                 // tell the survey to not download tiles which order is <= 3 because the allsky
@@ -871,7 +871,7 @@ where
         let tile_size = survey.get_config().get_tile_size();
         //al_core::log(&format!("tile size {}", tile_size));
         //Request the allsky for the small tile size
-        if tile_size <= 512 {
+        if tile_size <= 128 {
             // Request the allsky
             self.downloader.fetch(query::Allsky::new(survey.get_config()), false);
             // tell the survey to not download tiles which order is <= 3 because the allsky

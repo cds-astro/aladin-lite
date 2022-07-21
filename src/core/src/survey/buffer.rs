@@ -448,7 +448,6 @@ impl ImageSurveyTextures {
             missing,
         );
 
-        let tex_cell = cell.get_texture_cell(&self.config);
         self.available_tiles_during_frame = true;
 
         if tex_cell.is_root() && texture.is_available() {

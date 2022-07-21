@@ -14,7 +14,6 @@ use al_core::{
 
 fn num_subdivision(cell: &HEALPixCell, delta_depth: u8) -> u8 {
     let d = cell.depth();
-    let max_num_sub = 6 - delta_depth;
 
     if d == 0 {
         if delta_depth > 3 {
@@ -43,6 +42,7 @@ fn num_subdivision(cell: &HEALPixCell, delta_depth: u8) -> u8 {
         //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
         debug_assert!(skewed_factor <= 1.0 && skewed_factor >= 0.0);
 
+        let max_num_sub = 6 - delta_depth;
         (skewed_factor * ((max_num_sub - 1) as f64)) as u8 + 1
     }
 }
@@ -933,6 +933,9 @@ impl Draw for ImageSurvey {
         };
         let raytracing = raytracer.is_rendering::<P>(camera, depth_texture);
         if raytracing {
+            // Triangle are defined in CCW
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
+
             let shader = get_raytracer_shader::<P>(
                 color,
                 &self.gl,
@@ -954,6 +957,17 @@ impl Draw for ImageSurvey {
 
             raytracer.draw(&shader);
         } else {
+            // Depending on if the longitude is reversed, triangles are either defined in:
+            // - CCW for longitude_reversed = false
+            // - CW for longitude_reversed = true
+            let longitude_reversed = camera.get_longitude_reversed();
+            // Get the reverse longitude flag
+            if longitude_reversed {
+                self.gl.cull_face(WebGl2RenderingContext::FRONT);
+            } else {
+                self.gl.cull_face(WebGl2RenderingContext::BACK);
+            }
+
             // The rasterizer has a buffer containing:
             // - The vertices of the HEALPix cells for the most refined survey
             // - The starting and ending uv for the blending animation
@@ -1143,8 +1157,6 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
     ) {
-        let raytracing = self.raytracer.is_rendering::<P>(camera, 0);
-
         /*let mut switch_from_raytrace_to_raster = false;
         if raytracing {
             self.current_rendering_mode = RenderingMode::Raytrace;
@@ -1159,7 +1171,6 @@ impl ImageSurveys {
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
-
         // Check whether a survey to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
@@ -1181,14 +1192,6 @@ impl ImageSurveys {
                     .attach_uniforms_from(camera);
                 raytracer.draw_font_color(&shader_font, &Color::new(0.19215686274 * opacity, 0.49019607843 * opacity, 0.55294117647 * opacity, opacity));
             }
-        }
-
-        let longitude_reversed = camera.get_longitude_reversed();
-        // Get the reverse longitude flag
-        if raytracing || !longitude_reversed {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        } else {
-            self.gl.cull_face(WebGl2RenderingContext::FRONT);
         }
 
         for layer in self.layers.iter() {

@@ -472,13 +472,13 @@ export let HpxImageSurvey = (function() {
 
         // Change the backend survey url
         if (metadata.hips_service_url !== url) {
-            console.info("Change fetching tile from ", metadata.hips_service_url, " to ", url)
+            console.info("Change url of ", self.id, " from ", metadata.hips_service_url, " to ", url)
             //self.backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
             if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
                 return;
             }
 
-            self.properties.url = metadata.hips_service_url;
+            self.properties.url = url;
 
             if (self.added) {
                 self.backend.commitSurveysToBackend(self, self.layer);

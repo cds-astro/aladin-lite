@@ -123,7 +123,7 @@ import  autocomplete from 'autocompleter';
             },
             onSelect: function(item) {
                 self.selectedItem = item;
-                input.value = item.ID;
+                input.value = null;
 
                 self.fnIdSelected && self.fnIdSelected(item.ID);
 

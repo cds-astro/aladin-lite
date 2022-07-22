@@ -246,7 +246,6 @@ export class HiPSLayer {
 
             self.survey.changeImageFormat(imgFormat);
 
-
             let minCut = 0;
             let maxCut = 255;
             if (imgFormat === "FITS") {
@@ -307,6 +306,9 @@ export class HiPSLayer {
                 const cmap = colorMapSelect4ImgLayer.val();
                 const reverse = reverseCmCb[0].checked;
                 self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
+
+                // Save the colormap change
+                self.cmap = cmap;
             } else {
                 // Single color case
                 const colorHex = colorSelect4ImgLayer.val();
@@ -333,15 +335,18 @@ export class HiPSLayer {
         });
 
         // colormap/color radio
-        const colorMapTr = this.mainDiv.find('tr').eq(1);
-        const colorTr = this.mainDiv.find('tr').eq(2);
         const [colormapChoiceRadioBtn, colorChoiceRadioBtn] = document.querySelectorAll('input[name="' + this.nameRadioColorChoice + '"]');
         $(colormapChoiceRadioBtn).on("click", function (e) {
+            // restore the colormap
+            const cmap = self.cmap;
+
             // set the colormap
-            const cmap = colorMapSelect4ImgLayer.val();
             self.survey.setColormap(cmap);
         });
         $(colorChoiceRadioBtn).on("click", function (e) {
+            // save the colormap before switching to color mode
+            self.cmap = colorMapSelect4ImgLayer.val();
+
             // set the color
             const colorHex = colorSelect4ImgLayer.val();
             let colorRgb = Color.hexToRgb(colorHex);
@@ -455,6 +460,7 @@ export class HiPSLayer {
             return;
         }
         const cmap = options.colormap;
+
         const reverse = options.reversed;
         const stretch = options.stretch;
 

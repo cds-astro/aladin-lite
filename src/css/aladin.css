@@ -229,6 +229,14 @@ word-wrap:break-word;
     padding: 0.8em;
 }
 
+.aladin-options {
+    width: 100%;
+}
+
+td > select, td > input[type=text], td > input[type=number], td > input[type=range], td > input[type=radio] {
+    width: 100%;
+}
+
 .aladin-dialog {
 	display: none;
     z-index: 30;
@@ -246,18 +254,17 @@ word-wrap:break-word;
     padding: 0.8em;
 }
 
-select {
+.aladin-options > table {
+    width: 100%;
+}
+
+select, input[type=number], input[type=text] {
     padding: 4px;
+    box-sizing: border-box;
 }
 
 .aladin-surveySelection {
-    max-width: 230px;
-}
-
-input[type=text], input[type=number] {
-    padding: 4px;
-    width: 100%;
-    box-sizing: border-box;
+    max-width: 150px;
 }
 
 .aladin-box-title {

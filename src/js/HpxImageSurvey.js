@@ -481,7 +481,6 @@ export let HpxImageSurvey = (function() {
             self.properties.url = url;
 
             if (self.added) {
-                console.log("Notify change url")
                 self.backend.commitSurveysToBackend(self, self.layer);
             }
         }
@@ -836,9 +835,9 @@ export let HpxImageSurvey = (function() {
             }
         },
         {
-            id: "P/GALEXGR6_7/color",
-            name: "GALEX GR6/7 - Color composition",
-            url: "https://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_color/",
+            id: "P/GALEXGR6_7/NUV",
+            name: "GALEXGR6_7 NUV",
+            url: "http://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV/",
             maxOrder: 8,
         },
         {

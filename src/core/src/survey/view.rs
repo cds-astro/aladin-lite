@@ -84,18 +84,23 @@ pub struct HEALPixCellsInView {
     // A flag telling whether there has been
     // new cells added from the last frame
     is_new_cells_added: bool,
+
+    coverage: HEALPixCoverage,
 }
 
 use crate::camera::{CameraViewPort, UserAction};
 impl HEALPixCellsInView {
     pub fn new() -> Self {
         let cells = HashMap::new();
+        let coverage = HEALPixCoverage::allsky(0);
+
         Self {
             cells,
             prev_depth: 0,
             depth: 0,
             look_for_parents: false,
             is_new_cells_added: false,
+            coverage,
         }
     }
 
@@ -108,15 +113,15 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn refresh_cells(
-        &mut self,
-        new_depth: u8,
-        cells: &[HEALPixCell],
-        camera: &CameraViewPort,
-    ) {
+    pub fn refresh(&mut self, new_depth: u8, hips_frame: CooSystem, camera: &CameraViewPort) {
         self.depth = new_depth;
+
+        // Get the cells of that depth in the current field of view
+        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, hips_frame);
+        self.coverage = coverage;
+
         // Update cells in the fov
-        self.update_cells_in_fov(cells, camera);
+        self.update_cells_in_fov(&tile_cells, camera);
     }
 
     fn update_cells_in_fov(&mut self, cells_in_fov: &[HEALPixCell], camera: &CameraViewPort) {
@@ -161,6 +166,11 @@ impl HEALPixCellsInView {
         } else {
             false
         }
+    }
+
+    #[inline]
+    pub fn get_coverage(&self) -> &HEALPixCoverage {
+        &self.coverage
     }
 
     #[inline]

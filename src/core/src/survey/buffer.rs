@@ -416,13 +416,6 @@ impl ImageSurveyTextures {
         // and the tile is not already in any textures of the buffer
         // We can safely push it
         // First get the texture
-        let parent = tex_cell.parent();
-        let parent_missing = if let Some(parent_tex) = self.textures.get(&parent) {
-            parent_tex.is_missing()
-        } else {
-            true
-        };
-
         let texture = self
             .textures
             .get_mut(&tex_cell)

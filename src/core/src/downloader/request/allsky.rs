@@ -29,6 +29,7 @@ use al_core::{image::raw::ImageBuffer, texture::Pixel};
 use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
+use al_core::image::format::R64F;
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
@@ -100,6 +101,25 @@ impl From<query::Allsky> for AllskyRequest {
                         };
 
                         handle_allsky_fits(raw, tile_size, texture_size)
+                            .await?
+                            .into_iter()
+                            .map(|image| ImageType::RawR32f { image })
+                            .collect()
+                    }
+                    ImageFormatType::R64F => {
+                        let raw_bytes = js_sys::Uint8Array::new(&buf);
+                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                        let image = Fits::<R64F>::new(&raw_bytes)?;
+                        let raw: &[f64] = unsafe {
+                            std::slice::from_raw_parts(
+                                image.aligned_data_raw_bytes_ptr,
+                                num_pixels,
+                            )
+                        };
+
+                        let raw_f32 = raw.iter().map(|&v| v as f32).collect::<Vec<_>>();
+
+                        handle_allsky_fits(&raw_f32, tile_size, texture_size)
                             .await?
                             .into_iter()
                             .map(|image| ImageType::RawR32f { image })

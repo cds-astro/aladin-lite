@@ -486,7 +486,6 @@ pub struct ImageSurvey {
     min_depth: u8,
     depth: u8,
 
-    coverage: HEALPixCoverage,
     footprint_moc: Arc<Mutex<Option<HEALPixCoverage>>>,
 }
 use crate::{
@@ -495,13 +494,9 @@ use crate::{
     utils,
 };
 
-use al_core::{
-    image::Image,
-};
-
 use web_sys::{WebGl2RenderingContext};
 use std::sync::{Arc, Mutex};
-
+use al_core::image::ImageType;
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
 impl ImageSurvey {
@@ -628,7 +623,6 @@ impl ImageSurvey {
         let gl = gl.clone();
         let min_depth = 0;
         let depth = 0;
-        let coverage = HEALPixCoverage::allsky(0);
 
         let footprint_moc = Arc::new(Mutex::new(None));
         // request the allsky texture
@@ -655,7 +649,6 @@ impl ImageSurvey {
             idx_vertices,
             min_depth,
             depth,
-            coverage,
             footprint_moc,
         })
     }
@@ -663,6 +656,11 @@ impl ImageSurvey {
     #[inline]
     pub fn get_footprint_moc(&self) -> Arc<Mutex<Option<HEALPixCoverage>>> {
         self.footprint_moc.clone()
+    }
+
+    #[inline]
+    pub fn is_footprint_available(&self) -> bool {
+        self.footprint_moc.lock().unwrap().is_some()
     }
 
     #[inline]
@@ -850,10 +848,6 @@ impl ImageSurvey {
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
         let depth_tile = camera_tile_depth.min(max_tile_depth);
 
-        // Get the cells of that depth in the current field of view
-        let (coverage, tile_cells) = crate::survey::view::get_tile_cells_in_camera(depth_tile, camera, hips_frame);
-        self.coverage = coverage;
-
         // Set the depth of the HiPS textures
         self.depth = if depth_tile > cfg.delta_depth() {
             depth_tile - cfg.delta_depth()
@@ -861,7 +855,7 @@ impl ImageSurvey {
             0
         };
 
-        self.view.refresh_cells(depth_tile, &tile_cells, camera);
+        self.view.refresh(depth_tile, hips_frame, camera);
     }
 
     // Return a boolean to signal if the tile is present or not in the survey
@@ -875,13 +869,28 @@ impl ImageSurvey {
         }
     }
 
-    pub fn add_tile<I: Image + std::fmt::Debug>(
+    pub fn add_tile(
         &mut self,
-        cell: &HEALPixCell,
-        image: Option<I>,
-        time_req: Time,
+        tile: Tile,
     ) {
-        self.textures.push(&cell, image, time_req);
+        let is_missing = tile.missing();
+        let Tile {
+            cell,
+            image,
+            time_req,
+            ..
+        } = tile;
+
+        if is_missing {
+            if !self.is_footprint_available() {
+                self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
+            }
+            // Otherwise we push nothing, it is probably the case where:
+            // - an request error occured on a valid tile
+            // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+        } else {
+            self.textures.push(&cell, Some(image), time_req);
+        }
     }
 
     pub fn add_allsky(
@@ -910,11 +919,6 @@ impl ImageSurvey {
     #[inline]
     pub fn get_min_depth(&self) -> u8 {
         self.min_depth
-    }
-
-    #[inline]
-    pub fn get_coverage(&self) -> &HEALPixCoverage {
-        &self.coverage
     }
 
     #[inline]
@@ -1085,19 +1089,19 @@ pub struct ImageSurveys {
 
     raytracer: RayTracer,
 
-    past_rendering_mode: RenderingMode,
-    current_rendering_mode: RenderingMode,
+    //past_rendering_mode: RenderingMode,
+    //current_rendering_mode: RenderingMode,
 
     depth: u8,
 
     gl: WebGlContext,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+/*#[derive(PartialEq, Eq, Clone, Copy)]
 enum RenderingMode {
     Raytrace,
     Rasterize,
-}
+}*/
 
 use crate::colormap::Colormaps;
 use std::borrow::Cow;
@@ -1116,9 +1120,6 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
 use al_core::image::format::ImageFormatType;
 use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
-use std::collections::hash_map::{Entry, DefaultHasher};
-use std::hash::{Hasher, Hash};
-use al_api::coo_system::CooSystem;
 use crate::downloader::request::tile::Tile;
 impl ImageSurveys {
     pub fn new<P: Projection>(
@@ -1138,8 +1139,8 @@ impl ImageSurveys {
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
-        let past_rendering_mode = RenderingMode::Raytrace;
-        let current_rendering_mode = RenderingMode::Raytrace;
+        //let past_rendering_mode = RenderingMode::Raytrace;
+        //let current_rendering_mode = RenderingMode::Raytrace;
 
         let depth = 0;
         ImageSurveys {
@@ -1153,8 +1154,8 @@ impl ImageSurveys {
             raytracer,
             depth,
 
-            past_rendering_mode,
-            current_rendering_mode,
+            //past_rendering_mode,
+            //current_rendering_mode,
 
             gl,
         }
@@ -1274,7 +1275,7 @@ impl ImageSurveys {
         );
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
-        self.past_rendering_mode = self.current_rendering_mode;
+        //self.past_rendering_mode = self.current_rendering_mode;
     }
 
     pub fn set_image_surveys(

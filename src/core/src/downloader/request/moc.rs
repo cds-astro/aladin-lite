@@ -2,7 +2,6 @@ use crate::downloader::query;
 
 use super::{Request, RequestType};
 use moclib::qty::Hpx;
-use moclib::moc::range::RangeMOC;
 use moclib::deser::fits::MocType;
 use crate::healpix::coverage::SMOC;
 use crate::downloader::QueryId;
@@ -11,7 +10,7 @@ pub struct MOCRequest {
     pub hips_url: Url,
     pub url: Url,
 
-    request: Request<SMOC>,
+    request: Request<HEALPixCoverage>,
 }
 
 impl From<MOCRequest> for RequestType {
@@ -71,7 +70,7 @@ impl From<query::MOC> for MOCRequest {
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
             let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-            let smoc = match fits::from_fits_ivoa(Cursor::new(&bytes[..])).map_err(|e| JsValue::from_str(&e.to_string()))? {
+            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true).map_err(|e| JsValue::from_str(&e.to_string()))? {
                 MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
@@ -116,7 +115,7 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
             ..
         } = request;
         if request.is_resolved() {
-            let Request::<RangeMOC<u64, Hpx<u64>>> {
+            let Request::<HEALPixCoverage> {
                 data, ..
             } = request;
             Some(MOC {

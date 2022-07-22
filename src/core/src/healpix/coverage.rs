@@ -1,4 +1,4 @@
-use crate::math::{self, lonlat::LonLat};
+use crate::math;
 use moclib::{
     moc::range::RangeMOC,
     qty::Hpx
@@ -48,8 +48,8 @@ impl HEALPixCoverage {
         self.0.contains_depth_max_val(&cell.idx())
     }
 
-    pub fn intersection(&self, other: &Self) -> bool {
-        self.0.intersection(&other.0).is_empty()
+    pub fn is_intersecting(&self, other: &Self) -> bool {
+        !self.0.intersection(&other.0).is_empty()
     }
 }
 

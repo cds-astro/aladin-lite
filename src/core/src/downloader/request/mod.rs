@@ -23,7 +23,7 @@ pub struct Request<R> {
 #[derive(Clone, Copy, PartialEq)]
 pub enum ResolvedStatus {
     NotResolved,
-    Missing,
+    Failed,
     Found,
 }
 use std::future::Future;
@@ -53,7 +53,7 @@ where
                     *(data_cloned.lock().unwrap()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
                 } else if let Err(_err) = resp {
-                    resolved_cloned.set(ResolvedStatus::Missing);
+                    resolved_cloned.set(ResolvedStatus::Failed);
                 }
             };
 
@@ -69,7 +69,7 @@ where
 
     pub fn is_resolved(&self) -> bool {
         let resolved = self.resolve_status();
-        resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Missing
+        resolved == ResolvedStatus::Found || resolved == ResolvedStatus::Failed
     }
 
     pub fn resolve_status(&self) -> ResolvedStatus {

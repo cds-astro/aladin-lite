@@ -152,10 +152,8 @@ pub enum AppType {
 use al_api::resources::Resources;
 use crate::downloader::query;
 
-use moclib::deser::fits::MocQtyType::Hpx;
 use moclib::moc::range::RangeMOC;
 use moclib::elemset::range::MocRanges;
-use moclib::ranges::Ranges;
 use crate::healpix::coverage::HEALPixCoverage;
 
 use crate::downloader::request::moc::MOC;
@@ -290,23 +288,21 @@ where
                 }
 
                 // Do not request the cells where we know from its moc that there is no data
-                {
-                    if let Some(coverage) = *survey.get_footprint_moc().lock().unwrap() {
-                        let tile_cells = tile_cells.into_iter()
-                            .filter(|tile_cell| {
-                                let start_idx = tile_cell.idx() << (2*(29 - tile_cell.depth()));
-                                let end_idx = (tile_cell.idx() + 1) << (2*(29 - tile_cell.depth()));
+                if let Some(coverage) = (*survey.get_footprint_moc().lock().unwrap()).as_ref() {
+                    tile_cells = tile_cells.into_iter()
+                        .filter(|tile_cell| {
+                            let start_idx = tile_cell.idx() << (2*(29 - tile_cell.depth()));
+                            let end_idx = (tile_cell.idx() + 1) << (2*(29 - tile_cell.depth()));
 
-                                let mut moc = RangeMOC::new(
-                                    tile_cell.depth(),
-                                    MocRanges::<u64, moclib::qty::Hpx<u64>>(
-                                        Ranges::<u64>(Box::new([tile_cell.idx()..(tile_cell.idx() + 1)])),
-                                        std::marker::PhantomData
-                                    )
-                                );
-                                coverage.intersection(&HEALPixCoverage(moc))
-                            });
-                    }
+                            let moc = RangeMOC::new(
+                                29,
+                                MocRanges::<u64, moclib::qty::Hpx<u64>>::new_unchecked(
+                                    vec![start_idx..end_idx],
+                                )
+                            );
+                            coverage.is_intersecting(&HEALPixCoverage(moc))
+                        })
+                        .collect();
                 }
 
                 for tile_cell in tile_cells {
@@ -482,8 +478,6 @@ pub trait AppTrait {
 }
 
 use crate::downloader::request::Resource;
-use crate::downloader::request::{allsky::Allsky, tile::Tile};
-use crate::healpix::cell::HEALPixCell;
 
 impl<P> AppTrait for App<P>
 where
@@ -573,27 +567,14 @@ where
                                 survey.set_min_depth(survey.get_config().delta_depth());
                                 // If at least one tile root is missing, query the allsky!
                                 self.downloader.fetch(query::Allsky::new(survey.get_config()));
-
                             } else {
                                 if is_tile_root {
-                                    let is_missing = tile.missing();
-                                    let Tile {
-                                        cell,
-                                        image,
-                                        time_req,
-                                        ..
-                                    } = tile;
-                                    let image = if is_missing {
-                                        None
-                                    } else {
-                                        Some(image)
-                                    };
-                                    survey.add_tile(&cell, image, time_req);
+                                    survey.add_tile(tile);
 
                                     self.request_redraw = true;
                                 } else {
                                     let cfg = survey.get_config();
-                                    let coverage = survey.get_coverage();
+                                    let coverage = survey.get_view().get_coverage();
                                     let texture_cell = tile.cell.get_texture_cell(cfg);
                                     let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
                                         .any(|neighbor_tile_cell| {
@@ -601,20 +582,7 @@ where
                                         });
         
                                     if included_or_near_coverage {
-                                        let is_missing = tile.missing();
-                                        let Tile {
-                                            cell,
-                                            image,
-                                            time_req,
-                                            ..
-                                        } = tile;
-
-                                        let image = if is_missing {
-                                            None
-                                        } else {
-                                            Some(image)
-                                        };
-                                        survey.add_tile(&cell, image, time_req);
+                                        survey.add_tile(tile);
         
                                         self.request_redraw = true;
                                     } else {
@@ -634,6 +602,8 @@ where
                         if let Some(survey) = self.surveys.get_mut(&hips_url) {
                             let is_missing = allsky.missing();
                             if is_missing {
+                                al_core::log("missing allsky");
+
                                 survey.set_min_depth(survey.get_config().delta_depth());
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
@@ -862,28 +832,31 @@ where
         self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera)?;
 
         for survey in self.surveys.surveys.values_mut() {
+            let cfg = survey.get_config();
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            let tile_size = survey.get_config().get_tile_size();
+            self.downloader.fetch(query::PixelMetadata::new(cfg));
+            // Try to fetch the MOC
+            self.downloader.fetch(query::MOC::new(cfg));
 
+            let tile_size = cfg.get_tile_size();
             //Request the allsky for the small tile size
             if tile_size <= 128 {
                 // Request the allsky
-                self.downloader.fetch(query::Allsky::new(survey.get_config()));
+                self.downloader.fetch(query::Allsky::new(cfg));
                 // tell the survey to not download tiles which order is <= 3 because the allsky
                 // give them already
-                survey.set_min_depth(survey.get_config().delta_depth());
+                let delta_depth = cfg.delta_depth();
+                survey.set_min_depth(delta_depth);
             } else {
-                let cfg = survey.get_config();
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    for cell in texture_cell.get_tile_cells(survey.get_config()) {
-                        let query = query::Tile::new(&cell, survey.get_config());
+                    for cell in texture_cell.get_tile_cells(cfg) {
+                        let query = query::Tile::new(&cell, cfg);
                         self.tile_fetcher
                             .append_base_tile(query, &mut self.downloader);
                     }
                 }
             }
-            self.downloader.fetch(query::PixelMetadata::new(survey.get_config()));
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -917,26 +890,29 @@ where
         let cfg = survey.get_config();
 
         //Request the allsky for the small tile size
-        let tile_size = survey.get_config().get_tile_size();
-        //al_core::log(&format!("tile size {}", tile_size));
+        let tile_size = cfg.get_tile_size();
+
+        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
+        self.downloader.fetch(query::PixelMetadata::new(cfg));
+        // Try to fetch the MOC
+        self.downloader.fetch(query::MOC::new(cfg));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky
-            self.downloader.fetch(query::Allsky::new(survey.get_config()));
+            self.downloader.fetch(query::Allsky::new(cfg));
             // tell the survey to not download tiles which order is <= 3 because the allsky
             // give them already
-            survey.set_min_depth(survey.get_config().delta_depth());
+            let delta_depth = cfg.delta_depth();
+            survey.set_min_depth(delta_depth);
         } else {
-            let cfg = survey.get_config();
             for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(survey.get_config()) {
-                    let query = query::Tile::new(&cell, survey.get_config());
+                for cell in texture_cell.get_tile_cells(cfg) {
+                    let query = query::Tile::new(&cell, cfg);
                     self.tile_fetcher
                         .append_base_tile(query, &mut self.downloader);
                 }
             }
         }
-        self.downloader.fetch(query::PixelMetadata::new(survey.get_config()));
         
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)

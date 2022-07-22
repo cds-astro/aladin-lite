@@ -19,7 +19,6 @@ where
 use crate::{
     healpix::cell::HEALPixCell,
     survey::{config::HiPSConfig, texture::Texture},
-    utils,
 };
 pub struct TileUVW([Vector3<f32>; 4]);
 impl TileUVW {
@@ -33,7 +32,6 @@ impl TileUVW {
         let texture_idx = texture.idx();
         // Index of the slice of textures
         let num_textures_by_slice = cfg.num_textures_by_slice();
-        let idx_slice = texture_idx / num_textures_by_slice;
         // Index of the texture in its slice
         let idx_in_slice = texture_idx % num_textures_by_slice;
 
@@ -45,13 +43,6 @@ impl TileUVW {
 
         // Row and column indexes of the tile in its texture
         let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(texture.cell());
-
-        // Offset in the slice in pixels
-        /*let offset = Vector3::new(
-            (idx_row_in_slice as i32) * texture_size + (idx_row_in_tex as i32) * tile_size,
-            (idx_col_in_slice as i32) * texture_size + (idx_col_in_tex as i32) * tile_size,
-            idx_slice,
-        );*/
 
         let num_textures_by_side_slice_f32 = num_textures_by_side_slice as f32;
         let nside = (1 << (cell.depth() - texture.cell().depth())) as f32;

@@ -143,6 +143,7 @@ pub struct HiPSConfig {
 
     // Delta depth i.e. log2(texture_size / tile_size)
     delta_depth: u8,
+    min_depth_tile: u8,
     // Num tiles per texture
     num_tiles_per_texture: usize,
     // Max depth of the current HiPS tiles
@@ -276,6 +277,9 @@ impl HiPSConfig {
 
         let frame = properties.get_frame();
         let is_allsky = properties.get_sky_fraction() >= 1.0;
+
+        let min_depth_texture = properties.get_min_order();
+        let min_depth_tile = min_depth_texture;
         let hips_config = HiPSConfig {
             // HiPS name
             root_url,
@@ -291,6 +295,7 @@ impl HiPSConfig {
             // Max depth of the current HiPS tiles
             max_depth_texture,
             max_depth_tile,
+            min_depth_tile,
             num_textures_by_side_slice,
             num_textures_by_slice,
             num_slices,
@@ -418,6 +423,11 @@ impl HiPSConfig {
     #[inline]
     pub fn get_texture_size(&self) -> i32 {
         self.texture_size
+    }
+
+    #[inline]
+    pub fn get_min_depth_tile(&self) -> u8 {
+        self.min_depth_tile
     }
 
     #[inline]

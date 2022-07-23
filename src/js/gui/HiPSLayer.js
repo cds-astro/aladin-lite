@@ -511,8 +511,8 @@ export class HiPSLayer {
     }
 
     attachTo(parentDiv) {
-        parentDiv.append(this.headerDiv)
-            .append(this.mainDiv);
+        this.headerDiv.append(this.mainDiv);
+        parentDiv.append(this.headerDiv);
 
         this._addListeners();
     }

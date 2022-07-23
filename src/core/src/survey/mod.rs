@@ -483,7 +483,7 @@ pub struct ImageSurvey {
     vao: VertexArrayObject,
     gl: WebGlContext,
 
-    min_depth: u8,
+    min_depth_tile: u8,
     depth: u8,
 
     footprint_moc: Arc<Mutex<Option<HEALPixCoverage>>>,
@@ -616,12 +616,14 @@ impl ImageSurvey {
             .unbind();
 
         let num_idx = 0;
+        let min_depth_tile = config.get_min_depth_tile();
+
+        al_core::log(&format!("min depth tile {}", min_depth_tile));
 
         let textures = ImageSurveyTextures::new(gl, config)?;
         let view = HEALPixCellsInView::new();
 
         let gl = gl.clone();
-        let min_depth = 0;
         let depth = 0;
 
         let footprint_moc = Arc::new(Mutex::new(None));
@@ -647,7 +649,7 @@ impl ImageSurvey {
             m1,
 
             idx_vertices,
-            min_depth,
+            min_depth_tile,
             depth,
             footprint_moc,
         })
@@ -670,10 +672,6 @@ impl ImageSurvey {
 
     pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
         self.textures.set_format(&self.gl, fmt)
-    }
-
-    pub fn set_min_depth(&mut self, min_depth: u8) {
-        self.min_depth = min_depth;
     }
 
     pub fn get_fading_factor(&self) -> f32 {
@@ -917,8 +915,8 @@ impl ImageSurvey {
     }
 
     #[inline]
-    pub fn get_min_depth(&self) -> u8 {
-        self.min_depth
+    pub fn get_min_depth_tile(&self) -> u8 {
+        self.min_depth_tile
     }
 
     #[inline]

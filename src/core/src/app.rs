@@ -266,7 +266,7 @@ where
             // do not add tiles if the view is already at depth 0
             let view = survey.get_view();
             let depth_tile = view.get_depth();
-            if depth_tile > survey.get_min_depth() {
+            if depth_tile >= survey.get_min_depth_tile() {
                 let mut tile_cells = survey
                     .get_view()
                     .get_cells()
@@ -563,8 +563,6 @@ where
 
                         if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
                             if is_tile_root && tile.missing() {
-                                al_core::log("tile root missing!");
-                                survey.set_min_depth(survey.get_config().delta_depth());
                                 // If at least one tile root is missing, query the allsky!
                                 self.downloader.fetch(query::Allsky::new(survey.get_config()));
                             } else {
@@ -602,9 +600,6 @@ where
                         if let Some(survey) = self.surveys.get_mut(&hips_url) {
                             let is_missing = allsky.missing();
                             if is_missing {
-                                al_core::log("missing allsky");
-
-                                survey.set_min_depth(survey.get_config().delta_depth());
                                 // The allsky image is missing so we donwload all the tiles contained into
                                 // the 0's cell
                                 let cfg = survey.get_config();
@@ -616,8 +611,6 @@ where
                                     }
                                 }
                             } else {
-                                al_core::log("received allsky2");
-
                                 // tell the survey to not download tiles which order is <= 3 because the allsky
                                 // give them already
                                 survey.add_allsky(allsky);
@@ -844,10 +837,6 @@ where
             if tile_size <= 128 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(cfg));
-                // tell the survey to not download tiles which order is <= 3 because the allsky
-                // give them already
-                let delta_depth = cfg.delta_depth();
-                survey.set_min_depth(delta_depth);
             } else {
                 for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                     for cell in texture_cell.get_tile_cells(cfg) {
@@ -900,10 +889,6 @@ where
         if tile_size <= 128 {
             // Request the allsky
             self.downloader.fetch(query::Allsky::new(cfg));
-            // tell the survey to not download tiles which order is <= 3 because the allsky
-            // give them already
-            let delta_depth = cfg.delta_depth();
-            survey.set_min_depth(delta_depth);
         } else {
             for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
                 for cell in texture_cell.get_tile_cells(cfg) {

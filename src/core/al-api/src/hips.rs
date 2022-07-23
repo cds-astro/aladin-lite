@@ -67,6 +67,7 @@ pub struct HiPSProperties {
     bitpix: Option<i32>,
     formats: Vec<HiPSTileFormat>,
     sky_fraction: f32,
+    min_order: u8,
 
     // Parametrable by the user
     pub min_cutout: Option<f32>,
@@ -84,10 +85,12 @@ impl HiPSProperties {
         bitpix: Option<i32>,
         formats: Vec<HiPSTileFormat>,
         sky_fraction: f32,
+        min_order: u8
     ) -> Self {
         Self {
             url,
             max_order,
+            min_order,
             frame,
             tile_size,
             formats,
@@ -98,30 +101,42 @@ impl HiPSProperties {
         }
     }
 
+    #[inline]
     pub fn get_url(&self) -> String {
         self.url.clone()
     }
 
+    #[inline]
     pub fn get_max_order(&self) -> u8 {
         self.max_order
     }
 
+    #[inline]
+    pub fn get_min_order(&self) -> u8 {
+        self.min_order
+    }
+
+    #[inline]
     pub fn get_bitpix(&self) -> Option<i32> {
         self.bitpix
     }
 
+    #[inline]
     pub fn get_formats(&self) -> &[HiPSTileFormat] {
         &self.formats[..]
     }
 
+    #[inline]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
     }
 
+    #[inline]
     pub fn get_frame(&self) -> CooSystem {
         self.frame
     }
 
+    #[inline]
     pub fn get_sky_fraction(&self) -> f32 {
         self.sky_fraction
     }

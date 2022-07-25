@@ -229,8 +229,34 @@ word-wrap:break-word;
     padding: 0.8em;
 }
 
-td > select, td > input[type=text], td > input[type=number], td > input[type=range], td > input[type=radio] {
+td {
+    position: relative;
+}
+
+td > select, td > input[type=range], td > input[type=radio] {
     width: 100%;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0; 
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+td > input[type=number], td > input[type=text] {
+    width: 100%;
+    height: 100%;
+    bottom: 0;
+    position: absolute;
+    left: 0;
 }
 
 .aladin-dialog {
@@ -245,7 +271,6 @@ td > select, td > input[type=text], td > input[type=number], td > input[type=ran
     font-family: Verdana, Lucida, Arial;
     line-height: 1.3;
     color: #222;
-    min-width: 300px;
     max-width: 500px;
     padding: 0.8em;
 }

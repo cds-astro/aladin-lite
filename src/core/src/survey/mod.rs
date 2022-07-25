@@ -618,8 +618,6 @@ impl ImageSurvey {
         let num_idx = 0;
         let min_depth_tile = config.get_min_depth_tile();
 
-        al_core::log(&format!("min depth tile {}", min_depth_tile));
-
         let textures = ImageSurveyTextures::new(gl, config)?;
         let view = HEALPixCellsInView::new();
 

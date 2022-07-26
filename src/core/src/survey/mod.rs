@@ -1117,6 +1117,7 @@ use al_core::image::format::ImageFormatType;
 use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
 use crate::downloader::request::tile::Tile;
+use crate::math::angle::Angle;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
@@ -1274,7 +1275,7 @@ impl ImageSurveys {
         //self.past_rendering_mode = self.current_rendering_mode;
     }
 
-    pub fn set_image_surveys(
+    pub fn set_image_surveys<P: Projection>(
         &mut self,
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
@@ -1313,6 +1314,7 @@ impl ImageSurveys {
         self.layers.clear();
         self.urls.clear();
 
+        let num_surveys = hipses.len();
         let mut longitude_reversed = false;
         for SimpleHiPS {
             layer,
@@ -1337,6 +1339,19 @@ impl ImageSurveys {
             if !self.surveys.contains_key(&url) {
                 let survey = ImageSurvey::new(config, gl, camera)?;
                 self.surveys.insert(url.clone(), survey);
+
+                // A new survey has been added and it is lonely
+                /*if num_surveys == 1 {
+                    if let Some(initial_ra) = properties.get_initial_ra() {
+                        if let Some(initial_dec) = properties.get_initial_dec() {
+                            camera.set_center::<P>(&LonLatT(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
+                        }
+                    }
+
+                    if let Some(initial_fov) = properties.get_initial_fov() {
+                        camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
+                    }
+                }*/
             }
 
             longitude_reversed |= meta.longitude_reversed;

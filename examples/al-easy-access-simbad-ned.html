@@ -3,31 +3,12 @@
 <head>
 
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<link rel="stylesheet" href="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.css" />
-<link rel="stylesheet" href="./layers.css" />
 </head>
 <body>
 
 <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
-<script src="https://unpkg.com/vue"></script>
-<script src="https://unpkg.com/discovery-tree@1.0.10/dist/discovery-tree.umd.min.js"></script>
 
-<style>
-  /* Place the components */
-  #discovery-tree {
-    position: absolute;
-    top: 106px;
-    left: 4px;
-    z-index: 20;
-  }
-</style>
-
-<div id="aladin-lite-div" style="width: 1024px; height: 768px">
-  <div id="ui" class="ui">
-    <!--<discovery-tree id="discovery-tree" :fov="getFovCorners()" :center="getCenter()"></discovery-tree>-->
-    <layers id="layers"></layers>
-  </div>
-</div>
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
 <div id='aladin-statsDiv'></div>
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>

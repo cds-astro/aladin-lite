@@ -98,8 +98,6 @@ where
 use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
 
-use crate::math::rotation::Rotation;
-
 /*struct MoveAnimation {
     start_anim_rot: Rotation<f64>,
     goal_anim_rot: Rotation<f64>,
@@ -151,12 +149,9 @@ pub enum AppType {
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
-use al_core::log;
 use moclib::moc::range::RangeMOC;
 use moclib::elemset::range::MocRanges;
 use crate::healpix::coverage::HEALPixCoverage;
-use crate::healpix::cell::HEALPixCell;
-use al_core::inforec;
 use crate::downloader::request::moc::MOC;
 impl<P> App<P>
 where
@@ -823,7 +818,7 @@ where
     }
 
     fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera)?;
+        self.surveys.set_image_surveys::<P>(hipses, &self.gl, &mut self.camera)?;
 
         for survey in self.surveys.surveys.values_mut() {
             let cfg = survey.get_config();
@@ -1123,18 +1118,7 @@ where
 
     fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        let icrsj2000_pos: Vector4<_> = lonlat.vector();
-
-        let view_pos = coosys::apply_coo_system(
-            &CooSystem::ICRSJ2000,
-            self.camera.get_system(),
-            &icrsj2000_pos,
-        );
-        let rot = Rotation::from_sky_position(&view_pos);
-
-        // Apply the rotation to the camera to go
-        // to the next lonlat
-        self.camera.set_rotation::<P>(&rot);
+        self.camera.set_center::<P>(lonlat, &CooSystem::ICRSJ2000);
         self.look_for_new_tiles();
 
         // And stop the current inertia as well if there is one

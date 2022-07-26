@@ -65,6 +65,7 @@ use crate::{
     math::{angle::Angle, projection::Projection, rotation::Rotation, spherical::FieldOfViewType},
 };
 
+use crate::LonLatT;
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
@@ -314,7 +315,22 @@ impl CameraViewPort {
         self.update_rot_matrices::<P>();
     }
 
-    pub fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
+    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem) {
+        let icrsj2000_pos: Vector4<_> = lonlat.vector();
+
+        let view_pos = coosys::apply_coo_system(
+            system,
+            self.get_system(),
+            &icrsj2000_pos,
+        );
+        let rot = Rotation::from_sky_position(&view_pos);
+
+        // Apply the rotation to the camera to go
+        // to the next lonlat
+        self.set_rotation::<P>(&rot);
+    }
+
+    fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
         self.w2m_rot = *rot;
 
         self.update_rot_matrices::<P>();

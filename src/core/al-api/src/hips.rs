@@ -69,6 +69,10 @@ pub struct HiPSProperties {
     sky_fraction: f32,
     min_order: u8,
 
+    hips_initial_fov: Option<f64>,
+    hips_initial_ra: Option<f64>,
+    hips_initial_dec: Option<f64>,
+
     // Parametrable by the user
     pub min_cutout: Option<f32>,
     pub max_cutout: Option<f32>,
@@ -85,7 +89,10 @@ impl HiPSProperties {
         bitpix: Option<i32>,
         formats: Vec<HiPSTileFormat>,
         sky_fraction: f32,
-        min_order: u8
+        min_order: u8,
+        hips_initial_fov: Option<f64>,
+        hips_initial_ra: Option<f64>,
+        hips_initial_dec: Option<f64>,
     ) -> Self {
         Self {
             url,
@@ -97,7 +104,10 @@ impl HiPSProperties {
             bitpix,
             min_cutout,
             max_cutout,
-            sky_fraction
+            sky_fraction,
+            hips_initial_fov,
+            hips_initial_dec,
+            hips_initial_ra,
         }
     }
 
@@ -139,6 +149,21 @@ impl HiPSProperties {
     #[inline]
     pub fn get_sky_fraction(&self) -> f32 {
         self.sky_fraction
+    }
+
+    #[inline]
+    pub fn get_initial_fov(&self) -> Option<f64> {
+        self.hips_initial_fov
+    }
+
+    #[inline]
+    pub fn get_initial_ra(&self) -> Option<f64> {
+        self.hips_initial_ra
+    }
+
+    #[inline]
+    pub fn get_initial_dec(&self) -> Option<f64> {
+        self.hips_initial_dec
     }
 }
 

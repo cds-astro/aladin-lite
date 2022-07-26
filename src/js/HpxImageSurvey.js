@@ -301,6 +301,16 @@ export let HpxImageSurvey = (function() {
                 self.colored = true;
             }
 
+            // HiPS initial fov/ra/dec
+            let initialFov = +metadata.hips_initial_fov;
+            const initialRa = +metadata.hips_initial_ra;
+            const initialDec = +metadata.hips_initial_dec;
+
+            if (initialFov < 0.00002777777) {
+                initialFov = 360;
+                //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+            }
+
             if (!self.colored) {
                 // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
                 // For colored HiPS, no fits tiles provided
@@ -327,7 +337,10 @@ export let HpxImageSurvey = (function() {
                     maxCutout: propertiesDefaultMaxCut,
                     bitpix: bitpix,
                     skyFraction: skyFraction,
-                    minOrder: hipsOrderMin
+                    minOrder: hipsOrderMin,
+                    hipsInitialFov: initialFov,
+                    hipsInitialRa: initialRa,
+                    hipsInitialDec: initialDec,
                 };
             } else {
                 self.properties = {
@@ -337,7 +350,10 @@ export let HpxImageSurvey = (function() {
                     tileSize: tileSize,
                     formats: tileFormats,
                     skyFraction: skyFraction,
-                    minOrder: hipsOrderMin
+                    minOrder: hipsOrderMin,
+                    hipsInitialFov: initialFov,
+                    hipsInitialRa: initialRa,
+                    hipsInitialDec: initialDec,
                 };
             }
 

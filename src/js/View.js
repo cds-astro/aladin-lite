@@ -1171,8 +1171,9 @@ export let View = (function() {
             var ringWidth = this.aladin.options['allskyRingWidth'];
             reticleCtx.lineWidth = ringWidth;
             reticleCtx.beginPath();
-            var maxCxCy = this.cx>this.cy ? this.cx : this.cy;
-            reticleCtx.arc(this.cx, this.cy, (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor, 0, 2*Math.PI, true);
+            const maxCxCy = this.cy;
+            const radius = (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor;
+            reticleCtx.arc(this.cx, this.cy, radius, 0, 2*Math.PI, true);
             reticleCtx.stroke();
         }
     };
@@ -1593,6 +1594,9 @@ export let View = (function() {
                     };
                 });
             this.aladin.webglAPI.setImageSurveys(surveys);
+
+            //const fov = this.aladin.webglAPI.getCenter();
+            this.setZoom(this.aladin.webglAPI.getFieldOfView());
         } catch(e) {
             console.error(e)
         }

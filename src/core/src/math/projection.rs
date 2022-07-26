@@ -650,7 +650,8 @@ impl Projection for Orthographic {
     }
 
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
-        Vector2::new(1_f64, height / width)
+        //Vector2::new(1_f64, height / width)
+        Vector2::new(width / height, 1.0)
     }
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {

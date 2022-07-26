@@ -31,3 +31,23 @@ macro_rules! log {
         $( self::log(&format!("{:?}", $arg)); )*
     };
 }
+
+#[macro_export]
+macro_rules! inforec {
+    // The pattern for a single `eval`
+    // Base case:
+    ($x:expr) => (format!("{:?}", $x));
+    // `$x` followed by at least one `$y,`
+    ($x:expr, $($y:expr),+) => {
+        // Call `find_min!` on the tail `$y`
+        ( format!( "{} {}", inforec!($x), inforec!($($y),+) ) );
+    }
+}
+
+#[macro_export]
+macro_rules! info {
+    // The pattern for a single `eval`
+    ($($arg:expr),*) => {
+        self::log( &inforec!( $( $arg ),* ) );
+    };
+}

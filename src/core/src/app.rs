@@ -151,11 +151,12 @@ pub enum AppType {
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
-
+use al_core::log;
 use moclib::moc::range::RangeMOC;
 use moclib::elemset::range::MocRanges;
 use crate::healpix::coverage::HEALPixCoverage;
-
+use crate::healpix::cell::HEALPixCell;
+use al_core::inforec;
 use crate::downloader::request::moc::MOC;
 impl<P> App<P>
 where

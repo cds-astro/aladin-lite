@@ -419,16 +419,22 @@ export let HpxImageSurvey = (function() {
             const maxTime = 2000;
             // 5 second timeout:
             const timeoutId = setTimeout(() => controller.abort(), maxTime)
-            const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "no-cors"}).then(response => {
+            const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "cors"}).then(response => {
                 const endRequestTime = Date.now();
                 const duration = endRequestTime - startRequestTime;//the time needed to do the request
                 // completed request before timeout fired
                 clearTimeout(timeoutId)
                 // Resolve with the time duration of the request
-                return { duration: duration, baseUrl: hipsServiceUrl };
+                return { duration: duration, baseUrl: hipsServiceUrl, validRequest: true };
             }).catch((e) => {
-                console.warn(hipsServiceUrl, " responding very slowly: ", e)
-                return { duration: maxTime, baseUrl: hipsServiceUrl };
+                // The request aborted because it was to slow
+                let errorMsg = e;
+                if (timeoutId >= maxTime) {
+                    errorMsg = hipsServiceUrl + " responding very slowly.";
+                }
+
+                console.warn(errorMsg)
+                return { duration: maxTime, baseUrl: hipsServiceUrl, validRequest: false };
             });
 
             return promise;
@@ -447,27 +453,31 @@ export let HpxImageSurvey = (function() {
             numHiPSServiceURL += 1;
         }
 
-        let url = await Promise.all(promises).then((results) => {
+        let url = await Promise.all(promises).then((responses) => {
+            // filter the ones that failed to not choose them
+            // it may be a cors issue at this point
+            let validResponses = responses.filter((resp) => { return resp.validRequest === true; });
+
             const getRandomIntInclusive = function(min, max) {
                 min = Math.ceil(min);
                 max = Math.floor(max);
                 return Math.floor(Math.random() * (max - min +1)) + min;
             };
 
-            results.sort((r1, r2) => {
+            validResponses.sort((r1, r2) => {
                 return r1.duration - r2.duration;
             });
 
-            if (results.length >= 2) {
-                const isSecondUrlOk = ((results[1].duration - results[0].duration) / results[0].duration) < 0.20;
+            if (validResponses.length >= 2) {
+                const isSecondUrlOk = ((validResponses[1].duration - validResponses[0].duration) / validResponses[0].duration) < 0.20;
 
                 if (isSecondUrlOk) {
-                    return results[getRandomIntInclusive(0, 1)].baseUrl;
+                    return validResponses[getRandomIntInclusive(0, 1)].baseUrl;
                 } else {
-                    return results[0].baseUrl;
+                    return validResponses[0].baseUrl;
                 }
             } else {
-                return results[0].baseUrl;
+                return validResponses[0].baseUrl;
             }
         });
 

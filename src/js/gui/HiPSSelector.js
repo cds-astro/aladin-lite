@@ -70,6 +70,11 @@ import  autocomplete from 'autocompleter';
 
         // setup autocomplete
         let input = document.getElementById(autocompleteId);
+
+        // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
+        $(input).on("change", function () {
+            input.blur();
+        });
         
         // Query the mocserver
         MocServer.getAllHiPSes();
@@ -126,6 +131,7 @@ import  autocomplete from 'autocompleter';
                 input.value = null;
 
                 self.fnIdSelected && self.fnIdSelected(item.ID);
+                input.blur();
 
             },
             render: function(item, currentValue) {

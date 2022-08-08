@@ -78,6 +78,15 @@ import  autocomplete from 'autocompleter';
         this.idInput = self.mainDiv.querySelectorAll('input')[0];
         this.votInput = self.mainDiv.querySelectorAll('input')[3];
 
+        // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
+        $(this.idInput).on("change", function () {
+            self.idInput.blur();
+        });
+
+        $(this.votInput).on("change", function () {
+            self.votInput.blur();
+        });
+
         let [loadCSBtn, loadHiPSBtn, loadVOTableBtn]  = this.mainDiv.querySelectorAll('.aladin-btn');
         this.divCS = this.mainDiv.querySelector('.cone-search');
         this.divLoadHiPS = this.mainDiv.querySelector('.hips');
@@ -214,6 +223,8 @@ import  autocomplete from 'autocompleter';
 
                 input.value = item.ID;
                 self.selectedItem = item;
+
+                input.blur();
             },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");

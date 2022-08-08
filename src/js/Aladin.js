@@ -222,18 +222,22 @@ export let Aladin = (function () {
                 $(this).removeClass('aladin-unknownObject'); // remove red border
             });
 
+            // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
+            input.on("change", function () {
+                input.blur();
+            });
+
             // TODO : classe GotoBox
             d.click(function () {
                 self.hideBoxes();
                 input.val('');
                 input.removeClass('aladin-unknownObject');
                 gotoBox.show();
-                input.focus();
-
+                input.blur();
 
                 return false;
             });
-            gotoBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); return false; });
+            gotoBox.find('.aladin-closeBtn').click(function () { self.hideBoxes(); input.blur(); return false; });
             top_px += 38;
         }
 

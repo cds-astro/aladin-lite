@@ -201,7 +201,7 @@ export let HpxImageSurvey = (function() {
             self.name = self.name || metadata.obs_title;
             // Run this async, when it completes, reset the properties url
             self.searchForValidSurveyUrl(metadata);
-            const url = metadata.hips_service_url;
+            let url = metadata.hips_service_url;
 
             if (!url) {
                 throw 'no valid service URL for retrieving the tiles'

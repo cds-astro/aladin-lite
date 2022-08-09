@@ -499,6 +499,9 @@ use std::sync::{Arc, Mutex};
 use al_core::image::ImageType;
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
+
+use al_core::log;
+use al_core::inforec;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -878,9 +881,19 @@ impl ImageSurvey {
         } = tile;
 
         if is_missing {
+
+                            al_core::info!("tile missing", cell);
+
             if !self.is_footprint_available() {
+
+                al_core::info!("footprint not available");
                 self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
+
+                al_core::info!("aa", cell);
+
             }
+
+
             // Otherwise we push nothing, it is probably the case where:
             // - an request error occured on a valid tile
             // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
@@ -1117,7 +1130,6 @@ use al_core::image::format::ImageFormatType;
 use al_api::color::Color;
 use al_core::webgl_ctx::GlWrapper;
 use crate::downloader::request::tile::Tile;
-use crate::math::angle::Angle;
 impl ImageSurveys {
     pub fn new<P: Projection>(
         gl: &WebGlContext,

@@ -87,6 +87,7 @@ pub struct HEALPixCellsInView {
 
     coverage: HEALPixCoverage,
 }
+use al_core::log;
 
 use crate::camera::{CameraViewPort, UserAction};
 impl HEALPixCellsInView {

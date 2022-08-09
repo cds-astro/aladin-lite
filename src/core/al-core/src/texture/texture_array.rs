@@ -5,6 +5,7 @@ pub struct Texture2DArray {
     pub textures: Vec<Texture2D>,
 }
 
+use super::pixel::Pixel;
 use std::ops::Index;
 impl Index<usize> for Texture2DArray {
     type Output = Texture2D;
@@ -13,7 +14,7 @@ impl Index<usize> for Texture2DArray {
         &self.textures[idx]
     }
 }
-
+use crate::image::raw::ImageBuffer;
 use super::texture::Texture2D;
 use wasm_bindgen::prelude::*;
 impl Texture2DArray {
@@ -28,9 +29,21 @@ impl Texture2DArray {
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2DArray, JsValue> {
         let mut textures = vec![];
-        for _slice_idx in 0..num_slices {
+        
+
+        let raw_image = ImageBuffer::<F>::allocate(
+            &<<F as ImageFormat>::P as Pixel>::BLACK,
+            width,
+            height,
+        );
+
+        let raw_pixels = raw_image.get_data();
+        let raw_bytes = unsafe {
+            std::slice::from_raw_parts(raw_pixels.as_ptr() as *const u8, raw_pixels.len() * std::mem::size_of::<<<F as ImageFormat>::P as Pixel>::Item>())
+        };
+        for _ in 0..num_slices {
             let texture =
-                Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)?;
+                Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, Some(raw_bytes))?;
             textures.push(texture);
         }
 

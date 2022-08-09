@@ -51,6 +51,10 @@ impl HEALPixCoverage {
     pub fn is_intersecting(&self, other: &Self) -> bool {
         !self.0.intersection(&other.0).is_empty()
     }
+
+    pub fn depth(&self) -> u8 {
+        self.0.depth_max()
+    }
 }
 
 use core::ops::Deref;

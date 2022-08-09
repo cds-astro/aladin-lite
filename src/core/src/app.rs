@@ -153,6 +153,9 @@ use moclib::moc::range::RangeMOC;
 use moclib::elemset::range::MocRanges;
 use crate::healpix::coverage::HEALPixCoverage;
 use crate::downloader::request::moc::MOC;
+use al_core::log;
+use al_core::{info, inforec};
+
 impl<P> App<P>
 where
     P: Projection,
@@ -287,6 +290,7 @@ where
                 if let Some(coverage) = (*survey.get_footprint_moc().lock().unwrap()).as_ref() {
                     tile_cells = tile_cells.into_iter()
                         .filter(|tile_cell| {
+                            let coverage_depth = coverage.depth();
                             let start_idx = tile_cell.idx() << (2*(29 - tile_cell.depth()));
                             let end_idx = (tile_cell.idx() + 1) << (2*(29 - tile_cell.depth()));
 
@@ -296,7 +300,10 @@ where
                                     vec![start_idx..end_idx],
                                 )
                             );
-                            coverage.is_intersecting(&HEALPixCoverage(moc))
+                            let inter = HEALPixCoverage(moc).is_intersecting(coverage);
+                            al_core::info!("tile_cell, coverage", tile_cell, coverage_depth, inter);
+
+                            inter
                         })
                         .collect();
                 }
@@ -574,12 +581,16 @@ where
                                         .any(|neighbor_tile_cell| {
                                             coverage.contains_tile(&neighbor_tile_cell)
                                         });
-        
+                                    let tile_cell = tile.cell;
+
                                     if included_or_near_coverage {
+                                        al_core::info!("added", tile_cell);
+
                                         survey.add_tile(tile);
         
                                         self.request_redraw = true;
                                     } else {
+                                        al_core::info!("not included in coverage", tile_cell);
                                         self.downloader.cache_rsc(Resource::Tile(tile));
                                     }
                                 }  
@@ -632,6 +643,9 @@ where
                             } = moc;
 
                             survey.set_footprint_moc(moc);
+
+                            self.look_for_new_tiles();
+                            self.request_redraw = true;
                         }
                     }
                 }

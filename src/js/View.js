@@ -1017,6 +1017,8 @@ export let View = (function() {
         }
 
         this.then = Date.now();
+        // execute 'positionChanged' and 'zoomChanged' callbacks
+        this.executeCallbacksThrottled();
         // request another frame
         requestAnimFrame(this.redraw.bind(this));
     };

@@ -18,7 +18,7 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fov:0.15, target: 'Arp 240', showReticle: false});
+        aladin = A.aladin('#aladin-lite-div', { fov:0.15, target: 'Arp 240', showReticle: false, fullScreen: true });
         aladin.setBaseImageLayer(aladin.createImageSurvey('SDSS-DR9 r', 'SDSS-DR9 r', 'https://alasky.u-strasbg.fr/SDSS/DR9/band-r', 'equatorial', 10));
         aladin.getBaseImageLayer().setColormap('rainbow', {stretch: 'Linear'});
 

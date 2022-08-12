@@ -10,6 +10,7 @@ pub type SMOC = RangeMOC<u64, Hpx<u64>>;
 use crate::healpix::cell::HEALPixCell;
 pub struct HEALPixCoverage(pub SMOC);
 
+use moclib::elemset::range::MocRanges;
 impl HEALPixCoverage {
     pub fn new(
         // The depth of the smallest HEALPix cells contained in it
@@ -44,8 +45,20 @@ impl HEALPixCoverage {
         self.0.is_in(lon.0, lat.0)
     }
 
-    pub fn contains_tile(&self, cell: &HEALPixCell) -> bool {
-        self.0.contains_depth_max_val(&cell.idx())
+    pub fn contains(&self, cell: &HEALPixCell) -> bool {
+        let HEALPixCell(depth, idx) = *cell;
+
+        let start_idx = idx << (2*(29 - depth));
+        let end_idx = (idx + 1) << (2*(29 - depth));
+
+        let moc = RangeMOC::new(
+            29,
+            MocRanges::<u64, moclib::qty::Hpx<u64>>::new_unchecked(
+                vec![start_idx..end_idx],
+            )
+        );
+
+        self.is_intersecting(&HEALPixCoverage(moc))
     }
 
     pub fn is_intersecting(&self, other: &Self) -> bool {

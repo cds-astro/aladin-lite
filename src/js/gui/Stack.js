@@ -248,13 +248,11 @@ export class Stack {
                 const headerClassName = "aladin-layer-header-" + self.selectedLayer;
                 let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
                 headerLayerElement.style.backgroundColor = "#eee";
-                headerLayerElement.nextSibling.style.backgroundColor = "#eee";
             }
 
             const headerClassName = "aladin-layer-header-" + layerName;
             let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
             headerLayerElement.style.backgroundColor = "#aaa";
-            headerLayerElement.nextSibling.style.backgroundColor = "#aaa";
 
             self.aladin.setActiveHiPSLayer(layerName);
 

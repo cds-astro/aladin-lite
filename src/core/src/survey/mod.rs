@@ -261,7 +261,7 @@ use render::ray_tracer::RayTracer;
 
 trait Draw {
     fn draw<P: Projection>(
-        &mut self,
+        &self,
         raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
@@ -500,8 +500,6 @@ use al_core::image::ImageType;
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
 
-use al_core::log;
-use al_core::inforec;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -656,19 +654,21 @@ impl ImageSurvey {
         })
     }
 
-    #[inline]
-    pub fn get_footprint_moc(&self) -> Arc<Mutex<Option<HEALPixCoverage>>> {
-        self.footprint_moc.clone()
+    fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+        let vertices_recomputation_needed = self.textures.is_there_available_tiles() | camera.has_moved();
+        if vertices_recomputation_needed {
+            self.recompute_vertices::<P>(camera);
+        }
     }
 
     #[inline]
-    pub fn is_footprint_available(&self) -> bool {
-        self.footprint_moc.lock().unwrap().is_some()
-    }
-
-    #[inline]
-    pub fn set_footprint_moc(&mut self, moc: Arc<Mutex<Option<HEALPixCoverage>>>) {
+    pub fn set_moc(&mut self, moc: Arc<Mutex<Option<HEALPixCoverage>>>) {
         self.footprint_moc = moc;
+    }
+
+    #[inline]
+    pub fn get_moc(&self) -> Arc<Mutex<Option<HEALPixCoverage>>> {
+        self.footprint_moc.clone()
     }
 
     pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
@@ -881,19 +881,10 @@ impl ImageSurvey {
         } = tile;
 
         if is_missing {
+            //al_core::info!("tile missing", cell);
+            self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
 
-                            al_core::info!("tile missing", cell);
-
-            if !self.is_footprint_available() {
-
-                al_core::info!("footprint not available");
-                self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
-
-                al_core::info!("aa", cell);
-
-            }
-
-
+            //self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
             // Otherwise we push nothing, it is probably the case where:
             // - an request error occured on a valid tile
             // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
@@ -961,7 +952,7 @@ use crate::time::Time;
 use cgmath::Matrix;
 impl Draw for ImageSurvey {
     fn draw<P: Projection>(
-        &mut self,
+        &self,
         raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
@@ -1050,11 +1041,6 @@ impl Draw for ImageSurvey {
                 config.tex_storing_unsigned_int,
             )
             .bind(&self.gl);
-
-            let vertices_recomputation_needed = self.textures.is_there_available_tiles() | camera.has_moved();
-            if vertices_recomputation_needed {
-                self.recompute_vertices::<P>(camera);
-            }
 
             shader
                 .attach_uniforms_from(camera)
@@ -1252,6 +1238,11 @@ impl ImageSurveys {
         for layer in self.layers.iter() {
             let meta = self.meta.get(layer).expect("Meta should be found");
             if meta.visible() {
+                // 1. Update the survey if necessary
+                let url = self.urls.get(layer).expect("Url should be found");
+                let survey = self.surveys.get_mut(url).unwrap();
+                survey.update::<P>(camera);
+
                 let ImageSurveyMeta {
                     color,
                     opacity,
@@ -1259,9 +1250,7 @@ impl ImageSurveys {
                     ..
                 } = meta;
 
-                let url = self.urls.get(layer).expect("Url should be found");
-                let survey = self.surveys.get_mut(url).unwrap();
-
+                // 2. Draw it if its opacity is not null
                 blend_cfg.enable(&self.gl, || {
                     survey.draw::<P>(
                         raytracer,
@@ -1326,7 +1315,7 @@ impl ImageSurveys {
         self.layers.clear();
         self.urls.clear();
 
-        let num_surveys = hipses.len();
+        let _num_surveys = hipses.len();
         let mut longitude_reversed = false;
         for SimpleHiPS {
             layer,
@@ -1386,11 +1375,20 @@ impl ImageSurveys {
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 
-    pub fn set_image_survey_color_cfg(
+    pub fn set_image_survey_color_cfg<P: Projection>(
         &mut self,
         layer: String,
         meta: ImageSurveyMeta,
+        camera: &CameraViewPort,
     ) -> Result<(), JsValue> {
+        if let Some(meta_old) = self.meta.get(&layer) {
+            if !meta_old.visible() && meta.visible() {
+                if let Some(survey) = self.get_mut_from_layer(&layer) {
+                    survey.recompute_vertices::<P>(camera);
+                }
+            }
+        }
+
         // Expect the image survey to be found in the hash map
         self.meta.insert(layer.clone(), meta).ok_or_else(|| {
             JsValue::from(js_sys::Error::new(&format!("{:?} layer not found", layer)))

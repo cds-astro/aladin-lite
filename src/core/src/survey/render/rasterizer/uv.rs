@@ -45,11 +45,14 @@ impl TileUVW {
         let (idx_col_in_tex, idx_row_in_tex) = cell.offset_in_parent(texture.cell());
 
         let num_textures_by_side_slice_f32 = num_textures_by_side_slice as f32;
+        let texture_slice_px = cfg.get_texture_size() * num_textures_by_side_slice;
+
         let nside = (1 << (cell.depth() - texture.cell().depth())) as f32;
         let u = ((idx_row_in_slice as f32) + ((idx_row_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
         let v = ((idx_col_in_slice as f32) + ((idx_col_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
 
-        let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
+
+        let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside) - 1_f32 / (texture_slice_px as f32);
 
         let w = (texture_idx as f32) / (num_textures_by_slice as f32);
         TileUVW([

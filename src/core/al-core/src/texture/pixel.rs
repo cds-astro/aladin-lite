@@ -169,7 +169,7 @@ impl Pixel for [u8; 4] {
 impl Pixel for [u8; 3] {
     type Item = u8;
     type Container = ArrayU8;
-    const BLACK: Self = [0, 255, 0];
+    const BLACK: Self = [0, 0, 0];
 
     fn read_pixel(gl: &WebGlContext, x: i32, y: i32) -> Result<Self, JsValue> {
         let pixels = js_sys::Uint8Array::new_with_length(3);

@@ -305,7 +305,7 @@ impl ImageSurveyTextures {
         let Allsky {
             image, time_req, depth_tile, ..
         } = allsky;
-        //al_core::log(&format!("depth tile {}", depth_tile));
+
         {
             let mutex_locked = image.lock().unwrap();
             let images = mutex_locked.as_ref().unwrap();

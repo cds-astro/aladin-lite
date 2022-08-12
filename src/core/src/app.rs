@@ -149,12 +149,9 @@ pub enum AppType {
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
-use moclib::moc::range::RangeMOC;
-use moclib::elemset::range::MocRanges;
-use crate::healpix::coverage::HEALPixCoverage;
 use crate::downloader::request::moc::MOC;
-use al_core::log;
-use al_core::{info, inforec};
+//use al_core::log;
+//use al_core::{info, inforec};
 
 impl<P> App<P>
 where
@@ -265,7 +262,9 @@ where
             // do not add tiles if the view is already at depth 0
             let view = survey.get_view();
             let depth_tile = view.get_depth();
-            if depth_tile >= survey.get_min_depth_tile() {
+
+            let min_depth_tile = survey.get_min_depth_tile();
+            if depth_tile >= min_depth_tile {
                 let mut tile_cells = survey
                     .get_view()
                     .get_cells()
@@ -276,7 +275,7 @@ where
                     })
                     .collect::<HashSet<_>>();
 
-                if depth_tile > 3 {
+                if depth_tile >= min_depth_tile + 3 {
                     // Retrieve the grand-grand parent cells but not if it is root ones as it may interfere with already done requests
                     let tile_cells_ancestor = tile_cells
                         .iter()
@@ -287,23 +286,10 @@ where
                 }
 
                 // Do not request the cells where we know from its moc that there is no data
-                if let Some(coverage) = (*survey.get_footprint_moc().lock().unwrap()).as_ref() {
+                if let Some(moc) = (*survey.get_moc().lock().unwrap()).as_ref() {
                     tile_cells = tile_cells.into_iter()
                         .filter(|tile_cell| {
-                            let coverage_depth = coverage.depth();
-                            let start_idx = tile_cell.idx() << (2*(29 - tile_cell.depth()));
-                            let end_idx = (tile_cell.idx() + 1) << (2*(29 - tile_cell.depth()));
-
-                            let moc = RangeMOC::new(
-                                29,
-                                MocRanges::<u64, moclib::qty::Hpx<u64>>::new_unchecked(
-                                    vec![start_idx..end_idx],
-                                )
-                            );
-                            let inter = HEALPixCoverage(moc).is_intersecting(coverage);
-                            al_core::info!("tile_cell, coverage", tile_cell, coverage_depth, inter);
-
-                            inter
+                            moc.contains(&tile_cell)
                         })
                         .collect();
                 }
@@ -579,18 +565,14 @@ where
                                     let texture_cell = tile.cell.get_texture_cell(cfg);
                                     let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
                                         .any(|neighbor_tile_cell| {
-                                            coverage.contains_tile(&neighbor_tile_cell)
+                                            coverage.contains(&neighbor_tile_cell)
                                         });
-                                    let tile_cell = tile.cell;
 
                                     if included_or_near_coverage {
-                                        al_core::info!("added", tile_cell);
-
                                         survey.add_tile(tile);
         
                                         self.request_redraw = true;
                                     } else {
-                                        al_core::info!("not included in coverage", tile_cell);
                                         self.downloader.cache_rsc(Resource::Tile(tile));
                                     }
                                 }  
@@ -642,7 +624,7 @@ where
                                 ..
                             } = moc;
 
-                            survey.set_footprint_moc(moc);
+                            survey.set_moc(moc);
 
                             self.look_for_new_tiles();
                             self.request_redraw = true;
@@ -877,7 +859,7 @@ where
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        self.surveys.set_image_survey_color_cfg(layer, meta)
+        self.surveys.set_image_survey_color_cfg::<P>(layer, meta, &self.camera)
     }
 
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {

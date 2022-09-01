@@ -1,8 +1,29 @@
+use crate::math::projection::HEALPix;
 use crate::{coosys, healpix::cell::HEALPixCell, math};
 use std::collections::HashMap;
 
+use crate::math::angle::Angle;
+use crate::Projection;
+use cgmath::Vector2;
+use al_core::{log, inforec};
+pub fn project_vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> [Vector2<f64>; 4] {
+    let project_vertex = |(lon, lat): (f64, f64)| -> Vector2<f64> {
+        let vertex = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
+        P::view_to_screen_space(&vertex, camera).unwrap()
+    };
+    
+    let vertices = cell.vertices();
+
+    [
+        project_vertex(vertices[0]),
+        project_vertex(vertices[1]),
+        project_vertex(vertices[2]),
+        project_vertex(vertices[3])
+    ]
+}
+
 // Compute a depth from a number of pixels on screen
-pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
+pub fn depth_from_pixels_on_screen<P: Projection>(camera: &CameraViewPort, num_pixels: i32) -> u8 {
     let width = camera.get_screen_size().x;
     let aperture = camera.get_aperture().0 as f32;
 
@@ -10,7 +31,7 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
 
     let two_power_two_times_depth_pixel =
         std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
-    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).round() as u32;
+    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
 
     //let survey_max_depth = conf.get_max_depth();
     // The depth of the texture
@@ -23,9 +44,34 @@ pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> 
     } else {
         (depth_pixel - depth_offset_texture) as u8
     }
+
+    /*let mut depth = 0;
+    let mut d1 = std::f64::MAX;
+    let mut d2 = std::f64::MAX;
+
+    while d1 > 512.0*512.0 && d2 > 512.0*512.0 {
+
+        let (lon, lat) = crate::math::lonlat::xyzw_to_radec(camera.get_center());
+        let lonlat = math::lonlat::LonLatT(lon, lat);
+
+        let (ipix, _, _) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
+        let vertices = project_vertices::<P>(&HEALPixCell(depth, ipix), camera);
+
+        d1 = crate::math::vector::dist2(&vertices[0], &vertices[2]);
+        d2 = crate::math::vector::dist2(&vertices[1], &vertices[3]);
+
+        depth += 1;
+    }
+    al_core::info!(depth);
+    if depth > 0 {
+        depth - 1
+    } else {
+        0
+    }*/
 }
 use crate::healpix;
 use al_api::coo_system::CooSystem;
+use cgmath::Vector4;
 use crate::survey::HEALPixCoverage;
 pub fn get_tile_cells_in_camera(
     depth_tile: u8,

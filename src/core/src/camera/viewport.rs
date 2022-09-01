@@ -69,6 +69,8 @@ use crate::LonLatT;
 use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
+const MAX_DPI_LIMIT: f32 = 3.0;
+
 use crate::math;
 use crate::time::Time;
 impl CameraViewPort {
@@ -91,7 +93,13 @@ impl CameraViewPort {
         let window = web_sys::window().unwrap();
         let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
         let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
-        let dpi = window.device_pixel_ratio() as f32;
+        let dpi = if window.device_pixel_ratio() as f32 > MAX_DPI_LIMIT {
+            MAX_DPI_LIMIT
+        } else {
+            window.device_pixel_ratio() as f32
+        };
+        // Clamp it to 3 at maximum, this for limiting the number of pixels drawn
+        
         /*if width < height {
             dpi = 1.0;
         }*/

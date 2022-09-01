@@ -255,7 +255,7 @@ where
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
-        self.surveys.refresh_views(&mut self.camera);
+        self.surveys.refresh_views::<P>(&mut self.camera);
         self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {

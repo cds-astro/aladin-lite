@@ -12,39 +12,73 @@ use al_core::{
     VecData,
 };
 
-fn num_subdivision(cell: &HEALPixCell, delta_depth: u8) -> u8 {
-    let d = cell.depth();
+const M: f64 = 280.0*280.0;
+const N: f64 = 150.0*150.0;
+const RAP: f64 = 0.7;
 
-    if d == 0 {
-        if delta_depth > 3 {
-            0
-        } else {
-            3 - delta_depth
-        }
-    } else if d == 1 {
-        if delta_depth > 2 {
-            0
-        } else {
-            2 - delta_depth
-        }
+use crate::math::{vector::dist2, angle::Angle};
+fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> bool {
+    let vertices = cell.vertices()
+        .iter()
+        .filter_map(|(lon, lat)| {
+            let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
+            if let Some(position) = P::view_to_screen_space(&vertex, camera) {
+                Some(position)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if vertices.len() < 4 {
+        false
     } else {
-        // Largest deformation cell among the cells of a specific depth
-        let largest_center_to_vertex_dist =
-            cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
-        let smallest_center_to_vertex_dist =
-            cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::LAT_OF_SQUARE_CELL);
-
-        let (lon, lat) = cell.center();
-        let center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, lon, lat);
-
-        let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
-            / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
-        //al_core::log::log(&format!("skewed factor {:?}", skewed_factor));
-        debug_assert!(skewed_factor <= 1.0 && skewed_factor >= 0.0);
-
-        let max_num_sub = 6 - delta_depth;
-        (skewed_factor * ((max_num_sub - 1) as f64)) as u8 + 1
+        let d1 = dist2(&vertices[0], &vertices[2]);
+        let d2 = dist2(&vertices[1], &vertices[3]);
+        if d1 > M || d2 > M {
+            true
+        } else if d1 < N && d2 < N {
+            false
+        } else {
+            let rap = if d2 > d1 { 
+                d1 / d2
+            } else {
+                d2 / d1
+            };
+        
+            rap<RAP
+        }
     }
+}
+
+fn num_subdivision<P: Projection>(cell: &HEALPixCell, delta_depth: u8, camera: &CameraViewPort) -> u8 {
+    let d = cell.depth();
+    let mut num_sub = 0;
+    if d < 3 {
+        num_sub = 3 - d;
+    }
+
+    // Largest deformation cell among the cells of a specific depth
+    let largest_center_to_vertex_dist =
+    cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
+    let smallest_center_to_vertex_dist =
+    cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::LAT_OF_SQUARE_CELL);
+
+    let (lon, lat) = cell.center();
+    let center_to_vertex_dist = cdshealpix::largest_center_to_vertex_distance(d, lon, lat);
+
+    let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
+    / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
+
+    if skewed_factor > 0.25 {
+        num_sub += 1;
+    }
+
+    if is_too_large::<P>(cell, camera) || cell.is_on_pole() {
+        num_sub += 1;
+    }
+
+    num_sub
 }
 
 pub struct TextureToDraw<'a, 'b> {
@@ -258,20 +292,6 @@ use crate::math::projection::Projection;
 
 use buffer::ImageSurveyTextures;
 use render::ray_tracer::RayTracer;
-
-trait Draw {
-    fn draw<P: Projection>(
-        &self,
-        raytracer: &RayTracer,
-        //switch_from_raytrace_to_raster: bool,
-        shaders: &mut ShaderManager,
-        camera: &mut CameraViewPort,
-        color: &HiPSColor,
-        opacity: f32,
-        colormaps: &Colormaps,
-    );
-}
-
 use al_api::hips::{GrayscaleColor, HiPSTileFormat};
 use al_core::shader::Shader;
 
@@ -342,7 +362,7 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
-use cgmath::{Vector3, Vector4};
+use cgmath::{Vector3, Vector4, Vector2};
 use render::rasterizer::uv::{TileCorner, TileUVW};
 //#[cfg(feature = "webgl1")]
 fn add_vertices_grid<P: Projection>(
@@ -369,7 +389,7 @@ fn add_vertices_grid<P: Projection>(
     v2w: &Matrix4<f64>,
     delta_depth: u8,
 ) {
-    let num_subdivision = num_subdivision(cell, delta_depth);
+    let num_subdivision = num_subdivision::<P>(cell, delta_depth, camera);
 
     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
     let n_vertices_per_segment = n_segments_by_side + 1;
@@ -836,14 +856,14 @@ impl ImageSurvey {
         );
     }
 
-    fn refresh_view(&mut self, camera: &CameraViewPort) {
+    fn refresh_view<P: Projection>(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
         let max_tile_depth = cfg.get_max_tile_depth();
 
         let hips_frame = cfg.get_frame();
         // Compute that depth
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-        let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+        let camera_tile_depth = self::view::depth_from_pixels_on_screen::<P>(camera, 512);
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
         let depth_tile = camera_tile_depth.min(max_tile_depth);
 
@@ -935,22 +955,7 @@ impl ImageSurvey {
     pub fn get_ready_time(&self) -> &Option<Time> {
         &self.textures.start_time
     }
-}
 
-use cgmath::Matrix4;
-// Identity matrix
-const ID: &'static Matrix4<f64> = &Matrix4::new(
-    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-);
-// Longitude reversed identity matrix
-const ID_R: &'static Matrix4<f64> = &Matrix4::new(
-    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-);
-
-use crate::time::Time;
-
-use cgmath::Matrix;
-impl Draw for ImageSurvey {
     fn draw<P: Projection>(
         &self,
         raytracer: &RayTracer,
@@ -1061,6 +1066,20 @@ impl Draw for ImageSurvey {
         }
     }
 }
+
+use cgmath::Matrix4;
+// Identity matrix
+const ID: &'static Matrix4<f64> = &Matrix4::new(
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+);
+// Longitude reversed identity matrix
+const ID_R: &'static Matrix4<f64> = &Matrix4::new(
+    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+);
+
+use crate::time::Time;
+
+use cgmath::Matrix;
 
 use wasm_bindgen::JsValue;
 use crate::{HiPSColor, SimpleHiPS};
@@ -1407,11 +1426,11 @@ impl ImageSurveys {
         ready
     }
 
-    pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
+    pub fn refresh_views<P: Projection>(&mut self, camera: &mut CameraViewPort) {
         self.depth = 0;
 
         for survey in self.surveys.values_mut() {
-            survey.refresh_view(camera);
+            survey.refresh_view::<P>(camera);
             
             self.depth = self.depth.max(survey.get_depth());
             //al_core::log(&format!("depth {:?} delta d {:?} max tile order {:?} depth tile {:?}", depth, cfg.delta_depth(), max_tile_depth, depth_tile));

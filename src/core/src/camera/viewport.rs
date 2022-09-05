@@ -268,31 +268,32 @@ impl CameraViewPort {
 
         self.aperture = if aperture <= P::aperture_start() {
             // Compute the new clip zoom factor
-            let lon = aperture.abs() / 2.0;
+            let lon = aperture.abs();
 
             // Vertex in the WCS of the FOV
-            let v0 = math::lonlat::radec_to_xyzw(lon, Angle(0.0));
+            let v0 = math::lonlat::radec_to_xyzw(-lon / 2.0, Angle(0.0));
+            let v1 = math::lonlat::radec_to_xyzw(lon / 2.0, Angle(0.0));
+
+            self.clip_zoom_factor = 0.0;
             if let Some(p0) = P::world_to_clip_space(&v0) {
-                self.clip_zoom_factor = p0.x.abs().min(1.0);
-            } else {
-                // Gnomonic unzoomed case!
-                self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
+                if let Some(p1) = P::world_to_clip_space(&v1) {
+                    self.clip_zoom_factor = (0.5*(p1.x - p0.x).abs()).min(1.0);
+                }
             }
+
+            if self.clip_zoom_factor == 0.0 {
+                self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+            }
+
             aperture
+        } else if !P::ALLOW_UNZOOM_MORE {
+            P::aperture_start()
         } else {
-            if !P::ALLOW_UNZOOM_MORE {
-                // Some projections have a limit of unzooming
-                // like Mercator
-                self.set_aperture::<P>(P::aperture_start());
-                return;
-            }
-
-            self.clip_zoom_factor = aperture.0 / P::aperture_start().0;
-
-            aperture
+            self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+            P::aperture_start()
         };
-        // Project this vertex into the screen
 
+        // Project this vertex into the screen
         self.moved = true;
 
         self.vertices.set_fov::<P>(

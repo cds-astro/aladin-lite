@@ -79,7 +79,7 @@ export let View = (function() {
         this.mode = View.PAN;
         
         this.minFOV = this.maxFOV = null; // by default, no restriction
-        this.fov_limit = 180.0;
+        this.fov_limit = 1000.0;
         
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -110,7 +110,7 @@ export let View = (function() {
         const si = 500000.0;
         const alpha = 40.0;
 
-        let initialFov = zoom || 360.0;
+        let initialFov = zoom || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
             initialFov: undefined,
@@ -678,7 +678,7 @@ export let View = (function() {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), 360.0);
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fov_limit);
                 view.setZoom(fov);
 
                 return;
@@ -1372,10 +1372,10 @@ export let View = (function() {
         }
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
 
-        if (new_fov > 360.0) {
-            new_fov = 360.0;
+        if (new_fov > this.fov_limit) {
+            new_fov = this.fov_limit;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-        } 
+        }
         if (new_fov < 0.00002777777) {
             new_fov = 0.00002777777;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
@@ -1396,10 +1396,11 @@ export let View = (function() {
         }
 
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
-        if (new_fov > 360.0) {
-            new_fov = 360.0;
+
+        if (new_fov > this.fov_limit) {
+            new_fov = this.fov_limit;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-        } 
+        }
         if (new_fov < 0.00002777777) {
             new_fov = 0.00002777777;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
@@ -1714,32 +1715,25 @@ export let View = (function() {
         switch (projectionName) {
             case "AIT":
                 this.projection.setProjection(ProjectionEnum.AITOFF);
-                //this.projectionMethod = ProjectionEnum.AITOFF;
                 break;
             case "HPX":
                 this.projection.setProjection(ProjectionEnum.HPX);
-                //this.projectionMethod = ProjectionEnum.HPX;
                 break;
             case "TAN":
                 this.projection.setProjection(ProjectionEnum.TAN);
-                //this.projectionMethod = ProjectionEnum.TAN;
                 break;
             case "ARC":
                 this.projection.setProjection(ProjectionEnum.ARC);
-                //this.projectionMethod = ProjectionEnum.ARC;
                 break;
             case "MER":
                 this.projection.setProjection(ProjectionEnum.MERCATOR);
-                //this.projectionMethod = ProjectionEnum.MERCATOR;
                 break;
             case "MOL":
                 this.projection.setProjection(ProjectionEnum.MOL);
-                //this.projectionMethod = ProjectionEnum.MOL;
                 break;
             case "SIN":
             default:
                 this.projection.setProjection(ProjectionEnum.SIN);
-                //this.projectionMethod = ProjectionEnum.SIN;
         }
         // Change the projection here
         this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);

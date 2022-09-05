@@ -104,28 +104,6 @@ impl<'a, 'b> TextureToDraw<'a, 'b> {
 use std::{
     collections::{HashMap, HashSet},
 };
-pub struct TexturesToDraw<'a, 'b>(Vec<TextureToDraw<'a, 'b>>);
-
-impl<'a, 'b> TexturesToDraw<'a, 'b> {
-    fn new(capacity: usize) -> TexturesToDraw<'a, 'b> {
-        let states = Vec::with_capacity(capacity);
-
-        TexturesToDraw(states)
-    }
-}
-
-impl<'a, 'b> core::ops::Deref for TexturesToDraw<'a, 'b> {
-    type Target = Vec<TextureToDraw<'a, 'b>>;
-
-    fn deref(&'_ self) -> &'_ Self::Target {
-        &self.0
-    }
-}
-impl<'a, 'b> core::ops::DerefMut for TexturesToDraw<'a, 'b> {
-    fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
-        &mut self.0
-    }
-}
 
 pub trait RecomputeRasterizer {
     // Returns:
@@ -137,7 +115,7 @@ pub trait RecomputeRasterizer {
         // The survey from which we get the textures to plot
         // Usually it is the most refined survey
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b>;
+    ) -> Vec<TextureToDraw<'a, 'b>>;
 }
 
 pub struct Move;
@@ -152,9 +130,9 @@ impl RecomputeRasterizer for Move {
     fn get_textures_from_survey<'a, 'b>(
         view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
-        let cells_to_draw = view.get_cells();
-        let mut textures = TexturesToDraw::new(view.num_of_cells());
+    ) -> Vec<TextureToDraw<'a, 'b>> {
+    let cells_to_draw = view.get_cells();
+        let mut textures = Vec::with_capacity(view.num_of_cells());
 
         for cell in cells_to_draw {
             if survey.contains(cell) {
@@ -201,9 +179,9 @@ impl RecomputeRasterizer for Zoom {
     fn get_textures_from_survey<'a, 'b>(
         view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
+    ) -> Vec<TextureToDraw<'a, 'b>> {
         let cells_to_draw = view.get_cells();
-        let mut textures = TexturesToDraw::new(view.num_of_cells());
+        let mut textures = Vec::with_capacity(view.num_of_cells());
 
         for cell in cells_to_draw {
             if survey.contains(cell) {
@@ -246,14 +224,14 @@ impl RecomputeRasterizer for UnZoom {
     fn get_textures_from_survey<'a, 'b>(
         view: &'b HEALPixCellsInView,
         survey: &'a ImageSurveyTextures,
-    ) -> TexturesToDraw<'a, 'b> {
+    ) -> Vec<TextureToDraw<'a, 'b>> {
         let _depth = view.get_depth();
         let _max_depth = survey.config().get_max_depth();
 
         // We do not draw the parent cells if the depth has not decreased by at least one
         let cells_to_draw = view.get_cells();
 
-        let mut textures = TexturesToDraw::new(view.num_of_cells());
+        let mut textures = Vec::with_capacity(view.num_of_cells());
 
         for cell in cells_to_draw {
             if survey.contains(cell) {
@@ -775,7 +753,15 @@ impl ImageSurvey {
         self.idx_vertices.clear();
 
         let survey_config = self.textures.config();
-        let textures = T::get_textures_from_survey(&self.view, &self.textures);
+
+        let mut textures = T::get_textures_from_survey(&self.view, &self.textures);
+        if let Some(moc) = (*self.footprint_moc.lock().unwrap()).as_ref() {
+            textures = textures.into_iter()
+                // filter textures that are not in the moc
+                .filter(|TextureToDraw { cell, .. }| {
+                    moc.contains(cell)
+                }).collect::<Vec<_>>();
+        }
 
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
@@ -900,17 +886,16 @@ impl ImageSurvey {
             ..
         } = tile;
 
-        if is_missing {
-            //al_core::info!("tile missing", cell);
-            self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
-
-            //self.textures.push::<Arc<Mutex<Option<ImageType>>>>(&cell, None, time_req);
+        let image = if !is_missing {
+            Some(image)
+        } else {
             // Otherwise we push nothing, it is probably the case where:
             // - an request error occured on a valid tile
             // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-        } else {
-            self.textures.push(&cell, Some(image), time_req);
-        }
+            None
+        };
+
+        self.textures.push(&cell, image, time_req);
     }
 
     pub fn add_allsky(
@@ -1244,14 +1229,20 @@ impl ImageSurveys {
                     (survey.is_allsky() || survey.get_config().get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
                 });
 
-            if !not_render_transparency_font {
-                let opacity = self.surveys.values().fold(std::f32::MAX, |mut a, s| { a = a.min(s.get_fading_factor()); a } );
 
+
+            if !not_render_transparency_font {
                 let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);
                 shader_font
                     .attach_uniforms_from(camera);
+                let opacity = self.surveys.values()
+                    .fold(std::f32::MAX, |mut a, s| {
+                        a = a.min(s.get_fading_factor()); a
+                    });
                 raytracer.draw_font_color(&shader_font, &Color::new(0.19215686274 * opacity, 0.49019607843 * opacity, 0.55294117647 * opacity, opacity));
-            }
+            }/*else {
+                raytracer.draw_font_color(&shader_font, &Color::new(0.0, 0.0, 0.0, opacity));
+            }*/
         }
 
         for layer in self.layers.iter() {

@@ -1,4 +1,4 @@
-use cgmath::{BaseFloat, Rad, Vector3, Vector4};
+use cgmath::{BaseFloat, Rad, Vector3, Vector4, Matrix3};
 
 pub trait LonLat<S: BaseFloat> {
     fn lon(&self) -> Angle<S>;
@@ -186,4 +186,72 @@ pub fn radec_to_xyzw<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Vector4<
         delta.cos() * theta.cos(),
         S::one(),
     )
+}
+
+#[inline]
+pub fn radec_to_basis<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Matrix3<S> {
+    Matrix3::<S>::new(
+        // e_r
+        delta.cos() * theta.sin(),
+        delta.sin(),
+        delta.cos() * theta.cos(),
+        // e_delta
+        delta.sin() * theta.sin(),
+        -delta.cos(),
+        delta.sin() * theta.cos(),
+        // e_theta
+        theta.cos(),
+        S::zero(),
+        -theta.sin()
+    )
+}
+
+
+struct Basis<S> {
+    mat: Matrix3<S>,
+}
+impl<S> Basis<S>
+where
+    S: BaseFloat
+{
+    fn new(theta: Angle<S>, delta: Angle<S>) -> Self {
+        Self { mat: Matrix3::<S>::new(
+            // e_r
+            delta.cos() * theta.sin(),
+            delta.sin(),
+            delta.cos() * theta.cos(),
+            // e_delta
+            delta.sin() * theta.sin(),
+            -delta.cos(),
+            delta.sin() * theta.cos(),
+            // e_theta
+            theta.cos(),
+            S::zero(),
+            -theta.sin()
+        ) }
+    }
+
+    fn e_r(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
+        Vector3::<S>::new(
+            delta.cos() * theta.sin(),
+            delta.sin(),
+            delta.cos() * theta.cos(),
+        )
+    }
+
+    fn e_delta(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
+        Vector3::<S>::new(
+            delta.sin() * theta.sin(),
+            -delta.cos(),
+            delta.sin() * theta.cos(),
+        )
+    }
+
+    fn e_theta(theta: Angle<S>, delta: Angle<S>) -> Vector3<S> {
+        Vector3::<S>::new(
+            theta.cos(),
+            S::zero(),
+            -theta.sin()
+        )
+    }
 }

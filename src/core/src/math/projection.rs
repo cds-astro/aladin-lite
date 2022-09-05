@@ -651,7 +651,12 @@ impl Projection for Orthographic {
 
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
         //Vector2::new(1_f64, height / width)
-        Vector2::new(width / height, 1.0)
+        //Vector2::new(width / height, 1.0)
+        if width > height {
+            Vector2::new(1_f64, height / width)
+        } else {
+            Vector2::new(width / height, 1.0)
+        }
     }
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
@@ -738,7 +743,12 @@ impl Projection for AzimuthalEquidistant {
     }
 
     fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
-        Vector2::new(width / height, 1.0)
+        //Vector2::new(width / height, 1.0)
+        if width > height {
+            Vector2::new(1_f64, height / width)
+        } else {
+            Vector2::new(width / height, 1.0)
+        }
     }
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
@@ -938,7 +948,7 @@ impl Projection for Mercator {
     }
 
     fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
-        Vector2::new(1_f64, 0.5_f64)
+        Vector2::new(1_f64, 0.5f64)
     }
 
     fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {

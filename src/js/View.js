@@ -79,7 +79,7 @@ export let View = (function() {
         this.mode = View.PAN;
         
         this.minFOV = this.maxFOV = null; // by default, no restriction
-        this.fov_limit = 1000.0;
+        this.fovLimit = 1000.0;
         
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -678,7 +678,7 @@ export let View = (function() {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fov_limit);
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fovLimit);
                 view.setZoom(fov);
 
                 return;
@@ -1372,8 +1372,8 @@ export let View = (function() {
         }
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
 
-        if (new_fov > this.fov_limit) {
-            new_fov = this.fov_limit;
+        if (new_fov > this.fovLimit) {
+            new_fov = this.fovLimit;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         }
         if (new_fov < 0.00002777777) {
@@ -1397,8 +1397,8 @@ export let View = (function() {
 
         let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
 
-        if (new_fov > this.fov_limit) {
-            new_fov = this.fov_limit;
+        if (new_fov > this.fovLimit) {
+            new_fov = this.fovLimit;
             //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         }
         if (new_fov < 0.00002777777) {

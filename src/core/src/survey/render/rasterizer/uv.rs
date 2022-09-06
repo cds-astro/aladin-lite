@@ -51,8 +51,7 @@ impl TileUVW {
         let u = ((idx_row_in_slice as f32) + ((idx_row_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
         let v = ((idx_col_in_slice as f32) + ((idx_col_in_tex as f32) / nside)) / num_textures_by_side_slice_f32;
 
-
-        let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside) - 1_f32 / (texture_slice_px as f32);
+        let ds = 1_f32 / (num_textures_by_side_slice_f32 * nside);
 
         let w = (texture_idx as f32) / (num_textures_by_slice as f32);
         TileUVW([

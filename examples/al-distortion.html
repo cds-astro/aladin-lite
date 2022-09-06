@@ -27,7 +27,7 @@
         aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
         aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});*/
 
-        aladin = A.aladin('#aladin-lite-div', {survey: 'P/PanSTARRS/DR1/g', fov: 360, target: '0 90', fullScreen: true, cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {survey: 'CDS/P/SDSS9/color', fov: 60, target: '0 90', fullScreen: true, cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
         aladin.setProjection('SIN');
 
         //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );

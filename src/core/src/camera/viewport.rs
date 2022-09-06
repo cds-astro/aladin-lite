@@ -93,16 +93,12 @@ impl CameraViewPort {
         let window = web_sys::window().unwrap();
         let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
         let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
+        // Clamp it to 3 at maximum, this for limiting the number of pixels drawn
         let dpi = if window.device_pixel_ratio() as f32 > MAX_DPI_LIMIT {
             MAX_DPI_LIMIT
         } else {
             window.device_pixel_ratio() as f32
         };
-        // Clamp it to 3 at maximum, this for limiting the number of pixels drawn
-        
-        /*if width < height {
-            dpi = 1.0;
-        }*/
 
         let width = width * dpi;
         let height = height * dpi;
@@ -286,10 +282,11 @@ impl CameraViewPort {
             }
 
             aperture
-        } else if !P::ALLOW_UNZOOM_MORE {
-            P::aperture_start()
         } else {
-            self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+            if P::ALLOW_UNZOOM_MORE {
+                self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+            }
+
             P::aperture_start()
         };
 

@@ -70,6 +70,11 @@ fn num_subdivision<P: Projection>(cell: &HEALPixCell, delta_depth: u8, camera: &
     let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
     / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
 
+    if is_too_large::<P>(cell, camera) || cell.is_on_pole() || skewed_factor > 0.25 {
+        num_sub += 1;
+    }
+
+    /*
     if skewed_factor > 0.25 {
         num_sub += 1;
     }
@@ -77,6 +82,7 @@ fn num_subdivision<P: Projection>(cell: &HEALPixCell, delta_depth: u8, camera: &
     if is_too_large::<P>(cell, camera) || cell.is_on_pole() {
         num_sub += 1;
     }
+    */
 
     num_sub
 }
@@ -1228,8 +1234,6 @@ impl ImageSurveys {
 
                     (survey.is_allsky() || survey.get_config().get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
                 });
-
-
 
             if !not_render_transparency_font {
                 let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);

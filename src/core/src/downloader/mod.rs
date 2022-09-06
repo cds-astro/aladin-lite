@@ -2,7 +2,7 @@ pub mod query;
 pub mod request;
 
 use crate::survey::Url;
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 use query::QueryId;
 
@@ -12,7 +12,7 @@ pub struct Downloader {
     queried_list: HashSet<QueryId>,
 
     cache: Cache<Url, Resource>,
-    queried_cached_urls: HashSet<Url>,
+    queried_cached_urls: Vec<Url>,
 }
 
 use crate::fifo_cache::Cache;
@@ -26,15 +26,14 @@ impl Downloader {
         let requests = Vec::with_capacity(32);
         let queried_list = HashSet::with_capacity(64);
         let cache = Cache::new();
-        let queried_cached_urls = HashSet::with_capacity(64);
+        let queried_cached_urls = Vec::with_capacity(64);
         Self {
             requests,
             queried_list,
             cache,
-            queried_cached_urls
+            queried_cached_urls,
         }
     }
-
     // Returns true if the fetch has been done
     // Returns false if the query has already been done
     pub fn fetch<T>(&mut self, query: T) -> bool
@@ -43,7 +42,7 @@ impl Downloader {
     {
         let url = query.url();
         if self.cache.contains(url) {
-            self.queried_cached_urls.insert(url.to_string());
+            self.queried_cached_urls.push(url.to_string());
             false
         } else {
             let query_id = query.id();
@@ -76,8 +75,8 @@ impl Downloader {
                     finished_query_list.push(request.id().clone());
 
                     false
+                // The request is not resolved, we keep it
                 } else {
-                    // The request is not resolved, we keep it
                     true
                 }
             })
@@ -87,17 +86,21 @@ impl Downloader {
             self.queried_list.remove(&query_id);
         }
 
-        for url in self.queried_cached_urls.iter() {
-            let rsc = self.cache.extract(url).unwrap();
-            rscs.push(rsc);
+        while let Some(url) = self.queried_cached_urls.pop() {
+            if let Some(rsc) = self.cache.extract(&url) {
+                rscs.push(rsc);
+            }
         }
-
-        self.queried_cached_urls.clear();
 
         rscs
     }
 
     pub fn cache_rsc(&mut self, rsc: Resource) {
+        self.cache.insert(rsc.url().clone(), rsc);
+    }
+
+    pub fn delay_rsc(&mut self, rsc: Resource) {
+        self.queried_cached_urls.push(rsc.url().clone());
         self.cache.insert(rsc.url().clone(), rsc);
     }
 }

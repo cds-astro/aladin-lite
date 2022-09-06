@@ -241,26 +241,22 @@ impl RecomputeRasterizer for UnZoom {
 
         for cell in cells_to_draw {
             if survey.contains(cell) {
-                if let Some(ending_cell_in_tex) = survey.get(cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
+                if let Some(starting_cell_in_tex) = survey.get(cell) {
+                    textures.push(TextureToDraw::new(
+                        starting_cell_in_tex,
+                        starting_cell_in_tex,
+                        cell,
+                    ));
                 }
             } else {
                 let parent_cell = survey.get_nearest_parent(cell);
 
                 if let Some(ending_cell_in_tex) = survey.get(&parent_cell) {
-                    if let Some(starting_cell_in_tex) = survey.get(&parent_cell) {
-                        textures.push(TextureToDraw::new(
-                            starting_cell_in_tex,
-                            ending_cell_in_tex,
-                            cell,
-                        ));
-                    }
+                    textures.push(TextureToDraw::new(
+                        ending_cell_in_tex,
+                        ending_cell_in_tex,
+                        cell,
+                    ));
                 }
             }
         }
@@ -503,6 +499,9 @@ use std::sync::{Arc, Mutex};
 use al_core::image::ImageType;
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
+
+use al_core::{log, info};
+use al_core::inforec;
 
 impl ImageSurvey {
     fn new(
@@ -768,6 +767,8 @@ impl ImageSurvey {
                     moc.contains(cell)
                 }).collect::<Vec<_>>();
         }
+        let num_tiles = textures.len();
+        //al_core::info!(num_tiles);
 
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();

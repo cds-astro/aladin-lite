@@ -1,4 +1,4 @@
-const MAX_NUM_TILE_FETCHING: isize = 32;
+const MAX_NUM_TILE_FETCHING: isize = 8;
 use crate::downloader::query;
 pub struct TileFetcherQueue {
     num_tiles_fetched: isize,
@@ -46,7 +46,7 @@ impl TileFetcherQueue {
             let query = self.base_tile_queries.pop().unwrap();
 
             if downloader.fetch(query) {
-                // The fetch has succed
+                // The fetch has succeded
                 self.num_tiles_fetched += 1;
             }
         }
@@ -55,6 +55,7 @@ impl TileFetcherQueue {
             let query = self.queries.pop().unwrap();
 
             if downloader.fetch(query) {
+                // The fetch has succeded
                 self.num_tiles_fetched += 1;
             }
         }

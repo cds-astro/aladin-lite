@@ -85,6 +85,7 @@ where
     out_of_fov: bool,
     tasks_finished: bool,
     catalog_loaded: bool,
+    start_time_frame: f32,
 
     final_rendering_pass: RenderPass,
     fbo_view: FrameBufferObject,
@@ -214,8 +215,11 @@ where
         let tile_fetcher = TileFetcherQueue::new();
 
         //let ui = Gui::new(aladin_div_name, &gl)?;
+        let start_time_frame = crate::utils::get_current_time();
+
         Ok(App {
             gl,
+            start_time_frame,
             //ui,
             shaders,
 
@@ -287,7 +291,7 @@ where
 
                 // Do not request the cells where we know from its moc that there is no data
                 if let Some(moc) = (*survey.get_moc().lock().unwrap()).as_ref() {
-                    tile_cells = tile_cells.into_iter()
+                    tile_cells = tile_cells.drain()
                         .filter(|tile_cell| {
                             moc.contains(&tile_cell)
                         })
@@ -546,90 +550,94 @@ where
             let rscs = self.downloader.get_received_resources();
             let mut num_tile_received = 0;
             for rsc in rscs.into_iter() {
-                match rsc {
-                    Resource::Tile(tile) => {
-                        let is_tile_root = tile.is_root;
-
-                        if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
-                            if is_tile_root && tile.missing() {
-                                // If at least one tile root is missing, query the allsky!
-                                self.downloader.fetch(query::Allsky::new(survey.get_config()));
-                            } else {
-                                if is_tile_root {
-                                    survey.add_tile(tile);
-
-                                    self.request_redraw = true;
+                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 20.0) {
+                    match rsc {
+                        Resource::Tile(tile) => {
+                            let is_tile_root = tile.is_root;
+    
+                            if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
+                                if is_tile_root && tile.missing() {
+                                    // If at least one tile root is missing, query the allsky!
+                                    self.downloader.fetch(query::Allsky::new(survey.get_config()));
                                 } else {
-                                    let cfg = survey.get_config();
-                                    let coverage = survey.get_view().get_coverage();
-                                    let texture_cell = tile.cell.get_texture_cell(cfg);
-                                    let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
-                                        .any(|neighbor_tile_cell| {
-                                            coverage.contains(&neighbor_tile_cell)
-                                        });
-
-                                    if included_or_near_coverage {
+                                    if is_tile_root {
                                         survey.add_tile(tile);
-        
+    
                                         self.request_redraw = true;
                                     } else {
-                                        self.downloader.cache_rsc(Resource::Tile(tile));
-                                    }
-                                }  
-                            }
-                        } else {
-                            self.downloader.cache_rsc(Resource::Tile(tile));
-                        }
-
-                        num_tile_received += 1;
-                    }
-                    Resource::Allsky(allsky) => {
-                        let hips_url = allsky.get_hips_url();
-
-                        if let Some(survey) = self.surveys.get_mut(&hips_url) {
-                            let is_missing = allsky.missing();
-                            if is_missing {
-                                // The allsky image is missing so we donwload all the tiles contained into
-                                // the 0's cell
-                                let cfg = survey.get_config();
-                                for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                                    for cell in texture_cell.get_tile_cells(cfg) {
-                                        let query = query::Tile::new(&cell, cfg);
-                                        self.tile_fetcher
-                                            .append_base_tile(query, &mut self.downloader);
-                                    }
+                                        let cfg = survey.get_config();
+                                        let coverage = survey.get_view().get_coverage();
+                                        let texture_cell = tile.cell.get_texture_cell(cfg);
+                                        let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                            .any(|neighbor_tile_cell| {
+                                                coverage.contains(&neighbor_tile_cell)
+                                            });
+    
+                                        if included_or_near_coverage {
+                                            survey.add_tile(tile);
+            
+                                            self.request_redraw = true;
+                                        } else {
+                                            self.downloader.cache_rsc(Resource::Tile(tile));
+                                        }
+                                    }  
                                 }
                             } else {
-                                // tell the survey to not download tiles which order is <= 3 because the allsky
-                                // give them already
-                                survey.add_allsky(allsky);
-                                // Once received ask for redraw
+                                self.downloader.cache_rsc(Resource::Tile(tile));
+                            }
+    
+                            num_tile_received += 1;
+                        }
+                        Resource::Allsky(allsky) => {
+                            let hips_url = allsky.get_hips_url();
+    
+                            if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                                let is_missing = allsky.missing();
+                                if is_missing {
+                                    // The allsky image is missing so we donwload all the tiles contained into
+                                    // the 0's cell
+                                    let cfg = survey.get_config();
+                                    for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                                        for cell in texture_cell.get_tile_cells(cfg) {
+                                            let query = query::Tile::new(&cell, cfg);
+                                            self.tile_fetcher
+                                                .append_base_tile(query, &mut self.downloader);
+                                        }
+                                    }
+                                } else {
+                                    // tell the survey to not download tiles which order is <= 3 because the allsky
+                                    // give them already
+                                    survey.add_allsky(allsky);
+                                    // Once received ask for redraw
+                                    self.request_redraw = true;
+                                }
+                            }
+                        },
+                        Resource::PixelMetadata(metadata) => {
+                            if let Some(survey) = self.surveys.get_mut(&metadata.hips_url) {
+                                let mut cfg = survey.get_config_mut();
+                                cfg.blank = metadata.value.blank;
+                                cfg.offset = metadata.value.offset;
+                                cfg.scale = metadata.value.scale;
+                            }
+                        }
+                        Resource::MOC(moc) => {
+                            let hips_url = moc.get_hips_url();
+                            if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                                let MOC {
+                                    moc,
+                                    ..
+                                } = moc;
+    
+                                survey.set_moc(moc);
+    
+                                self.look_for_new_tiles();
                                 self.request_redraw = true;
                             }
                         }
-                    },
-                    Resource::PixelMetadata(metadata) => {
-                        if let Some(survey) = self.surveys.get_mut(&metadata.hips_url) {
-                            let mut cfg = survey.get_config_mut();
-                            cfg.blank = metadata.value.blank;
-                            cfg.offset = metadata.value.offset;
-                            cfg.scale = metadata.value.scale;
-                        }
                     }
-                    Resource::MOC(moc) => {
-                        let hips_url = moc.get_hips_url();
-                        if let Some(survey) = self.surveys.get_mut(&hips_url) {
-                            let MOC {
-                                moc,
-                                ..
-                            } = moc;
-
-                            survey.set_moc(moc);
-
-                            self.look_for_new_tiles();
-                            self.request_redraw = true;
-                        }
-                    }
+                } else {
+                    self.downloader.delay_rsc(rsc);
                 }
             }
 
@@ -715,6 +723,8 @@ where
     }
 
     fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
+        self.start_time_frame = crate::utils::get_current_time();
+
         /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();
         //al_core::log(&format!("dpi {:?}", dpi));
@@ -914,6 +924,7 @@ where
 
         App {
             gl: self.gl,
+            start_time_frame: self.start_time_frame,
             tile_fetcher: self.tile_fetcher,
 
             colormaps: self.colormaps,

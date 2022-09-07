@@ -31,7 +31,7 @@ pub fn depth_from_pixels_on_screen<P: Projection>(camera: &CameraViewPort, num_p
 
     let two_power_two_times_depth_pixel =
         std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
-    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0) as u32 + 1;
+    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).round() as u32;
 
     //let survey_max_depth = conf.get_max_depth();
     // The depth of the texture

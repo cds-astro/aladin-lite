@@ -280,6 +280,10 @@ select, input[type=number], input[type=text] {
     box-sizing: border-box;
 }
 
+input[type=number], input[type=text] {
+    width: 100%;
+}
+
 .aladin-surveySelection {
     max-width: 150px;
 }

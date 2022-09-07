@@ -1,9 +1,12 @@
 const MAX_NUM_TILE_FETCHING: isize = 8;
+const MAX_QUERY_QUEUE_LENGTH: usize = 100;
+use std::collections::VecDeque;
+
 use crate::downloader::query;
 pub struct TileFetcherQueue {
     num_tiles_fetched: isize,
     // A stack of queries to fetch
-    queries: Vec<query::Tile>,
+    queries: VecDeque<query::Tile>,
     base_tile_queries: Vec<query::Tile>,
 }
 
@@ -11,7 +14,7 @@ use crate::downloader::Downloader;
 
 impl TileFetcherQueue {
     pub fn new() -> Self {
-        let queries = Vec::new();
+        let queries = VecDeque::new();
         let base_tile_queries = Vec::new();
         Self {
             num_tiles_fetched: 0,
@@ -25,7 +28,12 @@ impl TileFetcherQueue {
     }
 
     pub fn append(&mut self, query: query::Tile, downloader: &mut Downloader) {
-        self.queries.push(query);
+        // discard too old tile queries
+        // this may not be the best thing to do but
+        if self.queries.len() > MAX_QUERY_QUEUE_LENGTH {
+            self.queries.pop_front();   
+        }
+        self.queries.push_back(query);
         self.fetch(downloader);
     }
 
@@ -52,7 +60,7 @@ impl TileFetcherQueue {
         }
 
         while self.num_tiles_fetched < MAX_NUM_TILE_FETCHING && !self.queries.is_empty() {
-            let query = self.queries.pop().unwrap();
+            let query = self.queries.pop_back().unwrap();
 
             if downloader.fetch(query) {
                 // The fetch has succeded

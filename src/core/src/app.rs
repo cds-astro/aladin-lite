@@ -549,10 +549,12 @@ where
             .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
             let rscs = self.downloader.get_received_resources();
             let mut num_tile_received = 0;
+            let mut tile_copied = false;
             for rsc in rscs.into_iter() {
-                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 20.0) {
+                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 20.0) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
+                            tile_copied = true;
                             let is_tile_root = tile.is_root;
     
                             if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {

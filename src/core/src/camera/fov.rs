@@ -50,8 +50,8 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-const NUM_VERTICES_WIDTH: usize = 5;
-const NUM_VERTICES_HEIGHT: usize = 5;
+const NUM_VERTICES_WIDTH: usize = 4;
+const NUM_VERTICES_HEIGHT: usize = 4;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {

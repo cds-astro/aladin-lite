@@ -447,7 +447,7 @@ export class HiPSLayer {
                 }
             }
             else {
-                maxCut.val(10.0);
+                maxCut.val(0.0);
             }
             maxCutTr.show();
         }

@@ -551,7 +551,7 @@ where
             let mut num_tile_received = 0;
             let mut tile_copied = false;
             for rsc in rscs.into_iter() {
-                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 20.0) || !tile_copied {
+                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 24.0) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
                             tile_copied = true;
@@ -917,9 +917,8 @@ where
         // Recompute the ndc_to_clip
         self.camera.set_screen_size::<Q>(width, height);
         // Recompute clip zoom factor
-        self.camera.set_aperture::<Q>(self.camera.get_aperture());
-
         self.surveys.set_projection::<Q>();
+        self.camera.set_aperture::<Q>(self.camera.get_aperture());
 
         self.look_for_new_tiles();
         self.request_redraw = true;

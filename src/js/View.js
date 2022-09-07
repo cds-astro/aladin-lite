@@ -79,7 +79,6 @@ export let View = (function() {
         this.mode = View.PAN;
         
         this.minFOV = this.maxFOV = null; // by default, no restriction
-        this.fovLimit = 1000.0;
         
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
@@ -109,7 +108,7 @@ export let View = (function() {
         // Zoom starting setting
         const si = 500000.0;
         const alpha = 40.0;
-
+        this.fovLimit = undefined;
         let initialFov = zoom || 180.0;
         this.pinchZoomParameters = {
             isPinching: false, // true if a pinch zoom is ongoing
@@ -357,14 +356,19 @@ export let View = (function() {
         }
         // update FoV value
         var fovStr;
-        if (this.fov>1) {
-            fovStr = Math.round(this.fov*100)/100 + "°";
+        let fov = this.fov;
+        if (fov >= 360.0) {
+            fov = 360.0;
         }
-        else if (this.fov*60>1) {
-            fovStr = Math.round(this.fov*60*100)/100 + "'";
+
+        if (fov>1) {
+            fovStr = Math.round(fov*100)/100 + "°";
+        }
+        else if (fov*60>1) {
+            fovStr = Math.round(fov*60*100)/100 + "'";
         }
         else {
-            fovStr = Math.round(this.fov*3600*100)/100 + '"';
+            fovStr = Math.round(fov*3600*100)/100 + '"';
         }
         this.fovDiv.html("FoV: " + fovStr);
     }
@@ -678,7 +682,7 @@ export let View = (function() {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fovLimit);
+                const fov = Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777);
                 view.setZoom(fov);
 
                 return;
@@ -1365,22 +1369,14 @@ export let View = (function() {
         const alpha = 40.0;
         const amount = 0.005;
 
-        this.pinchZoomParameters.initialAccDelta += amount;
+        let initialAccDelta = this.pinchZoomParameters.initialAccDelta + amount;
+        let new_fov = si / Math.pow(initialAccDelta, alpha);
 
-        if (this.pinchZoomParameters.initialAccDelta <= 0.0) {
-            this.pinchZoomParameters.initialAccDelta = 1e-3;
-        }
-        let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
-
-        if (new_fov > this.fovLimit) {
-            new_fov = this.fovLimit;
-            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-        }
         if (new_fov < 0.00002777777) {
             new_fov = 0.00002777777;
-            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         }
 
+        this.pinchZoomParameters.initialAccDelta = initialAccDelta;
         this.setZoom(new_fov);
     }
 
@@ -1389,23 +1385,19 @@ export let View = (function() {
         const alpha = 40.0;
         const amount = 0.005;
 
-        this.pinchZoomParameters.initialAccDelta -= amount;
+        let initialAccDelta = this.pinchZoomParameters.initialAccDelta - amount;
 
-        if (this.pinchZoomParameters.initialAccDelta <= 0.0) {
-            this.pinchZoomParameters.initialAccDelta = 1e-3;
+        if (initialAccDelta <= 0.0) {
+            initialAccDelta = 1e-3;
         }
 
-        let new_fov = si / Math.pow(this.pinchZoomParameters.initialAccDelta, alpha);
+        let new_fov = si / Math.pow(initialAccDelta, alpha);
 
-        if (new_fov > this.fovLimit) {
+        if (new_fov >= this.fovLimit) {
             new_fov = this.fovLimit;
-            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
         }
-        if (new_fov < 0.00002777777) {
-            new_fov = 0.00002777777;
-            //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
-        } 
 
+        this.pinchZoomParameters.initialAccDelta = initialAccDelta;
         this.setZoom(new_fov);
     }
 
@@ -1434,6 +1426,7 @@ export let View = (function() {
     View.prototype.updateZoomState = function() {
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
         this.fov = this.aladin.webglAPI.getFieldOfView();
+        console.log(this.fov)
         
         this.computeNorder();
     };
@@ -1715,28 +1708,37 @@ export let View = (function() {
         switch (projectionName) {
             case "AIT":
                 this.projection.setProjection(ProjectionEnum.AITOFF);
+                this.fovLimit = 1000.0;
                 break;
             case "HPX":
                 this.projection.setProjection(ProjectionEnum.HPX);
+                this.fovLimit = 360.0;
                 break;
             case "TAN":
                 this.projection.setProjection(ProjectionEnum.TAN);
+                this.fovLimit = 180.0;
                 break;
             case "ARC":
                 this.projection.setProjection(ProjectionEnum.ARC);
+                this.fovLimit = 1000.0;
                 break;
             case "MER":
                 this.projection.setProjection(ProjectionEnum.MERCATOR);
+                this.fovLimit = 360.0;
                 break;
             case "MOL":
                 this.projection.setProjection(ProjectionEnum.MOL);
+                this.fovLimit = 1000.0;
                 break;
             case "SIN":
             default:
                 this.projection.setProjection(ProjectionEnum.SIN);
+                this.fovLimit = 1000.0;
         }
         // Change the projection here
         this.aladin.webglAPI = this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);
+        const fov = this.aladin.webglAPI.getFieldOfView();
+        this.setZoom(fov);
 
         this.requestRedraw();
     };

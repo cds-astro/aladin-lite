@@ -271,23 +271,25 @@ impl CameraViewPort {
             let v1 = math::lonlat::radec_to_xyzw(lon / 2.0, Angle(0.0));
 
             self.clip_zoom_factor = 0.0;
-            if let Some(p0) = P::world_to_clip_space(&v0) {
+            self.clip_zoom_factor = if let Some(p0) = P::world_to_clip_space(&v0) {
                 if let Some(p1) = P::world_to_clip_space(&v1) {
-                    self.clip_zoom_factor = (0.5*(p1.x - p0.x).abs()).min(1.0);
+                    (0.5*(p1.x - p0.x).abs()).min(1.0)
+                } else {
+                    (aperture / P::aperture_start()).0
                 }
-            }
-
-            if self.clip_zoom_factor == 0.0 {
-                self.clip_zoom_factor = (aperture / P::aperture_start()).0;
-            }
+            } else {
+                (aperture / P::aperture_start()).0
+            };
 
             aperture
         } else {
             if P::ALLOW_UNZOOM_MORE {
                 self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+                aperture
+            } else {
+                self.clip_zoom_factor = 1.0;
+                P::aperture_start()
             }
-
-            P::aperture_start()
         };
 
         // Project this vertex into the screen

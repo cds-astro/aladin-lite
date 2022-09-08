@@ -1459,7 +1459,7 @@ impl ImageSurveys {
         self.surveys.iter_mut()
     }
 
-    pub fn values(&mut self) -> impl Iterator<Item = &ImageSurvey> {
+    pub fn values(&self) -> impl Iterator<Item = &ImageSurvey> {
         self.surveys.values()
     }
 

@@ -684,7 +684,7 @@ export let View = (function() {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777);
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), this.fovLimit);
                 view.setZoom(fov);
 
                 return;
@@ -1428,8 +1428,7 @@ export let View = (function() {
     View.prototype.updateZoomState = function() {
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
         this.fov = this.aladin.webglAPI.getFieldOfView();
-        console.log(this.fov)
-        
+
         this.computeNorder();
     };
     
@@ -2038,11 +2037,6 @@ export let View = (function() {
                 }
             }
         }
-
-
-
-
-
 
         if (!this.objLookup) {
             return null;

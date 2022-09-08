@@ -131,6 +131,20 @@ impl HEALPixCell {
 
         HEALPixCell(depth, pix)
     }
+
+    #[inline]
+    pub fn path_along_cell_edge(
+        &self,
+        n_segments_by_side: u32
+    ) -> Box<[(f64, f64)]> {
+        cdshealpix::nested::path_along_cell_edge(
+            self.depth(),
+            self.idx(),
+            &cdshealpix::compass_point::Cardinal::S,
+            false,
+            n_segments_by_side
+        )
+    }
 }
 
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;

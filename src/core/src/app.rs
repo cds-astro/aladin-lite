@@ -13,6 +13,7 @@ use crate::{
     renderable::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
+        moc::MOC,
     },
     shader::ShaderManager,
     survey::ImageSurveys,
@@ -27,6 +28,7 @@ use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
     hips::{ImageSurveyMeta, SimpleHiPS},
+    color::Color,
 };
 
 use super::coosys;
@@ -70,6 +72,8 @@ where
 
     // The grid renderable
     grid: ProjetedGrid,
+    // The moc renderable
+    moc: MOC,
     // Catalog manager
     manager: Manager,
 
@@ -150,7 +154,7 @@ pub enum AppType {
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
-use crate::downloader::request::moc::MOC;
+use crate::downloader::request;
 //use al_core::log;
 //use al_core::{info, inforec};
 
@@ -217,6 +221,8 @@ where
         //let ui = Gui::new(aladin_div_name, &gl)?;
         let start_time_frame = crate::utils::get_current_time();
 
+        let moc = MOC::new(&gl);
+
         Ok(App {
             gl,
             start_time_frame,
@@ -233,6 +239,8 @@ where
             request_redraw,
             // The grid renderable
             grid,
+            // MOCs renderable
+            moc,
             // The catalog renderable
             manager,
             exec,
@@ -626,7 +634,7 @@ where
                         Resource::MOC(moc) => {
                             let hips_url = moc.get_hips_url();
                             if let Some(survey) = self.surveys.get_mut(&hips_url) {
-                                let MOC {
+                                let request::moc::MOC {
                                     moc,
                                     ..
                                 } = moc;
@@ -675,6 +683,22 @@ where
         if has_camera_moved {
             if let Some(view) = self.surveys.get_view() {
                 self.manager.update::<P>(&self.camera, view);
+
+                // MOCs update
+                let view_moc = view.get_coverage();
+                let depth = view.get_depth() + 5;
+
+                let mocs = self.surveys.values()
+                    .filter_map(|survey| {
+                        (*survey.get_moc().lock().unwrap())
+                            .as_ref()
+                            .and_then(|moc| {
+                                let render_moc = view_moc.intersection(&moc.degraded(depth));
+                                Some(crate::healpix::coverage::HEALPixCoverage(render_moc))
+                            })
+                    }).collect::<Vec<_>>();
+
+                self.moc.update::<P>(&mocs[..], &self.camera);
             }
 
             self.grid.update::<P>(&self.camera);
@@ -804,6 +828,7 @@ where
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw::<P>(camera, shaders, colormaps);
+            self.moc.draw(shaders, camera, &Color::new(1.0, 0.0, 0.0, 1.0));
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -924,6 +949,7 @@ where
         self.request_redraw = true;
 
         App {
+            moc: self.moc,
             gl: self.gl,
             start_time_frame: self.start_time_frame,
             tile_fetcher: self.tile_fetcher,

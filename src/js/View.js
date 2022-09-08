@@ -357,7 +357,9 @@ export let View = (function() {
         // update FoV value
         var fovStr;
         let fov = this.fov;
-        if (fov >= 360.0) {
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
+            fov = 180.0;
+        } else if (fov >= 360.0) {
             fov = 360.0;
         }
 

@@ -8,6 +8,7 @@ use cgmath::{Vector3, Vector4};
 pub type SMOC = RangeMOC<u64, Hpx<u64>>;
 
 use crate::healpix::cell::HEALPixCell;
+#[derive(Clone)]
 pub struct HEALPixCoverage(pub SMOC);
 
 use moclib::elemset::range::MocRanges;

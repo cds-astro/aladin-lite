@@ -122,7 +122,8 @@ pub struct HEALPixCellsInView {
     // specific image survey
     pub depth: u8,
     prev_depth: u8,
-    look_for_parents: bool,
+    view_unchanged: bool,
+    frame: CooSystem,
 
     // flags associating true to cells that
     // are new in the fov
@@ -140,18 +141,22 @@ impl HEALPixCellsInView {
         let cells = HashMap::new();
         let coverage = HEALPixCoverage::allsky(0);
 
+        let view_unchanged = false;
+        let frame = CooSystem::ICRSJ2000;
         Self {
             cells,
             prev_depth: 0,
             depth: 0,
-            look_for_parents: false,
             is_new_cells_added: false,
+            view_unchanged,
+            frame,
             coverage,
         }
     }
 
     pub fn reset_frame(&mut self) {
         self.is_new_cells_added = false;
+        self.view_unchanged = false;
         self.prev_depth = self.get_depth();
     }
 
@@ -161,9 +166,10 @@ impl HEALPixCellsInView {
     // The new cells obtained are used for sending new requests
     pub fn refresh(&mut self, new_depth: u8, hips_frame: CooSystem, camera: &CameraViewPort) {
         self.depth = new_depth;
+        self.frame = hips_frame;
 
         // Get the cells of that depth in the current field of view
-        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, hips_frame);
+        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, self.frame);
         self.coverage = coverage;
 
         // Update cells in the fov
@@ -180,13 +186,10 @@ impl HEALPixCellsInView {
                 (*cell, new)
             })
             .collect::<HashMap<_, _>>();
-        self.cells = new_cells;
 
-        if camera.get_last_user_action() == UserAction::Unzooming {
-            self.look_for_parents = self.has_depth_decreased();
-        } else {
-            self.look_for_parents = false;
-        }
+        // If no new cells have been added
+        self.view_unchanged = !self.is_new_cells_added && new_cells.len() == self.cells.len();
+        self.cells = new_cells;
     }
 
     // Accessors
@@ -203,6 +206,11 @@ impl HEALPixCellsInView {
     #[inline]
     pub fn get_depth(&self) -> u8 {
         self.depth
+    }
+
+    #[inline]
+    pub fn get_frame(&self) -> &CooSystem {
+        &self.frame
     }
 
     #[inline]
@@ -225,15 +233,21 @@ impl HEALPixCellsInView {
         self.is_new_cells_added
     }
 
-    /*#[inline]
-    pub fn has_depth_decreased_while_unzooming(&self, camera: &CameraViewPort) -> bool {
-        debug_assert!(camera.get_last_user_action() == UserAction::Unzooming);
-        self.look_for_parents
-    }*/
+    #[inline]
+    pub fn has_view_changed(&self) -> bool {
+        //self.new_cells.is_there_new_cells_added()
+        !self.view_unchanged
+    }
 
     #[inline]
     fn has_depth_decreased(&self) -> bool {
         let depth = self.get_depth();
         depth < self.prev_depth
+    }
+
+    #[inline]
+    fn has_depth_changed(&self) -> bool {
+        let depth = self.get_depth();
+        depth != self.prev_depth
     }
 }

@@ -1,3 +1,4 @@
+use crate::app::App;
 use crate::downloader::query;
 
 use super::{Request, RequestType};
@@ -7,8 +8,9 @@ use crate::healpix::coverage::SMOC;
 use crate::downloader::QueryId;
 pub struct MOCRequest {
     pub id: QueryId,
-    pub hips_url: Url,
     pub url: Url,
+    pub params: al_api::moc::MOC,
+    is_hips_moc: bool,
 
     request: Request<HEALPixCoverage>,
 }
@@ -51,7 +53,8 @@ impl From<query::MOC> for MOCRequest {
         let id = query.id();
         let query::MOC {
             url,
-            hips_url,
+            params,
+            is_hips_moc,
         } = query;
 
         let url_clone = url.clone();
@@ -70,7 +73,8 @@ impl From<query::MOC> for MOCRequest {
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
             let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true).map_err(|e| JsValue::from_str(&e.to_string()))? {
+            let coosys_permissive = is_hips_moc;
+            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), coosys_permissive).map_err(|e| JsValue::from_str(&e.to_string()))? {
                 MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
@@ -82,9 +86,10 @@ impl From<query::MOC> for MOCRequest {
 
         Self {
             id,
-            hips_url,
             url,
             request,
+            params,
+            is_hips_moc,
         }
     }
 }
@@ -92,17 +97,22 @@ impl From<query::MOC> for MOCRequest {
 use std::sync::{Arc, Mutex};
 pub struct MOC {
     pub moc: Arc<Mutex<Option<HEALPixCoverage>>>,
-    hips_url: Url,
-    url: Url,
+    pub params: al_api::moc::MOC,
+    pub url: Url,
+    is_hips_moc: bool,
 }
 
 impl MOC {
-    pub fn get_hips_url(&self) -> &Url {
-        &self.hips_url
-    }
-
     pub fn get_url(&self) -> &Url {
         &self.url
+    }
+
+    pub fn from_hips(&self) -> Option<&Url> {
+        if self.is_hips_moc {
+            Some(&self.url)
+        } else {
+            None
+        }
     }
 }
 
@@ -110,8 +120,9 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
     fn from(request: &'a MOCRequest) -> Self {
         let MOCRequest {
             request,
-            hips_url,
             url,
+            is_hips_moc,
+            params,
             ..
         } = request;
         if request.is_resolved() {
@@ -121,8 +132,9 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
             Some(MOC {
                 // This is a clone on a Arc, it is supposed to be fast
                 moc: data.clone(),
-                hips_url: hips_url.clone(),
                 url: url.clone(),
+                is_hips_moc: *is_hips_moc,
+                params: params.clone()
             })
         } else {
             None

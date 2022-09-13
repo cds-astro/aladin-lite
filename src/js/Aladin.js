@@ -390,7 +390,6 @@ export let Aladin = (function () {
 
     // access to WASM libraries
     Aladin.wasmLibs = {};
-    Aladin.webglAPI = [];
     Aladin.DEFAULT_OPTIONS = {
         survey: "CDS/P/DSS2/color",
         target: "0 +0",

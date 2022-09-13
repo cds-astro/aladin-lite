@@ -856,4 +856,23 @@ impl WebClient {
     pub fn is_rendering(&self) -> bool {
         self.app.is_rendering()
     }
+
+    #[wasm_bindgen(js_name = addJSONMoc)]
+    pub fn add_json_moc(&self, params: al_api::moc::MOC, data: JsValue) -> Result<(), JsValue> {
+        todo!();
+    }
+
+    #[wasm_bindgen(js_name = addFITSMoc)]
+    pub fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
+        self.app.add_fits_moc(params, data_url)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = setMocParams)]
+    pub fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
+        self.app.set_moc_params(params)?;
+
+        Ok(())
+    }
 }

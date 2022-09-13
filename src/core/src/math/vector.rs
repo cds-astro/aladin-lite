@@ -25,5 +25,5 @@ pub fn ccw_tri<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>, c: &Vector2<S>) -> 
     // | x2, y2, 1 | > 0 => the triangle is given in anticlockwise order
     // | x3, y3, 1 |
 
-    a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y > S::zero()
+    a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y >= S::zero()
 }

@@ -1102,7 +1102,7 @@ export let View = (function() {
 
 
         // draw MOCs
-        var mocCtx = catalogCtx;
+        /*var mocCtx = catalogCtx;
         if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
             if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
@@ -1112,7 +1112,7 @@ export let View = (function() {
             for (var i=0; i<this.mocs.length; i++) {
                 this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
             }
-        }
+        }*/
 
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas

@@ -155,8 +155,8 @@ pub enum AppType {
 use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
-//use al_core::log;
-//use al_core::{info, inforec};
+use al_core::log;
+use al_core::{info, inforec};
 
 impl<P> App<P>
 where
@@ -455,6 +455,10 @@ pub trait AppTrait {
     fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64);
     fn reset_north_orientation(&mut self);
 
+    // MOCs
+    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue>;
+    fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue>;
+
     // Accessors
     fn get_center(&self) -> LonLatT<f64>;
     fn get_clip_zoom_factor(&self) -> f64;
@@ -503,6 +507,19 @@ where
         let res = self.surveys.is_ready();
 
         Ok(res)
+    }
+
+    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
+        self.downloader.fetch(query::MOC::new(data_url, params, false));
+
+        Ok(())
+    }
+
+    fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
+        self.moc.set_params(params)
+            .ok_or(JsValue::from_str("MOC not found"))?;
+
+        Ok(())
     }
 
     fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
@@ -630,21 +647,33 @@ where
                                 cfg.offset = metadata.value.offset;
                                 cfg.scale = metadata.value.scale;
                             }
-                        }
+                        },
                         Resource::MOC(moc) => {
-                            let hips_url = moc.get_hips_url();
-                            if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                            if let Some(hips_url) = moc.from_hips() {
+                                if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                                    let request::moc::MOC {
+                                        moc,
+                                        ..
+                                    } = moc;
+        
+                                    survey.set_moc(moc);
+
+                                    self.look_for_new_tiles();
+                                    self.request_redraw = true;
+                                }
+                            } else {
                                 let request::moc::MOC {
                                     moc,
+                                    url,
+                                    params,
                                     ..
                                 } = moc;
-    
-                                survey.set_moc(moc);
-    
-                                self.look_for_new_tiles();
-                                self.request_redraw = true;
+
+                                if let Some(moc) = (*moc.lock().unwrap()).as_ref() {
+                                    self.moc.insert(moc.clone(), params.clone(), &self.surveys);
+                                };
                             }
-                        }
+                        },
                     }
                 } else {
                     self.downloader.delay_rsc(rsc);
@@ -681,25 +710,12 @@ where
 
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
+            // Catalogues update
             if let Some(view) = self.surveys.get_view() {
                 self.manager.update::<P>(&self.camera, view);
-
-                // MOCs update
-                let view_moc = view.get_coverage();
-                let depth = view.get_depth() + 5;
-
-                let mocs = self.surveys.values()
-                    .filter_map(|survey| {
-                        (*survey.get_moc().lock().unwrap())
-                            .as_ref()
-                            .and_then(|moc| {
-                                let render_moc = view_moc.intersection(&moc.degraded(depth));
-                                Some(crate::healpix::coverage::HEALPixCoverage(render_moc))
-                            })
-                    }).collect::<Vec<_>>();
-
-                self.moc.update::<P>(&mocs[..], &self.camera);
             }
+            // MOCs update
+            self.moc.update::<P>(&self.surveys, &self.camera);
 
             self.grid.update::<P>(&self.camera);
         }
@@ -828,7 +844,7 @@ where
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw::<P>(camera, shaders, colormaps);
-            self.moc.draw(shaders, camera, &Color::new(1.0, 0.0, 0.0, 1.0));
+            self.moc.draw(shaders, camera);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -859,7 +875,7 @@ where
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             self.downloader.fetch(query::PixelMetadata::new(cfg));
             // Try to fetch the MOC
-            self.downloader.fetch(query::MOC::new(cfg));
+            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true));
 
             let tile_size = cfg.get_tile_size();
             //Request the allsky for the small tile size
@@ -913,7 +929,7 @@ where
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
         self.downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
-        self.downloader.fetch(query::MOC::new(cfg));
+        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky

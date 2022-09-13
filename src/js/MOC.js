@@ -21,7 +21,7 @@ import { Color } from "./Color";
 
 export let MOC = (function() {
     let MOC = function(options) {
-        this.order = undefined;
+        //this.order = undefined;
 
         this.uuid = Utils.uuidv4();
         this.type = 'moc';
@@ -30,43 +30,44 @@ export let MOC = (function() {
         options = options || {};
         this.name = options.name || "MOC";
         this.color = options.color || Color.getNextColor();
+        this.color = new Aladin.wasmLibs.webgl.Color(1.0, 1.0, 0.0, 1.0);
+
         this.opacity = options.opacity || 1;
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
         this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
 
-        this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
+        //this.proxyCalled = false; // this is a flag to check whether we already tried to load the MOC through the proxy
 
         // index of MOC cells at high and low resolution
-        this._highResIndexOrder3 = new Array(768);
+        /*this._highResIndexOrder3 = new Array(768);
         this._lowResIndexOrder3 = new Array(768);
         for (var k=0; k<768; k++) {
             this._highResIndexOrder3[k] = {};
             this._lowResIndexOrder3[k] = {};
         }
 
-        this.nbCellsDeepestLevel = 0; // needed to compute the sky fraction of the MOC
+        this.nbCellsDeepestLevel = 0; // needed to compute the sky fraction of the MOC*/
 
-        this.isShowing = true;
+        //this.isShowing = true;
         this.ready = false;
     }
 
-    
-    function log2(val) {
+    /*function log2(val) {
         return Math.log(val) / Math.LN2;
-    }
+    }*/
 
     // max norder we can currently handle (limitation of healpix.js)
-    MOC.MAX_NORDER = 13; // NSIDE = 8192
+    //MOC.MAX_NORDER = 13; // NSIDE = 8192
 
-    MOC.LOWRES_MAXORDER = 6; // 5 or 6 ??
-    MOC.HIGHRES_MAXORDER = 11; // ??
+    //MOC.LOWRES_MAXORDER = 6; // 5 or 6 ??
+    //MOC.HIGHRES_MAXORDER = 11; // ??
 
     // TODO: options to modifiy this ?
-    MOC.PIVOT_FOV = 30; // when do we switch from low res cells to high res cells (fov in degrees)
+    //MOC.PIVOT_FOV = 30; // when do we switch from low res cells to high res cells (fov in degrees)
 
     // at end of parsing, we need to remove duplicates from the 2 indexes
-    MOC.prototype._removeDuplicatesFromIndexes = function() {
+    /*MOC.prototype._removeDuplicatesFromIndexes = function() {
         var a, aDedup;
         for (var k=0; k<768; k++) {
             for (var key in this._highResIndexOrder3[k]) {
@@ -81,10 +82,10 @@ export let MOC = (function() {
             }
         }
         
-    }
+    }*/
 
     // add pixel (order, ipix)
-    MOC.prototype._addPix = function(order, ipix) {
+    /*MOC.prototype._addPix = function(order, ipix) {
         var ipixOrder3 = Math.floor( ipix * Math.pow(4, (3 - order)) );
         // fill low and high level cells
         // 1. if order <= LOWRES_MAXORDER, just store value in low and high res cells
@@ -134,7 +135,7 @@ export let MOC = (function() {
         }
 
         this.nbCellsDeepestLevel += Math.pow(4, (this.order - order));
-    };
+    };*/
 
 
     /**
@@ -150,7 +151,7 @@ export let MOC = (function() {
      * (as defined in IVOA MOC document, section 3.1.1)
      */
     MOC.prototype.dataFromJSON = function(jsonMOC) {
-        var order, ipix;
+        /*var order, ipix;
         // 1. Compute the order (order of the deepest cells contained in the moc)
         for (var orderStr in jsonMOC) {
             if (jsonMOC.hasOwnProperty(orderStr)) {
@@ -172,8 +173,9 @@ export let MOC = (function() {
             }
         }
 
-        this.reportChange();
+        this.reportChange();*/
         this.ready = true;
+        this.dataJSON = jsonMOC;
     };
 
     /**
@@ -181,7 +183,7 @@ export let MOC = (function() {
      */
     MOC.prototype.dataFromFITSURL = function(mocURL, successCallback) {
         var self = this;
-        var callback = function() {
+        /*var callback = function() {
             // note: in the callback, 'this' refers to the FITS instance
 
             // first, let's find MOC norder
@@ -223,7 +225,6 @@ export let MOC = (function() {
                 return;
             }
 
-
             var data = this.getDataUnit(1);
             var colName = data.columns[0];
             data.getRows(0, data.rows, function(rows) {
@@ -249,19 +250,28 @@ export let MOC = (function() {
             self.reportChange();
             self.ready = true;
         }; // end of callback function
-
+        */
         this.dataURL = mocURL;
+        this.successCallback = successCallback;
 
         // instantiate the FITS object which will fetch the URL passed as parameter
-        new astro.FITS(this.dataURL, callback);
+        //new astro.FITS(this.dataURL, callback);
     };
 
     MOC.prototype.setView = function(view) {
         this.view = view;
-        this.reportChange();
+
+        this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
+        if (this.dataURL) {
+            view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL);
+        } else if (this.dataFromJSON) {
+            // TODO
+        }
+
+        view.requestRedraw();
     };
-    
-    MOC.prototype.draw = function(ctx, projection, viewFrame, width, height, largestDim, zoomFactor, fov) {
+
+    /*MOC.prototype.draw = function(ctx, projection, viewFrame, width, height, largestDim, zoomFactor, fov) {
         if (! this.isShowing || ! this.ready) {
             return;
         }
@@ -379,7 +389,7 @@ export let MOC = (function() {
         }
 
         return out;
-    };
+    };*/
 
 
     // TODO: merge with what is done in View.getVisibleCells
@@ -475,7 +485,12 @@ export let MOC = (function() {
     };
 
     MOC.prototype.reportChange = function() {
-        this.view && this.view.requestRedraw();
+        if (this.view) {
+            // update the new moc params to the backend
+            this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
+            this.view.aladin.webglAPI.setMocParams(this.mocParams);
+            this.view.requestRedraw();
+        }
     };
 
     MOC.prototype.show = function() {
@@ -534,8 +549,6 @@ export let MOC = (function() {
 
         return false;
     };
-
-
 
     return MOC;
 

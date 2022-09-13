@@ -158,20 +158,18 @@ impl Query for PixelMetadata {
 
 /* ---------------------------------- */
 pub struct MOC {
-    // The root url of the HiPS
-    pub hips_url: Url,
     // The total url of the query
     pub url: Url,
+    pub is_hips_moc: bool,
+    pub params: al_api::moc::MOC,
 }
 
 impl MOC {
-    pub fn new(cfg: &HiPSConfig) -> Self {
-        let hips_url = cfg.get_root_url().to_string();
-        let url = format!("{}/Moc.fits", hips_url);
-
+    pub fn new(url: String, params: al_api::moc::MOC, is_hips_moc: bool) -> Self {
         MOC {
-            hips_url,
             url,
+            params,
+            is_hips_moc,
         }
     }
 }

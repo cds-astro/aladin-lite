@@ -122,65 +122,64 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
     let cell_inside = vertices.len() == 2*(n_segment_by_side+1)*(n_segment_by_side+1);
 
     if cell_inside {
-        let c0 = Vector2::new(vertices[0], vertices[1]);
-        let c1 = Vector2::new(vertices[2*n_segment_by_side], vertices[2*n_segment_by_side + 1]);
-        let c2 = Vector2::new(vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 2], vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 1]);
-        let c3 = Vector2::new(vertices[2*n_segment_by_side*(n_segment_by_side+1)], vertices[2*n_segment_by_side*(n_segment_by_side+1) + 1]);
+        // HEALPix projection special case
+        /*//if (this.projection.PROJECTION == ProjectionEnum.HPX) {
+        const triIdxInCollignonZone = ((p) => {
+            const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
+            const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
 
-        let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) && !crate::math::vector::ccw_tri(&c1, &c2, &c3) && !crate::math::vector::ccw_tri(&c2, &c3, &c0) && !crate::math::vector::ccw_tri(&c3, &c0, &c1);
+            const xZone = Math.floor((x + 0.5) * 4);
+            return xZone + 4 * (y > 0.0);
+        });
 
-        if !cell_cross_screen {
-            // HEALPix projection special case
-            /*//if (this.projection.PROJECTION == ProjectionEnum.HPX) {
-            const triIdxInCollignonZone = ((p) => {
-                const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
-                const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
+        const isInCollignon = ((p) => {
+            const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
 
-                const xZone = Math.floor((x + 0.5) * 4);
-                return xZone + 4 * (y > 0.0);
-            });
+            return y < -0.25 || y > 0.25;
+        });
 
-            const isInCollignon = ((p) => {
-                const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-                return y < -0.25 || y > 0.25;
-            });
-
-            if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
-                const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
-                if (!allVerticesInSameCollignonRegion) {
-                    continue;
-                }
+        if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
+            const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
+            if (!allVerticesInSameCollignonRegion) {
+                continue;
             }
-            //}*/
-
-            // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-            let mut indices = Vec::with_capacity(n_segment_by_side * n_segment_by_side * 6);
-            let num_vertices = (n_segment_by_side+1)*(n_segment_by_side+1);
-
-            for i in 0..n_segment_by_side {
-                for j in 0..n_segment_by_side {
-                    let idx_0 = (j + i * n_vertices_per_segment) as u32;
-                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u32;
-                    let idx_2 = (j + 1 + (i + 1) * n_vertices_per_segment) as u32;
-                    let idx_3 = (j + (i + 1) * n_vertices_per_segment) as u32;
-
-                    indices.push(*idx_off + idx_0);
-                    indices.push(*idx_off + idx_1);
-                    indices.push(*idx_off + idx_2);
-
-                    indices.push(*idx_off + idx_2);
-                    indices.push(*idx_off + idx_3);
-                    indices.push(*idx_off + idx_0);
-                }
-            }
-
-            *idx_off += num_vertices as u32;
-
-            Some((vertices, indices))
-        } else {
-            None
         }
+        //}*/
+
+        // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+        let mut indices = Vec::with_capacity(n_segment_by_side * n_segment_by_side * 6);
+        let num_vertices = (n_segment_by_side+1)*(n_segment_by_side+1);
+
+        for i in 0..n_segment_by_side {
+            for j in 0..n_segment_by_side {
+                let idx_0 = j + i * n_vertices_per_segment;
+                let idx_1 = j + 1 + i * n_vertices_per_segment;
+                let idx_2 = j + 1 + (i + 1) * n_vertices_per_segment;
+                let idx_3 = j + (i + 1) * n_vertices_per_segment;
+
+                let c0 = Vector2::new(vertices[2*idx_0], vertices[2*idx_0 + 1]);
+                let c1 = Vector2::new(vertices[2*idx_1], vertices[2*idx_1 + 1]);
+                let c2 = Vector2::new(vertices[2*idx_2], vertices[2*idx_2 + 1]);
+                let c3 = Vector2::new(vertices[2*idx_3], vertices[2*idx_3 + 1]);
+        
+                let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) || !crate::math::vector::ccw_tri(&c0, &c2, &c3);
+                if cell_cross_screen {
+                    return None;
+                }
+
+                indices.push(*idx_off + idx_0 as u32);
+                indices.push(*idx_off + idx_1 as u32);
+                indices.push(*idx_off + idx_2 as u32);
+
+                indices.push(*idx_off + idx_0 as u32);
+                indices.push(*idx_off + idx_2 as u32);
+                indices.push(*idx_off + idx_3 as u32);
+            }
+        }
+
+        *idx_off += num_vertices as u32;
+
+        Some((vertices, indices))
     } else {
         None
     }
@@ -320,58 +319,113 @@ impl MOC {
 
                 let depth_max = moc.depth();
                 let mut indices_moc = vec![];
-                let positions_moc = (&(moc.0)).into_range_moc_iter()
-                    .cells()
-                    .filter_map(|Cell { depth, idx, .. }| {
-                        let delta_depth = depth_max - depth;
-                        let n_segment_by_side = (1 << delta_depth) as usize;
+                if params.get_opacity() == 1.0 {
+                    let positions_moc = (&(moc.0)).into_range_moc_iter()
+                        .cells()
+                        .filter_map(|Cell { depth, idx, .. }| {
+                            let delta_depth = depth_max - depth;
+                            let n_segment_by_side = (1 << delta_depth) as usize;
 
-                        let cell = HEALPixCell(depth, idx);
-                        if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
-                            &cell,
-                            n_segment_by_side,
-                            view_frame,
-                            camera,
-                            &mut idx_off,
-                        ) {
-                            // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-                            indices_moc.extend(indices_cell);
+                            let cell = HEALPixCell(depth, idx);
+                            if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
+                                &cell,
+                                n_segment_by_side,
+                                view_frame,
+                                camera,
+                                &mut idx_off,
+                            ) {
+                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                                indices_moc.extend(indices_cell);
 
-                            Some(vertices_cell)
-                        } else if depth < 3 {
-                            let mut vertices = vec![];
+                                Some(vertices_cell)
+                            } else if depth < 3 {
+                                let mut vertices = vec![];
 
-                            let depth_sub_cell = 3;
-                            let delta_depth_sub_cell = depth_max - depth_sub_cell;
-                            let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
-                            let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
+                                let depth_sub_cell = 3;
+                                let delta_depth_sub_cell = depth_max - depth_sub_cell;
+                                let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
+                                let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
 
-                            for sub_cell in cell.get_children_cells(3 - depth) {
-                                if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
-                                    &sub_cell,
-                                    n_segment_by_side_sub_cell,
-                                    view_frame,
-                                    camera,
-                                    &mut idx_off
-                                ) {
-                                    indices_moc.extend(indices_sub_cell);
-                                    vertices.extend(vertices_sub_cell);
+                                for sub_cell in cell.get_children_cells(3 - depth) {
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
+                                        &sub_cell,
+                                        n_segment_by_side_sub_cell,
+                                        view_frame,
+                                        camera,
+                                        &mut idx_off
+                                    ) {
+                                        indices_moc.extend(indices_sub_cell);
+                                        vertices.extend(vertices_sub_cell);
+                                    }
                                 }
+
+                                Some(vertices)
+                            } else {
+                                None
                             }
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
 
-                            Some(vertices)
-                        } else {
-                            None
-                        }
-                    })
-                    .flatten()
-                    .collect::<Vec<_>>();
+                    self.first_idx.push(self.indices.len());
+                    self.num_indices.push(indices_moc.len());
 
-                self.first_idx.push(self.indices.len());
-                self.num_indices.push(indices_moc.len());
+                    self.position.extend(&positions_moc);
+                    self.indices.extend(&indices_moc);
+                } else {
+                    let positions_moc = (&(moc.0)).into_range_moc_iter()
+                        .cells()
+                        .filter_map(|Cell { depth, idx, .. }| {
+                            let delta_depth = depth_max - depth;
+                            let n_segment_by_side = (1 << delta_depth) as usize;
 
-                self.position.extend(&positions_moc);
-                self.indices.extend(&indices_moc);
+                            let cell = HEALPixCell(depth, idx);
+                            if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
+                                &cell,
+                                n_segment_by_side,
+                                view_frame,
+                                camera,
+                                &mut idx_off,
+                            ) {
+                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                                indices_moc.extend(indices_cell);
+
+                                Some(vertices_cell)
+                            } else if depth < 3 {
+                                let mut vertices = vec![];
+
+                                let depth_sub_cell = 3;
+                                let delta_depth_sub_cell = depth_max - depth_sub_cell;
+                                let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
+                                let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
+
+                                for sub_cell in cell.get_children_cells(3 - depth) {
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
+                                        &sub_cell,
+                                        n_segment_by_side_sub_cell,
+                                        view_frame,
+                                        camera,
+                                        &mut idx_off
+                                    ) {
+                                        indices_moc.extend(indices_sub_cell);
+                                        vertices.extend(vertices_sub_cell);
+                                    }
+                                }
+
+                                Some(vertices)
+                            } else {
+                                None
+                            }
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    self.first_idx.push(self.indices.len());
+                    self.num_indices.push(indices_moc.len());
+
+                    self.position.extend(&positions_moc);
+                    self.indices.extend(&indices_moc);
+                }
             }
 
             self.vao.bind_for_update()
@@ -412,6 +466,12 @@ impl MOC {
         for (idx, layer) in self.layers.iter().enumerate() {
             let moc = self.params.get(layer).unwrap();
             if moc.is_showing() {
+                let mode = if moc.get_opacity() == 1.0 {
+                    WebGl2RenderingContext::LINES
+                } else {
+                    WebGl2RenderingContext::TRIANGLES
+                };
+
                 let color = moc.get_color();
                 shaderbound
                     .attach_uniforms_from(camera)
@@ -419,7 +479,7 @@ impl MOC {
                     .attach_uniform("opacity", &moc.get_opacity())
                     .bind_vertex_array_object_ref(&self.vao)
                         .draw_elements_with_i32(
-                            WebGl2RenderingContext::TRIANGLES,
+                            mode,
                             Some(self.num_indices[idx] as i32),
                             WebGl2RenderingContext::UNSIGNED_INT,
                             (self.first_idx[idx] * std::mem::size_of::<u32>()) as i32

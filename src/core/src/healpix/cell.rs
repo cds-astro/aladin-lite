@@ -154,7 +154,7 @@ impl HEALPixCell {
         cdshealpix::nested::grid(
             self.depth(),
             self.idx(),
-            n_segments_by_side
+            n_segments_by_side as u16
         )
     }
 }

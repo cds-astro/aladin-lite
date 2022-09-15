@@ -104,8 +104,10 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
 }
 
 fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, view_frame: &CooSystem, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+    let n_vertices_per_segment = n_segment_by_side + 1;
+
     let vertices = cell
-        .grid(n_segment_by_side)
+        .grid(n_segment_by_side as u32)
         .into_iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
@@ -120,13 +122,12 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
     let cell_inside = vertices.len() == 2*(n_segment_by_side+1)*(n_segment_by_side+1);
 
     if cell_inside {
-        let num = 2*(n_segment_by_side+1)*(n_segment_by_side+1);
         let c0 = Vector2::new(vertices[0], vertices[1]);
         let c1 = Vector2::new(vertices[2*n_segment_by_side], vertices[2*n_segment_by_side + 1]);
-        let c2 = Vector2::new(vertices[2*n_segment_by_side*(n_segment_by_side+1)], vertices[2*n_segment_by_side*(n_segment_by_side+1) + 1]);
-        let c3 = Vector2::new(vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 2], vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 1]);
+        let c2 = Vector2::new(vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 2], vertices[2*(n_segment_by_side+1)*(n_segment_by_side+1) - 1]);
+        let c3 = Vector2::new(vertices[2*n_segment_by_side*(n_segment_by_side+1)], vertices[2*n_segment_by_side*(n_segment_by_side+1) + 1]);
 
-        let cell_cross_screen = crate::math::vector::ccw_tri(&c0, &c1, &c2) || crate::math::vector::ccw_tri(&c1, &c2, &c3) || crate::math::vector::ccw_tri(&c2, &c3, &c0) || crate::math::vector::ccw_tri(&c3, &c0, &c1);
+        let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) && !crate::math::vector::ccw_tri(&c1, &c2, &c3) && !crate::math::vector::ccw_tri(&c2, &c3, &c0) && !crate::math::vector::ccw_tri(&c3, &c0, &c1);
 
         if !cell_cross_screen {
             // HEALPix projection special case
@@ -154,31 +155,27 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
             //}*/
 
             // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-            let n_vertices_per_segment = n_segment_by_side + 1;
+            let mut indices = Vec::with_capacity(n_segment_by_side * n_segment_by_side * 6);
+            let num_vertices = (n_segment_by_side+1)*(n_segment_by_side+1);
 
             for i in 0..n_segment_by_side {
                 for j in 0..n_segment_by_side {
-                    let idx_0 = (j + i * n_vertices_per_segment) as u16;
-                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-                    let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-                    let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+                    let idx_0 = (j + i * n_vertices_per_segment) as u32;
+                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u32;
+                    let idx_2 = (j + 1 + (i + 1) * n_vertices_per_segment) as u32;
+                    let idx_3 = (j + (i + 1) * n_vertices_per_segment) as u32;
 
-                    idx_positions.push(*idx_off + idx_0);
-                    idx_positions.push(*idx_off + idx_1);
-                    idx_positions.push(*idx_off + idx_2);
+                    indices.push(*idx_off + idx_0);
+                    indices.push(*idx_off + idx_1);
+                    indices.push(*idx_off + idx_2);
 
-                    idx_positions.push(*idx_off + idx_1);
-                    idx_positions.push(*idx_off + idx_3);
-                    idx_positions.push(*idx_off + idx_2);
+                    indices.push(*idx_off + idx_2);
+                    indices.push(*idx_off + idx_3);
+                    indices.push(*idx_off + idx_0);
                 }
             }
 
-            let num_vertices = 4 * n_segment_by_side as u32;
-            let indices = std::iter::once(*idx_off as u32)
-                .chain((2..2*num_vertices).map(|idx| idx / 2 + *idx_off))
-                .chain(std::iter::once(*idx_off as u32))
-                .collect();
-            *idx_off += num_vertices;
+            *idx_off += num_vertices as u32;
 
             Some((vertices, indices))
         } else {
@@ -330,7 +327,7 @@ impl MOC {
                         let n_segment_by_side = (1 << delta_depth) as usize;
 
                         let cell = HEALPixCell(depth, idx);
-                        if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
+                        if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
                             &cell,
                             n_segment_by_side,
                             view_frame,
@@ -350,7 +347,7 @@ impl MOC {
                             let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
 
                             for sub_cell in cell.get_children_cells(3 - depth) {
-                                if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
+                                if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
                                     &sub_cell,
                                     n_segment_by_side_sub_cell,
                                     view_frame,
@@ -422,7 +419,7 @@ impl MOC {
                     .attach_uniform("opacity", &moc.get_opacity())
                     .bind_vertex_array_object_ref(&self.vao)
                         .draw_elements_with_i32(
-                            WebGl2RenderingContext::LINES,
+                            WebGl2RenderingContext::TRIANGLES,
                             Some(self.num_indices[idx] as i32),
                             WebGl2RenderingContext::UNSIGNED_INT,
                             (self.first_idx[idx] * std::mem::size_of::<u32>()) as i32

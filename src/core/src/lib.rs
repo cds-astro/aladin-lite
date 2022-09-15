@@ -47,6 +47,7 @@ mod fifo_cache;
 
 use crate::{
     camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
+    healpix::coverage::HEALPixCoverage,
 };
 use al_api::grid::GridCfg;
 use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
@@ -59,6 +60,7 @@ use app::App;
 use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
+use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -74,7 +76,7 @@ use crate::shader::FileSrc;
 
 use crate::app::AppTrait;
 use crate::app::AppType;
-use al_api::color::Color;
+use al_api::color::ColorRGB;
 use al_api::hips::ImageSurveyMeta;
 
 #[wasm_bindgen]
@@ -858,20 +860,40 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addJSONMoc)]
-    pub fn add_json_moc(&self, params: al_api::moc::MOC, data: JsValue) -> Result<(), JsValue> {
-        todo!();
+    pub fn add_json_moc(&mut self, params: &al_api::moc::MOC, data: &JsValue) -> Result<(), JsValue> {
+        //let str = data.as_string().ok_or(JsValue::from_str("Could not convert the MOC to String"))?;
+        let str: String = js_sys::JSON::stringify(data)?.into();
+        //let str = serde_json::ser::to_string::<JsValue>(&data)
+        //    .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
+
+        let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(&str)
+            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?
+            .into_cell_moc_iter()
+            .ranges()
+            .into_range_moc();
+
+        self.app.add_moc(params.clone(), HEALPixCoverage(moc));
+
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]
-    pub fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
-        self.app.add_fits_moc(params, data_url)?;
+    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
+        self.app.add_fits_moc(params.clone(), data_url)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = removeMoc)]
+    pub fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
+        self.app.remove_moc(params)?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = setMocParams)]
-    pub fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
-        self.app.set_moc_params(params)?;
+    pub fn set_moc_params(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
+        self.app.set_moc_params(params.clone())?;
 
         Ok(())
     }

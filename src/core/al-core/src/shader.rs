@@ -244,15 +244,27 @@ impl UniformType for Texture2D {
     }
 }
 
-use al_api::color::Color;
-impl UniformType for Color {
+use al_api::color::ColorRGB;
+impl UniformType for ColorRGB {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+        gl.uniform3f(location, value.r, value.g, value.b);
     }
 }
-impl<'a> UniformType for &'a Color {
+impl<'a> UniformType for &'a ColorRGB {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
-        gl.uniform4f(location, value.red, value.green, value.blue, value.alpha);
+        gl.uniform3f(location, value.r, value.g, value.b);
+    }
+}
+
+use al_api::color::ColorRGBA;
+impl UniformType for ColorRGBA {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.r, value.g, value.b, value.a);
+    }
+}
+impl<'a> UniformType for &'a ColorRGBA {
+    fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
+        gl.uniform4f(location, value.r, value.g, value.b, value.a);
     }
 }
 

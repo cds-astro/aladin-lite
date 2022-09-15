@@ -145,6 +145,18 @@ impl HEALPixCell {
             n_segments_by_side
         )
     }
+
+    #[inline]
+    pub fn grid(
+        &self,
+        n_segments_by_side: u32
+    ) -> Box<[(f64, f64)]> {
+        cdshealpix::nested::grid(
+            self.depth(),
+            self.idx(),
+            n_segments_by_side
+        )
+    }
 }
 
 pub const NUM_HPX_TILES_DEPTH_ZERO: usize = 12;

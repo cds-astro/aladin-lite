@@ -15,7 +15,8 @@ pub trait RenderManager {
 use cgmath::Matrix2;
 struct LabelMeta {
     rot: Matrix2<f32>,
-    color: Color,
+    color: ColorRGB,
+    opacity: f32,
     screen_pos: Vector2<f32>,
     scale: f32,
     off_idx: u16,
@@ -46,7 +47,7 @@ use cgmath::{Basis2, Rad, Rotation2, Vector2};
 use wasm_bindgen::JsValue;
 
 use crate::camera::CameraViewPort;
-use crate::Color;
+use al_api::color::ColorRGB;
 use web_sys::WebGl2RenderingContext;
 
 impl TextRenderManager {
@@ -212,7 +213,8 @@ impl TextRenderManager {
         text: &str,
         screen_pos: &Vector2<f32>,
         scale: f32,
-        color: &Color,
+        color: &ColorRGB,
+        opacity: f32,
         angle_rot: A,
     ) {
         // 1. Loop over the text chars to compute the size of the text to plot
@@ -309,6 +311,7 @@ impl TextRenderManager {
             num_idx,
             scale,
             color: *color,
+            opacity,
             screen_pos: *screen_pos,
             rot: rot.into(),
         });
@@ -385,6 +388,7 @@ impl RenderManager for TextRenderManager {
             for label in self.labels.iter() {
                 shader
                     .attach_uniform("u_color", &label.color) // Strengh of the kernel
+                    .attach_uniform("u_opacity", &label.opacity)
                     .attach_uniform("u_screen_pos", &label.screen_pos)
                     .attach_uniform("u_rot", &label.rot)
                     .attach_uniform("u_scale", &label.scale)

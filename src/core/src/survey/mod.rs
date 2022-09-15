@@ -384,11 +384,14 @@ fn add_vertices_grid<P: Projection>(
             let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
 
             //position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
-            if let Some(ndc_pos) = P::world_to_normalized_device_space(&world_pos, camera) {
+            /*if let Some(ndc_pos) = P::world_to_normalized_device_space(&world_pos, camera) {
                 position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
             } else {
-                position.extend(&[0.0, 0.0]);
-            }
+                position.extend(world_to_clip_space_unchecked);
+            }*/
+
+            let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
+            position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
 
             let hj0 = (j as f32) / (n_segments_by_side as f32);
             let hi0 = (i as f32) / (n_segments_by_side as f32);
@@ -1124,7 +1127,7 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
 }
 
 use al_core::image::format::ImageFormatType;
-use al_api::color::Color;
+use al_api::color::ColorRGB;
 use al_core::webgl_ctx::GlWrapper;
 use crate::downloader::request::tile::Tile;
 impl ImageSurveys {
@@ -1244,10 +1247,8 @@ impl ImageSurveys {
                     .fold(std::f32::MAX, |mut a, s| {
                         a = a.min(s.get_fading_factor()); a
                     });
-                raytracer.draw_font_color(&shader_font, &Color::new(0.19215686274 * opacity, 0.49019607843 * opacity, 0.55294117647 * opacity, opacity));
-            }/*else {
-                raytracer.draw_font_color(&shader_font, &Color::new(0.0, 0.0, 0.0, opacity));
-            }*/
+                raytracer.draw_font_color(&shader_font, &ColorRGB {r: 0.19215686274 * opacity, g: 0.49019607843 * opacity, b: 0.55294117647 * opacity}, opacity);
+            }
         }
 
         for layer in self.layers.iter() {

@@ -927,9 +927,10 @@ impl Projection for Gnomonic {
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
     fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+        let z = pos_world_space.z.abs();
         Vector2::new(
-            (-pos_world_space.x / pos_world_space.z) / std::f64::consts::PI,
-            (pos_world_space.y / pos_world_space.z) / std::f64::consts::PI,
+            (-pos_world_space.x / z) / std::f64::consts::PI,
+            (pos_world_space.y / z) / std::f64::consts::PI,
         )
     }
 

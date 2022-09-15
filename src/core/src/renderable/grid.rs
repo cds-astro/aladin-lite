@@ -8,9 +8,12 @@ use crate::camera::CameraViewPort;
 
 use al_api::grid::GridCfg;
 use al_core::VertexArrayObject;
+use al_api::color::ColorRGB;
+
 pub struct ProjetedGrid {
     // Properties
-    pub color: Color,
+    pub color: ColorRGB,
+    pub opacity: f32,
     pub show_labels: bool,
     pub enabled: bool,
     pub label_scale: f32,
@@ -37,7 +40,6 @@ use al_core::WebGlContext;
 use wasm_bindgen::JsValue;
 
 use super::labels::RenderManager;
-use al_api::color::Color;
 
 use super::TextRenderManager;
 
@@ -80,13 +82,15 @@ impl ProjetedGrid {
 
         let text_renderer = TextRenderManager::new(gl.clone(), camera)?;
 
-        let color = Color::new(0.0, 1.0, 0.0, 1.0);
+        let color = ColorRGB { r: 0.0, g: 1.0, b: 0.0 };
+        let opacity = 1.0;
         let show_labels = true;
         let enabled = false;
         let label_scale = 1.0;
 
         let mut grid = ProjetedGrid {
             color,
+            opacity,
             show_labels,
             enabled,
             label_scale,
@@ -112,6 +116,7 @@ impl ProjetedGrid {
     pub fn set_cfg<P: Projection>(&mut self, new_cfg: GridCfg, camera: &CameraViewPort) -> Result<(), JsValue> {
         let GridCfg {
             color,
+            opacity,
             show_labels,
             label_size,
             enabled,
@@ -119,6 +124,10 @@ impl ProjetedGrid {
 
         if let Some(color) = color {
             self.color = color;
+        }
+
+        if let Some(opacity) = opacity {
+            self.opacity = opacity;
         }
 
         if let Some(show_labels) = show_labels {
@@ -146,6 +155,7 @@ impl ProjetedGrid {
                     &label.position.cast::<f32>().unwrap(),
                     1.0,
                     &self.color,
+                    self.opacity,
                     cgmath::Rad(label.rot as f32),
                 );
             }
@@ -185,6 +195,7 @@ impl ProjetedGrid {
                     &label.position.cast::<f32>().unwrap(),
                     1.0,
                     &self.color,
+                    self.opacity,
                     cgmath::Rad(label.rot as f32),
                 );
             }
@@ -251,6 +262,7 @@ impl ProjetedGrid {
         let shader = shader.bind(&self.gl);
         shader
             .attach_uniforms_from(camera)
+            .attach_uniform("opacity", &self.opacity)
             .attach_uniform("color", &self.color);
 
         // The raster vao is bound at the lib.rs level

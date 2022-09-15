@@ -24,8 +24,13 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color'});
-        var moc = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=11&fmt=fits', {color: '#84f', lineWidth: 1});
-        aladin.addMOC(moc);
+        var moc11 = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=11&fmt=fits', {color: '#84f', lineWidth: 1, opacity: 0.25});
+        var moc10 = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=7&fmt=fits', {color: '#aabbcc', lineWidth: 1});
+        var moc9 = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=4&fmt=fits', {color: '#00ff00', lineWidth: 1});
+
+        aladin.addMOC(moc9);
+        aladin.addMOC(moc10);
+        aladin.addMOC(moc11);
     });
 </script>
 </body>

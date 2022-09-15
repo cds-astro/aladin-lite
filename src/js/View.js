@@ -1419,7 +1419,7 @@ export let View = (function() {
                 }
             }
             if (gridCfg.color) {
-                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color});
+                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color, opacity: gridCfg.opacity});
             }
         }
         this.requestRedraw();
@@ -1874,7 +1874,11 @@ export let View = (function() {
         }
         else if (layer.type=='moc') {
             indexToDelete = this.mocs.indexOf(layer);
-            this.mocs.splice(indexToDelete, 1);
+            
+            let moc = this.mocs.splice(indexToDelete, 1);
+            console.log(moc);
+            // remove from aladin lite backend
+            moc[0].delete();
         }
         else if (layer.type=='overlay') {
             indexToDelete = this.overlays.indexOf(layer);

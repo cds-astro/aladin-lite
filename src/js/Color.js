@@ -35,8 +35,8 @@ export let Color = (function() {
     
     Color.curIdx = 0;
     Color.colors = ['#ff0000', '#0000ff', '#99cc00', '#ffff00','#000066', '#00ffff', '#9900cc', '#0099cc', '#cc9900', '#cc0099', '#00cc99', '#663333', '#ffcc9a', '#ff9acc', '#ccff33', '#660000', '#ffcc33', '#ff00ff', '#00ff00', '#ffffff'];
+    Color.standardizedColors = {};
 
-    
     Color.getNextColor = function() {
         var c = Color.colors[Color.curIdx % (Color.colors.length)];
         Color.curIdx++;
@@ -92,7 +92,23 @@ export let Color = (function() {
     Color.rgbToHex = function (r, g, b) {
         return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
-    
+
+    Color.standardizeColor = function(label) {
+        if (label.match(/^#?[0-9A-Fa-f]{6}$/) || label.match(/^#?[0-9A-Fa-f]{3}$/)) {
+            // if it is hexadecimal already, return it in its actual form
+            return label;
+        } else {
+            if (!Color.standardizedColors[label]) {
+                var ctx = document.createElement('canvas').getContext('2d');
+                ctx.fillStyle = label;
+                const colorHexa = ctx.fillStyle;
+        
+                Color.standardizedColors[label] = colorHexa;
+            }
+            return Color.standardizedColors[label];
+        }
+    }
+
     return Color;
 })();
 

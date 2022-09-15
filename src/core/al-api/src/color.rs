@@ -1,18 +1,35 @@
 use wasm_bindgen::prelude::*;
 
-use serde::{Deserialize, Serialize};
+#[wasm_bindgen(raw_module = "../src/js/Color")]
+extern "C" {
+    pub type Color;
 
-#[derive(Debug, Clone, Copy)]
-#[wasm_bindgen]
-#[derive(Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Color {
-    pub red: f32,
-    pub green: f32,
-    pub blue: f32,
-    pub alpha: f32,
+    #[wasm_bindgen(static_method_of = Color)]
+    pub fn hexToRgb(hex: String) -> JsValue;
 }
 
+#[derive(Debug, Clone, Copy)]
+#[derive(Deserialize, Serialize)]
+#[wasm_bindgen]
+pub struct ColorRGB {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+}
+
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Copy)]
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+pub struct ColorRGBA {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+/*
 #[wasm_bindgen]
 impl Color {
     #[wasm_bindgen(constructor)]
@@ -21,7 +38,6 @@ impl Color {
             red,
             green,
             blue,
-            alpha,
         }
     }
 }
@@ -29,32 +45,21 @@ impl Color {
 impl Default for Color {
     fn default() -> Self {
         Color {
-            red: 1.0,
-            blue: 1.0,
-            green: 1.0,
-            alpha: 1.0,
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
         }
     }
 }
+*/
 
-fn to_hex_char(color: f32) -> String {
-    let r = (color * 255_f32) as u8;
+impl From<JsValue> for ColorRGB {
+    fn from(rgb: JsValue) -> Self {
+        let mut c = rgb.into_serde::<Self>().unwrap();
+        c.r /= 255.0;
+        c.g /= 255.0;
+        c.b /= 255.0;
 
-    let res = format!("{:x}", r);
-    if res.len() == 1 {
-        format!("0{}", res)
-    } else {
-        res
-    }
-}
-
-impl From<&Color> for String {
-    fn from(color: &Color) -> Self {
-        let red = to_hex_char(color.red);
-        let green = to_hex_char(color.green);
-        let blue = to_hex_char(color.blue);
-
-        let color = format!("#{}{}{}", red, green, blue);
-        color
+        c
     }
 }

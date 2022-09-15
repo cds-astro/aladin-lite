@@ -104,7 +104,8 @@
             let rgb = Color.hexToRgb(gridColorInput.val());
             let opacity = gridOpacityInput.val();
             self.view.setGridConfig({
-                color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0, parseFloat(opacity)]
+                color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0],
+                opacity: parseFloat(opacity)
             });
         };
         gridColorInput.on('input', updateGridcolor);
@@ -130,7 +131,8 @@
         });
         ALEvent.COO_GRID_UPDATED.listenedBy(self.aladinDiv, function (e) {
             let c = e.detail.color;
-            let opacity = c[3].toFixed(2);
+            let opacity = e.detail.opacity;
+
             if (gridOpacityInput.val() != opacity) {
                 gridOpacityInput.val(opacity);
             }

@@ -29,10 +29,12 @@ export let MOC = (function() {
         // TODO homogenize options parsing for all kind of overlay (footprints, catalog, MOC)
         options = options || {};
         this.name = options.name || "MOC";
-        this.color = options.color || Color.getNextColor();
-        this.color = new Aladin.wasmLibs.webgl.Color(1.0, 1.0, 0.0, 1.0);
 
+        this.color = options.color || Color.getNextColor();
+        this.color = Color.standardizeColor(this.color);
+        
         this.opacity = options.opacity || 1;
+
         this.opacity = Math.max(0, Math.min(1, this.opacity)); // 0 <= this.opacity <= 1
         this.lineWidth = options["lineWidth"] || 1;
         this.adaptativeDisplay = options['adaptativeDisplay'] !== false;
@@ -49,7 +51,7 @@ export let MOC = (function() {
 
         this.nbCellsDeepestLevel = 0; // needed to compute the sky fraction of the MOC*/
 
-        //this.isShowing = true;
+        this.isShowing = true;
         this.ready = false;
     }
 
@@ -260,12 +262,14 @@ export let MOC = (function() {
 
     MOC.prototype.setView = function(view) {
         this.view = view;
-
+        console.log(this.color)
         this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
+        console.log(this.color)
+
         if (this.dataURL) {
             view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL);
         } else if (this.dataFromJSON) {
-            // TODO
+            view.aladin.webglAPI.addJSONMoc(this.mocParams, this.dataJSON);
         }
 
         view.requestRedraw();
@@ -391,104 +395,19 @@ export let MOC = (function() {
         return out;
     };*/
 
-
-    // TODO: merge with what is done in View.getVisibleCells
-    //var _spVec = new SpatialVector();
-    var getXYCorners = function(nside, ipix, viewFrame, surveyFrame, width, height, largestDim, zoomFactor, projection, view) {
-        var cornersXYView = [];
-        var cornersXY = [];
-
-        //var spVec = _spVec;
-        var corners = view.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
-
-        var ra, dec;
-        var lon, lat;
-        for (var k=0; k<4; k++) {
-            //spVec.setXYZ(corners[k].x, corners[k].y, corners[k].z);
-
-            ra = corners[2*k];
-            dec = corners[2*k + 1];
-            // need for frame transformation ?
-            /*if (surveyFrame && surveyFrame.system != viewFrame.system) {
-                if (surveyFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-                    var radec = CooConversion.J2000ToGalactic([ra, dec]);
-                    lon = radec[0];
-                    lat = radec[1];
-                }
-                else if (surveyFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-                    var radec = CooConversion.GalacticToJ2000([ra, dec]);
-                    lon = radec[0];
-                    lat = radec[1];
-                }
-            }
-            else {
-                lon = ra;
-                lat = dec;
-            }*/
-            lon = ra;
-            lat = dec;
-
-            //cornersXY[k] = projection.project(lon, lat);
-            cornersXYView[k] = view.aladin.webglAPI.worldToScreen(lon, lat);
-            if (!cornersXYView[k]) {
-                return null;
-            } else {
-                //console.log(lon, lat);
-                cornersXYView[k] = {
-                    vx: cornersXYView[k][0],
-                    vy: cornersXYView[k][1],
-                };
-            }
-            //console.log(cornersXYView[k]);
-        }
-
-        /*if (cornersXYView[0] == null ||  cornersXYView[1] == null  ||  cornersXYView[2] == null ||  cornersXYView[3] == null ) {
-            return null;
-        }*/
-        /*if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
-            return null;
-        }
-
-        for (var k=0; k<4; k++) {
-            cornersXYView[k] = AladinUtils.xyToView(cornersXY[k].X, cornersXY[k].Y, width, height, largestDim, zoomFactor);
-        }*/
-        
-        // detect pixels outside view. Could be improved !
-        // we minimize here the number of cells returned
-        if( cornersXYView[0].vx<0 && cornersXYView[1].vx<0 && cornersXYView[2].vx<0 &&cornersXYView[3].vx<0) {
-            return null;
-        }
-        if( cornersXYView[0].vy<0 && cornersXYView[1].vy<0 && cornersXYView[2].vy<0 &&cornersXYView[3].vy<0) {
-            return null;
-        }
-        if( cornersXYView[0].vx>=width && cornersXYView[1].vx>=width && cornersXYView[2].vx>=width &&cornersXYView[3].vx>=width) {
-            return null;
-        }
-        if( cornersXYView[0].vy>=height && cornersXYView[1].vy>=height && cornersXYView[2].vy>=height &&cornersXYView[3].vy>=height) {
-            return null;
-        }
-
-        // check if we have a pixel at the edge of the view in allsky projections
-        //if (projection.PROJECTION!=ProjectionEnum.SIN && projection.PROJECTION!=ProjectionEnum.TAN) {
-            // Faster approach: when a vertex from a cell gets to the other side of the projection
-            // its vertices order change from counter-clockwise to clockwise!
-            // So if the vertices describing a cell are given in clockwise order
-            // we know it crosses the projection, so we do not plot them!
-            if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
-                !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
-                return null;
-            }
-        //}
-
-        //cornersXYView = AladinUtils.grow2(cornersXYView, 1);
-        return cornersXYView;
-    };
-
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
             this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
             this.view.aladin.webglAPI.setMocParams(this.mocParams);
+            this.view.requestRedraw();
+        }
+    };
+
+    MOC.prototype.delete = function() {
+        if (this.view) {
+            // update the new moc params to the backend
+            this.view.aladin.webglAPI.removeMoc(this.mocParams);
             this.view.requestRedraw();
         }
     };

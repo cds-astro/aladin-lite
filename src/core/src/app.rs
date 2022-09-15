@@ -15,20 +15,21 @@ use crate::{
         grid::ProjetedGrid,
         moc::MOC,
     },
+    healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
     survey::ImageSurveys,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
     utils,
 };
-//use al_core::resources::Resources;
+
 use al_core::WebGlContext;
 
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
     hips::{ImageSurveyMeta, SimpleHiPS},
-    color::Color,
+    color::ColorRGB,
 };
 
 use super::coosys;
@@ -457,6 +458,8 @@ pub trait AppTrait {
 
     // MOCs
     fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue>;
+    fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue>;
+    fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue>;
     fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue>;
 
     // Accessors
@@ -511,6 +514,19 @@ where
 
     fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
         self.downloader.fetch(query::MOC::new(data_url, params, false));
+
+        Ok(())
+    }
+
+    fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
+        self.moc.insert::<P>(moc, params, &self.surveys, &self.camera);
+
+        Ok(())
+    }
+
+    fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
+        self.moc.remove(params, &self.surveys)
+            .ok_or(JsValue::from_str("MOC not found"))?;
 
         Ok(())
     }
@@ -670,7 +686,7 @@ where
                                 } = moc;
 
                                 if let Some(moc) = (*moc.lock().unwrap()).as_ref() {
-                                    self.moc.insert(moc.clone(), params.clone(), &self.surveys);
+                                    self.moc.insert::<P>(moc.clone(), params.clone(), &self.surveys, &self.camera);
                                 };
                             }
                         },

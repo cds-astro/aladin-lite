@@ -84,15 +84,15 @@ pub fn get_tile_cells_in_camera(
         if let Some(vertices) = camera.get_vertices() {
             // The vertices coming from the camera are in a specific coo sys
             // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
-            let view_system = camera.get_system();
+            let camera_system = camera.get_system();
             let icrsj2000_fov_vertices_pos = vertices
                 .iter()
-                .map(|v| coosys::apply_coo_system(view_system, &hips_frame, v))
+                .map(|v| coosys::apply_coo_system(camera_system, &hips_frame, v))
                 .collect::<Vec<_>>();
 
             let vs_inside_pos = camera.get_center();
             let icrsj2000_inside_pos =
-                coosys::apply_coo_system(view_system, &hips_frame, &vs_inside_pos);
+                coosys::apply_coo_system(camera_system, &hips_frame, &vs_inside_pos);
 
             // Prefer to query from_polygon with depth >= 2
             healpix::coverage::HEALPixCoverage::new(

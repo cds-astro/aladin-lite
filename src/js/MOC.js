@@ -264,7 +264,6 @@ export let MOC = (function() {
         this.view = view;
         console.log(this.color)
         this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
-        console.log(this.color)
 
         if (this.dataURL) {
             view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL);

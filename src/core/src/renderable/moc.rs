@@ -111,7 +111,7 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
         .into_iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            let xyzw = crate::coosys::apply_coo_system(view_frame, camera.get_system(), &xyzw);
+            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
             P::model_to_ndc_space(&xyzw, camera)
                 .and_then(|v| Some([v.x as f32, v.y as f32]))

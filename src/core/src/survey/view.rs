@@ -69,51 +69,52 @@ pub fn depth_from_pixels_on_screen<P: Projection>(camera: &CameraViewPort, num_p
         0
     }*/
 }
-use crate::healpix;
-use al_api::coo_system::CooSystem;
-use cgmath::Vector4;
-use crate::survey::HEALPixCoverage;
-pub fn get_tile_cells_in_camera(
-    depth_tile: u8,
-    camera: &CameraViewPort,
-    hips_frame: CooSystem,
-) -> (HEALPixCoverage, Vec<HEALPixCell>) {
-    let coverage = if depth_tile <= 1 {
-        HEALPixCoverage::allsky(depth_tile)
+
+use healpix::coverage::HEALPixCoverage;
+pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &CooSystem) -> HEALPixCoverage {
+    if depth <= 1 {
+        HEALPixCoverage::allsky(depth)
     } else {
         if let Some(vertices) = camera.get_vertices() {
             // The vertices coming from the camera are in a specific coo sys
             // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
-            let camera_system = camera.get_system();
-            let icrsj2000_fov_vertices_pos = vertices
+            let camera_frame = camera.get_system();
+            let vertices = vertices
                 .iter()
-                .map(|v| coosys::apply_coo_system(camera_system, &hips_frame, v))
+                .map(|v| coosys::apply_coo_system(camera_frame, dst_frame, v))
                 .collect::<Vec<_>>();
 
-            let vs_inside_pos = camera.get_center();
-            let icrsj2000_inside_pos =
-                coosys::apply_coo_system(camera_system, &hips_frame, &vs_inside_pos);
+            let inside_vertex = camera.get_center();
+            let inside_vertex = coosys::apply_coo_system(camera_frame, &dst_frame, &inside_vertex);
 
             // Prefer to query from_polygon with depth >= 2
-            healpix::coverage::HEALPixCoverage::new(
-                depth_tile,
-                &icrsj2000_fov_vertices_pos[..],
-                &icrsj2000_inside_pos.truncate(),
+            HEALPixCoverage::new(
+                depth,
+                &vertices[..],
+                &inside_vertex.truncate(),
             )
         } else {
-            HEALPixCoverage::allsky(depth_tile)
+            HEALPixCoverage::allsky(depth)
         }
-    };
+    }
+}
 
-    let cells = coverage.flatten_to_fixed_depth_cells()
+use crate::healpix;
+use al_api::coo_system::CooSystem;
+use cgmath::Vector4;
+pub fn get_tile_cells_in_camera(
+    depth_tile: u8,
+    camera: &CameraViewPort,
+    hips_frame: &CooSystem,
+) -> (HEALPixCoverage, Vec<HEALPixCell>) {
+    let moc = compute_view_coverage(camera, depth_tile, &hips_frame);
+    let cells = moc.flatten_to_fixed_depth_cells()
         .map(|idx| {
             HEALPixCell(depth_tile, idx)
         })
         .collect();
     
-    //al_core::log(&format!("cells: {:?}", cells));
-    
-    (coverage, cells)
+    (moc, cells)
 }
 
 // Contains the cells being in the FOV for a specific
@@ -169,7 +170,7 @@ impl HEALPixCellsInView {
         self.frame = hips_frame;
 
         // Get the cells of that depth in the current field of view
-        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, self.frame);
+        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, &self.frame);
         self.coverage = coverage;
 
         // Update cells in the fov

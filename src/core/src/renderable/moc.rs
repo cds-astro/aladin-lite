@@ -37,13 +37,13 @@ use crate::survey::view::HEALPixCellsInView;
 use cgmath::Vector2;
 use al_core::{log, info, inforec};
 
-fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, view_frame: &CooSystem, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
     let vertices = cell
         .path_along_cell_edge(n_segment_by_side as u32)
         .into_iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            let xyzw = crate::coosys::apply_coo_system(view_frame, camera.get_system(), &xyzw);
+            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
             
             P::model_to_ndc_space(&xyzw, camera)
                 .and_then(|v| Some([v.x as f32, v.y as f32]))
@@ -103,7 +103,7 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
     }
 }
 
-fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, view_frame: &CooSystem, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
     let n_vertices_per_segment = n_segment_by_side + 1;
 
     let vertices = cell
@@ -251,14 +251,15 @@ impl MOC {
         }
     }
 
-    fn recompute_draw_mocs(&mut self, view: &HEALPixCellsInView) {
-        let depth = view.get_depth() + 5;
-        let view_moc = view.get_coverage();
+    fn recompute_draw_mocs(&mut self, camera: &CameraViewPort, view: &HEALPixCellsInView) {
+        let view_depth = view.get_depth();
+        let depth = view_depth + 5;
 
+        let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.mocs.iter()
             .map(|(key, moc)| {
-                let render_moc = view_moc.intersection(&moc).degraded(depth);
-                (key.clone(), crate::healpix::coverage::HEALPixCoverage(render_moc))
+                let render_moc = fov_moc.intersection(&moc).degraded(depth);
+                (key.clone(), HEALPixCoverage(render_moc))
             }).collect::<HashMap<_, _>>();
     }
 
@@ -272,7 +273,7 @@ impl MOC {
         self.update::<P>(surveys, camera);
     }
 
-    pub fn remove(&mut self, params: &al_api::moc::MOC, surveys: &ImageSurveys) -> Option<al_api::moc::MOC> {
+    pub fn remove(&mut self, params: &al_api::moc::MOC, surveys: &ImageSurveys, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().to_string();
 
         self.mocs.remove(&key);
@@ -284,7 +285,7 @@ impl MOC {
             self.first_idx.remove(index);
 
             if let Some(view) = surveys.get_view() {
-                self.recompute_draw_mocs(view);
+                self.recompute_draw_mocs(camera, view);
             }
 
             moc
@@ -302,7 +303,7 @@ impl MOC {
         if let Some(view) = surveys.get_view() {
             // Compute or retrieve the mocs to render
             if view.has_view_changed() {
-                self.recompute_draw_mocs(view);
+                self.recompute_draw_mocs(camera, view);
             }
 
             self.indices.clear();
@@ -312,7 +313,6 @@ impl MOC {
 
             let mut idx_off = 0;
 
-            let view_frame = view.get_frame();
             for layer in self.layers.iter() {
                 let moc = self.adaptative_mocs.get(layer).unwrap();
                 let params = self.params.get(layer).unwrap();
@@ -330,7 +330,6 @@ impl MOC {
                             if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
                                 &cell,
                                 n_segment_by_side,
-                                view_frame,
                                 camera,
                                 &mut idx_off,
                             ) {
@@ -350,7 +349,6 @@ impl MOC {
                                     if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
                                         &sub_cell,
                                         n_segment_by_side_sub_cell,
-                                        view_frame,
                                         camera,
                                         &mut idx_off
                                     ) {
@@ -376,14 +374,13 @@ impl MOC {
                     let positions_moc = (&(moc.0)).into_range_moc_iter()
                         .cells()
                         .filter_map(|Cell { depth, idx, .. }| {
-                            let delta_depth = depth_max - depth;
+                            let delta_depth = (depth_max as i32 - depth as i32 - 2).max(0);
                             let n_segment_by_side = (1 << delta_depth) as usize;
 
                             let cell = HEALPixCell(depth, idx);
                             if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
                                 &cell,
                                 n_segment_by_side,
-                                view_frame,
                                 camera,
                                 &mut idx_off,
                             ) {
@@ -403,7 +400,6 @@ impl MOC {
                                     if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
                                         &sub_cell,
                                         n_segment_by_side_sub_cell,
-                                        view_frame,
                                         camera,
                                         &mut idx_off
                                     ) {

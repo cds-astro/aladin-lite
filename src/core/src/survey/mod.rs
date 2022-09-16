@@ -504,6 +504,7 @@ pub struct ImageSurvey {
 
     min_depth_tile: u8,
     depth: u8,
+    depth_tile: u8,
 
     footprint_moc: Arc<Mutex<Option<HEALPixCoverage>>>,
 }
@@ -646,6 +647,7 @@ impl ImageSurvey {
 
         let gl = gl.clone();
         let depth = 0;
+        let depth_tile = 0;
 
         let footprint_moc = Arc::new(Mutex::new(None));
         // request the allsky texture
@@ -671,7 +673,10 @@ impl ImageSurvey {
 
             idx_vertices,
             min_depth_tile,
+            
             depth,
+            depth_tile,
+
             footprint_moc,
         })
     }
@@ -877,16 +882,16 @@ impl ImageSurvey {
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
         let camera_tile_depth = self::view::depth_from_pixels_on_screen::<P>(camera, 512);
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-        let depth_tile = camera_tile_depth.min(max_tile_depth);
+        self.depth_tile = camera_tile_depth.min(max_tile_depth);
 
         // Set the depth of the HiPS textures
-        self.depth = if depth_tile > cfg.delta_depth() {
-            depth_tile - cfg.delta_depth()
+        self.depth = if self.depth_tile > cfg.delta_depth() {
+            self.depth_tile - cfg.delta_depth()
         } else {
             0
         };
 
-        self.view.refresh(depth_tile, hips_frame, camera);
+        self.view.refresh(self.depth_tile, hips_frame, camera);
     }
 
     // Return a boolean to signal if the tile is present or not in the survey
@@ -955,6 +960,11 @@ impl ImageSurvey {
     #[inline]
     pub fn get_depth(&self) -> u8 {
         self.depth
+    }
+
+    #[inline]
+    pub fn get_tile_depth(&self) -> u8 {
+        self.depth_tile
     }
 
     #[inline]

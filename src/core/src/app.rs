@@ -525,7 +525,7 @@ where
     }
 
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.remove(params, &self.surveys)
+        self.moc.remove(params, &self.surveys, &self.camera)
             .ok_or(JsValue::from_str("MOC not found"))?;
 
         Ok(())

@@ -354,7 +354,7 @@ fn add_vertices_grid<P: Projection>(
     m0: &mut Vec<f32>,
     m1: &mut Vec<f32>,
 
-    idx_positions: &mut Vec<u16>,
+    indices: &mut Vec<u16>,
 
     //cell: &HEALPixCell,
     //sphere_sub: &SphereSubdivided,
@@ -378,6 +378,7 @@ fn add_vertices_grid<P: Projection>(
     let off_idx_vertices = (position.len() / 2) as u16;
 
     let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
+    let n_segments_by_side_f32 = n_segments_by_side as f32;
     for i in 0..n_vertices_per_segment {
         for j in 0..n_vertices_per_segment {
             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -393,8 +394,8 @@ fn add_vertices_grid<P: Projection>(
             let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
             position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
 
-            let hj0 = (j as f32) / (n_segments_by_side as f32);
-            let hi0 = (i as f32) / (n_segments_by_side as f32);
+            let hj0 = (j as f32) / n_segments_by_side_f32;
+            let hi0 = (i as f32) / n_segments_by_side_f32;
 
             let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
             let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
@@ -433,16 +434,31 @@ fn add_vertices_grid<P: Projection>(
         for j in 0..n_segments_by_side {
             let idx_0 = (j + i * n_vertices_per_segment) as u16;
             let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_2 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + (i + 1) * n_vertices_per_segment) as u16;
 
-            idx_positions.push(off_idx_vertices + idx_0);
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_2);
+            let i0 = 2*(idx_0 + off_idx_vertices) as usize;
+            let i1 = 2*(idx_1 + off_idx_vertices) as usize;
+            let i2 = 2*(idx_2 + off_idx_vertices) as usize;
+            let i3 = 2*(idx_3 + off_idx_vertices) as usize;
 
-            idx_positions.push(off_idx_vertices + idx_1);
-            idx_positions.push(off_idx_vertices + idx_3);
-            idx_positions.push(off_idx_vertices + idx_2);
+            let c0 = Vector2::new(position[i0], position[i0 + 1]);
+            let c1 = Vector2::new(position[i1], position[i1 + 1]);
+            let c2 = Vector2::new(position[i2], position[i2 + 1]);
+            let c3 = Vector2::new(position[i3], position[i3 + 1]);
+    
+            let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) || !crate::math::vector::ccw_tri(&c0, &c2, &c3);
+            if cell_cross_screen {
+                return;
+            } else {
+                indices.push(off_idx_vertices + idx_0);
+                indices.push(off_idx_vertices + idx_1);
+                indices.push(off_idx_vertices + idx_2);
+
+                indices.push(off_idx_vertices + idx_0);
+                indices.push(off_idx_vertices + idx_2);
+                indices.push(off_idx_vertices + idx_3);
+            }
         }
     }
 }

@@ -55,6 +55,7 @@ impl From<query::MOC> for MOCRequest {
             url,
             params,
             is_hips_moc,
+            callback,
         } = query;
 
         let url_clone = url.clone();
@@ -80,6 +81,10 @@ impl From<query::MOC> for MOCRequest {
                 MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC"))
             }?;
+
+            if let Some(callback) = callback {
+                callback.call0(&JsValue::null())?;
+            }
 
             Ok(HEALPixCoverage(smoc))
         });

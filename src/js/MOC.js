@@ -147,7 +147,7 @@ export let MOC = (function() {
     MOC.prototype.skyFraction = function() {
         if (this.view) {
             // update the new moc params to the backend
-            //return this.view.aladin.webglAPI.mocSkyFraction(this.mocParams);
+            return this.view.aladin.webglAPI.mocSkyFraction(this.mocParams);
         }
     };
 
@@ -268,13 +268,9 @@ export let MOC = (function() {
         this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
 
         if (this.dataURL) {
-            view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL);
+            view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL, this.successCallback);
         } else if (this.dataFromJSON) {
             view.aladin.webglAPI.addJSONMoc(this.mocParams, this.dataJSON);
-        }
-
-        if (this.successCallback) {
-            this.successCallback();
         }
 
         view.requestRedraw();
@@ -472,11 +468,11 @@ export let MOC = (function() {
         }
 
         return false;*/
-        /*if (this.view) {
-            console.log(this.mocParams)
+        if (this.view) {
+            console.log("contains")
             // update the new moc params to the backend
-            return this.view.aladin.webglAPI.mocContains(this.mocParams, ra, dec);
-        }*/
+            //return this.view.aladin.webglAPI.mocContains(this.mocParams, ra, dec);
+        }
     };
 
     return MOC;

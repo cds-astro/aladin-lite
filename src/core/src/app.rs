@@ -457,7 +457,7 @@ pub trait AppTrait {
     fn reset_north_orientation(&mut self);
 
     // MOCs
-    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue>;
+    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue>;
     fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage>;
     fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue>;
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue>;
@@ -517,8 +517,8 @@ where
         self.moc.get(params)
     }
 
-    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
-        self.downloader.fetch(query::MOC::new(data_url, params, false));
+    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue> {
+        self.downloader.fetch(query::MOC::new(data_url, params, false, callback));
 
         Ok(())
     }
@@ -897,7 +897,7 @@ where
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             self.downloader.fetch(query::PixelMetadata::new(cfg));
             // Try to fetch the MOC
-            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true));
+            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true, None));
 
             let tile_size = cfg.get_tile_size();
             //Request the allsky for the small tile size
@@ -951,7 +951,7 @@ where
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
         self.downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
-        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true));
+        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true, None));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky

@@ -162,14 +162,16 @@ pub struct MOC {
     pub url: Url,
     pub is_hips_moc: bool,
     pub params: al_api::moc::MOC,
+    pub callback: Option<js_sys::Function>,
 }
 
 impl MOC {
-    pub fn new(url: String, params: al_api::moc::MOC, is_hips_moc: bool) -> Self {
+    pub fn new(url: String, params: al_api::moc::MOC, is_hips_moc: bool, callback: Option<js_sys::Function>) -> Self {
         MOC {
             url,
             params,
             is_hips_moc,
+            callback,
         }
     }
 }

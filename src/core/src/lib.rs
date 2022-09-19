@@ -880,8 +880,8 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]
-    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
-        self.app.add_fits_moc(params.clone(), data_url)?;
+    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue> {
+        self.app.add_fits_moc(params.clone(), data_url, callback)?;
 
         Ok(())
     }
@@ -905,5 +905,11 @@ impl WebClient {
         al_core::info!(params);
         let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
         Ok(moc.is_in(lon, lat))
+    }
+
+    #[wasm_bindgen(js_name = mocSkyFraction)]
+    pub fn sky_fraction(&mut self, params: &al_api::moc::MOC) -> Result<f32, JsValue> {
+        al_core::info!(params);
+        Ok(0.0)
     }
 }

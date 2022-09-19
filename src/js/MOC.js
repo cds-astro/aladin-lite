@@ -145,7 +145,10 @@ export let MOC = (function() {
      *  covered by the MOC
      */
     MOC.prototype.skyFraction = function() {
-        return this.nbCellsDeepestLevel / (12 * Math.pow(4, this.order));
+        if (this.view) {
+            // update the new moc params to the backend
+            //return this.view.aladin.webglAPI.mocSkyFraction(this.mocParams);
+        }
     };
 
     /**
@@ -262,13 +265,16 @@ export let MOC = (function() {
 
     MOC.prototype.setView = function(view) {
         this.view = view;
-        console.log(this.color)
         this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
 
         if (this.dataURL) {
             view.aladin.webglAPI.addFITSMoc(this.mocParams, this.dataURL);
         } else if (this.dataFromJSON) {
             view.aladin.webglAPI.addJSONMoc(this.mocParams, this.dataJSON);
+        }
+
+        if (this.successCallback) {
+            this.successCallback();
         }
 
         view.requestRedraw();
@@ -431,7 +437,7 @@ export let MOC = (function() {
     //
     // returns true if point is contained, false otherwise
     MOC.prototype.contains = function(ra, dec) {
-        var hpxIdx = new HealpixIndex(Math.pow(2, this.order));
+        /*var hpxIdx = new HealpixIndex(Math.pow(2, this.order));
         hpxIdx.init();
         var polar = HealpixIndex.utils.radecToPolar(ra, dec);
         var ipix = hpxIdx.ang2pix_nest(polar.theta, polar.phi);
@@ -465,7 +471,12 @@ export let MOC = (function() {
             }
         }
 
-        return false;
+        return false;*/
+        /*if (this.view) {
+            console.log(this.mocParams)
+            // update the new moc params to the backend
+            return this.view.aladin.webglAPI.mocContains(this.mocParams, ra, dec);
+        }*/
     };
 
     return MOC;

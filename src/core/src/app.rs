@@ -268,7 +268,7 @@ where
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
-        self.surveys.refresh_views::<P>(&mut self.camera);
+        self.surveys.refresh_views(&mut self.camera);
         self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
@@ -458,6 +458,7 @@ pub trait AppTrait {
 
     // MOCs
     fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue>;
+    fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage>;
     fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue>;
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue>;
     fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue>;
@@ -482,7 +483,7 @@ pub trait AppTrait {
     fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
 
     // UI
-    fn over_ui(&self) -> bool;
+    //fn over_ui(&self) -> bool;
 }
 
 use crate::downloader::request::Resource;
@@ -491,10 +492,10 @@ impl<P> AppTrait for App<P>
 where
     P: Projection,
 {
-    fn over_ui(&self) -> bool {
+    /*fn over_ui(&self) -> bool {
         //self.ui.lock().pos_over_ui()
         false
-    }
+    }*/
 
     fn is_catalog_loaded(&mut self) -> bool {
         if self.catalog_loaded {
@@ -512,6 +513,10 @@ where
         Ok(res)
     }
 
+    fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
+        self.moc.get(params)
+    }
+
     fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String) -> Result<(), JsValue> {
         self.downloader.fetch(query::MOC::new(data_url, params, false));
 
@@ -519,13 +524,13 @@ where
     }
 
     fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
-        self.moc.insert::<P>(moc, params, &self.surveys, &self.camera);
+        self.moc.insert::<P>(moc, params, &self.camera);
 
         Ok(())
     }
 
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.remove(params, &self.surveys, &self.camera)
+        self.moc.remove(params, &self.camera)
             .ok_or(JsValue::from_str("MOC not found"))?;
 
         Ok(())
@@ -686,7 +691,7 @@ where
                                 } = moc;
 
                                 if let Some(moc) = (*moc.lock().unwrap()).as_ref() {
-                                    self.moc.insert::<P>(moc.clone(), params.clone(), &self.surveys, &self.camera);
+                                    self.moc.insert::<P>(moc.clone(), params.clone(), &self.camera);
                                 };
                             }
                         },
@@ -731,7 +736,7 @@ where
                 self.manager.update::<P>(&self.camera, view);
             }
             // MOCs update
-            self.moc.update::<P>(&self.surveys, &self.camera);
+            self.moc.update::<P>(&self.camera);
 
             self.grid.update::<P>(&self.camera);
         }
@@ -876,6 +881,7 @@ where
 
             if self.rendering {
                 self.surveys.reset_frame();
+                self.moc.reset_frame();
             }
         }
 

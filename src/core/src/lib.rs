@@ -62,6 +62,8 @@ use cgmath::{Vector2};
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
 
+use al_core::{info, log, inforec};
+
 #[wasm_bindgen]
 pub struct WebClient {
     // The app
@@ -649,10 +651,10 @@ impl WebClient {
     ///
     /// * `delta` - The delta coming from the wheel event. This is
     ///   used to know if we are zooming or not.
-    #[wasm_bindgen(js_name = posOnUi)]
+    /*#[wasm_bindgen(js_name = posOnUi)]
     pub fn screen_position_on_ui(&mut self) -> bool {
         self.app.over_ui()
-    }
+    }*/
 
     /// Add a catalog rendered as a heatmap.
     ///
@@ -896,5 +898,12 @@ impl WebClient {
         self.app.set_moc_params(params.clone())?;
 
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = mocContains)]
+    pub fn contains(&mut self, params: &al_api::moc::MOC, lon: f64, lat: f64) -> Result<bool, JsValue> {
+        al_core::info!(params);
+        let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
+        Ok(moc.is_in(lon, lat))
     }
 }

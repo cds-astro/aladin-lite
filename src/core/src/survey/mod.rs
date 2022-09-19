@@ -873,14 +873,14 @@ impl ImageSurvey {
         );
     }
 
-    fn refresh_view<P: Projection>(&mut self, camera: &CameraViewPort) {
+    fn refresh_view(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
         let max_tile_depth = cfg.get_max_tile_depth();
 
         let hips_frame = cfg.get_frame();
         // Compute that depth
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-        let camera_tile_depth = self::view::depth_from_pixels_on_screen::<P>(camera, 512);
+        let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
         //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
         self.depth_tile = camera_tile_depth.min(max_tile_depth);
 
@@ -1449,11 +1449,11 @@ impl ImageSurveys {
         ready
     }
 
-    pub fn refresh_views<P: Projection>(&mut self, camera: &mut CameraViewPort) {
+    pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
         self.depth = 0;
 
         for survey in self.surveys.values_mut() {
-            survey.refresh_view::<P>(camera);
+            survey.refresh_view(camera);
             
             self.depth = self.depth.max(survey.get_depth());
             //al_core::log(&format!("depth {:?} delta d {:?} max tile order {:?} depth tile {:?}", depth, cfg.delta_depth(), max_tile_depth, depth_tile));

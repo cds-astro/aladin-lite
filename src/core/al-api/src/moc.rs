@@ -3,7 +3,7 @@ use crate::color::ColorRGBA;
 
 use super::color::{Color, ColorRGB};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[wasm_bindgen]
 pub struct MOC {
     uuid: String,

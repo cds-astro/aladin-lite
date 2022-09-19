@@ -23,7 +23,7 @@ pub fn project_vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPo
 }
 
 // Compute a depth from a number of pixels on screen
-pub fn depth_from_pixels_on_screen<P: Projection>(camera: &CameraViewPort, num_pixels: i32) -> u8 {
+pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
     let width = camera.get_screen_size().x;
     let aperture = camera.get_aperture().0 as f32;
 

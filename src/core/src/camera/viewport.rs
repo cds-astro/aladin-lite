@@ -270,7 +270,6 @@ impl CameraViewPort {
             let v0 = math::lonlat::radec_to_xyzw(-lon / 2.0, Angle(0.0));
             let v1 = math::lonlat::radec_to_xyzw(lon / 2.0, Angle(0.0));
 
-            self.clip_zoom_factor = 0.0;
             self.clip_zoom_factor = if let Some(p0) = P::world_to_clip_space(&v0) {
                 if let Some(p1) = P::world_to_clip_space(&v1) {
                     (0.5*(p1.x - p0.x).abs()).min(1.0)

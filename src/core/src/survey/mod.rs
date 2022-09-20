@@ -447,9 +447,7 @@ fn add_vertices_grid<P: Projection>(
             let c3 = Vector2::new(position[i3], position[i3 + 1]);
     
             let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) || !crate::math::vector::ccw_tri(&c0, &c2, &c3);
-            if cell_cross_screen {
-                return;
-            } else {
+            if !cell_cross_screen {
                 indices.push(off_idx_vertices + idx_0);
                 indices.push(off_idx_vertices + idx_1);
                 indices.push(off_idx_vertices + idx_2);

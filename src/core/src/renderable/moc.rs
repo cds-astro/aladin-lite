@@ -375,7 +375,7 @@ impl MOC {
                 let positions_moc = (&(moc.0)).into_range_moc_iter()
                     .cells()
                     .filter_map(|Cell { depth, idx, .. }| {
-                        let delta_depth = (depth_max as i32 - depth as i32 - 1).max(0);
+                        let delta_depth = (depth_max as i32 - depth as i32).max(0);
                         let n_segment_by_side = (1 << delta_depth) as usize;
 
                         let cell = HEALPixCell(depth, idx);

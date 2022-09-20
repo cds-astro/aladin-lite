@@ -1,4 +1,3 @@
-use crate::app::App;
 use crate::downloader::query;
 
 use super::{Request, RequestType};
@@ -6,12 +5,11 @@ use moclib::qty::Hpx;
 use moclib::deser::fits::MocType;
 use crate::healpix::coverage::SMOC;
 use crate::downloader::QueryId;
+
 pub struct MOCRequest {
     pub id: QueryId,
     pub url: Url,
     pub params: al_api::moc::MOC,
-    is_hips_moc: bool,
-
     request: Request<HEALPixCoverage>,
 }
 
@@ -29,7 +27,7 @@ use moclib::deser::fits;
 use moclib::moc::range::op::convert::convert_to_u64;
 
 /// Convenient type for Space-MOCs
-fn from_fits_hpx<T: Idx>(
+pub fn from_fits_hpx<T: Idx>(
     moc: MocType<T, Hpx<T>, Cursor<&[u8]>>
 ) -> SMOC {
     match moc {
@@ -54,8 +52,6 @@ impl From<query::MOC> for MOCRequest {
         let query::MOC {
             url,
             params,
-            is_hips_moc,
-            callback,
         } = query;
 
         let url_clone = url.clone();
@@ -74,17 +70,13 @@ impl From<query::MOC> for MOCRequest {
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
             let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-            let coosys_permissive = is_hips_moc;
-            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), coosys_permissive).map_err(|e| JsValue::from_str(&e.to_string()))? {
+            // Coosys is permissive because we load a moc
+            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true).map_err(|e| JsValue::from_str(&e.to_string()))? {
                 MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC"))
             }?;
-
-            if let Some(callback) = callback {
-                callback.call0(&JsValue::null())?;
-            }
 
             Ok(HEALPixCoverage(smoc))
         });
@@ -94,7 +86,6 @@ impl From<query::MOC> for MOCRequest {
             url,
             request,
             params,
-            is_hips_moc,
         }
     }
 }
@@ -104,20 +95,11 @@ pub struct MOC {
     pub moc: Arc<Mutex<Option<HEALPixCoverage>>>,
     pub params: al_api::moc::MOC,
     pub url: Url,
-    is_hips_moc: bool,
 }
 
 impl MOC {
     pub fn get_url(&self) -> &Url {
         &self.url
-    }
-
-    pub fn from_hips(&self) -> Option<&Url> {
-        if self.is_hips_moc {
-            Some(&self.url)
-        } else {
-            None
-        }
     }
 }
 
@@ -126,7 +108,6 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
         let MOCRequest {
             request,
             url,
-            is_hips_moc,
             params,
             ..
         } = request;
@@ -138,7 +119,6 @@ impl<'a> From<&'a MOCRequest> for Option<MOC> {
                 // This is a clone on a Arc, it is supposed to be fast
                 moc: data.clone(),
                 url: url.clone(),
-                is_hips_moc: *is_hips_moc,
                 params: params.clone()
             })
         } else {

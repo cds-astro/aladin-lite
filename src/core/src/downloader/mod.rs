@@ -2,7 +2,7 @@ pub mod query;
 pub mod request;
 
 use crate::survey::Url;
-use std::{collections::HashSet, hash::Hash};
+use std::collections::HashSet;
 
 use query::QueryId;
 

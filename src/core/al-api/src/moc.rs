@@ -1,5 +1,4 @@
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::color::ColorRGBA;
 
 use super::color::{Color, ColorRGB};
 
@@ -9,7 +8,6 @@ pub struct MOC {
     uuid: String,
     opacity: f32,
     line_width: f32,
-    adaptative_display: bool,
     is_showing: bool,
     color: ColorRGB,
 }
@@ -17,14 +15,13 @@ pub struct MOC {
 #[wasm_bindgen]
 impl MOC {
     #[wasm_bindgen(constructor)]
-    pub fn new(uuid: String, opacity: f32, line_width: f32, adaptative_display: bool, is_showing: bool, hex_color: String) -> Self {
+    pub fn new(uuid: String, opacity: f32, line_width: f32, is_showing: bool, hex_color: String) -> Self {
         let color = Color::hexToRgb(hex_color);
         let color = color.into();
         Self {
             uuid,
             opacity,
             line_width,
-            adaptative_display,
             color,
             is_showing,
         }
@@ -48,6 +45,10 @@ impl MOC {
     pub fn get_opacity(&self) -> f32 {
         self.opacity
     }
+    
+    pub fn get_line_width(&self) -> f32 {
+        self.line_width
+    }
 
     pub fn is_showing(&self) -> bool {
         self.is_showing
@@ -60,7 +61,6 @@ impl Default for MOC {
             uuid: String::from("moc"),
             opacity: 1.0,
             line_width: 1.0,
-            adaptative_display: true,
             is_showing: true,
             color: ColorRGB {r: 1.0, g: 0.0, b: 0.0},
         }

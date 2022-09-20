@@ -1,15 +1,10 @@
-use cdshealpix::ring::n_isolatitude_rings;
-use moclib::moc::CellMOCIntoIterator;
-
 use crate::{healpix::{
     coverage::HEALPixCoverage,
     cell::HEALPixCell
-}, camera, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
-use al_api::color::ColorRGB;
+}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
 use al_core::{WebGlContext, VertexArrayObject, VecData};
 use moclib::{moc::{RangeMOCIterator, RangeMOCIntoIterator}, elem::cell::Cell};
 use std::{borrow::Cow, collections::HashMap};
-use crate::survey::ImageSurveys;
 use web_sys::WebGl2RenderingContext;
 
 use al_api::coo_system::CooSystem;
@@ -36,7 +31,6 @@ pub struct MOC {
 
 use crate::survey::view::HEALPixCellsInView;
 use cgmath::Vector2;
-use al_core::{log, info, inforec};
 
 fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
     let vertices = cell
@@ -351,7 +345,6 @@ impl MOC {
                             let depth_sub_cell = 3;
                             let delta_depth_sub_cell = depth_max - depth_sub_cell;
                             let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
-                            let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
 
                             for sub_cell in cell.get_children_cells(3 - depth) {
                                 if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
@@ -402,7 +395,6 @@ impl MOC {
                             let depth_sub_cell = 3;
                             let delta_depth_sub_cell = depth_max - depth_sub_cell;
                             let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
-                            let num_vertices = (4 * n_segment_by_side_sub_cell) as u32;
 
                             for sub_cell in cell.get_children_cells(3 - depth) {
                                 if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(

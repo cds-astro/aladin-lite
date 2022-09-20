@@ -49,6 +49,13 @@ use crate::{
     camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
     healpix::coverage::HEALPixCoverage,
 };
+use crate::downloader::request::moc::from_fits_hpx;
+use moclib::deser::fits::MocQtyType;
+use moclib::deser::fits::MocIdxType;
+use moclib::deser::fits;
+
+use std::io::Cursor;
+
 use al_api::grid::GridCfg;
 use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
 use al_api::resources::Resources;
@@ -61,8 +68,6 @@ use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
-
-use al_core::{info, log, inforec};
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -78,7 +83,6 @@ use crate::shader::FileSrc;
 
 use crate::app::AppTrait;
 use crate::app::AppType;
-use al_api::color::ColorRGB;
 use al_api::hips::ImageSurveyMeta;
 
 #[wasm_bindgen]
@@ -863,10 +867,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = addJSONMoc)]
     pub fn add_json_moc(&mut self, params: &al_api::moc::MOC, data: &JsValue) -> Result<(), JsValue> {
-        //let str = data.as_string().ok_or(JsValue::from_str("Could not convert the MOC to String"))?;
         let str: String = js_sys::JSON::stringify(data)?.into();
-        //let str = serde_json::ser::to_string::<JsValue>(&data)
-        //    .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
 
         let moc = moclib::deser::json::from_json_aladin::<u64, Hpx<u64>>(&str)
             .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?
@@ -874,14 +875,22 @@ impl WebClient {
             .ranges()
             .into_range_moc();
 
-        self.app.add_moc(params.clone(), HEALPixCoverage(moc));
+        self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
 
         Ok(())
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]
-    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue> {
-        self.app.add_fits_moc(params.clone(), data_url, callback)?;
+    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, array_buffer: &JsValue) -> Result<(), JsValue> {
+        let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
+        let moc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), false).map_err(|e| JsValue::from_str(&e.to_string()))? {
+            MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(crate::downloader::request::moc::from_fits_hpx(moc)),
+            MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
+            MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
+            _ => Err(JsValue::from_str("MOC not supported. Must be a HPX MOC"))
+        }?;
+
+        self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
 
         Ok(())
     }
@@ -901,15 +910,18 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = mocContains)]
-    pub fn contains(&mut self, params: &al_api::moc::MOC, lon: f64, lat: f64) -> Result<bool, JsValue> {
-        al_core::info!(params);
+    pub fn moc_contains(&mut self, params: &al_api::moc::MOC, lon: f64, lat: f64) -> Result<bool, JsValue> {
         let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
-        Ok(moc.is_in(lon, lat))
+        
+        let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
+
+        Ok(moc.is_in(location.lon().0, location.lat().0))
     }
 
     #[wasm_bindgen(js_name = mocSkyFraction)]
-    pub fn sky_fraction(&mut self, params: &al_api::moc::MOC) -> Result<f32, JsValue> {
-        al_core::info!(params);
-        Ok(0.0)
+    pub fn moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> Result<f32, JsValue> {
+        let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
+
+        Ok(moc.coverage_percentage() as f32)
     }
 }

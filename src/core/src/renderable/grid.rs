@@ -508,7 +508,6 @@ use crate::math::{
     angle::ArcDeg,
     lonlat::{LonLat, LonLatT},
 };
-use al_core::{info, inforec, log};
 impl GridLine {
     fn meridian<P: Projection>(
         lon: f64,

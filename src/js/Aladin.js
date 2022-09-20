@@ -892,8 +892,6 @@ export let Aladin = (function () {
     };
     Aladin.prototype.addMOC = function (moc) {
         this.view.addMOC(moc);
-
-        ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(this.aladinDiv, {layer: moc});
     };
 
     // @API

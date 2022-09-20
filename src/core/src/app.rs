@@ -29,7 +29,6 @@ use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
     hips::{ImageSurveyMeta, SimpleHiPS},
-    color::ColorRGB,
 };
 
 use super::coosys;
@@ -156,8 +155,6 @@ pub enum AppType {
 use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
-use al_core::log;
-use al_core::{info, inforec};
 
 impl<P> App<P>
 where
@@ -299,7 +296,7 @@ where
                 }
 
                 // Do not request the cells where we know from its moc that there is no data
-                if let Some(moc) = (*survey.get_moc().lock().unwrap()).as_ref() {
+                if let Some(moc) = survey.get_moc() {
                     tile_cells = tile_cells.drain()
                         .filter(|tile_cell| {
                             moc.contains(&tile_cell)
@@ -457,7 +454,6 @@ pub trait AppTrait {
     fn reset_north_orientation(&mut self);
 
     // MOCs
-    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue>;
     fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage>;
     fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue>;
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue>;
@@ -515,12 +511,6 @@ where
 
     fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get(params)
-    }
-
-    fn add_fits_moc(&mut self, params: al_api::moc::MOC, data_url: String, callback: Option<js_sys::Function>) -> Result<(), JsValue> {
-        self.downloader.fetch(query::MOC::new(data_url, params, false, callback));
-
-        Ok(())
     }
 
     fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
@@ -670,28 +660,18 @@ where
                             }
                         },
                         Resource::MOC(moc) => {
-                            if let Some(hips_url) = moc.from_hips() {
-                                if let Some(survey) = self.surveys.get_mut(&hips_url) {
-                                    let request::moc::MOC {
-                                        moc,
-                                        ..
-                                    } = moc;
-        
-                                    survey.set_moc(moc);
+                            let url = moc.get_url();
+                            if let Some(survey) = self.surveys.get_mut(&url) {
+                                let request::moc::MOC {
+                                    moc,
+                                    ..
+                                } = moc;
+    
+                                if let Some(moc) = &*moc.lock().unwrap() {
+                                    survey.set_moc(moc.clone());
 
                                     self.look_for_new_tiles();
                                     self.request_redraw = true;
-                                }
-                            } else {
-                                let request::moc::MOC {
-                                    moc,
-                                    url,
-                                    params,
-                                    ..
-                                } = moc;
-
-                                if let Some(moc) = (*moc.lock().unwrap()).as_ref() {
-                                    self.moc.insert::<P>(moc.clone(), params.clone(), &self.camera);
                                 };
                             }
                         },
@@ -897,7 +877,7 @@ where
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             self.downloader.fetch(query::PixelMetadata::new(cfg));
             // Try to fetch the MOC
-            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true, None));
+            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
 
             let tile_size = cfg.get_tile_size();
             //Request the allsky for the small tile size
@@ -951,7 +931,7 @@ where
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
         self.downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
-        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default(), true, None));
+        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky

@@ -51,7 +51,7 @@ fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> b
     }
 }
 
-fn num_subdivision<P: Projection>(cell: &HEALPixCell, delta_depth: u8, camera: &CameraViewPort) -> u8 {
+fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> u8 {
     let d = cell.depth();
     let mut num_sub = 0;
     if d < 3 {
@@ -367,9 +367,8 @@ fn add_vertices_grid<P: Projection>(
 
     camera: &CameraViewPort,
     v2w: &Matrix4<f64>,
-    delta_depth: u8,
 ) {
-    let num_subdivision = num_subdivision::<P>(cell, delta_depth, camera);
+    let num_subdivision = num_subdivision::<P>(cell, camera);
 
     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
     let n_vertices_per_segment = n_segments_by_side + 1;
@@ -506,7 +505,7 @@ pub struct ImageSurvey {
     depth: u8,
     depth_tile: u8,
 
-    footprint_moc: Arc<Mutex<Option<HEALPixCoverage>>>,
+    footprint_moc: Option<HEALPixCoverage>,
 }
 use crate::{
     camera::UserAction,
@@ -515,13 +514,8 @@ use crate::{
 };
 
 use web_sys::{WebGl2RenderingContext};
-use std::sync::{Arc, Mutex};
-use al_core::image::ImageType;
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
-
-use al_core::{log, info};
-use al_core::inforec;
 
 impl ImageSurvey {
     fn new(
@@ -649,7 +643,7 @@ impl ImageSurvey {
         let depth = 0;
         let depth_tile = 0;
 
-        let footprint_moc = Arc::new(Mutex::new(None));
+        let footprint_moc = None;
         // request the allsky texture
         Ok(ImageSurvey {
             //color,
@@ -689,13 +683,13 @@ impl ImageSurvey {
     }
 
     #[inline]
-    pub fn set_moc(&mut self, moc: Arc<Mutex<Option<HEALPixCoverage>>>) {
-        self.footprint_moc = moc;
+    pub fn set_moc(&mut self, moc: HEALPixCoverage) {
+        self.footprint_moc = Some(moc);
     }
 
     #[inline]
-    pub fn get_moc(&self) -> Arc<Mutex<Option<HEALPixCoverage>>> {
-        self.footprint_moc.clone()
+    pub fn get_moc(&self) -> Option<&HEALPixCoverage> {
+        self.footprint_moc.as_ref()
     }
 
     pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
@@ -784,15 +778,13 @@ impl ImageSurvey {
         let survey_config = self.textures.config();
 
         let mut textures = T::get_textures_from_survey(&self.view, &self.textures);
-        if let Some(moc) = (*self.footprint_moc.lock().unwrap()).as_ref() {
+        if let Some(moc) = self.footprint_moc.as_ref() {
             textures = textures.into_iter()
                 // filter textures that are not in the moc
                 .filter(|TextureToDraw { cell, .. }| {
                     moc.contains(cell)
                 }).collect::<Vec<_>>();
         }
-        let num_tiles = textures.len();
-        //al_core::info!(num_tiles);
 
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
@@ -802,7 +794,6 @@ impl ImageSurvey {
         // Retrieve the model and inverse model matrix
         let w2v = c * (*camera.get_w2m());
         let v2w = w2v.transpose();
-        let delta_depth = self.get_config().delta_depth();
 
         for TextureToDraw {
             starting_texture,
@@ -831,7 +822,6 @@ impl ImageSurvey {
                 start_time.as_millis(),
                 camera,
                 &v2w,
-                delta_depth
             );
         }
         self.num_idx = self.idx_vertices.len();
@@ -960,11 +950,6 @@ impl ImageSurvey {
     #[inline]
     pub fn get_depth(&self) -> u8 {
         self.depth
-    }
-
-    #[inline]
-    pub fn get_tile_depth(&self) -> u8 {
-        self.depth_tile
     }
 
     #[inline]

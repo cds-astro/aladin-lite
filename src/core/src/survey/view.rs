@@ -1,11 +1,11 @@
-use crate::math::projection::HEALPix;
 use crate::{coosys, healpix::cell::HEALPixCell, math};
 use std::collections::HashMap;
 
+
+/*
 use crate::math::angle::Angle;
 use crate::Projection;
 use cgmath::Vector2;
-use al_core::{log, inforec};
 pub fn project_vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> [Vector2<f64>; 4] {
     let project_vertex = |(lon, lat): (f64, f64)| -> Vector2<f64> {
         let vertex = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
@@ -20,7 +20,7 @@ pub fn project_vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPo
         project_vertex(vertices[2]),
         project_vertex(vertices[3])
     ]
-}
+}*/
 
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
@@ -101,7 +101,6 @@ pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &Coo
 
 use crate::healpix;
 use al_api::coo_system::CooSystem;
-use cgmath::Vector4;
 pub fn get_tile_cells_in_camera(
     depth_tile: u8,
     camera: &CameraViewPort,
@@ -136,7 +135,7 @@ pub struct HEALPixCellsInView {
     coverage: HEALPixCoverage,
 }
 
-use crate::camera::{CameraViewPort, UserAction};
+use crate::camera::CameraViewPort;
 impl HEALPixCellsInView {
     pub fn new() -> Self {
         let cells = HashMap::new();
@@ -174,10 +173,10 @@ impl HEALPixCellsInView {
         self.coverage = coverage;
 
         // Update cells in the fov
-        self.update_cells_in_fov(&tile_cells, camera);
+        self.update_cells_in_fov(&tile_cells);
     }
 
-    fn update_cells_in_fov(&mut self, cells_in_fov: &[HEALPixCell], camera: &CameraViewPort) {
+    fn update_cells_in_fov(&mut self, cells_in_fov: &[HEALPixCell]) {
         let new_cells = cells_in_fov
             .iter()
             .map(|cell| {
@@ -238,17 +237,5 @@ impl HEALPixCellsInView {
     pub fn has_view_changed(&self) -> bool {
         //self.new_cells.is_there_new_cells_added()
         !self.view_unchanged
-    }
-
-    #[inline]
-    fn has_depth_decreased(&self) -> bool {
-        let depth = self.get_depth();
-        depth < self.prev_depth
-    }
-
-    #[inline]
-    fn has_depth_changed(&self) -> bool {
-        let depth = self.get_depth();
-        depth != self.prev_depth
     }
 }

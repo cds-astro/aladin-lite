@@ -110,7 +110,7 @@ export let MOC = (function() {
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.adaptativeDisplay, this.isShowing, this.color);
+            this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color);
             this.view.aladin.webglAPI.setMocParams(this.mocParams);
             this.view.requestRedraw();
         }

@@ -368,6 +368,7 @@ fn add_vertices_grid<P: Projection>(
     camera: &CameraViewPort,
     v2w: &Matrix4<f64>,
 ) {
+    let longitude_reversed = camera.get_longitude_reversed();
     let num_subdivision = num_subdivision::<P>(cell, camera);
 
     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
@@ -430,11 +431,11 @@ fn add_vertices_grid<P: Projection>(
     }
 
     for i in 0..n_segments_by_side {
-        for j in 0..n_segments_by_side {
+        for j in 0..n_segments_by_side {            
             let idx_0 = (j + i * n_vertices_per_segment) as u16;
             let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-            let idx_2 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
-            let idx_3 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
 
             let i0 = 2*(idx_0 + off_idx_vertices) as usize;
             let i1 = 2*(idx_1 + off_idx_vertices) as usize;
@@ -446,15 +447,19 @@ fn add_vertices_grid<P: Projection>(
             let c2 = Vector2::new(position[i2], position[i2 + 1]);
             let c3 = Vector2::new(position[i3], position[i3 + 1]);
     
-            let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) || !crate::math::vector::ccw_tri(&c0, &c2, &c3);
-            if !cell_cross_screen {
+            let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+            let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+
+            if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
                 indices.push(off_idx_vertices + idx_0);
                 indices.push(off_idx_vertices + idx_1);
                 indices.push(off_idx_vertices + idx_2);
+            }
 
-                indices.push(off_idx_vertices + idx_0);
-                indices.push(off_idx_vertices + idx_2);
+            if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
+                indices.push(off_idx_vertices + idx_1);
                 indices.push(off_idx_vertices + idx_3);
+                indices.push(off_idx_vertices + idx_2);
             }
         }
     }
@@ -993,6 +998,8 @@ impl ImageSurvey {
             0
         };
         let raytracing = raytracer.is_rendering::<P>(camera, depth_texture);
+        let longitude_reversed = camera.get_longitude_reversed();
+
         if raytracing {
             // Triangle are defined in CCW
             self.gl.cull_face(WebGl2RenderingContext::BACK);
@@ -1021,7 +1028,6 @@ impl ImageSurvey {
             // Depending on if the longitude is reversed, triangles are either defined in:
             // - CCW for longitude_reversed = false
             // - CW for longitude_reversed = true
-            let longitude_reversed = camera.get_longitude_reversed();
             // Get the reverse longitude flag
             if longitude_reversed {
                 self.gl.cull_face(WebGl2RenderingContext::FRONT);
@@ -1068,6 +1074,18 @@ impl ImageSurvey {
                     0,
                 );
         }
+
+        // Depending on if the longitude is reversed, triangles are either defined in:
+        // - CCW for longitude_reversed = false
+        // - CW for longitude_reversed = true
+        // Get the reverse longitude flag
+        if longitude_reversed {
+            self.gl.cull_face(WebGl2RenderingContext::FRONT);
+        } else {
+            self.gl.cull_face(WebGl2RenderingContext::BACK);
+        }
+
+        //self.gl.cull_face(WebGl2RenderingContext::BACK);
     }
 }
 

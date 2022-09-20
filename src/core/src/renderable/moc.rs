@@ -48,15 +48,25 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
 
     let cell_inside = vertices.len() == 2*4*n_segment_by_side;
 
+    let invalid_tri = |tri_ccw: bool, reversed_longitude: bool| -> bool {
+        (!reversed_longitude && !tri_ccw) || (reversed_longitude && tri_ccw)
+    };
+    let reversed_longitude = camera.get_longitude_reversed();
+
     if cell_inside {
         let c0 = Vector2::new(vertices[0], vertices[1]);
         let c1 = Vector2::new(vertices[2*n_segment_by_side], vertices[2*n_segment_by_side + 1]);
         let c2 = Vector2::new(vertices[2*2*n_segment_by_side], vertices[2*2*n_segment_by_side + 1]);
         let c3 = Vector2::new(vertices[3*2*n_segment_by_side], vertices[3*2*n_segment_by_side + 1]);
 
-        let cell_cross_screen = crate::math::vector::ccw_tri(&c0, &c1, &c2) || crate::math::vector::ccw_tri(&c1, &c2, &c3) || crate::math::vector::ccw_tri(&c2, &c3, &c0) || crate::math::vector::ccw_tri(&c3, &c0, &c1);
+        let first_tri_ccw = !crate::math::vector::ccw_tri(&c0, &c1, &c2);
+        let second_tri_ccw = !crate::math::vector::ccw_tri(&c1, &c2, &c3);
+        let third_tri_ccw = !crate::math::vector::ccw_tri(&c2, &c3, &c0);
+        let fourth_tri_ccw = !crate::math::vector::ccw_tri(&c3, &c0, &c1);
 
-        if !cell_cross_screen {
+        let invalid_cell = invalid_tri(first_tri_ccw, reversed_longitude) || invalid_tri(second_tri_ccw, reversed_longitude) || invalid_tri(third_tri_ccw, reversed_longitude) || invalid_tri(fourth_tri_ccw, reversed_longitude);
+
+        if !invalid_cell {
             // HEALPix projection special case
             /*//if (this.projection.PROJECTION == ProjectionEnum.HPX) {
             const triIdxInCollignonZone = ((p) => {
@@ -145,20 +155,27 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
         let mut indices = Vec::with_capacity(n_segment_by_side * n_segment_by_side * 6);
         let num_vertices = (n_segment_by_side+1)*(n_segment_by_side+1);
 
+        let longitude_reversed = camera.get_longitude_reversed();
+        let invalid_tri = |tri_ccw: bool, reversed_longitude: bool| -> bool {
+            (!reversed_longitude && !tri_ccw) || (reversed_longitude && tri_ccw)
+        };
+
         for i in 0..n_segment_by_side {
             for j in 0..n_segment_by_side {
                 let idx_0 = j + i * n_vertices_per_segment;
                 let idx_1 = j + 1 + i * n_vertices_per_segment;
-                let idx_2 = j + 1 + (i + 1) * n_vertices_per_segment;
-                let idx_3 = j + (i + 1) * n_vertices_per_segment;
+                let idx_2 = j + (i + 1) * n_vertices_per_segment;
+                let idx_3 = j + 1 + (i + 1) * n_vertices_per_segment;
 
                 let c0 = Vector2::new(vertices[2*idx_0], vertices[2*idx_0 + 1]);
                 let c1 = Vector2::new(vertices[2*idx_1], vertices[2*idx_1 + 1]);
                 let c2 = Vector2::new(vertices[2*idx_2], vertices[2*idx_2 + 1]);
                 let c3 = Vector2::new(vertices[2*idx_3], vertices[2*idx_3 + 1]);
         
-                let cell_cross_screen = !crate::math::vector::ccw_tri(&c0, &c1, &c2) || !crate::math::vector::ccw_tri(&c0, &c2, &c3);
-                if cell_cross_screen {
+                let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+                let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+
+                if invalid_tri(first_tri_ccw, longitude_reversed) || invalid_tri(second_tri_ccw, longitude_reversed) {
                     return None;
                 }
 
@@ -166,9 +183,9 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
                 indices.push(*idx_off + idx_1 as u32);
                 indices.push(*idx_off + idx_2 as u32);
 
-                indices.push(*idx_off + idx_0 as u32);
-                indices.push(*idx_off + idx_2 as u32);
+                indices.push(*idx_off + idx_1 as u32);
                 indices.push(*idx_off + idx_3 as u32);
+                indices.push(*idx_off + idx_2 as u32);
             }
         }
 
@@ -263,7 +280,7 @@ impl MOC {
             .map(|(key, moc)| {
                 let moc = fov_moc.intersection(&moc).degraded(depth);
                 (key.clone(), HEALPixCoverage(moc))
-            }).collect::<HashMap<_, _>>();
+            }).collect();
         
     }
 

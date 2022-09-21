@@ -18,7 +18,7 @@ pub struct MOC {
     position: Vec<f32>,
     indices: Vec<u32>,
 
-    mocs: HashMap<MOCIdx, HEALPixCoverage>,
+    mocs: HashMap<MOCIdx, HierarchicalHpxCoverage>,
 
     adaptative_mocs: HashMap<MOCIdx, HEALPixCoverage>,
     params: HashMap<MOCIdx, al_api::moc::MOC>,
@@ -197,6 +197,34 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
     }
 }
 
+struct HierarchicalHpxCoverage {
+    full_moc: HEALPixCoverage,
+    partially_degraded_moc: HEALPixCoverage,
+}
+
+impl HierarchicalHpxCoverage {
+    fn new(full_moc: HEALPixCoverage) -> Self {
+        let partially_degraded_moc = HEALPixCoverage(full_moc.degraded(full_moc.depth_max() >> 1));
+
+        Self {
+            full_moc,
+            partially_degraded_moc
+        }
+    }
+
+    fn get(&self, depth: u8) -> &HEALPixCoverage {
+        if depth <= self.partially_degraded_moc.depth_max() {
+            &self.partially_degraded_moc
+        } else {
+            &self.full_moc
+        }
+    }
+
+    fn get_full_moc(&self) -> &HEALPixCoverage {
+        &self.full_moc
+    }
+}
+
 impl MOC {
     pub fn new(gl: &WebGlContext) -> Self {
         let mut vao = VertexArrayObject::new(gl);
@@ -273,12 +301,13 @@ impl MOC {
 
     fn recompute_draw_mocs(&mut self, camera: &CameraViewPort) {
         let view_depth = self.view.get_depth();
-        let depth = view_depth + 5;
+        let depth = view_depth + 6;
 
         let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.mocs.iter()
-            .map(|(key, moc)| {
-                let moc = fov_moc.intersection(&moc).degraded(depth);
+            .map(|(key, coverage)| {
+                let partially_degraded_moc = coverage.get(depth);
+                let moc = fov_moc.intersection(&partially_degraded_moc).degraded(depth);
                 (key.clone(), HEALPixCoverage(moc))
             }).collect();
         
@@ -287,7 +316,7 @@ impl MOC {
     pub fn insert<P: Projection>(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort) {
         let key = params.get_uuid().to_string();
 
-        self.mocs.insert(key.clone(), moc);
+        self.mocs.insert(key.clone(), HierarchicalHpxCoverage::new(moc));
         self.params.insert(key.clone(), params);
         self.layers.push(key);
 
@@ -321,7 +350,7 @@ impl MOC {
 
     pub fn get(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         let key = params.get_uuid();
-        self.mocs.get(key)
+        self.mocs.get(key).and_then(|coverage| Some(coverage.get_full_moc()) )
     }
 
     fn update_buffers<P: Projection>(&mut self, camera: &CameraViewPort) {

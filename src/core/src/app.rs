@@ -527,7 +527,7 @@ where
     }
 
     fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.set_params(params)
+        self.moc.set_params::<P>(params, &self.camera)
             .ok_or(JsValue::from_str("MOC not found"))?;
 
         Ok(())

@@ -105,6 +105,8 @@ export let MOC = (function() {
 
             self.view.requestRedraw();
         }
+
+
     };
 
     MOC.prototype.reportChange = function() {

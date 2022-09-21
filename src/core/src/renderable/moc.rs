@@ -20,7 +20,7 @@ pub struct MOC {
 
     mocs: HashMap<MOCIdx, HierarchicalHpxCoverage>,
 
-    adaptative_mocs: HashMap<MOCIdx, HEALPixCoverage>,
+    adaptative_mocs: HashMap<MOCIdx, Option<HEALPixCoverage>>,
     params: HashMap<MOCIdx, al_api::moc::MOC>,
 
     layers: Vec<MOCIdx>,
@@ -304,11 +304,20 @@ impl MOC {
         let depth = view_depth + 5;
 
         let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
-        self.adaptative_mocs = self.mocs.iter()
-            .map(|(key, coverage)| {
-                let partially_degraded_moc = coverage.get(depth);
-                let moc = fov_moc.intersection(&partially_degraded_moc).degraded(depth);
-                (key.clone(), HEALPixCoverage(moc))
+        self.adaptative_mocs = self.layers.iter()
+            .map(|layer| {
+                let params = self.params.get(layer).unwrap();
+                let coverage = self.mocs.get(layer).unwrap();
+
+                let moc = if !params.is_showing() {
+                    None
+                } else {
+                    let partially_degraded_moc = coverage.get(depth);
+                    let moc = HEALPixCoverage(fov_moc.intersection(&partially_degraded_moc).degraded(depth));
+                    Some(moc)
+                };
+
+                (layer.clone(), moc)
             }).collect();
         
     }
@@ -343,9 +352,14 @@ impl MOC {
         }
     }
 
-    pub fn set_params(&mut self, params: al_api::moc::MOC) -> Option<al_api::moc::MOC> {
+    pub fn set_params<P: Projection>(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().to_string();
-        self.params.insert(key, params)
+        let old_params = self.params.insert(key, params);
+
+        self.recompute_draw_mocs(camera);
+        self.update_buffers::<P>(camera);
+
+        old_params
     }
 
     pub fn get(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
@@ -365,108 +379,113 @@ impl MOC {
             let moc = self.adaptative_mocs.get(layer).unwrap();
             let params = self.params.get(layer).unwrap();
 
-            let depth_max = moc.depth();
-            let mut indices_moc = vec![];
-            if params.get_opacity() == 1.0 {
-                let positions_moc = (&(moc.0)).into_range_moc_iter()
-                    .cells()
-                    .filter_map(|Cell { depth, idx, .. }| {
-                        let delta_depth = depth_max - depth;
-                        let n_segment_by_side = (1 << delta_depth) as usize;
-
-                        let cell = HEALPixCell(depth, idx);
-                        if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
-                            &cell,
-                            n_segment_by_side,
-                            camera,
-                            &mut idx_off,
-                        ) {
-                            // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-                            indices_moc.extend(indices_cell);
-
-                            Some(vertices_cell)
-                        } else if depth < 3 {
-                            let mut vertices = vec![];
-
-                            let depth_sub_cell = 3;
-                            let delta_depth_sub_cell = depth_max - depth_sub_cell;
-                            let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
-
-                            for sub_cell in cell.get_children_cells(3 - depth) {
-                                if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
-                                    &sub_cell,
-                                    n_segment_by_side_sub_cell,
-                                    camera,
-                                    &mut idx_off
-                                ) {
-                                    indices_moc.extend(indices_sub_cell);
-                                    vertices.extend(vertices_sub_cell);
+            if let Some(moc) = moc {
+                let depth_max = moc.depth();
+                let mut indices_moc = vec![];
+                if params.get_opacity() == 1.0 {
+                    let positions_moc = (&(moc.0)).into_range_moc_iter()
+                        .cells()
+                        .filter_map(|Cell { depth, idx, .. }| {
+                            let delta_depth = depth_max - depth;
+                            let n_segment_by_side = (1 << delta_depth) as usize;
+    
+                            let cell = HEALPixCell(depth, idx);
+                            if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
+                                &cell,
+                                n_segment_by_side,
+                                camera,
+                                &mut idx_off,
+                            ) {
+                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                                indices_moc.extend(indices_cell);
+    
+                                Some(vertices_cell)
+                            } else if depth < 3 {
+                                let mut vertices = vec![];
+    
+                                let depth_sub_cell = 3;
+                                let delta_depth_sub_cell = depth_max - depth_sub_cell;
+                                let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
+    
+                                for sub_cell in cell.get_children_cells(3 - depth) {
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
+                                        &sub_cell,
+                                        n_segment_by_side_sub_cell,
+                                        camera,
+                                        &mut idx_off
+                                    ) {
+                                        indices_moc.extend(indices_sub_cell);
+                                        vertices.extend(vertices_sub_cell);
+                                    }
                                 }
+    
+                                Some(vertices)
+                            } else {
+                                None
                             }
-
-                            Some(vertices)
-                        } else {
-                            None
-                        }
-                    })
-                    .flatten()
-                    .collect::<Vec<_>>();
-
-                self.first_idx.push(self.indices.len());
-                self.num_indices.push(indices_moc.len());
-
-                self.position.extend(&positions_moc);
-                self.indices.extend(&indices_moc);
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
+    
+                    self.first_idx.push(self.indices.len());
+                    self.num_indices.push(indices_moc.len());
+    
+                    self.position.extend(&positions_moc);
+                    self.indices.extend(&indices_moc);
+                } else {
+                    let positions_moc = (&(moc.0)).into_range_moc_iter()
+                        .cells()
+                        .filter_map(|Cell { depth, idx, .. }| {
+                            let delta_depth = (depth_max as i32 - depth as i32).max(0);
+                            let n_segment_by_side = (1 << delta_depth) as usize;
+    
+                            let cell = HEALPixCell(depth, idx);
+                            if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
+                                &cell,
+                                n_segment_by_side,
+                                camera,
+                                &mut idx_off,
+                            ) {
+                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                                indices_moc.extend(indices_cell);
+    
+                                Some(vertices_cell)
+                            } else if depth < 3 {
+                                let mut vertices = vec![];
+    
+                                let depth_sub_cell = 3;
+                                let delta_depth_sub_cell = depth_max - depth_sub_cell;
+                                let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
+    
+                                for sub_cell in cell.get_children_cells(3 - depth) {
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
+                                        &sub_cell,
+                                        n_segment_by_side_sub_cell,
+                                        camera,
+                                        &mut idx_off
+                                    ) {
+                                        indices_moc.extend(indices_sub_cell);
+                                        vertices.extend(vertices_sub_cell);
+                                    }
+                                }
+    
+                                Some(vertices)
+                            } else {
+                                None
+                            }
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>();
+    
+                    self.first_idx.push(self.indices.len());
+                    self.num_indices.push(indices_moc.len());
+    
+                    self.position.extend(&positions_moc);
+                    self.indices.extend(&indices_moc);
+                } 
             } else {
-                let positions_moc = (&(moc.0)).into_range_moc_iter()
-                    .cells()
-                    .filter_map(|Cell { depth, idx, .. }| {
-                        let delta_depth = (depth_max as i32 - depth as i32).max(0);
-                        let n_segment_by_side = (1 << delta_depth) as usize;
-
-                        let cell = HEALPixCell(depth, idx);
-                        if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
-                            &cell,
-                            n_segment_by_side,
-                            camera,
-                            &mut idx_off,
-                        ) {
-                            // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-                            indices_moc.extend(indices_cell);
-
-                            Some(vertices_cell)
-                        } else if depth < 3 {
-                            let mut vertices = vec![];
-
-                            let depth_sub_cell = 3;
-                            let delta_depth_sub_cell = depth_max - depth_sub_cell;
-                            let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
-
-                            for sub_cell in cell.get_children_cells(3 - depth) {
-                                if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
-                                    &sub_cell,
-                                    n_segment_by_side_sub_cell,
-                                    camera,
-                                    &mut idx_off
-                                ) {
-                                    indices_moc.extend(indices_sub_cell);
-                                    vertices.extend(vertices_sub_cell);
-                                }
-                            }
-
-                            Some(vertices)
-                        } else {
-                            None
-                        }
-                    })
-                    .flatten()
-                    .collect::<Vec<_>>();
-
                 self.first_idx.push(self.indices.len());
-                self.num_indices.push(indices_moc.len());
-
-                self.position.extend(&positions_moc);
-                self.indices.extend(&indices_moc);
+                self.num_indices.push(0);
             }
         }
 
@@ -517,7 +536,7 @@ impl MOC {
         let shaderbound = shader.bind(&self.gl);
         for (idx, layer) in self.layers.iter().enumerate() {
             let moc = self.params.get(layer).unwrap();
-            if moc.is_showing() {
+            //if moc.is_showing() {
                 let mode = if moc.get_opacity() == 1.0 {
                     WebGl2RenderingContext::LINES
                 } else {
@@ -536,7 +555,7 @@ impl MOC {
                             WebGl2RenderingContext::UNSIGNED_INT,
                             (self.first_idx[idx] * std::mem::size_of::<u32>()) as i32
                         );
-            }
+            //}
         }
 
         self.gl.disable(WebGl2RenderingContext::BLEND);

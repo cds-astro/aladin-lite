@@ -88,6 +88,10 @@ export let MOC = (function() {
                     // Cache the sky fraction
                     self.skyFrac = self.view.aladin.webglAPI.mocSkyFraction(this.mocParams);
 
+                    // Add it to the view
+                    self.view.mocs.push(self);
+                    self.view.allOverlayLayers.push(self);
+
                     // Tell the MOC has been fully loaded and can be sent as an event
                     ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
 
@@ -100,13 +104,15 @@ export let MOC = (function() {
             // Cache the sky fraction
             self.skyFrac = self.view.aladin.webglAPI.mocSkyFraction(self.mocParams);
 
+            // Add it to the view
+            self.view.mocs.push(self);
+            self.view.allOverlayLayers.push(self);
+
             // Tell the MOC has been fully loaded and can be sent as an event
             ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.dispatchedTo(self.view.aladinDiv, {layer: self});
 
             self.view.requestRedraw();
         }
-
-
     };
 
     MOC.prototype.reportChange = function() {

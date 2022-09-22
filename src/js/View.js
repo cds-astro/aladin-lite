@@ -1910,8 +1910,6 @@ export let View = (function() {
     
     View.prototype.addMOC = function(moc) {
         moc.name = this.makeUniqLayerName(moc.name);
-        this.mocs.push(moc);
-        this.allOverlayLayers.push(moc);
         moc.setView(this);
     };
     

@@ -128,11 +128,10 @@ import  autocomplete from 'autocompleter';
             },
             onSelect: function(item) {
                 self.selectedItem = item;
-                input.value = null;
+                input.value = item.ID;
 
                 self.fnIdSelected && self.fnIdSelected(item.ID);
                 input.blur();
-
             },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");

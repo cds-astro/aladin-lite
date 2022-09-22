@@ -682,7 +682,7 @@ export let Aladin = (function () {
 
         aladin.gotoRaDec(curRa, curDec);
 
-        setTimeout(function () { doAnimation(aladin); }, 50);
+        setTimeout(function () { doAnimation(aladin); }, 10);
 
     };
 

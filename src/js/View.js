@@ -1215,7 +1215,7 @@ export let View = (function() {
 
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function(norder) {
-        var cells = []; // array to be returned
+        /*var cells = []; // array to be returned
         var cornersXY = [];
         var nside = Math.pow(2, norder); // TODO : to be modified
         var npix = 12 * nside * nside;
@@ -1268,37 +1268,15 @@ export let View = (function() {
                 continue;
             }
 
-            // check if pixel is visible
-//            if (this.fov<160) { // don't bother checking if fov is large enough
-//                if ( ! AladinUtils.isHpxPixVisible(cornersXYView, this.width, this.height) ) {
-//                    continue;
-//                }
-//            }
-            // check if we have a pixel at the edge of the view in allsky projections
-            //if (this.projection.PROJECTION!=ProjectionEnum.SIN && this.projection.PROJECTION!=ProjectionEnum.TAN) {
-                /*var xdiff = cornersXYView[0].vx-cornersXYView[2].vx;
-                var ydiff = cornersXYView[0].vy-cornersXYView[2].vy;
-                var distDiag = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
-                if (distDiag>this.largestDim/5) {
-                    continue;
-                }
-                xdiff = cornersXYView[1].vx-cornersXYView[3].vx;
-                ydiff = cornersXYView[1].vy-cornersXYView[3].vy;
-                distDiag = Math.sqrt(xdiff*xdiff + ydiff*ydiff);
-                if (distDiag>this.largestDim/5) {
-                    continue;
-                }*/
-
-                // New faster approach: when a vertex from a cell gets to the other side of the projection
-                // its vertices order change from counter-clockwise to clockwise!
-                // So if the vertices describing a cell are given in clockwise order
-                // we know it crosses the projection, so we do not plot them!
-                if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
-                    !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
-                    continue;
-                }
-            //}
-
+            // New faster approach: when a vertex from a cell gets to the other side of the projection
+            // its vertices order change from counter-clockwise to clockwise!
+            // So if the vertices describing a cell are given in clockwise order
+            // we know it crosses the projection, so we do not plot them!
+            if (!AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[1].vx, cornersXYView[1].vy, cornersXYView[2].vx, cornersXYView[2].vy) ||
+                !AladinUtils.counterClockwiseTriangle(cornersXYView[0].vx, cornersXYView[0].vy, cornersXYView[2].vx, cornersXYView[2].vy, cornersXYView[3].vx, cornersXYView[3].vy)) {
+                continue;
+            }
+            
             if (this.projection.PROJECTION == ProjectionEnum.HPX) {
                 const triIdxInCollignonZone = ((p) => {
                     const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
@@ -1326,7 +1304,9 @@ export let View = (function() {
             cells.push(cornersXYView);
         }
         
-        return cells;
+        return cells;*/
+
+        return this.aladin.webglAPI.getVisibleCells(norder);
     };
     
     /*View.prototype.computeZoomFactor = function(level) {

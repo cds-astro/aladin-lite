@@ -1,7 +1,7 @@
 use crate::{healpix::{
     coverage::HEALPixCoverage,
     cell::HEALPixCell
-}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
+}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager, survey::view::HEALPixCellProjection};
 use al_core::{WebGlContext, VertexArrayObject, VecData};
 use moclib::{moc::{RangeMOCIterator, RangeMOCIntoIterator}, elem::cell::Cell};
 use std::{borrow::Cow, collections::HashMap};
@@ -67,30 +67,6 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
         let invalid_cell = invalid_tri(first_tri_ccw, reversed_longitude) || invalid_tri(second_tri_ccw, reversed_longitude) || invalid_tri(third_tri_ccw, reversed_longitude) || invalid_tri(fourth_tri_ccw, reversed_longitude);
 
         if !invalid_cell {
-            // HEALPix projection special case
-            /*//if (this.projection.PROJECTION == ProjectionEnum.HPX) {
-            const triIdxInCollignonZone = ((p) => {
-                const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
-                const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-                const xZone = Math.floor((x + 0.5) * 4);
-                return xZone + 4 * (y > 0.0);
-            });
-
-            const isInCollignon = ((p) => {
-                const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-                return y < -0.25 || y > 0.25;
-            });
-
-            if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
-                const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
-                if (!allVerticesInSameCollignonRegion) {
-                    continue;
-                }
-            }
-            //}*/
-
             // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
             let num_vertices = 4 * n_segment_by_side as u32;
             let indices = std::iter::once(*idx_off as u32)
@@ -107,8 +83,8 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
         None
     }
 }
-
-fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+use al_api::cell::HEALPixCellProjeted;
+fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
     let n_vertices_per_segment = n_segment_by_side + 1;
 
     let vertices = cell
@@ -127,30 +103,6 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
     let cell_inside = vertices.len() == 2*(n_segment_by_side+1)*(n_segment_by_side+1);
 
     if cell_inside {
-        // HEALPix projection special case
-        /*//if (this.projection.PROJECTION == ProjectionEnum.HPX) {
-        const triIdxInCollignonZone = ((p) => {
-            const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
-            const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-            const xZone = Math.floor((x + 0.5) * 4);
-            return xZone + 4 * (y > 0.0);
-        });
-
-        const isInCollignon = ((p) => {
-            const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
-
-            return y < -0.25 || y > 0.25;
-        });
-
-        if (isInCollignon(cornersXYView[0]) && isInCollignon(cornersXYView[1]) && isInCollignon(cornersXYView[2]) && isInCollignon(cornersXYView[3])) {
-            const allVerticesInSameCollignonRegion = (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[1])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[2])) && (triIdxInCollignonZone(cornersXYView[0]) == triIdxInCollignonZone(cornersXYView[3]));
-            if (!allVerticesInSameCollignonRegion) {
-                continue;
-            }
-        }
-        //}*/
-
         // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
         let mut indices = Vec::with_capacity(n_segment_by_side * n_segment_by_side * 6);
         let num_vertices = (n_segment_by_side+1)*(n_segment_by_side+1);
@@ -171,13 +123,25 @@ fn rasterize_hpx_cell<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usiz
                 let c1 = Vector2::new(vertices[2*idx_1], vertices[2*idx_1 + 1]);
                 let c2 = Vector2::new(vertices[2*idx_2], vertices[2*idx_2 + 1]);
                 let c3 = Vector2::new(vertices[2*idx_3], vertices[2*idx_3 + 1]);
-        
+
                 let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
                 let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
 
                 if invalid_tri(first_tri_ccw, longitude_reversed) || invalid_tri(second_tri_ccw, longitude_reversed) {
                     return None;
                 }
+
+                /*let vx = [vertices[2*idx_0] as f64, vertices[2*idx_1] as f64, vertices[2*idx_2] as f64, vertices[2*idx_3] as f64];
+                let vy = [vertices[2*idx_0 + 1] as f64, vertices[2*idx_1 + 1] as f64, vertices[2*idx_2 + 1] as f64, vertices[2*idx_3 + 1] as f64];
+
+                let projeted_cell = HEALPixCellProjeted {
+                    ipix: cell.idx(),
+                    vx,
+                    vy
+                };
+                if P::project(projeted_cell, &camera).is_none() {
+                    return None;
+                }*/
 
                 indices.push(*idx_off + idx_0 as u32);
                 indices.push(*idx_off + idx_1 as u32);
@@ -322,7 +286,7 @@ impl MOC {
         
     }
 
-    pub fn insert<P: Projection>(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort) {
+    pub fn insert<P: Projection + HEALPixCellProjection>(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort) {
         let key = params.get_uuid().to_string();
 
         self.mocs.insert(key.clone(), HierarchicalHpxCoverage::new(moc));
@@ -352,7 +316,7 @@ impl MOC {
         }
     }
 
-    pub fn set_params<P: Projection>(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
+    pub fn set_params<P: Projection + HEALPixCellProjection>(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().to_string();
         let old_params = self.params.insert(key, params);
 
@@ -367,7 +331,7 @@ impl MOC {
         self.mocs.get(key).and_then(|coverage| Some(coverage.get_full_moc()) )
     }
 
-    fn update_buffers<P: Projection>(&mut self, camera: &CameraViewPort) {
+    fn update_buffers<P: Projection + HEALPixCellProjection>(&mut self, camera: &CameraViewPort) {
         self.indices.clear();
         self.position.clear();
         self.num_indices.clear();
@@ -501,7 +465,7 @@ impl MOC {
             );
     }
 
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn update<P: Projection + HEALPixCellProjection>(&mut self, camera: &CameraViewPort) {
         // Compute or retrieve the mocs to render
         let new_depth = crate::survey::view::depth_from_pixels_on_screen(camera, 512);
         self.view.refresh(new_depth, CooSystem::ICRSJ2000, camera);

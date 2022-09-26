@@ -10,3 +10,4 @@ pub mod grid;
 pub mod hips;
 pub mod moc;
 pub mod resources;
+pub mod cell;

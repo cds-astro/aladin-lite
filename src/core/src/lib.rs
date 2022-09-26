@@ -813,7 +813,7 @@ impl WebClient {
         Ok(pixel.into())
     }
 
-    /// TODO! This will be removed when integrating the MOC code in wasm because
+    /*/// TODO! This will be removed when integrating the MOC code in wasm because
     /// this method is only called in MOC.js
     /// Computes the location on the unit sphere of the 4 vertices of the given HEALPix cell
     /// (define by its depth and number).
@@ -858,6 +858,14 @@ impl WebClient {
         .map(|&v| v as f64)
         .collect::<Vec<_>>()
         .into_boxed_slice()
+    }*/
+
+    #[wasm_bindgen(js_name = getVisibleCells)]
+    pub fn get_visible_cells(&self, depth: u8) -> Result<JsValue, JsValue> {
+        let cells = self.app.get_visible_cells(depth);
+        let res = JsValue::from_serde(&cells)
+            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
+        Ok(res)
     }
 
     #[wasm_bindgen(js_name = isRendering)]

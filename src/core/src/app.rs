@@ -132,8 +132,6 @@ pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
 use cgmath::InnerSpace;
 
-
-
 type OrthoApp = App<Orthographic>;
 type AitoffApp = App<Aitoff>;
 type MollweideApp = App<Mollweide>;
@@ -468,6 +466,7 @@ pub trait AppTrait {
     fn get_max_fov(&self) -> f64;
     fn get_coo_system(&self) -> &CooSystem;
     fn get_norder(&self) -> i32;
+    fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]>;
 
     // Utils
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
@@ -482,16 +481,43 @@ pub trait AppTrait {
     //fn over_ui(&self) -> bool;
 }
 
+use al_api::cell::HEALPixCellProjeted;
 use crate::downloader::request::Resource;
 
+use crate::survey::view::HEALPixCellProjection;
+use crate::healpix::cell::HEALPixCell;
 impl<P> AppTrait for App<P>
 where
-    P: Projection,
+    P: Projection + HEALPixCellProjection,
 {
     /*fn over_ui(&self) -> bool {
         //self.ui.lock().pos_over_ui()
         false
     }*/
+
+    fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
+        let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
+        let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
+            .filter_map(|ipix| {
+                let cell = HEALPixCell(depth, ipix);
+                if let Ok(v) = crate::survey::view::vertices::<P>(&cell, &self.camera) {
+                    let vx = [v[0].x, v[1].x, v[2].x, v[3].x];
+                    let vy = [v[0].y, v[1].y, v[2].y, v[3].y];
+    
+                    let projeted_cell = HEALPixCellProjeted {
+                        ipix,
+                        vx,
+                        vy
+                    };
+                    <P as HEALPixCellProjection>::project(projeted_cell, &self.camera)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        cells.into_boxed_slice()
+    }
 
     fn is_catalog_loaded(&mut self) -> bool {
         if self.catalog_loaded {

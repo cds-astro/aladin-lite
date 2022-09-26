@@ -2,25 +2,96 @@ use crate::{coosys, healpix::cell::HEALPixCell, math};
 use std::collections::HashMap;
 
 
-/*
 use crate::math::angle::Angle;
 use crate::Projection;
+use crate::math::projection::*;
 use cgmath::Vector2;
-pub fn project_vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> [Vector2<f64>; 4] {
-    let project_vertex = |(lon, lat): (f64, f64)| -> Vector2<f64> {
+
+pub fn vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> Result<[Vector2<f64>; 4], &'static str> {
+    let project_vertex = |(lon, lat): (f64, f64)| -> Result<Vector2<f64>, &'static str> {
         let vertex = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
-        P::view_to_screen_space(&vertex, camera).unwrap()
+        P::view_to_screen_space(&vertex, camera).ok_or("Cannot project")
     };
     
     let vertices = cell.vertices();
+    let reversed_longitude = camera.get_longitude_reversed();
 
-    [
-        project_vertex(vertices[0]),
-        project_vertex(vertices[1]),
-        project_vertex(vertices[2]),
-        project_vertex(vertices[3])
-    ]
-}*/
+    let invalid_tri = |tri_ccw: bool, reversed_longitude: bool| -> bool {
+        (!reversed_longitude && !tri_ccw) || (reversed_longitude && tri_ccw)
+    };
+
+    let c0 = project_vertex(vertices[0])?;
+    let c1 = project_vertex(vertices[1])?;
+    let c2 = project_vertex(vertices[2])?;
+    let c3 = project_vertex(vertices[3])?;
+
+    let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+    let second_tri_ccw = crate::math::vector::ccw_tri(&c2, &c3, &c0);
+    //let third_tri_ccw = crate::math::vector::ccw_tri(&c2, &c3, &c0);
+    //let fourth_tri_ccw = crate::math::vector::ccw_tri(&c3, &c0, &c1);
+
+    let invalid_cell = invalid_tri(first_tri_ccw, reversed_longitude) || invalid_tri(second_tri_ccw, reversed_longitude);
+
+    if invalid_cell {
+        Err("Cell out of the view")
+    } else {
+        Ok([c0, c1, c2, c3])
+    }
+}
+
+use al_api::cell::HEALPixCellProjeted;
+
+pub trait HEALPixCellProjection: Projection {
+    fn project(cell: HEALPixCellProjeted, _: &CameraViewPort) -> Option<HEALPixCellProjeted> {
+        Some(cell)
+    }
+}
+
+macro_rules! impl_default_hpx_cell_proj {
+    ($t:ty) => {
+        impl HEALPixCellProjection for $t {
+            fn project(cell: HEALPixCellProjeted, _: &CameraViewPort) -> Option<HEALPixCellProjeted> {
+                Some(cell)
+            }
+        }
+    }
+}
+
+impl_default_hpx_cell_proj!(Mercator);
+impl_default_hpx_cell_proj!(Gnomonic);
+impl_default_hpx_cell_proj!(Aitoff);
+impl_default_hpx_cell_proj!(Mollweide);
+impl_default_hpx_cell_proj!(AzimuthalEquidistant);
+impl_default_hpx_cell_proj!(Orthographic);
+
+impl HEALPixCellProjection for HEALPix {
+    fn project(cell: HEALPixCellProjeted, camera: &CameraViewPort) -> Option<HEALPixCellProjeted> {
+        let tri_idx_in_collignon_zone = |x: f64, y: f64| -> u8 {
+            let zoom_factor = camera.get_clip_zoom_factor() as f32;
+            let x = (((x as f32) / camera.get_width()) - 0.5) * zoom_factor;
+            let y = (((y as f32) / camera.get_height()) - 0.5) * zoom_factor;
+
+            let x_zone = ((x + 0.5) * 4.0).floor() as u8;
+            x_zone + 4 * ((y > 0.0) as u8)
+        };
+
+        let is_in_collignon = |_x: f64, y: f64| -> bool {
+            let y = (((y as f32) / camera.get_height()) - 0.5) * (camera.get_clip_zoom_factor() as f32);
+            y < -0.25 || y > 0.25
+        };
+
+        if is_in_collignon(cell.vx[0], cell.vy[0]) && is_in_collignon(cell.vx[1], cell.vy[1]) && is_in_collignon(cell.vx[2], cell.vy[2]) && is_in_collignon(cell.vx[3], cell.vy[3]) {
+            let all_vertices_in_same_collignon_region = tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0]) == tri_idx_in_collignon_zone(cell.vx[1], cell.vy[1]) && (tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0]) == tri_idx_in_collignon_zone(cell.vx[2], cell.vy[2])) && (tri_idx_in_collignon_zone(cell.vx[0], cell.vy[0]) == tri_idx_in_collignon_zone(cell.vx[3], cell.vy[3]));
+            if !all_vertices_in_same_collignon_region {
+                None
+            } else {
+                Some(cell)
+            }
+        } else {
+            Some(cell)
+        }
+    }
+}
 
 // Compute a depth from a number of pixels on screen
 pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {

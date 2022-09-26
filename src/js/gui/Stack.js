@@ -130,7 +130,7 @@ export class Stack {
             // retrieve SVG icon, and apply the layer color
             var svgBase64 = window.btoa(iconSvg.replace(/FILLCOLOR/g, layer.color));
             str += '<li><div class="aladin-stack-icon" style=\'background-image: url("data:image/svg+xml;base64,' + svgBase64 + '");\'></div>';
-            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + name + '"></input><label for="aladin_lite_' + name + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
+            str += '<input type="checkbox" ' + checked + ' id="aladin_lite_' + layer.uuid + '"></input><label for="aladin_lite_' + layer.uuid + '" class="aladin-layer-label" style="background: ' + layer.color + '; color:' + labelColor + ';" title="' + tooltipText + '">' + name + '</label>';
             str += ' <button class="aladin-btn-small aladin-delete-graphic-layer" type="button" title="Delete this layer" data-uuid="' + layer.uuid + '" style="font-size: 10px!important; vertical-align: text-bottom!important; background-color: unset!important;">❌</button>';
             str += '</li>';
         }
@@ -218,7 +218,9 @@ export class Stack {
         // handler to hide/show overlays
         $(this.mainDiv).find('ul input').change(function () {
             var layerName = ($(this).attr('id').substr(12));
-            var layer = self.aladin.layerByName(layerName);
+            //var layer = self.aladin.layerByName(layerName);
+            const layer = self.aladin.findLayerByUUID(layerName);
+
             if ($(this).is(':checked')) {
                 layer.show();
             }

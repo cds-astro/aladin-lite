@@ -414,6 +414,14 @@ impl CameraViewPort {
         Vector2::new(self.width, self.height)
     }
 
+    pub fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn get_height(&self) -> f32 {
+        self.height
+    }
+
     pub fn get_last_user_action(&self) -> UserAction {
         self.last_user_action
     }

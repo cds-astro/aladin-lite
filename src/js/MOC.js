@@ -60,7 +60,7 @@ export let MOC = (function() {
     /**
      * set MOC data by parsing a URL pointing to a FITS MOC file
      */
-    MOC.prototype.dataFromFITSURL = function(mocURL, successCallback) {        
+    MOC.prototype.dataFromFITSURL = function(mocURL, successCallback) {
         this.dataURL = mocURL;
         this.promiseFetchData = fetch(this.dataURL)
             .then((resp) => resp.arrayBuffer());
@@ -74,7 +74,6 @@ export let MOC = (function() {
         this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color);
 
         if (this.dataURL) {
-
             this.promiseFetchData
                 .then((arrayBuffer) => {
                     // Add the fetched moc to the rust backend

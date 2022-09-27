@@ -1084,9 +1084,11 @@ export let Aladin = (function () {
 
     // TODO : integrate somehow into API ?
     Aladin.prototype.exportAsPNG = function (imgFormat) {
-        var w = window.open();
-        w.document.write('<img src="' + this.getViewDataURL() + '">');
-        w.document.title = 'Aladin Lite snapshot';
+        (async () => {
+            var w = window.open();
+            w.document.write('<img src="' + await this.getViewDataURL() + '">');
+            w.document.title = 'Aladin Lite snapshot';
+        })();
     };
 
     /**
@@ -1099,15 +1101,15 @@ export let Aladin = (function () {
      *
      * @API
     */
-    Aladin.prototype.getViewDataURL = function (options) {
+    Aladin.prototype.getViewDataURL = async function (options) {
         var options = options || {};
         // support for old API signature
         if (typeof options !== 'object') {
             var imgFormat = options;
             options = { format: imgFormat };
         }
-
-        return this.view.getCanvasDataURL(options.format, options.width, options.height);
+        const canvasDataURL = await this.view.getCanvasDataURL(options.format, options.width, options.height);
+        return canvasDataURL;
     }
 
     /**

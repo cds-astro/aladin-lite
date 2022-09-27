@@ -570,42 +570,42 @@ impl GridLine {
 }
 
 const GRID_STEPS: &[f64] = &[
-    0.78539816339,
-    0.34906584,
-    0.17453292,
-    0.08726646,
-    0.034906585,
-    0.017453292,
-    0.008726646,
-    0.004363323,
-    0.0029088822,
-    0.0014544411,
-    0.00058177643,
-    0.00029088822,
-    0.00014544411,
-    0.000072722054,
-    0.000048481368,
-    0.000024240684,
-    0.000009696274,
-    0.000004848137,
-    0.0000024240685,
-    0.0000009696274,
-    0.0000004848137,
-    0.00000024240686,
-    0.00000009696274,
-    0.00000004848137,
-    0.000000024240684,
-    0.000000009696274,
-    0.000000004848137,
-    0.0000000024240685,
-    0.0000000009696273,
-    0.00000000048481363,
-    0.00000000024240682,
-    0.000000000096962736,
-    0.000000000048481368,
-    0.000000000024240684,
-    0.000000000009696273,
     0.0000000000048481366,
+    0.000000000009696273,
+    0.000000000024240684,
+    0.000000000048481368,
+    0.000000000096962736,
+    0.00000000024240682,
+    0.00000000048481363,
+    0.0000000009696273,
+    0.0000000024240685,
+    0.000000004848137,
+    0.000000009696274,
+    0.000000024240684,
+    0.00000004848137,
+    0.00000009696274,
+    0.00000024240686,
+    0.0000004848137,
+    0.0000009696274,
+    0.0000024240685,
+    0.000004848137,
+    0.000009696274,
+    0.000024240684,
+    0.000048481368,
+    0.000072722054,
+    0.00014544411,
+    0.00029088822,
+    0.00058177643,
+    0.0014544411,
+    0.0029088822,
+    0.004363323,
+    0.008726646,
+    0.017453292,
+    0.034906585,
+    0.08726646,
+    0.17453292,
+    0.34906584,
+    0.78539816339,
 ];
 
 const NUM_LINES: usize = 4;
@@ -642,13 +642,24 @@ fn lines<P: Projection>(
 
     let bbox = camera.get_bounding_box();
 
-    let step_lon = select_grid_step(
+    /*let step_lon = select_grid_step(
         bbox,
         bbox.get_lon_size() as f64,
         //(NUM_LINES_LATITUDES as f64 * (camera.get_aspect() as f64)) as usize,
         //((NUM_LINES_LATITUDES as f64) * fs.0) as usize
         NUM_LINES,
-    );
+    );*/
+
+    let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
+    let step_line_px =  max_dim_px * 0.2;
+    let fov = camera.get_aperture().0;
+
+    let step_lon_precised = (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
+    let step_lat_precised = (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);
+
+    // Select the good step with a binary search
+    let step_lon = select_fixed_step(step_lon_precised);
+    let step_lat = select_fixed_step(step_lat_precised);
 
     let mut lines = vec![];
     // Add meridians
@@ -668,7 +679,8 @@ fn lines<P: Projection>(
     }
 
     // Add parallels
-    let step_lat = select_grid_step(bbox, bbox.get_lat_size() as f64, NUM_LINES);
+    //let step_lat = select_grid_step(bbox, bbox.get_lat_size() as f64, NUM_LINES);
+
     let mut alpha = bbox.lat_min() - (bbox.lat_min() % step_lat);
     if alpha == -HALF_PI {
         alpha += step_lat;
@@ -688,7 +700,7 @@ fn lines<P: Projection>(
     lines
 }
 
-fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f64 {
+/*fn select_grid_step(fov: f64, max_lines: usize) -> f64 {
     // Select the best meridian grid step
     let mut i = 0;
     let mut step = GRID_STEPS[0];
@@ -708,4 +720,28 @@ fn select_grid_step(_bbox: &BoundingBox, fov: f64, max_lines: usize) -> f64 {
     }
 
     step
+}*/
+
+fn select_fixed_step(fov: f64) -> f64 {
+    match GRID_STEPS.binary_search_by(|v| {
+        v.partial_cmp(&fov).expect("Couldn't compare values, maybe because the fov given is NaN")
+    }) {
+        Ok(idx) => GRID_STEPS[idx],
+        Err(idx) => {
+            if idx == 0 {
+                GRID_STEPS[0]
+            } else if idx == GRID_STEPS.len() {
+                GRID_STEPS[idx - 1]
+            } else {
+                let a = GRID_STEPS[idx];
+                let b = GRID_STEPS[idx - 1];
+
+                if a - fov > fov - b {
+                    b
+                } else {
+                    a
+                }
+            }
+        }
+    }
 }

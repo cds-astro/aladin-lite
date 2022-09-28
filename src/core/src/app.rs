@@ -132,23 +132,23 @@ pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
 use cgmath::InnerSpace;
 
-type OrthoApp = App<Orthographic>;
-type AitoffApp = App<Aitoff>;
-type MollweideApp = App<Mollweide>;
-type ArcApp = App<AzimuthalEquidistant>;
-type TanApp = App<Gnomonic>;
-type MercatorApp = App<Mercator>;
-type HEALPixApp = App<HEALPix>;
+type Ortho = App<Orthographic>;
+type Ait = App<Aitoff>;
+type Mol = App<Mollweide>;
+type Arc = App<AzimuthalEquidistant>;
+type Tan = App<Gnomonic>;
+type Mer = App<Mercator>;
+type Hpx = App<HEALPix>;
 
 #[enum_dispatch]
 pub enum AppType {
-    OrthoApp,
-    AitoffApp,
-    MollweideApp,
-    ArcApp,
-    TanApp,
-    HEALPixApp,
-    MercatorApp,
+    Ortho,
+    Ait,
+    Mol,
+    Arc,
+    Tan,
+    Hpx,
+    Mer,
 }
 use al_api::resources::Resources;
 use crate::downloader::query;
@@ -297,7 +297,7 @@ where
                 if let Some(moc) = survey.get_moc() {
                     tile_cells = tile_cells.drain()
                         .filter(|tile_cell| {
-                            moc.contains(&tile_cell)
+                            moc.contains(tile_cell)
                         })
                         .collect();
                 }
@@ -428,7 +428,7 @@ pub trait AppTrait {
 
     // Catalog
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
-    fn is_catalog_loaded(&mut self) -> bool;
+    fn is_catalog_loaded(&self) -> bool;
     fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue>;
     fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue>;
     fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue>;
@@ -472,7 +472,7 @@ pub trait AppTrait {
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
-    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Box<[f64]>, JsValue>;
+    fn world_to_screen_vec(&self, sources: &[JsValue]) -> Result<Box<[f64]>, JsValue>;
 
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
@@ -519,14 +519,8 @@ where
         cells.into_boxed_slice()
     }
 
-    fn is_catalog_loaded(&mut self) -> bool {
-        if self.catalog_loaded {
-            self.catalog_loaded = false;
-
-            true
-        } else {
-            false
-        }
+    fn is_catalog_loaded(&self) -> bool {
+        self.catalog_loaded
     }
 
     fn is_ready(&self) -> Result<bool, JsValue> {
@@ -547,14 +541,14 @@ where
 
     fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
         self.moc.remove(params, &self.camera)
-            .ok_or(JsValue::from_str("MOC not found"))?;
+            .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
         Ok(())
     }
 
     fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
         self.moc.set_params::<P>(params, &self.camera)
-            .ok_or(JsValue::from_str("MOC not found"))?;
+            .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
         Ok(())
     }
@@ -613,38 +607,36 @@ where
             let mut num_tile_received = 0;
             let mut tile_copied = false;
             for rsc in rscs.into_iter() {
-                if !has_camera_moved || (has_camera_moved && crate::utils::get_current_time() - self.start_time_frame < 24.0) || !tile_copied {
+                if !has_camera_moved || crate::utils::get_current_time() - self.start_time_frame < 24.0 || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
                             tile_copied = true;
                             let is_tile_root = tile.is_root;
     
-                            if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
+                            if let Some(survey) = self.surveys.get_mut(tile.get_hips_url()) {
                                 if is_tile_root && tile.missing() {
                                     // If at least one tile root is missing, query the allsky!
                                     self.downloader.fetch(query::Allsky::new(survey.get_config()));
-                                } else {
-                                    if is_tile_root {
+                                } else if is_tile_root {
                                         survey.add_tile(tile);
     
                                         self.request_redraw = true;
+                                } else {
+                                    let cfg = survey.get_config();
+                                    let coverage = survey.get_view().get_coverage();
+                                    let texture_cell = tile.cell.get_texture_cell(cfg);
+                                    let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                        .any(|neighbor_tile_cell| {
+                                            coverage.contains(&neighbor_tile_cell)
+                                        });
+
+                                    if included_or_near_coverage {
+                                        survey.add_tile(tile);
+        
+                                        self.request_redraw = true;
                                     } else {
-                                        let cfg = survey.get_config();
-                                        let coverage = survey.get_view().get_coverage();
-                                        let texture_cell = tile.cell.get_texture_cell(cfg);
-                                        let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
-                                            .any(|neighbor_tile_cell| {
-                                                coverage.contains(&neighbor_tile_cell)
-                                            });
-    
-                                        if included_or_near_coverage {
-                                            survey.add_tile(tile);
-            
-                                            self.request_redraw = true;
-                                        } else {
-                                            self.downloader.cache_rsc(Resource::Tile(tile));
-                                        }
-                                    }  
+                                        self.downloader.cache_rsc(Resource::Tile(tile));
+                                    }
                                 }
                             } else {
                                 self.downloader.cache_rsc(Resource::Tile(tile));
@@ -655,7 +647,7 @@ where
                         Resource::Allsky(allsky) => {
                             let hips_url = allsky.get_hips_url();
     
-                            if let Some(survey) = self.surveys.get_mut(&hips_url) {
+                            if let Some(survey) = self.surveys.get_mut(hips_url) {
                                 let is_missing = allsky.missing();
                                 if is_missing {
                                     // The allsky image is missing so we donwload all the tiles contained into
@@ -685,10 +677,12 @@ where
                                 cfg.scale = metadata.value.scale;
                             }
                         },
-                        Resource::MOC(moc) => {
-                            let url = moc.get_url();
-                            if let Some(survey) = self.surveys.get_mut(&url) {
-                                let request::moc::MOC {
+                        Resource::Moc(moc) => {
+                            let moc_url = moc.get_url();
+                            let url = &moc_url[..moc_url.find("/Moc.fits").unwrap()];
+
+                            if let Some(survey) = self.surveys.get_mut(url) {
+                                let request::moc::Moc {
                                     moc,
                                     ..
                                 } = moc;
@@ -777,7 +771,7 @@ where
             let survey = self
                 .surveys
                 .get_from_layer(layer_id)
-                .ok_or(JsValue::from_str(&format!(
+                .ok_or_else(|| JsValue::from_str(&format!(
                     "Did not found the survey {:?}",
                     layer_id
                 )))?;
@@ -903,7 +897,7 @@ where
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             self.downloader.fetch(query::PixelMetadata::new(cfg));
             // Try to fetch the MOC
-            self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
+            self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
 
             let tile_size = cfg.get_tile_size();
             //Request the allsky for the small tile size
@@ -945,7 +939,7 @@ where
 
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
         let survey = self.surveys.get_mut_from_layer(&layer)
-            .ok_or(JsValue::from_str("Layer not found"))?;
+            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
         survey.set_img_format(format)?;
         // Request for the allsky first
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
@@ -957,7 +951,7 @@ where
         // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
         self.downloader.fetch(query::PixelMetadata::new(cfg));
         // Try to fetch the MOC
-        self.downloader.fetch(query::MOC::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
+        self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
         //Request the allsky for the small tile size
         if tile_size <= 128 {
             // Request the allsky
@@ -1143,7 +1137,7 @@ where
     /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(&self, sources: &Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
+    fn world_to_screen_vec(&self, sources: &[JsValue]) -> Result<Box<[f64]>, JsValue> {
         // Select the HiPS layer rendered lastly
         let mut r = Vec::with_capacity(sources.len() * 2);
         for s in sources {
@@ -1174,7 +1168,7 @@ where
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
-            &view_system,
+            view_system,
             &CooSystem::ICRSJ2000,
             &icrsj2000_pos,
         ));
@@ -1187,7 +1181,7 @@ where
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
             &CooSystem::ICRSJ2000,
-            &view_system,
+            view_system,
             &icrsj2000_pos,
         ));
 

@@ -5,11 +5,11 @@ use moclib::{
 };
 use cgmath::{Vector3, Vector4};
 
-pub type SMOC = RangeMOC<u64, Hpx<u64>>;
+pub type Smoc = RangeMOC<u64, Hpx<u64>>;
 
 use crate::healpix::cell::HEALPixCell;
 #[derive(Clone)]
-pub struct HEALPixCoverage(pub SMOC);
+pub struct HEALPixCoverage(pub Smoc);
 
 use moclib::elemset::range::MocRanges;
 impl HEALPixCoverage {
@@ -73,7 +73,7 @@ impl HEALPixCoverage {
 
 use core::ops::Deref;
 impl Deref for HEALPixCoverage {
-    type Target = SMOC;
+    type Target = Smoc;
 
     fn deref(&'_ self) -> &'_ Self::Target {
         &self.0

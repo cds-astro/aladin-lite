@@ -13,7 +13,7 @@ impl Index<usize> for Texture2DArray {
         &self.textures[idx]
     }
 }
-use super::texture::Texture2D;
+use super::Texture2D;
 use wasm_bindgen::prelude::*;
 impl Texture2DArray {
     pub fn create_empty<F: ImageFormat>(

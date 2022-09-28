@@ -79,7 +79,7 @@ pub struct HiPSProperties {
 }
 
 impl HiPSProperties {
-    pub fn new(
+    /*pub fn new(
         url: String,
         max_order: u8,
         frame: CooSystem,
@@ -109,7 +109,7 @@ impl HiPSProperties {
             hips_initial_dec,
             hips_initial_ra,
         }
-    }
+    }*/
 
     #[inline]
     pub fn get_url(&self) -> String {

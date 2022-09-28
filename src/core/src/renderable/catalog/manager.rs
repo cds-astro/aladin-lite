@@ -244,7 +244,7 @@ impl Manager {
     }
 }
 
-use super::catalog::SourceIndices;
+use super::index::SourceIndices;
 
 pub struct Catalog {
     colormap: Colormap,

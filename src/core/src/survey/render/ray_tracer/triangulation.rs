@@ -55,7 +55,7 @@ impl Triangulate for HEALPix {
         let mut idx = Vec::new();
 
         let vertices = HEALPixCell::allsky(3)
-            .map(|cell| {
+            .flat_map(|cell| {
                 idx.extend([
                     off_idx,
                     off_idx + 1,
@@ -87,7 +87,6 @@ impl Triangulate for HEALPix {
 
                 vertices
             })
-            .flatten()
             .collect::<Vec<_>>();
 
         Triangulation { vertices, idx }
@@ -213,37 +212,27 @@ impl Face {
 
     pub fn add(
         &self,
-        vertices: &mut Vec<Vector2<f64>>,
-        idx: &mut Vec<u16>,
+        off_idx: u16,
         dir_farthest_vertex: Direction,
-    ) {
+    ) -> ([Vector2<f64>; 4], [u16; 6]) {
         let bl = self.get_vertex(Direction::BottomLeft);
         let br = self.get_vertex(Direction::BottomRight);
         let tr = self.get_vertex(Direction::TopRight);
         let tl = self.get_vertex(Direction::TopLeft);
 
-        let off_idx = vertices.len() as u16;
-
         // push the 4 vertices
-        vertices.push(bl);
-        vertices.push(br);
-        vertices.push(tr);
-        vertices.push(tl);
-
-        match dir_farthest_vertex {
+        let vertices = [bl, br, tr, tl];
+        let idx = match dir_farthest_vertex {
             Direction::TopLeft | Direction::BottomRight => {
                 // push the 6 indexes
-                idx.extend(
-                    [
-                        off_idx,
-                        off_idx + 1,
-                        off_idx + 3,
-                        off_idx + 1,
-                        off_idx + 2,
-                        off_idx + 3,
-                    ]
-                    .iter(),
-                );
+                [
+                    off_idx,
+                    off_idx + 1,
+                    off_idx + 3,
+                    off_idx + 1,
+                    off_idx + 2,
+                    off_idx + 3,
+                ]
                 // LINES drawing
                 /*idx.extend([
                     off_idx,
@@ -263,17 +252,14 @@ impl Face {
             }
             _ => {
                 // push the 6 indexes
-                idx.extend(
-                    [
-                        off_idx,
-                        off_idx + 1,
-                        off_idx + 2,
-                        off_idx,
-                        off_idx + 2,
-                        off_idx + 3,
-                    ]
-                    .iter(),
-                );
+                [
+                    off_idx,
+                    off_idx + 1,
+                    off_idx + 2,
+                    off_idx,
+                    off_idx + 2,
+                    off_idx + 3,
+                ]
                 // LINES drawing
                 /*idx.extend([
                     off_idx,
@@ -291,7 +277,9 @@ impl Face {
                     off_idx,
                 ].iter());*/
             }
-        }
+        };
+
+        (vertices, idx)
     }
 
     fn add_triangle(
@@ -303,9 +291,7 @@ impl Face {
         let off_idx = vertices.len() as u16;
 
         // push the 4 vertices
-        vertices.push(p[0]);
-        vertices.push(p[1]);
-        vertices.push(p[2]);
+        vertices.extend(p);
 
         // push the 6 indexes
         idx.extend([off_idx, off_idx + 1, off_idx + 2].iter());
@@ -360,7 +346,11 @@ fn recursive_triangulation<P: Projection>(
     if depth > 0 {
         // Look if the square is totally included in the projection
         if P::is_included_inside_projection(&farthest_vertex) && depth < 1 {
-            face.add(vertices, idx, dir_farthest_vertex);
+            let off_idx = vertices.len() as u16;
+
+            let (v, i) = face.add(off_idx, dir_farthest_vertex);
+            vertices.extend(&v);
+            idx.extend(&i);
         // If not check if is traversed by the border of the projection
         } else {
             let nearest_vertex = face.get_nearest_vertex();
@@ -404,7 +394,11 @@ fn recursive_triangulation<P: Projection>(
         }
     } else {
         if P::is_included_inside_projection(&farthest_vertex) {
-            face.add(vertices, idx, dir_farthest_vertex);
+            let off_idx = vertices.len() as u16;
+
+            let (v, i) = face.add(off_idx, dir_farthest_vertex);
+            vertices.extend(&v);
+            idx.extend(&i);
 
             return;
         }

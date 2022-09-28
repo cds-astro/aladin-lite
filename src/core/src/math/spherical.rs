@@ -101,7 +101,6 @@ impl FieldOfViewType {
                 Some(pos)
             }
             FieldOfViewType::Polygon { poly, bbox: _, poles: _ } => {
-                let lon = lon.into();
                 let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
 
                 // The arc length must be < PI, so we create an arc from [(lon, -PI/2); (lon, PI/2)[
@@ -112,7 +111,7 @@ impl FieldOfViewType {
 
                 // For those intersecting, perform the intersection
                 poly.intersect_great_circle_arc(&a, &b)
-                    .and_then(|v| Some(Vector3::new(v.y(), v.z(), v.x())))
+                    .map(|v| Vector3::new(v.y(), v.z(), v.x()))
                     .or_else(|| {
                         // If no intersection has been found, e.g. because the
                         // great circle is fully contained in the bounding box
@@ -142,7 +141,7 @@ impl FieldOfViewType {
                 if bbox.contains_latitude(lat) {
                     // For those intersecting, perform the intersection
                     poly.intersect_parallel(lat)
-                        .and_then(|v| Some(Vector3::new(v.y(), v.z(), v.x())))
+                        .map(|v| Vector3::new(v.y(), v.z(), v.x()))
                         .or_else(|| {
                             // If no intersection has been found, e.g. because the
                             // great circle is fully contained in the bounding box

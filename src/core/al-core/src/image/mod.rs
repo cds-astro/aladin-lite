@@ -32,8 +32,7 @@ impl ArrayBuffer for ArrayU8 {
 
     fn empty(size: u32, blank_value: Self::Item) -> Self {
         let uint8_arr = js_sys::Uint8Array::new_with_length(size).fill(blank_value, 0, size);
-        let array = ArrayU8(uint8_arr);
-        array
+        ArrayU8(uint8_arr)
     }
 
     fn to_vec(&self) -> Vec<Self::Item> {
@@ -64,8 +63,7 @@ impl ArrayBuffer for ArrayI16 {
 
     fn empty(size: u32, blank_value: Self::Item) -> Self {
         let int16_arr = js_sys::Int16Array::new_with_length(size).fill(blank_value, 0, size);
-        let array = ArrayI16(int16_arr);
-        array
+        ArrayI16(int16_arr)
     }
 
     fn to_vec(&self) -> Vec<Self::Item> {
@@ -96,8 +94,7 @@ impl ArrayBuffer for ArrayI32 {
 
     fn empty(size: u32, blank_value: Self::Item) -> Self {
         let int32_arr = js_sys::Int32Array::new_with_length(size).fill(blank_value, 0, size);
-        let array = ArrayI32(int32_arr);
-        array
+        ArrayI32(int32_arr)
     }
 
     fn to_vec(&self) -> Vec<Self::Item> {
@@ -128,8 +125,7 @@ impl ArrayBuffer for ArrayF32 {
     }
     fn empty(size: u32, blank_value: Self::Item) -> Self {
         let f32_arr = js_sys::Float32Array::new_with_length(size).fill(blank_value, 0, size);
-        let array = ArrayF32(f32_arr);
-        array
+        ArrayF32(f32_arr)
     }
 
     fn to_vec(&self) -> Vec<Self::Item> {
@@ -161,8 +157,7 @@ impl ArrayBuffer for ArrayF64 {
     }
     fn empty(size: u32, blank_value: Self::Item) -> Self {
         let f64_arr = js_sys::Float64Array::new_with_length(size).fill(blank_value, 0, size);
-        let array = ArrayF64(f64_arr);
-        array
+        ArrayF64(f64_arr)
     }
 
     fn to_vec(&self) -> Vec<Self::Item> {

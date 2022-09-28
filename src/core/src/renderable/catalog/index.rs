@@ -1,10 +1,7 @@
 use crate::healpix::cell::HEALPixCell;
 
 use std::ops::Range;
-pub struct SourceIndices {
-    // Density at depth 7
-    density: Box<[Range<u32>]>,
-}
+pub struct SourceIndices(Box<[Range<u32>]>);
 
 use super::source::Source;
 
@@ -37,9 +34,7 @@ impl SourceIndices {
             })
             .collect::<Vec<_>>();
 
-        SourceIndices {
-            density: healpix_idx.into_boxed_slice(),
-        }
+        SourceIndices(healpix_idx.into_boxed_slice())
     }
 
     pub fn get_source_indices(&self, cell: &HEALPixCell) -> Range<u32> {
@@ -51,8 +46,8 @@ impl SourceIndices {
             let healpix_idx_start = (idx << off) as usize;
             let healpix_idx_end = ((idx + 1) << off) as usize;
 
-            let idx_start_sources = self.density[healpix_idx_start].start;
-            let idx_end_sources = self.density[healpix_idx_end - 1].end;
+            let idx_start_sources = self.0[healpix_idx_start].start;
+            let idx_end_sources = self.0[healpix_idx_end - 1].end;
 
             idx_start_sources..idx_end_sources
         } else {
@@ -61,8 +56,8 @@ impl SourceIndices {
             let off = 2 * (depth - 7);
             let idx_start = (idx >> off) as usize;
 
-            let idx_start_sources = self.density[idx_start].start;
-            let idx_end_sources = self.density[idx_start].end;
+            let idx_start_sources = self.0[idx_start].start;
+            let idx_end_sources = self.0[idx_start].end;
 
             idx_start_sources..idx_end_sources
         }
@@ -84,8 +79,8 @@ impl SourceIndices {
         let healpix_idx_start = (idx << off) as usize;
         let healpix_idx_end = ((idx + 1) << off) as usize;
 
-        let idx_start_sources = self.density[healpix_idx_start].start as usize;
-        let idx_end_sources = self.density[healpix_idx_end - 1].end as usize;
+        let idx_start_sources = self.0[healpix_idx_start].start as usize;
+        let idx_end_sources = self.0[healpix_idx_end - 1].end as usize;
 
         let num_sources = idx_end_sources - idx_start_sources;
 

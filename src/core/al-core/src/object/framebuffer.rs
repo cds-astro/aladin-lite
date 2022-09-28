@@ -8,7 +8,7 @@ pub struct FrameBufferObject {
     pub texture: Texture2D,
 }
 use crate::webgl_ctx::WebGlContext;
-use crate::Texture2D;
+use crate::texture::Texture2D;
 
 impl FrameBufferObject {
     pub fn new(gl: &WebGlContext, width: usize, height: usize) -> Result<Self, JsValue> {
@@ -18,7 +18,7 @@ impl FrameBufferObject {
         gl.bind_framebuffer(WebGlRenderingCtx::FRAMEBUFFER, Some(&fbo));
 
         let texture = Texture2D::create_empty_with_format::<crate::image::format::RGBA8U>(
-            &gl,
+            gl,
             width as i32,
             height as i32,
             &[

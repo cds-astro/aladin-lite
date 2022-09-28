@@ -85,7 +85,7 @@ pub enum RequestType {
     Tile(TileRequest),
     Allsky(AllskyRequest),
     PixelMetadata(PixelMetadataRequest),
-    MOC(MOCRequest)
+    Moc(MOCRequest)
     //..
 }
 use crate::downloader::QueryId;
@@ -96,7 +96,7 @@ impl RequestType {
             RequestType::Tile(request) => &request.id,
             RequestType::Allsky(request) => &request.id,
             RequestType::PixelMetadata(request) => &request.id,
-            RequestType::MOC(request) => &request.id,
+            RequestType::Moc(request) => &request.id,
         }
     }
 }
@@ -105,16 +105,16 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
     fn from(request: &'a RequestType) -> Self {
         match request {
             RequestType::Tile(request) => {
-                Option::<Tile>::from(request).map(|tile| Resource::Tile(tile))
+                Option::<Tile>::from(request).map(Resource::Tile)
             }
             RequestType::Allsky(request) => {
-                Option::<Allsky>::from(request).map(|allsky| Resource::Allsky(allsky))
+                Option::<Allsky>::from(request).map(Resource::Allsky)
             }
             RequestType::PixelMetadata(request) => {
-                Option::<PixelMetadata>::from(request).map(|metadata| Resource::PixelMetadata(metadata))
+                Option::<PixelMetadata>::from(request).map(Resource::PixelMetadata)
             }
-            RequestType::MOC(request) => {
-                Option::<MOC>::from(request).map(|moc| Resource::MOC(moc))
+            RequestType::Moc(request) => {
+                Option::<Moc>::from(request).map(Resource::Moc)
             }
         }
     }
@@ -123,12 +123,12 @@ impl<'a> From<&'a RequestType> for Option<Resource> {
 use allsky::Allsky;
 use tile::Tile;
 use blank::PixelMetadata;
-use moc::MOC;
+use moc::Moc;
 pub enum Resource {
     Tile(Tile),
     Allsky(Allsky),
     PixelMetadata(PixelMetadata),
-    MOC(MOC)
+    Moc(Moc)
 }
 
 impl Resource {
@@ -137,7 +137,7 @@ impl Resource {
             Resource::Tile(tile) => tile.get_url(),
             Resource::Allsky(allsky) => allsky.get_url(),
             Resource::PixelMetadata(PixelMetadata { url, ..}) => url, 
-            Resource::MOC(moc) => moc.get_url(),
+            Resource::Moc(moc) => moc.get_url(),
         }
     }
 }

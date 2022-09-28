@@ -126,7 +126,7 @@ impl HEALPixCell {
 
     // Given in ICRS(J2000)
     #[inline]
-    pub fn new(&self, depth: u8, theta: f64, delta: f64) -> Self {
+    pub fn new(depth: u8, theta: f64, delta: f64) -> Self {
         let pix = cdshealpix::nested::hash(depth, theta, delta);
 
         HEALPixCell(depth, pix)

@@ -27,7 +27,7 @@ pub fn project_along_longitudes_and_latitudes<P: Projection>(
     );
 
     for ndc_vert in s_vert.iter_mut() {
-        *ndc_vert = ndc_to_screen_space(&ndc_vert, camera);
+        *ndc_vert = ndc_to_screen_space(ndc_vert, camera);
     }
 
     s_vert
@@ -120,13 +120,13 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
                 // Subdivide a->b and b->c
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[0], &((mp[0] + mp[1]) * 0.5), &mp[1]],
+                    [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                     camera,
                 );
 
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[1], &((mp[1] + mp[2]) * 0.5), &mp[2]],
+                    [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                     camera,
                 );
             }
@@ -134,7 +134,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
         (Some(_), Some(_), None) => {
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[0], &((mp[0] + mp[1]) * 0.5), &mp[1]],
+                [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                 camera,
             );
 
@@ -143,7 +143,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let e = (mp[1] + mp[2]) * 0.5;
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[1], &((mp[1] + e) * 0.5), &e],
+                [mp[1], &((mp[1] + e) * 0.5), &e],
                 camera,
             );
 
@@ -151,7 +151,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&e, &((mp[2] + e) * 0.5), &mp[2]],
+                    [&e, &((mp[2] + e) * 0.5), mp[2]],
                     camera,
                 );
             }
@@ -160,7 +160,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             // relay the subdivision to the second half
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[1], &((mp[1] + mp[2]) * 0.5), &mp[2]],
+                [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                 camera,
             );
 
@@ -169,7 +169,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let e = (mp[0] + mp[1]) * 0.5;
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&e, &((mp[1] + e) * 0.5), &mp[1]],
+                [&e, &((mp[1] + e) * 0.5), mp[1]],
                 camera,
             );
 
@@ -177,7 +177,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[0], &((mp[0] + e) * 0.5), &e],
+                    [mp[0], &((mp[0] + e) * 0.5), &e],
                     camera,
                 );
             }
@@ -187,7 +187,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             // relay the subdivision to the second half
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[0], &((mp[0] + e) * 0.5), &e],
+                [mp[0], &((mp[0] + e) * 0.5), &e],
                 camera,
             );
 
@@ -195,7 +195,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&e, &((mp[1] + e) * 0.5), &mp[1]],
+                    [&e, &((mp[1] + e) * 0.5), mp[1]],
                     camera,
                 );
             }
@@ -205,7 +205,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let e = (mp[1] + mp[2]) * 0.5;
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&e, &((mp[2] + e) * 0.5), &mp[2]],
+                [&e, &((mp[2] + e) * 0.5), mp[2]],
                 camera,
             );
 
@@ -213,7 +213,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[1], &((mp[1] + e) * 0.5), &e],
+                    [mp[1], &((mp[1] + e) * 0.5), &e],
                     camera,
                 );
             }
@@ -224,7 +224,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             // relay the subdivision to the second half
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&e1, &((e1 + mp[1]) * 0.5), &mp[1]],
+                [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                 camera,
             );
 
@@ -232,14 +232,14 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[0], &((e1 + mp[0]) * 0.5), &e1],
+                    [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                     camera,
                 );
             }
 
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[1], &((e2 + mp[1]) * 0.5), &e2],
+                [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                 camera,
             );
 
@@ -247,7 +247,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&e2, &((e2 + mp[2]) * 0.5), &mp[2]],
+                    [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                     camera,
                 );
             }
@@ -257,7 +257,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let e1 = (mp[0] + mp[1]) * 0.5;
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&mp[0], &((e1 + mp[0]) * 0.5), &e1],
+                [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                 camera,
             );
 
@@ -265,7 +265,7 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&e1, &((e1 + mp[1]) * 0.5), &mp[1]],
+                    [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                     camera,
                 );
             }
@@ -277,14 +277,14 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
                 subdivide_along_longitude_and_latitudes::<P>(
                     vertices,
-                    [&mp[1], &((e2 + mp[1]) * 0.5), &e2],
+                    [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                     camera,
                 );
             }
 
             subdivide_along_longitude_and_latitudes::<P>(
                 vertices,
-                [&e2, &((e2 + mp[2]) * 0.5), &mp[2]],
+                [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                 camera,
             );
         }

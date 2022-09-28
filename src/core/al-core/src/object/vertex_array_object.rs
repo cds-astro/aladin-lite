@@ -76,7 +76,7 @@ pub mod vao {
         // No need to bind a shader here
         // This returns a VertexArrayObjectBound for which it is only possible to
         // update the buffers
-        pub fn bind_for_update<'a>(&'a mut self) -> VertexArrayObjectBound<'a> {
+        pub fn bind_for_update(&mut self) -> VertexArrayObjectBound<'_> {
             self.gl.bind_vertex_array(Some(self.vao.as_ref()));
 
             VertexArrayObjectBound { vao: self }

@@ -29,15 +29,15 @@
  * 
  *****************************************************************************/
 
-import { Aladin }   from "./Aladin.js";
-import { Popup }          from "./Popup.js";
-import { HealpixGrid }    from "./HealpixGrid.js";
+import { Aladin } from "./Aladin.js";
+import { Popup } from "./Popup.js";
+import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Projection }     from "./libs/astro/projection.js";
-import { AladinUtils }    from "./AladinUtils.js";
-import { Utils }          from "./Utils.js";
-import { SimbadPointer }  from "./SimbadPointer.js";
-import { Stats }          from "./libs/Stats.js";
+import { Projection } from "./libs/astro/projection.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { Utils } from "./Utils.js";
+import { SimbadPointer } from "./SimbadPointer.js";
+import { Stats } from "./libs/Stats.js";
 import { ColorMap } from "./ColorMap.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
@@ -47,10 +47,10 @@ import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
 
-export let View = (function() {
+export let View = (function () {
 
     /** Constructor */
-    function View (aladin, location, fovDiv, cooFrame, zoom) {
+    function View(aladin, location, fovDiv, cooFrame, zoom) {
         this.aladin = aladin;
         // Add a reference to the WebGL API
         this.options = aladin.options;
@@ -64,7 +64,7 @@ export let View = (function() {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
             this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
-        } catch(e) {
+        } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
             console.error(e)
@@ -77,15 +77,15 @@ export let View = (function() {
         this.mustClearCatalog = true;
         //this.imageSurveysToSet = [];
         this.mode = View.PAN;
-        
+
         this.minFOV = this.maxFOV = null; // by default, no restriction
-        
+
         this.healpixGrid = new HealpixGrid();
         this.then = Date.now();
-        
+
         var lon, lat;
         lon = lat = 0;
-        
+
         this.projection = new Projection(lon, lat);
         this.projection.setProjection(ProjectionEnum.SIN);
         //this.zoomLevel = 0;
@@ -94,7 +94,7 @@ export let View = (function() {
         //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
 
-        this.viewCenter = {lon: lon, lat: lat}; // position of center of view
+        this.viewCenter = { lon: lon, lat: lat }; // position of center of view
 
         if (cooFrame) {
             this.cooFrame = cooFrame;
@@ -114,7 +114,7 @@ export let View = (function() {
             isPinching: false, // true if a pinch zoom is ongoing
             initialFov: undefined,
             initialDistance: undefined,
-            initialAccDelta: Math.pow(si / initialFov, 1.0/alpha)
+            initialAccDelta: Math.pow(si / initialFov, 1.0 / alpha)
         };
         this.setZoom(initialFov);
         // current reference image survey displayed
@@ -128,18 +128,18 @@ export let View = (function() {
         // a dedicated catalog for the popup
         var c = document.createElement('canvas');
         c.width = c.height = 24;
-        var ctx= c.getContext('2d');
+        var ctx = c.getContext('2d');
         ctx.lineWidth = 6.0;
         ctx.beginPath();
         ctx.strokeStyle = '#eee';
-        ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+        ctx.arc(12, 12, 8, 0, 2 * Math.PI, true);
         ctx.stroke();
         ctx.lineWidth = 3.0;
         ctx.beginPath();
         ctx.strokeStyle = '#c38';
-        ctx.arc(12, 12, 8, 0, 2*Math.PI, true);
+        ctx.arc(12, 12, 8, 0, 2 * Math.PI, true);
         ctx.stroke();
-        this.catalogForPopup = A.catalog({shape: c, sourceSize: 24});
+        this.catalogForPopup = A.catalog({ shape: c, sourceSize: 24 });
         //this.catalogForPopup = A.catalog({sourceSize: 18, shape: 'circle', color: '#c38'});
         this.catalogForPopup.hide();
         this.catalogForPopup.setView(this);
@@ -149,15 +149,15 @@ export let View = (function() {
         this.mocs = [];
         // reference to all overlay layers (= catalogs + overlays + mocs)
         this.allOverlayLayers = []
-        
 
-        
+
+
         this.fixLayoutDimensions();
-        
+
         this.firstHiPS = true;
         this.curNorder = 1;
         this.realNorder = 1;
-        
+
         // some variables for mouse handling
         this.dragging = false;
         this.dragx = null;
@@ -176,17 +176,17 @@ export let View = (function() {
         }
 
         this.fadingLatestUpdate = null;
-        
+
         this.dateRequestRedraw = null;
-        
-        
+
+
         init(this);
-        
+
 
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
         var self = this;
-        $(window).resize(function() {
+        $(window).resize(function () {
             self.fixLayoutDimensions(self);
             self.requestRedraw();
         });
@@ -194,49 +194,49 @@ export let View = (function() {
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
         // The following line tries to fix this issue
-        setTimeout(function() {
+        setTimeout(function () {
             var computedWidth = $(self.aladinDiv).width();
             var computedHeight = $(self.aladinDiv).height();
 
-            if (self.width!==computedWidth || self.height===computedHeight) {
+            if (self.width !== computedWidth || self.height === computedHeight) {
                 self.fixLayoutDimensions();
                 // As the WebGL backend has been resized correctly by
                 // the previous call, we can get the zoom factor from it
-                
+
                 self.setZoom(self.fov); // needed to force recomputation of displayed FoV
             }
         }, 1000);
 
     };
-    
+
     // different available modes
     View.PAN = 0;
     View.SELECT = 1;
     View.TOOL_SIMBAD_POINTER = 2;
-        
-    
+
+
     // TODO: should be put as an option at layer level    
     View.DRAW_SOURCES_WHILE_DRAGGING = true;
     View.DRAW_MOCS_WHILE_DRAGGING = true;
 
     View.CALLBACKS_THROTTLE_TIME_MS = 100; // minimum time between two consecutive callback calls
 
-    
+
     // (re)create needed canvases
-    View.prototype.createCanvases = function() {
+    View.prototype.createCanvases = function () {
         var a = $(this.aladinDiv);
         a.find('.aladin-imageCanvas').remove();
         a.find('.aladin-catalogCanvas').remove();
-        
+
         // canvas to draw the images
         this.imageCanvas = $("<canvas class='aladin-imageCanvas'></canvas>").appendTo(this.aladinDiv)[0];
         // canvas to draw the catalogs
         this.catalogCanvas = $("<canvas class='aladin-catalogCanvas'></canvas>").appendTo(this.aladinDiv)[0];
     };
-    
+
     // called at startup and when window is resized
     // The WebGL backend is resized
-    View.prototype.fixLayoutDimensions = function() {
+    View.prototype.fixLayoutDimensions = function () {
         Utils.cssScale = undefined;
 
         var computedWidth = $(this.aladinDiv).width();
@@ -245,21 +245,21 @@ export let View = (function() {
         this.width = Math.max(computedWidth, 1);
         this.height = Math.max(computedHeight, 1); // this prevents many problems when div size is equal to 0
 
-        this.cx = this.width/2;
-        this.cy = this.height/2;
-        
+        this.cx = this.width / 2;
+        this.cy = this.height / 2;
+
         this.largestDim = Math.max(this.width, this.height);
         this.smallestDim = Math.min(this.width, this.height);
-        this.ratio = this.largestDim/this.smallestDim;
+        this.ratio = this.largestDim / this.smallestDim;
 
-        this.mouseMoveIncrement = 160/this.largestDim;
+        this.mouseMoveIncrement = 160 / this.largestDim;
 
         // reinitialize 2D context
         this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
         this.aladin.webglAPI.resize(this.width, this.height);
         this.catalogCtx = this.catalogCanvas.getContext("2d");
 
-        this.catalogCtx.canvas.width = this.width;        
+        this.catalogCtx.canvas.width = this.width;
         this.catalogCtx.canvas.height = this.height;
 
         pixelateCanvasContext(this.imageCtx, this.aladin.options.pixelateCanvas);
@@ -268,7 +268,7 @@ export let View = (function() {
         if (!this.logoDiv) {
             this.logoDiv = $(this.aladinDiv).find('.aladin-logo')[0];
         }
-        if (this.width>800) {
+        if (this.width > 800) {
             $(this.logoDiv).removeClass('aladin-logo-small');
             $(this.logoDiv).addClass('aladin-logo-large');
             $(this.logoDiv).css('width', '90px');
@@ -282,22 +282,22 @@ export let View = (function() {
         this.computeNorder();
     };
 
-    var pixelateCanvasContext = function(ctx, pixelateFlag) {
-        var enableSmoothing = ! pixelateFlag;
+    var pixelateCanvasContext = function (ctx, pixelateFlag) {
+        var enableSmoothing = !pixelateFlag;
         ctx.imageSmoothingEnabled = enableSmoothing;
         ctx.webkitImageSmoothingEnabled = enableSmoothing;
         ctx.mozImageSmoothingEnabled = enableSmoothing;
         ctx.msImageSmoothingEnabled = enableSmoothing;
         ctx.oImageSmoothingEnabled = enableSmoothing;
     }
-    
 
-    View.prototype.setMode = function(mode) {
+
+    View.prototype.setMode = function (mode) {
         this.mode = mode;
-        if (this.mode==View.SELECT) {
+        if (this.mode == View.SELECT) {
             this.setCursor('crosshair');
         }
-        else if (this.mode==View.TOOL_SIMBAD_POINTER) {
+        else if (this.mode == View.TOOL_SIMBAD_POINTER) {
             this.popup.hide();
             this.catalogCanvas.style.cursor = '';
             $(this.catalogCanvas).addClass('aladin-sp-cursor');
@@ -306,31 +306,31 @@ export let View = (function() {
             this.setCursor('default');
         }
     };
-    
-    View.prototype.setCursor = function(cursor) {
-        if (this.catalogCanvas.style.cursor==cursor) {
+
+    View.prototype.setCursor = function (cursor) {
+        if (this.catalogCanvas.style.cursor == cursor) {
             return;
         }
-        if (this.mode==View.TOOL_SIMBAD_POINTER) {
+        if (this.mode == View.TOOL_SIMBAD_POINTER) {
             return;
         }
         this.catalogCanvas.style.cursor = cursor;
     };
 
-    
-    
+
+
     /**
      * return dataURL string corresponding to the current view
      */
-    View.prototype.getCanvasDataURL = async function(imgType, width, height) {
-        const asyncImageLoader = function(url) {
-            return new Promise( (resolve, reject) => {
+    View.prototype.getCanvasDataURL = async function (imgType, width, height) {
+        const asyncImageLoader = function (url) {
+            return new Promise((resolve, reject) => {
                 var image = new Image()
                 image.src = url
                 image.onload = () => resolve(image)
                 image.onerror = () => reject(new Error('could not load image'))
             })
-        }  
+        }
 
         const buildingCanvasDataURL = asyncImageLoader("data:image/png;base64,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")
             .then((img) => {
@@ -356,7 +356,7 @@ export let View = (function() {
     };
 
 
-    View.prototype.setActiveHiPSLayer = function(layer) {
+    View.prototype.setActiveHiPSLayer = function (layer) {
         if (!this.imageSurveys.has(layer)) {
             throw layer + ' does not exists. So cannot be selected';
         }
@@ -364,7 +364,7 @@ export let View = (function() {
         this.selectedSurveyLayer = layer;
     };
 
-    View.prototype.updateFovDiv = function() {
+    View.prototype.updateFovDiv = function () {
         if (isNaN(this.fov)) {
             this.fovDiv.html("FoV:");
             return;
@@ -378,26 +378,26 @@ export let View = (function() {
             fov = 360.0;
         }
 
-        if (fov>1) {
-            fovStr = Math.round(fov*100)/100 + "°";
+        if (fov > 1) {
+            fovStr = Math.round(fov * 100) / 100 + "°";
         }
-        else if (fov*60>1) {
-            fovStr = Math.round(fov*60*100)/100 + "'";
+        else if (fov * 60 > 1) {
+            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
         }
         else {
-            fovStr = Math.round(fov*3600*100)/100 + '"';
+            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
         }
         this.fovDiv.html("FoV: " + fovStr);
     }
-    
-    var createListeners = function(view) {
+
+    var createListeners = function (view) {
         var hasTouchEvents = false;
         if ('ontouchstart' in window) {
             hasTouchEvents = true;
         }
-        
+
         // various listeners
-        let onDblClick = function(e) {
+        let onDblClick = function (e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
             /*if(view.aladin.webglAPI.posOnUi()) {
                 return;
@@ -405,26 +405,26 @@ export let View = (function() {
             try {
                 const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
                 var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
-                view.pointTo(radec[0], radec[1], {forceAnimation: true});
+                view.pointTo(radec[0], radec[1], { forceAnimation: true });
             }
-            catch(err) {
+            catch (err) {
                 return;
             }
-            
+
         };
-        if (! hasTouchEvents) {
+        if (!hasTouchEvents) {
             $(view.catalogCanvas).dblclick(onDblClick);
         }
 
-        $(view.catalogCanvas).bind("contextmenu", function(e) {
+        $(view.catalogCanvas).bind("contextmenu", function (e) {
             // do something here... 
-            e.preventDefault(); 
+            e.preventDefault();
         }, false);
 
         let cutMinInit = null
         let cutMaxInit = null;
 
-        $(view.catalogCanvas).bind("mousedown touchstart", function(e) {
+        $(view.catalogCanvas).bind("mousedown touchstart", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -458,7 +458,7 @@ export let View = (function() {
             }
 
             // zoom pinching
-            if (e.type==='touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length==2) {
+            if (e.type === 'touchstart' && e.originalEvent && e.originalEvent.targetTouches && e.originalEvent.targetTouches.length == 2) {
                 view.dragging = false;
 
                 view.pinchZoomParameters.isPinching = true;
@@ -489,18 +489,18 @@ export let View = (function() {
             }
 
             view.dragging = true;
-            if (view.mode==View.PAN) {
+            if (view.mode == View.PAN) {
                 view.setCursor('move');
             }
-            else if (view.mode==View.SELECT) {
-                view.selectStartCoo = {x: view.dragx, y: view.dragy};
+            else if (view.mode == View.SELECT) {
+                view.selectStartCoo = { x: view.dragx, y: view.dragy };
             }
 
             view.aladin.webglAPI.pressLeftMouseButton(view.dragx, view.dragy);
             return false; // to disable text selection
         });
 
-        $(view.catalogCanvas).bind("mouseup", function(e) {
+        $(view.catalogCanvas).bind("mouseup", function (e) {
             if (view.rightClick) {
                 view.rightClick = false;
                 view.rightclickx = null;
@@ -510,23 +510,23 @@ export let View = (function() {
             }
         });
 
-        $(view.catalogCanvas).bind("click mouseout touchend", function(e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view                 
-            if (e.type==='touchend' && view.pinchZoomParameters.isPinching) {
+        $(view.catalogCanvas).bind("click mouseout touchend", function (e) { // reacting on 'click' rather on 'mouseup' is more reliable when panning the view                 
+            if (e.type === 'touchend' && view.pinchZoomParameters.isPinching) {
                 view.pinchZoomParameters.isPinching = false;
                 view.pinchZoomParameters.initialFov = view.pinchZoomParameters.initialDistance = undefined;
-    
+
                 return;
             }
-            if (e.type==='touchend' && view.fingersRotationParameters.rotationInitiated) {
+            if (e.type === 'touchend' && view.fingersRotationParameters.rotationInitiated) {
                 view.fingersRotationParameters.initialViewAngleFromCenter = undefined;
                 view.fingersRotationParameters.initialFingerAngle = undefined;
                 view.fingersRotationParameters.rotationInitiated = false;
-    
+
                 return;
             }
 
             var wasDragging = view.realDragging === true;
-            var selectionHasEnded = view.mode===View.SELECT && view.dragging;
+            var selectionHasEnded = view.mode === View.SELECT && view.dragging;
 
             if (view.dragging) { // if we were dragging, reset to default cursor
                 view.setCursor('default');
@@ -534,22 +534,22 @@ export let View = (function() {
 
                 if (wasDragging) {
                     view.realDragging = false;
-                
+
                     // call positionChanged one last time after dragging, with dragging: false
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
                     if (typeof posChangedFn === 'function') {
-                        var pos = view.aladin.pix2world(view.width/2, view.height/2);
+                        var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
                         if (pos !== undefined) {
-                            posChangedFn({ra: pos[0], dec: pos[1], dragging: false});
+                            posChangedFn({ ra: pos[0], dec: pos[1], dragging: false });
                         }
                     }
                 }
             } // end of "if (view.dragging) ... "
 
             if (selectionHasEnded) {
-                view.aladin.fire('selectend', 
-                                 view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
-                                                       view.dragx-view.selectStartCoo.x, view.dragy-view.selectStartCoo.y));    
+                view.aladin.fire('selectend',
+                    view.getObjectsInBBox(view.selectStartCoo.x, view.selectStartCoo.y,
+                        view.dragx - view.selectStartCoo.x, view.dragy - view.selectStartCoo.y));
 
                 view.requestRedraw();
 
@@ -560,12 +560,12 @@ export let View = (function() {
             view.dragx = view.dragy = null;
             const xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (e.type==="mouseout" || e.type==="touchend") {
+            if (e.type === "mouseout" || e.type === "touchend") {
                 //view.requestRedraw();
                 view.updateLocation(xymouse.x, xymouse.y, true);
 
-                if (e.type==="mouseout") {
-                    if (view.mode===View.TOOL_SIMBAD_POINTER) {
+                if (e.type === "mouseout") {
+                    if (view.mode === View.TOOL_SIMBAD_POINTER) {
                         view.setMode(View.PAN);
                     }
 
@@ -573,7 +573,7 @@ export let View = (function() {
                 }
             }
 
-            if (view.mode==View.TOOL_SIMBAD_POINTER) {
+            if (view.mode == View.TOOL_SIMBAD_POINTER) {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
                 // Convert from view to ICRSJ2000
@@ -592,7 +592,7 @@ export let View = (function() {
 
             // popup to show ?
             var objs = view.closestObjects(xymouse.x, xymouse.y, 5);
-            if (! wasDragging && objs) {
+            if (!wasDragging && objs) {
                 var o = objs[0];
 
                 // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
@@ -620,7 +620,7 @@ export let View = (function() {
                 (typeof objClickedFunction === 'function') && objClickedFunction(o);
             }
             else {
-                if (view.lastClickedObject && ! wasDragging) {
+                if (view.lastClickedObject && !wasDragging) {
                     view.aladin.measurementTable.hide();
                     view.popup.hide();
 
@@ -642,7 +642,7 @@ export let View = (function() {
             if (typeof onClickFunction === 'function') {
                 var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
                 if (pos !== undefined) {
-                    onClickFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y, isDragging: wasDragging});
+                    onClickFunction({ ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y, isDragging: wasDragging });
                 }
             }
 
@@ -655,7 +655,7 @@ export let View = (function() {
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
-        $(view.catalogCanvas).bind("mousemove touchmove", function(e) {
+        $(view.catalogCanvas).bind("mousemove touchmove", function (e) {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
@@ -672,8 +672,8 @@ export let View = (function() {
 
                     const offset = (cutMaxInit - cutMinInit) * cx;
 
-                    const lr = offset + (1.0 - 2.0*cy)*cutMinInit;
-                    const rr = offset + (1.0 + 2.0*cy)*cutMaxInit;
+                    const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
+                    const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
                     if (lr <= rr) {
                         selectedSurvey.setCuts([lr, rr])
                     }
@@ -682,13 +682,13 @@ export let View = (function() {
                 }
             }
 
-            if (e.type==='touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length==2) {
+            if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {
 
                 // rotation
                 var currentFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
                 var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;
                 // rotation is initiated when angle is equal or greater than 7 degrees
-                if (! view.fingersRotationParameters.rotationInitiated && Math.abs(fingerAngleDiff)>=7) {
+                if (!view.fingersRotationParameters.rotationInitiated && Math.abs(fingerAngleDiff) >= 7) {
                     view.fingersRotationParameters.rotationInitiated = true;
                     view.fingersRotationParameters.initialFingerAngle = currentFingerAngle;
                     fingerAngleDiff = 0;
@@ -713,27 +713,27 @@ export let View = (function() {
                 if (typeof onMouseMoveFunction === 'function') {
                     var pos = view.aladin.pix2world(xymouse.x, xymouse.y);
                     if (pos !== undefined) {
-                        onMouseMoveFunction({ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y});
+                        onMouseMoveFunction({ ra: pos[0], dec: pos[1], x: xymouse.x, y: xymouse.y });
                     }
                     // send null ra and dec when we go out of the "sky"
                     else if (lastMouseMovePos != null) {
-                        onMouseMoveFunction({ra: null, dec: null, x: xymouse.x, y: xymouse.y});
+                        onMouseMoveFunction({ ra: null, dec: null, x: xymouse.x, y: xymouse.y });
                     }
                     lastMouseMovePos = pos;
                 }
 
 
-                if (!view.dragging && ! view.mode==View.SELECT) {
+                if (!view.dragging && !view.mode == View.SELECT) {
                     // objects under the mouse ?
                     var closest = view.closestObjects(xymouse.x, xymouse.y, 5);
                     if (closest) {
                         view.setCursor('pointer');
                         var objHoveredFunction = view.aladin.callbacksByEventName['objectHovered'];
-                        if (typeof objHoveredFunction === 'function' && closest[0]!=lastHoveredObject) {
+                        if (typeof objHoveredFunction === 'function' && closest[0] != lastHoveredObject) {
                             var ret = objHoveredFunction(closest[0]);
                         }
                         lastHoveredObject = closest[0];
-        
+
                     }
                     else {
                         view.setCursor('default');
@@ -750,7 +750,7 @@ export let View = (function() {
                 }
             }
 
-            if (! view.dragging) {
+            if (!view.dragging) {
                 return;
             }
             //var xoffset, yoffset;
@@ -763,8 +763,8 @@ export let View = (function() {
 
                 pos1 = view.projection.unproject(xy1.x, xy1.y);
                 pos2 = view.projection.unproject(xy2.x, xy2.y);*/
-                s1 = {x: view.dragx, y: view.dragy};
-                s2 = {x: e.originalEvent.targetTouches[0].clientX, y: e.originalEvent.targetTouches[0].clientY};
+                s1 = { x: view.dragx, y: view.dragy };
+                s2 = { x: e.originalEvent.targetTouches[0].clientX, y: e.originalEvent.targetTouches[0].clientY };
             }
             else {
                 /*
@@ -785,17 +785,17 @@ export let View = (function() {
                 if (pos2 == undefined)  {
                     return;
                 }*/
-                s1 = {x: view.dragx, y: view.dragy};
-                s2 = {x: xymouse.x, y: xymouse.y};
+                s1 = { x: view.dragx, y: view.dragy };
+                s2 = { x: xymouse.x, y: xymouse.y };
             }
 
 
-            
+
             // TODO : faut il faire ce test ??
-//            var distSquared = xoffset*xoffset+yoffset*yoffset;
-//            if (distSquared<3) {
-//                return;
-//            }
+            //            var distSquared = xoffset*xoffset+yoffset*yoffset;
+            //            if (distSquared<3) {
+            //                return;
+            //            }
             if (e.originalEvent && e.originalEvent.targetTouches) {
                 view.dragx = e.originalEvent.targetTouches[0].clientX;
                 view.dragy = e.originalEvent.targetTouches[0].clientY;
@@ -808,10 +808,10 @@ export let View = (function() {
                 view.dragy = e.clientY;
                 */
             }
-            
-            if (view.mode==View.SELECT) {
-                  view.requestRedraw();
-                  return;
+
+            if (view.mode == View.SELECT) {
+                view.requestRedraw();
+                return;
             }
 
             view.realDragging = true;
@@ -826,11 +826,11 @@ export let View = (function() {
                 view.viewCenter.lon += 360.0;
             }
         }); //// endof mousemove ////
-        
+
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
 
-        $(view.catalogCanvas).on('wheel', function(event) {            
+        $(view.catalogCanvas).on('wheel', function (event) {
             event.preventDefault();
             event.stopPropagation();
 
@@ -850,7 +850,7 @@ export let View = (function() {
             // hope this won't trigger some side effects ...
             if (event.hasOwnProperty('originalEvent')) {
                 delta = -event.originalEvent.deltaY;
-            } 
+            }
             /*if (delta>0) {
                 level += 1;
                 //zoom
@@ -869,7 +869,7 @@ export let View = (function() {
 
             if (!view.debounceProgCatOnZoom) {
                 var self = view;
-                view.debounceProgCatOnZoom = Utils.debounce(function() {
+                view.debounceProgCatOnZoom = Utils.debounce(function () {
                     self.refreshProgressiveCats();
                     self.drawAllOverlays();
                 }, 300);
@@ -881,43 +881,43 @@ export let View = (function() {
             return false;
         });
     };
-    
-    var init = function(view) {
+
+    var init = function (view) {
         var stats = new Stats();
         stats.domElement.style.top = '50px';
-        if ($('#aladin-statsDiv').length>0) {
-            $('#aladin-statsDiv')[0].appendChild( stats.domElement );
+        if ($('#aladin-statsDiv').length > 0) {
+            $('#aladin-statsDiv')[0].appendChild(stats.domElement);
         }
-        
+
         view.stats = stats;
 
         createListeners(view);
 
         view.executeCallbacksThrottled = Utils.throttle(
-            function() {
-                var pos = view.aladin.pix2world(view.width/2, view.height/2);
+            function () {
+                var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
                 var fov = view.fov;
-                if (pos===undefined || fov===undefined) {
+                if (pos === undefined || fov === undefined) {
                     return;
                 }
 
                 var ra = pos[0];
                 var dec = pos[1];
                 // trigger callback only if position has changed !
-                if (ra!==this.ra || dec!==this.dec) {
+                if (ra !== this.ra || dec !== this.dec) {
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
-                    (typeof posChangedFn === 'function') && posChangedFn({ra: ra, dec: dec, dragging: true});
-    
+                    (typeof posChangedFn === 'function') && posChangedFn({ ra: ra, dec: dec, dragging: true });
+
                     // finally, save ra and dec value
                     this.ra = ra;
                     this.dec = dec;
                 }
 
                 // trigger callback only if FoV (zoom) has changed !
-                if (fov!==this.old_fov) {
+                if (fov !== this.old_fov) {
                     var fovChangedFn = view.aladin.callbacksByEventName['zoomChanged'];
                     (typeof fovChangedFn === 'function') && fovChangedFn(fov);
-    
+
                     // finally, save fov value
                     this.old_fov = fov;
                 }
@@ -937,18 +937,18 @@ export let View = (function() {
         //view.redraw();
     };
 
-    View.prototype.updateLocation = function(mouseX, mouseY, isViewCenterPosition) {
+    View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (!this.projection) {
             return;
         }
 
-        if(isViewCenterPosition) {
+        if (isViewCenterPosition) {
             //const [ra, dec] = this.aladin.webglAPI.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
             let radec = this.aladin.webglAPI.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
             if (radec) {
-                if (radec[0]<0) {
+                if (radec[0] < 0) {
                     radec = [radec[0] + 360.0, radec[1]];
                 }
 
@@ -956,8 +956,8 @@ export let View = (function() {
             }
         }
     }
-    
-    View.prototype.requestRedrawAtDate = function(date) {
+
+    View.prototype.requestRedrawAtDate = function (date) {
         this.dateRequestDraw = date;
     };
 
@@ -965,11 +965,11 @@ export let View = (function() {
      * Return the color of the lowest intensity pixel 
      * in teh current color map of the current background image HiPS
      */
-    View.prototype.getBackgroundColor = function() {
+    View.prototype.getBackgroundColor = function () {
         var white = 'rgb(255, 255, 255)';
         var black = 'rgb(0, 0, 0)';
 
-        if (! this.imageSurvey) {
+        if (!this.imageSurvey) {
             return black;
         }
 
@@ -989,25 +989,25 @@ export let View = (function() {
         return 'rgb(' + r + ',' + g + ',' + b + ')';
     };
 
-    View.prototype.getViewParams = function() {
+    View.prototype.getViewParams = function () {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
         return {
-            fov: [this.width * resolution, this.height * resolution],   
-            width: this.width,   
-            height: this.height   
+            fov: [this.width * resolution, this.height * resolution],
+            width: this.width,
+            height: this.height
         };
     };
 
     /**
      * redraw the whole view
      */
-    View.prototype.redraw = function() {
+    View.prototype.redraw = function () {
         // calc elapsed time since last loop
         // Put your drawing code here
         try {
             //var dt = now_update - this.prev;
             this.aladin.webglAPI.update(Date.now() - this.then);
-        } catch(e) {
+        } catch (e) {
             console.error(e)
         }
 
@@ -1021,7 +1021,7 @@ export let View = (function() {
 
         try {
             this.aladin.webglAPI.render(this.needRedraw);
-        } catch(e) {
+        } catch (e) {
             console.error("Error: ", e);
         }
 
@@ -1044,7 +1044,7 @@ export let View = (function() {
         requestAnimFrame(this.redraw.bind(this));
     };
 
-    View.prototype.drawAllOverlays = function() {
+    View.prototype.drawAllOverlays = function () {
         var catalogCtx = this.catalogCtx;
         var catalogCanvasCleared = false;
         if (this.mustClearCatalog) {
@@ -1053,7 +1053,7 @@ export let View = (function() {
             this.mustClearCatalog = false;
         }
 
-        if (this.catalogs && this.catalogs.length>0 && this.displayCatalog && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+        if (this.catalogs && this.catalogs.length > 0 && this.displayCatalog && (!this.dragging || View.DRAW_SOURCES_WHILE_DRAGGING)) {
             // TODO : do not clear every time
             //// clear canvas ////
             if (!catalogCanvasCleared) {
@@ -1061,13 +1061,13 @@ export let View = (function() {
                 catalogCanvasCleared = true;
             }
 
-            for (var i=0; i<this.catalogs.length; i++) {
+            for (var i = 0; i < this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
                 cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
         // draw popup catalog
-        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length>0) {
+        if (this.catalogForPopup.isShowing && this.catalogForPopup.sources.length > 0) {
             if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
@@ -1078,20 +1078,20 @@ export let View = (function() {
 
         ////// 3. Draw overlays////////
         var overlayCtx = this.catalogCtx;
-        if (this.overlays && this.overlays.length>0 && (! this.dragging  || View.DRAW_SOURCES_WHILE_DRAGGING)) {
+        if (this.overlays && this.overlays.length > 0 && (!this.dragging || View.DRAW_SOURCES_WHILE_DRAGGING)) {
             if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
 
-            for (var i=0; i<this.overlays.length; i++) {
+            for (var i = 0; i < this.overlays.length; i++) {
                 this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
-        
+
         // Redraw HEALPix grid
         var healpixGridCtx = catalogCtx;
-        if( this.displayHpxGrid ) {
+        if (this.displayHpxGrid) {
             if (!catalogCanvasCleared) {
                 catalogCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
@@ -1099,15 +1099,15 @@ export let View = (function() {
 
             var cornersXYViewMapAllsky = this.getVisibleCells(3);
             var cornersXYViewMapHighres = null;
-            if (this.curNorder>=3) {
-                if (this.curNorder==3) {
+            if (this.curNorder >= 3) {
+                if (this.curNorder == 3) {
                     cornersXYViewMapHighres = cornersXYViewMapAllsky;
                 }
                 else {
                     cornersXYViewMapHighres = this.getVisibleCells(this.curNorder);
                 }
             }
-            if (cornersXYViewMapHighres && this.curNorder>3) {
+            if (cornersXYViewMapHighres && this.curNorder > 3) {
                 this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapHighres, this.fov, this.curNorder);
             }
             else {
@@ -1132,30 +1132,30 @@ export let View = (function() {
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
         var reticleCtx = catalogCtx;
-        if (this.mode==View.SELECT) {
+        if (this.mode == View.SELECT) {
             // VIEW mode, we do not want to display the reticle in this
             // but draw a selection box
             if (this.dragging) {
-                if (! catalogCanvasCleared) {
+                if (!catalogCanvasCleared) {
                     reticleCtx.clearRect(0, 0, this.width, this.height);
                     catalogCanvasCleared = true;
                 }
 
                 reticleCtx.fillStyle = "rgba(100, 240, 110, 0.25)";
                 var w = this.dragx - this.selectStartCoo.x;
-                var h =  this.dragy - this.selectStartCoo.y;
-                
+                var h = this.dragy - this.selectStartCoo.y;
+
                 reticleCtx.fillRect(this.selectStartCoo.x, this.selectStartCoo.y, w, h);
             }
         } else {
             // Normal modes
             if (this.displayReticle) {
-                if (! catalogCanvasCleared) {
+                if (!catalogCanvasCleared) {
                     catalogCtx.clearRect(0, 0, this.width, this.height);
                     catalogCanvasCleared = true;
                 }
-    
-                if (! this.reticleCache) {
+
+                if (!this.reticleCache) {
                     // build reticle image
                     var c = document.createElement('canvas');
                     var s = this.options.reticleSize;
@@ -1165,27 +1165,27 @@ export let View = (function() {
                     ctx.lineWidth = 2;
                     ctx.strokeStyle = this.options.reticleColor;
                     ctx.beginPath();
-                    ctx.moveTo(s/2, s/2+(s/2-1));
-                    ctx.lineTo(s/2, s/2+2);
-                    ctx.moveTo(s/2, s/2-(s/2-1));
-                    ctx.lineTo(s/2, s/2-2);
-                    
-                    ctx.moveTo(s/2+(s/2-1), s/2);
-                    ctx.lineTo(s/2+2,  s/2);
-                    ctx.moveTo(s/2-(s/2-1), s/2);
-                    ctx.lineTo(s/2-2,  s/2);
-                    
+                    ctx.moveTo(s / 2, s / 2 + (s / 2 - 1));
+                    ctx.lineTo(s / 2, s / 2 + 2);
+                    ctx.moveTo(s / 2, s / 2 - (s / 2 - 1));
+                    ctx.lineTo(s / 2, s / 2 - 2);
+
+                    ctx.moveTo(s / 2 + (s / 2 - 1), s / 2);
+                    ctx.lineTo(s / 2 + 2, s / 2);
+                    ctx.moveTo(s / 2 - (s / 2 - 1), s / 2);
+                    ctx.lineTo(s / 2 - 2, s / 2);
+
                     ctx.stroke();
-                    
+
                     this.reticleCache = c;
                 }
-                reticleCtx.drawImage(this.reticleCache, this.width/2 - this.reticleCache.width/2, this.height/2 - this.reticleCache.height/2);
+                reticleCtx.drawImage(this.reticleCache, this.width / 2 - this.reticleCache.width / 2, this.height / 2 - this.reticleCache.height / 2);
             }
-        }  
-        
+        }
+
         ////// 5. Draw all-sky ring /////
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov>=60 && this.aladin.options['showAllskyRing'] === true) {
-            if (! catalogCanvasCleared) {
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
+            if (!catalogCanvasCleared) {
                 reticleCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
             }
@@ -1195,41 +1195,41 @@ export let View = (function() {
             reticleCtx.lineWidth = ringWidth;
             reticleCtx.beginPath();
             const maxCxCy = this.cy;
-            const radius = (maxCxCy-(ringWidth/2.0)+1) / this.zoomFactor;
-            reticleCtx.arc(this.cx, this.cy, radius, 0, 2*Math.PI, true);
+            const radius = (maxCxCy - (ringWidth / 2.0) + 1) / this.zoomFactor;
+            reticleCtx.arc(this.cx, this.cy, radius, 0, 2 * Math.PI, true);
             reticleCtx.stroke();
         }
     };
-    
-    View.prototype.refreshProgressiveCats = function() {
-        if (! this.catalogs) {
+
+    View.prototype.refreshProgressiveCats = function () {
+        if (!this.catalogs) {
             return;
         }
 
-        for (var i=0; i<this.catalogs.length; i++) {
-            if (this.catalogs[i].type=='progressivecat') {
+        for (var i = 0; i < this.catalogs.length; i++) {
+            if (this.catalogs[i].type == 'progressivecat') {
                 this.catalogs[i].loadNeededTiles();
             }
         }
     };
 
-    View.prototype.getVisiblePixList = function(norder) {
+    View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
         let centerWorldPosition = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
         const [lon, lat] = this.aladin.webglAPI.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
-        var radius = this.fov*0.5*this.ratio;
+        var radius = this.fov * 0.5 * this.ratio;
         this.aladin.webglAPI.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
-        
+
         return pixList;
     };
-    
-    View.prototype.setAngleRotation = function(theta) {
+
+    View.prototype.setAngleRotation = function (theta) {
 
     }
 
     // TODO: optimize this method !!
-    View.prototype.getVisibleCells = function(norder) {
+    View.prototype.getVisibleCells = function (norder) {
         /*var cells = []; // array to be returned
         var cornersXY = [];
         var nside = Math.pow(2, norder); // TODO : to be modified
@@ -1323,7 +1323,7 @@ export let View = (function() {
 
         return this.aladin.webglAPI.getVisibleCells(norder);
     };
-    
+
     /*View.prototype.computeZoomFactor = function(level) {
         if (level>0) {
             return AladinUtils.getZoomFactorForAngle(180.0/Math.pow(1.35, level), this.projectionMethod);
@@ -1340,13 +1340,13 @@ export let View = (function() {
             return 1 + 0.1*level;
         }
     };*/
-    
+
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
-    View.prototype.setZoom = function(fovDegrees) {
+    View.prototype.setZoom = function (fovDegrees) {
         const si = 500000.0;
         const alpha = 40.0;
-        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fovDegrees, 1.0/alpha);
+        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fovDegrees, 1.0 / alpha);
         /*if (fovDegrees<0) {
             return;
         }*/
@@ -1361,7 +1361,7 @@ export let View = (function() {
         this.updateFovDiv();
     };
 
-    View.prototype.increaseZoom = function() {
+    View.prototype.increaseZoom = function () {
         const si = 500000.0;
         const alpha = 40.0;
         const amount = 0.005;
@@ -1377,7 +1377,7 @@ export let View = (function() {
         this.setZoom(new_fov);
     }
 
-    View.prototype.decreaseZoom = function() {
+    View.prototype.decreaseZoom = function () {
         const si = 500000.0;
         const alpha = 40.0;
         const amount = 0.005;
@@ -1398,7 +1398,7 @@ export let View = (function() {
         this.setZoom(new_fov);
     }
 
-    View.prototype.setGridConfig = function(gridCfg) {
+    View.prototype.setGridConfig = function (gridCfg) {
         this.aladin.webglAPI.setGridConfig(gridCfg);
 
         // send events
@@ -1414,23 +1414,23 @@ export let View = (function() {
                 }
             }
             if (gridCfg.color) {
-                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, {color: gridCfg.color, opacity: gridCfg.opacity});
+                ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, { color: gridCfg.color, opacity: gridCfg.opacity });
             }
         }
         this.requestRedraw();
     };
 
-    View.prototype.updateZoomState = function() {
+    View.prototype.updateZoomState = function () {
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
         this.fov = this.aladin.webglAPI.getFieldOfView();
 
         this.computeNorder();
     };
-    
+
     /**
      * compute and set the norder corresponding to the current view resolution
      */
-    View.prototype.computeNorder = function() {
+    View.prototype.computeNorder = function () {
         /*var resolution = this.fov / this.largestDim; // in degree/pixel
         var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
         const calculateNSide = (pixsize) => {
@@ -1485,38 +1485,38 @@ export let View = (function() {
 
         this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
-        if (this.fov<=50 && norder<=2) {
+        if (this.fov <= 50 && norder <= 2) {
             norder = 3;
         }
 
         // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        if (this.imageSurvey && norder<=2 && this.imageSurvey.minOrder>2) {
+        if (this.imageSurvey && norder <= 2 && this.imageSurvey.minOrder > 2) {
             norder = this.imageSurvey.minOrder;
         }
 
-        if (this.imageSurvey && norder>this.imageSurvey.maxOrder) {
+        if (this.imageSurvey && norder > this.imageSurvey.maxOrder) {
             norder = this.imageSurvey.maxOrder;
         }
 
         // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
-        if (norder>29) {
+        if (norder > 29) {
             norder = 29;
         }
-            
+
         this.curNorder = norder;
     };
 
-    View.prototype.untaintCanvases = function() {
+    View.prototype.untaintCanvases = function () {
         this.createCanvases();
         createListeners(this);
         this.fixLayoutDimensions();
     };
 
-    View.prototype.setBaseImageLayer = function(baseSurveyPromise) {
+    View.prototype.setBaseImageLayer = function (baseSurveyPromise) {
         this.setOverlayImageSurvey(baseSurveyPromise, "base");
     };
 
-    View.prototype.setOverlayImageSurvey = function(survey, layer = "overlay") {
+    View.prototype.setOverlayImageSurvey = function (survey, layer = "overlay") {
         const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
         const newSurveyIdx = surveyIdx + 1;
         this.imageSurveysIdx.set(layer, newSurveyIdx);
@@ -1534,7 +1534,7 @@ export let View = (function() {
             }
         } else {
             // find the survey by layer and erase it by the new value
-            this.overlayLayers[ idxOverlaySurveyFound ] = layer;
+            this.overlayLayers[idxOverlaySurveyFound] = layer;
         }
 
         /// async part
@@ -1558,7 +1558,7 @@ export let View = (function() {
         }
     };
 
-    View.prototype.buildSortedImageSurveys = function() {
+    View.prototype.buildSortedImageSurveys = function () {
         let sortedImageSurveys = [];
 
         this.overlayLayers.forEach((overlaidLayer) => {
@@ -1570,10 +1570,10 @@ export let View = (function() {
         return sortedImageSurveys;
     }
 
-    View.prototype.updateImageLayerStack = function() {
+    View.prototype.updateImageLayerStack = function () {
         try {
             let surveys = this.buildSortedImageSurveys()
-                .filter(s => s !== undefined && s.properties )
+                .filter(s => s !== undefined && s.properties)
                 .map(s => {
                     //let {backend, ...survey} = s;
                     //return survey;
@@ -1589,12 +1589,12 @@ export let View = (function() {
 
             //const fov = this.aladin.webglAPI.getCenter();
             this.setZoom(this.aladin.webglAPI.getFieldOfView());
-        } catch(e) {
+        } catch (e) {
             console.error(e)
         }
     };
 
-    View.prototype.removeImageSurvey = function(layer) {
+    View.prototype.removeImageSurvey = function (layer) {
         this.imageSurveys.delete(layer);
 
         const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
@@ -1613,10 +1613,10 @@ export let View = (function() {
             this.selectedSurveyLayer = null;
         }
 
-        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
+        ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
     };
 
-    View.prototype.commitSurveysToBackend = function(survey, layer = "base") {
+    View.prototype.commitSurveysToBackend = function (survey, layer = "base") {
         //const layerAlreadyContained = this.imageSurveys.has(layer); true
 
         try {
@@ -1626,23 +1626,23 @@ export let View = (function() {
                 //if (this.selectedSurveyLayer && this.selectedSurveyLayer === layer) {
                 //    this.selectedSurveyLayer = layer;
                 //}
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, {survey: survey});
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, { survey: survey });
             } else {
                 survey.existedBefore = true;
-                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, {survey: survey});
+                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
             }
-        } catch(e) {
+        } catch (e) {
             // En error occured while loading the HiPS
             // Remove it from the View
             // - First, from the image dict
             this.imageSurveys.delete(layer);
-            
+
             // Tell the survey object that it is not linked to the view anymore
             survey.added = false;
 
             // Finally delete the layer
             const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-            if (idxOverlaidSurveyFound >= 0) {    
+            if (idxOverlaidSurveyFound >= 0) {
                 // Remove it from the layer stack
                 this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
             }
@@ -1651,23 +1651,23 @@ export let View = (function() {
         }
     }
 
-    View.prototype.getImageSurvey = function(layer = "base") {
+    View.prototype.getImageSurvey = function (layer = "base") {
         const survey = this.imageSurveys.get(layer);
         return survey;
     };
 
-    View.prototype.getImageSurveyMeta = function(layer = "base") {
+    View.prototype.getImageSurveyMeta = function (layer = "base") {
         try {
             return this.aladin.webglAPI.getImageSurveyMeta(layer);
-        } catch(e) {
+        } catch (e) {
             console.error(e);
         }
     };
 
-    View.prototype.setImageSurveyMeta = function(layer = "base", meta) {
+    View.prototype.setImageSurveyMeta = function (layer = "base", meta) {
         try {
             this.aladin.webglAPI.setImageSurveyMeta(layer, meta);
-        } catch(e) {
+        } catch (e) {
             console.error(e);
         }
     };
@@ -1696,11 +1696,11 @@ export let View = (function() {
         this.aladin.webglAPI.moveImageSurveysLayerForward(layer);
     }*/
 
-    View.prototype.requestRedraw = function() {
+    View.prototype.requestRedraw = function () {
         this.needRedraw = true;
     };
-    
-    View.prototype.setProjection = function(projectionName) {
+
+    View.prototype.setProjection = function (projectionName) {
         switch (projectionName) {
             case "AIT":
                 this.projection.setProjection(ProjectionEnum.AITOFF);
@@ -1739,7 +1739,7 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    View.prototype.changeFrame = function(cooFrame) {
+    View.prototype.changeFrame = function (cooFrame) {
         this.cooFrame = cooFrame;
 
         // Set the new frame to the backend
@@ -1762,7 +1762,7 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    View.prototype.showHealpixGrid = function(show) {
+    View.prototype.showHealpixGrid = function (show) {
         this.displayHpxGrid = show;
 
         if (!this.displayHpxGrid) {
@@ -1771,14 +1771,14 @@ export let View = (function() {
 
         this.requestRedraw();
     };
-    
-    View.prototype.showSurvey = function(show) {
+
+    View.prototype.showSurvey = function (show) {
         this.displaySurvey = show;
 
         this.requestRedraw();
     };
-    
-    View.prototype.showCatalog = function(show) {
+
+    View.prototype.showCatalog = function (show) {
         this.displayCatalog = show;
 
         if (!this.displayCatalog) {
@@ -1786,8 +1786,8 @@ export let View = (function() {
         }
         this.requestRedraw();
     };
-    
-    View.prototype.showReticle = function(show) {
+
+    View.prototype.showReticle = function (show) {
         this.displayReticle = show;
 
         if (!this.displayReticle) {
@@ -1806,7 +1806,7 @@ export let View = (function() {
      * @param options
      *   
      */
-    View.prototype.pointTo = function(ra, dec, options) {
+    View.prototype.pointTo = function (ra, dec, options) {
         options = options || {};
         ra = parseFloat(ra);
         dec = parseFloat(dec);
@@ -1824,34 +1824,34 @@ export let View = (function() {
         // Put a javascript code here to do some animation
         //this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
-        
+
         this.requestRedraw();
 
         var self = this;
-        setTimeout(function() {self.refreshProgressiveCats();}, 1000);
+        setTimeout(function () { self.refreshProgressiveCats(); }, 1000);
     };
-    View.prototype.makeUniqLayerName = function(name) {
-        if (! this.layerNameExists(name)) {
+    View.prototype.makeUniqLayerName = function (name) {
+        if (!this.layerNameExists(name)) {
             return name;
         }
-        for (var k=1;;++k) {
+        for (var k = 1; ; ++k) {
             var newName = name + '_' + k;
-            if ( ! this.layerNameExists(newName)) {
+            if (!this.layerNameExists(newName)) {
                 return newName;
             }
         }
     };
-    View.prototype.layerNameExists = function(name) {
+    View.prototype.layerNameExists = function (name) {
         var c = this.allOverlayLayers;
-        for (var k=0; k<c.length; k++) {
-            if (name==c[k].name) {
+        for (var k = 0; k < c.length; k++) {
+            if (name == c[k].name) {
                 return true;
             }
         }
         return false;
     };
 
-    View.prototype.removeLayers = function() {
+    View.prototype.removeLayers = function () {
         this.catalogs = [];
         this.overlays = [];
         this.mocs = [];
@@ -1859,101 +1859,101 @@ export let View = (function() {
         this.requestRedraw();
     };
 
-    View.prototype.removeLayer = function(layer) {
+    View.prototype.removeLayer = function (layer) {
         let indexToDelete = this.allOverlayLayers.indexOf(layer);
         this.allOverlayLayers.splice(indexToDelete, 1);
 
-        if (layer.type=='catalog' || layer.type=='progressivecat') {
+        if (layer.type == 'catalog' || layer.type == 'progressivecat') {
             indexToDelete = this.catalogs.indexOf(layer);
             this.catalogs.splice(indexToDelete, 1);
         }
-        else if (layer.type=='moc') {
+        else if (layer.type == 'moc') {
             indexToDelete = this.mocs.indexOf(layer);
-            
+
             let moc = this.mocs.splice(indexToDelete, 1);
             console.log(moc);
             // remove from aladin lite backend
             moc[0].delete();
         }
-        else if (layer.type=='overlay') {
+        else if (layer.type == 'overlay') {
             indexToDelete = this.overlays.indexOf(layer);
             this.overlays.splice(indexToDelete, 1);
         }
 
-        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, {layer: layer});
+        ALEvent.GRAPHIC_OVERLAY_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
 
         this.requestRedraw();
     };
 
-    View.prototype.addCatalog = function(catalog) {
+    View.prototype.addCatalog = function (catalog) {
         catalog.name = this.makeUniqLayerName(catalog.name);
         this.allOverlayLayers.push(catalog);
         this.catalogs.push(catalog);
-        if (catalog.type=='catalog') {
+        if (catalog.type == 'catalog') {
             catalog.setView(this);
         }
-        else if (catalog.type=='progressivecat') {
+        else if (catalog.type == 'progressivecat') {
             catalog.init(this);
         }
     };
-    View.prototype.addOverlay = function(overlay) {
+    View.prototype.addOverlay = function (overlay) {
         overlay.name = this.makeUniqLayerName(overlay.name);
         this.overlays.push(overlay);
         this.allOverlayLayers.push(overlay);
         overlay.setView(this);
     };
-    
-    View.prototype.addMOC = function(moc) {
+
+    View.prototype.addMOC = function (moc) {
         moc.name = this.makeUniqLayerName(moc.name);
         moc.setView(this);
     };
-    
-    View.prototype.getObjectsInBBox = function(x, y, w, h) {
-        if (w<0) {
-            x = x+w;
+
+    View.prototype.getObjectsInBBox = function (x, y, w, h) {
+        if (w < 0) {
+            x = x + w;
             w = -w;
         }
-        if (h<0) {
-            y = y+h;
+        if (h < 0) {
+            y = y + h;
             h = -h;
         }
         var objList = [];
         var cat, sources, s;
         if (this.catalogs) {
-            for (var k=0; k<this.catalogs.length; k++) {
+            for (var k = 0; k < this.catalogs.length; k++) {
                 cat = this.catalogs[k];
                 if (!cat.isShowing) {
                     continue;
                 }
                 sources = cat.getSources();
-                for (var l=0; l<sources.length; l++) {
+                for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
                     if (!s.isShowing || !s.x || !s.y) {
                         continue;
                     }
-                    if (s.x>=x && s.x<=x+w && s.y>=y && s.y<=y+h) {
+                    if (s.x >= x && s.x <= x + w && s.y >= y && s.y <= y + h) {
                         objList.push(s);
                     }
                 }
             }
         }
         return objList;
-        
+
     };
 
     // update objLookup, lookup table 
-    View.prototype.updateObjectsLookup = function() {
+    View.prototype.updateObjectsLookup = function () {
         this.objLookup = [];
 
         var cat, sources, s, xRounded, yRounded;
         if (this.catalogs) {
-            for (var k=0; k<this.catalogs.length; k++) {
+            for (var k = 0; k < this.catalogs.length; k++) {
                 cat = this.catalogs[k];
                 if (!cat.isShowing) {
                     continue;
                 }
                 sources = cat.getSources();
-                for (var l=0; l<sources.length; l++) {
+                for (var l = 0; l < sources.length; l++) {
                     s = sources[l];
                     if (!s.isShowing || !s.x || !s.y) {
                         continue;
@@ -1969,30 +1969,30 @@ export let View = (function() {
                         this.objLookup[xRounded][yRounded] = [];
                     }
                     this.objLookup[xRounded][yRounded].push(s);
-                }       
-            }           
-        }     
+                }
+            }
+        }
     };
 
     // return closest object within a radius of maxRadius pixels. maxRadius is an integer
-    View.prototype.closestObjects = function(x, y, maxRadius) {
+    View.prototype.closestObjects = function (x, y, maxRadius) {
 
         // footprint selection code adapted from Fabrizio Giordano dev. from Serco for ESA/ESDC
         var overlay;
-        var canvas=this.catalogCanvas;
+        var canvas = this.catalogCanvas;
         var ctx = canvas.getContext("2d");
         // this makes footprint selection easier as the catch-zone is larger
         ctx.lineWidth = 6;
 
         if (this.overlays) {
-            for (var k=0; k<this.overlays.length; k++) {
+            for (var k = 0; k < this.overlays.length; k++) {
                 overlay = this.overlays[k];
-                for (var i=0; i<overlay.overlays.length;i++){
+                for (var i = 0; i < overlay.overlays.length; i++) {
 
                     // test polygons first
                     var footprint = overlay.overlays[i];
                     var pointXY = [];
-                    for(var j=0;j<footprint.polygons.length;j++){
+                    for (var j = 0; j < footprint.polygons.length; j++) {
 
                         /*var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
                                 this.projection,
@@ -2001,7 +2001,7 @@ export let View = (function() {
                                 this.largestDim,
                                 this.zoomFactor);*/
                         var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1], this);
-                        if (! xy) {
+                        if (!xy) {
                             continue;
                         }
                         pointXY.push({
@@ -2009,11 +2009,11 @@ export let View = (function() {
                             y: xy[1]
                         });
                     }
-                    for(var l=0; l<pointXY.length-1;l++){
+                    for (var l = 0; l < pointXY.length - 1; l++) {
 
                         ctx.beginPath();                        // new segment
                         ctx.moveTo(pointXY[l].x, pointXY[l].y);     // start is current point
-                        ctx.lineTo(pointXY[l+1].x, pointXY[l+1].y); // end point is next
+                        ctx.lineTo(pointXY[l + 1].x, pointXY[l + 1].y); // end point is next
                         if (ctx.isPointInStroke(x, y)) {        // x,y is on line?
                             closest = footprint;
                             return [closest];
@@ -2022,7 +2022,7 @@ export let View = (function() {
                 }
 
                 // test Circles
-                for (var i=0; i<overlay.overlay_items.length; i++) {
+                for (var i = 0; i < overlay.overlay_items.length; i++) {
                     if (overlay.overlay_items[i] instanceof Circle) {
                         overlay.overlay_items[i].draw(ctx, this, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
 
@@ -2039,22 +2039,22 @@ export let View = (function() {
             return null;
         }
         var closest, dist;
-        for (var r=0; r<=maxRadius; r++) {
+        for (var r = 0; r <= maxRadius; r++) {
             closest = dist = null;
-            for (var dx=-maxRadius; dx<=maxRadius; dx++) {
-                if (! this.objLookup[x+dx]) {
+            for (var dx = -maxRadius; dx <= maxRadius; dx++) {
+                if (!this.objLookup[x + dx]) {
                     continue;
                 }
-                for (var dy=-maxRadius; dy<=maxRadius; dy++) {
-                    if (this.objLookup[x+dx][y+dy]) {
-                        var d = dx*dx + dy*dy;
+                for (var dy = -maxRadius; dy <= maxRadius; dy++) {
+                    if (this.objLookup[x + dx][y + dy]) {
+                        var d = dx * dx + dy * dy;
                         if (!closest) {
-                            closest = this.objLookup[x+dx][y+dy];
+                            closest = this.objLookup[x + dx][y + dy];
                             dist = d;
                         }
-                        else if (d<dist) {
+                        else if (d < dist) {
                             dist = d;
-                            closest = this.objLookup[x+dx][y+dy];
+                            closest = this.objLookup[x + dx][y + dy];
                         }
                     }
                 }
@@ -2065,6 +2065,6 @@ export let View = (function() {
         }
         return null;
     };
-    
+
     return View;
 })();

@@ -174,7 +174,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             Some(PixelMetadata {
                 hips_url: hips_url.clone(),
                 url: url.to_string(),
-                value: data.lock().unwrap().unwrap().clone(),
+                value: data.lock().unwrap().unwrap(),
             })
         } else {
             None

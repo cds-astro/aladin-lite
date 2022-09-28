@@ -4,7 +4,7 @@ use cgmath::BaseFloat;
 pub struct ArcDeg<T: BaseFloat>(pub T);
 
 //pub const TWICE_PI: f64 = 6.28318530718;
-pub const PI: f64 = 3.14159265359;
+pub const PI: f64 = std::f64::consts::PI;
 
 impl<T> ArcDeg<T>
 where

@@ -148,17 +148,15 @@ impl ProjetedGrid {
         }
 
         self.text_renderer.begin_frame();
-        for label in self.labels.iter() {
-            if let Some(label) = label {
-                self.text_renderer.add_label(
-                    &label.content,
-                    &label.position.cast::<f32>().unwrap(),
-                    1.0,
-                    &self.color,
-                    self.opacity,
-                    cgmath::Rad(label.rot as f32),
-                );
-            }
+        for label in self.labels.iter().flatten() {
+            self.text_renderer.add_label(
+                &label.content,
+                &label.position.cast::<f32>().unwrap(),
+                1.0,
+                &self.color,
+                self.opacity,
+                cgmath::Rad(label.rot as f32),
+            );
         }
         self.text_renderer.end_frame();
 
@@ -188,26 +186,24 @@ impl ProjetedGrid {
             .unzip();
         self.labels = labels;
 
-        for label in self.labels.iter() {
-            if let Some(label) = label {
-                self.text_renderer.add_label(
-                    &label.content,
-                    &label.position.cast::<f32>().unwrap(),
-                    1.0,
-                    &self.color,
-                    self.opacity,
-                    cgmath::Rad(label.rot as f32),
-                );
-            }
+        for label in self.labels.iter().flatten() {
+            self.text_renderer.add_label(
+                &label.content,
+                &label.position.cast::<f32>().unwrap(),
+                1.0,
+                &self.color,
+                self.opacity,
+                cgmath::Rad(label.rot as f32),
+            );
         }
 
-        let mut vertices = vertices
+        let vertices = vertices
             .into_iter()
             .flatten()
-            .map(|v| Vector2::new(v.x as f32, v.y as f32))
+            .flat_map(|v| [v.x as f32, v.y as f32])
             .collect::<Vec<_>>();
         //self.lines = lines;
-        self.num_vertices = vertices.len();
+        self.num_vertices = vertices.len() >> 1;
 
         /*let vertices = unsafe {
             let len = vertices.len() << 1;
@@ -215,10 +211,10 @@ impl ProjetedGrid {
 
             Vec::from_raw_parts(vertices.as_mut_ptr() as *mut f32, len, cap)
         };*/
-        let vertices = unsafe {
+        /*let vertices = unsafe {
             vertices.set_len(self.num_vertices << 1);
             std::mem::transmute::<_, Vec<f32>>(vertices)
-        };
+        };*/
 
         #[cfg(feature = "webgl2")]
         self.vao.bind_for_update().update_array(
@@ -300,7 +296,7 @@ use std::borrow::Cow;
 
 use crate::math::{
     angle::Angle,
-    spherical::{BoundingBox, FieldOfViewType},
+    spherical::FieldOfViewType,
 };
 use cgmath::InnerSpace;
 use cgmath::Vector2;
@@ -605,10 +601,9 @@ const GRID_STEPS: &[f64] = &[
     0.08726646,
     0.17453292,
     0.34906584,
-    0.78539816339,
+    std::f64::consts::FRAC_PI_4,
 ];
 
-const NUM_LINES: usize = 4;
 fn lines<P: Projection>(
     camera: &CameraViewPort,
     //text_height: f64,
@@ -652,7 +647,6 @@ fn lines<P: Projection>(
 
     let max_dim_px = camera.get_width().max(camera.get_height()) as f64;
     let step_line_px =  max_dim_px * 0.2;
-    let fov = camera.get_aperture().0;
 
     let step_lon_precised = (bbox.get_lon_size() as f64) * step_line_px / (camera.get_width() as f64);
     let step_lat_precised = (bbox.get_lat_size() as f64) * step_line_px / (camera.get_height() as f64);

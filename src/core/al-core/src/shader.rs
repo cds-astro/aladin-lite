@@ -59,16 +59,15 @@ fn get_active_uniform_locations(gl: &WebGlContext, program: &WebGlProgram) -> Un
         .as_f64()
         .unwrap();
 
-    let uniforms = (0..num_uniforms as u32)
+    (0..num_uniforms as u32)
         .map(|idx_uniform| {
             let active_uniform = gl.get_active_uniform(program, idx_uniform).unwrap();
             let name_uniform = active_uniform.name();
             // Get the location by the name of the active uniform
-            let location_uniform = gl.get_uniform_location(&program, &name_uniform);
+            let location_uniform = gl.get_uniform_location(program, &name_uniform);
             (name_uniform, location_uniform)
         })
-        .collect::<HashMap<_, _>>();
-    uniforms
+        .collect::<HashMap<_, _>>()
 }
 
 use std::collections::HashMap;
@@ -80,8 +79,8 @@ pub struct Shader {
 use crate::webgl_ctx::WebGlContext;
 impl Shader {
     pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
-        let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, &vert_src)?;
-        let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, &frag_src)?;
+        let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, vert_src)?;
+        let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, frag_src)?;
 
         let program = link_program(gl, &[vert_shader, frag_shader])?;
         // Get the active uniforms

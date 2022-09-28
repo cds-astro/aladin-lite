@@ -95,7 +95,7 @@ impl VertexAttribPointerType for u8 {
 
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView {
         let data = data.get_slice();
-        unsafe { Self::ArrayBufferView::view(&data) }
+        unsafe { Self::ArrayBufferView::view(data) }
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -104,7 +104,7 @@ impl VertexAttribPointerType for u8 {
         target: u32,
     ) {
         let data = Self::array_buffer_view(data);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
+        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0_i32, &data);
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -150,7 +150,7 @@ impl VertexAttribPointerType for u16 {
 
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView {
         let data = data.get_slice();
-        unsafe { Self::ArrayBufferView::view(&data) }
+        unsafe { Self::ArrayBufferView::view(data) }
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -159,7 +159,7 @@ impl VertexAttribPointerType for u16 {
         target: u32,
     ) {
         let data = Self::array_buffer_view(data);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
+        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0_i32, &data);
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -205,7 +205,7 @@ impl VertexAttribPointerType for u32 {
 
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView {
         let data = data.get_slice();
-        unsafe { Self::ArrayBufferView::view(&data) }
+        unsafe { Self::ArrayBufferView::view(data) }
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -214,7 +214,7 @@ impl VertexAttribPointerType for u32 {
         target: u32,
     ) {
         let data = Self::array_buffer_view(data);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
+        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0_i32, &data);
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -260,7 +260,7 @@ impl VertexAttribPointerType for i32 {
 
     fn array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(data: B) -> Self::ArrayBufferView {
         let data = data.get_slice();
-        unsafe { Self::ArrayBufferView::view(&data) }
+        unsafe { Self::ArrayBufferView::view(data) }
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -269,7 +269,7 @@ impl VertexAttribPointerType for i32 {
         target: u32,
     ) {
         let data = Self::array_buffer_view(data);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
+        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0_i32, &data);
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -311,8 +311,8 @@ impl VertexAttribPointerType for f32 {
 
         let len = data.len();
         let ptr = data.as_ptr() as u32 / 4;
-        let data = Float32Array::new(&memory_buffer).subarray(ptr, ptr + len as u32);
-        data
+        Float32Array::new(&memory_buffer)
+            .subarray(ptr, ptr + len as u32)
     }
 
     fn buffer_sub_data_with_i32_and_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(
@@ -328,7 +328,7 @@ impl VertexAttribPointerType for f32 {
         );*/
 
         let data = Self::array_buffer_view(data);
-        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0 as i32, &data);
+        gl.buffer_sub_data_with_i32_and_array_buffer_view(target, 0_i32, &data);
     }
 
     fn buffer_data_with_array_buffer_view<'a, B: BufferDataStorage<'a, Self>>(

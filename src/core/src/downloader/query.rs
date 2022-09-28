@@ -157,14 +157,14 @@ impl Query for PixelMetadata {
 }
 
 /* ---------------------------------- */
-pub struct MOC {
+pub struct Moc {
     // The total url of the query
     pub url: Url,
     pub params: al_api::moc::MOC,
 }
-impl MOC {
+impl Moc {
     pub fn new(url: String, params: al_api::moc::MOC) -> Self {
-        MOC {
+        Moc {
             url,
             params,
         }
@@ -172,7 +172,7 @@ impl MOC {
 }
 
 use super::request::moc::MOCRequest;
-impl Query for MOC {
+impl Query for Moc {
     type Request = MOCRequest;
 
     fn url(&self) -> &Url {

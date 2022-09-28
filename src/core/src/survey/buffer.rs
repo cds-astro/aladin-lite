@@ -465,7 +465,8 @@ impl ImageSurveyTextures {
         }
     }
 
-    pub fn is_there_available_tiles(&mut self) -> bool {
+    // Return if tiles did become available
+    pub fn reset_available_tiles(&mut self) -> bool {
         let available_tiles_during_frame = self.available_tiles_during_frame;
         self.available_tiles_during_frame = false;
 

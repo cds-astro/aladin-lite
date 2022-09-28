@@ -12,7 +12,7 @@ pub mod log;
 pub use log::log;
 
 pub use texture::pixel;
-pub use texture::texture::{Texture2D, Texture2DBound};
+pub use texture::{Texture2D, Texture2DBound};
 pub use texture::Texture2DArray;
 
 pub use webgl_ctx::WebGlContext;

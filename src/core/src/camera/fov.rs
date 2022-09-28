@@ -130,7 +130,7 @@ impl FieldOfViewVertices {
             (FieldOfViewType::Allsky, HEALPixCoverage::allsky())
         };*/
         let great_circles = if let Some(vertices) = &model_coo {
-            FieldOfViewType::new_polygon(vertices, &center)
+            FieldOfViewType::new_polygon(vertices, center)
         } else {
             FieldOfViewType::Allsky
         };
@@ -175,7 +175,7 @@ impl FieldOfViewVertices {
 
     fn set_great_circles<P: Projection>(&mut self, center: &Vector4<f64>) {
         if let Some(vertices) = &self.model_coo {
-            self.great_circles = FieldOfViewType::new_polygon(&vertices, center);
+            self.great_circles = FieldOfViewType::new_polygon(vertices, center);
             /*if self.great_circles.contains_both_poles() {
                 self.great_circles = FieldOfViewType::Allsky;
             }*/

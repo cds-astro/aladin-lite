@@ -106,7 +106,7 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
-        let app = AppType::OrthoApp(App::<Orthographic>::new(
+        let app = AppType::Ortho(App::<Orthographic>::new(
             &gl,
             aladin_div_name,
             shaders,
@@ -180,25 +180,25 @@ impl WebClient {
     ) -> Result<WebClient, JsValue> {
         match projection.as_str() {
             "AIT" => {
-                self.app = AppType::AitoffApp(self.app.set_projection::<Aitoff>(width, height));
+                self.app = AppType::Ait(self.app.set_projection::<Aitoff>(width, height));
             },
             "SIN" => {
-                self.app = AppType::OrthoApp(self.app.set_projection::<Orthographic>(width, height));
+                self.app = AppType::Ortho(self.app.set_projection::<Orthographic>(width, height));
             },
             "MOL" => {
-                self.app = AppType::MollweideApp(self.app.set_projection::<Mollweide>(width, height));
+                self.app = AppType::Mol(self.app.set_projection::<Mollweide>(width, height));
             },
             "ARC" => {
-                self.app = AppType::ArcApp(self.app.set_projection::<AzimuthalEquidistant>(width, height));
+                self.app = AppType::Arc(self.app.set_projection::<AzimuthalEquidistant>(width, height));
             },
             "TAN" => {
-                self.app = AppType::TanApp(self.app.set_projection::<Gnomonic>(width, height));
+                self.app = AppType::Tan(self.app.set_projection::<Gnomonic>(width, height));
             },
             "MER" => {
-                self.app = AppType::MercatorApp(self.app.set_projection::<Mercator>(width, height));
+                self.app = AppType::Mer(self.app.set_projection::<Mercator>(width, height));
             },
             "HPX" => {
-                self.app = AppType::HEALPixApp(self.app.set_projection::<HEALPix>(width, height));
+                self.app = AppType::Hpx(self.app.set_projection::<HEALPix>(width, height));
             },
             _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted", projection).into()),
         }
@@ -810,7 +810,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = readPixel)]
     pub fn read_pixel(&self, x: f64, y: f64, layer: String) -> Result<JsValue, JsValue> {
         let pixel = self.app.read_pixel(&Vector2::new(x, y), layer.as_str())?;
-        Ok(pixel.into())
+        Ok(pixel)
     }
 
     /*/// TODO! This will be removed when integrating the MOC code in wasm because
@@ -919,7 +919,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = mocContains)]
     pub fn moc_contains(&mut self, params: &al_api::moc::MOC, lon: f64, lat: f64) -> Result<bool, JsValue> {
-        let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
+        let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
         
         let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
 
@@ -928,7 +928,7 @@ impl WebClient {
 
     #[wasm_bindgen(js_name = mocSkyFraction)]
     pub fn moc_sky_fraction(&mut self, params: &al_api::moc::MOC) -> Result<f32, JsValue> {
-        let moc = self.app.get_moc(params).ok_or(JsValue::from(js_sys::Error::new("MOC not found")))?;
+        let moc = self.app.get_moc(params).ok_or_else(|| JsValue::from(js_sys::Error::new("MOC not found")))?;
 
         Ok(moc.coverage_percentage() as f32)
     }

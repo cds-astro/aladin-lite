@@ -22,11 +22,7 @@ fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> b
         .iter()
         .filter_map(|(lon, lat)| {
             let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            if let Some(position) = P::view_to_screen_space(&vertex, camera) {
-                Some(position)
-            } else {
-                None
-            }
+            P::view_to_screen_space(&vertex, camera)
         })
         .collect::<Vec<_>>();
 
@@ -344,126 +340,6 @@ pub fn get_raytracer_shader<'a, P: Projection>(
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
 use cgmath::{Vector3, Vector4, Vector2};
 use render::rasterizer::uv::{TileCorner, TileUVW};
-//#[cfg(feature = "webgl1")]
-fn add_vertices_grid<P: Projection>(
-    cell: &HEALPixCell,
-    position: &mut Vec<f32>,
-    uv_start: &mut Vec<f32>,
-    uv_end: &mut Vec<f32>,
-    time_tile_received: &mut Vec<f32>,
-    m0: &mut Vec<f32>,
-    m1: &mut Vec<f32>,
-
-    indices: &mut Vec<u16>,
-
-    //cell: &HEALPixCell,
-    //sphere_sub: &SphereSubdivided,
-    uv_0: &TileUVW,
-    uv_1: &TileUVW,
-    miss_0: f32,
-    miss_1: f32,
-
-    alpha: f32,
-
-    camera: &CameraViewPort,
-    v2w: &Matrix4<f64>,
-) {
-    let longitude_reversed = camera.get_longitude_reversed();
-    let num_subdivision = num_subdivision::<P>(cell, camera);
-
-    let n_segments_by_side: usize = 1 << (num_subdivision as usize);
-    let n_vertices_per_segment = n_segments_by_side + 1;
-
-    // Indices overwritten
-    let off_idx_vertices = (position.len() / 2) as u16;
-
-    let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-    let n_segments_by_side_f32 = n_segments_by_side as f32;
-    for i in 0..n_vertices_per_segment {
-        for j in 0..n_vertices_per_segment {
-            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
-            let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
-
-            //position.extend([model_pos.x as f32, model_pos.y as f32, model_pos.z as f32]);
-            /*if let Some(ndc_pos) = P::world_to_normalized_device_space(&world_pos, camera) {
-                position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
-            } else {
-                position.extend(world_to_clip_space_unchecked);
-            }*/
-
-            let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
-            position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
-
-            let hj0 = (j as f32) / n_segments_by_side_f32;
-            let hi0 = (i as f32) / n_segments_by_side_f32;
-
-            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-
-            let uv_s_vertex_0 = Vector3::new(
-                uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                uv_0[TileCorner::BottomLeft].z,
-            );
-
-            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-            let uv_e_vertex_0 = Vector3::new(
-                uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                uv_1[TileCorner::BottomLeft].z,
-            );
-
-            uv_start.extend([
-                uv_s_vertex_0.x as f32,
-                uv_s_vertex_0.y as f32,
-                uv_s_vertex_0.z as f32,
-            ]);
-            uv_end.extend([
-                uv_e_vertex_0.x as f32,
-                uv_e_vertex_0.y as f32,
-                uv_e_vertex_0.z as f32,
-            ]);
-            time_tile_received.push(alpha);
-            m0.push(miss_0);
-            m1.push(miss_1);
-        }
-    }
-
-    for i in 0..n_segments_by_side {
-        for j in 0..n_segments_by_side {            
-            let idx_0 = (j + i * n_vertices_per_segment) as u16;
-            let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-            let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-            let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
-
-            let i0 = 2*(idx_0 + off_idx_vertices) as usize;
-            let i1 = 2*(idx_1 + off_idx_vertices) as usize;
-            let i2 = 2*(idx_2 + off_idx_vertices) as usize;
-            let i3 = 2*(idx_3 + off_idx_vertices) as usize;
-
-            let c0 = Vector2::new(position[i0], position[i0 + 1]);
-            let c1 = Vector2::new(position[i1], position[i1 + 1]);
-            let c2 = Vector2::new(position[i2], position[i2 + 1]);
-            let c3 = Vector2::new(position[i3], position[i3 + 1]);
-    
-            let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
-            let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
-
-            if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
-                indices.push(off_idx_vertices + idx_0);
-                indices.push(off_idx_vertices + idx_1);
-                indices.push(off_idx_vertices + idx_2);
-            }
-
-            if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
-                indices.push(off_idx_vertices + idx_1);
-                indices.push(off_idx_vertices + idx_3);
-                indices.push(off_idx_vertices + idx_2);
-            }
-        }
-    }
-}
 
 // This method computes positions and UVs of a healpix cells
 use al_core::VertexArrayObject;
@@ -679,7 +555,7 @@ impl ImageSurvey {
     }
 
     fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
-        let vertices_recomputation_needed = self.textures.is_there_available_tiles() | camera.has_moved();
+        let vertices_recomputation_needed = self.textures.reset_available_tiles() | camera.has_moved();
         if vertices_recomputation_needed {
             self.recompute_vertices::<P>(camera);
         }
@@ -702,10 +578,9 @@ impl ImageSurvey {
     pub fn get_fading_factor(&self) -> f32 {
         self.textures
             .start_time
-            .and_then(|start_time| {
-                let fading = ((Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION)
-                    .clamp(0.0, 1.0);
-                Some(fading)
+            .map(|start_time| {
+                let fading = (Time::now().0 - start_time.0) / crate::app::BLENDING_ANIM_DURATION;
+                fading.clamp(0.0, 1.0)
             })
             .unwrap_or(0.0)
     }
@@ -744,7 +619,7 @@ impl ImageSurvey {
         if cfg.tex_storing_fits {
             let value = value
                 .as_f64()
-                .ok_or(JsValue::from_str("Error unwraping the pixel read value."))?;
+                .ok_or_else(|| JsValue::from_str("Error unwraping the pixel read value."))?;
             let scale = cfg.scale as f64;
             let offset = cfg.offset as f64;
 
@@ -798,6 +673,8 @@ impl ImageSurvey {
         let w2v = c * (*camera.get_w2m());
         let v2w = w2v.transpose();
 
+        let longitude_reversed = camera.get_longitude_reversed();
+
         for TextureToDraw {
             starting_texture,
             ending_texture,
@@ -805,27 +682,98 @@ impl ImageSurvey {
         } in textures.iter() {
             let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
             let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
-            let start_time = ending_texture.start_time();
+            let start_time = ending_texture.start_time().as_millis();
 
             let miss_0 = (starting_texture.is_missing()) as i32 as f32;
             let miss_1 = (ending_texture.is_missing()) as i32 as f32;
-            add_vertices_grid::<P>(
-                cell,
-                &mut self.position,
-                &mut self.uv_start,
-                &mut self.uv_end,
-                &mut self.time_tile_received,
-                &mut self.m0,
-                &mut self.m1,
-                &mut self.idx_vertices,
-                &uv_0,
-                &uv_1,
-                miss_0,
-                miss_1,
-                start_time.as_millis(),
-                camera,
-                &v2w,
-            );
+            
+            let num_subdivision = num_subdivision::<P>(cell, camera);
+
+            let n_segments_by_side: usize = 1 << (num_subdivision as usize);
+            let n_vertices_per_segment = n_segments_by_side + 1;
+
+            // Indices overwritten
+            let off_idx_vertices = (self.position.len() / 2) as u16;
+
+            let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
+            let n_segments_by_side_f32 = n_segments_by_side as f32;
+            for i in 0..n_vertices_per_segment {
+                for j in 0..n_vertices_per_segment {
+                    let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+                    let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
+
+                    let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
+                    self.position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
+
+                    let hj0 = (j as f32) / n_segments_by_side_f32;
+                    let hi0 = (i as f32) / n_segments_by_side_f32;
+
+                    let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+                    let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+
+                    let uv_s_vertex_0 = Vector3::new(
+                        uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
+                        uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
+                        uv_0[TileCorner::BottomLeft].z,
+                    );
+
+                    let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+                    let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
+                    let uv_e_vertex_0 = Vector3::new(
+                        uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
+                        uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
+                        uv_1[TileCorner::BottomLeft].z,
+                    );
+
+                    self.uv_start.extend([
+                        uv_s_vertex_0.x as f32,
+                        uv_s_vertex_0.y as f32,
+                        uv_s_vertex_0.z as f32,
+                    ]);
+                    self.uv_end.extend([
+                        uv_e_vertex_0.x as f32,
+                        uv_e_vertex_0.y as f32,
+                        uv_e_vertex_0.z as f32,
+                    ]);
+                    self.time_tile_received.push(start_time);
+                    self.m0.push(miss_0);
+                    self.m1.push(miss_1);
+                }
+            }
+
+            for i in 0..n_segments_by_side {
+                for j in 0..n_segments_by_side {            
+                    let idx_0 = (j + i * n_vertices_per_segment) as u16;
+                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
+                    let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
+                    let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+
+                    let i0 = 2*(idx_0 + off_idx_vertices) as usize;
+                    let i1 = 2*(idx_1 + off_idx_vertices) as usize;
+                    let i2 = 2*(idx_2 + off_idx_vertices) as usize;
+                    let i3 = 2*(idx_3 + off_idx_vertices) as usize;
+
+                    let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
+                    let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
+                    let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
+                    let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
+            
+                    let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+                    let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+
+                    if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
+                        self.idx_vertices.push(off_idx_vertices + idx_0);
+                        self.idx_vertices.push(off_idx_vertices + idx_1);
+                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                    }
+
+                    if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
+                        self.idx_vertices.push(off_idx_vertices + idx_1);
+                        self.idx_vertices.push(off_idx_vertices + idx_3);
+                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                    }
+                }
+            }
         }
         self.num_idx = self.idx_vertices.len();
 
@@ -1091,11 +1039,11 @@ impl ImageSurvey {
 
 use cgmath::Matrix4;
 // Identity matrix
-const ID: &'static Matrix4<f64> = &Matrix4::new(
+const ID: &Matrix4<f64> = &Matrix4::new(
     1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
 );
 // Longitude reversed identity matrix
-const ID_R: &'static Matrix4<f64> = &Matrix4::new(
+const ID_R: &Matrix4<f64> = &Matrix4::new(
     -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
 );
 
@@ -1274,7 +1222,7 @@ impl ImageSurveys {
                     .fold(std::f32::MAX, |mut a, s| {
                         a = a.min(s.get_fading_factor()); a
                     });
-                raytracer.draw_font_color(&shader_font, &ColorRGB {r: 0.19215686274 * opacity, g: 0.49019607843 * opacity, b: 0.55294117647 * opacity}, opacity);
+                raytracer.draw_font_color(&shader_font, &ColorRGB {r: 0.05 * opacity, g: 0.05 * opacity, b: 0.05 * opacity}, opacity);
             }
         }
 
@@ -1414,7 +1362,7 @@ impl ImageSurveys {
     pub fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.meta
             .get(layer)
-            .map(|x| x.clone())
+            .cloned()
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 

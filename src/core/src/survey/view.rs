@@ -42,9 +42,7 @@ pub fn vertices<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> R
 use al_api::cell::HEALPixCellProjeted;
 
 pub trait HEALPixCellProjection: Projection {
-    fn project(cell: HEALPixCellProjeted, _: &CameraViewPort) -> Option<HEALPixCellProjeted> {
-        Some(cell)
-    }
+    fn project(cell: HEALPixCellProjeted, _: &CameraViewPort) -> Option<HEALPixCellProjeted>;
 }
 
 macro_rules! impl_default_hpx_cell_proj {
@@ -77,7 +75,7 @@ impl HEALPixCellProjection for HEALPix {
 
         let is_in_collignon = |_x: f64, y: f64| -> bool {
             let y = (((y as f32) / camera.get_height()) - 0.5) * (camera.get_clip_zoom_factor() as f32);
-            y < -0.25 || y > 0.25
+            !(-0.25..=0.25).contains(&y)
         };
 
         if is_in_collignon(cell.vx[0], cell.vy[0]) && is_in_collignon(cell.vx[1], cell.vy[1]) && is_in_collignon(cell.vx[2], cell.vy[2]) && is_in_collignon(cell.vx[3], cell.vy[3]) {
@@ -145,28 +143,26 @@ use healpix::coverage::HEALPixCoverage;
 pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &CooSystem) -> HEALPixCoverage {
     if depth <= 1 {
         HEALPixCoverage::allsky(depth)
+    } else if let Some(vertices) = camera.get_vertices() {
+        // The vertices coming from the camera are in a specific coo sys
+        // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
+        let camera_frame = camera.get_system();
+        let vertices = vertices
+            .iter()
+            .map(|v| coosys::apply_coo_system(camera_frame, dst_frame, v))
+            .collect::<Vec<_>>();
+
+        let inside_vertex = camera.get_center();
+        let inside_vertex = coosys::apply_coo_system(camera_frame, dst_frame, inside_vertex);
+
+        // Prefer to query from_polygon with depth >= 2
+        HEALPixCoverage::new(
+            depth,
+            &vertices[..],
+            &inside_vertex.truncate(),
+        )
     } else {
-        if let Some(vertices) = camera.get_vertices() {
-            // The vertices coming from the camera are in a specific coo sys
-            // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
-            let camera_frame = camera.get_system();
-            let vertices = vertices
-                .iter()
-                .map(|v| coosys::apply_coo_system(camera_frame, dst_frame, v))
-                .collect::<Vec<_>>();
-
-            let inside_vertex = camera.get_center();
-            let inside_vertex = coosys::apply_coo_system(camera_frame, &dst_frame, &inside_vertex);
-
-            // Prefer to query from_polygon with depth >= 2
-            HEALPixCoverage::new(
-                depth,
-                &vertices[..],
-                &inside_vertex.truncate(),
-            )
-        } else {
-            HEALPixCoverage::allsky(depth)
-        }
+        HEALPixCoverage::allsky(depth)
     }
 }
 
@@ -177,7 +173,7 @@ pub fn get_tile_cells_in_camera(
     camera: &CameraViewPort,
     hips_frame: &CooSystem,
 ) -> (HEALPixCoverage, Vec<HEALPixCell>) {
-    let moc = compute_view_coverage(camera, depth_tile, &hips_frame);
+    let moc = compute_view_coverage(camera, depth_tile, hips_frame);
     let cells = moc.flatten_to_fixed_depth_cells()
         .map(|idx| {
             HEALPixCell(depth_tile, idx)
@@ -204,6 +200,12 @@ pub struct HEALPixCellsInView {
     is_new_cells_added: bool,
 
     coverage: HEALPixCoverage,
+}
+
+impl Default for HEALPixCellsInView {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 use crate::camera::CameraViewPort;

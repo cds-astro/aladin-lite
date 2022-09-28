@@ -58,7 +58,7 @@ impl ArrayBufferInstanced {
         // Link to the shader
         let idx = offset_idx;
 
-        f32::vertex_attrib_pointer_with_i32(&gl, idx, *sizes.first().unwrap() as i32, 0, 0);
+        f32::vertex_attrib_pointer_with_i32(gl, idx, *sizes.first().unwrap() as i32, 0, 0);
         gl.enable_vertex_attrib_array(idx);
 
         #[cfg(feature = "webgl2")]

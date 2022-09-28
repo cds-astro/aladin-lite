@@ -281,14 +281,12 @@ impl CameraViewPort {
             };
 
             aperture
+        } else if P::ALLOW_UNZOOM_MORE {
+            self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+            aperture
         } else {
-            if P::ALLOW_UNZOOM_MORE {
-                self.clip_zoom_factor = (aperture / P::aperture_start()).0;
-                aperture
-            } else {
-                self.clip_zoom_factor = 1.0;
-                P::aperture_start()
-            }
+            self.clip_zoom_factor = 1.0;
+            P::aperture_start()
         };
 
         // Project this vertex into the screen

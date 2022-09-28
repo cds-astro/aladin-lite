@@ -40,7 +40,7 @@ impl WebGlContext {
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
         let context_options =
-            js_sys::JSON::parse(&"{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
+            js_sys::JSON::parse("{\"antialias\":false, \"preserveDrawingBuffer\": true}")?;
 
         #[cfg(feature = "webgl1")]
         let gl = Rc::new(
@@ -94,7 +94,7 @@ where
         .get_extension(name)
         .ok()
         .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
-        .ok_or(JsValue::from_str(&format!("Failed to load ext: {}", name)))
+        .ok_or_else(|| JsValue::from_str(&format!("Failed to load ext: {}", name)))
 }
 
 use std::ops::Deref;
@@ -107,12 +107,12 @@ impl Deref for WebGlContext {
 }
 
 pub trait GlWrapper {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ());
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce());
 }
 
 use al_api::blend::{BlendCfg, BlendFactor};
 impl GlWrapper for BlendCfg {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> ()) {
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce()) {
         let blend_factor_f = |f: &BlendFactor| -> u32 {
             match f {
                 BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,

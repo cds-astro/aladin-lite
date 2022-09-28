@@ -15,7 +15,7 @@ pub fn angle3<S: BaseFloat>(x: &Vector3<S>, y: &cgmath::Vector3<S>) -> Angle<S> 
 pub fn dist2(a: &Vector2<f64>, b: &Vector2<f64>) -> f64 {
     let dx = a.x - b.x;
     let dy = a.y - b.y;
-    return  dx*dx + dy*dy;
+     dx*dx + dy*dy
 }
 
 #[inline]

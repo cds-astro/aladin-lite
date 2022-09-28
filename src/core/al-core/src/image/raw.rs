@@ -10,6 +10,13 @@ where
     size: Vector2<i32>,
 }
 
+pub struct ImageBufferView {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+}
+
 use wasm_bindgen::JsValue;
 impl<T> ImageBuffer<T>
 where
@@ -24,7 +31,7 @@ where
     }
 
     pub fn from_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
-        let format = <T as ImageFormat>::IMAGE_DECODER_TYPE.ok_or(JsValue::from_str(
+        let format = <T as ImageFormat>::IMAGE_DECODER_TYPE.ok_or_else(|| JsValue::from_str(
             "Format not supported. This image may not be compressed.",
         ))?;
         let mut decoded_bytes = image_decoder::load_from_memory_with_format(raw_bytes, format)
@@ -62,20 +69,14 @@ where
     pub fn tex_sub(
         &mut self,
         src: &Self,
-        sx: i32,
-        sy: i32,
-        sw: i32,
-        sh: i32,
-        dx: i32,
-        dy: i32,
-        dw: i32,
-        _dh: i32,
+        s: &ImageBufferView,
+        d: &ImageBufferView,
     ) {
-        let mut di = dx;
-        let mut dj = dy;
+        let mut di = d.x;
+        let mut dj = d.y;
 
-        for ix in sx..(sx + sw) {
-            for iy in sy..(sy + sh) {
+        for ix in s.x..(s.x + s.w) {
+            for iy in s.y..(s.y + s.h) {
                 let s_idx = (iy * src.width() + ix) as usize;
                 let d_idx = (di * self.width() + dj) as usize;
 
@@ -87,8 +88,8 @@ where
                 }
 
                 di += 1;
-                if di >= dx + dw {
-                    di = dx;
+                if di >= d.x + d.w {
+                    di = d.x;
                     dj += 1;
                 }
             }

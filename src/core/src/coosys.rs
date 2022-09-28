@@ -8,7 +8,7 @@ use al_api::coo_system::CooSystem;
 /// The core projections are always performed in icrs j2000
 /// so one must call these methods to convert them to icrs before.
 #[inline]
-pub fn apply_coo_system<'a, S>(c1: &CooSystem, c2: &CooSystem, v1: &Vector4<S>) -> Vector4<S>
+pub fn apply_coo_system<S>(c1: &CooSystem, c2: &CooSystem, v1: &Vector4<S>) -> Vector4<S>
 where
     S: BaseFloat + CooBaseFloat,
 {

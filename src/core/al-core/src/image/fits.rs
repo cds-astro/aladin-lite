@@ -51,22 +51,14 @@ where
                 .map_err(|e| JsValue::from_str(&format!("Parsing FITS error: {:?}", e)))?
         };
 
-        let bscale = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BSCALE") {
-            if let FITSKeywordValue::FloatingPoint(bscale) = value {
-                *bscale as f32
-            } else {
-                1.0
-            }
+        let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
+            *bscale as f32
         } else {
             1.0
         };
 
-        let bzero = if let Some(FITSHeaderKeyword::Other { value, .. }) = header.get("BZERO") {
-            if let FITSKeywordValue::FloatingPoint(bzero) = value {
-                *bzero as f32
-            } else {
-                0.0
-            }
+        let bzero = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
+            *bzero as f32
         } else {
             0.0
         };
@@ -83,7 +75,7 @@ where
                 FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
                 _ => None,
             })
-            .ok_or(JsValue::from_str("NAXIS1 not found in the fits"))?;
+            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
 
         let height = header
             .get("NAXIS2")
@@ -91,7 +83,7 @@ where
                 FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
                 _ => None,
             })
-            .ok_or(JsValue::from_str("NAXIS2 not found in the fits"))?;
+            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
 
         Ok(Self {
             // Metadata fits header properties
@@ -174,6 +166,16 @@ pub trait FitsImageFormat: ImageFormat {
     type Type: ToBigEndian + Clone;
     type ArrayBufferView: AsRef<js_sys::Object>;
 
+    /// Creates a JS typed array which is a view into wasm's linear memory at the slice specified.
+    /// This function returns a new typed array which is a view into wasm's memory. This view does not copy the underlying data.
+    ///
+    /// # Safety
+    ///
+    /// Views into WebAssembly memory are only valid so long as the backing buffer isn't resized in JS. Once this function is called any future calls to Box::new (or malloc of any form) may cause the returned value here to be invalidated. Use with caution!
+    ///
+    /// Additionally the returned object can be safely mutated but the input slice isn't guaranteed to be mutable.
+    ///
+    /// Finally, the returned object is disconnected from the input slice's lifetime, so there's no guarantee that the data is read at the right time.
     unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView;
 }
 

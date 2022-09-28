@@ -2,6 +2,9 @@ use super::array_buffer::VertexAttribPointerType;
 
 pub trait BufferDataStorage<'a, T: VertexAttribPointerType> {
     fn get_slice(&self) -> &[T];
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     fn len(&self) -> usize;
     fn ptr(&self) -> *const T;

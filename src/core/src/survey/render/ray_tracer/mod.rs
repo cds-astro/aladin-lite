@@ -208,7 +208,7 @@ impl RayTracer {
         // create position data
         let data = generate_xyz_position::<P>();
         let position_tex = create_f32_texture_from_raw(
-            &gl,
+            gl,
             SIZE_POSITION_TEX as i32,
             SIZE_POSITION_TEX as i32,
             &data,

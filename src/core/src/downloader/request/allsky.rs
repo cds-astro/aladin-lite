@@ -25,7 +25,7 @@ use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 
-use al_core::{image::raw::ImageBuffer, texture::Pixel};
+use al_core::{image::raw::ImageBuffer, texture::pixel::Pixel};
 use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
@@ -196,7 +196,7 @@ impl From<query::Allsky> for AllskyRequest {
 }
 
 use al_core::image::format::ImageFormat;
-
+use al_core::image::raw::ImageBufferView;
 async fn handle_allsky_file<F: ImageFormat>(
     allsky: ImageBuffer<F>,
     allsky_tile_size: i32,
@@ -219,7 +219,20 @@ async fn handle_allsky_file<F: ImageFormat>(
 
             let sx = (src_idx % 27) * allsky_tile_size;
             let sy = (src_idx / 27) * allsky_tile_size;
-            base_tile.tex_sub(&allsky, sx as i32, sy, allsky_tile_size, allsky_tile_size, dx as i32, dy as i32, allsky_tile_size, allsky_tile_size);
+            let s = ImageBufferView {
+                x: sx as i32,
+                y: sy as i32,
+                w: allsky_tile_size as i32,
+                h: allsky_tile_size as i32
+            };
+            let d = ImageBufferView {
+                x: dx as i32,
+                y: dy as i32,
+                w: allsky_tile_size as i32,
+                h: allsky_tile_size as i32
+            };
+
+            base_tile.tex_sub(&allsky, &s, &d);
 
             src_idx += 1;
         }
@@ -243,7 +256,7 @@ async fn handle_allsky_fits<F: ImageFormat>(
         .chunks(width_allsky_px as usize)
         .rev()
         .flatten()
-        .map(|e| *e)
+        .copied()
         .collect::<Vec<_>>();
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);

@@ -32,16 +32,16 @@ pub struct MOC {
 use crate::survey::view::HEALPixCellsInView;
 use cgmath::Vector2;
 
-fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+fn path_along_edge<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
     let vertices = cell
         .path_along_cell_edge(n_segment_by_side as u32)
-        .into_iter()
+        .iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
             
             P::model_to_ndc_space(&xyzw, camera)
-                .and_then(|v| Some([v.x as f32, v.y as f32]))
+                .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -54,28 +54,41 @@ fn path_along_edge<P: Projection>(cell: &HEALPixCell, n_segment_by_side: usize, 
     let reversed_longitude = camera.get_longitude_reversed();
 
     if cell_inside {
-        let c0 = Vector2::new(vertices[0], vertices[1]);
-        let c1 = Vector2::new(vertices[2*n_segment_by_side], vertices[2*n_segment_by_side + 1]);
-        let c2 = Vector2::new(vertices[2*2*n_segment_by_side], vertices[2*2*n_segment_by_side + 1]);
-        let c3 = Vector2::new(vertices[3*2*n_segment_by_side], vertices[3*2*n_segment_by_side + 1]);
+        let c0 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[0] as f64, vertices[1] as f64), camera);
+        let c1 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*n_segment_by_side] as f64, vertices[2*n_segment_by_side + 1] as f64), camera);
+        let c2 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*2*n_segment_by_side] as f64, vertices[2*2*n_segment_by_side + 1] as f64), camera);
+        let c3 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[3*2*n_segment_by_side] as f64, vertices[3*2*n_segment_by_side + 1] as f64), camera);
 
-        let first_tri_ccw = !crate::math::vector::ccw_tri(&c0, &c1, &c2);
-        let second_tri_ccw = !crate::math::vector::ccw_tri(&c1, &c2, &c3);
-        let third_tri_ccw = !crate::math::vector::ccw_tri(&c2, &c3, &c0);
-        let fourth_tri_ccw = !crate::math::vector::ccw_tri(&c3, &c0, &c1);
+        let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+        let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c2, &c3);
+        let third_tri_ccw = crate::math::vector::ccw_tri(&c2, &c3, &c0);
+        let fourth_tri_ccw = crate::math::vector::ccw_tri(&c3, &c0, &c1);
 
         let invalid_cell = invalid_tri(first_tri_ccw, reversed_longitude) || invalid_tri(second_tri_ccw, reversed_longitude) || invalid_tri(third_tri_ccw, reversed_longitude) || invalid_tri(fourth_tri_ccw, reversed_longitude);
 
         if !invalid_cell {
-            // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-            let num_vertices = 4 * n_segment_by_side as u32;
-            let indices = std::iter::once(*idx_off as u32)
-                .chain((2..2*num_vertices).map(|idx| idx / 2 + *idx_off))
-                .chain(std::iter::once(*idx_off as u32))
-                .collect();
-            *idx_off += num_vertices;
+            let vx = [c0.x, c1.x, c2.x, c3.x];
+            let vy = [c0.y, c1.y, c2.y, c3.y];
 
-            Some((vertices, indices))
+            let projeted_cell = HEALPixCellProjeted {
+                ipix: cell.idx(),
+                vx,
+                vy
+            };
+
+            if P::project(projeted_cell, camera).is_none() {
+                None
+            } else {
+                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                let num_vertices = 4 * n_segment_by_side as u32;
+                let indices = std::iter::once(*idx_off as u32)
+                    .chain((2..2*num_vertices).map(|idx| idx / 2 + *idx_off))
+                    .chain(std::iter::once(*idx_off as u32))
+                    .collect();
+                *idx_off += num_vertices;
+
+                Some((vertices, indices))
+            }
         } else {
             None
         }
@@ -89,13 +102,13 @@ fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell,
 
     let vertices = cell
         .grid(n_segment_by_side as u32)
-        .into_iter()
+        .iter()
         .filter_map(|(lon, lat)| {
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
             P::model_to_ndc_space(&xyzw, camera)
-                .and_then(|v| Some([v.x as f32, v.y as f32]))
+                .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -119,29 +132,28 @@ fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell,
                 let idx_2 = j + (i + 1) * n_vertices_per_segment;
                 let idx_3 = j + 1 + (i + 1) * n_vertices_per_segment;
 
-                let c0 = Vector2::new(vertices[2*idx_0], vertices[2*idx_0 + 1]);
-                let c1 = Vector2::new(vertices[2*idx_1], vertices[2*idx_1 + 1]);
-                let c2 = Vector2::new(vertices[2*idx_2], vertices[2*idx_2 + 1]);
-                let c3 = Vector2::new(vertices[2*idx_3], vertices[2*idx_3 + 1]);
+                let c0 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*idx_0] as f64, vertices[2*idx_0 + 1] as f64), camera);
+                let c1 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*idx_1] as f64, vertices[2*idx_1 + 1] as f64), camera);
+                let c2 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*idx_2] as f64, vertices[2*idx_2 + 1] as f64), camera);
+                let c3 = crate::math::projection::ndc_to_screen_space(&Vector2::new(vertices[2*idx_3] as f64, vertices[2*idx_3 + 1] as f64), camera);
 
-                let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
-                let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+                let first_tri_ccw = !crate::math::vector::ccw_tri(&c0, &c1, &c2);
+                let second_tri_ccw = !crate::math::vector::ccw_tri(&c1, &c3, &c2);
 
                 if invalid_tri(first_tri_ccw, longitude_reversed) || invalid_tri(second_tri_ccw, longitude_reversed) {
                     return None;
                 }
 
-                /*let vx = [vertices[2*idx_0] as f64, vertices[2*idx_1] as f64, vertices[2*idx_2] as f64, vertices[2*idx_3] as f64];
-                let vy = [vertices[2*idx_0 + 1] as f64, vertices[2*idx_1 + 1] as f64, vertices[2*idx_2 + 1] as f64, vertices[2*idx_3 + 1] as f64];
+                let vx = [c0.x, c1.x, c2.x, c3.x];
+                let vy = [c0.y, c1.y, c2.y, c3.y];
 
                 let projeted_cell = HEALPixCellProjeted {
                     ipix: cell.idx(),
                     vx,
                     vy
                 };
-                if P::project(projeted_cell, &camera).is_none() {
-                    return None;
-                }*/
+
+                P::project(projeted_cell, camera)?;
 
                 indices.push(*idx_off + idx_0 as u32);
                 indices.push(*idx_off + idx_1 as u32);
@@ -277,7 +289,7 @@ impl MOC {
                     None
                 } else {
                     let partially_degraded_moc = coverage.get(depth);
-                    let moc = HEALPixCoverage(fov_moc.intersection(&partially_degraded_moc).degraded(depth));
+                    let moc = HEALPixCoverage(fov_moc.intersection(partially_degraded_moc).degraded(depth));
                     Some(moc)
                 };
 
@@ -328,7 +340,7 @@ impl MOC {
 
     pub fn get(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         let key = params.get_uuid();
-        self.mocs.get(key).and_then(|coverage| Some(coverage.get_full_moc()) )
+        self.mocs.get(key).map(|coverage| coverage.get_full_moc())
     }
 
     fn update_buffers<P: Projection + HEALPixCellProjection>(&mut self, camera: &CameraViewPort) {

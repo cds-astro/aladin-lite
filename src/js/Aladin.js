@@ -56,6 +56,7 @@ import { ProjectionSelector } from "./gui/ProjectionSelector";
 import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
+import { Color } from './Color.js';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
@@ -930,6 +931,24 @@ export let Aladin = (function () {
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey) {
         this.setBaseImageLayer(imageSurvey);
+    };
+
+    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @api
+    // @old
+    Aladin.prototype.setFontColor = function(rgb) {
+        let color;
+        if (typeof rgb === "string") {
+            var rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+
+            var r = parseInt(rgb[1]);
+            var g = parseInt(rgb[2]);
+            var b = parseInt(rgb[3]);
+
+            color = { r: r, g: g, b: b };
+        }
+        console.log(color)
+        this.webglAPI.setFontColor(color);
     };
 
     // @api

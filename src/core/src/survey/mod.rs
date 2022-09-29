@@ -1073,6 +1073,8 @@ pub struct ImageSurveys {
 
     raytracer: RayTracer,
 
+    font_color: ColorRGB,
+
     //past_rendering_mode: RenderingMode,
     //current_rendering_mode: RenderingMode,
 
@@ -1127,6 +1129,7 @@ impl ImageSurveys {
         //let current_rendering_mode = RenderingMode::Raytrace;
 
         let depth = 0;
+        let font_color = ColorRGB { r: 0.05, g: 0.05, b: 0.05 };
         ImageSurveys {
             surveys,
             meta,
@@ -1137,6 +1140,8 @@ impl ImageSurveys {
 
             raytracer,
             depth,
+
+            font_color,
 
             //past_rendering_mode,
             //current_rendering_mode,
@@ -1181,6 +1186,10 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new::<P>(&self.gl);
     }
 
+    pub fn set_font_color(&mut self, color: ColorRGB) {
+        self.font_color = color;
+    }
+
     pub fn draw<P: Projection>(
         &mut self,
         camera: &mut CameraViewPort,
@@ -1222,7 +1231,8 @@ impl ImageSurveys {
                     .fold(std::f32::MAX, |mut a, s| {
                         a = a.min(s.get_fading_factor()); a
                     });
-                raytracer.draw_font_color(&shader_font, &ColorRGB {r: 0.05 * opacity, g: 0.05 * opacity, b: 0.05 * opacity}, opacity);
+                let color = &self.font_color * opacity;
+                raytracer.draw_font_color(&shader_font, &color, opacity);
             }
         }
 

@@ -71,7 +71,7 @@ impl From<query::Moc> for MOCRequest {
 
             let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
             // Coosys is permissive because we load a moc
-            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), false).map_err(|e| JsValue::from_str(&e.to_string()))? {
+            let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true).map_err(|e| JsValue::from_str(&e.to_string()))? {
                 MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
                 MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),

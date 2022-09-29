@@ -422,6 +422,7 @@ pub trait AppTrait {
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue>;
     // This method is used to change the root url when a better mirror has been found
     fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue>;
+    fn set_font_color(&mut self, color: ColorRGB);
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
     fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
@@ -486,14 +487,16 @@ use crate::downloader::request::Resource;
 
 use crate::survey::view::HEALPixCellProjection;
 use crate::healpix::cell::HEALPixCell;
+use al_api::color::ColorRGB;
 impl<P> AppTrait for App<P>
 where
     P: Projection + HEALPixCellProjection,
 {
-    /*fn over_ui(&self) -> bool {
-        //self.ui.lock().pos_over_ui()
-        false
-    }*/
+    fn set_font_color(&mut self, color: ColorRGB) {
+        self.surveys.set_font_color(color);
+
+        self.request_redraw = true;
+    }
 
     fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
         let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
@@ -680,7 +683,6 @@ where
                         Resource::Moc(moc) => {
                             let moc_url = moc.get_url();
                             let url = &moc_url[..moc_url.find("/Moc.fits").unwrap()];
-
                             if let Some(survey) = self.surveys.get_mut(url) {
                                 let request::moc::Moc {
                                     moc,

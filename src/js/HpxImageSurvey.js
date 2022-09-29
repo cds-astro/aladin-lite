@@ -274,7 +274,9 @@ export let HpxImageSurvey = (function() {
                 }
             };
             // HiPS planet/planetoïde
+            let planetoide = false;
             if (metadata.hips_body !== undefined) {
+                planetoide = true;
                 self.options.cooFrame = "ICRSd";
                 self.options.longitudeReversed = true;
             }
@@ -282,6 +284,7 @@ export let HpxImageSurvey = (function() {
             // HiPS frame
             self.options.cooFrame = self.options.cooFrame || metadata.hips_frame;
             let frame = null;
+
             if (self.options.cooFrame == "ICRS" || self.options.cooFrame == "ICRSd" || self.options.cooFrame == "equatorial" || self.options.cooFrame == "j2000") {
                 frame = "ICRSJ2000";
             } else if (self.options.cooFrame == "galactic") {

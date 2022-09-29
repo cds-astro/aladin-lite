@@ -84,6 +84,7 @@ use crate::shader::FileSrc;
 use crate::app::AppTrait;
 use crate::app::AppType;
 use al_api::hips::ImageSurveyMeta;
+use std::convert::TryInto;
 
 #[wasm_bindgen]
 impl WebClient {
@@ -206,20 +207,6 @@ impl WebClient {
         Ok(self)
     }
 
-    /*
-    /// Reverse the longitude axis
-    ///
-    /// # Arguments
-    ///
-    /// * `reversed` - set it to `false` for planetary surveys, `true` for spatial ones
-    #[wasm_bindgen(js_name = setLongitudeReversed)]
-    pub fn set_longitude_reversed(&mut self, reversed: bool) -> Result<(), JsValue> {
-        self.app.set_longitude_reversed(reversed);
-
-        Ok(())
-    }
-    */
-
     /// Check whether the app is ready
     ///
     /// Aladin Lite is in a good state when the root tiles of the
@@ -327,6 +314,14 @@ impl WebClient {
         self.app.set_survey_url(&past_url, &new_url)
     }
 
+    #[wasm_bindgen(js_name = setFontColor)]
+    pub fn set_font_color(&mut self, color: JsValue) -> Result<(), JsValue> {
+        let color = color.try_into()?;
+        self.app.set_font_color(color);
+
+        Ok(())
+    }
+
     /// Set the equatorial grid color
     ///
     /// # Arguments
@@ -356,50 +351,6 @@ impl WebClient {
         Ok(())
     }
 
-    /*/// Get the coordinate system of the view
-    ///
-    /// Returns either ICRSJ2000 or GAL
-    #[wasm_bindgen(js_name = cooSystem)]
-    pub fn get_coo_system(&self) -> Result<CooSystem, JsValue> {
-        Ok(*self.app.get_coo_system())
-    }
-
-    /// Convert a j2000 lonlat to a galactic one
-    ///
-    /// # Arguments
-    ///
-    /// * `lon` - A longitude in degrees
-    /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = J20002Gal)]
-    pub fn j2000_to_gal(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-
-        let gal_lonlat = coo_conversion::to_galactic(lonlat);
-
-        Ok(Some(Box::new([
-            gal_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
-            gal_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI),
-        ])))
-    }
-
-    /// Convert a galactic lonlat to a j2000 one
-    ///
-    /// # Arguments
-    ///
-    /// * `lon` - A longitude in degrees
-    /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = Gal2J2000)]
-    pub fn gal_to_j2000(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-
-        let icrsj2000_lonlat = coo_conversion::to_icrs_j2000(lonlat);
-
-        Ok(Some(Box::new([
-            icrsj2000_lonlat.lon().0 * 360.0 / (2.0 * std::f64::consts::PI),
-            icrsj2000_lonlat.lat().0 * 360.0 / (2.0 * std::f64::consts::PI),
-        ])))
-    }
-    */
     /// Get the field of the view in degrees
     #[wasm_bindgen(js_name = getFieldOfView)]
     pub fn get_fov(&self) -> Result<f64, JsValue> {
@@ -504,27 +455,7 @@ impl WebClient {
     pub fn reset_north_orientation(&mut self) {
         self.app.reset_north_orientation();
     }
-    /*
-    /// Move to a location
-    ///
-    /// The core works in ICRS system so
-    /// the location must be given in this system
-    ///
-    /// # Arguments
-    ///
-    /// * `lon` - A longitude in degrees
-    /// * `lat` - A latitude in degrees
-    #[wasm_bindgen(js_name = moveToLocation)]
-    pub fn move_to_location(&mut self, lon: f64, lat: f64) -> Result<(), JsValue> {
-        // The core works in ICRS_J2000 coordinates
-        // Check if the user is giving galactic coordinates
-        // so that we can convert them to icrs
-        let location = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-        self.app.start_moving_to(&location);
 
-        Ok(())
-    }
-    */
     /// Go from a location to another one
     ///
     /// # Arguments
@@ -646,19 +577,6 @@ impl WebClient {
 
         Ok(())
     }
-
-    /// Signal the backend when a wheel event has been registered
-    ///
-    /// The field of view is changed accordingly
-    ///
-    /// # Arguments
-    ///
-    /// * `delta` - The delta coming from the wheel event. This is
-    ///   used to know if we are zooming or not.
-    /*#[wasm_bindgen(js_name = posOnUi)]
-    pub fn screen_position_on_ui(&mut self) -> bool {
-        self.app.over_ui()
-    }*/
 
     /// Add a catalog rendered as a heatmap.
     ///

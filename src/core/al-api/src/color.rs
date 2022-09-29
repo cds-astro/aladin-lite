@@ -29,6 +29,21 @@ pub struct ColorRGBA {
     pub a: f32,
 }
 
+use std::ops::Mul;
+impl<'a> Mul<f32> for &'a ColorRGB {
+    // The multiplication of rational numbers is a closed operation.
+    type Output = ColorRGB;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        ColorRGB {
+            r: self.r * rhs,
+            g: self.g * rhs,
+            b: self.b * rhs,
+        }
+    }
+}
+
+
 /*
 #[wasm_bindgen]
 impl Color {
@@ -53,13 +68,17 @@ impl Default for Color {
 }
 */
 
-impl From<JsValue> for ColorRGB {
-    fn from(rgb: JsValue) -> Self {
-        let mut c = rgb.into_serde::<Self>().unwrap();
+use std::convert::TryFrom;
+impl TryFrom<JsValue> for ColorRGB {
+    type Error = JsValue;
+
+    fn try_from(rgb: JsValue) -> Result<Self, JsValue> {
+        let mut c = rgb.into_serde::<Self>()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         c.r /= 255.0;
         c.g /= 255.0;
         c.b /= 255.0;
 
-        c
+        Ok(c)
     }
 }

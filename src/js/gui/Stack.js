@@ -93,6 +93,17 @@ export class Stack {
             this.imgLayers.get("base").attachTo(layerBox);
         }
 
+        layerBox.append('<div class="aladin-label">Font color</div>');
+
+        let fontColorInput = $('<input type="color">');
+        layerBox.append(fontColorInput);
+
+        let updateFontColor = function () {
+            let rgb = Color.hexToRgb(fontColorInput.val());
+            self.view.aladin.webglAPI.setFontColor(rgb);
+        };
+        fontColorInput.on('input', updateFontColor);
+
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');
 

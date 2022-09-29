@@ -11,13 +11,13 @@ pub struct MOC {
     is_showing: bool,
     color: ColorRGB,
 }
-
+use std::convert::TryInto;
 #[wasm_bindgen]
 impl MOC {
     #[wasm_bindgen(constructor)]
     pub fn new(uuid: String, opacity: f32, line_width: f32, is_showing: bool, hex_color: String) -> Self {
         let color = Color::hexToRgb(hex_color);
-        let color = color.into();
+        let color = color.try_into().unwrap();
         Self {
             uuid,
             opacity,

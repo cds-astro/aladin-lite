@@ -19,6 +19,7 @@ members = [
 crate-type = ["cdylib"]
 
 [dependencies]
+paste = "1.0.9"
 console_error_panic_hook = "0.1.6"
 futures = "0.3.12"
 js-sys = "0.3.47"

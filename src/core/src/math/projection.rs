@@ -90,16 +90,12 @@ pub fn ndc_to_clip_space(
     )
 }
 
-use crate::renderable::catalog::CatalogShaderProjection;
-use crate::shader::GetShader;
-use crate::survey::render::ray_tracer::Triangulate;
 use al_api::coo_system::CooSystem;
 use cgmath::InnerSpace;
 
 use cgmath::Vector4;
 #[enum_dispatch(ProjectionType)]
-pub trait Projection:
-    GetShader + CatalogShaderProjection + Triangulate + std::marker::Sized
+pub trait Projection: std::marker::Sized
 {
     /// Screen to model space deprojection
 

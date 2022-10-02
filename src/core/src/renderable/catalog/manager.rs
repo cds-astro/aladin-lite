@@ -226,7 +226,7 @@ impl Manager {
         }
     }
 
-    pub fn draw<P: Projection>(
+    pub fn draw<P: Projection + CatalogShaderProjection>(
         &self,
         gl: &WebGlContext,
         shaders: &mut ShaderManager,
@@ -434,7 +434,7 @@ impl Catalog {
             .update_instanced_array("center", VecData(&self.current_sources));
     }
 
-    fn draw<P: Projection>(
+    fn draw<P: Projection + CatalogShaderProjection>(
         &self,
         gl: &WebGlContext,
         shaders: &mut ShaderManager,

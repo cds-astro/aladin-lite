@@ -271,7 +271,7 @@ use render::ray_tracer::RayTracer;
 use al_api::hips::{GrayscaleColor, HiPSTileFormat};
 use al_core::shader::Shader;
 
-pub fn get_raster_shader<'a, P: Projection>(
+pub fn get_raster_shader<'a>(
     color: &HiPSColor,
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
@@ -279,31 +279,31 @@ pub fn get_raster_shader<'a, P: Projection>(
     unsigned_tex: bool,
 ) -> &'a Shader {
     match color {
-        HiPSColor::Color => P::get_raster_shader_color(gl, shaders),
+        HiPSColor::Color => crate::shader::get_raster_shader_color(gl, shaders),
         HiPSColor::Grayscale { color, .. } => match color {
             GrayscaleColor::Color(..) => {
                 if unsigned_tex {
-                    P::get_raster_shader_gray2color_unsigned(gl, shaders)
+                    crate::shader::get_raster_shader_gray2color_unsigned(gl, shaders)
                 } else if integer_tex {
-                    P::get_raster_shader_gray2color_integer(gl, shaders)
+                    crate::shader::get_raster_shader_gray2color_integer(gl, shaders)
                 } else {
-                    P::get_raster_shader_gray2color(gl, shaders)
+                    crate::shader::get_raster_shader_gray2color(gl, shaders)
                 }
             }
             GrayscaleColor::Colormap { .. } => {
                 if unsigned_tex {
-                    P::get_raster_shader_gray2colormap_unsigned(gl, shaders)
+                    crate::shader::get_raster_shader_gray2colormap_unsigned(gl, shaders)
                 } else if integer_tex {
-                    P::get_raster_shader_gray2colormap_integer(gl, shaders)
+                    crate::shader::get_raster_shader_gray2colormap_integer(gl, shaders)
                 } else {
-                    P::get_raster_shader_gray2colormap(gl, shaders)
+                    crate::shader::get_raster_shader_gray2colormap(gl, shaders)
                 }
             }
         },
     }
 }
 
-pub fn get_raytracer_shader<'a, P: Projection>(
+pub fn get_raytracer_shader<'a>(
     color: &HiPSColor,
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
@@ -311,24 +311,24 @@ pub fn get_raytracer_shader<'a, P: Projection>(
     unsigned_tex: bool,
 ) -> &'a Shader {
     match color {
-        HiPSColor::Color => P::get_raytracer_shader_color(gl, shaders),
+        HiPSColor::Color => crate::shader::get_raytracer_shader_color(gl, shaders),
         HiPSColor::Grayscale { color, .. } => match color {
             GrayscaleColor::Color(..) => {
                 if unsigned_tex {
-                    P::get_raytracer_shader_gray2color_unsigned(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2color_unsigned(gl, shaders)
                 } else if integer_tex {
-                    P::get_raytracer_shader_gray2color_integer(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2color_integer(gl, shaders)
                 } else {
-                    P::get_raytracer_shader_gray2color(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2color(gl, shaders)
                 }
             }
             GrayscaleColor::Colormap { .. } => {
                 if unsigned_tex {
-                    P::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
                 } else if integer_tex {
-                    P::get_raytracer_shader_gray2colormap_integer(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2colormap_integer(gl, shaders)
                 } else {
-                    P::get_raytracer_shader_gray2colormap(gl, shaders)
+                    crate::shader::get_raytracer_shader_gray2colormap(gl, shaders)
                 }
             }
         },
@@ -952,7 +952,7 @@ impl ImageSurvey {
             // Triangle are defined in CCW
             self.gl.cull_face(WebGl2RenderingContext::BACK);
 
-            let shader = get_raytracer_shader::<P>(
+            let shader = get_raytracer_shader(
                 color,
                 &self.gl,
                 shaders,
@@ -996,7 +996,7 @@ impl ImageSurvey {
             //     * new cells are added/removed (because new cells are added)
             //     * there are new available tiles for the GPU
             let config = self.get_config();
-            let shader = get_raster_shader::<P>(
+            let shader = get_raster_shader(
                 color,
                 &self.gl,
                 shaders,
@@ -1107,8 +1107,9 @@ use al_core::image::format::ImageFormatType;
 use al_api::color::ColorRGB;
 use al_core::webgl_ctx::GlWrapper;
 use crate::downloader::request::tile::Tile;
+use crate::survey::render::ray_tracer::Triangulate;
 impl ImageSurveys {
-    pub fn new<P: Projection>(
+    pub fn new<P: Projection + Triangulate>(
         gl: &WebGlContext,
     ) -> Self {
         let surveys = HashMap::new();
@@ -1181,7 +1182,7 @@ impl ImageSurveys {
         }
     }
 
-    pub fn set_projection<P: Projection>(&mut self) {
+    pub fn set_projection<P: Projection + Triangulate>(&mut self) {
         // Recompute the raytracer
         self.raytracer = RayTracer::new::<P>(&self.gl);
     }

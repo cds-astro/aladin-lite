@@ -10,7 +10,7 @@ pub trait RayTracingProjection {
 }
 pub use triangulation::{Triangulate, Triangulation};
 
-fn create_vertices_array<P: Projection>() -> (Vec<f32>, Vec<u16>) {
+fn create_vertices_array<P: Projection + Triangulate>() -> (Vec<f32>, Vec<u16>) {
     let Triangulation { vertices, idx } = P::triangulate();
 
     let vertices = vertices
@@ -167,7 +167,7 @@ fn create_f32_texture_from_raw(
 }
 use al_api::color::ColorRGB;
 impl RayTracer {
-    pub fn new<P: Projection>(gl: &WebGlContext) -> RayTracer {
+    pub fn new<P: Projection + Triangulate>(gl: &WebGlContext) -> RayTracer {
         let (vertices, idx) = create_vertices_array::<P>();
 
         let mut vao = VertexArrayObject::new(gl);

@@ -109,7 +109,6 @@ impl WebClient {
         let shaders = ShaderManager::new(&gl, shaders).unwrap();
         let app = AppType::Ortho(App::<Orthographic>::new(
             &gl,
-            aladin_div_name,
             shaders,
             resources,
         )?);
@@ -176,30 +175,28 @@ impl WebClient {
     pub fn set_projection(
         mut self,
         projection: String,
-        width: f32,
-        height: f32,
     ) -> Result<WebClient, JsValue> {
         match projection.as_str() {
             "AIT" => {
-                self.app = AppType::Ait(self.app.set_projection::<Aitoff>(width, height));
+                self.app = AppType::Ait(self.app.set_projection::<Aitoff>());
             },
             "SIN" => {
-                self.app = AppType::Ortho(self.app.set_projection::<Orthographic>(width, height));
+                self.app = AppType::Ortho(self.app.set_projection::<Orthographic>());
             },
             "MOL" => {
-                self.app = AppType::Mol(self.app.set_projection::<Mollweide>(width, height));
+                self.app = AppType::Mol(self.app.set_projection::<Mollweide>());
             },
             "ARC" => {
-                self.app = AppType::Arc(self.app.set_projection::<AzimuthalEquidistant>(width, height));
+                self.app = AppType::Arc(self.app.set_projection::<AzimuthalEquidistant>());
             },
             "TAN" => {
-                self.app = AppType::Tan(self.app.set_projection::<Gnomonic>(width, height));
+                self.app = AppType::Tan(self.app.set_projection::<Gnomonic>());
             },
             "MER" => {
-                self.app = AppType::Mer(self.app.set_projection::<Mercator>(width, height));
+                self.app = AppType::Mer(self.app.set_projection::<Mercator>());
             },
             "HPX" => {
-                self.app = AppType::Hpx(self.app.set_projection::<HEALPix>(width, height));
+                self.app = AppType::Hpx(self.app.set_projection::<HEALPix>());
             },
             _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted", projection).into()),
         }

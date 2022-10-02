@@ -48,7 +48,7 @@ where
 
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
             FitsMemAligned::<F::Type>::from_byte_slice(aligned_raw_bytes)
-                .map_err(|e| JsValue::from_str(&format!("Parsing FITS error: {:?}", e)))?
+                .map_err(|_| js_sys::Error::new("parsing FITS error"))?
         };
 
         let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {

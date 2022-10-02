@@ -153,6 +153,7 @@ pub enum AppType {
 use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
+use crate::survey::render::ray_tracer::Triangulate;
 
 impl<P> App<P>
 where
@@ -160,7 +161,6 @@ where
 {
     pub fn new(
         gl: &WebGlContext,
-        _aladin_div_name: &str,
         mut shaders: ShaderManager,
         resources: Resources,
     ) -> Result<Self, JsValue> {
@@ -425,7 +425,7 @@ pub trait AppTrait {
     fn set_font_color(&mut self, color: ColorRGB);
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
-    fn set_projection<Q: Projection>(self, width: f32, height: f32) -> App<Q>;
+    fn set_projection<Q: Projection + Triangulate>(self) -> App<Q>;
 
     // Catalog
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
@@ -486,11 +486,12 @@ use al_api::cell::HEALPixCellProjeted;
 use crate::downloader::request::Resource;
 
 use crate::survey::view::HEALPixCellProjection;
+use crate::renderable::catalog::CatalogShaderProjection;
 use crate::healpix::cell::HEALPixCell;
 use al_api::color::ColorRGB;
 impl<P> AppTrait for App<P>
 where
-    P: Projection + HEALPixCellProjection,
+    P: Projection + HEALPixCellProjection + CatalogShaderProjection,
 {
     fn set_font_color(&mut self, color: ColorRGB) {
         self.surveys.set_font_color(color);
@@ -978,9 +979,9 @@ where
     }
 
     // Width and height given are in pixels
-    fn set_projection<Q: Projection>(mut self, width: f32, height: f32) -> App<Q> {
+    fn set_projection<Q: Projection + Triangulate>(mut self) -> App<Q> {
         // Recompute the ndc_to_clip
-        self.camera.set_screen_size::<Q>(width, height);
+        self.camera.set_screen_size::<Q>(self.camera.get_width(), self.camera.get_height());
         // Recompute clip zoom factor
         self.surveys.set_projection::<Q>();
         self.camera.set_aperture::<Q>(self.camera.get_aperture());

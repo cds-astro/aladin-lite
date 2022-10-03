@@ -1,5 +1,7 @@
 extern crate fontdue;
-extern crate image_decoder;
+extern crate jpeg_decoder as jpeg;
+extern crate png;
+
 pub mod text;
 
 pub mod image;

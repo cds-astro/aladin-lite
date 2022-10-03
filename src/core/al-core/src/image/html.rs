@@ -1,9 +1,6 @@
 /* ------------------------------------------------------ */
 #[derive(Debug)]
-pub struct HTMLImage<F>
-where
-    F: ImageFormat,
-{
+pub struct HTMLImage<F> {
     image: web_sys::HtmlImageElement,
     format: std::marker::PhantomData<F>,
 }

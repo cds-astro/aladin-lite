@@ -114,10 +114,10 @@ define_shader_getter!(raytracer, gray2color_integer, "RayTracerVS", "RayTracerGr
 define_shader_getter!(raytracer, gray2colormap_unsigned, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS");
 define_shader_getter!(raytracer, gray2color_unsigned, "RayTracerVS", "RayTracerGrayscale2ColorUnsignedFS");
 
-define_shader_getter!(raster, color, "RasterizerAitoffVS", "RasterizerColorFS");
-define_shader_getter!(raster, gray2colormap, "RasterizerAitoffVS", "RasterizerGrayscale2ColormapFS");
-define_shader_getter!(raster, gray2color, "RasterizerAitoffVS", "RasterizerGrayscale2ColorFS");
-define_shader_getter!(raster, gray2colormap_integer, "RasterizerAitoffVS", "RasterizerGrayscale2ColormapIntegerFS");
-define_shader_getter!(raster, gray2color_integer, "RasterizerAitoffVS", "RasterizerGrayscale2ColorIntegerFS");
-define_shader_getter!(raster, gray2colormap_unsigned, "RasterizerAitoffVS", "RasterizerGrayscale2ColormapUnsignedFS");
-define_shader_getter!(raster, gray2color_unsigned, "RasterizerAitoffVS", "RasterizerGrayscale2ColorUnsignedFS");
+define_shader_getter!(raster, color, "RasterizerVS", "RasterizerColorFS");
+define_shader_getter!(raster, gray2colormap, "RasterizerVS", "RasterizerGrayscale2ColormapFS");
+define_shader_getter!(raster, gray2color, "RasterizerVS", "RasterizerGrayscale2ColorFS");
+define_shader_getter!(raster, gray2colormap_integer, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS");
+define_shader_getter!(raster, gray2color_integer, "RasterizerVS", "RasterizerGrayscale2ColorIntegerFS");
+define_shader_getter!(raster, gray2colormap_unsigned, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS");
+define_shader_getter!(raster, gray2color_unsigned, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS");

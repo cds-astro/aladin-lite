@@ -1,5 +1,10 @@
 use crate::texture::pixel::Pixel;
 
+enum Bytes<'a> {
+    Borrowed(&'a [u8]),
+    Owned(Vec<u8>),
+}
+
 pub trait ImageFormat {
     type P: Pixel;
 
@@ -10,9 +15,8 @@ pub trait ImageFormat {
     const INTERNAL_FORMAT: i32;
     const TYPE: u32;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat>;
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str>;
 }
-
 use crate::webgl_ctx::WebGlRenderingCtx;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct RGB8U;
@@ -26,8 +30,12 @@ impl ImageFormat for RGB8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
-        Some(image_decoder::ImageFormat::Jpeg);
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        let bytes = decoder.decode().map_err(|_| "Cannot decoder jpeg. This image may not be compressed.")?;
+
+        Ok(bytes)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -43,8 +51,12 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
-        Some(image_decoder::ImageFormat::Png);
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
+
+        Ok(bytes)
+    }
 }
 #[cfg(feature = "webgl1")]
 impl ImageFormat for RGBA8U {
@@ -57,8 +69,12 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> =
-        Some(image_decoder::ImageFormat::Png);
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
+
+        Ok(bytes)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -77,7 +93,10 @@ impl ImageFormat for RGBA32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -95,7 +114,10 @@ impl ImageFormat for RGB32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -117,7 +139,10 @@ impl ImageFormat for R32F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 
@@ -142,7 +167,10 @@ impl ImageFormat for R64F {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::LUMINANCE as i32;
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -158,7 +186,10 @@ impl ImageFormat for R8UI {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R8UI as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -174,7 +205,10 @@ impl ImageFormat for R16I {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R16I as i32;
     const TYPE: u32 = WebGlRenderingCtx::SHORT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -190,7 +224,10 @@ impl ImageFormat for R32I {
     const FORMAT: u32 = WebGlRenderingCtx::RED_INTEGER as u32;
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32I as i32;
     const TYPE: u32 = WebGlRenderingCtx::INT;
-    const IMAGE_DECODER_TYPE: Option<image_decoder::ImageFormat> = None;
+
+    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+        Ok(raw_bytes.to_vec())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]

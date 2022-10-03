@@ -1,10 +1,7 @@
 use cgmath::Vector3;
 
 #[derive(Debug, Clone)]
-pub struct Bitmap<F>
-where
-    F: ImageFormat + Clone,
-{
+pub struct Bitmap<F> {
     pub image: web_sys::ImageBitmap,
     format: std::marker::PhantomData<F>,
 }

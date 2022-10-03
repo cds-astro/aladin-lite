@@ -46,7 +46,6 @@ macro_rules! inforec {
 
 #[macro_export]
 macro_rules! info {
-    // The pattern for a single `eval`
     ($($arg:tt),*) => {
         self::log( &inforec!( $( $arg ),* ) );
     };

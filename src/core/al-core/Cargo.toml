@@ -8,7 +8,8 @@ edition = "2018"
 js-sys = "0.3.47"
 cgmath = "*"
 fontdue = "0.7.2"
-image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
+jpeg-decoder = "0.2"
+png = "0.17.6"
 fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'master' }
 al-api = { path = "../al-api" }
 

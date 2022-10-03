@@ -39,13 +39,8 @@ import RayTracerFontVS from '../glsl/webgl2/hips/raytracer/backcolor.vert'
 import RayTracerFontFS from '../glsl/webgl2/hips/raytracer/backcolor.frag'
 
 // Rasterizer
-//import RasterizerOrthoVS from '../glsl/webgl2/hips/rasterizer/ortho.vert'
-//import RasterizerHEALPixVS from '../glsl/webgl2/hips/rasterizer/healpix.vert'
-//import RasterizerMercatorVS from '../glsl/webgl2/hips/rasterizer/mercator.vert'
-import RasterizerAitoffVS from '../glsl/webgl2/hips/rasterizer/aitoff.vert'
-//import RasterizerGnomonicVS from '../glsl/webgl2/hips/rasterizer/gnomonic.vert'
-//import RasterizerArcVS from '../glsl/webgl2/hips/rasterizer/arc.vert'
-//import RasterizerMollVS from '../glsl/webgl2/hips/rasterizer/mollweide.vert'
+
+import RasterizerVS from '../glsl/webgl2/hips/rasterizer/raster.vert'
 import RasterizerColorFS from '../glsl/webgl2/hips/rasterizer/color.frag'
 import RasterizerGrayscale2ColorFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_color.frag'
 import RasterizerGrayscale2ColormapFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_colormap.frag'
@@ -181,34 +176,10 @@ let shaders = [
         content: RayTracerFontFS,
     },
     /// Rasterizer
-    /*{
-        id: "RasterizerOrthoVS",
-        content: RasterizerOrthoVS,
-    },
     {
-        id: "RasterizerMercatorVS",
-        content: RasterizerMercatorVS,
-    },*/
-    {
-        id: "RasterizerAitoffVS",
-        content: RasterizerAitoffVS,
+        id: "RasterizerVS",
+        content: RasterizerVS,
     },
-    /*{
-        id: "RasterizerHEALPixVS",
-        content: RasterizerHEALPixVS,
-    },
-    {
-        id: "RasterizerArcVS",
-        content: RasterizerArcVS,
-    },
-    {
-        id: "RasterizerGnomonicVS",
-        content: RasterizerGnomonicVS,
-    },
-    {
-        id: "RasterizerMollVS",
-        content: RasterizerMollVS,
-    },*/
     {
         id: "RasterizerColorFS",
         content: RasterizerColorFS,

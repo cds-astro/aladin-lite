@@ -1,0 +1,37 @@
+
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {survey: "CDS/P/DSS2/color", target: 'Sgr a*', fov: 0.5});
+        const overlay = A.graphicOverlay({color: '#2345ee', lineWidth: 2});
+        aladin.addOverlay(overlay);
+
+        aladin.addCatalog(A.catalogFromURL('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/data/alma-footprints.xml', {}, function(sources) {
+            sources.forEach(source => overlay.addFootprints(A.footprintsFromSTCS(source.data['s_region'])));
+            console.log(aladin.createFootprintsFromSTCS(source.data['s_region']));
+           }));
+
+    });
+</script>
+</body>
+</html>

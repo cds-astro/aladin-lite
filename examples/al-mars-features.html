@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fov: 180, fullScreen: true, cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: false, survey: 'CDS/P/Mars/THEMIS-Day-100m-v12'});
+        aladin.setProjection('SIN');
+
+
+        const drawFunction = function(source, canvasCtx, viewParams) {
+            canvasCtx.beginPath();
+            canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
+            canvasCtx.closePath();
+            canvasCtx.strokeStyle = '#83c';
+            canvasCtx.lineWidth = 3;
+            canvasCtx.globalAlpha = 0.7,
+            canvasCtx.stroke();
+            const fov = Math.max(viewParams['fov'][0], viewParams['fov'][1]);
+
+            // object name is displayed only if fov<15°
+            if (fov>15) {
+                return;
+            }
+
+            canvasCtx.globalAlpha = 1;
+
+            const xShift = 10;
+
+            canvasCtx.font = '15px Arial'
+            canvasCtx.fillStyle = '#eee';
+            canvasCtx.strokeStyle = '#222';
+            canvasCtx.lineWidth = 1;
+            canvasCtx.fillText(source.data['Feature Name'], source.x + xShift, source.y -4);
+            //canvasCtx.strokeText(source.data['Feature Name'], source.x + xShift, source.y -4);
+
+            // object type is displayed only if fov<5°
+            if (fov>5) {
+                return;
+            }
+            canvasCtx.font = '12px Arial'
+            canvasCtx.fillStyle = '#abc';
+            canvasCtx.strokeStyle = '#222';
+            canvasCtx.lineWidth = 1;
+            canvasCtx.fillText(source.data['Feature Type'], source.x + 2 + xShift, source.y + 10);
+            //canvasCtx.strokeText(source.data['Feature Type'], source.x + 2 + xShift, source.y + 10);
+        };
+
+        aladin.addCatalog(A.catalogFromURL('https://aladin.cds.unistra.fr/AladinLite/doc/API/examples/data/mars-features.xml', {raField: 'Longitude', decField: 'Latitude', shape: drawFunction, onClick: 'showTable'}));
+
+        aladin.getBaseImageLayer().setColormap('yiorbr')
+        aladin.gotoRaDec(226.1433542, 18.6308694);
+
+    });
+</script>
+
+</body>
+</html>

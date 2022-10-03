@@ -1,27 +1,15 @@
 use al_core::FrameBufferObject;
 use al_core::WebGlContext;
-use al_core::{shader::Shader, VecData, VertexArrayObject};
+use al_core::{VecData, VertexArrayObject};
 use {wasm_bindgen::prelude::*, web_sys::WebGl2RenderingContext};
 pub struct RenderPass {
     gl: WebGlContext,
     vao: VertexArrayObject,
-    shader: Shader,
 }
 
+use crate::ShaderManager;
 impl RenderPass {
-    pub fn new(gl: &WebGlContext, _width: i32, _height: i32) -> Result<RenderPass, JsValue> {
-        #[cfg(feature = "webgl1")]
-        let shader = Shader::new(
-            &gl,
-            include_str!("../../../glsl/webgl1/passes/post_vertex_100es.glsl"),
-            include_str!("../../../glsl/webgl1/passes/post_fragment_100es.glsl"),
-        )?;
-        #[cfg(feature = "webgl2")]
-        let shader = Shader::new(
-            gl,
-            include_str!("../../../glsl/webgl2/passes/post_vertex_100es.glsl"),
-            include_str!("../../../glsl/webgl2/passes/post_fragment_100es.glsl"),
-        )?;
+    pub fn new(gl: &WebGlContext) -> Result<RenderPass, JsValue> {
 
         let positions = vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
         let indices = vec![0u8, 1, 2, 1, 3, 2];
@@ -58,18 +46,19 @@ impl RenderPass {
         Ok(RenderPass {
             gl: gl.clone(),
             vao,
-            shader,
         })
     }
 
-    pub fn draw_on_screen(&self, fbo: &FrameBufferObject) {
+    pub fn draw_on_screen(&self, fbo: &FrameBufferObject, shaders: &mut ShaderManager) {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func(
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         ); // premultiplied alpha
 
-        self.shader
+        let shader = crate::shader::get_pass_shader_post(&self.gl, shaders);
+
+        shader
             .bind(&self.gl)
             .attach_uniform("fbo_tex", &fbo.texture)
             .bind_vertex_array_object_ref(&self.vao)

@@ -15,13 +15,6 @@ import ColormapCatalogVS from '../glsl/webgl2/colormaps/colormap.vert'
 import ColormapCatalogFS from '../glsl/webgl2/colormaps/colormap.frag'
 
 // Grid shader
-import GridVS from '../glsl/webgl2/grid/grid.vert'
-import GridAitoffFS from '../glsl/webgl2/grid/aitoff.frag'
-import GridMollFS from '../glsl/webgl2/grid/mollweide.frag'
-import GridOrthoFS from '../glsl/webgl2/grid/ortho.frag'
-import GridMercatorFS from '../glsl/webgl2/grid/mercator.frag'
-import GridArcFS from '../glsl/webgl2/grid/arc.frag'
-import GridTanFS from '../glsl/webgl2/grid/tan.frag'
 import GridVS_CPU from '../glsl/webgl2/grid/grid_cpu.vert'
 import GridFS_CPU from '../glsl/webgl2/grid/grid_cpu.frag'
 
@@ -39,7 +32,6 @@ import RayTracerFontVS from '../glsl/webgl2/hips/raytracer/backcolor.vert'
 import RayTracerFontFS from '../glsl/webgl2/hips/raytracer/backcolor.frag'
 
 // Rasterizer
-
 import RasterizerVS from '../glsl/webgl2/hips/rasterizer/raster.vert'
 import RasterizerColorFS from '../glsl/webgl2/hips/rasterizer/color.frag'
 import RasterizerGrayscale2ColorFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_color.frag'
@@ -48,6 +40,10 @@ import RasterizerGrayscale2ColorIntegerFS from '../glsl/webgl2/hips/rasterizer/g
 import RasterizerGrayscale2ColormapIntegerFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_colormap_i.frag'
 import RasterizerGrayscale2ColorUnsignedFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_color_u.frag'
 import RasterizerGrayscale2ColormapUnsignedFS from '../glsl/webgl2/hips/rasterizer/grayscale_to_colormap_u.frag'
+
+// Shader passes
+import PostVS from '../glsl/webgl2/passes/post_vertex_100es.glsl'
+import PostFS from '../glsl/webgl2/passes/post_fragment_100es.glsl'
 
 let shaders = [
     // Catalog shaders
@@ -98,40 +94,12 @@ let shaders = [
     },
     // Grid shader
     {
-        id: "GridVS",
-        content: GridVS,
-    },
-    {
-        id: "GridAitoffFS",
-        content: GridAitoffFS,
-    },
-    {
-        id: "GridMollFS",
-        content: GridMollFS,
-    },
-    {
-        id: "GridOrthoFS",
-        content: GridOrthoFS,
-    },
-    {
-        id: "GridMercatorFS",
-        content: GridMercatorFS,
-    },
-    {
-        id: "GridArcFS",
-        content: GridArcFS,
-    },
-    {
-        id: "GridTanFS",
-        content: GridTanFS,
+        id: "GridVS_CPU",
+        content: GridVS_CPU,
     },
     {
         id: "GridFS_CPU",
         content: GridFS_CPU,
-    },
-    {
-        id: "GridVS_CPU",
-        content: GridVS_CPU,
     },
     // HiPS shaders
     // Raytracer
@@ -207,6 +175,15 @@ let shaders = [
     {
         id: "RasterizerGrayscale2ColormapUnsignedFS",
         content: RasterizerGrayscale2ColormapUnsignedFS,
+    },
+    // pass VS
+    {
+        id: "PostVS",
+        content: PostVS,
+    },
+    {
+        id: "PostFS",
+        content: PostFS,
     },
 ];
 

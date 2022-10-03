@@ -10,6 +10,8 @@ where
     size: Vector2<i32>,
 }
 
+use crate::image::format::Bytes;
+
 pub struct ImageBufferView {
     pub x: i32,
     pub y: i32,
@@ -31,7 +33,10 @@ where
     }
 
     pub fn from_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
-        let mut decoded_bytes = T::decode(raw_bytes).map_err(|e| JsValue::from_str(e))?;
+        let mut decoded_bytes = match T::decode(raw_bytes).map_err(|e| JsValue::from_str(e))? {
+            Bytes::Borrowed(bytes) => bytes.to_vec(),
+            Bytes::Owned(bytes) => bytes
+        };
 
         let decoded_pixels = unsafe {
             decoded_bytes.set_len(

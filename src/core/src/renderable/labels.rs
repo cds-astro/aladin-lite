@@ -52,7 +52,7 @@ use web_sys::WebGl2RenderingContext;
 
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGlContext, _camera: &CameraViewPort) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGlContext) -> Result<Self, JsValue> {
         // Create the VAO for the screen
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(

@@ -210,8 +210,7 @@ where
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
-        let final_rendering_pass =
-            RenderPass::new(&gl, screen_size.x as i32, screen_size.y as i32)?;
+        let final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
 
         //let ui = Gui::new(aladin_div_name, &gl)?;

@@ -80,7 +80,7 @@ impl ProjetedGrid {
         let sizes = vec![];
         let offsets = vec![];
 
-        let text_renderer = TextRenderManager::new(gl.clone(), camera)?;
+        let text_renderer = TextRenderManager::new(gl.clone())?;
 
         let color = ColorRGB { r: 0.0, g: 1.0, b: 0.0 };
         let opacity = 1.0;

@@ -1,6 +1,6 @@
 use crate::texture::pixel::Pixel;
 
-enum Bytes<'a> {
+pub enum Bytes<'a> {
     Borrowed(&'a [u8]),
     Owned(Vec<u8>),
 }
@@ -15,7 +15,7 @@ pub trait ImageFormat {
     const INTERNAL_FORMAT: i32;
     const TYPE: u32;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str>;
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str>;
 }
 use crate::webgl_ctx::WebGlRenderingCtx;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -30,11 +30,11 @@ impl ImageFormat for RGB8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGB as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder.decode().map_err(|_| "Cannot decoder jpeg. This image may not be compressed.")?;
 
-        Ok(bytes)
+        Ok(Bytes::Owned(bytes))
     }
 }
 
@@ -51,11 +51,11 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         let mut decoder = jpeg::Decoder::new(raw_bytes);
         let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
 
-        Ok(bytes)
+        Ok(Bytes::Owned(bytes))
     }
 }
 #[cfg(feature = "webgl1")]
@@ -69,11 +69,8 @@ impl ImageFormat for RGBA8U {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::RGBA as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        let mut decoder = jpeg::Decoder::new(raw_bytes);
-        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
-
-        Ok(bytes)
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -94,8 +91,8 @@ impl ImageFormat for RGBA32F {
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -115,8 +112,8 @@ impl ImageFormat for RGB32F {
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -140,8 +137,8 @@ impl ImageFormat for R32F {
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -168,8 +165,8 @@ impl ImageFormat for R64F {
 
     const TYPE: u32 = WebGlRenderingCtx::FLOAT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -187,8 +184,8 @@ impl ImageFormat for R8UI {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R8UI as i32;
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -206,8 +203,8 @@ impl ImageFormat for R16I {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R16I as i32;
     const TYPE: u32 = WebGlRenderingCtx::SHORT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 
@@ -225,8 +222,8 @@ impl ImageFormat for R32I {
     const INTERNAL_FORMAT: i32 = WebGlRenderingCtx::R32I as i32;
     const TYPE: u32 = WebGlRenderingCtx::INT;
 
-    fn decode(raw_bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
-        Ok(raw_bytes.to_vec())
+    fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
+        Ok(Bytes::Borrowed(raw_bytes))
     }
 }
 

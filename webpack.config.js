@@ -25,12 +25,12 @@ module.exports = {
     },
     optimization: {
         //minimize: false,
-        
         minimizer: [new TerserPlugin({
             terserOptions: {
                 safari10: true
             }
         })],
+        //minimizer: [new UglifyJsPlugin()],
     },
     plugins: [
         // WebGL2 app

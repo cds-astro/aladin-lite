@@ -106,6 +106,7 @@ macro_rules! define_shader_getter {
         }
     }
 }
+
 define_shader_getter!(raytracer, color, "RayTracerVS", "RayTracerColorFS");
 define_shader_getter!(raytracer, gray2colormap, "RayTracerVS", "RayTracerGrayscale2ColormapFS");
 define_shader_getter!(raytracer, gray2color, "RayTracerVS", "RayTracerGrayscale2ColorFS");
@@ -121,3 +122,5 @@ define_shader_getter!(raster, gray2colormap_integer, "RasterizerVS", "Rasterizer
 define_shader_getter!(raster, gray2color_integer, "RasterizerVS", "RasterizerGrayscale2ColorIntegerFS");
 define_shader_getter!(raster, gray2colormap_unsigned, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS");
 define_shader_getter!(raster, gray2color_unsigned, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS");
+
+define_shader_getter!(pass, post, "PostVS", "PostFS");

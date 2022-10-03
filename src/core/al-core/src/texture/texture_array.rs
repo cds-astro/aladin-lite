@@ -37,13 +37,15 @@ impl Texture2DArray {
     }
 }
 
+const TEX_UNIFORMS_NAME: &[&str] = &["tex1", "tex2", "tex3", "tex4", "tex5"];
+
 use crate::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for Texture2DArray {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         let num_tex = self.textures.len();
 
         for (idx, tex) in self.textures.iter().enumerate() {
-            let loc = &format!("tex{}", idx + 1);
+            let loc = TEX_UNIFORMS_NAME[idx];
             shader.attach_uniform(loc, tex);
         }
         shader.attach_uniform("num_tex", &(num_tex as i32));

@@ -671,7 +671,7 @@ pub mod vao {
             self.vao
                 .array_buffer
                 .get_mut(attr)
-                .expect(&format!("attr: {:?}", attr))
+                .expect("cannot get attribute from the array buffer")
                 .update(usage, array_data);
 
             self
@@ -696,7 +696,7 @@ pub mod vao {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
-                .expect(&format!("attr: {:?}", attr))
+                .expect("cannot get attribute from the array buffer")
                 .update(array_data);
 
             self

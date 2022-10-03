@@ -43,10 +43,12 @@ use super::labels::RenderManager;
 
 use super::TextRenderManager;
 
+use al_api::resources::Resources;
 impl ProjetedGrid {
     pub fn new<P: Projection>(
         gl: &WebGlContext,
         camera: &CameraViewPort,
+        resources: &Resources,
     ) -> Result<ProjetedGrid, JsValue> {
         let vao = {
             let mut vao = VertexArrayObject::new(gl);
@@ -80,7 +82,7 @@ impl ProjetedGrid {
         let sizes = vec![];
         let offsets = vec![];
 
-        let text_renderer = TextRenderManager::new(gl.clone())?;
+        let text_renderer = TextRenderManager::new(gl.clone(), &resources)?;
 
         let color = ColorRGB { r: 0.0, g: 1.0, b: 0.0 };
         let opacity = 1.0;

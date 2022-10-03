@@ -1172,7 +1172,7 @@ impl ImageSurveys {
 
             Ok(())
         } else {
-            Err(JsValue::from_str(&format!("{:?} not found", past_url)))
+            Err(JsValue::from_str("Survey not found"))
         }
     }
 

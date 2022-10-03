@@ -94,7 +94,7 @@ where
         .get_extension(name)
         .ok()
         .and_then(|maybe_ext| maybe_ext.map(|ext| ext.unchecked_into::<T>()))
-        .ok_or_else(|| JsValue::from_str(&format!("Failed to load ext: {}", name)))
+        .ok_or_else(|| JsValue::from_str("Failed to load ext"))
 }
 
 use std::ops::Deref;

@@ -50,9 +50,11 @@ use crate::camera::CameraViewPort;
 use al_api::color::ColorRGB;
 use web_sys::WebGl2RenderingContext;
 
+use al_api::resources::Resources;
+
 impl TextRenderManager {
     /// Init the buffers, VAO and shader
-    pub fn new(gl: WebGlContext) -> Result<Self, JsValue> {
+    pub fn new(gl: WebGlContext, resources: &Resources) -> Result<Self, JsValue> {
         // Create the VAO for the screen
         #[cfg(feature = "webgl1")]
         let shader = Shader::new(
@@ -110,16 +112,19 @@ impl TextRenderManager {
                 VecData::<u16>(&indices),
             );
         let text_size = 16.0;
-        let al_core::text::Font {
-            size,
+        /*let al_core::text::Font {
             bitmap,
             letters,
             ..
-        } = al_core::text::rasterize_font(text_size);
-        let font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
+        } = al_core::text::rasterize_font(text_size);*/
+        let letters_filename = resources.get_filename("letters").ok_or(JsValue::from_str("letters loading failed"))?;
+        let letters_content = resources.get_filename("letters_metadata").ok_or(JsValue::from_str("letters metadata loading failed"))?;
+        let letters = serde_json::from_str(&letters_content).map_err(|_| JsValue::from_str("serde json failed"))?;
+
+        let font_texture = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
             &gl,
-            size.x as i32,
-            size.y as i32,
+            "letters",
+            letters_filename,
             &[
                 (
                     WebGl2RenderingContext::TEXTURE_MIN_FILTER,
@@ -140,7 +145,6 @@ impl TextRenderManager {
                     WebGl2RenderingContext::CLAMP_TO_EDGE,
                 ),
             ],
-            Some(&bitmap),
         )?;
 
         let labels = vec![];
@@ -165,17 +169,15 @@ impl TextRenderManager {
 
     pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
         self.text_size = text_size;
-
-        let al_core::text::Font {
-            size,
+        al_core::log("text size called");
+        /*let al_core::text::Font {
             bitmap,
             letters,
-            font: _,
         } = al_core::text::rasterize_font(text_size);
         self.font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
             &self.gl,
-            size.x as i32,
-            size.y as i32,
+            al_core::text::TEX_SIZE as i32,
+            al_core::text::TEX_SIZE as i32,
             &[
                 (
                     WebGl2RenderingContext::TEXTURE_MIN_FILTER,
@@ -197,9 +199,9 @@ impl TextRenderManager {
                 ),
             ],
             Some(&bitmap),
-        )?;
+        )?;*/
 
-        self.letters = letters;
+        //self.letters = letters;
 
         Ok(())
     }
@@ -255,8 +257,8 @@ impl TextRenderManager {
                 #[cfg(feature = "webgl1")]
                 let num_vertices = (self.pos.len() / 2) as u16;
 
-                let xmin = l.bounds.xmin;
-                let ymin = l.bounds.ymin + (l.h as f32);
+                let xmin = l.bound_xmin;
+                let ymin = l.bound_ymin + (l.h as f32);
 
                 #[cfg(feature = "webgl2")]
                 self.vertices.extend([

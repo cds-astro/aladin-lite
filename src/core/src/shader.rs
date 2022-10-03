@@ -16,9 +16,9 @@ pub struct ShaderManager {
 
 #[derive(Debug)]
 pub enum Error {
-    ShaderAlreadyInserted { message: String },
-    ShaderNotFound { message: String },
-    FileNotFound { message: String },
+    ShaderAlreadyInserted { message: &'static str },
+    ShaderNotFound { message: &'static str },
+    FileNotFound { message: &'static str },
 }
 
 use wasm_bindgen::JsValue;
@@ -69,10 +69,10 @@ impl ShaderManager {
             Entry::Vacant(v) => {
                 let ShaderId(vert_id, frag_id) = id;
                 let vert_src = self.src.get(vert_id).ok_or(Error::FileNotFound {
-                    message: format!("Vert id {} not found", vert_id),
+                    message: "Vert not found",
                 })?;
                 let frag_src = self.src.get(frag_id).ok_or(Error::FileNotFound {
-                    message: format!("Frag id {} not found", frag_id),
+                    message: "Frag not found",
                 })?;
 
                 let shader = Shader::new(gl, vert_src, frag_src).unwrap();

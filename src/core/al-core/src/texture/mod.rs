@@ -315,32 +315,32 @@ impl Texture2D {
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p[0])
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::SHORT) => {
                     let p = <[i16; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p[0])
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::INT) => {
                     let p = <[i32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p[0])
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RED, WebGlRenderingCtx::FLOAT) => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p[0])
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p)
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p)
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 _ => Err(JsValue::from_str(
                     "Pixel retrieval not implemented for that texture format.",
@@ -351,17 +351,17 @@ impl Texture2D {
                 (WebGlRenderingCtx::LUMINANCE_ALPHA, WebGlRenderingCtx::FLOAT) => {
                     let p = <[f32; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p)
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RGB, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 3]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p)
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 (WebGlRenderingCtx::RGBA, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 4]>::read_pixel(&self.gl, x, y)?;
                     Ok(JsValue::from_serde(&p)
-                        .map_err(|e| JsValue::from_str(&format!("{:?}", e)))?)
+                        .map_err(|_| JsValue::from_str("Serializing the pixel data failed"))?)
                 }
                 _ => Err(JsValue::from_str(
                     "Pixel retrieval not implemented for that texture format.",

@@ -3,6 +3,9 @@ import { loadShadersWebGL2 } from "./ShadersWebGL2";
 // Import resources images
 import kernel from '../img/kernel.png';
 import colormaps from '../img/colormaps/colormaps.png';
+import letters from '../img/letters.png';
+import lettersMetadata from '../img/letters.json';
+
 
 export let WebGLCtx = (function() {
     /** Constructor */
@@ -25,12 +28,16 @@ export let WebGLCtx = (function() {
     WebGLCtx.init = function(ctx, div) {
         //const shaders = WebGLCtx.checkForWebGL2Support() ? loadShadersWebGL2() : loadShadersWebGL1();
         const shaders = loadShadersWebGL2();
+        const lettersMeta = JSON.stringify(lettersMetadata);
+        console.log(lettersMeta)
         return new ctx.WebClient(
             div,
             shaders,
             {
                 'kernel': kernel,
                 'colormaps': colormaps,
+                'letters': letters,
+                'letters_metadata': lettersMeta,
             }
         );
     }

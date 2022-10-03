@@ -752,7 +752,6 @@ impl SendUniforms for ImageSurveyTextures {
 
 impl Drop for ImageSurveyTextures {
     fn drop(&mut self) {
-        //al_core::log(&format!("Drop image surveys"));
         // Cleanup the heap
         self.heap.clear();
 

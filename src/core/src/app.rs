@@ -196,7 +196,7 @@ where
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera)?;
+        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &resources)?;
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
@@ -599,7 +599,6 @@ where
 
         {
             // Newly available tiles must lead to
-            //al_core::log(&format!("{:?}, ready {:?}", self.surveys.urls, self.is_ready()));
             // 1. Surveys must be aware of the new available tiles
             //self.surveys.set_available_tiles(&available_tiles);
             // 2. Get the resolved tiles and push them to the image surveys
@@ -773,17 +772,11 @@ where
             let survey = self
                 .surveys
                 .get_from_layer(layer_id)
-                .ok_or_else(|| JsValue::from_str(&format!(
-                    "Did not found the survey {:?}",
-                    layer_id
-                )))?;
+                .ok_or_else(|| JsValue::from_str("Survey not found"))?;
 
             survey.read_pixel(&lonlat, &self.camera)
         } else {
-            Err(JsValue::from_str(&format!(
-                "{:?} is out of projection",
-                pos
-            )))
+            Err(JsValue::from_str(&"position is out of projection"))
         }
     }
 
@@ -792,7 +785,6 @@ where
 
         /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();
-        //al_core::log(&format!("dpi {:?}", dpi));
 
         if scene_redraw {
             let shaders = &mut self.shaders;

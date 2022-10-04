@@ -394,7 +394,7 @@ impl HiPSConfig {
     }
 
     #[inline]
-    pub fn get_root_url(&self) -> &str {
+    pub fn get_root_url(&self) -> &String {
         &self.root_url
     }
 

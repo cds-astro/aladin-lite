@@ -296,9 +296,7 @@ fn default_opacity() -> f32 {
 impl ImageSurveyMeta {
     #[wasm_bindgen(setter = color)]
     pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
-        self.color = color
-            .into_serde()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.color = serde_wasm_bindgen::from_value(color)?;
 
         Ok(())
     }
@@ -320,19 +318,19 @@ impl ImageSurveyMeta {
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"stretch".into(),
-                    &JsValue::from_serde(&tf).unwrap(),
+                    &serde_wasm_bindgen::to_value(&tf).unwrap(),
                 )
                 .unwrap();
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"minCut".into(),
-                    &JsValue::from_serde(min_cut).unwrap(),
+                    &serde_wasm_bindgen::to_value(&min_cut).unwrap(),
                 )
                 .unwrap();
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"maxCut".into(),
-                    &JsValue::from_serde(max_cut).unwrap(),
+                    &serde_wasm_bindgen::to_value(&max_cut).unwrap(),
                 )
                 .unwrap();
 
@@ -342,7 +340,7 @@ impl ImageSurveyMeta {
                         js_sys::Reflect::set(
                             &js_color,
                             &"color".into(),
-                            &JsValue::from_serde(&color).unwrap(),
+                            &serde_wasm_bindgen::to_value(&color).unwrap(),
                         )
                         .unwrap();
 
@@ -359,7 +357,7 @@ impl ImageSurveyMeta {
                         js_sys::Reflect::set(
                             &js_colormap,
                             &"colormap".into(),
-                            &JsValue::from_serde(name).unwrap(),
+                            &serde_wasm_bindgen::to_value(&name).unwrap(),
                         )
                         .unwrap();
 

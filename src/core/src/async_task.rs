@@ -82,7 +82,7 @@ where
                 // Parse the next value and pends the stream
                 // if serde returns an error while parsing the row
                 // it will be converted to a None and discarded
-                self.next_val_ready = self.table.get(self.idx).into_serde::<Self::Item>().ok();
+                self.next_val_ready = serde_wasm_bindgen::from_value(self.table.get(self.idx)).ok();
                 if self.next_val_ready.is_none() {
                     // serde failed parsing the row
                     self.idx += 1;

@@ -42,7 +42,7 @@ impl Downloader {
     {
         let url = query.url();
         if self.cache.contains(url) {
-            self.queried_cached_urls.push(url.to_string());
+            self.queried_cached_urls.push(url.clone());
             false
         } else {
             let query_id = query.id();

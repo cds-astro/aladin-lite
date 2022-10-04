@@ -11,7 +11,7 @@
 extern crate console_error_panic_hook;
 //extern crate egui;
 //extern crate epi;
-extern crate fontdue;
+//extern crate fontdue;
 //extern crate image_decoder;
 //extern crate itertools_num;
 extern crate num;
@@ -56,9 +56,7 @@ use moclib::deser::fits;
 
 use std::io::Cursor;
 
-use al_api::grid::GridCfg;
 use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
-use al_api::resources::Resources;
 use al_core::{WebGlContext};
 
 use al_api::coo_system::CooSystem;
@@ -79,8 +77,6 @@ pub struct WebClient {
     dt: DeltaTime,
 }
 
-use crate::shader::FileSrc;
-
 use crate::app::AppTrait;
 use crate::app::AppType;
 use al_api::hips::ImageSurveyMeta;
@@ -98,11 +94,11 @@ impl WebClient {
     #[wasm_bindgen(constructor)]
     pub fn new(
         aladin_div_name: &str,
-        shaders: &JsValue,
-        resources: &JsValue,
+        shaders: JsValue,
+        resources: JsValue,
     ) -> Result<WebClient, JsValue> {
-        let shaders = shaders.into_serde::<Vec<FileSrc>>().unwrap();
-        let resources = resources.into_serde::<Resources>().unwrap();
+        let shaders = serde_wasm_bindgen::from_value(shaders)?;
+        let resources = serde_wasm_bindgen::from_value(resources)?;
         panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGlContext::new(aladin_div_name)?;
 
@@ -269,11 +265,10 @@ impl WebClient {
     #[wasm_bindgen(js_name = setImageSurveys)]
     pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
-        let surveys: Result<Vec<SimpleHiPS>, JsValue> = surveys
+        let surveys: Result<Vec<SimpleHiPS>, serde_wasm_bindgen::Error> = surveys
             .into_iter()
             .map(|h| {
-                h.into_serde()
-                    .map_err(|e| JsValue::from_str(&e.to_string()))
+                serde_wasm_bindgen::from_value(h)
             })
             .collect::<Result<Vec<_>, _>>();
 
@@ -292,23 +287,21 @@ impl WebClient {
     // Set a new color associated with a layer
     #[wasm_bindgen(js_name = setImageSurveyMeta)]
     pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
-        let meta = meta
-            .into_serde()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let meta = serde_wasm_bindgen::from_value(meta)?;
+
         self.app.set_image_survey_color_cfg(layer, meta)
     }
 
     #[wasm_bindgen(js_name = setImageSurveyImageFormat)]
     pub fn set_image_survey_img_format(&mut self, layer: String, format: JsValue) -> Result<(), JsValue> {
-        let format = format.into_serde()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let format = serde_wasm_bindgen::from_value(format)?;
 
         self.app.set_image_survey_img_format(layer, format)
     }
 
     #[wasm_bindgen(js_name = setImageSurveyUrl)]
     pub fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
-        self.app.set_survey_url(&past_url, &new_url)
+        self.app.set_survey_url(past_url, new_url)
     }
 
     #[wasm_bindgen(js_name = setFontColor)]
@@ -328,10 +321,8 @@ impl WebClient {
     /// * `blue` - Blue amount (between 0.0 and 1.0)
     /// * `alpha` - Alpha amount (between 0.0 and 1.0)
     #[wasm_bindgen(js_name = setGridConfig)]
-    pub fn set_grid_cfg(&mut self, cfg: &JsValue) -> Result<(), JsValue> {
-        let cfg = cfg
-            .into_serde::<GridCfg>()
-            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
+    pub fn set_grid_cfg(&mut self, cfg: JsValue) -> Result<(), JsValue> {
+        let cfg = serde_wasm_bindgen::from_value(cfg)?;
 
         self.app.set_grid_cfg(cfg)
     }
@@ -536,7 +527,7 @@ impl WebClient {
     /// * `sources` - An array of sources
     #[wasm_bindgen(js_name = worldToScreenVec)]
     pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
-        self.app.world_to_screen_vec(&sources)
+        self.app.world_to_screen_vec(sources)
     }
 
     /// Screen to world unprojection
@@ -690,13 +681,13 @@ impl WebClient {
     /// This list must be updated whenever a new colormap is added
     /// in core/img/colormaps/colormaps.png
     #[wasm_bindgen(js_name = getAvailableColormapList)]
-    pub fn get_available_colormap_list(&self) -> Result<JsValue, JsValue> {
+    pub fn get_available_colormap_list(&self) -> Result<Vec<JsValue>, JsValue> {
         let colormaps = Colormaps::get_list_available_colormaps()
             .iter()
-            .map(|s| s.to_string())
+            .map(|&s| JsValue::from_str(s))
             .collect::<Vec<_>>();
 
-        JsValue::from_serde(&colormaps).map_err(|e| JsValue::from_str(&e.to_string()))
+        Ok(colormaps)
     }
 
     /// Get the image canvas where the webgl rendering is done
@@ -778,9 +769,7 @@ impl WebClient {
     #[wasm_bindgen(js_name = getVisibleCells)]
     pub fn get_visible_cells(&self, depth: u8) -> Result<JsValue, JsValue> {
         let cells = self.app.get_visible_cells(depth);
-        let res = JsValue::from_serde(&cells)
-            .map_err(|e| JsValue::from(js_sys::Error::new(&e.to_string())))?;
-        Ok(res)
+        Ok(serde_wasm_bindgen::to_value(&cells)?)
     }
 
     #[wasm_bindgen(js_name = isRendering)]

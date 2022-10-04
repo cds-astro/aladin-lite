@@ -26,7 +26,7 @@ use crate::{healpix::cell::HEALPixCell, survey::config::HiPSConfig};
 use al_api::coo_system::CooSystem;
 impl Tile {
     pub fn new(cell: &HEALPixCell, cfg: &HiPSConfig) -> Self {
-        let hips_url = cfg.get_root_url().to_string();
+        let hips_url = cfg.get_root_url().clone();
         let format = cfg.get_format();
         let ext = format.get_ext_file();
         let system = cfg.get_frame();

@@ -12,29 +12,6 @@ pub struct LetterTexPosition {
     pub bound_ymin: f32,
 }
 
-#[derive(PartialEq)]
-struct Letter {
-    pub l: char,
-    pub w: u32,
-    pub h: u32,
-    pub x_advance: u32,
-    pub y_advance: u32,
-    pub bitmap: Vec<u8>,
-    pub bounds: fontdue::OutlineBounds,
-}
-use std::cmp::Ordering;
-impl PartialOrd for Letter {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let w_cmp = other.w.cmp(&self.w);
-
-        if Ordering::Equal == w_cmp {
-            Some(other.h.cmp(&self.h))
-        } else {
-            Some(w_cmp)
-        }
-    }
-}
-
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 pub struct Font {
@@ -47,9 +24,30 @@ pub const TEX_SIZE: usize = 256;
 mod tests {
     #[test]
     pub fn rasterize_font() {
-        use super::TEX_SIZE;
-        use super::Letter;
+        #[derive(PartialEq)]
+        struct Letter {
+            pub l: char,
+            pub w: u32,
+            pub h: u32,
+            pub x_advance: u32,
+            pub y_advance: u32,
+            pub bitmap: Vec<u8>,
+            pub bounds: fontdue::OutlineBounds,
+        }
         use std::cmp::Ordering;
+        impl PartialOrd for Letter {
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                let w_cmp = other.w.cmp(&self.w);
+        
+                if Ordering::Equal == w_cmp {
+                    Some(other.h.cmp(&self.h))
+                } else {
+                    Some(w_cmp)
+                }
+            }
+        }
+        
+        use super::TEX_SIZE;
 
         use super::LetterTexPosition;
         use std::collections::HashMap;

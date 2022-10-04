@@ -176,7 +176,7 @@ let shaders = [
         id: "RasterizerGrayscale2ColormapUnsignedFS",
         content: RasterizerGrayscale2ColormapUnsignedFS,
     },
-    // pass VS
+    // Post
     {
         id: "PostVS",
         content: PostVS,

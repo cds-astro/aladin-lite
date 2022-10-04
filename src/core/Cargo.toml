@@ -29,10 +29,10 @@ cdshealpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-h
 moclib = { package = "moc", git = 'https://github.com/cds-astro/cds-moc-rust', branch = 'main' }
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
+serde-wasm-bindgen = "0.4"
 num = "*"
 #egui = "*"
 #epi = "*"
-fontdue = "0.7.2"
 enum_dispatch = "0.3.7"
 
 al-core = { path = "./al-core" }
@@ -112,18 +112,18 @@ opt-level = 's'
 debug = true
 debug-assertions = true
 overflow-checks = true
-lto = false
+lto = true
 panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
 
 [profile.release]
-opt-level = 3
+opt-level = 's'
 debug = false
 debug-assertions = false
 overflow-checks = false
-lto = false
+lto = true
 panic = 'unwind'
 incremental = false
 codegen-units = 16

@@ -34,7 +34,7 @@ impl MOC {
 }
 
 impl MOC {
-    pub fn get_uuid(&self) -> &str {
+    pub fn get_uuid(&self) -> &String {
         &self.uuid
     }
 

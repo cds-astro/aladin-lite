@@ -73,8 +73,7 @@ impl TryFrom<JsValue> for ColorRGB {
     type Error = JsValue;
 
     fn try_from(rgb: JsValue) -> Result<Self, JsValue> {
-        let mut c = rgb.into_serde::<Self>()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let mut c: ColorRGB = serde_wasm_bindgen::from_value(rgb)?;
         c.r /= 255.0;
         c.g /= 255.0;
         c.b /= 255.0;

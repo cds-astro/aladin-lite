@@ -1,5 +1,5 @@
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+//const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
@@ -25,12 +25,16 @@ module.exports = {
     },
     optimization: {
         //minimize: false,
-        minimizer: [new TerserPlugin({
-            terserOptions: {
-                safari10: true
-            }
-        })],
-        //minimizer: [new UglifyJsPlugin()],
+        minimizer: [
+            new TerserPlugin({
+                terserOptions: {
+                    mangle: true,
+                    warnings: false,
+                    compress: {},
+                    safari10: true
+                }
+            }),
+        ],
     },
     plugins: [
         // WebGL2 app
@@ -74,7 +78,7 @@ module.exports = {
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
-            pluginLogLevel: 'info'
+            pluginLogLevel: 'error'
         }),
         /*
         // Have this example work in Edge which doesn't ship `TextEncoder` or

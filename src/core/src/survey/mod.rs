@@ -1151,23 +1151,23 @@ impl ImageSurveys {
         }
     }
 
-    pub fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue> {
-        if let Some(mut survey) = self.surveys.remove(past_url) {
+    pub fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        if let Some(mut survey) = self.surveys.remove(&past_url) {
             // update the root_url
             survey.get_config_mut()
-                .set_root_url(new_url.to_string());
+                .set_root_url(new_url.clone());
             
-            self.surveys.insert(new_url.to_string(), survey);
+            self.surveys.insert(new_url.clone(), survey);
 
             // update all the layer urls
             for url in self.urls.values_mut() {
                 if *url == past_url {
-                    *url = new_url.to_string(); 
+                    *url = new_url.clone(); 
                 }
             }
 
             if self.most_precise_survey == past_url {
-                self.most_precise_survey = new_url.to_string();
+                self.most_precise_survey = new_url.clone();
             }
 
             Ok(())

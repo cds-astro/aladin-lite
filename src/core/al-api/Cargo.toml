@@ -8,6 +8,7 @@ edition = "2018"
 js-sys = "0.3.47"
 cgmath = "*"
 serde = { version = "^1.0.59", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
 
 [dependencies.wasm-bindgen]
 version = "0.2.79"
@@ -79,11 +80,11 @@ codegen-units = 256
 rpath = false
 
 [profile.release]
-opt-level = 3
+opt-level = 's'
 debug = false
 debug-assertions = false
 overflow-checks = false
-lto = false
+lto = true
 panic = 'unwind'
 incremental = false
 codegen-units = 16

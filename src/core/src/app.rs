@@ -420,7 +420,7 @@ pub trait AppTrait {
     ) -> Result<(), JsValue>;
     fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue>;
     // This method is used to change the root url when a better mirror has been found
-    fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue>;
+    fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue>;
     fn set_font_color(&mut self, color: ColorRGB);
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
@@ -472,7 +472,7 @@ pub trait AppTrait {
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
     fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
-    fn world_to_screen_vec(&self, sources: &[JsValue]) -> Result<Box<[f64]>, JsValue>;
+    fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue>;
 
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
@@ -1064,7 +1064,7 @@ where
         self.request_redraw = true;
     }
 
-    fn set_survey_url(&mut self, past_url: &str, new_url: &str) -> Result<(), JsValue> {
+    fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.surveys.set_survey_url(past_url, new_url)
     }
 
@@ -1131,13 +1131,11 @@ where
     /// World to screen projection
     ///
     /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(&self, sources: &[JsValue]) -> Result<Box<[f64]>, JsValue> {
+    fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
         // Select the HiPS layer rendered lastly
         let mut r = Vec::with_capacity(sources.len() * 2);
         for s in sources {
-            let source: S = s
-                .into_serde()
-                .map_err(|e| JsValue::from_str(&e.to_string()))?;
+            let source: S = serde_wasm_bindgen::from_value(s)?;
             let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
 
             let xyz = lonlat.vector();

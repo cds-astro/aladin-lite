@@ -299,7 +299,7 @@ impl MOC {
     }
 
     pub fn insert<P: Projection + HEALPixCellProjection>(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort) {
-        let key = params.get_uuid().to_string();
+        let key = params.get_uuid().clone();
 
         self.mocs.insert(key.clone(), HierarchicalHpxCoverage::new(moc));
         self.params.insert(key.clone(), params);
@@ -329,7 +329,7 @@ impl MOC {
     }
 
     pub fn set_params<P: Projection + HEALPixCellProjection>(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
-        let key = params.get_uuid().to_string();
+        let key = params.get_uuid().clone();
         let old_params = self.params.insert(key, params);
 
         self.recompute_draw_mocs(camera);

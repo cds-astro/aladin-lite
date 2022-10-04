@@ -1,4 +1,3 @@
-extern crate fontdue;
 extern crate jpeg_decoder as jpeg;
 extern crate png;
 extern crate serde_json;

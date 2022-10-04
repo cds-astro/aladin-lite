@@ -146,7 +146,7 @@ impl ProjetedGrid {
         if let Some(label_size) = label_size {
             self.label_scale = label_size;
 
-            self.text_renderer.set_text_size(label_size)?;
+            //self.text_renderer.set_text_size(label_size)?;
         }
 
         self.text_renderer.begin_frame();

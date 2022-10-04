@@ -29,7 +29,6 @@ pub struct TextRenderManager {
     vao: VertexArrayObject,
 
     font_texture: Texture2D,
-    text_size: f32,
     letters: HashMap<char, LetterTexPosition>,
 
     #[cfg(feature = "webgl2")]
@@ -111,7 +110,6 @@ impl TextRenderManager {
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<u16>(&indices),
             );
-        let text_size = 16.0;
         /*let al_core::text::Font {
             bitmap,
             letters,
@@ -155,7 +153,6 @@ impl TextRenderManager {
             vao,
             letters,
             font_texture,
-            text_size,
             #[cfg(feature = "webgl2")]
             vertices: vec![],
             #[cfg(feature = "webgl1")]
@@ -167,7 +164,7 @@ impl TextRenderManager {
         })
     }
 
-    pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
+    /*pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
         self.text_size = text_size;
         al_core::log("text size called");
         /*let al_core::text::Font {
@@ -204,11 +201,11 @@ impl TextRenderManager {
         //self.letters = letters;
 
         Ok(())
-    }
+    }*/
 
-    pub fn text_size(&self) -> f32 {
+    /*pub fn text_size(&self) -> f32 {
         self.text_size
-    }
+    }*/
 
     pub fn add_label<A: Into<Rad<f32>>>(
         &mut self,

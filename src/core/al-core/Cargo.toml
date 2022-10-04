@@ -51,9 +51,6 @@ features = [
 
   'CanvasRenderingContext2d',
 
-  'MouseEvent',
-  'WheelEvent',
-
   'WebGlBuffer',
   'WebGlContextAttributes',
   'WebGlFramebuffer',

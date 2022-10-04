@@ -8,19 +8,26 @@
 //! - The HEALPix tiles retrieving heuristic.
 //! - All the spherical geometry maths for the computation
 //!   of the equatorial/galactic coordinates grid.
-extern crate console_error_panic_hook;
+//extern crate console_error_panic_hook;
 //extern crate egui;
 //extern crate epi;
 //extern crate fontdue;
 //extern crate image_decoder;
 //extern crate itertools_num;
-extern crate num;
+//extern crate num;
 //extern crate num_traits;
 extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
 
-use std::panic;
+#[inline]
+pub fn unwrap_abort<T>(o: Option<T>) -> T {
+    use std::process;
+    match o {
+        Some(t) => t,
+        None => process::abort(),
+    }
+}
 
 #[macro_use]
 mod utils;
@@ -99,7 +106,7 @@ impl WebClient {
     ) -> Result<WebClient, JsValue> {
         let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
-        panic::set_hook(Box::new(console_error_panic_hook::hook));
+        //panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap();

@@ -20,7 +20,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 paste = "1.0.9"
-console_error_panic_hook = "0.1.6"
+#console_error_panic_hook = "0.1.6"
 futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
@@ -30,11 +30,11 @@ moclib = { package = "moc", git = 'https://github.com/cds-astro/cds-moc-rust', b
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 serde-wasm-bindgen = "0.4"
-num = "*"
+#num = "*"
 #egui = "*"
 #epi = "*"
 enum_dispatch = "0.3.7"
-
+wasm-bindgen = "0.2.79"
 al-core = { path = "./al-core" }
 #al-ui = { path = "./al-ui" }
 al-task-exec = { path = "./al-task-exec" }
@@ -59,10 +59,6 @@ webgl2 = [
   "web-sys/ExtColorBufferFloat",
 ]
 
-[dependencies.wasm-bindgen]
-version = "0.2.79"
-features = ["serde-serialize"]
-
 [dependencies.web-sys]
 version = "0.3.56"
 features = [
@@ -79,9 +75,6 @@ features = [
   'ImageData',
 
   'CanvasRenderingContext2d',
-
-  'MouseEvent',
-  'WheelEvent',
 
   'WebGlBuffer',
   'WebGlContextAttributes',
@@ -119,7 +112,7 @@ codegen-units = 256
 rpath = false
 
 [profile.release]
-opt-level = 's'
+opt-level = 'z'
 debug = false
 debug-assertions = false
 overflow-checks = false

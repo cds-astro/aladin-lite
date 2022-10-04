@@ -8,7 +8,7 @@ pub struct EmptyTileImage {
 use al_core::{image::ImageType, pixel::Pixel};
 impl EmptyTileImage {
     fn new(size: i32, format: ImageFormatType) -> EmptyTileImage {
-        debug_assert!(math::utils::is_power_of_two(size as usize));
+        debug_assert!(math::utils::is_power_of_two(size));
         let inner = match format {
             ImageFormatType::RGBA8U => {
                 let image = ImageBuffer::<RGBA8U>::allocate(

@@ -114,8 +114,8 @@ module.exports = {
                     loader: 'webpack-glsl-minify',
                     options: {
                         output: 'source',
-                        preserveAll: true,
-                        //nomangle: ['texture'],
+                        preserveVariables: true,
+                        preserveUniforms: true,
                     }
                 }
             },

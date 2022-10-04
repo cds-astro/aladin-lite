@@ -30,28 +30,57 @@ const fn num_bits<T>() -> usize {
     std::mem::size_of::<T>() * 8
 }
 
-use num::traits::PrimInt;
-use num::traits::Zero;
+pub trait Zero {
+    fn zero() -> Self;
+}
 
-#[inline]
+impl Zero for usize {
+    fn zero() -> Self {
+        0
+    }
+}
+impl Zero for u32 {
+    fn zero() -> Self {
+        0
+    }
+}
+impl Zero for i32 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+pub trait PrimInt {
+    fn leading_zeros(&self) -> u32;
+}
+
+impl PrimInt for usize {
+    fn leading_zeros(&self) -> u32 {
+        usize::leading_zeros(*self)
+    }
+}
+impl PrimInt for u32 {
+    fn leading_zeros(&self) -> u32 {
+        u32::leading_zeros(*self)
+    }
+}
+impl PrimInt for i32 {
+    fn leading_zeros(&self) -> u32 {
+        i32::leading_zeros(*self)
+    }
+}
+
 pub fn log_2_unchecked<T>(x: T) -> u32
 where
-    T: PrimInt,
+    T: Zero + PrimInt + std::cmp::PartialOrd
 {
     debug_assert!(x > T::zero());
     num_bits::<T>() as u32 - x.leading_zeros() - 1
 }
 
-use num::One;
-use std::cmp::PartialEq;
-use std::ops::BitAnd;
-use std::ops::Sub;
 #[inline]
-pub fn is_power_of_two<T>(x: T) -> bool
-where
-    T: BitAnd<Output = T> + One + Zero + Sub<Output = T> + PartialEq + Copy,
-{
-    x.bitand(x - T::one()) == T::zero()
+pub fn is_power_of_two(x: i32) -> bool {
+    x & (x - 1) == 0
 }
 
 /// Compute the negative branch of the lambert fonction (W_{-1})

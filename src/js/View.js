@@ -965,7 +965,7 @@ export let View = (function () {
      * Return the color of the lowest intensity pixel 
      * in teh current color map of the current background image HiPS
      */
-    View.prototype.getBackgroundColor = function () {
+    /*View.prototype.getBackgroundColor = function () {
         var white = 'rgb(255, 255, 255)';
         var black = 'rgb(0, 0, 0)';
 
@@ -987,7 +987,7 @@ export let View = (function () {
         var b = ColorMap.MAPS[cm.mapName].b[idx];
 
         return 'rgb(' + r + ',' + g + ',' + b + ')';
-    };
+    };*/
 
     View.prototype.getViewParams = function () {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;

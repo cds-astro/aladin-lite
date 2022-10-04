@@ -182,7 +182,7 @@ export let Aladin = (function () {
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
-                color: [0.0, 1.0, 0.0],
+                color: {r:0.0, g:1.0, b:0.0},
                 opacity: 1.0,
             });
 

@@ -104,7 +104,7 @@
             let rgb = Color.hexToRgb(gridColorInput.val());
             let opacity = gridOpacityInput.val();
             self.view.setGridConfig({
-                color: [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0],
+                color: { r: rgb.r / 255.0, g: rgb.g / 255.0, b: rgb.b / 255.0 },
                 opacity: parseFloat(opacity)
             });
         };

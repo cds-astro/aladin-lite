@@ -1,14 +1,10 @@
 use cgmath::{Vector2, Vector3};
-use num::{Float, Zero};
 
 #[derive(Debug)]
-pub struct UV<T: Float + Zero>([Vector2<T>; 4]);
+pub struct UV<T>([Vector2<T>; 4]);
 
 use core::ops::Deref;
-impl<T> Deref for UV<T>
-where
-    T: Float + Zero,
-{
+impl<T> Deref for UV<T> {
     type Target = [Vector2<T>; 4];
 
     fn deref(&'_ self) -> &'_ Self::Target {
@@ -69,10 +65,7 @@ pub enum TileCorner {
     TopRight,
 }
 use std::ops::Index;
-impl<T> Index<TileCorner> for UV<T>
-where
-    T: Float + Zero,
-{
+impl<T> Index<TileCorner> for UV<T> {
     type Output = Vector2<T>;
 
     fn index(&self, corner: TileCorner) -> &Self::Output {

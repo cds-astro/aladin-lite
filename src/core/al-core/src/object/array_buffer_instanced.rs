@@ -31,6 +31,7 @@ impl VertexBufferObject for ArrayBufferInstanced {
 use super::array_buffer::VertexAttribPointerType;
 use super::buffer_data::BufferDataStorage;
 use crate::shader::ShaderBound;
+use crate::Abort;
 
 impl ArrayBufferInstanced {
     pub fn new<'a, B: BufferDataStorage<'a, f32>>(
@@ -49,7 +50,7 @@ impl ArrayBufferInstanced {
 
         let num_instances = num_f32_in_buf / (num_f32_per_instance as i32);
 
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
 
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
@@ -58,7 +59,7 @@ impl ArrayBufferInstanced {
         // Link to the shader
         let idx = offset_idx;
 
-        f32::vertex_attrib_pointer_with_i32(gl, idx, *sizes.first().unwrap() as i32, 0, 0);
+        f32::vertex_attrib_pointer_with_i32(gl, idx, *sizes.first().unwrap_abort() as i32, 0, 0);
         gl.enable_vertex_attrib_array(idx);
 
         #[cfg(feature = "webgl2")]
@@ -91,7 +92,7 @@ impl ArrayBufferInstanced {
         assert_eq!(self.sizes.len(), 1);
         self.gl.vertex_attrib_pointer_with_i32(
             loc as u32,
-            *self.sizes.first().unwrap() as i32,
+            *self.sizes.first().unwrap_abort() as i32,
             WebGlRenderingCtx::FLOAT,
             false,
             self.stride as i32,
@@ -143,7 +144,7 @@ impl ArrayBufferInstanced {
             .gl
             .create_buffer()
             .ok_or("failed to create buffer")
-            .unwrap();
+            .unwrap_abort();
         // Set its size
         self.gl.bind_buffer(
             WebGlRenderingCtx::ARRAY_BUFFER,

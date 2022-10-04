@@ -45,6 +45,7 @@ use moclib::deser::fits::MocIdxType;
 use moclib::deser::fits::MocQtyType;
 use wasm_bindgen::JsValue;
 use crate::healpix::coverage::HEALPixCoverage;
+use crate::Abort;
 impl From<query::Moc> for MOCRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Moc) -> Self {
@@ -56,13 +57,13 @@ impl From<query::Moc> for MOCRequest {
 
         let url_clone = url.clone();
 
-        let window = web_sys::window().unwrap();
+        let window = web_sys::window().unwrap_abort();
         let request =  Request::new(async move {
             let mut opts = RequestInit::new();
             opts.method("GET");
             opts.mode(RequestMode::Cors);
 
-            let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+            let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
             let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
             // `resp_value` is a `Response` object.
             debug_assert!(resp_value.is_instance_of::<Response>());

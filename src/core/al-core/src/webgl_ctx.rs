@@ -21,21 +21,22 @@ pub struct WebGlExt {
     #[cfg(feature = "webgl1")]
     pub angles: web_sys::AngleInstancedArrays,
 }
+use crate::Abort;
 
 impl WebGlContext {
     pub fn new(aladin_div_name: &str) -> Result<WebGlContext, JsValue> {
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let window = web_sys::window().unwrap_abort();
+        let document = window.document().unwrap_abort();
 
         let canvas = document
             // Get the aladin div element
             .get_element_by_id(aladin_div_name)
-            .unwrap()
+            .unwrap_abort()
             // Inside it, retrieve the canvas
             .get_elements_by_class_name("aladin-imageCanvas")
             .get_with_index(0)
-            .unwrap();
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+            .unwrap_abort();
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap_abort();
 
         // See https://stackoverflow.com/a/26790802/13456997
         // preserveDrawingBuffer enabled for exporting the view as a PNG
@@ -46,17 +47,17 @@ impl WebGlContext {
         let gl = Rc::new(
             canvas
                 .get_context_with_context_options("webgl", context_options.as_ref())?
-                .unwrap()
+                .unwrap_abort()
                 .dyn_into::<WebGlRenderingCtx>()
-                .unwrap(),
+                .unwrap_abort(),
         );
         #[cfg(feature = "webgl2")]
         let gl = Rc::new(
             canvas
                 .get_context_with_context_options("webgl2", context_options.as_ref())?
-                .unwrap()
+                .unwrap_abort()
                 .dyn_into::<WebGlRenderingCtx>()
-                .unwrap(),
+                .unwrap_abort(),
         );
 
         #[cfg(feature = "webgl2")]

@@ -70,7 +70,7 @@ use cgmath::{SquareMatrix, Vector4};
 use wasm_bindgen::JsCast;
 
 const MAX_DPI_LIMIT: f32 = 3.0;
-
+use crate::Abort;
 use crate::math;
 use crate::time::Time;
 impl CameraViewPort {
@@ -90,9 +90,9 @@ impl CameraViewPort {
         let final_rot = Rotation::zero();
 
         // Get the initial size of the window
-        let window = web_sys::window().unwrap();
-        let width = window.inner_width().unwrap().as_f64().unwrap() as f32;
-        let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
+        let window = web_sys::window().unwrap_abort();
+        let width = window.inner_width().unwrap_abort().as_f64().unwrap_abort() as f32;
+        let height = window.inner_height().unwrap_abort().as_f64().unwrap_abort() as f32;
         // Clamp it to 3 at maximum, this for limiting the number of pixels drawn
         let dpi = if window.device_pixel_ratio() as f32 > MAX_DPI_LIMIT {
             MAX_DPI_LIMIT
@@ -172,9 +172,9 @@ impl CameraViewPort {
 
         let canvas = self.gl
             .canvas()
-            .unwrap()
+            .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
+            .unwrap_abort();
 
         canvas.set_width(self.width as u32);
         canvas.set_height(self.height as u32);
@@ -213,17 +213,17 @@ impl CameraViewPort {
         let canvas = self
             .gl
             .canvas()
-            .unwrap()
+            .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap();
+            .unwrap_abort();
         canvas
             .style()
             .set_property("width", &format!("{}px", width))
-            .unwrap();
+            .unwrap_abort();
         canvas
             .style()
             .set_property("height", &format!("{}px", height))
-            .unwrap();
+            .unwrap_abort();
 
         self.width = (width as f32) * self.dpi;
         self.height = (height as f32) * self.dpi;
@@ -492,7 +492,7 @@ impl CameraViewPort {
 
     fn update_center<P: Projection>(&mut self) {
         // update the center position
-        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap();
+        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap_abort();
         // Change from galactic to icrs if necessary
 
         // Change to model space

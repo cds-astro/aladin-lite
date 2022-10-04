@@ -46,7 +46,7 @@ impl Manager {
         resources: &Resources,
     ) -> Result<Self, JsValue> {
         // Load the texture of the gaussian kernel
-        let kernel_filename = resources.get_filename("kernel").unwrap();
+        let kernel_filename = resources.get_filename("kernel").unwrap_abort();
         let kernel_texture = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
             gl,
             "kernel",
@@ -136,7 +136,7 @@ impl Manager {
         let catalogs = HashMap::new();
         let kernel_size = Vector2::new(0.0, 0.0);
 
-        let fbo = FrameBufferObject::new(gl, 768, 768).unwrap();
+        let fbo = FrameBufferObject::new(gl, 768, 768).unwrap_abort();
 
         let gl = gl.clone();
         let mut manager = Manager {
@@ -530,6 +530,8 @@ use crate::math::projection::Aitoff;
 use crate::shader::ShaderId;
 use std::borrow::Cow;
 
+use crate::Abort;
+
 impl CatalogShaderProjection for Aitoff {
     fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
         shaders
@@ -537,7 +539,7 @@ impl CatalogShaderProjection for Aitoff {
                 gl,
                 &ShaderId(Cow::Borrowed("CatalogAitoffVS"), Cow::Borrowed("CatalogFS")),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 use crate::math::projection::Mollweide;
@@ -549,7 +551,7 @@ impl CatalogShaderProjection for Mollweide {
                 gl,
                 &ShaderId(Cow::Borrowed("CatalogMollVS"), Cow::Borrowed("CatalogFS")),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 use crate::math::projection::AzimuthalEquidistant;
@@ -561,7 +563,7 @@ impl CatalogShaderProjection for AzimuthalEquidistant {
                 gl,
                 &ShaderId(Cow::Borrowed("CatalogArcVS"), Cow::Borrowed("CatalogFS")),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 
@@ -576,7 +578,7 @@ impl CatalogShaderProjection for HEALPix {
                     Cow::Borrowed("CatalogFS"),
                 ),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 
@@ -589,7 +591,7 @@ impl CatalogShaderProjection for Mercator {
                 gl,
                 &ShaderId(Cow::Borrowed("CatalogMercatVS"), Cow::Borrowed("CatalogFS")),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 use crate::math::projection::Orthographic;
@@ -603,7 +605,7 @@ impl CatalogShaderProjection for Orthographic {
                     Cow::Borrowed("CatalogOrthoFS"),
                 ),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }
 use crate::math::projection::Gnomonic;
@@ -614,6 +616,6 @@ impl CatalogShaderProjection for Gnomonic {
                 gl,
                 &ShaderId(Cow::Borrowed("CatalogTanVS"), Cow::Borrowed("CatalogFS")),
             )
-            .unwrap()
+            .unwrap_abort()
     }
 }

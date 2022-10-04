@@ -16,6 +16,37 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
+
+pub trait Abort {
+    type Item;
+    fn unwrap_abort(self) -> Self::Item where Self: Sized;
+}
+
+impl<T> Abort for Option<T> {
+    type Item = T;
+    
+    #[inline]
+    fn unwrap_abort(self) -> Self::Item {
+        use std::process;
+        match self {
+            Some(t) => t,
+            None => process::abort(),
+        }
+    }
+}
+impl<T, E> Abort for Result<T, E> {
+    type Item = T;
+
+    #[inline]
+    fn unwrap_abort(self) -> Self::Item {
+        use std::process;
+        match self {
+            Ok(t) => t,
+            Err(_) => process::abort(),
+        }
+    }
+}
+
 extern crate serde_json;
 #[macro_use]
 extern crate enum_dispatch;
@@ -109,7 +140,7 @@ impl WebClient {
         //panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGlContext::new(aladin_div_name)?;
 
-        let shaders = ShaderManager::new(&gl, shaders).unwrap();
+        let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
         let app = AppType::Ortho(App::<Orthographic>::new(
             &gl,
             shaders,

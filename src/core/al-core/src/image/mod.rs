@@ -236,6 +236,7 @@ where
         image.get_size()
     }*/
 }
+use crate::Abort;
 
 use std::sync::{Arc, Mutex};
 impl<I> Image for Arc<Mutex<Option<I>>>
@@ -249,7 +250,7 @@ where
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
     ) {
-        if let Some(image) = &*self.lock().unwrap() {
+        if let Some(image) = &*self.lock().unwrap_abort() {
             image.tex_sub_image_3d(textures, offset);
         }
     }

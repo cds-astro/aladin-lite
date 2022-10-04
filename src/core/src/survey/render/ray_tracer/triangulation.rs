@@ -36,6 +36,8 @@ impl Triangulate for Gnomonic {
         build::<Self>()
     }
 }
+
+use crate::Abort;
 use crate::math;
 impl Triangulate for HEALPix {
     fn triangulate() -> Triangulation {
@@ -72,7 +74,7 @@ impl Triangulate for HEALPix {
                     let dec = lerp(dec, c_dec, 1e-5);
 
                     let v = math::lonlat::radec_to_xyzw(Angle(ra), Angle(dec));
-                    HEALPix::world_to_clip_space(&v).unwrap()
+                    HEALPix::world_to_clip_space(&v).unwrap_abort()
                 });
 
                 let mut vertices = [v[0], v[3], v[2], v[2], v[1], v[0]];
@@ -416,8 +418,8 @@ fn recursive_triangulation<P: Projection>(
 
                 if !P::is_included_inside_projection(&tl) && !P::is_included_inside_projection(&br)
                 {
-                    let (x1, _) = P::solve_along_abscissa(tl.y).unwrap();
-                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap();
+                    let (x1, _) = P::solve_along_abscissa(tl.y).unwrap_abort();
+                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap_abort();
 
                     let tl_r = Vector2::new(x1, tl.y);
                     let br_r = Vector2::new(br.x, y1);
@@ -425,8 +427,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&tl)
                     && !P::is_included_inside_projection(&br)
                 {
-                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap();
-                    let (y2, _) = P::solve_along_ordinate(tl.x).unwrap();
+                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap_abort();
+                    let (y2, _) = P::solve_along_ordinate(tl.x).unwrap_abort();
 
                     face.add_triangle(&[tl, Vector2::new(tl.x, y2), tr], vertices, idx);
                     face.add_triangle(
@@ -437,8 +439,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if !P::is_included_inside_projection(&tl)
                     && P::is_included_inside_projection(&br)
                 {
-                    let (x1, _) = P::solve_along_abscissa(tr.y).unwrap();
-                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap();
+                    let (x1, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
+                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap_abort();
 
                     face.add_triangle(
                         &[Vector2::new(x1, tr.y), Vector2::new(x2, br.y), tr],
@@ -449,8 +451,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&tl)
                     && P::is_included_inside_projection(&br)
                 {
-                    let (y1, _) = P::solve_along_ordinate(tl.x).unwrap();
-                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap();
+                    let (y1, _) = P::solve_along_ordinate(tl.x).unwrap_abort();
+                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap_abort();
 
                     let u = Vector2::new(tl.x, y1);
                     let v = Vector2::new(x2, br.y);
@@ -471,8 +473,8 @@ fn recursive_triangulation<P: Projection>(
 
                 if !P::is_included_inside_projection(&tl) && !P::is_included_inside_projection(&br)
                 {
-                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap();
-                    let (_, y2) = P::solve_along_ordinate(tl.x).unwrap();
+                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap_abort();
+                    let (_, y2) = P::solve_along_ordinate(tl.x).unwrap_abort();
 
                     let u = Vector2::new(x2, br.y);
                     let v = Vector2::new(tl.x, y2);
@@ -480,8 +482,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&tl)
                     && !P::is_included_inside_projection(&br)
                 {
-                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap();
-                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap();
+                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap_abort();
+                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap_abort();
 
                     let u = Vector2::new(x1, tl.y);
                     let v = Vector2::new(x2, br.y);
@@ -491,8 +493,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if !P::is_included_inside_projection(&tl)
                     && P::is_included_inside_projection(&br)
                 {
-                    let (_, y1) = P::solve_along_ordinate(tl.x).unwrap();
-                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap();
+                    let (_, y1) = P::solve_along_ordinate(tl.x).unwrap_abort();
+                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap_abort();
 
                     let u = Vector2::new(tl.x, y1);
                     let v = Vector2::new(br.x, y2);
@@ -502,8 +504,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&tl)
                     && P::is_included_inside_projection(&br)
                 {
-                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap();
-                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap();
+                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap_abort();
+                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap_abort();
 
                     let u = Vector2::new(x1, tl.y);
                     let v = Vector2::new(br.x, y2);
@@ -525,8 +527,8 @@ fn recursive_triangulation<P: Projection>(
 
                 if !P::is_included_inside_projection(&bl) && !P::is_included_inside_projection(&tr)
                 {
-                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap();
-                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap();
+                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap_abort();
+                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(x2, tr.y);
@@ -534,8 +536,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&bl)
                     && !P::is_included_inside_projection(&tr)
                 {
-                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap();
-                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap();
+                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap_abort();
+                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(x2, tr.y);
@@ -545,8 +547,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if !P::is_included_inside_projection(&bl)
                     && P::is_included_inside_projection(&tr)
                 {
-                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap();
-                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap();
+                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap_abort();
+                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(tr.x, y2);
@@ -556,8 +558,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&bl)
                     && P::is_included_inside_projection(&tr)
                 {
-                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap();
-                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap();
+                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap_abort();
+                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(tr.x, y2);
@@ -579,8 +581,8 @@ fn recursive_triangulation<P: Projection>(
 
                 if !P::is_included_inside_projection(&bl) && !P::is_included_inside_projection(&tr)
                 {
-                    let (x2, _) = P::solve_along_abscissa(bl.y).unwrap();
-                    let (_, y1) = P::solve_along_ordinate(tr.x).unwrap();
+                    let (x2, _) = P::solve_along_abscissa(bl.y).unwrap_abort();
+                    let (_, y1) = P::solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(x2, bl.y);
                     let v = Vector2::new(tr.x, y1);
@@ -588,8 +590,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&bl)
                     && !P::is_included_inside_projection(&tr)
                 {
-                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap();
-                    let (_, y2) = P::solve_along_ordinate(tr.x).unwrap();
+                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap_abort();
+                    let (_, y2) = P::solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(tr.x, y2);
@@ -599,8 +601,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if !P::is_included_inside_projection(&bl)
                     && P::is_included_inside_projection(&tr)
                 {
-                    let (x1, _) = P::solve_along_abscissa(bl.y).unwrap();
-                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap();
+                    let (x1, _) = P::solve_along_abscissa(bl.y).unwrap_abort();
+                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(x2, tr.y);
@@ -610,8 +612,8 @@ fn recursive_triangulation<P: Projection>(
                 } else if P::is_included_inside_projection(&bl)
                     && P::is_included_inside_projection(&tr)
                 {
-                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap();
-                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap();
+                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap_abort();
+                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(x2, tr.y);

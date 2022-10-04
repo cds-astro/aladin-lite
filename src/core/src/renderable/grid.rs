@@ -9,7 +9,7 @@ use crate::camera::CameraViewPort;
 use al_api::grid::GridCfg;
 use al_core::VertexArrayObject;
 use al_api::color::ColorRGB;
-
+use crate::Abort;
 pub struct ProjetedGrid {
     // Properties
     pub color: ColorRGB,
@@ -153,7 +153,7 @@ impl ProjetedGrid {
         for label in self.labels.iter().flatten() {
             self.text_renderer.add_label(
                 &label.content,
-                &label.position.cast::<f32>().unwrap(),
+                &label.position.cast::<f32>().unwrap_abort(),
                 1.0,
                 &self.color,
                 self.opacity,
@@ -178,8 +178,8 @@ impl ProjetedGrid {
                 if self.sizes.is_empty() {
                     self.offsets.push(0);
                 } else {
-                    let last_offset = *self.offsets.last().unwrap();
-                    self.offsets.push(last_offset + self.sizes.last().unwrap());
+                    let last_offset = *self.offsets.last().unwrap_abort();
+                    self.offsets.push(last_offset + self.sizes.last().unwrap_abort());
                 }
                 self.sizes.push(line.vertices.len());
 
@@ -191,7 +191,7 @@ impl ProjetedGrid {
         for label in self.labels.iter().flatten() {
             self.text_renderer.add_label(
                 &label.content,
-                &label.position.cast::<f32>().unwrap(),
+                &label.position.cast::<f32>().unwrap_abort(),
                 1.0,
                 &self.color,
                 self.opacity,
@@ -256,7 +256,7 @@ impl ProjetedGrid {
                 &self.gl,
                 &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
             )
-            .unwrap();
+            .unwrap_abort();
         let shader = shader.bind(&self.gl);
         shader
             .attach_uniforms_from(camera)
@@ -375,7 +375,7 @@ impl Label {
 
         let content = Angle(lon).to_string::<angle::DMS>();
         let position = if !fov.is_allsky() {
-            //let dim = ctx2d.measure_text(&content).unwrap();
+            //let dim = ctx2d.measure_text(&content).unwrap_abort();
             let dim = text_renderer.get_width_pixel_size(&content);
             let k = ds * (dim * 0.5 + 10.0);
 

@@ -10,7 +10,7 @@ use web_sys::WebGl2RenderingContext;
 use al_api::coo_system::CooSystem;
 
 type MOCIdx = String;
-
+use crate::Abort;
 pub struct MOC {
     vao: VertexArrayObject,
     num_indices: Vec<usize>,
@@ -282,8 +282,8 @@ impl MOC {
         let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.layers.iter()
             .map(|layer| {
-                let params = self.params.get(layer).unwrap();
-                let coverage = self.mocs.get(layer).unwrap();
+                let params = self.params.get(layer).unwrap_abort();
+                let coverage = self.mocs.get(layer).unwrap_abort();
 
                 let moc = if !params.is_showing() {
                     None
@@ -352,8 +352,8 @@ impl MOC {
         let mut idx_off = 0;
 
         for layer in self.layers.iter() {
-            let moc = self.adaptative_mocs.get(layer).unwrap();
-            let params = self.params.get(layer).unwrap();
+            let moc = self.adaptative_mocs.get(layer).unwrap_abort();
+            let params = self.params.get(layer).unwrap_abort();
 
             if let Some(moc) = moc {
                 let depth_max = moc.depth();
@@ -508,10 +508,10 @@ impl MOC {
                 &self.gl,
                 &ShaderId(Cow::Borrowed("GridVS_CPU"), Cow::Borrowed("GridFS_CPU")),
             )
-            .unwrap();
+            .unwrap_abort();
         let shaderbound = shader.bind(&self.gl);
         for (idx, layer) in self.layers.iter().enumerate() {
-            let moc = self.params.get(layer).unwrap();
+            let moc = self.params.get(layer).unwrap_abort();
             //if moc.is_showing() {
                 let mode = if moc.get_opacity() == 1.0 {
                     WebGl2RenderingContext::LINES

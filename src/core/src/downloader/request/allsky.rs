@@ -50,7 +50,7 @@ impl From<query::Allsky> for AllskyRequest {
             let mut opts = RequestInit::new();
             opts.method("GET");
             opts.mode(RequestMode::Cors);
-            let window = web_sys::window().unwrap();
+            let window = web_sys::window().unwrap_abort();
 
             let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts)?;
             if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
@@ -293,9 +293,11 @@ pub struct Allsky {
     url: Url,
 }
 
+use crate::Abort;
+
 impl Allsky {
     pub fn missing(&self) -> bool {
-        self.image.lock().unwrap().is_none()
+        self.image.lock().unwrap_abort().is_none()
     }
 
     pub fn get_hips_url(&self) -> &Url {

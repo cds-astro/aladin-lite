@@ -26,6 +26,7 @@ pub enum ResolvedStatus {
     Failed,
     Found,
 }
+use crate::Abort;
 use std::future::Future;
 use wasm_bindgen::JsValue;
 impl<R> Request<R>
@@ -50,7 +51,7 @@ where
                 let resp = f.await;
 
                 if let Ok(resp) = resp {
-                    *(data_cloned.lock().unwrap()) = Some(resp);
+                    *(data_cloned.lock().unwrap_abort()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
                 } else if let Err(_err) = resp {
                     resolved_cloned.set(ResolvedStatus::Failed);

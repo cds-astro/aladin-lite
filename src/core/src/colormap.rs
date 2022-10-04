@@ -12,6 +12,7 @@ pub struct Colormaps {
     colormaps: HashMap<&'static str, Colormap>,
 }
 
+use crate::Abort;
 use al_api::colormap::Colormap;
 impl Colormaps {
     pub fn new(gl: &WebGlContext, rs: &Resources) -> Result<Self, JsValue> {
@@ -38,7 +39,7 @@ impl Colormaps {
         .iter()
         .cloned()
         .collect();
-        let colormap_filename = rs.get_filename("colormaps").unwrap();
+        let colormap_filename = rs.get_filename("colormaps").unwrap_abort();
         let tex = Texture2D::create_from_path::<_, al_core::image::format::RGBA8U>(
             gl,
             "colormap",
@@ -96,7 +97,7 @@ impl Colormaps {
         let c = if let Some(c) = self.colormaps.get(name) {
             c
         } else {
-            self.colormaps.get("grayscale").unwrap()
+            self.colormaps.get("grayscale").unwrap_abort()
         };
 
         *c

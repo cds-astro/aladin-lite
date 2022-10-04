@@ -16,6 +16,8 @@ const M: f64 = 280.0*280.0;
 const N: f64 = 150.0*150.0;
 const RAP: f64 = 0.7;
 
+use crate::Abort;
+
 use crate::math::{vector::dist2, angle::Angle};
 fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> bool {
     let vertices = cell.vertices()
@@ -1100,7 +1102,7 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
             Cow::Borrowed("RayTracerFontFS"),
         ),
     )
-    .unwrap()
+    .unwrap_abort()
 }
 
 use al_core::image::format::ImageFormatType;
@@ -1217,9 +1219,9 @@ impl ImageSurveys {
         if !self.surveys.is_empty() {
             let not_render_transparency_font = self.layers.iter()
                 .any(|layer| {
-                    let meta = self.meta.get(layer).unwrap();
-                    let url = self.urls.get(layer).unwrap();
-                    let survey = self.surveys.get(url).unwrap();
+                    let meta = self.meta.get(layer).unwrap_abort();
+                    let url = self.urls.get(layer).unwrap_abort();
+                    let survey = self.surveys.get(url).unwrap_abort();
 
                     (survey.is_allsky() || survey.get_config().get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
                 });
@@ -1242,7 +1244,7 @@ impl ImageSurveys {
             if meta.visible() {
                 // 1. Update the survey if necessary
                 let url = self.urls.get(layer).expect("Url should be found");
-                let survey = self.surveys.get_mut(url).unwrap();
+                let survey = self.surveys.get_mut(url).unwrap_abort();
                 survey.update::<P>(camera);
 
                 let ImageSurveyMeta {
@@ -1426,7 +1428,7 @@ impl ImageSurveys {
     }
 
     pub fn get_from_layer(&self, id: &str) -> Option<&ImageSurvey> {
-        self.urls.get(id).map(|url| self.surveys.get(url).unwrap())
+        self.urls.get(id).map(|url| self.surveys.get(url).unwrap_abort())
     }
 
     pub fn get_mut_from_layer(&mut self, id: &str) -> Option<&mut ImageSurvey> {
@@ -1457,7 +1459,7 @@ impl ImageSurveys {
             Some(
                 self.surveys
                     .get(&self.most_precise_survey)
-                    .unwrap()
+                    .unwrap_abort()
                     .get_view(),
             )
         }

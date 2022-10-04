@@ -28,7 +28,7 @@ impl PartialOrd for TextureCellItem {
 }
 impl Ord for TextureCellItem {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other).unwrap_abort()
     }
 }
 
@@ -183,6 +183,7 @@ use al_core::image::format::{R16I, R32I, R8UI};
 use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
 use crate::downloader::request::allsky::Allsky;
 use cgmath::Vector3;
+use crate::Abort;
 impl ImageSurveyTextures {
     pub fn new(
         gl: &WebGlContext,
@@ -307,8 +308,8 @@ impl ImageSurveyTextures {
         } = allsky;
 
         {
-            let mutex_locked = image.lock().unwrap();
-            let images = mutex_locked.as_ref().unwrap();
+            let mutex_locked = image.lock().unwrap_abort();
+            let images = mutex_locked.as_ref().unwrap_abort();
             for (idx, image) in images.iter().enumerate() {
                 self.push(
                     &HEALPixCell(depth_tile, idx as u64),
@@ -379,7 +380,7 @@ impl ImageSurveyTextures {
                 // (i.e. is not a root texture)
                 let texture = if self.is_heap_full() {
                     // Pop the oldest requested texture
-                    let oldest_texture = self.heap.pop().unwrap();
+                    let oldest_texture = self.heap.pop().unwrap_abort();
                     // Ensure this is not a base texture
                     debug_assert!(!oldest_texture.is_root());
 

@@ -57,11 +57,11 @@ fn get_active_uniform_locations(gl: &WebGlContext, program: &WebGlProgram) -> Un
     let num_uniforms = gl
         .get_program_parameter(program, WebGlRenderingCtx::ACTIVE_UNIFORMS)
         .as_f64()
-        .unwrap();
+        .unwrap_abort();
 
     (0..num_uniforms as u32)
         .map(|idx_uniform| {
-            let active_uniform = gl.get_active_uniform(program, idx_uniform).unwrap();
+            let active_uniform = gl.get_active_uniform(program, idx_uniform).unwrap_abort();
             let name_uniform = active_uniform.name();
             // Get the location by the name of the active uniform
             let location_uniform = gl.get_uniform_location(program, &name_uniform);
@@ -219,10 +219,12 @@ impl UniformType for Matrix4<f32> {
         gl.uniform_matrix4fv_with_f32_array(location, false, value.as_ref() as &[f32; 16]);
     }
 }
+use crate::Abort;
+
 impl UniformType for Matrix4<f64> {
     fn uniform(gl: &WebGlContext, location: Option<&WebGlUniformLocation>, value: &Self) {
         // Cast the matrix
-        let mat_f32 = value.cast::<f32>().unwrap();
+        let mat_f32 = value.cast::<f32>().unwrap_abort();
         gl.uniform_matrix4fv_with_f32_array(location, false, mat_f32.as_ref() as &[f32; 16]);
     }
 }

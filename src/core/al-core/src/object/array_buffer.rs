@@ -45,7 +45,7 @@ pub trait VertexAttribPointerType: std::marker::Sized {
         usage: u32,
         data: B,
     ) -> WebGlBuffer {
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
         // Bind the buffer
         gl.bind_buffer(WebGlRenderingCtx::ARRAY_BUFFER, Some(buffer.as_ref()));
 
@@ -372,6 +372,9 @@ pub struct ArrayBuffer {
     gl: WebGlContext,
 }
 use crate::shader::ShaderBound;
+
+use crate::Abort;
+
 impl ArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
         gl: &WebGlContext,
@@ -413,7 +416,7 @@ impl ArrayBuffer {
         T::vertex_attrib_pointer_with_i32(
             &self.gl,
             loc as u32,
-            *self.sizes.first().unwrap() as i32,
+            *self.sizes.first().unwrap_abort() as i32,
             0,
             0,
         );

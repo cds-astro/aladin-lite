@@ -42,7 +42,7 @@ impl Texture2D {
         src: &P,
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2D, JsValue> {
-        let image = HtmlImageElement::new().unwrap();
+        let image = HtmlImageElement::new().unwrap_abort();
 
         let texture = gl.create_texture();
         let onerror = {
@@ -91,7 +91,7 @@ impl Texture2D {
         image.set_onerror(Some(onerror.as_ref().unchecked_ref()));
 
         image.set_cross_origin(Some(""));
-        image.set_src(src.as_ref().to_str().unwrap());
+        image.set_src(src.as_ref().to_str().unwrap_abort());
 
         onload.forget();
         onerror.forget();
@@ -240,17 +240,17 @@ impl Texture2D {
 
     pub fn get_size(&self) -> (u32, u32) {
         (
-            self.metadata.as_ref().unwrap().width,
-            self.metadata.as_ref().unwrap().height,
+            self.metadata.as_ref().unwrap_abort().width,
+            self.metadata.as_ref().unwrap_abort().height,
         )
     }
 
     pub fn width(&self) -> u32 {
-        self.metadata.as_ref().unwrap().width
+        self.metadata.as_ref().unwrap_abort().width
     }
 
     pub fn height(&self) -> u32 {
-        self.metadata.as_ref().unwrap().height
+        self.metadata.as_ref().unwrap_abort().height
     }
 
     pub fn active_texture(&self, idx_tex_unit: u8) -> &Self {
@@ -308,7 +308,7 @@ impl Texture2D {
                 format,
                 type_,
                 ..
-            } = self.metadata.as_ref().unwrap();
+            } = self.metadata.as_ref().unwrap_abort();
             self.gl.viewport(x, y, *width as i32, *height as i32);
             #[cfg(feature = "webgl2")]
             let value = match (*format, *type_) {
@@ -369,9 +369,9 @@ impl Texture2D {
             let canvas = self
                 .gl
                 .canvas()
-                .unwrap()
+                .unwrap_abort()
                 .dyn_into::<web_sys::HtmlCanvasElement>()
-                .unwrap();
+                .unwrap_abort();
             self.gl
                 .viewport(0, 0, canvas.width() as i32, canvas.height() as i32);
 
@@ -391,6 +391,7 @@ impl Drop for Texture2D {
         }*/
     }
 }
+use crate::Abort;
 
 pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
@@ -408,7 +409,7 @@ impl<'a> Texture2DBound<'a> {
         dy: i32,
         image: &HtmlImageElement,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
+        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
 
         #[cfg(feature = "webgl2")]
         self.texture_2d
@@ -445,7 +446,7 @@ impl<'a> Texture2DBound<'a> {
         dy: i32,
         image: &web_sys::ImageBitmap,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
+        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
 
         #[cfg(feature = "webgl2")]
         self.texture_2d
@@ -483,7 +484,7 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         image: Option<&js_sys::Object>,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
+        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
 
         self.texture_2d
             .gl
@@ -510,7 +511,7 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         pixels: Option<&[u8]>,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap();
+        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
@@ -543,7 +544,7 @@ impl<'a> Texture2DBoundMut<'a> {
         src_type: u32,
         pixels: Option<&[u8]>,
     ) {
-        //let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.unwrap();
+        //let Texture2DMeta {format, type_, ..} = self.texture_2d.metadata.unwrap_abort();
         /*self.texture_2d
         .gl
         .pixel_storei(WebGlRenderingCtx::UNPACK_ALIGNMENT, 1);*/

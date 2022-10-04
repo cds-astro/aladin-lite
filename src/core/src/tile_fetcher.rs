@@ -11,7 +11,7 @@ pub struct TileFetcherQueue {
 }
 
 use crate::downloader::Downloader;
-
+use crate::Abort;
 impl TileFetcherQueue {
     pub fn new() -> Self {
         let queries = VecDeque::new();
@@ -51,7 +51,7 @@ impl TileFetcherQueue {
     fn fetch(&mut self, downloader: &mut Downloader) {
         // Fetch the base tiles with higher priority
         while self.num_tiles_fetched < MAX_NUM_TILE_FETCHING && !self.base_tile_queries.is_empty() {
-            let query = self.base_tile_queries.pop().unwrap();
+            let query = self.base_tile_queries.pop().unwrap_abort();
 
             if downloader.fetch(query) {
                 // The fetch has succeded
@@ -60,7 +60,7 @@ impl TileFetcherQueue {
         }
 
         while self.num_tiles_fetched < MAX_NUM_TILE_FETCHING && !self.queries.is_empty() {
-            let query = self.queries.pop_back().unwrap();
+            let query = self.queries.pop_back().unwrap_abort();
 
             if downloader.fetch(query) {
                 // The fetch has succeded

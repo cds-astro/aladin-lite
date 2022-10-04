@@ -255,7 +255,7 @@ where
     T: Pixel
 {
     fn from(p: T) -> Self {
-        JsValue::from_serde(&p).unwrap()
+        JsValue::from_serde(&p).unwrap_abort()
     }
 }*/
 /*
@@ -271,12 +271,12 @@ pub enum PixelType {
 impl From<PixelType> for JsValue {
     fn from(p: PixelType) -> Self {
         match p {
-            PixelType::RU8(v) => JsValue::from_serde(&v).unwrap(),
-            PixelType::RI16(v) => JsValue::from_serde(&v).unwrap(),
-            PixelType::RI32(v) => JsValue::from_serde(&v).unwrap(),
-            PixelType::RF32(v) => JsValue::from_serde(&v).unwrap(),
-            PixelType::RGBU8(v) => JsValue::from_serde(&v).unwrap(),
-            PixelType::RGBAU8(v) => JsValue::from_serde(&v).unwrap(),
+            PixelType::RU8(v) => JsValue::from_serde(&v).unwrap_abort(),
+            PixelType::RI16(v) => JsValue::from_serde(&v).unwrap_abort(),
+            PixelType::RI32(v) => JsValue::from_serde(&v).unwrap_abort(),
+            PixelType::RF32(v) => JsValue::from_serde(&v).unwrap_abort(),
+            PixelType::RGBU8(v) => JsValue::from_serde(&v).unwrap_abort(),
+            PixelType::RGBAU8(v) => JsValue::from_serde(&v).unwrap_abort(),
         }
     }
 }*/

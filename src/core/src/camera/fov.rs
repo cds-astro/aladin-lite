@@ -218,7 +218,7 @@ impl FieldOfViewVertices {
             self.moc[*hips_frame as usize] = Some(coverage);
         }
 
-        self.moc[*hips_frame as usize].as_ref().unwrap()
+        self.moc[*hips_frame as usize].as_ref().unwrap_abort()
     }*/
 
     pub fn _type(&self) -> &FieldOfViewType {

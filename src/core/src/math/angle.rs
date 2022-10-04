@@ -14,7 +14,7 @@ where
         let deg = *self;
 
         let frac = deg.fract();
-        let minutes_per_degree = T::from(60_f32).unwrap();
+        let minutes_per_degree = T::from(60_f32).unwrap_abort();
         ArcMin(frac * minutes_per_degree)
     }
 
@@ -81,7 +81,7 @@ where
         let min = *self;
 
         let frac = min.fract();
-        let seconds_per_minute = T::from(60_f64).unwrap();
+        let seconds_per_minute = T::from(60_f64).unwrap_abort();
         ArcSec(seconds_per_minute * frac)
     }
 
@@ -99,7 +99,7 @@ where
         let deg: Deg<T> = angle.into();
 
         // There is 60 minutes in one degree
-        let minutes_per_degree = T::from(60_f64).unwrap();
+        let minutes_per_degree = T::from(60_f64).unwrap_abort();
         let minutes = deg.0 * minutes_per_degree;
         ArcMin(minutes)
     }
@@ -110,7 +110,7 @@ where
     T: BaseFloat,
 {
     fn from(minutes: ArcMin<T>) -> Self {
-        let minutes_per_degree = T::from(60_f64).unwrap();
+        let minutes_per_degree = T::from(60_f64).unwrap_abort();
         let deg: Deg<T> = Deg(*minutes / minutes_per_degree);
 
         deg.into()
@@ -159,7 +159,7 @@ where
         let deg: Deg<T> = angle.into();
 
         // There is 3600 seconds in one degree
-        let seconds_per_degree = T::from(3600_f32).unwrap();
+        let seconds_per_degree = T::from(3600_f32).unwrap_abort();
         let seconds = deg.0 * seconds_per_degree;
         ArcSec(seconds)
     }
@@ -170,7 +170,7 @@ where
     T: BaseFloat,
 {
     fn from(seconds: ArcSec<T>) -> Self {
-        let seconds_per_degree = T::from(3600_f32).unwrap();
+        let seconds_per_degree = T::from(3600_f32).unwrap_abort();
         let deg: Deg<T> = Deg(seconds.0 / seconds_per_degree);
 
         deg.into()
@@ -238,6 +238,7 @@ impl FormatType for DMM {
         result
     }
 }
+use crate::Abort;
 impl FormatType for DMS {
     fn to_string<S: BaseFloat + ToString>(angle: Angle<S>) -> String {
         let angle = Rad(angle.0);
@@ -245,7 +246,7 @@ impl FormatType for DMS {
         let minutes = degrees.get_frac_minutes();
         let seconds = minutes.get_frac_seconds();
 
-        let num_per_sec_per_minutes = S::from(60).unwrap();
+        let num_per_sec_per_minutes = S::from(60).unwrap_abort();
 
         let degrees = degrees.round();
         let minutes = minutes.round() % num_per_sec_per_minutes;

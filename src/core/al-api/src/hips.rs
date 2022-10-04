@@ -291,6 +291,7 @@ pub struct ImageSurveyMeta {
 fn default_opacity() -> f32 {
     1.0
 }
+use crate::Abort;
 
 #[wasm_bindgen]
 impl ImageSurveyMeta {
@@ -318,21 +319,21 @@ impl ImageSurveyMeta {
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"stretch".into(),
-                    &serde_wasm_bindgen::to_value(&tf).unwrap(),
+                    &serde_wasm_bindgen::to_value(&tf).unwrap_abort(),
                 )
-                .unwrap();
+                .unwrap_abort();
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"minCut".into(),
-                    &serde_wasm_bindgen::to_value(&min_cut).unwrap(),
+                    &serde_wasm_bindgen::to_value(&min_cut).unwrap_abort(),
                 )
-                .unwrap();
+                .unwrap_abort();
                 js_sys::Reflect::set(
                     &js_grayscale,
                     &"maxCut".into(),
-                    &serde_wasm_bindgen::to_value(&max_cut).unwrap(),
+                    &serde_wasm_bindgen::to_value(&max_cut).unwrap_abort(),
                 )
-                .unwrap();
+                .unwrap_abort();
 
                 let js_color = match color {
                     GrayscaleColor::Color(color) => {
@@ -340,9 +341,9 @@ impl ImageSurveyMeta {
                         js_sys::Reflect::set(
                             &js_color,
                             &"color".into(),
-                            &serde_wasm_bindgen::to_value(&color).unwrap(),
+                            &serde_wasm_bindgen::to_value(&color).unwrap_abort(),
                         )
-                        .unwrap();
+                        .unwrap_abort();
 
                         js_color
                     }
@@ -353,23 +354,23 @@ impl ImageSurveyMeta {
                             &"reversed".into(),
                             &JsValue::from_bool(*reversed),
                         )
-                        .unwrap();
+                        .unwrap_abort();
                         js_sys::Reflect::set(
                             &js_colormap,
                             &"colormap".into(),
-                            &serde_wasm_bindgen::to_value(&name).unwrap(),
+                            &serde_wasm_bindgen::to_value(&name).unwrap_abort(),
                         )
-                        .unwrap();
+                        .unwrap_abort();
 
                         js_colormap
                     }
                 };
-                js_sys::Reflect::set(&js_grayscale, &"color".into(), &js_color).unwrap();
+                js_sys::Reflect::set(&js_grayscale, &"color".into(), &js_color).unwrap_abort();
 
                 js_grayscale.into()
             }
         };
-        js_sys::Reflect::set(&js_color_obj, &"color".into(), &color).unwrap();
+        js_sys::Reflect::set(&js_color_obj, &"color".into(), &color).unwrap_abort();
 
         js_color_obj.into()
     }

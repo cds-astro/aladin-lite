@@ -29,6 +29,7 @@ impl VertexBufferObject for ElementArrayBuffer {
 
 use super::array_buffer::VertexAttribPointerType;
 use super::buffer_data::BufferDataStorage;
+use crate::Abort;
 
 impl ElementArrayBuffer {
     pub fn new<'a, T: VertexAttribPointerType, B: BufferDataStorage<'a, T>>(
@@ -36,7 +37,7 @@ impl ElementArrayBuffer {
         usage: u32,
         data: B,
     ) -> ElementArrayBuffer {
-        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap();
+        let buffer = gl.create_buffer().ok_or("failed to create buffer").unwrap_abort();
         // Bind the buffer
         gl.bind_buffer(
             WebGlRenderingCtx::ELEMENT_ARRAY_BUFFER,

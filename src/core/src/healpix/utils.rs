@@ -14,8 +14,8 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
         .iter()
         .map(|(lon, lat)| {
             // Risky wrapping here
-            let lon = S::from(*lon).unwrap();
-            let lat = S::from(*lat).unwrap();
+            let lon = S::from(*lon).unwrap_abort();
+            let lat = S::from(*lat).unwrap_abort();
 
             (lon, lat)
         })
@@ -28,7 +28,7 @@ pub fn vertices_lonlat<S: BaseFloat>(cell: &HEALPixCell) -> [LonLatT<S>; 4] {
         LonLatT::new(Angle(lon[3]), Angle(lat[3])),
     ]
 }
-
+use crate::Abort;
 /// Get the grid
 pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) -> Vec<LonLatT<S>> {
     debug_assert!(n_segments_by_side > 0);
@@ -36,8 +36,8 @@ pub fn grid_lonlat<S: BaseFloat>(cell: &HEALPixCell, n_segments_by_side: u16) ->
         .iter()
         .map(|(lon, lat)| {
             // Risky wrapping here
-            let lon = S::from(*lon).unwrap();
-            let lat = S::from(*lat).unwrap();
+            let lon = S::from(*lon).unwrap_abort();
+            let lat = S::from(*lat).unwrap_abort();
 
             LonLatT::new(Angle(lon), Angle(lat))
         })

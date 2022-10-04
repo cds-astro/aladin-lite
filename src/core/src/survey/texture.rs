@@ -117,7 +117,7 @@ impl Texture {
     // Returns the current time if the texture is not full
     pub fn start_time(&self) -> Time {
         if self.is_available() {
-            self.start_time.unwrap()
+            self.start_time.unwrap_abort()
         } else {
             Time::now()
         }
@@ -174,9 +174,10 @@ impl PartialOrd for Texture {
         self.uniq.partial_cmp(&other.uniq)
     }
 }
+use crate::Abort;
 impl Ord for Texture {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other).unwrap_abort()
     }
 }
 

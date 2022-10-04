@@ -57,7 +57,7 @@ mod tests {
         // Read the font data.
         let font = include_bytes!("../resources/arial.ttf") as &[u8];
         // Parse it into the font type.
-        let font = fontdue::Font::from_bytes(font, fontdue::FontSettings::default()).unwrap();
+        let font = fontdue::Font::from_bytes(font, fontdue::FontSettings::default()).unwrap_abort();
 
         // Rasterize and get the layout metrics for the letter 'g' at 17px.
         let mut w = 0;
@@ -151,21 +151,21 @@ mod tests {
         use std::fs::File;
         use std::io::BufWriter;
 
-        let file = File::create("letters.png").unwrap();
+        let file = File::create("letters.png").unwrap_abort();
         let ref mut w = BufWriter::new(file);
 
         let mut encoder = png::Encoder::new(w, TEX_SIZE as u32, TEX_SIZE as u32); // Width is 2 pixels and height is 1.
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
 
-        let mut writer = encoder.write_header().unwrap();
+        let mut writer = encoder.write_header().unwrap_abort();
 
-        writer.write_image_data(&img).unwrap(); // Save
+        writer.write_image_data(&img).unwrap_abort(); // Save
 
         /* Save the letters position */
-        let letters_tex_serialized = serde_json::to_string(&letters_tex).unwrap();
+        let letters_tex_serialized = serde_json::to_string(&letters_tex).unwrap_abort();
 
-        let mut file = File::create("letters.json").unwrap();
-        write!(file, "{}", letters_tex_serialized).unwrap();
+        let mut file = File::create("letters.json").unwrap_abort();
+        write!(file, "{}", letters_tex_serialized).unwrap_abort();
     }
 }

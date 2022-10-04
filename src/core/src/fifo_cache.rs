@@ -6,7 +6,7 @@ pub struct Cache<K, V> {
 }
 
 const SIZE_RESOURCE_CACHE: usize = 1024;
-
+use crate::Abort;
 use std::hash::Hash;
 impl<K, V> Cache<K, V>
 where
@@ -23,7 +23,7 @@ where
 
     pub fn insert(&mut self, key: K, val: V) {
         if self.order.len() == SIZE_RESOURCE_CACHE {
-            let k = self.order.pop_front().unwrap();
+            let k = self.order.pop_front().unwrap_abort();
             self.data.remove(&k);
         }
 

@@ -10,6 +10,7 @@ pub mod vao {
 
     use crate::webgl_ctx::WebGlContext;
     use std::collections::HashMap;
+    use crate::Abort;
 
     pub struct VertexArrayObject {
         array_buffer: HashMap<&'static str, ArrayBuffer>,
@@ -28,7 +29,7 @@ pub mod vao {
             let vao = gl
                 .create_vertex_array()
                 .ok_or("failed to create the vertex array buffer")
-                .unwrap();
+                .unwrap_abort();
 
             let array_buffer = HashMap::new();
             let array_buffer_instanced = HashMap::new();
@@ -87,14 +88,14 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap().num_elements()
+            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
             self.array_buffer_instanced
                 .values()
                 .next()
-                .unwrap()
+                .unwrap_abort()
                 .num_instances()
         }
     }
@@ -123,7 +124,7 @@ pub mod vao {
             self.vao
                 .array_buffer
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(usage, array_data);
             self
         }
@@ -147,7 +148,7 @@ pub mod vao {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(array_data);
             self
         }
@@ -313,7 +314,7 @@ pub mod vao {
             self.vao
                 .array_buffer
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(usage, array_data);
             self
         }
@@ -337,7 +338,7 @@ pub mod vao {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(array_data);
             self
         }
@@ -371,6 +372,8 @@ pub mod vao {
     use crate::object::element_array_buffer::ElementArrayBuffer;
 
     use crate::webgl_ctx::WebGlContext;
+    use crate::Abort;
+
     use std::collections::HashMap;
 
     pub struct VertexArrayObject {
@@ -441,14 +444,14 @@ pub mod vao {
         }*/
 
         pub fn num_elements(&self) -> usize {
-            self.element_array_buffer.as_ref().unwrap().num_elements()
+            self.element_array_buffer.as_ref().unwrap_abort().num_elements()
         }
 
         pub fn num_instances(&self) -> i32 {
             self.array_buffer_instanced
                 .values()
                 .next()
-                .unwrap()
+                .unwrap_abort()
                 .num_instances()
         }
     }
@@ -477,7 +480,7 @@ pub mod vao {
             self.vao
                 .array_buffer
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(usage, array_data);
 
             self
@@ -502,7 +505,7 @@ pub mod vao {
             self.vao
                 .array_buffer_instanced
                 .get_mut(attr)
-                .unwrap()
+                .unwrap_abort()
                 .update(array_data);
             self
         }
@@ -546,7 +549,7 @@ pub mod vao {
                 buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            let e = self.vao.element_array_buffer.as_ref().unwrap();
+            let e = self.vao.element_array_buffer.as_ref().unwrap_abort();
             e.bind();
             let num_elements = num_elements.unwrap_or(self.vao.num_elements() as i32);
             self.vao
@@ -570,7 +573,7 @@ pub mod vao {
                 inst_buf.set_vertex_attrib_pointer_by_name::<f32>(self.shader, attr);
             }
 
-            let e = self.vao.element_array_buffer.as_ref().unwrap();
+            let e = self.vao.element_array_buffer.as_ref().unwrap_abort();
             e.bind();
 
             self.vao

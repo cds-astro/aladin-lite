@@ -45,7 +45,7 @@ where
     T: DeserializeOwned + AsRef<[f32]>,
 {
     pub fn new(table: JsValue) -> Self {
-        let table = table.dyn_into().unwrap();
+        let table = table.dyn_into().unwrap_abort();
         let idx = 0;
         let next_val_ready = None;
         Self {
@@ -131,7 +131,7 @@ impl BuildCatalogIndex {
 }
 const CHUNK_OF_SOURCES_TO_SORT: usize = 1000;
 const CHUNK_OF_SORTED_SOURCES_TO_MERGE: usize = 20000;
-
+use crate::Abort;
 impl Stream for BuildCatalogIndex {
     type Item = ();
 
@@ -157,14 +157,14 @@ impl Stream for BuildCatalogIndex {
                     let idx1 = cdshealpix::nested::hash(7, s1_lon as f64, s1_lat as f64);
                     let idx2 = cdshealpix::nested::hash(7, s2_lon as f64, s2_lat as f64);
 
-                    let ordering = idx1.partial_cmp(&idx2).unwrap();
+                    let ordering = idx1.partial_cmp(&idx2).unwrap_abort();
                     match ordering {
                         std::cmp::Ordering::Equal => {
-                            //rng.gen::<f64>().partial_cmp(&0.5).unwrap()
+                            //rng.gen::<f64>().partial_cmp(&0.5).unwrap_abort()
                             let a = (s1_lon * 100000.0).fract();
                             let b = (s2_lon * 100000.0).fract();
-                            //s1.lon.partial_cmp(&s2.lon).unwrap()
-                            a.partial_cmp(&b).unwrap()
+                            //s1.lon.partial_cmp(&s2.lon).unwrap_abort()
+                            a.partial_cmp(&b).unwrap_abort()
                         }
                         _ => ordering,
                     }

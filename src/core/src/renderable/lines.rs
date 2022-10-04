@@ -107,7 +107,7 @@ impl RasterizedLinesRenderManager {
                 &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
                     vertex.position().to_array()
                 }),
-            ).unwrap();
+            ).unwrap_abort();
         }
         let num_vertices = (self.vertices.len() / 2) as u16;
 

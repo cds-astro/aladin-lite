@@ -119,7 +119,7 @@ fn generate_hash_dxdy<P: Projection>(depth: u8) -> Vec<f32> {
 
     data
 }
-
+use crate::Abort;
 fn create_f32_texture_from_raw(
     gl: &WebGlContext,
     width: i32,
@@ -151,7 +151,7 @@ fn create_f32_texture_from_raw(
             ),
         ],
     )
-    .unwrap();
+    .unwrap_abort();
 
     let buf_data = unsafe { js_sys::Float32Array::view(data) };
     tex.bind()

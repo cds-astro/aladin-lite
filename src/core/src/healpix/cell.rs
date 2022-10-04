@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 pub struct HEALPixCell(pub u8, pub u64);
 
 use crate::survey::config::HiPSConfig;
+use crate::Abort;
 use crate::utils;
 impl HEALPixCell {
     // Build the parent cell
@@ -222,6 +223,6 @@ impl PartialOrd for HEALPixCell {
 }
 impl Ord for HEALPixCell {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other).unwrap_abort()
     }
 }

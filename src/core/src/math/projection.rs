@@ -1136,7 +1136,7 @@ mod tests {
                     img.put_pixel(x as u32, y as u32, rgb);
                 }
             }
-            img.save(filename).unwrap();
+            img.save(filename).unwrap_abort();
         }
 
         generate_projection_map::<Aitoff>("./../img/aitoff.png");

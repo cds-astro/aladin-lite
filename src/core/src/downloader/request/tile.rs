@@ -51,14 +51,14 @@ impl From<query::Tile> for TileRequest {
 
         let url_clone = url.clone();
 
-        let window = web_sys::window().unwrap();
+        let window = web_sys::window().unwrap_abort();
         let request = match format {
             ImageFormatType::RGB8U => Request::new(async move {
                 /*let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -84,12 +84,12 @@ impl From<query::Tile> for TileRequest {
                 */
                 // HTMLImageElement
                 //let blob = JsFuture::from(resp.blob()?).await?.into();
-                let image = web_sys::HtmlImageElement::new().unwrap();
+                let image = web_sys::HtmlImageElement::new().unwrap_abort();
                 let image_cloned = image.clone();
 
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
-                       // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                       // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
                         image_cloned.set_cross_origin(Some(""));
                         image_cloned.set_onload(
                             Some(&resolve)
@@ -110,7 +110,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -136,12 +136,12 @@ impl From<query::Tile> for TileRequest {
                 */
                 // HTMLImageElement
                 //let blob = JsFuture::from(resp.blob()?).await?.into();
-                let image = web_sys::HtmlImageElement::new().unwrap();
+                let image = web_sys::HtmlImageElement::new().unwrap_abort();
                 let image_cloned = image.clone();
 
                 let html_img_elt_promise = js_sys::Promise::new(
                     &mut (Box::new(move |resolve, reject| {
-                        //let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+                        //let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
                         image_cloned.set_cross_origin(Some(""));
                         image_cloned.set_onload(
                             Some(&resolve)
@@ -162,7 +162,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -178,7 +178,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -194,7 +194,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -212,7 +212,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -228,7 +228,7 @@ impl From<query::Tile> for TileRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -266,9 +266,10 @@ pub struct Tile {
     pub is_root: bool,
 }
 
+use crate::Abort;
 impl Tile {
     pub fn missing(&self) -> bool {
-        self.image.lock().unwrap().is_none()
+        self.image.lock().unwrap_abort().is_none()
     }
 
     pub fn get_hips_url(&self) -> &Url {

@@ -54,14 +54,14 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
 
         let url_clone = url.clone();
 
-        let window = web_sys::window().unwrap();
+        let window = web_sys::window().unwrap_abort();
         let request = match format {
             ImageFormatType::R32F => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -81,7 +81,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -103,7 +103,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -123,7 +123,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap();
+                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
                 let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
@@ -156,7 +156,7 @@ pub struct PixelMetadata {
     pub hips_url: String,
     pub url: String,
 }
-
+use crate::Abort;
 impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
     fn from(request: &'a PixelMetadataRequest) -> Self {
         let PixelMetadataRequest {
@@ -174,7 +174,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             Some(PixelMetadata {
                 hips_url: hips_url.clone(),
                 url: url.to_string(),
-                value: data.lock().unwrap().unwrap(),
+                value: data.lock().unwrap_abort().unwrap_abort(),
             })
         } else {
             None

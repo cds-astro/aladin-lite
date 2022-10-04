@@ -30,7 +30,7 @@ use al_api::{
     grid::GridCfg,
     hips::{ImageSurveyMeta, SimpleHiPS},
 };
-
+use crate::Abort;
 use super::coosys;
 use cgmath::Vector4;
 
@@ -344,7 +344,7 @@ where
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        self.surveys.get_view().unwrap(),
+                        self.surveys.get_view().unwrap_abort(),
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
@@ -379,7 +379,7 @@ where
                         colormap,
                         &mut self.shaders,
                         &self.camera,
-                        self.surveys.get_view().unwrap(),
+                        self.surveys.get_view().unwrap_abort(),
                     );
                     self.catalog_loaded = true;
                     self.request_redraw = true;
@@ -681,14 +681,14 @@ where
                         },
                         Resource::Moc(moc) => {
                             let moc_url = moc.get_url();
-                            let url = &moc_url[..moc_url.find("/Moc.fits").unwrap()];
+                            let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
                             if let Some(survey) = self.surveys.get_mut(url) {
                                 let request::moc::Moc {
                                     moc,
                                     ..
                                 } = moc;
     
-                                if let Some(moc) = &*moc.lock().unwrap() {
+                                if let Some(moc) = &*moc.lock().unwrap_abort() {
                                     survey.set_moc(moc.clone());
 
                                     self.look_for_new_tiles();
@@ -744,7 +744,7 @@ where
 
         /*{
             let events = self.ui.lock().update();
-            let mut events = events.lock().unwrap();
+            let mut events = events.lock().unwrap_abort();
 
             for event in events.drain(..) {
                 match event {

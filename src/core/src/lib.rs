@@ -232,7 +232,9 @@ impl WebClient {
             "HPX" => {
                 self.app = AppType::Hpx(self.app.set_projection::<HEALPix>());
             },
-            _ => return Err(format!("{} is not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted", projection).into()),
+            _ => {
+                return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));
+            },
         }
 
         Ok(self)

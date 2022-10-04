@@ -272,7 +272,7 @@ impl RayTracer {
             )
     }
 
-    pub fn is_rendering<P: Projection>(&self, camera: &CameraViewPort, depth: u8) -> bool {
+    pub fn is_rendering(&self, camera: &CameraViewPort, depth: u8) -> bool {
         //camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE
         camera.get_field_of_view().is_allsky() || depth == 0
     }

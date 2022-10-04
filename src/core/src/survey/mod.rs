@@ -632,21 +632,6 @@ impl ImageSurvey {
     }
 
     pub fn recompute_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
-        let last_user_action = camera.get_last_user_action();
-        match last_user_action {
-            UserAction::Unzooming => {
-                self.update_vertices::<UnZoom, P>(camera);
-            }
-            UserAction::Zooming => {
-                self.update_vertices::<Zoom, P>(camera);
-            }
-            _ => {
-                self.update_vertices::<Move, P>(camera);
-            }
-        }
-    }
-
-    fn update_vertices<T: RecomputeRasterizer, P: Projection>(&mut self, camera: &CameraViewPort) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -656,8 +641,20 @@ impl ImageSurvey {
         self.idx_vertices.clear();
 
         let survey_config = self.textures.config();
+        
+        let last_user_action = camera.get_last_user_action();
+        let mut textures = match last_user_action {
+            UserAction::Unzooming => {
+                UnZoom::get_textures_from_survey(&self.view, &self.textures)
+            }
+            UserAction::Zooming => {
+                Zoom::get_textures_from_survey(&self.view, &self.textures)
+            }
+            _ => {
+                Move::get_textures_from_survey(&self.view, &self.textures)
+            }
+        };
 
-        let mut textures = T::get_textures_from_survey(&self.view, &self.textures);
         if let Some(moc) = self.footprint_moc.as_ref() {
             textures = textures.into_iter()
                 // filter textures that are not in the moc
@@ -915,7 +912,7 @@ impl ImageSurvey {
         &self.textures.start_time
     }
 
-    fn draw<P: Projection>(
+    fn draw(
         &self,
         raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
@@ -947,7 +944,7 @@ impl ImageSurvey {
         } else {
             0
         };
-        let raytracing = raytracer.is_rendering::<P>(camera, depth_texture);
+        let raytracing = raytracer.is_rendering(camera, depth_texture);
         let longitude_reversed = camera.get_longitude_reversed();
 
         if raytracing {
@@ -1256,7 +1253,7 @@ impl ImageSurveys {
 
                 // 2. Draw it if its opacity is not null
                 blend_cfg.enable(&self.gl, || {
-                    survey.draw::<P>(
+                    survey.draw(
                         raytracer,
                         //switch_from_raytrace_to_raster,
                         shaders,

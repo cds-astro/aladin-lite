@@ -864,7 +864,7 @@ where
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
-            catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
+            //catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
             grid.draw::<P>(camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();

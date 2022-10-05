@@ -73,12 +73,12 @@ const MAX_DPI_LIMIT: f32 = 3.0;
 use crate::Abort;
 use crate::math;
 use crate::time::Time;
+use crate::ArcDeg;
 impl CameraViewPort {
-    pub fn new<P: Projection>(gl: &WebGlContext, system: CooSystem) -> CameraViewPort {
+    pub fn new(gl: &WebGlContext, system: CooSystem, projection: ProjectionType) -> CameraViewPort {
         let last_user_action = UserAction::Starting;
 
-        //let fov = FieldOfView::new::<P>(gl, P::aperture_start(), config);
-        let aperture = P::aperture_start();
+        let aperture = Angle(projection.aperture_start());
 
         let w2m = Matrix4::identity();
         let m2w = w2m;
@@ -107,10 +107,10 @@ impl CameraViewPort {
         //gl.scissor(0, 0, width as i32, height as i32);
 
         let aspect = height / width;
-        let ndc_to_clip = P::compute_ndc_to_clip_factor(width as f64, height as f64);
+        let ndc_to_clip = projection.compute_ndc_to_clip_factor(width as f64, height as f64);
         let clip_zoom_factor = 1.0;
 
-        let vertices = FieldOfViewVertices::new::<P>(&ndc_to_clip, clip_zoom_factor, &w2m, &center);
+        let vertices = FieldOfViewVertices::new(&ndc_to_clip, clip_zoom_factor, &w2m, &center, projection);
         let gl = gl.clone();
 
         let is_allsky = true;
@@ -161,12 +161,12 @@ impl CameraViewPort {
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
         };
-        camera.set_canvas_size::<P>();
+        camera.set_canvas_size(projection);
 
         camera
     }
 
-    fn set_canvas_size<P: Projection>(&self) {
+    fn set_canvas_size(&self, projection: ProjectionType) {
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         self.gl.scissor(0, 0, self.width as i32, self.height as i32);
 
@@ -182,11 +182,11 @@ impl CameraViewPort {
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.update_scissor::<P>();
+        self.update_scissor(projection);
     }
 
-    fn update_scissor<P: Projection>(&self) {
-        let (wc, hc) = P::clip_size();
+    fn update_scissor(&self, projection: ProjectionType) {
+        let (wc, hc) = projection.clip_size();
 
         let tl_c = Vector2::new(-wc * 0.5, hc * 0.5);
         let tr_c = Vector2::new(wc * 0.5, hc * 0.5);
@@ -209,7 +209,7 @@ impl CameraViewPort {
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
     }
 
-    pub fn set_screen_size<P: Projection>(&mut self, width: f32, height: f32) {
+    pub fn set_screen_size(&mut self, width: f32, height: f32, projection: ProjectionType) {
         let canvas = self
             .gl
             .canvas()
@@ -231,26 +231,27 @@ impl CameraViewPort {
         self.aspect = width / height;
 
         // Compute the new clip zoom factor
-        self.ndc_to_clip = P::compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
+        self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
 
         self.moved = true;
         self.last_user_action = UserAction::Starting;
 
-        self.vertices.set_fov::<P>(
+        self.vertices.set_fov(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
             &self.center,
+            projection,
         );
-        self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
+        self.is_allsky = !projection.is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
             self,
         ));
 
-        self.set_canvas_size::<P>();
+        self.set_canvas_size(projection);
     }
 
-    pub fn set_aperture<P: Projection>(&mut self, aperture: Angle<f64>) {
+    pub fn set_aperture(&mut self, aperture: Angle<f64>, projection: ProjectionType) {
         // Checking if we are zooming or unzooming
         // This is used internaly for the raytracer to compute
         // blending between tiles and their parents (or children)
@@ -262,7 +263,14 @@ impl CameraViewPort {
             self.last_user_action
         };
 
-        self.aperture = if aperture <= P::aperture_start() {
+        let can_unzoom_more = match projection {
+            ProjectionType::Gnomonic(_) | ProjectionType::Mercator(_) | ProjectionType::HEALPix(_) => false,
+            _ => true
+        };
+
+        let aperture_start: Angle<f64> = ArcDeg(projection.aperture_start()).into();
+
+        self.aperture = if aperture <= aperture_start {
             // Compute the new clip zoom factor
             let lon = aperture.abs();
 
@@ -270,57 +278,54 @@ impl CameraViewPort {
             let v0 = math::lonlat::radec_to_xyzw(-lon / 2.0, Angle(0.0));
             let v1 = math::lonlat::radec_to_xyzw(lon / 2.0, Angle(0.0));
 
-            self.clip_zoom_factor = if let Some(p0) = P::world_to_clip_space(&v0) {
-                if let Some(p1) = P::world_to_clip_space(&v1) {
+            self.clip_zoom_factor = if let Some(p0) = projection.world_to_clip_space(&v0) {
+                if let Some(p1) = projection.world_to_clip_space(&v1) {
                     (0.5*(p1.x - p0.x).abs()).min(1.0)
                 } else {
-                    (aperture / P::aperture_start()).0
+                    (aperture / aperture_start).0
                 }
             } else {
-                (aperture / P::aperture_start()).0
+                (aperture / aperture_start).0
             };
 
             aperture
-        } else if P::ALLOW_UNZOOM_MORE {
-            self.clip_zoom_factor = (aperture / P::aperture_start()).0;
+        } else if can_unzoom_more {
+            self.clip_zoom_factor = aperture.0 / aperture_start.0;
             aperture
         } else {
             self.clip_zoom_factor = 1.0;
-            P::aperture_start()
+            aperture_start
         };
 
         // Project this vertex into the screen
         self.moved = true;
 
-        self.vertices.set_fov::<P>(
+        self.vertices.set_fov(
             &self.ndc_to_clip,
             self.clip_zoom_factor,
             &self.w2m,
             &self.center,
+            projection
         );
-        self.is_allsky = !P::is_included_inside_projection(&math::projection::ndc_to_clip_space(
+        self.is_allsky = !projection.is_included_inside_projection(&math::projection::ndc_to_clip_space(
             &Vector2::new(-1.0, -1.0),
             self,
         ));
 
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
-        self.update_scissor::<P>();
+        self.update_scissor(projection);
     }
 
-    /*pub fn depth(&self) -> u8 {
-        self.vertices.get_depth()
-    }*/
-
-    pub fn rotate<P: Projection>(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>) {
+    pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, projection: ProjectionType) {
         // Rotate the axis:
         let drot = Rotation::from_axis_angle(axis, angle);
         self.w2m_rot = drot * self.w2m_rot;
 
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices(projection);
     }
 
-    pub fn set_center<P: Projection>(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem) {
+    pub fn set_center(&mut self, lonlat: &LonLatT<f64>, system: &CooSystem, projection: ProjectionType) {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
 
         let view_pos = coosys::apply_coo_system(
@@ -332,13 +337,13 @@ impl CameraViewPort {
 
         // Apply the rotation to the camera to go
         // to the next lonlat
-        self.set_rotation::<P>(&rot);
+        self.set_rotation(&rot, projection);
     }
 
-    fn set_rotation<P: Projection>(&mut self, rot: &Rotation<f64>) {
+    fn set_rotation(&mut self, rot: &Rotation<f64>, projection: ProjectionType) {
         self.w2m_rot = *rot;
 
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices(projection);
     }
 
     pub fn get_field_of_view(&self) -> &FieldOfViewType {
@@ -349,13 +354,13 @@ impl CameraViewPort {
         self.vertices.get_coverage(&self.system, hips_frame, &self.center)
     }*/
 
-    pub fn set_coo_system<P: Projection>(&mut self, new_system: CooSystem) {
+    pub fn set_coo_system(&mut self, new_system: CooSystem, projection: ProjectionType) {
         // Compute the center position according to the new coordinate frame system
         let new_center = coosys::apply_coo_system(&self.system, &new_system, &self.center);
         // Create a rotation object from that position
         let new_rotation = Rotation::from_sky_position(&new_center);
         // Apply it to the center of the view
-        self.set_rotation::<P>(&new_rotation);
+        self.set_rotation(&new_rotation, projection);
 
         // Record the new system
         self.system = new_system;
@@ -461,9 +466,9 @@ impl CameraViewPort {
         &self.system
     }
 
-    pub fn set_rotation_around_center<P: Projection>(&mut self, theta: Angle<f64>) {
+    pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, projection: ProjectionType) {
         self.rotation_center_angle = theta;
-        self.update_rot_matrices::<P>();
+        self.update_rot_matrices(projection);
     }
 
     pub fn get_rotation_around_center(&self) -> &Angle<f64> {
@@ -471,28 +476,29 @@ impl CameraViewPort {
     }
 }
 use cgmath::Matrix;
+use crate::ProjectionType;
 //use crate::coo_conversion::CooBaseFloat;
 impl CameraViewPort {
     // private methods
-    fn update_rot_matrices<P: Projection>(&mut self) {
+    fn update_rot_matrices(&mut self, projection: ProjectionType) {
         self.w2m = (&(self.w2m_rot)).into();
         self.m2w = self.w2m.transpose();
 
         // Update the center with the new rotation
-        self.update_center::<P>();
+        self.update_center(projection);
 
         // Rotate the fov vertices
         self.vertices
-            .set_rotation::<P>(&self.w2m, &self.center);
+            .set_rotation(&self.w2m, &self.center);
 
         self.time_last_move = Time::now();
         self.last_user_action = UserAction::Moving;
         self.moved = true;
     }
 
-    fn update_center<P: Projection>(&mut self) {
+    fn update_center(&mut self, projection: ProjectionType) {
         // update the center position
-        let center_world_space = P::clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap_abort();
+        let center_world_space = projection.clip_to_world_space(&Vector2::new(0.0, 0.0)).unwrap_abort();
         // Change from galactic to icrs if necessary
 
         // Change to model space

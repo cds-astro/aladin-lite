@@ -16,7 +16,6 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
-
 pub trait Abort {
     type Item;
     fn unwrap_abort(self) -> Self::Item where Self: Sized;
@@ -108,15 +107,13 @@ use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCItera
 #[wasm_bindgen]
 pub struct WebClient {
     // The app
-    app: AppType,
+    app: App,
 
     // The time between the previous and the current
     // frame
     dt: DeltaTime,
 }
 
-use crate::app::AppTrait;
-use crate::app::AppType;
 use al_api::hips::ImageSurveyMeta;
 use std::convert::TryInto;
 
@@ -141,11 +138,11 @@ impl WebClient {
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
-        let app = AppType::Ortho(App::<Orthographic>::new(
+        let app = App::new(
             &gl,
             shaders,
             resources,
-        )?);
+        )?;
 
         let dt = DeltaTime::zero();
 
@@ -207,37 +204,37 @@ impl WebClient {
     /// * `name` - Can be aitoff, mollweide, arc, sinus, tan or mercator
     #[wasm_bindgen(js_name = setProjection)]
     pub fn set_projection(
-        mut self,
+        &mut self,
         projection: String,
-    ) -> Result<WebClient, JsValue> {
+    ) -> Result<(), JsValue> {
         match projection.as_str() {
             "AIT" => {
-                self.app = AppType::Ait(self.app.set_projection::<Aitoff>());
+                self.app.set_projection(ProjectionType::Aitoff(Aitoff));
             },
             "SIN" => {
-                self.app = AppType::Ortho(self.app.set_projection::<Orthographic>());
+                self.app.set_projection(ProjectionType::Orthographic(Orthographic));
             },
             "MOL" => {
-                self.app = AppType::Mol(self.app.set_projection::<Mollweide>());
+                self.app.set_projection(ProjectionType::Mollweide(Mollweide));
             },
             "ARC" => {
-                self.app = AppType::Arc(self.app.set_projection::<AzimuthalEquidistant>());
+                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant));
             },
             "TAN" => {
-                self.app = AppType::Tan(self.app.set_projection::<Gnomonic>());
+                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic));
             },
             "MER" => {
-                self.app = AppType::Mer(self.app.set_projection::<Mercator>());
+                self.app.set_projection(ProjectionType::Mercator(Mercator));
             },
             "HPX" => {
-                self.app = AppType::Hpx(self.app.set_projection::<HEALPix>());
+                self.app.set_projection(ProjectionType::HEALPix(HEALPix));
             },
             _ => {
                 return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));
             },
         }
 
-        Ok(self)
+        Ok(())
     }
 
     /// Check whether the app is ready

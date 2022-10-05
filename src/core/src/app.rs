@@ -45,10 +45,7 @@ use std::collections::HashSet;
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 
-pub struct App<P>
-where
-    P: Projection,
-{
+pub struct App {
     pub gl: WebGlContext,
 
     //ui: GuiRef,
@@ -72,7 +69,6 @@ where
 
     // Task executor
     exec: Rc<RefCell<TaskExecutor>>,
-    resources: Resources,
 
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
@@ -90,7 +86,7 @@ where
 
     pub colormaps: Colormaps,
 
-    p: std::marker::PhantomData<P>,
+    projection: ProjectionType,
 }
 
 use cgmath::{Vector2, Vector3};
@@ -125,33 +121,11 @@ pub const BLENDING_ANIM_DURATION: f32 = 500.0; // in ms
 use crate::time::Time;
 use cgmath::InnerSpace;
 
-type Ortho = App<Orthographic>;
-type Ait = App<Aitoff>;
-type Mol = App<Mollweide>;
-type Arc = App<AzimuthalEquidistant>;
-type Tan = App<Gnomonic>;
-type Mer = App<Mercator>;
-type Hpx = App<HEALPix>;
-
-#[enum_dispatch]
-pub enum AppType {
-    Ortho,
-    Ait,
-    Mol,
-    Arc,
-    Tan,
-    Hpx,
-    Mer,
-}
 use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
-use crate::survey::render::ray_tracer::Triangulate;
 
-impl<P> App<P>
-where
-    P: Projection,
-{
+impl App {
     pub fn new(
         gl: &WebGlContext,
         mut shaders: ShaderManager,
@@ -160,6 +134,7 @@ where
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
+        let projection = ProjectionType::Orthographic(Orthographic);
         gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
@@ -174,14 +149,14 @@ where
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();
 
-        let camera = CameraViewPort::new::<Orthographic>(&gl, CooSystem::ICRSJ2000);
+        let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, projection);
         let screen_size = &camera.get_screen_size();
 
         let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
         let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new::<Orthographic>(&gl);
+        let surveys = ImageSurveys::new(&gl, projection);
 
         let time_start_blending = Time::now();
 
@@ -189,7 +164,7 @@ where
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new::<Orthographic>(&gl, &camera, &resources)?;
+        let grid = ProjetedGrid::new(&gl, &camera, &resources, projection)?;
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
@@ -232,7 +207,6 @@ where
             // The catalog renderable
             manager,
             exec,
-            resources,
             prev_center,
 
             fbo_view,
@@ -249,7 +223,7 @@ where
             tile_fetcher,
 
             colormaps,
-            p: std::marker::PhantomData,
+            projection
         })
     }
 
@@ -331,7 +305,7 @@ where
                     sources,
                     colormap,
                 } => {
-                    self.manager.add_catalog::<P>(
+                    self.manager.add_catalog(
                         name,
                         sources,
                         colormap,
@@ -366,7 +340,7 @@ where
                     sources,
                     colormap,
                 } => {
-                    self.manager.add_catalog::<P>(
+                    self.manager.add_catalog(
                         name,
                         sources,
                         colormap,
@@ -384,7 +358,7 @@ where
     }*/
 }
 use al_api::hips::HiPSTileFormat;
-#[enum_dispatch(AppType)]
+/*#[enum_dispatch(AppType)]
 pub trait AppTrait {
     /// View
     fn is_ready(&self) -> Result<bool, JsValue>;
@@ -417,7 +391,7 @@ pub trait AppTrait {
     fn set_font_color(&mut self, color: ColorRGB);
 
     fn read_pixel(&self, pos: &Vector2<f64>, base_url: &str) -> Result<JsValue, JsValue>;
-    fn set_projection<Q: Projection + Triangulate>(self) -> App<Q>;
+    fn set_projection(&mut self, projection: ProjectionType);
 
     // Catalog
     fn add_catalog(&mut self, name: String, table: JsValue, colormap: String);
@@ -471,31 +445,26 @@ pub trait AppTrait {
 
     // UI
     //fn over_ui(&self) -> bool;
-}
+}*/
 
 use al_api::cell::HEALPixCellProjeted;
 use crate::downloader::request::Resource;
 
-use crate::survey::view::HEALPixCellProjection;
-use crate::renderable::catalog::CatalogShaderProjection;
 use crate::healpix::cell::HEALPixCell;
 use al_api::color::ColorRGB;
-impl<P> AppTrait for App<P>
-where
-    P: Projection + HEALPixCellProjection + CatalogShaderProjection,
-{
-    fn set_font_color(&mut self, color: ColorRGB) {
+impl App {
+    pub(crate) fn set_font_color(&mut self, color: ColorRGB) {
         self.surveys.set_font_color(color);
 
         self.request_redraw = true;
     }
 
-    fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
+    pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
         let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
                 let cell = HEALPixCell(depth, ipix);
-                if let Ok(v) = crate::survey::view::vertices::<P>(&cell, &self.camera) {
+                if let Ok(v) = crate::survey::view::vertices(&cell, &self.camera, self.projection) {
                     let vx = [v[0].x, v[1].x, v[2].x, v[3].x];
                     let vy = [v[0].y, v[1].y, v[2].y, v[3].y];
     
@@ -504,7 +473,7 @@ where
                         vx,
                         vy
                     };
-                    <P as HEALPixCellProjection>::project(projeted_cell, &self.camera)
+                    crate::survey::view::project(projeted_cell, &self.camera, self.projection)
                 } else {
                     None
                 }
@@ -514,41 +483,41 @@ where
         cells.into_boxed_slice()
     }
 
-    fn is_catalog_loaded(&self) -> bool {
+    pub(crate) fn is_catalog_loaded(&self) -> bool {
         self.catalog_loaded
     }
 
-    fn is_ready(&self) -> Result<bool, JsValue> {
+    pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
         let res = self.surveys.is_ready();
 
         Ok(res)
     }
 
-    fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
+    pub(crate) fn get_moc(&self, params: &al_api::moc::MOC) -> Option<&HEALPixCoverage> {
         self.moc.get(params)
     }
 
-    fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
-        self.moc.insert::<P>(moc, params, &self.camera);
+    pub(crate) fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
+        self.moc.insert(moc, params, &self.camera, self.projection);
 
         Ok(())
     }
 
-    fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
+    pub(crate) fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {
         self.moc.remove(params, &self.camera)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
         Ok(())
     }
 
-    fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.set_params::<P>(params, &self.camera)
+    pub(crate) fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
+        self.moc.set_params(params, &self.camera, self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
 
         Ok(())
     }
 
-    fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
+    pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
 
         if let Some(InertiaAnimation {
@@ -574,7 +543,7 @@ where
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
 
-            self.camera.rotate::<P>(&axis, d);
+            self.camera.rotate(&axis, d, self.projection);
             self.look_for_new_tiles();
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
@@ -726,12 +695,12 @@ where
         if has_camera_moved {
             // Catalogues update
             if let Some(view) = self.surveys.get_view() {
-                self.manager.update::<P>(&self.camera, view);
+                self.manager.update(&self.camera, view);
             }
             // MOCs update
-            self.moc.update::<P>(&self.camera);
+            self.moc.update(&self.camera, self.projection);
 
-            self.grid.update::<P>(&self.camera);
+            self.grid.update(&self.camera, self.projection);
         }
 
         /*{
@@ -750,16 +719,16 @@ where
         Ok(())
     }
 
-    fn reset_north_orientation(&mut self) {
+    pub(crate) fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
-        self.camera.set_rotation_around_center::<P>(Angle(0.0));
+        self.camera.set_rotation_around_center(Angle(0.0), self.projection);
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
         self.set_center(&self.get_center());
     }
 
-    fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
+    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
             let survey = self
                 .surveys
@@ -772,7 +741,7 @@ where
         }
     }
 
-    fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
+    pub(crate) fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
         self.start_time_frame = crate::utils::get_current_time();
 
         /*let scene_redraw = self.rendering | force_render;
@@ -795,12 +764,12 @@ where
                     gl.clear_color(0.00, 0.00, 0.00, 1.0);
                     gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                    surveys.draw::<P>(camera, shaders, colormaps);
+                    surveys.draw(camera, shaders, colormaps);
 
                     // Draw the catalog
-                    catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
+                    catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
 
-                    grid.draw::<P>(camera, shaders)?;
+                    grid.draw(camera, shaders)?;
 
                     Ok(())
                 },
@@ -850,14 +819,14 @@ where
             gl.clear_color(0.08, 0.08, 0.08, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw::<P>(camera, shaders, colormaps);
+            surveys.draw(camera, shaders, colormaps, self.projection);
             self.moc.draw(shaders, camera);
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
-            //catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
-            catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
-            grid.draw::<P>(camera, shaders)?;
+            //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
+            catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
+            grid.draw(camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
             //ui.draw(&gl, dpi)?;
@@ -874,8 +843,8 @@ where
         Ok(())
     }
 
-    fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.surveys.set_image_surveys::<P>(hipses, &self.gl, &mut self.camera)?;
+    pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
+        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera)?;
 
         for survey in self.surveys.surveys.values_mut() {
             let cfg = survey.get_config();
@@ -904,26 +873,26 @@ where
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.look_for_new_tiles();
         self.request_redraw = true;
-        self.grid.update::<P>(&self.camera);
+        self.grid.update(&self.camera, self.projection);
 
         Ok(())
     }
 
-    fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
+    pub(crate) fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.surveys.get_image_survey_color_cfg(layer)
     }
 
-    fn set_image_survey_color_cfg(
+    pub(crate) fn set_image_survey_color_cfg(
         &mut self,
         layer: String,
         meta: ImageSurveyMeta,
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        self.surveys.set_image_survey_color_cfg::<P>(layer, meta, &self.camera)
+        self.surveys.set_image_survey_color_cfg(layer, meta, &self.camera, self.projection)
     }
 
-    fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
+    pub(crate) fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
         let survey = self.surveys.get_mut_from_layer(&layer)
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
         survey.set_img_format(format)?;
@@ -962,57 +931,28 @@ where
     }
 
     // Width and height given are in pixels
-    fn set_projection<Q: Projection + Triangulate>(mut self) -> App<Q> {
+    pub(crate) fn set_projection(&mut self, projection: ProjectionType) {
+        self.projection = projection;
+
         // Recompute the ndc_to_clip
-        self.camera.set_screen_size::<Q>(self.camera.get_width(), self.camera.get_height());
+        self.camera.set_screen_size(self.camera.get_width(), self.camera.get_height(), projection);
         // Recompute clip zoom factor
-        self.surveys.set_projection::<Q>();
-        self.camera.set_aperture::<Q>(self.camera.get_aperture());
+        self.surveys.set_projection(projection);
+        self.camera.set_aperture(self.camera.get_aperture(), projection);
 
         self.look_for_new_tiles();
         self.request_redraw = true;
-
-        App {
-            moc: self.moc,
-            gl: self.gl,
-            start_time_frame: self.start_time_frame,
-            tile_fetcher: self.tile_fetcher,
-
-            colormaps: self.colormaps,
-            fbo_ui: self.fbo_ui,
-            fbo_view: self.fbo_view,
-            final_rendering_pass: self.final_rendering_pass,
-            manager: self.manager,
-            exec: self.exec,
-            resources: self.resources,
-
-            inertial_move_animation: self.inertial_move_animation,
-            prev_cam_position: self.prev_cam_position,
-            prev_center: self.prev_center,
-            out_of_fov: self.out_of_fov,
-            tasks_finished: self.tasks_finished,
-            catalog_loaded: self.catalog_loaded,
-            shaders: self.shaders,
-            camera: self.camera,
-            downloader: self.downloader,
-            surveys: self.surveys,
-            time_start_blending: self.time_start_blending,
-            request_redraw: self.request_redraw,
-            rendering: self.rendering,
-            grid: self.grid,
-            p: std::marker::PhantomData,
-        }
     }
 
-    fn get_coo_system(&self) -> &CooSystem {
+    pub(crate) fn get_coo_system(&self) -> &CooSystem {
         self.camera.get_system()
     }
 
-    fn get_max_fov(&self) -> f64 {
-        P::aperture_start().0
+    pub(crate) fn get_max_fov(&self) -> f64 {
+        self.projection.aperture_start()
     }
 
-    fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
+    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
         let c = self.colormaps.get(&colormap);
@@ -1042,8 +982,8 @@ where
             });
     }
 
-    fn resize(&mut self, width: f32, height: f32) {
-        self.camera.set_screen_size::<P>(width, height);
+    pub(crate) fn resize(&mut self, width: f32, height: f32) {
+        self.camera.set_screen_size(width, height, self.projection);
         // resize the view fbo
         //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo
@@ -1056,11 +996,11 @@ where
         self.request_redraw = true;
     }
 
-    fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+    pub(crate) fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.surveys.set_survey_url(past_url, new_url)
     }
 
-    fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
+    pub(crate) fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
         let colormap = self.colormaps.get(&colormap);
 
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
@@ -1074,7 +1014,7 @@ where
         Ok(())
     }
 
-    fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
+    pub(crate) fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -1086,7 +1026,7 @@ where
         Ok(())
     }
 
-    fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
+    pub(crate) fn set_kernel_strength(&mut self, name: String, strength: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
             let err: JsValue = e.into();
             err
@@ -1098,33 +1038,33 @@ where
         Ok(())
     }
 
-    fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
-        self.grid.set_cfg::<P>(cfg, &self.camera)?;
+    pub(crate) fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
+        self.grid.set_cfg(cfg, &self.camera, self.projection)?;
         self.request_redraw = true;
 
         Ok(())
     }
 
-    fn set_coo_system(&mut self, coo_system: CooSystem) {
-        self.camera.set_coo_system::<P>(coo_system);
+    pub(crate) fn set_coo_system(&mut self, coo_system: CooSystem) {
+        self.camera.set_coo_system(coo_system, self.projection);
         self.look_for_new_tiles();
 
         self.request_redraw = true;
     }
 
-    fn world_to_screen(&self, ra: f64, dec: f64) -> Option<Vector2<f64>> {
+    pub(crate) fn world_to_screen(&self, ra: f64, dec: f64) -> Option<Vector2<f64>> {
         let lonlat = LonLatT::new(ArcDeg(ra).into(), ArcDeg(dec).into());
         let model_pos_xyz = lonlat.vector();
 
-        P::view_to_screen_space(&model_pos_xyz, &self.camera)
+        self.projection.view_to_screen_space(&model_pos_xyz, &self.camera)
     }
 
-    fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
+    pub(crate) fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {
         // Select the HiPS layer rendered lastly
-        P::screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
+        self.projection.screen_to_model_space(pos, &self.camera).map(|model_pos| model_pos.lonlat())
     }
 
-    fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+    pub(crate) fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
@@ -1136,7 +1076,7 @@ where
         LonLatT::new(ra, dec)
     }
 
-    fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
+    pub(crate) fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64> {
         let icrsj2000_pos: Vector4<_> = lonlat.vector();
         let view_system = self.camera.get_system();
         let (ra, dec) = math::lonlat::xyzw_to_radec(&coosys::apply_coo_system(
@@ -1148,22 +1088,22 @@ where
         LonLatT::new(ra, dec)
     }
 
-    fn set_center(&mut self, lonlat: &LonLatT<f64>) {
+    pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        self.camera.set_center::<P>(lonlat, &CooSystem::ICRSJ2000);
+        self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, self.projection);
         self.look_for_new_tiles();
 
         // And stop the current inertia as well if there is one
         self.inertial_move_animation = None;
     }
 
-    fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
+    pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
         self.out_of_fov = false;
     }
 
-    fn release_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
+    pub(crate) fn release_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         // Check whether the center has moved
         // between the pressing and releasing
         // of the left button.
@@ -1223,38 +1163,38 @@ where
         });
     }*/
 
-    fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
-        self.camera.set_rotation_around_center::<P>(theta.into());
+    pub(crate) fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
+        self.camera.set_rotation_around_center(theta.into(), self.projection);
         // New tiles can be needed and some tiles can be removed
         self.look_for_new_tiles();
 
         self.request_redraw = true;
     }
 
-    fn get_rotation_around_center(&self) -> &Angle<f64> {
+    pub(crate) fn get_rotation_around_center(&self) -> &Angle<f64> {
         self.camera.get_rotation_around_center()
     }
 
-    fn set_fov(&mut self, fov: Angle<f64>) {
+    pub(crate) fn set_fov(&mut self, fov: Angle<f64>) {
         // For the moment, no animation is triggered.
         // The fov is directly set
-        self.camera.set_aperture::<P>(fov);
+        self.camera.set_aperture(fov, self.projection);
         self.look_for_new_tiles();
 
         self.request_redraw = true;
     }
 
-    fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
+    pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
         let v1: Vector3<f64> = LonLatT::new(ArcDeg(lon1).into(), ArcDeg(lat1).into()).vector();
         let v2: Vector3<f64> = LonLatT::new(ArcDeg(lon2).into(), ArcDeg(lat2).into()).vector();
 
-        line::project_along_great_circles::<P>(&v1, &v2, &self.camera)
+        line::project_along_great_circles(&v1, &v2, &self.camera, self.projection)
     }
 
-    fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
+    pub(crate) fn go_from_to(&mut self, s1x: f64, s1y: f64, s2x: f64, s2y: f64) {
         // Select the HiPS layer rendered lastly
-        if let Some(w1) = P::screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera) {
-            if let Some(w2) = P::screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera) {
+        if let Some(w1) = self.projection.screen_to_model_space(&Vector2::new(s1x, s1y), &self.camera) {
+            if let Some(w2) = self.projection.screen_to_model_space(&Vector2::new(s2x, s2y), &self.camera) {
                 let cur_pos = w1.truncate();
                 //let cur_pos = w1.truncate();
                 let next_pos = w2.truncate();
@@ -1266,7 +1206,7 @@ where
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
-                    self.camera.rotate::<P>(&(-axis), d);
+                    self.camera.rotate(&(-axis), d, self.projection);
                     self.look_for_new_tiles();
                 }
                 return;
@@ -1277,28 +1217,28 @@ where
     }
 
     // Accessors
-    fn get_center(&self) -> LonLatT<f64> {
+    pub(crate) fn get_center(&self) -> LonLatT<f64> {
         self.camera.get_center().lonlat()
     }
 
-    fn get_norder(&self) -> i32 {
+    pub(crate) fn get_norder(&self) -> i32 {
         self.surveys.get_depth() as i32
     }
 
-    fn get_clip_zoom_factor(&self) -> f64 {
+    pub(crate) fn get_clip_zoom_factor(&self) -> f64 {
         self.camera.get_clip_zoom_factor()
     }
 
-    fn get_fov(&self) -> f64 {
+    pub(crate) fn get_fov(&self) -> f64 {
         let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
     }
 
-    fn get_gl_canvas(&self) -> Option<js_sys::Object> {
+    pub(crate) fn get_gl_canvas(&self) -> Option<js_sys::Object> {
         self.gl.canvas()
     }
 
-    fn is_rendering(&self) -> bool {
+    pub(crate) fn is_rendering(&self) -> bool {
         self.rendering
     }
 }

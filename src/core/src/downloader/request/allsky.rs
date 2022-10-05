@@ -1,5 +1,6 @@
 
 use al_core::image::format::ImageFormatType;
+use wasm_bindgen::Clamped;
 
 use crate::downloader::{query};
 use al_core::image::{fits::Fits, ImageType};
@@ -30,6 +31,47 @@ use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
 use al_core::image::format::R64F;
+async fn query_image<F: ImageFormat>(url: &str) -> Result<ImageBuffer<F>, JsValue> {
+    let image = web_sys::HtmlImageElement::new().unwrap_abort();
+    let image_cloned = image.clone();
+
+    let html_img_elt_promise = js_sys::Promise::new(
+        &mut (Box::new(move |resolve, reject| {
+            // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
+            image_cloned.set_cross_origin(Some(""));
+            image_cloned.set_onload(
+                Some(&resolve)
+            );
+            image_cloned.set_onerror(
+                Some(&reject)
+            );
+            image_cloned.set_src(url);
+        }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
+    );
+
+    let _ = JsFuture::from(html_img_elt_promise).await?;
+
+    // The image has been received here
+    let document = web_sys::window().unwrap_abort().document().unwrap_abort();
+    let canvas = document
+        .create_element("canvas")?
+        .dyn_into::<web_sys::HtmlCanvasElement>()?;
+    document.body().unwrap_abort().append_child(&canvas)?;
+    canvas.set_width(image.width());
+    canvas.set_height(image.height());
+    let context = canvas
+        .get_context("2d")?
+        .unwrap_abort()
+        .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
+    context.draw_image_with_html_image_element(&image, 0.0, 0.0)?;
+    let w = image.width();
+    let h = image.height();
+    let image_data = context.get_image_data(0.0, 0.0, w as f64, h as f64)?;
+    let raw_bytes = image_data.data();
+
+    Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w as i32, h as i32))
+}
+
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
@@ -68,23 +110,27 @@ impl From<query::Allsky> for AllskyRequest {
 
                 let allsky_tiles = match format {
                     ImageFormatType::RGB8U => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                        /*let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                         let allsky =
-                            ImageBuffer::<RGB8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
+                            ImageBuffer::<RGB8U>::from_encoded_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
+                        */
                         let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, texture_size, tile_size)
-                            .await?
+                        let allsky = query_image::<RGB8U>(&url_clone).await?;
+
+                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, texture_size, tile_size)?
                             .into_iter()
                             .map(|image| ImageType::RawRgb8u { image })
                             .collect()
                     }
                     ImageFormatType::RGBA8U => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
+                        /*let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                         let allsky =
-                            ImageBuffer::<RGBA8U>::from_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
+                            ImageBuffer::<RGBA8U>::from_encoded_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
+                        */
                         let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size, tile_size)
-                            .await?
+                        let allsky = query_image::<RGBA8U>(&url_clone).await?;
+
+                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size, tile_size)?
                             .into_iter()
                             .map(|image| ImageType::RawRgba8u { image })
                             .collect()
@@ -100,8 +146,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size, texture_size)
-                            .await?
+                        handle_allsky_fits(raw, tile_size, texture_size)?
                             .into_iter()
                             .map(|image| ImageType::RawR32f { image })
                             .collect()
@@ -119,8 +164,7 @@ impl From<query::Allsky> for AllskyRequest {
 
                         let raw_f32 = raw.iter().map(|&v| v as f32).collect::<Vec<_>>();
 
-                        handle_allsky_fits(&raw_f32, tile_size, texture_size)
-                            .await?
+                        handle_allsky_fits(&raw_f32, tile_size, texture_size)?
                             .into_iter()
                             .map(|image| ImageType::RawR32f { image })
                             .collect()
@@ -136,8 +180,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size, texture_size)
-                            .await?
+                        handle_allsky_fits(raw, tile_size, texture_size)?
                             .into_iter()
                             .map(|image| ImageType::RawR32i { image })
                             .collect()
@@ -153,8 +196,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size, texture_size)
-                            .await?
+                        handle_allsky_fits(raw, tile_size, texture_size)?
                             .into_iter()
                             .map(|image| ImageType::RawR16i { image })
                             .collect()
@@ -170,8 +212,7 @@ impl From<query::Allsky> for AllskyRequest {
                             )
                         };
 
-                        handle_allsky_fits(raw, tile_size, texture_size)
-                            .await?
+                        handle_allsky_fits(raw, tile_size, texture_size)?
                             .into_iter()
                             .map(|image| ImageType::RawR8ui { image })
                             .collect()
@@ -197,7 +238,7 @@ impl From<query::Allsky> for AllskyRequest {
 
 use al_core::image::format::ImageFormat;
 use al_core::image::raw::ImageBufferView;
-async fn handle_allsky_file<F: ImageFormat>(
+fn handle_allsky_file<F: ImageFormat>(
     allsky: ImageBuffer<F>,
     allsky_tile_size: i32,
     texture_size: i32,
@@ -243,7 +284,7 @@ async fn handle_allsky_file<F: ImageFormat>(
     Ok(tiles)
 }
 
-async fn handle_allsky_fits<F: ImageFormat>(
+fn handle_allsky_fits<F: ImageFormat>(
     allsky_data: &[<<F as ImageFormat>::P as Pixel>::Item],
     tile_size: i32,
     texture_size: i32,
@@ -261,8 +302,7 @@ async fn handle_allsky_fits<F: ImageFormat>(
 
     let allsky = ImageBuffer::<F>::new(reversed_rows_data, width_allsky_px, height_allsky_px);
 
-    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size, tile_size)
-        .await?
+    let allsky_tiles = handle_allsky_file::<F>(allsky, allsky_tile_size, texture_size, tile_size)?
         .into_iter()
         .map(|image| {
             // The GPU does a specific transformation on the UV

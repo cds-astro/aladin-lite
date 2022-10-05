@@ -86,7 +86,7 @@ impl ShaderManager {
 }
 use crate::Abort;
 use std::borrow::Cow;
-use paste::paste;
+/*use paste::paste;
 macro_rules! define_shader_getter {
     ($renderer_type:ident, $shader_type:ident, $vert_key:tt, $frag_key:tt) => {
         paste! {
@@ -107,6 +107,7 @@ macro_rules! define_shader_getter {
     }
 }
 
+/* Raytracer shaders */
 define_shader_getter!(raytracer, color, "RayTracerVS", "RayTracerColorFS");
 define_shader_getter!(raytracer, gray2colormap, "RayTracerVS", "RayTracerGrayscale2ColormapFS");
 define_shader_getter!(raytracer, gray2color, "RayTracerVS", "RayTracerGrayscale2ColorFS");
@@ -115,6 +116,7 @@ define_shader_getter!(raytracer, gray2color_integer, "RayTracerVS", "RayTracerGr
 define_shader_getter!(raytracer, gray2colormap_unsigned, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS");
 define_shader_getter!(raytracer, gray2color_unsigned, "RayTracerVS", "RayTracerGrayscale2ColorUnsignedFS");
 
+/* Rasterizer shaders */
 define_shader_getter!(raster, color, "RasterizerVS", "RasterizerColorFS");
 define_shader_getter!(raster, gray2colormap, "RasterizerVS", "RasterizerGrayscale2ColormapFS");
 define_shader_getter!(raster, gray2color, "RasterizerVS", "RasterizerGrayscale2ColorFS");
@@ -123,4 +125,21 @@ define_shader_getter!(raster, gray2color_integer, "RasterizerVS", "RasterizerGra
 define_shader_getter!(raster, gray2colormap_unsigned, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS");
 define_shader_getter!(raster, gray2color_unsigned, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS");
 
+/* Pass shaders */
 define_shader_getter!(pass, post, "PostVS", "PostFS");
+
+/* Catalog shaders */
+define_shader_getter!(catalog, ait, "CatalogAitoffVS", "CatalogFS");
+define_shader_getter!(catalog, mol, "CatalogMollVS", "CatalogFS");
+define_shader_getter!(catalog, arc, "CatalogArcVS", "CatalogFS");
+define_shader_getter!(catalog, hpx, "CatalogHEALPixVS", "CatalogFS");
+define_shader_getter!(catalog, mer, "CatalogMercatVS", "CatalogFS");
+define_shader_getter!(catalog, ort, "CatalogOrthoVS", "CatalogOrthoFS");
+define_shader_getter!(catalog, tan, "CatalogTanVS", "CatalogFS");*/
+
+pub(crate) fn get_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager, vert: &'static str, frag: &'static str) -> &'a Shader {
+    shaders.get(
+        gl,
+        &ShaderId(Cow::Borrowed(vert), Cow::Borrowed(frag)),
+    ).unwrap_abort()
+}

@@ -17,14 +17,15 @@ const N: f64 = 150.0*150.0;
 const RAP: f64 = 0.7;
 
 use crate::Abort;
+use crate::ProjectionType;
 
 use crate::math::{vector::dist2, angle::Angle};
-fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> bool {
+fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: ProjectionType) -> bool {
     let vertices = cell.vertices()
         .iter()
         .filter_map(|(lon, lat)| {
             let vertex = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
-            P::view_to_screen_space(&vertex, camera)
+            projection.view_to_screen_space(&vertex, camera)
         })
         .collect::<Vec<_>>();
 
@@ -49,7 +50,7 @@ fn is_too_large<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> b
     }
 }
 
-fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -> u8 {
+fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: ProjectionType) -> u8 {
     let d = cell.depth();
     let mut num_sub = 0;
     if d < 3 {
@@ -68,7 +69,7 @@ fn num_subdivision<P: Projection>(cell: &HEALPixCell, camera: &CameraViewPort) -
     let skewed_factor = (center_to_vertex_dist - smallest_center_to_vertex_dist)
     / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
 
-    if is_too_large::<P>(cell, camera) || cell.is_on_pole() || skewed_factor > 0.25 {
+    if is_too_large(cell, camera, projection) || cell.is_on_pole() || skewed_factor > 0.25 {
         num_sub += 1;
     }
 
@@ -281,24 +282,24 @@ pub fn get_raster_shader<'a>(
     unsigned_tex: bool,
 ) -> &'a Shader {
     match color {
-        HiPSColor::Color => crate::shader::get_raster_shader_color(gl, shaders),
+        HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS"),
         HiPSColor::Grayscale { color, .. } => match color {
             GrayscaleColor::Color(..) => {
                 if unsigned_tex {
-                    crate::shader::get_raster_shader_gray2color_unsigned(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS")
                 } else if integer_tex {
-                    crate::shader::get_raster_shader_gray2color_integer(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorIntegerFS")
                 } else {
-                    crate::shader::get_raster_shader_gray2color(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorFS")
                 }
             }
             GrayscaleColor::Colormap { .. } => {
                 if unsigned_tex {
-                    crate::shader::get_raster_shader_gray2colormap_unsigned(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerVSGrayscale2ColorUnsignedFS")
                 } else if integer_tex {
-                    crate::shader::get_raster_shader_gray2colormap_integer(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS")
                 } else {
-                    crate::shader::get_raster_shader_gray2colormap(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapFS")
                 }
             }
         },
@@ -313,24 +314,24 @@ pub fn get_raytracer_shader<'a>(
     unsigned_tex: bool,
 ) -> &'a Shader {
     match color {
-        HiPSColor::Color => crate::shader::get_raytracer_shader_color(gl, shaders),
+        HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS"),
         HiPSColor::Grayscale { color, .. } => match color {
             GrayscaleColor::Color(..) => {
                 if unsigned_tex {
-                    crate::shader::get_raytracer_shader_gray2color_unsigned(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorUnsignedFS")
                 } else if integer_tex {
-                    crate::shader::get_raytracer_shader_gray2color_integer(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorIntegerFS")
                 } else {
-                    crate::shader::get_raytracer_shader_gray2color(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorFS")
                 }
             }
             GrayscaleColor::Colormap { .. } => {
                 if unsigned_tex {
-                    crate::shader::get_raytracer_shader_gray2colormap_unsigned(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS")
                 } else if integer_tex {
-                    crate::shader::get_raytracer_shader_gray2colormap_integer(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapIntegerFS")
                 } else {
-                    crate::shader::get_raytracer_shader_gray2colormap(gl, shaders)
+                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapFS")
                 }
             }
         },
@@ -556,10 +557,10 @@ impl ImageSurvey {
         })
     }
 
-    fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+    fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         let vertices_recomputation_needed = self.textures.reset_available_tiles() | camera.has_moved();
         if vertices_recomputation_needed {
-            self.recompute_vertices::<P>(camera);
+            self.recompute_vertices(camera, projection);
         }
     }
 
@@ -631,7 +632,7 @@ impl ImageSurvey {
         }
     }
 
-    pub fn recompute_vertices<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -686,7 +687,7 @@ impl ImageSurvey {
             let miss_0 = (starting_texture.is_missing()) as i32 as f32;
             let miss_1 = (ending_texture.is_missing()) as i32 as f32;
             
-            let num_subdivision = num_subdivision::<P>(cell, camera);
+            let num_subdivision = num_subdivision(cell, camera, projection);
 
             let n_segments_by_side: usize = 1 << (num_subdivision as usize);
             let n_vertices_per_segment = n_segments_by_side + 1;
@@ -701,7 +702,7 @@ impl ImageSurvey {
                     let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
                     let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
 
-                    let ndc_pos = P::world_to_normalized_device_space_unchecked(&world_pos, camera);
+                    let ndc_pos = projection.world_to_normalized_device_space_unchecked(&world_pos, camera);
                     self.position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
 
                     let hj0 = (j as f32) / n_segments_by_side_f32;
@@ -1106,10 +1107,11 @@ use al_core::image::format::ImageFormatType;
 use al_api::color::ColorRGB;
 use al_core::webgl_ctx::GlWrapper;
 use crate::downloader::request::tile::Tile;
-use crate::survey::render::ray_tracer::Triangulate;
+
 impl ImageSurveys {
-    pub fn new<P: Projection + Triangulate>(
+    pub fn new(
         gl: &WebGlContext,
+        projection: ProjectionType
     ) -> Self {
         let surveys = HashMap::new();
         let meta = HashMap::new();
@@ -1121,7 +1123,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new::<P>(gl);
+        let raytracer = RayTracer::new(gl, projection);
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
@@ -1181,20 +1183,21 @@ impl ImageSurveys {
         }
     }
 
-    pub fn set_projection<P: Projection + Triangulate>(&mut self) {
+    pub fn set_projection(&mut self, projection: ProjectionType) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new::<P>(&self.gl);
+        self.raytracer = RayTracer::new(&self.gl, projection);
     }
 
     pub fn set_font_color(&mut self, color: ColorRGB) {
         self.font_color = color;
     }
 
-    pub fn draw<P: Projection>(
+    pub fn draw(
         &mut self,
         camera: &mut CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
+        projection: ProjectionType
     ) {
         /*let mut switch_from_raytrace_to_raster = false;
         if raytracing {
@@ -1242,7 +1245,7 @@ impl ImageSurveys {
                 // 1. Update the survey if necessary
                 let url = self.urls.get(layer).expect("Url should be found");
                 let survey = self.surveys.get_mut(url).unwrap_abort();
-                survey.update::<P>(camera);
+                survey.update(camera, projection);
 
                 let ImageSurveyMeta {
                     color,
@@ -1277,7 +1280,7 @@ impl ImageSurveys {
         //self.past_rendering_mode = self.current_rendering_mode;
     }
 
-    pub fn set_image_surveys<P: Projection>(
+    pub fn set_image_surveys(
         &mut self,
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
@@ -1376,16 +1379,17 @@ impl ImageSurveys {
             .ok_or_else(|| JsValue::from(js_sys::Error::new("Survey not found")))
     }
 
-    pub fn set_image_survey_color_cfg<P: Projection>(
+    pub fn set_image_survey_color_cfg(
         &mut self,
         layer: String,
         meta: ImageSurveyMeta,
         camera: &CameraViewPort,
+        projection: ProjectionType,
     ) -> Result<(), JsValue> {
         if let Some(meta_old) = self.meta.get(&layer) {
             if !meta_old.visible() && meta.visible() {
                 if let Some(survey) = self.get_mut_from_layer(&layer) {
-                    survey.recompute_vertices::<P>(camera);
+                    survey.recompute_vertices(camera, projection);
                 }
             }
         }

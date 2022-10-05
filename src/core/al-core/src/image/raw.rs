@@ -32,7 +32,7 @@ where
         Self { data, size }
     }
 
-    pub fn from_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
+    pub fn from_encoded_raw_bytes(raw_bytes: &[u8], width: i32, height: i32) -> Result<Self, JsValue> {
         let mut decoded_bytes = match T::decode(raw_bytes).map_err(|e| JsValue::from_str(e))? {
             Bytes::Borrowed(bytes) => bytes.to_vec(),
             Bytes::Owned(bytes) => bytes
@@ -46,6 +46,20 @@ where
         };
 
         Ok(Self::new(decoded_pixels, width, height))
+    }
+
+    pub fn from_raw_bytes(mut raw_bytes: Vec<u8>, width: i32, height: i32) -> Self {
+        let size_buf = width * height * (std::mem::size_of::<T::P>() as i32);
+        debug_assert!(size_buf == raw_bytes.len() as i32);
+
+        let decoded_pixels = unsafe {
+            raw_bytes.set_len(
+                raw_bytes.len() / std::mem::size_of::<<<T as ImageFormat>::P as Pixel>::Item>(),
+            );
+            std::mem::transmute(raw_bytes)
+        };
+
+        Self::new(decoded_pixels, width, height)
     }
 
     pub fn empty() -> Self {

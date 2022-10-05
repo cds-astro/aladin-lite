@@ -19,8 +19,9 @@ members = [
 crate-type = ["cdylib"]
 
 [dependencies]
-paste = "1.0.9"
+#paste = "1.0.9"
 #console_error_panic_hook = "0.1.6"
+#wee_alloc = "0.4.5"
 futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
@@ -33,7 +34,7 @@ serde-wasm-bindgen = "0.4"
 #num = "*"
 #egui = "*"
 #epi = "*"
-enum_dispatch = "0.3.7"
+enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
 al-core = { path = "./al-core" }
 #al-ui = { path = "./al-ui" }

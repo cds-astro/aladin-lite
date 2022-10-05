@@ -87,18 +87,20 @@ pub fn ndc_to_clip_space(
 use al_api::coo_system::CooSystem;
 use cgmath::InnerSpace;
 
+#[derive(Clone, Copy)]
 #[enum_dispatch]
 pub enum ProjectionType {
     Orthographic,
-    Aitoff,
-    Mollweide,
-    AzimuthalEquidistant,
     Gnomonic,
-    HEALPix,
+    Aitoff,
     Mercator,
+    HEALPix,
+    Mollweide,
+    AzimuthalEquidistant
 }
 
 use cgmath::Vector4;
+
 #[enum_dispatch(ProjectionType)]
 pub trait Projection
 {
@@ -127,18 +129,14 @@ pub trait Projection
             pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
             pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let pos_world_space = self.clip_to_world_space(&pos_clip_space);
-        if let Some(mut pos_world_space) = pos_world_space {
-            if camera.get_longitude_reversed() {
-                pos_world_space.x = -pos_world_space.x;
-            }
+        self.clip_to_world_space(&pos_clip_space)
+            .map(|mut pos_world_space| {
+                if camera.get_longitude_reversed() {
+                    pos_world_space.x = -pos_world_space.x;
+                }
 
-            let pos_world_space = pos_world_space.normalize();
-
-            Some(pos_world_space)
-        } else {
-            None
-        }
+                pos_world_space.normalize()
+            })
     }
 
     /// Screen to model space deprojection
@@ -149,7 +147,8 @@ pub trait Projection
     ///
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``camera`` - The camera object
-    fn screen_to_model_space(&self,
+    fn screen_to_model_space(
+        &self,
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
@@ -164,7 +163,8 @@ pub trait Projection
         }
     }
 
-    fn model_to_screen_space(&self,
+    fn model_to_screen_space(
+        &self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -173,7 +173,8 @@ pub trait Projection
         self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    fn view_to_screen_space(&self,
+    fn view_to_screen_space(
+        &self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -185,7 +186,8 @@ pub trait Projection
         self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    fn view_to_normalized_device_space(&self,
+    fn view_to_normalized_device_space(
+        &self,
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -197,7 +199,8 @@ pub trait Projection
         self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 
-    fn view_to_normalized_device_space_unchecked(&self,
+    fn view_to_normalized_device_space_unchecked(
+        &self,
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
@@ -209,7 +212,8 @@ pub trait Projection
         self.world_to_normalized_device_space_unchecked(&pos_world_space, camera)
     }
 
-    fn model_to_ndc_space(&self,
+    fn model_to_ndc_space(
+        &self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -227,28 +231,28 @@ pub trait Projection
     ///
     /// * `x` - X mouse position in homogenous screen space (between [-1, 1])
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
-    fn world_to_normalized_device_space(&self,
+    fn world_to_normalized_device_space(
+        &self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        if let Some(mut pos_clip_space) = self.world_to_clip_space(pos_world_space) {
-            if camera.get_longitude_reversed() {
-                pos_clip_space.x = -pos_clip_space.x;
-            }
-            let ndc_to_clip = camera.get_ndc_to_clip();
-            let clip_zoom_factor = camera.get_clip_zoom_factor();
+        self.world_to_clip_space(pos_world_space)
+            .map(|mut pos_clip_space| {
+                if camera.get_longitude_reversed() {
+                    pos_clip_space.x = -pos_clip_space.x;
+                }
+                let ndc_to_clip = camera.get_ndc_to_clip();
+                let clip_zoom_factor = camera.get_clip_zoom_factor();
 
-            let pos_normalized_device = Vector2::new(
-                pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
-                pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
-            );
-            Some(pos_normalized_device)
-        } else {
-            None
-        }
+                Vector2::new(
+                    pos_clip_space.x / (ndc_to_clip.x * clip_zoom_factor),
+                    pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
+                )
+            })
     }
 
-    fn world_to_normalized_device_space_unchecked(&self,
+    fn world_to_normalized_device_space_unchecked(
+        &self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
@@ -265,12 +269,13 @@ pub trait Projection
         )
     }
 
-    fn world_to_screen_space(&self,
+    fn world_to_screen_space(
+        &self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         self.world_to_normalized_device_space(pos_world_space, camera)
-            .map(|pos_normalized_device| self.ndc_to_screen_space(&pos_normalized_device, camera))
+            .map(|pos_normalized_device| ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
     /// Perform a clip to the world space deprojection
@@ -293,30 +298,42 @@ pub trait Projection
 
     fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)>;
     fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)>;
-    fn clip_size() -> (&self, f64, f64);
+    fn clip_size(&self) -> (f64, f64);
 
-    const ALLOW_UNZOOM_MORE: bool;
+    //const ALLOW_UNZOOM_MORE: bool;
     // Aperture angle at the start of the application (full view)
     // - 180 degrees for the 3D projections (i.e. ortho)
     // - 360 degrees for the 2D projections (i.e. mollweide, arc, aitoff...)
-    const APERTURE_START: f64;
+    //const APERTURE_START: f64;
 }
 
+impl ProjectionType {
+    pub fn aperture_start(&self) -> f64 {
+        match self {
+            ProjectionType::Orthographic(_) | ProjectionType::Gnomonic(_) => 180.0,
+            _ => 360.0
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct Aitoff;
+#[derive(Clone, Copy)]
 pub struct Mollweide;
+#[derive(Clone, Copy)]
 pub struct Orthographic;
+#[derive(Clone, Copy)]
 pub struct AzimuthalEquidistant;
+#[derive(Clone, Copy)]
 pub struct Gnomonic;
+#[derive(Clone, Copy)]
 pub struct Mercator;
+#[derive(Clone, Copy)]
 pub struct HEALPix;
 
 use cgmath::Vector2;
 
-use crate::ArcDeg;
-
 impl Projection for Aitoff {
-    const ALLOW_UNZOOM_MORE: bool = true;
-
     fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1.0, height / width)
     }
@@ -446,18 +463,11 @@ impl Projection for Aitoff {
 
         Vector2::new(-x2d / TWO_SQRT_TWO, y2d / TWO_SQRT_TWO)
     }
-
-    fn aperture_start() -> Angle<f64> {
-        ArcDeg(360.0).into()
-    }
-
     //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((170.0 / 180.0) * std::f64::consts::PI);
 }
 
 use crate::math;
 impl Projection for Mollweide {
-    const ALLOW_UNZOOM_MORE: bool = true;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 1.0)
     }
@@ -569,20 +579,12 @@ impl Projection for Mollweide {
     fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
         Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(360_f64).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 use crate::math::angle::Angle;
 
 use super::TWO_SQRT_TWO;
 impl Projection for Orthographic {
-    const ALLOW_UNZOOM_MORE: bool = true;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
@@ -665,17 +667,9 @@ impl Projection for Orthographic {
     fn world_to_clip_space_unchecked(&self, pos_world_space: &cgmath::Vector4<f64>) -> Vector2<f64> {
         Vector2::new(-pos_world_space.x, pos_world_space.y)
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(180_f64).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((120.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for AzimuthalEquidistant {
-    const ALLOW_UNZOOM_MORE: bool = true;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
@@ -773,17 +767,9 @@ impl Projection for AzimuthalEquidistant {
     fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
         Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(360.0).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((160.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Gnomonic {
-    const ALLOW_UNZOOM_MORE: bool = false;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
@@ -871,17 +857,9 @@ impl Projection for Gnomonic {
             (pos_world_space.y / z) / std::f64::consts::PI,
         )
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(180.0).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle((90.0 / 180.0) * std::f64::consts::PI);
 }
 
 impl Projection for Mercator {
-    const ALLOW_UNZOOM_MORE: bool = false;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
@@ -948,17 +926,9 @@ impl Projection for Mercator {
             ((delta.0 / std::f64::consts::PI).tan()).asinh() as f64,
         )
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(360_f64).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(std::f64::consts::PI);
 }
 
 impl Projection for HEALPix {
-    const ALLOW_UNZOOM_MORE: bool = false;
-
     fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
@@ -1040,12 +1010,6 @@ impl Projection for HEALPix {
         //assert_debug!(x >= -1.0 && x <= 1.0);
         Vector2::new(x, y)
     }
-
-    fn aperture_start(&self) -> Angle<f64> {
-        ArcDeg(360_f64).into()
-    }
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64> = Angle(140.0 * math::angle::PI / 180.0);
 }
 
 mod tests {

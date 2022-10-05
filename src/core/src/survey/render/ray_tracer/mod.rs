@@ -8,10 +8,10 @@ use al_core::{shader::ShaderBound, Texture2D, VertexArrayObject, WebGlContext};
 pub trait RayTracingProjection {
     fn get_raytracer_vertex_array_object(raytracer: &RayTracer) -> &VertexArrayObject;
 }
-pub use triangulation::{Triangulate, Triangulation};
+pub use triangulation::Triangulation;
 
-fn create_vertices_array<P: Projection + Triangulate>() -> (Vec<f32>, Vec<u16>) {
-    let Triangulation { vertices, idx } = P::triangulate();
+fn create_vertices_array(projection: ProjectionType) -> (Vec<f32>, Vec<u16>) {
+    let Triangulation { vertices, idx } = Triangulation::build(projection);
 
     let vertices = vertices
         .into_iter().flat_map(|pos_clip_space| {
@@ -36,7 +36,7 @@ pub struct RayTracer {
 use cgmath::{InnerSpace, Vector2};
 
 const SIZE_POSITION_TEX: usize = 2048;
-fn generate_xyz_position<P: Projection>() -> Vec<f32> {
+fn generate_xyz_position(projection: ProjectionType) -> Vec<f32> {
     let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
     let mut data = vec![];
     for y in 0..(h as u32) {
@@ -46,7 +46,7 @@ fn generate_xyz_position<P: Projection>() -> Vec<f32> {
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                 2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
             );
-            if let Some(pos) = P::clip_to_world_space(&clip_xy) {
+            if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
                 let pos = pos.truncate().normalize();
                 /*let mut d: u32 = 0;
                 d |= 3 << 30;
@@ -166,9 +166,10 @@ fn create_f32_texture_from_raw(
     tex
 }
 use al_api::color::ColorRGB;
+use crate::ProjectionType;
 impl RayTracer {
-    pub fn new<P: Projection + Triangulate>(gl: &WebGlContext) -> RayTracer {
-        let (vertices, idx) = create_vertices_array::<P>();
+    pub fn new(gl: &WebGlContext, projection: ProjectionType) -> RayTracer {
+        let (vertices, idx) = create_vertices_array(projection);
 
         let mut vao = VertexArrayObject::new(gl);
         // layout (location = 0) in vec2 pos_clip_space;
@@ -206,7 +207,7 @@ impl RayTracer {
             // Unbind the buffer
             .unbind();
         // create position data
-        let data = generate_xyz_position::<P>();
+        let data = generate_xyz_position(projection);
         let position_tex = create_f32_texture_from_raw(
             gl,
             SIZE_POSITION_TEX as i32,
@@ -217,7 +218,7 @@ impl RayTracer {
         // create ang2pix texture for webgl1 app
         #[cfg(feature = "webgl1")]
         let ang2pix_tex = {
-            let data = generate_hash_dxdy::<P>(0);
+            let data = generate_hash_dxdy(0, projection);
             create_f32_texture_from_raw(
                 &gl,
                 SIZE_POSITION_TEX as i32,

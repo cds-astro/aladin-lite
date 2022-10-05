@@ -4,11 +4,11 @@ const MIN_LENGTH_ANGLE: f64 = 0.50;
 use math::lonlat::{LonLat};
 use math::projection::{ndc_to_screen_space, Projection};
 
-pub fn project_along_longitudes_and_latitudes<P: Projection>(
+pub fn project_along_longitudes_and_latitudes(
     v1: &Vector3<f64>,
     v2: &Vector3<f64>,
     camera: &CameraViewPort,
-    _reversed_longitude: bool,
+    projection: ProjectionType
 ) -> Vec<Vector2<f64>> {
     let mid = (v1 + v2).normalize().lonlat();
     let start = v1.lonlat();
@@ -16,7 +16,7 @@ pub fn project_along_longitudes_and_latitudes<P: Projection>(
 
     let mut s_vert = vec![];
 
-    subdivide_along_longitude_and_latitudes::<P>(
+    subdivide_along_longitude_and_latitudes(
         &mut s_vert,
         [
             &Vector2::new(start.0 .0, start.1 .0),
@@ -24,6 +24,7 @@ pub fn project_along_longitudes_and_latitudes<P: Projection>(
             &Vector2::new(end.0 .0, end.1 .0),
         ],
         camera,
+        projection
     );
 
     for ndc_vert in s_vert.iter_mut() {
@@ -32,15 +33,16 @@ pub fn project_along_longitudes_and_latitudes<P: Projection>(
 
     s_vert
 }
-pub fn project_along_great_circles<P: Projection>(
+pub fn project_along_great_circles(
     v1: &Vector3<f64>,
     v2: &Vector3<f64>,
     camera: &CameraViewPort,
+    projection: ProjectionType,
 ) -> Vec<Vector2<f64>> {
     let mid = (v1 + v2).normalize();
 
     let mut s_vert = vec![];
-    subdivide_along_great_circles::<P>(&mut s_vert, &[*v1, mid, *v2], camera);
+    subdivide_along_great_circles(&mut s_vert, &[*v1, mid, *v2], camera, projection);
 
     for ndc_vert in s_vert.iter_mut() {
         *ndc_vert = ndc_to_screen_space(ndc_vert, camera);
@@ -56,19 +58,20 @@ use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
 
-pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
+pub fn subdivide_along_longitude_and_latitudes(
     vertices: &mut Vec<Vector2<f64>>,
     mp: [&Vector2<f64>; 3],
     camera: &CameraViewPort,
+    projection: ProjectionType
 ) {
     // Project them. We are always facing the camera
     let aa = math::lonlat::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
     let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
     let cc = math::lonlat::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
 
-    let a = P::model_to_ndc_space(&aa.extend(1.0), camera);
-    let b = P::model_to_ndc_space(&bb.extend(1.0), camera);
-    let c = P::model_to_ndc_space(&cc.extend(1.0), camera);
+    let a = projection.model_to_ndc_space(&aa.extend(1.0), camera);
+    let b = projection.model_to_ndc_space(&bb.extend(1.0), camera);
+    let c = projection.model_to_ndc_space(&cc.extend(1.0), camera);
 
     match (a, b, c) {
         (None, None, None) => (),
@@ -118,103 +121,115 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
                 }
             } else {
                 // Subdivide a->b and b->c
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                     camera,
+                    projection
                 );
 
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
         }
         (Some(_), Some(_), None) => {
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                 camera,
+                projection
             );
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[1] + mp[2]) * 0.5;
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((mp[1] + e) * 0.5), &e],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e, &((mp[2] + e) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
         }
         (None, Some(_), Some(_)) => {
             // relay the subdivision to the second half
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                 camera,
+                projection
             );
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[0] + mp[1]) * 0.5;
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e, &((mp[1] + e) * 0.5), mp[1]],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((mp[0] + e) * 0.5), &e],
                     camera,
+                    projection
                 );
             }
         }
         (Some(_), None, Some(_)) => {
             let e = (mp[0] + mp[1]) * 0.5;
             // relay the subdivision to the second half
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((mp[0] + e) * 0.5), &e],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e, &((mp[1] + e) * 0.5), mp[1]],
                     camera,
+                    projection
                 );
             }
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[1] + mp[2]) * 0.5;
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e, &((mp[2] + e) * 0.5), mp[2]],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[2] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((mp[1] + e) * 0.5), &e],
                     camera,
+                    projection
                 );
             }
         }
@@ -222,51 +237,57 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
             let e1 = (mp[0] + mp[1]) * 0.5;
             let e2 = (mp[1] + mp[2]) * 0.5;
             // relay the subdivision to the second half
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                     camera,
+                    projection
                 );
             }
 
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
             //}
         }
         (Some(_), None, None) => {
             let e1 = (mp[0] + mp[1]) * 0.5;
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                     camera,
+                    projection
                 );
             }
         }
@@ -275,33 +296,37 @@ pub fn subdivide_along_longitude_and_latitudes<P: Projection>(
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_longitude_and_latitudes::<P>(
+                subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                     camera,
+                    projection
                 );
             }
 
-            subdivide_along_longitude_and_latitudes::<P>(
+            subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                 camera,
+                projection
             );
         }
     }
 }
 
-pub fn subdivide_along_great_circles<P: Projection>(
+use crate::ProjectionType;
+pub fn subdivide_along_great_circles(
     vertices: &mut Vec<Vector2<f64>>,
     mp: &[Vector3<f64>; 3],
     camera: &CameraViewPort,
+    projection: ProjectionType
 ) {
     // Project them. We are always facing the camera
     let mp = &[mp[0].normalize(), mp[1].normalize(), mp[2].normalize()];
 
-    let a = P::model_to_ndc_space(&mp[0].extend(1.0), camera);
-    let b = P::model_to_ndc_space(&mp[1].extend(1.0), camera);
-    let c = P::model_to_ndc_space(&mp[2].extend(1.0), camera);
+    let a = projection.model_to_ndc_space(&mp[0].extend(1.0), camera);
+    let b = projection.model_to_ndc_space(&mp[1].extend(1.0), camera);
+    let c = projection.model_to_ndc_space(&mp[2].extend(1.0), camera);
 
     match (a, b, c) {
         (None, None, None) => (),
@@ -348,87 +373,95 @@ pub fn subdivide_along_great_circles<P: Projection>(
                 }
             } else {
                 // Subdivide a->b and b->c
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[0], (mp[0] + mp[1]) * 0.5, mp[1]],
                     camera,
+                    projection
                 );
 
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[1], ((mp[1] + mp[2]) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
         }
         (Some(_), Some(_), None) => {
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[mp[0], ((mp[0] + mp[1]) * 0.5), mp[1]],
                 camera,
+                projection
             );
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[1] + mp[2]) * 0.5;
-            subdivide_along_great_circles::<P>(vertices, &[mp[1], ((mp[1] + e) * 0.5), e], camera);
+            subdivide_along_great_circles(vertices, &[mp[1], ((mp[1] + e) * 0.5), e], camera, projection);
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[e, ((mp[2] + e) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
         }
         (None, Some(_), Some(_)) => {
             // relay the subdivision to the second half
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[mp[1], ((mp[1] + mp[2]) * 0.5), mp[2]],
                 camera,
+                projection
             );
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[0] + mp[1]) * 0.5;
-            subdivide_along_great_circles::<P>(vertices, &[e, ((mp[1] + e) * 0.5), mp[1]], camera);
+            subdivide_along_great_circles(vertices, &[e, ((mp[1] + e) * 0.5), mp[1]], camera, projection);
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[0], ((mp[0] + e) * 0.5), e],
                     camera,
+                    projection
                 );
             }
         }
         (Some(_), None, Some(_)) => {
             let e = (mp[0] + mp[1]) * 0.5;
             // relay the subdivision to the second half
-            subdivide_along_great_circles::<P>(vertices, &[mp[0], ((mp[0] + e) * 0.5), e], camera);
+            subdivide_along_great_circles(vertices, &[mp[0], ((mp[0] + e) * 0.5), e], camera, projection);
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[e, ((mp[1] + e) * 0.5), mp[1]],
                     camera,
+                    projection
                 );
             }
 
             // and try subdividing a little further
             // hoping that the projection is defined for e
             let e = (mp[1] + mp[2]) * 0.5;
-            subdivide_along_great_circles::<P>(vertices, &[e, ((mp[2] + e) * 0.5), mp[2]], camera);
+            subdivide_along_great_circles(vertices, &[e, ((mp[2] + e) * 0.5), mp[2]], camera, projection);
 
             let half_angle_length_sq = (mp[2] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[1], ((mp[1] + e) * 0.5), e],
                     camera,
+                    projection
                 );
             }
 
@@ -438,50 +471,56 @@ pub fn subdivide_along_great_circles<P: Projection>(
             let e1 = (mp[0] + mp[1]) * 0.5;
             let e2 = (mp[1] + mp[2]) * 0.5;
             // relay the subdivision to the second half
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[e1, ((e1 + mp[1]) * 0.5), mp[1]],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[0], ((e1 + mp[0]) * 0.5), e1],
                     camera,
+                    projection
                 );
             }
 
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[mp[1], ((e2 + mp[1]) * 0.5), e2],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[e2, ((e2 + mp[2]) * 0.5), mp[2]],
                     camera,
+                    projection
                 );
             }
         }
         (Some(_), None, None) => {
             let e1 = (mp[0] + mp[1]) * 0.5;
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[mp[0], ((e1 + mp[0]) * 0.5), e1],
                 camera,
+                projection
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[e1, ((e1 + mp[1]) * 0.5), mp[1]],
                     camera,
+                    projection
                 );
             }
         }
@@ -490,17 +529,19 @@ pub fn subdivide_along_great_circles<P: Projection>(
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
             if half_angle_length_sq > MIN_LENGTH_ANGLE {
-                subdivide_along_great_circles::<P>(
+                subdivide_along_great_circles(
                     vertices,
                     &[mp[1], ((e2 + mp[1]) * 0.5), e2],
                     camera,
+                    projection
                 );
             }
 
-            subdivide_along_great_circles::<P>(
+            subdivide_along_great_circles(
                 vertices,
                 &[e2, ((e2 + mp[2]) * 0.5), mp[2]],
                 camera,
+                projection
             );
         }
     }

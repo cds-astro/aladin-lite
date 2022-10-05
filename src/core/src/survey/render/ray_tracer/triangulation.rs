@@ -1,99 +1,8 @@
 use crate::math::angle::Angle;
 use cgmath::Vector2;
 
-pub trait Triangulate {
-    fn triangulate() -> Triangulation;
-}
-
-use crate::{healpix::cell::HEALPixCell, math::projection::*};
-impl Triangulate for Orthographic {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-impl Triangulate for Aitoff {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-impl Triangulate for Mollweide {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-impl Triangulate for AzimuthalEquidistant {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-impl Triangulate for Mercator {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-impl Triangulate for Gnomonic {
-    fn triangulate() -> Triangulation {
-        build::<Self>()
-    }
-}
-
 use crate::Abort;
 use crate::math;
-impl Triangulate for HEALPix {
-    fn triangulate() -> Triangulation {
-        fn counter_clockwise_tri(x: Vector2<f64>, y: Vector2<f64>, z: Vector2<f64>) -> bool {
-            // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
-            // | x.x, x.y, 1 |
-            // | y.x, y.y, 1 | > 0 => the triangle is given in counterclockwise order
-            // | z.x, z.y, 1 |
-
-            x.x * y.y + x.y * z.x + y.x * z.y - z.x * y.y - z.y * x.x - y.x * x.y >= 0.0
-        }
-
-        // The HEALPix 2d projection space is not convex
-        // We can define it by creating triangles from the projection
-        // of the HEALPix cells at order 2
-        let mut off_idx = 0_u16;
-        let mut idx = Vec::new();
-
-        let vertices = HEALPixCell::allsky(3)
-            .flat_map(|cell| {
-                idx.extend([
-                    off_idx,
-                    off_idx + 1,
-                    off_idx + 2,
-                    off_idx + 3,
-                    off_idx + 4,
-                    off_idx + 5,
-                ]);
-
-                let (c_ra, c_dec) = cell.center();
-
-                let v = cell.vertices().map(|(ra, dec)| {
-                    let ra = lerp(ra, c_ra, 1e-5);
-                    let dec = lerp(dec, c_dec, 1e-5);
-
-                    let v = math::lonlat::radec_to_xyzw(Angle(ra), Angle(dec));
-                    HEALPix::world_to_clip_space(&v).unwrap_abort()
-                });
-
-                let mut vertices = [v[0], v[3], v[2], v[2], v[1], v[0]];
-
-                if !counter_clockwise_tri(vertices[3], vertices[4], vertices[5]) {
-                    // triangles are crossing
-                    vertices[3].x = 1.0;
-                    vertices[5].x = 1.0;
-                }
-
-                off_idx += 6;
-
-                vertices
-            })
-            .collect::<Vec<_>>();
-
-        Triangulation { vertices, idx }
-    }
-}
 
 fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a * (1.0 - t) + b * t
@@ -104,20 +13,80 @@ pub struct Triangulation {
     pub idx: Vec<u16>,
 }
 
-fn build<P: Projection>() -> Triangulation {
-    let (mut vertices, mut idx) = (Vec::new(), Vec::new());
+use crate::math::projection::{Projection, HEALPix};
+use crate::survey::HEALPixCell;
+use crate::ProjectionType;
+impl Triangulation {
+    pub(super) fn build(projection: ProjectionType) -> Triangulation {
+        let (mut vertices, mut idx) = (Vec::new(), Vec::new());
 
-    let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
-    let children = root.split();
+        match projection {
+            ProjectionType::HEALPix(_) => {
+                fn counter_clockwise_tri(x: Vector2<f64>, y: Vector2<f64>, z: Vector2<f64>) -> bool {
+                    // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
+                    // | x.x, x.y, 1 |
+                    // | y.x, y.y, 1 | > 0 => the triangle is given in counterclockwise order
+                    // | z.x, z.y, 1 |
+        
+                    x.x * y.y + x.y * z.x + y.x * z.y - z.x * y.y - z.y * x.x - y.x * x.y >= 0.0
+                }
+        
+                // The HEALPix 2d projection space is not convex
+                // We can define it by creating triangles from the projection
+                // of the HEALPix cells at order 2
+                let mut off_idx = 0_u16;
 
-    let depth = 5;
-    let mut first = false;
-    recursive_triangulation::<P>(&children[0], &mut vertices, &mut idx, depth, &mut first);
-    recursive_triangulation::<P>(&children[1], &mut vertices, &mut idx, depth, &mut first);
-    recursive_triangulation::<P>(&children[2], &mut vertices, &mut idx, depth, &mut first);
-    recursive_triangulation::<P>(&children[3], &mut vertices, &mut idx, depth, &mut first);
+        
+                vertices = HEALPixCell::allsky(3)
+                    .flat_map(|cell| {
+                        idx.extend([
+                            off_idx,
+                            off_idx + 1,
+                            off_idx + 2,
+                            off_idx + 3,
+                            off_idx + 4,
+                            off_idx + 5,
+                        ]);
+        
+                        let (c_ra, c_dec) = cell.center();
+        
+                        let v = cell.vertices().map(|(ra, dec)| {
+                            let ra = lerp(ra, c_ra, 1e-5);
+                            let dec = lerp(dec, c_dec, 1e-5);
+        
+                            let v = math::lonlat::radec_to_xyzw(Angle(ra), Angle(dec));
+                            HEALPix.world_to_clip_space(&v).unwrap_abort()
+                        });
+        
+                        let mut vertices = [v[0], v[3], v[2], v[2], v[1], v[0]];
+        
+                        if !counter_clockwise_tri(vertices[3], vertices[4], vertices[5]) {
+                            // triangles are crossing
+                            vertices[3].x = 1.0;
+                            vertices[5].x = 1.0;
+                        }
+        
+                        off_idx += 6;
+        
+                        vertices
+                    })
+                    .collect::<Vec<_>>();
+            },
+            _ => {
+                let root = Face::new(Vector2::new(-1_f64, -1_f64), Vector2::new(1_f64, 1_f64));
+                let children = root.split();
+            
+                let depth = 5;
+                let mut first = false;
+                recursive_triangulation(&children[0], &mut vertices, &mut idx, depth, &mut first, projection);
+                recursive_triangulation(&children[1], &mut vertices, &mut idx, depth, &mut first, projection);
+                recursive_triangulation(&children[2], &mut vertices, &mut idx, depth, &mut first, projection);
+                recursive_triangulation(&children[3], &mut vertices, &mut idx, depth, &mut first, projection);
+            }
+        }
 
-    Triangulation { vertices, idx }
+        Triangulation { vertices, idx }
+    }
 }
 
 struct Face {
@@ -235,22 +204,6 @@ impl Face {
                     off_idx + 2,
                     off_idx + 3,
                 ]
-                // LINES drawing
-                /*idx.extend([
-                    off_idx,
-                    off_idx + 1,
-                    off_idx + 1,
-                    off_idx + 3,
-                    off_idx + 3,
-                    off_idx,
-
-                    off_idx + 1,
-                    off_idx + 2,
-                    off_idx + 2,
-                    off_idx + 3,
-                    off_idx + 3,
-                    off_idx + 1,
-                ].iter());*/
             }
             _ => {
                 // push the 6 indexes
@@ -261,23 +214,7 @@ impl Face {
                     off_idx,
                     off_idx + 2,
                     off_idx + 3,
-                ]
-                // LINES drawing
-                /*idx.extend([
-                    off_idx,
-                    off_idx + 1,
-                    off_idx + 1,
-                    off_idx + 2,
-                    off_idx + 2,
-                    off_idx,
-
-                    off_idx,
-                    off_idx + 2,
-                    off_idx + 2,
-                    off_idx + 3,
-                    off_idx + 3,
-                    off_idx,
-                ].iter());*/
+                ]    
             }
         };
 
@@ -337,17 +274,18 @@ impl Face {
     }
 }
 
-fn recursive_triangulation<P: Projection>(
+fn recursive_triangulation(
     face: &Face,
     vertices: &mut Vec<Vector2<f64>>,
     idx: &mut Vec<u16>,
     depth: u8,
     first: &mut bool,
+    projection: ProjectionType
 ) {
     let (farthest_vertex, dir_farthest_vertex) = face.get_farthest_vertex();
     if depth > 0 {
         // Look if the square is totally included in the projection
-        if P::is_included_inside_projection(&farthest_vertex) && depth < 1 {
+        if projection.is_included_inside_projection(&farthest_vertex) && depth < 1 {
             let off_idx = vertices.len() as u16;
 
             let (v, i) = face.add(off_idx, dir_farthest_vertex);
@@ -356,46 +294,50 @@ fn recursive_triangulation<P: Projection>(
         // If not check if is traversed by the border of the projection
         } else {
             let nearest_vertex = face.get_nearest_vertex();
-            if P::is_included_inside_projection(&nearest_vertex) {
+            if projection.is_included_inside_projection(&nearest_vertex) {
                 // The nearest is included and the farthest not,
                 // so let's subdivide the cell
                 // subdivision
                 // top-left
-                recursive_triangulation::<P>(
+                recursive_triangulation(
                     &face.get_child(Direction::TopLeft),
                     vertices,
                     idx,
                     depth - 1,
                     first,
+                    projection
                 );
                 // top-right
-                recursive_triangulation::<P>(
+                recursive_triangulation(
                     &face.get_child(Direction::TopRight),
                     vertices,
                     idx,
                     depth - 1,
                     first,
+                    projection
                 );
                 // bottom-left
-                recursive_triangulation::<P>(
+                recursive_triangulation(
                     &face.get_child(Direction::BottomLeft),
                     vertices,
                     idx,
                     depth - 1,
                     first,
+                    projection
                 );
                 // bottom-right
-                recursive_triangulation::<P>(
+                recursive_triangulation(
                     &face.get_child(Direction::BottomRight),
                     vertices,
                     idx,
                     depth - 1,
                     first,
+                    projection
                 );
             }
         }
     } else {
-        if P::is_included_inside_projection(&farthest_vertex) {
+        if projection.is_included_inside_projection(&farthest_vertex) {
             let off_idx = vertices.len() as u16;
 
             let (v, i) = face.add(off_idx, dir_farthest_vertex);
@@ -409,26 +351,26 @@ fn recursive_triangulation<P: Projection>(
             // x < 0 && y < 0
             Direction::TopRight => {
                 let tr = face.get_vertex(Direction::TopRight);
-                if !P::is_included_inside_projection(&tr) {
+                if !projection.is_included_inside_projection(&tr) {
                     return;
                 }
 
                 let tl = face.get_vertex(Direction::TopLeft);
                 let br = face.get_vertex(Direction::BottomRight);
 
-                if !P::is_included_inside_projection(&tl) && !P::is_included_inside_projection(&br)
+                if !projection.is_included_inside_projection(&tl) && !projection.is_included_inside_projection(&br)
                 {
-                    let (x1, _) = P::solve_along_abscissa(tl.y).unwrap_abort();
-                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap_abort();
+                    let (x1, _) = projection.solve_along_abscissa(tl.y).unwrap_abort();
+                    let (y1, _) = projection.solve_along_ordinate(br.x).unwrap_abort();
 
                     let tl_r = Vector2::new(x1, tl.y);
                     let br_r = Vector2::new(br.x, y1);
                     face.add_triangle(&[tl_r, br_r, tr], vertices, idx);
-                } else if P::is_included_inside_projection(&tl)
-                    && !P::is_included_inside_projection(&br)
+                } else if projection.is_included_inside_projection(&tl)
+                    && !projection.is_included_inside_projection(&br)
                 {
-                    let (y1, _) = P::solve_along_ordinate(br.x).unwrap_abort();
-                    let (y2, _) = P::solve_along_ordinate(tl.x).unwrap_abort();
+                    let (y1, _) = projection.solve_along_ordinate(br.x).unwrap_abort();
+                    let (y2, _) = projection.solve_along_ordinate(tl.x).unwrap_abort();
 
                     face.add_triangle(&[tl, Vector2::new(tl.x, y2), tr], vertices, idx);
                     face.add_triangle(
@@ -436,11 +378,11 @@ fn recursive_triangulation<P: Projection>(
                         vertices,
                         idx,
                     );
-                } else if !P::is_included_inside_projection(&tl)
-                    && P::is_included_inside_projection(&br)
+                } else if !projection.is_included_inside_projection(&tl)
+                    && projection.is_included_inside_projection(&br)
                 {
-                    let (x1, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
-                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap_abort();
+                    let (x1, _) = projection.solve_along_abscissa(tr.y).unwrap_abort();
+                    let (x2, _) = projection.solve_along_abscissa(br.y).unwrap_abort();
 
                     face.add_triangle(
                         &[Vector2::new(x1, tr.y), Vector2::new(x2, br.y), tr],
@@ -448,11 +390,11 @@ fn recursive_triangulation<P: Projection>(
                         idx,
                     );
                     face.add_triangle(&[Vector2::new(x2, br.y), br, tr], vertices, idx);
-                } else if P::is_included_inside_projection(&tl)
-                    && P::is_included_inside_projection(&br)
+                } else if projection.is_included_inside_projection(&tl)
+                    && projection.is_included_inside_projection(&br)
                 {
-                    let (y1, _) = P::solve_along_ordinate(tl.x).unwrap_abort();
-                    let (x2, _) = P::solve_along_abscissa(br.y).unwrap_abort();
+                    let (y1, _) = projection.solve_along_ordinate(tl.x).unwrap_abort();
+                    let (x2, _) = projection.solve_along_abscissa(br.y).unwrap_abort();
 
                     let u = Vector2::new(tl.x, y1);
                     let v = Vector2::new(x2, br.y);
@@ -464,48 +406,48 @@ fn recursive_triangulation<P: Projection>(
             // x > 0 && y > 0
             Direction::BottomLeft => {
                 let bl = face.get_vertex(Direction::BottomLeft);
-                if !P::is_included_inside_projection(&bl) {
+                if !projection.is_included_inside_projection(&bl) {
                     return;
                 }
 
                 let tl = face.get_vertex(Direction::TopLeft);
                 let br = face.get_vertex(Direction::BottomRight);
 
-                if !P::is_included_inside_projection(&tl) && !P::is_included_inside_projection(&br)
+                if !projection.is_included_inside_projection(&tl) && !projection.is_included_inside_projection(&br)
                 {
-                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap_abort();
-                    let (_, y2) = P::solve_along_ordinate(tl.x).unwrap_abort();
+                    let (_, x2) = projection.solve_along_abscissa(br.y).unwrap_abort();
+                    let (_, y2) = projection.solve_along_ordinate(tl.x).unwrap_abort();
 
                     let u = Vector2::new(x2, br.y);
                     let v = Vector2::new(tl.x, y2);
                     face.add_triangle(&[u, v, bl], vertices, idx);
-                } else if P::is_included_inside_projection(&tl)
-                    && !P::is_included_inside_projection(&br)
+                } else if projection.is_included_inside_projection(&tl)
+                    && !projection.is_included_inside_projection(&br)
                 {
-                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap_abort();
-                    let (_, x2) = P::solve_along_abscissa(br.y).unwrap_abort();
+                    let (_, x1) = projection.solve_along_abscissa(tl.y).unwrap_abort();
+                    let (_, x2) = projection.solve_along_abscissa(br.y).unwrap_abort();
 
                     let u = Vector2::new(x1, tl.y);
                     let v = Vector2::new(x2, br.y);
 
                     face.add_triangle(&[tl, bl, u], vertices, idx);
                     face.add_triangle(&[u, bl, v], vertices, idx);
-                } else if !P::is_included_inside_projection(&tl)
-                    && P::is_included_inside_projection(&br)
+                } else if !projection.is_included_inside_projection(&tl)
+                    && projection.is_included_inside_projection(&br)
                 {
-                    let (_, y1) = P::solve_along_ordinate(tl.x).unwrap_abort();
-                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap_abort();
+                    let (_, y1) = projection.solve_along_ordinate(tl.x).unwrap_abort();
+                    let (_, y2) = projection.solve_along_ordinate(br.x).unwrap_abort();
 
                     let u = Vector2::new(tl.x, y1);
                     let v = Vector2::new(br.x, y2);
 
                     face.add_triangle(&[u, bl, v], vertices, idx);
                     face.add_triangle(&[v, bl, br], vertices, idx);
-                } else if P::is_included_inside_projection(&tl)
-                    && P::is_included_inside_projection(&br)
+                } else if projection.is_included_inside_projection(&tl)
+                    && projection.is_included_inside_projection(&br)
                 {
-                    let (_, x1) = P::solve_along_abscissa(tl.y).unwrap_abort();
-                    let (_, y2) = P::solve_along_ordinate(br.x).unwrap_abort();
+                    let (_, x1) = projection.solve_along_abscissa(tl.y).unwrap_abort();
+                    let (_, y2) = projection.solve_along_ordinate(br.x).unwrap_abort();
 
                     let u = Vector2::new(x1, tl.y);
                     let v = Vector2::new(br.x, y2);
@@ -518,48 +460,48 @@ fn recursive_triangulation<P: Projection>(
             // x > 0 && y < 0
             Direction::TopLeft => {
                 let tl = face.get_vertex(Direction::TopLeft);
-                if !P::is_included_inside_projection(&tl) {
+                if !projection.is_included_inside_projection(&tl) {
                     return;
                 }
 
                 let tr = face.get_vertex(Direction::TopRight);
                 let bl = face.get_vertex(Direction::BottomLeft);
 
-                if !P::is_included_inside_projection(&bl) && !P::is_included_inside_projection(&tr)
+                if !projection.is_included_inside_projection(&bl) && !projection.is_included_inside_projection(&tr)
                 {
-                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap_abort();
-                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap_abort();
+                    let (y1, _) = projection.solve_along_ordinate(bl.x).unwrap_abort();
+                    let (_, x2) = projection.solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(x2, tr.y);
                     face.add_triangle(&[u, v, tl], vertices, idx);
-                } else if P::is_included_inside_projection(&bl)
-                    && !P::is_included_inside_projection(&tr)
+                } else if projection.is_included_inside_projection(&bl)
+                    && !projection.is_included_inside_projection(&tr)
                 {
-                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap_abort();
-                    let (_, x2) = P::solve_along_abscissa(tr.y).unwrap_abort();
+                    let (_, x1) = projection.solve_along_abscissa(bl.y).unwrap_abort();
+                    let (_, x2) = projection.solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(x2, tr.y);
 
                     face.add_triangle(&[tl, bl, u], vertices, idx);
                     face.add_triangle(&[tl, u, v], vertices, idx);
-                } else if !P::is_included_inside_projection(&bl)
-                    && P::is_included_inside_projection(&tr)
+                } else if !projection.is_included_inside_projection(&bl)
+                    && projection.is_included_inside_projection(&tr)
                 {
-                    let (y1, _) = P::solve_along_ordinate(bl.x).unwrap_abort();
-                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap_abort();
+                    let (y1, _) = projection.solve_along_ordinate(bl.x).unwrap_abort();
+                    let (y2, _) = projection.solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(tr.x, y2);
 
                     face.add_triangle(&[tl, u, v], vertices, idx);
                     face.add_triangle(&[tl, v, tr], vertices, idx);
-                } else if P::is_included_inside_projection(&bl)
-                    && P::is_included_inside_projection(&tr)
+                } else if projection.is_included_inside_projection(&bl)
+                    && projection.is_included_inside_projection(&tr)
                 {
-                    let (_, x1) = P::solve_along_abscissa(bl.y).unwrap_abort();
-                    let (y2, _) = P::solve_along_ordinate(tr.x).unwrap_abort();
+                    let (_, x1) = projection.solve_along_abscissa(bl.y).unwrap_abort();
+                    let (y2, _) = projection.solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(tr.x, y2);
@@ -572,48 +514,48 @@ fn recursive_triangulation<P: Projection>(
             // x < 0 && y > 0
             Direction::BottomRight => {
                 let br = face.get_vertex(Direction::BottomRight);
-                if !P::is_included_inside_projection(&br) {
+                if !projection.is_included_inside_projection(&br) {
                     return;
                 }
 
                 let tr = face.get_vertex(Direction::TopRight);
                 let bl = face.get_vertex(Direction::BottomLeft);
 
-                if !P::is_included_inside_projection(&bl) && !P::is_included_inside_projection(&tr)
+                if !projection.is_included_inside_projection(&bl) && !projection.is_included_inside_projection(&tr)
                 {
-                    let (x2, _) = P::solve_along_abscissa(bl.y).unwrap_abort();
-                    let (_, y1) = P::solve_along_ordinate(tr.x).unwrap_abort();
+                    let (x2, _) = projection.solve_along_abscissa(bl.y).unwrap_abort();
+                    let (_, y1) = projection.solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(x2, bl.y);
                     let v = Vector2::new(tr.x, y1);
                     face.add_triangle(&[u, br, v], vertices, idx);
-                } else if P::is_included_inside_projection(&bl)
-                    && !P::is_included_inside_projection(&tr)
+                } else if projection.is_included_inside_projection(&bl)
+                    && !projection.is_included_inside_projection(&tr)
                 {
-                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap_abort();
-                    let (_, y2) = P::solve_along_ordinate(tr.x).unwrap_abort();
+                    let (_, y1) = projection.solve_along_ordinate(bl.x).unwrap_abort();
+                    let (_, y2) = projection.solve_along_ordinate(tr.x).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(tr.x, y2);
 
                     face.add_triangle(&[u, bl, br], vertices, idx);
                     face.add_triangle(&[u, br, v], vertices, idx);
-                } else if !P::is_included_inside_projection(&bl)
-                    && P::is_included_inside_projection(&tr)
+                } else if !projection.is_included_inside_projection(&bl)
+                    && projection.is_included_inside_projection(&tr)
                 {
-                    let (x1, _) = P::solve_along_abscissa(bl.y).unwrap_abort();
-                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
+                    let (x1, _) = projection.solve_along_abscissa(bl.y).unwrap_abort();
+                    let (x2, _) = projection.solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(x1, bl.y);
                     let v = Vector2::new(x2, tr.y);
 
                     face.add_triangle(&[u, br, v], vertices, idx);
                     face.add_triangle(&[v, br, tr], vertices, idx);
-                } else if P::is_included_inside_projection(&bl)
-                    && P::is_included_inside_projection(&tr)
+                } else if projection.is_included_inside_projection(&bl)
+                    && projection.is_included_inside_projection(&tr)
                 {
-                    let (_, y1) = P::solve_along_ordinate(bl.x).unwrap_abort();
-                    let (x2, _) = P::solve_along_abscissa(tr.y).unwrap_abort();
+                    let (_, y1) = projection.solve_along_ordinate(bl.x).unwrap_abort();
+                    let (x2, _) = projection.solve_along_abscissa(tr.y).unwrap_abort();
 
                     let u = Vector2::new(bl.x, y1);
                     let v = Vector2::new(x2, tr.y);

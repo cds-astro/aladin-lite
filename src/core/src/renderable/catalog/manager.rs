@@ -5,12 +5,13 @@ use al_api::resources::Resources;
 
 use al_core::FrameBufferObject;
 use al_core::{
-    shader::Shader, Texture2D, VecData, VertexArrayObject, WebGlContext,
+    Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
 
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use web_sys::WebGl2RenderingContext;
+use crate::ProjectionType;
 
 #[derive(Debug)]
 pub enum Error {
@@ -193,7 +194,7 @@ impl Manager {
         })
     }
 
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort, view: &HEALPixCellsInView) {
+    pub fn update(&mut self, camera: &CameraViewPort, view: &HEALPixCellsInView) {
         // Render only the sources in the current field of view
         // Cells that are of depth > 7 are not handled by the hashmap (limited to depth 7)
         // For these cells, we draw all the sources lying in the ancestor cell of depth 7 containing
@@ -203,7 +204,7 @@ impl Manager {
             let cells = crate::healpix::cell::ALLSKY_HPX_CELLS_D0;
 
             for catalog in self.catalogs.values_mut() {
-                catalog.update::<P>(cells, camera);
+                catalog.update(cells);
             }
         } else {
             let cells = Vec::from_iter(
@@ -221,22 +222,23 @@ impl Manager {
             );
 
             for catalog in self.catalogs.values_mut() {
-                catalog.update::<P>(&cells, camera);
+                catalog.update(&cells);
             }
         }
     }
 
-    pub fn draw<P: Projection + CatalogShaderProjection>(
+    pub fn draw(
         &self,
         gl: &WebGlContext,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
         colormaps: &Colormaps,
         fbo: Option<&FrameBufferObject>,
+        projection: ProjectionType,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
         for catalog in self.catalogs.values() {
-            catalog.draw::<P>(gl, shaders, self, camera, colormaps, fbo)?;
+            catalog.draw(gl, shaders, self, camera, colormaps, fbo, projection)?;
         }
         gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -265,6 +267,7 @@ const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
 use crate::colormap::Colormaps;
 use crate::survey::view::HEALPixCellsInView;
+use crate::Abort;
 impl Catalog {
     fn new<P: Projection>(
         gl: &WebGlContext,
@@ -395,7 +398,7 @@ impl Catalog {
     }
 
     // Cells are of depth <= 7
-    fn update<P: Projection>(&mut self, cells: &[HEALPixCell], _camera: &CameraViewPort) {
+    fn update(&mut self, cells: &[HEALPixCell]) {
         let num_sources_in_fov = self.get_total_num_sources_in_fov(cells) as f32;
         // reset the sources in the frame
         self.current_sources.clear();
@@ -434,7 +437,7 @@ impl Catalog {
             .update_instanced_array("center", VecData(&self.current_sources));
     }
 
-    fn draw<P: Projection + CatalogShaderProjection>(
+    fn draw(
         &self,
         gl: &WebGlContext,
         shaders: &mut ShaderManager,
@@ -442,6 +445,7 @@ impl Catalog {
         camera: &CameraViewPort,
         colormaps: &Colormaps,
         fbo: Option<&FrameBufferObject>,
+        projection: ProjectionType,
     ) -> Result<(), JsValue> {
         // If the catalog is transparent, simply discard the draw
         if self.alpha > 0_f32 {
@@ -452,7 +456,15 @@ impl Catalog {
                     gl.clear_color(0.0, 0.0, 0.0, 1.0);
                     gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                    let shader = P::get_catalog_shader(gl, shaders);
+                    let shader = match projection {
+                        ProjectionType::Orthographic(_) => crate::shader::get_shader(gl, shaders, "CatalogOrtVS", "CatalogOrtFS"),
+                        ProjectionType::Aitoff(_) => crate::shader::get_shader(gl, shaders, "CatalogAitVS", "CatalogFS"),
+                        ProjectionType::Mercator(_) => crate::shader::get_shader(gl, shaders, "CatalogMerVS", "CatalogFS"),
+                        ProjectionType::Mollweide(_) => crate::shader::get_shader(gl, shaders, "CatalogMolVS", "CatalogFS"),
+                        ProjectionType::AzimuthalEquidistant(_) => crate::shader::get_shader(gl, shaders, "CatalogArcVS", "CatalogFS"),
+                        ProjectionType::Gnomonic(_) => crate::shader::get_shader(gl, shaders, "CatalogTanVS", "CatalogFS"),
+                        ProjectionType::HEALPix(_) => crate::shader::get_shader(gl, shaders, "CatalogHpxVS", "CatalogFS"),
+                    };
                     let shader_bound = shader.bind(gl);
 
                     shader_bound
@@ -479,13 +491,7 @@ impl Catalog {
                 let size = camera.get_screen_size();
                 gl.viewport(0, 0, size.x as i32, size.y as i32);
 
-                let shader = shaders.get(
-                    gl,
-                    &ShaderId(
-                        Cow::Borrowed("ColormapCatalogVS"),
-                        Cow::Borrowed("ColormapCatalogFS"),
-                    ),
-                )?;
+                let shader = crate::shader::get_shader(gl, shaders, "ColormapCatalogVS", "ColormapCatalogFS");
                 //self.colormap.get_shader(gl, shaders);
                 let shaderbound = shader.bind(gl);
                 shaderbound
@@ -493,7 +499,7 @@ impl Catalog {
                     .attach_uniform("alpha", &self.alpha) // Alpha channel
                     .attach_uniforms_from(&self.colormap)
                     .attach_uniforms_from(colormaps)
-                    .attach_uniform("reversed", &0.0)
+                    .attach_uniform("reversed", &0.0_f32)
                     .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
@@ -507,115 +513,4 @@ impl Catalog {
         Ok(())
     }
 }
-/*pub fn get_catalog_shader<'a>(
-    gl: &WebGlContext,
-    shaders: &'a mut ShaderManager,
-) -> Result<&'a Shader, JsValue> {
-    shaders
-        .get(
-            gl,
-            &ShaderId(
-                Cow::Borrowed("ColormapCatalogVS"),
-                Cow::Borrowed("ColormapCatalogFS"),
-            ),
-        )
-        .map_err(|e| e.into())
-}*/
 
-pub trait CatalogShaderProjection {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader;
-}
-
-use crate::math::projection::Aitoff;
-use crate::shader::ShaderId;
-use std::borrow::Cow;
-
-use crate::Abort;
-
-impl CatalogShaderProjection for Aitoff {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("CatalogAitoffVS"), Cow::Borrowed("CatalogFS")),
-            )
-            .unwrap_abort()
-    }
-}
-use crate::math::projection::Mollweide;
-
-impl CatalogShaderProjection for Mollweide {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("CatalogMollVS"), Cow::Borrowed("CatalogFS")),
-            )
-            .unwrap_abort()
-    }
-}
-use crate::math::projection::AzimuthalEquidistant;
-
-impl CatalogShaderProjection for AzimuthalEquidistant {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("CatalogArcVS"), Cow::Borrowed("CatalogFS")),
-            )
-            .unwrap_abort()
-    }
-}
-
-use crate::math::projection::HEALPix;
-impl CatalogShaderProjection for HEALPix {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("CatalogHEALPixVS"),
-                    Cow::Borrowed("CatalogFS"),
-                ),
-            )
-            .unwrap_abort()
-    }
-}
-
-use crate::math::projection::Mercator;
-
-impl CatalogShaderProjection for Mercator {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("CatalogMercatVS"), Cow::Borrowed("CatalogFS")),
-            )
-            .unwrap_abort()
-    }
-}
-use crate::math::projection::Orthographic;
-impl CatalogShaderProjection for Orthographic {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(
-                    Cow::Borrowed("CatalogOrthoVS"),
-                    Cow::Borrowed("CatalogOrthoFS"),
-                ),
-            )
-            .unwrap_abort()
-    }
-}
-use crate::math::projection::Gnomonic;
-impl CatalogShaderProjection for Gnomonic {
-    fn get_catalog_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -> &'a Shader {
-        shaders
-            .get(
-                gl,
-                &ShaderId(Cow::Borrowed("CatalogTanVS"), Cow::Borrowed("CatalogFS")),
-            )
-            .unwrap_abort()
-    }
-}

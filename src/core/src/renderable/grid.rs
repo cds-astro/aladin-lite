@@ -5,6 +5,7 @@ use crate::math::angle;
 use cgmath::Vector4;
 
 use crate::camera::CameraViewPort;
+use crate::ProjectionType;
 
 use al_api::grid::GridCfg;
 use al_core::VertexArrayObject;
@@ -45,10 +46,11 @@ use super::TextRenderManager;
 
 use al_api::resources::Resources;
 impl ProjetedGrid {
-    pub fn new<P: Projection>(
+    pub fn new(
         gl: &WebGlContext,
         camera: &CameraViewPort,
         resources: &Resources,
+        projection: ProjectionType
     ) -> Result<ProjetedGrid, JsValue> {
         let vao = {
             let mut vao = VertexArrayObject::new(gl);
@@ -110,12 +112,12 @@ impl ProjetedGrid {
             text_renderer,
         };
         // Initialize the vertices & labels
-        grid.force_update::<P>(camera);
+        grid.force_update(camera, projection);
 
         Ok(grid)
     }
 
-    pub fn set_cfg<P: Projection>(&mut self, new_cfg: GridCfg, camera: &CameraViewPort) -> Result<(), JsValue> {
+    pub fn set_cfg(&mut self, new_cfg: GridCfg, camera: &CameraViewPort, projection: ProjectionType) -> Result<(), JsValue> {
         let GridCfg {
             color,
             opacity,
@@ -139,7 +141,7 @@ impl ProjetedGrid {
         if let Some(enabled) = enabled {
             self.enabled = enabled;
             if enabled {
-                self.force_update::<P>(camera);
+                self.force_update(camera, projection);
             }
         }
 
@@ -165,10 +167,10 @@ impl ProjetedGrid {
         Ok(())
     }
 
-    fn force_update<P: Projection>(&mut self, camera: &CameraViewPort) {
+    fn force_update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         self.text_renderer.begin_frame();
         //let text_height = text_renderer.text_size();
-        let lines = lines::<P>(camera, &self.text_renderer);
+        let lines = lines(camera, &self.text_renderer, projection);
 
         self.offsets.clear();
         self.sizes.clear();
@@ -235,15 +237,15 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update<P: Projection>(&mut self, camera: &CameraViewPort) {
+    pub fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         if !self.enabled {
             return;
         }
 
-        self.force_update::<P>(camera);
+        self.force_update(camera, projection);
     }
 
-    fn draw_lines_cpu<P: Projection>(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
+    fn draw_lines_cpu(&self, camera: &CameraViewPort, shaders: &mut ShaderManager) {
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
@@ -272,14 +274,14 @@ impl ProjetedGrid {
         }
     }
 
-    pub fn draw<P: Projection>(
+    pub fn draw(
         &mut self,
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
     ) -> Result<(), JsValue> {
         if self.enabled {
             self.gl.enable(WebGl2RenderingContext::BLEND);
-            self.draw_lines_cpu::<P>(camera, shaders);
+            self.draw_lines_cpu(camera, shaders);
 
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
@@ -311,13 +313,14 @@ struct Label {
     rot: f64,
 }
 impl Label {
-    fn meridian<P: Projection>(
+    fn meridian(
         fov: &FieldOfViewType,
         lon: f64,
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
+        projection: ProjectionType,
     ) -> Option<Self> {
         let LonLatT(.., lat) = camera.get_center().lonlat();
         // Do not plot meridian labels when the center of fov
@@ -342,8 +345,8 @@ impl Label {
 
         let m2 = ((m1 + d * 1e-3).normalize()).extend(1.0);
 
-        //let s1 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
-        let s1 = P::model_to_screen_space(&m1.extend(1.0), camera)?;
+        //let s1 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1), camera, reversed_longitude)?;
+        let s1 = projection.model_to_screen_space(&m1.extend(1.0), camera)?;
 
         if !fov.is_allsky() && fov.contains_pole() {
             // If a pole is contained in the view
@@ -367,9 +370,9 @@ impl Label {
             }
         }
 
-        let s2 = P::model_to_screen_space(&m2, camera)?;
+        let s2 = projection.model_to_screen_space(&m2, camera)?;
 
-        //let s2 = P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
+        //let s2 = projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2), camera, reversed_longitude)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -411,13 +414,14 @@ impl Label {
         })
     }
 
-    fn parallel<P: Projection>(
+    fn parallel(
         fov: &FieldOfViewType,
         lat: f64,
         m1: &Vector3<f64>,
         camera: &CameraViewPort,
         // in pixels
         text_renderer: &TextRenderManager,
+        projection: ProjectionType
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let _system = camera.get_system();
@@ -429,11 +433,11 @@ impl Label {
         let m2 = (m1 + d * 1e-3).normalize();
 
         let s1 =
-            //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
-            P::model_to_screen_space(&m1.extend(1.0), camera)?;
+            //projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m1.extend(1.0)), camera, reversed_longitude)?;
+            projection.model_to_screen_space(&m1.extend(1.0), camera)?;
         let s2 =
-            //P::model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
-            P::model_to_screen_space(&m2.extend(1.0), camera)?;
+            //projection.model_to_screen_space(&(system.to_icrs_j2000::<f64>() * m2.extend(1.0)), camera, reversed_longitude)?;
+            projection.model_to_screen_space(&m2.extend(1.0), camera)?;
 
         let ds = (s2 - s1).normalize();
 
@@ -507,19 +511,20 @@ use crate::math::{
     lonlat::{LonLat, LonLatT},
 };
 impl GridLine {
-    fn meridian<P: Projection>(
+    fn meridian(
         lon: f64,
         lat: &Range<f64>,
         sp: Option<&Vector2<f64>>,
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
+        projection: ProjectionType
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
             let mut vertices = vec![];
 
-            crate::line::subdivide_along_longitude_and_latitudes::<P>(
+            crate::line::subdivide_along_longitude_and_latitudes(
                 &mut vertices,
                 [
                     &Vector2::new(lon, lat.start),
@@ -527,9 +532,10 @@ impl GridLine {
                     &Vector2::new(lon, lat.end)
                 ],
                 camera,
+                projection
             );
 
-            let label = Label::meridian::<P>(fov, lon, &p, camera, sp, text_renderer);
+            let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection);
 
             Some(GridLine { vertices, label })
         } else {
@@ -537,18 +543,19 @@ impl GridLine {
         }
     }
 
-    fn parallel<P: Projection>(
+    fn parallel(
         lon: &Range<f64>,
         lat: f64,
         camera: &CameraViewPort,
         text_renderer: &TextRenderManager,
+        projection: ProjectionType
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
             let mut vertices = vec![];
 
-            crate::line::subdivide_along_longitude_and_latitudes::<P>(
+            crate::line::subdivide_along_longitude_and_latitudes(
                 &mut vertices,
                 [
                     &Vector2::new(lon.start, lat),
@@ -556,9 +563,10 @@ impl GridLine {
                     &Vector2::new(lon.end, lat),
                 ],
                 camera,
+                projection
             );
 
-            let label = Label::parallel::<P>(fov, lat, &p, camera, text_renderer);
+            let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);
 
             Some(GridLine { vertices, label })
         } else {
@@ -605,11 +613,11 @@ const GRID_STEPS: &[f64] = &[
     0.34906584,
     std::f64::consts::FRAC_PI_4,
 ];
-
-fn lines<P: Projection>(
+fn lines(
     camera: &CameraViewPort,
     //text_height: f64,
     text_renderer: &TextRenderManager,
+    projection: ProjectionType
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let _system = camera.get_system();
@@ -620,14 +628,14 @@ fn lines<P: Projection>(
             // This is an information needed
             // for plotting labels
             // screen north pole
-            P::view_to_screen_space(
+            projection.view_to_screen_space(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, 1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, 1.0, 0.0, 1.0),
                 camera,
             )
         } else {
             // screen south pole
-            P::view_to_screen_space(
+            projection.view_to_screen_space(
                 //&(system.to_icrs_j2000::<f64>() * Vector4::new(0.0, -1.0, 0.0, 1.0)),
                 &Vector4::new(0.0, -1.0, 0.0, 1.0),
                 camera,
@@ -667,7 +675,7 @@ fn lines<P: Projection>(
 
     while theta < stop_theta {
         if let Some(line) =
-            GridLine::meridian::<P>(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer)
+            GridLine::meridian(theta, &bbox.get_lat(), sp.as_ref(), camera, text_renderer, projection)
         {
             lines.push(line);
         }
@@ -687,7 +695,7 @@ fn lines<P: Projection>(
     }*/
 
     while alpha < stop_alpha {
-        if let Some(line) = GridLine::parallel::<P>(&bbox.get_lon(), alpha, camera, text_renderer) {
+        if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection) {
             lines.push(line);
         }
         alpha += step_lat;

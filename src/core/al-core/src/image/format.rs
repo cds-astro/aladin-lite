@@ -70,7 +70,10 @@ impl ImageFormat for RGBA8U {
     const TYPE: u32 = WebGlRenderingCtx::UNSIGNED_BYTE;
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
-        Ok(Bytes::Borrowed(raw_bytes))
+        let mut decoder = jpeg::Decoder::new(raw_bytes);
+        let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
+
+        Ok(Bytes::Owned(bytes))
     }
 }
 

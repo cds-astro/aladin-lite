@@ -1,7 +1,7 @@
 use crate::{healpix::{
     coverage::HEALPixCoverage,
     cell::HEALPixCell
-}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager, survey::view::HEALPixCellProjection};
+}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
 use al_core::{WebGlContext, VertexArrayObject, VecData};
 use moclib::{moc::{RangeMOCIterator, RangeMOCIntoIterator}, elem::cell::Cell};
 use std::{borrow::Cow, collections::HashMap};
@@ -32,7 +32,7 @@ pub struct MOC {
 use crate::survey::view::HEALPixCellsInView;
 use cgmath::Vector2;
 
-fn path_along_edge<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
     let vertices = cell
         .path_along_cell_edge(n_segment_by_side as u32)
         .iter()
@@ -40,7 +40,7 @@ fn path_along_edge<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
             
-            P::model_to_ndc_space(&xyzw, camera)
+            projection.model_to_ndc_space(&xyzw, camera)
                 .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()
@@ -76,7 +76,7 @@ fn path_along_edge<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_
                 vy
             };
 
-            if P::project(projeted_cell, camera).is_none() {
+            if crate::survey::view::project(projeted_cell, camera, projection).is_none() {
                 None
             } else {
                 // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
@@ -97,7 +97,7 @@ fn path_along_edge<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_
     }
 }
 use al_api::cell::HEALPixCellProjeted;
-fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32) -> Option<(Vec<f32>, Vec<u32>)> {
+fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
     let n_vertices_per_segment = n_segment_by_side + 1;
 
     let vertices = cell
@@ -107,7 +107,7 @@ fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell,
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
-            P::model_to_ndc_space(&xyzw, camera)
+            projection.model_to_ndc_space(&xyzw, camera)
                 .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()
@@ -153,7 +153,7 @@ fn rasterize_hpx_cell<P: Projection + HEALPixCellProjection>(cell: &HEALPixCell,
                     vy
                 };
 
-                P::project(projeted_cell, camera)?;
+                crate::survey::view::project(projeted_cell, camera, projection)?;
 
                 indices.push(*idx_off + idx_0 as u32);
                 indices.push(*idx_off + idx_1 as u32);
@@ -201,6 +201,7 @@ impl HierarchicalHpxCoverage {
     }
 }
 
+use crate::ProjectionType;
 impl MOC {
     pub fn new(gl: &WebGlContext) -> Self {
         let mut vao = VertexArrayObject::new(gl);
@@ -298,7 +299,7 @@ impl MOC {
         
     }
 
-    pub fn insert<P: Projection + HEALPixCellProjection>(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort) {
+    pub fn insert(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort, projection: ProjectionType) {
         let key = params.get_uuid().clone();
 
         self.mocs.insert(key.clone(), HierarchicalHpxCoverage::new(moc));
@@ -306,7 +307,7 @@ impl MOC {
         self.layers.push(key);
 
         self.recompute_draw_mocs(camera);
-        self.update_buffers::<P>(camera);
+        self.update_buffers(camera, projection);
         // Compute or retrieve the mocs to render
     }
 
@@ -328,12 +329,12 @@ impl MOC {
         }
     }
 
-    pub fn set_params<P: Projection + HEALPixCellProjection>(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort) -> Option<al_api::moc::MOC> {
+    pub fn set_params(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort, projection: ProjectionType) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().clone();
         let old_params = self.params.insert(key, params);
 
         self.recompute_draw_mocs(camera);
-        self.update_buffers::<P>(camera);
+        self.update_buffers(camera, projection);
 
         old_params
     }
@@ -343,7 +344,7 @@ impl MOC {
         self.mocs.get(key).map(|coverage| coverage.get_full_moc())
     }
 
-    fn update_buffers<P: Projection + HEALPixCellProjection>(&mut self, camera: &CameraViewPort) {
+    fn update_buffers(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         self.indices.clear();
         self.position.clear();
         self.num_indices.clear();
@@ -366,11 +367,12 @@ impl MOC {
                             let n_segment_by_side = (1 << delta_depth) as usize;
     
                             let cell = HEALPixCell(depth, idx);
-                            if let Some((vertices_cell, indices_cell)) = path_along_edge::<P>(
+                            if let Some((vertices_cell, indices_cell)) = path_along_edge(
                                 &cell,
                                 n_segment_by_side,
                                 camera,
                                 &mut idx_off,
+                                projection
                             ) {
                                 // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
                                 indices_moc.extend(indices_cell);
@@ -384,11 +386,12 @@ impl MOC {
                                 let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
     
                                 for sub_cell in cell.get_children_cells(3 - depth) {
-                                    if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge::<P>(
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = path_along_edge(
                                         &sub_cell,
                                         n_segment_by_side_sub_cell,
                                         camera,
-                                        &mut idx_off
+                                        &mut idx_off,
+                                        projection
                                     ) {
                                         indices_moc.extend(indices_sub_cell);
                                         vertices.extend(vertices_sub_cell);
@@ -416,11 +419,12 @@ impl MOC {
                             let n_segment_by_side = (1 << delta_depth) as usize;
     
                             let cell = HEALPixCell(depth, idx);
-                            if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell::<P>(
+                            if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell(
                                 &cell,
                                 n_segment_by_side,
                                 camera,
                                 &mut idx_off,
+                                projection
                             ) {
                                 // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
                                 indices_moc.extend(indices_cell);
@@ -434,11 +438,12 @@ impl MOC {
                                 let n_segment_by_side_sub_cell = (1 << delta_depth_sub_cell) as usize;
     
                                 for sub_cell in cell.get_children_cells(3 - depth) {
-                                    if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell::<P>(
+                                    if let Some((vertices_sub_cell, indices_sub_cell)) = rasterize_hpx_cell(
                                         &sub_cell,
                                         n_segment_by_side_sub_cell,
                                         camera,
-                                        &mut idx_off
+                                        &mut idx_off,
+                                        projection
                                     ) {
                                         indices_moc.extend(indices_sub_cell);
                                         vertices.extend(vertices_sub_cell);
@@ -477,7 +482,7 @@ impl MOC {
             );
     }
 
-    pub fn update<P: Projection + HEALPixCellProjection>(&mut self, camera: &CameraViewPort) {
+    pub fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
         // Compute or retrieve the mocs to render
         let new_depth = crate::survey::view::depth_from_pixels_on_screen(camera, 512);
         self.view.refresh(new_depth, CooSystem::ICRSJ2000, camera);
@@ -486,7 +491,7 @@ impl MOC {
             self.recompute_draw_mocs(camera);
         }
 
-        self.update_buffers::<P>(camera);
+        self.update_buffers(camera, projection);
     }
     
     pub fn draw(

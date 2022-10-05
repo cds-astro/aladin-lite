@@ -6,10 +6,11 @@ pub type NormalizedDeviceCoord = Vector2<f64>;
 pub type WorldCoord = Vector4<f64>;
 pub type ModelCoord = Vector4<f64>;
 
-fn ndc_to_world<P: Projection>(
+fn ndc_to_world(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
+    projection: ProjectionType
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
@@ -19,7 +20,7 @@ fn ndc_to_world<P: Projection>(
             n.x * ndc_to_clip.x * clip_zoom_factor,
             n.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let w = P::clip_to_world_space(&c);
+        let w = projection.clip_to_world_space(&c);
         if let Some(w) = w {
             world_coo.push(w);
         } else {
@@ -90,13 +91,14 @@ fn create_coverage(vertices: &[Vector4<f64>], inside: &Vector3<f64>, camera_fram
 
     coverage
 }*/
-
+use crate::ProjectionType;
 impl FieldOfViewVertices {
-    pub fn new<P: Projection>(
+    pub fn new(
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
         center: &Vector4<f64>,
+        projection: ProjectionType
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
@@ -118,48 +120,38 @@ impl FieldOfViewVertices {
             ndc_coo.push(Vector2::new(x_ndc[idx_vertex], y_ndc[idx_vertex]));
         }
 
-        let world_coo = ndc_to_world::<P>(&ndc_coo, ndc_to_clip, clip_zoom_factor);
+        let world_coo = ndc_to_world(&ndc_coo, ndc_to_clip, clip_zoom_factor, projection);
         let model_coo = world_coo
             .as_ref()
             .map(|world_coo| world_to_model(world_coo, mat));
 
-
-        /*let (great_circles, coverage) = if let Some(vertices) = &model_coo {
-            (FieldOfViewType::new_polygon(vertices, &center), create_view_moc(vertices, &center.truncate()))
-        } else {
-            (FieldOfViewType::Allsky, HEALPixCoverage::allsky())
-        };*/
         let great_circles = if let Some(vertices) = &model_coo {
             FieldOfViewType::new_polygon(vertices, center)
         } else {
             FieldOfViewType::Allsky
         };
-        //let depth = coverage.depth_max();
-        //let mut moc = [None, None];
-        //moc[*system as usize] = Some(coverage);
 
         FieldOfViewVertices {
             ndc_coo,
             world_coo,
             model_coo,
             great_circles,
-            //moc,
-            //depth
         }
     }
 
-    pub fn set_fov<P: Projection>(
+    pub fn set_fov(
         &mut self,
         ndc_to_clip: &Vector2<f64>,
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
         center: &Vector4<f64>,
+        projection: ProjectionType
     ) {
-        self.world_coo = ndc_to_world::<P>(&self.ndc_coo, ndc_to_clip, clip_zoom_factor);
-        self.set_rotation::<P>(w2m, center);
+        self.world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, projection);
+        self.set_rotation(w2m, center);
     }
 
-    pub fn set_rotation<P: Projection>(
+    pub fn set_rotation(
         &mut self,
         w2m: &Matrix4<f64>,
         center: &Vector4<f64>,
@@ -170,10 +162,10 @@ impl FieldOfViewVertices {
             self.model_coo = None;
         }
 
-        self.set_great_circles::<P>(center);
+        self.set_great_circles(center);
     }
 
-    fn set_great_circles<P: Projection>(&mut self, center: &Vector4<f64>) {
+    fn set_great_circles(&mut self, center: &Vector4<f64>) {
         if let Some(vertices) = &self.model_coo {
             self.great_circles = FieldOfViewType::new_polygon(vertices, center);
             /*if self.great_circles.contains_both_poles() {

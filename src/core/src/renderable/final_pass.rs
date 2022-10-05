@@ -56,7 +56,7 @@ impl RenderPass {
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         ); // premultiplied alpha
 
-        let shader = crate::shader::get_pass_shader_post(&self.gl, shaders);
+        let shader = crate::shader::get_shader(&self.gl, shaders, "PostVS", "PostFS");
 
         shader
             .bind(&self.gl)

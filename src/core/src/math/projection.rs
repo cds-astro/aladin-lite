@@ -11,7 +11,6 @@ use crate::camera::CameraViewPort;
 //use crate::num_traits::FloatConst;
 use crate::math::PI;
 
-#[allow(dead_code)]
 pub fn screen_to_ndc_space(
     pos_screen_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -31,7 +30,6 @@ pub fn screen_to_ndc_space(
     )
 }
 
-#[allow(dead_code)]
 pub fn ndc_to_screen_space(
     pos_normalized_device: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -47,7 +45,6 @@ pub fn ndc_to_screen_space(
     pos_screen_space / dpi
 }
 
-#[allow(dead_code)]
 pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort) -> Vector2<f64> {
     let ndc_to_clip = camera.get_ndc_to_clip();
     let clip_zoom_factor = camera.get_clip_zoom_factor();
@@ -58,7 +55,6 @@ pub fn clip_to_ndc_space(pos_clip_space: &Vector2<f64>, camera: &CameraViewPort)
     )
 }
 
-#[allow(dead_code)]
 pub fn clip_to_screen_space(
     pos_clip_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -67,7 +63,6 @@ pub fn clip_to_screen_space(
     ndc_to_screen_space(&pos_normalized_device, camera)
 }
 
-#[allow(dead_code)]
 pub fn screen_to_clip_space(
     pos_screen_space: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -76,7 +71,6 @@ pub fn screen_to_clip_space(
     ndc_to_clip_space(&pos_normalized_device, camera)
 }
 
-#[allow(dead_code)]
 pub fn ndc_to_clip_space(
     pos_normalized_device: &Vector2<f64>,
     camera: &CameraViewPort,
@@ -93,9 +87,20 @@ pub fn ndc_to_clip_space(
 use al_api::coo_system::CooSystem;
 use cgmath::InnerSpace;
 
+#[enum_dispatch]
+pub enum ProjectionType {
+    Orthographic,
+    Aitoff,
+    Mollweide,
+    AzimuthalEquidistant,
+    Gnomonic,
+    HEALPix,
+    Mercator,
+}
+
 use cgmath::Vector4;
 #[enum_dispatch(ProjectionType)]
-pub trait Projection: std::marker::Sized
+pub trait Projection
 {
     /// Screen to model space deprojection
 
@@ -106,6 +111,7 @@ pub trait Projection: std::marker::Sized
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``camera`` - The camera object
     fn screen_to_world_space(
+        &self,
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
@@ -121,7 +127,7 @@ pub trait Projection: std::marker::Sized
             pos_normalized_device.x * ndc_to_clip.x * clip_zoom_factor,
             pos_normalized_device.y * ndc_to_clip.y * clip_zoom_factor,
         );
-        let pos_world_space = Self::clip_to_world_space(&pos_clip_space);
+        let pos_world_space = self.clip_to_world_space(&pos_clip_space);
         if let Some(mut pos_world_space) = pos_world_space {
             if camera.get_longitude_reversed() {
                 pos_world_space.x = -pos_world_space.x;
@@ -143,11 +149,11 @@ pub trait Projection: std::marker::Sized
     ///
     /// * ``pos_screen_space`` - The position in the screen pixel space (top-left of the screen being the origin
     /// * ``camera`` - The camera object
-    fn screen_to_model_space(
+    fn screen_to_model_space(&self,
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
-        let pos_world_space = Self::screen_to_world_space(pos_screen_space, camera);
+        let pos_world_space = self.screen_to_world_space(pos_screen_space, camera);
 
         if let Some(pos_world_space) = pos_world_space {
             let r = camera.get_final_rotation();
@@ -158,16 +164,16 @@ pub trait Projection: std::marker::Sized
         }
     }
 
-    fn model_to_screen_space(
+    fn model_to_screen_space(&self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-        Self::world_to_screen_space(&pos_world_space, camera)
+        self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    fn view_to_screen_space(
+    fn view_to_screen_space(&self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -176,10 +182,10 @@ pub trait Projection: std::marker::Sized
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * pos_model_space;
-        Self::world_to_screen_space(&pos_world_space, camera)
+        self.world_to_screen_space(&pos_world_space, camera)
     }
 
-    fn view_to_normalized_device_space(
+    fn view_to_normalized_device_space(&self,
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
@@ -188,10 +194,10 @@ pub trait Projection: std::marker::Sized
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * pos_view_space;
-        Self::world_to_normalized_device_space(&pos_world_space, camera)
+        self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 
-    fn view_to_normalized_device_space_unchecked(
+    fn view_to_normalized_device_space_unchecked(&self,
         pos_view_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
@@ -200,17 +206,17 @@ pub trait Projection: std::marker::Sized
 
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * c * pos_view_space;
-        Self::world_to_normalized_device_space_unchecked(&pos_world_space, camera)
+        self.world_to_normalized_device_space_unchecked(&pos_world_space, camera)
     }
 
-    fn model_to_ndc_space(
+    fn model_to_ndc_space(&self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         //pos_world_space.x = -pos_world_space.x;
-        Self::world_to_normalized_device_space(&pos_world_space, camera)
+        self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 
     /// World to screen space projection
@@ -221,11 +227,11 @@ pub trait Projection: std::marker::Sized
     ///
     /// * `x` - X mouse position in homogenous screen space (between [-1, 1])
     /// * `y` - Y mouse position in homogenous screen space (between [-1, 1])
-    fn world_to_normalized_device_space(
+    fn world_to_normalized_device_space(&self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        if let Some(mut pos_clip_space) = Self::world_to_clip_space(pos_world_space) {
+        if let Some(mut pos_clip_space) = self.world_to_clip_space(pos_world_space) {
             if camera.get_longitude_reversed() {
                 pos_clip_space.x = -pos_clip_space.x;
             }
@@ -242,11 +248,11 @@ pub trait Projection: std::marker::Sized
         }
     }
 
-    fn world_to_normalized_device_space_unchecked(
+    fn world_to_normalized_device_space_unchecked(&self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Vector2<f64> {
-        let mut pos_clip_space = Self::world_to_clip_space_unchecked(pos_world_space);
+        let mut pos_clip_space = self.world_to_clip_space_unchecked(pos_world_space);
         if camera.get_longitude_reversed() {
             pos_clip_space.x = -pos_clip_space.x;
         }
@@ -259,12 +265,12 @@ pub trait Projection: std::marker::Sized
         )
     }
 
-    fn world_to_screen_space(
+    fn world_to_screen_space(&self,
         pos_world_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        Self::world_to_normalized_device_space(pos_world_space, camera)
-            .map(|pos_normalized_device| self::ndc_to_screen_space(&pos_normalized_device, camera))
+        self.world_to_normalized_device_space(pos_world_space, camera)
+            .map(|pos_normalized_device| self.ndc_to_screen_space(&pos_normalized_device, camera))
     }
 
     /// Perform a clip to the world space deprojection
@@ -272,31 +278,28 @@ pub trait Projection: std::marker::Sized
     /// # Arguments
     ///
     /// * ``pos_clip_space`` - The position in the clipping space (orthonorlized space)
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<Vector4<f64>>;
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<Vector4<f64>>;
     /// World to the clipping space deprojection
     ///
     /// # Arguments
     ///
     /// * ``pos_world_space`` - The position in the world space
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>>;
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64>;
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>>;
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64>;
 
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool;
+
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64>;
+
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)>;
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)>;
+    fn clip_size() -> (&self, f64, f64);
+
+    const ALLOW_UNZOOM_MORE: bool;
     // Aperture angle at the start of the application (full view)
     // - 180 degrees for the 3D projections (i.e. ortho)
     // - 360 degrees for the 2D projections (i.e. mollweide, arc, aitoff...)
-    fn aperture_start() -> Angle<f64>;
-
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool;
-
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64>;
-
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)>;
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)>;
-    fn clip_size() -> (f64, f64);
-
-    const ALLOW_UNZOOM_MORE: bool;
-
-    //const RASTER_THRESHOLD_ANGLE: Angle<f64>;
+    const APERTURE_START: f64;
 }
 
 pub struct Aitoff;
@@ -314,11 +317,11 @@ use crate::ArcDeg;
 impl Projection for Aitoff {
     const ALLOW_UNZOOM_MORE: bool = true;
 
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1.0, height / width)
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         // Semi-major axis length
         let a = 1.0;
         // Semi-minor axis length
@@ -332,11 +335,11 @@ impl Projection for Aitoff {
         (px2 * b2 + py2 * a2) < a2 * b2
     }
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 1.0)
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 0.5 {
             None
         } else {
@@ -345,7 +348,7 @@ impl Projection for Aitoff {
         }
     }
 
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1.0 {
             None
         } else {
@@ -354,43 +357,7 @@ impl Projection for Aitoff {
         }
     }
 
-    /// View to world space transformation
-    ///
-    /// This returns a normalized vector along its first 3 dimensions.
-    /// Its fourth component is set to 1.
-    ///
-    /// The Aitoff projection maps screen coordinates from [-pi; pi] x [-pi/2; pi/2]
-    ///
-    /// # Arguments
-    ///
-    /// * `x` - in normalized device coordinates between [-1; 1]
-    /// * `y` - in normalized device coordinates between [-1; 1]
-    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(pos_clip_space) {
-            let u = pos_clip_space.x * PI * 0.5;
-            let v = pos_clip_space.y * PI;
-            //da uv a lat/lon
-            let c = (v * v + u * u).sqrt();
-
-            let (phi, theta) = if c != 0.0 {
-                let phi = (v * c.sin() / c).asin();
-                let theta = (u * c.sin()).atan2(c * c.cos());
-                (phi, -theta)
-            } else {
-                let phi = v.asin();
-                let theta = u.atan();
-                (phi, -theta)
-            };
-            let theta = theta * 2.0;
-
-            let pos_world_space = math::lonlat::radec_to_xyzw(Angle(theta), Angle(phi));
-            Some(pos_world_space)
-        } else {
-            None
-        }
-    }*/
-
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         let x2d = -pos_clip_space.x * TWO_SQRT_TWO;
         let y2d = pos_clip_space.y * TWO_SQRT_TWO;
         let mut r = 0.125 * x2d * x2d + 0.5 * y2d * y2d; //  = 1 - cos(b) cos(l/2)
@@ -417,31 +384,6 @@ impl Projection for Aitoff {
         Some(Vector4::new(y, z, x, 1.0))
     }
 
-    /*fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(pos_clip_space) {
-            let x2d = -pos_clip_space.x;
-            let y2d = pos_clip_space.y;
-            let mut r = 0.125 * x2d * x2d + 0.5 * y2d * y2d; //  = 1 - cos(b) cos(l/2)
-
-            let mut x = 1.0 - r; // cos(b) cos(l/2)
-            let mut w = (1.0 - 0.5 * r).sqrt(); // sqrt(HALF * (1 + x)) ;  //  = Z = sqrt[ (1 + cos(b) cos(l/2)) / 2]
-            let mut y = 0.5 * x2d * PI * w; // cos(b) sin(l/2)
-            let z = PI * y2d * w; // z
-            // Convert from Cartesian (l/2, b) to Cartesian (l, b) 
-            r = (x * x + y * y).sqrt();  // cos(b)
-            if r > 0.0 {
-                w = x;
-                x = (w * w - y * y) / r; // cos(b) cos(l)
-                y = 2.0 * w * y / r; // cos(b) sin(l)
-            }
-
-            Some(Vector4::new(y, z, x, 1.0))
-        } else {
-            None
-        }
-    }*/
-
-
     /// World to screen space transformation
     /// X is between [-1, 1]
     /// Y is between [-0.5, 0.5]
@@ -449,8 +391,8 @@ impl Projection for Aitoff {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
 
     /// World to screen space transformation
@@ -490,7 +432,7 @@ impl Projection for Aitoff {
         )
     }*/
 
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let x = pos_world_space.z;
         let y = pos_world_space.x;
         let z = pos_world_space.y;
@@ -516,15 +458,15 @@ use crate::math;
 impl Projection for Mollweide {
     const ALLOW_UNZOOM_MORE: bool = true;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 1.0)
     }
 
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, height / width)
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         // Semi-major axis length
         let a = 1_f64;
         // Semi-minor axis length
@@ -538,7 +480,7 @@ impl Projection for Mollweide {
         (px2 * b2 + py2 * a2) < a2 * b2
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 0.5_f64 {
             None
         } else {
@@ -546,7 +488,7 @@ impl Projection for Mollweide {
             Some((-x + 1e-3, x - 1e-3))
         }
     }
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1_f64 {
             None
         } else {
@@ -566,8 +508,8 @@ impl Projection for Mollweide {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(pos_clip_space) {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+        if self.is_included_inside_projection(pos_clip_space) {
             let y2 = pos_clip_space.y * pos_clip_space.y;
             let k = (1.0 - 4.0 * y2).sqrt();
 
@@ -592,7 +534,7 @@ impl Projection for Mollweide {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         // X in [-1, 1]
         // Y in [-1/2; 1/2] and scaled by the screen width/height ratio
         let epsilon = 1e-12;
@@ -624,11 +566,11 @@ impl Projection for Mollweide {
         Vector2::new(x, y)
     }
 
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(360_f64).into()
     }
 
@@ -641,11 +583,11 @@ use super::TWO_SQRT_TWO;
 impl Projection for Orthographic {
     const ALLOW_UNZOOM_MORE: bool = true;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
 
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         //Vector2::new(1_f64, height / width)
         //Vector2::new(width / height, 1.0)
         if width > height {
@@ -655,14 +597,14 @@ impl Projection for Orthographic {
         }
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
         (px2 + py2) < 1_f64
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 1.0_f64 {
             None
         } else {
@@ -670,7 +612,7 @@ impl Projection for Orthographic {
             Some((-x + 1e-3, x - 1e-3))
         }
     }
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1_f64 {
             None
         } else {
@@ -690,7 +632,7 @@ impl Projection for Orthographic {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         let xw_2 = 1.0 - pos_clip_space.x * pos_clip_space.x - pos_clip_space.y * pos_clip_space.y;
         if xw_2 > 0.0 {
             let pos_world_space =
@@ -707,11 +649,11 @@ impl Projection for Orthographic {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &cgmath::Vector4<f64>) -> Option<Vector2<f64>> {
+    fn world_to_clip_space(&self, pos_world_space: &cgmath::Vector4<f64>) -> Option<Vector2<f64>> {
         if pos_world_space.z < 0.0_f64 {
             None
         } else {
-            Some(Self::world_to_clip_space_unchecked(pos_world_space))
+            Some(self.world_to_clip_space_unchecked(pos_world_space))
         }
     }
 
@@ -720,11 +662,11 @@ impl Projection for Orthographic {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space_unchecked(pos_world_space: &cgmath::Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &cgmath::Vector4<f64>) -> Vector2<f64> {
         Vector2::new(-pos_world_space.x, pos_world_space.y)
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(180_f64).into()
     }
 
@@ -734,11 +676,11 @@ impl Projection for Orthographic {
 impl Projection for AzimuthalEquidistant {
     const ALLOW_UNZOOM_MORE: bool = true;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
 
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         //Vector2::new(width / height, 1.0)
         if width > height {
             Vector2::new(1_f64, height / width)
@@ -747,14 +689,14 @@ impl Projection for AzimuthalEquidistant {
         }
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         let px2 = pos_clip_space.x * pos_clip_space.x;
         let py2 = pos_clip_space.y * pos_clip_space.y;
 
         (px2 + py2) < 1.0
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 1.0 {
             None
         } else {
@@ -762,7 +704,7 @@ impl Projection for AzimuthalEquidistant {
             Some((-x + 1e-3, x - 1e-3))
         }
     }
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1.0 {
             None
         } else {
@@ -782,7 +724,7 @@ impl Projection for AzimuthalEquidistant {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         // r <= pi
         let x = pos_clip_space.x * PI;
         let y = pos_clip_space.y * PI;
@@ -803,7 +745,7 @@ impl Projection for AzimuthalEquidistant {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         //if pos_world_space.z > -1.0 {
             // Distance in the Euclidean plane (xy)
             // Angular distance is acos(x), but for small separation, asin(r)
@@ -828,11 +770,11 @@ impl Projection for AzimuthalEquidistant {
         //}
     }
 
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(360.0).into()
     }
 
@@ -842,11 +784,11 @@ impl Projection for AzimuthalEquidistant {
 impl Projection for Gnomonic {
     const ALLOW_UNZOOM_MORE: bool = false;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
 
-    fn compute_ndc_to_clip_factor(width: f64, height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, width: f64, height: f64) -> Vector2<f64> {
         if width > height {
             Vector2::new(1_f64, height / width)
         } else {
@@ -854,14 +796,14 @@ impl Projection for Gnomonic {
         }
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         let px = pos_clip_space.x;
         let py = pos_clip_space.y;
 
         px > -1.0 && px < 1.0 && py > -1.0 && py < 1.0
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 1.0 {
             None
         } else {
@@ -869,7 +811,7 @@ impl Projection for Gnomonic {
         }
     }
 
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1_f64 {
             None
         } else {
@@ -888,7 +830,7 @@ impl Projection for Gnomonic {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         //if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
         //    None
         //} else {
@@ -908,12 +850,12 @@ impl Projection for Gnomonic {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
         if pos_world_space.z <= 1e-2 {
             // Back hemisphere (z < 0) + diverges near z=0
             None
         } else {
-            Some(Self::world_to_clip_space_unchecked(pos_world_space))
+            Some(self.world_to_clip_space_unchecked(pos_world_space))
         }
     }
 
@@ -922,7 +864,7 @@ impl Projection for Gnomonic {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let z = pos_world_space.z.abs();
         Vector2::new(
             (-pos_world_space.x / z) / std::f64::consts::PI,
@@ -930,7 +872,7 @@ impl Projection for Gnomonic {
         )
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(180.0).into()
     }
 
@@ -940,29 +882,29 @@ impl Projection for Gnomonic {
 impl Projection for Mercator {
     const ALLOW_UNZOOM_MORE: bool = false;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
 
-    fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, _width: f64, _height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, 0.5f64)
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         let px = pos_clip_space.x;
         let py = pos_clip_space.y;
 
         px > -1.0 && px < 1.0 && py > -1.0 && py < 1.0
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 1.0 {
             None
         } else {
             Some((-1.0 + 1e-3, 1.0 - 1e-3))
         }
     }
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1.0 {
             None
         } else {
@@ -981,7 +923,7 @@ impl Projection for Mercator {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
         let theta = -pos_clip_space.x * PI;
         let delta = (pos_clip_space.y.sinh()).atan() * PI;
 
@@ -994,11 +936,11 @@ impl Projection for Mercator {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
 
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let (theta, delta) = math::lonlat::xyzw_to_radec(pos_world_space);
 
         Vector2::new(
@@ -1007,7 +949,7 @@ impl Projection for Mercator {
         )
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(360_f64).into()
     }
 
@@ -1017,15 +959,15 @@ impl Projection for Mercator {
 impl Projection for HEALPix {
     const ALLOW_UNZOOM_MORE: bool = false;
 
-    fn clip_size() -> (f64, f64) {
+    fn clip_size(&self) -> (f64, f64) {
         (2.0, 2.0)
     }
 
-    fn compute_ndc_to_clip_factor(_width: f64, _height: f64) -> Vector2<f64> {
+    fn compute_ndc_to_clip_factor(&self, _width: f64, _height: f64) -> Vector2<f64> {
         Vector2::new(1_f64, 1_f64)
     }
 
-    fn is_included_inside_projection(pos_clip_space: &Vector2<f64>) -> bool {
+    fn is_included_inside_projection(&self, pos_clip_space: &Vector2<f64>) -> bool {
         let px = pos_clip_space.x * 4.0; // [-4; 4]
         let py = pos_clip_space.y * 2.0; // [-2; 2]
 
@@ -1041,7 +983,7 @@ impl Projection for HEALPix {
         }
     }
 
-    fn solve_along_abscissa(y: f64) -> Option<(f64, f64)> {
+    fn solve_along_abscissa(&self, y: f64) -> Option<(f64, f64)> {
         if y.abs() > 1.0 {
             None
         } else {
@@ -1049,7 +991,7 @@ impl Projection for HEALPix {
         }
     }
 
-    fn solve_along_ordinate(x: f64) -> Option<(f64, f64)> {
+    fn solve_along_ordinate(&self, x: f64) -> Option<(f64, f64)> {
         if x.abs() > 1.0 {
             None
         } else {
@@ -1068,8 +1010,8 @@ impl Projection for HEALPix {
     ///
     /// * `x` - in normalized device coordinates between [-1; 1]
     /// * `y` - in normalized device coordinates between [-1; 1]
-    fn clip_to_world_space(pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
-        if Self::is_included_inside_projection(pos_clip_space) {
+    fn clip_to_world_space(&self, pos_clip_space: &Vector2<f64>) -> Option<cgmath::Vector4<f64>> {
+        if self.is_included_inside_projection(pos_clip_space) {
             let x = -pos_clip_space.x * 4.0;
             let y = pos_clip_space.y * 2.0;
 
@@ -1085,11 +1027,11 @@ impl Projection for HEALPix {
     /// # Arguments
     ///
     /// * `pos_world_space` - Position in the world space. Must be a normalized vector
-    fn world_to_clip_space(pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
-        Some(Self::world_to_clip_space_unchecked(pos_world_space))
+    fn world_to_clip_space(&self, pos_world_space: &Vector4<f64>) -> Option<Vector2<f64>> {
+        Some(self.world_to_clip_space_unchecked(pos_world_space))
     }
 
-    fn world_to_clip_space_unchecked(pos_world_space: &Vector4<f64>) -> Vector2<f64> {
+    fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let (lon, lat) = math::lonlat::xyzw_to_radec(pos_world_space);
 
         let (x, y) = cdshealpix::proj(lon.0, lat.0);
@@ -1099,7 +1041,7 @@ impl Projection for HEALPix {
         Vector2::new(x, y)
     }
 
-    fn aperture_start() -> Angle<f64> {
+    fn aperture_start(&self) -> Angle<f64> {
         ArcDeg(360_f64).into()
     }
 

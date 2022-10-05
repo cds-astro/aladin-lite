@@ -548,26 +548,9 @@ impl WebClient {
     /// * `lon` - A longitude in degrees
     /// * `lat` - A latitude in degrees
     #[wasm_bindgen(js_name = worldToScreen)]
-    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Result<Option<Box<[f64]>>, JsValue> {
-        let lonlat = LonLatT::new(ArcDeg(lon).into(), ArcDeg(lat).into());
-
-        if let Some(screen_pos) = self.app.world_to_screen(&lonlat)? {
-            Ok(Some(Box::new([screen_pos.x, screen_pos.y])))
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// World to screen projection of a list of sources
-    ///
-    /// Coordinates must be given in the ICRS coo system
-    ///
-    /// # Arguments
-    ///
-    /// * `sources` - An array of sources
-    #[wasm_bindgen(js_name = worldToScreenVec)]
-    pub fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
-        self.app.world_to_screen_vec(sources)
+    pub fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Box<[f64]>> {
+        self.app.world_to_screen(lon, lat)
+            .map(|v| Box::new([v.x, v.y]) as Box<[f64]>)
     }
 
     /// Screen to world unprojection

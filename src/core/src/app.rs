@@ -42,13 +42,6 @@ use std::rc::Rc;
 
 use std::collections::HashSet;
 
-use serde::Deserialize;
-#[derive(Deserialize, Debug)]
-struct S {
-    ra: f64,
-    dec: f64,
-}
-
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
 
@@ -471,8 +464,7 @@ pub trait AppTrait {
     // Utils
     fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>>;
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>>;
-    fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String>;
-    fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue>;
+    fn world_to_screen(&self, lon: f64, lat: f64) -> Option<Vector2<f64>>;
 
     fn view_to_icrsj2000_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
     fn icrsj2000_to_view_coosys(&self, lonlat: &LonLatT<f64>) -> LonLatT<f64>;
@@ -864,7 +856,7 @@ where
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw::<P>(&gl, shaders, camera, colormaps, fbo_view)?;
-            //catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
+            catalogs.draw::<P>(&gl, shaders, camera, colormaps, None)?;
             grid.draw::<P>(camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
@@ -1120,35 +1112,11 @@ where
         self.request_redraw = true;
     }
 
-    fn world_to_screen(&self, lonlat: &LonLatT<f64>) -> Result<Option<Vector2<f64>>, String> {
-        //let lonlat = crate::coo_conversion::to_galactic(*lonlat);
+    fn world_to_screen(&self, ra: f64, dec: f64) -> Option<Vector2<f64>> {
+        let lonlat = LonLatT::new(ArcDeg(ra).into(), ArcDeg(dec).into());
         let model_pos_xyz = lonlat.vector();
 
-        let screen_pos = P::view_to_screen_space(&model_pos_xyz, &self.camera);
-        Ok(screen_pos)
-    }
-
-    /// World to screen projection
-    ///
-    /// sources coordinates are given in ICRS j2000
-    fn world_to_screen_vec(&self, sources: Vec<JsValue>) -> Result<Box<[f64]>, JsValue> {
-        // Select the HiPS layer rendered lastly
-        let mut r = Vec::with_capacity(sources.len() * 2);
-        for s in sources {
-            let source: S = serde_wasm_bindgen::from_value(s)?;
-            let lonlat = LonLatT::new(ArcDeg(source.ra).into(), ArcDeg(source.dec).into());
-
-            let xyz = lonlat.vector();
-            if let Some(s_xy) = P::view_to_screen_space(&xyz, &self.camera) {
-                r.push(s_xy.x);
-                r.push(s_xy.y);
-            } else {
-                r.push(std::f64::NAN);
-                r.push(std::f64::NAN);
-            }
-        }
-
-        Ok(r.into_boxed_slice())
+        P::view_to_screen_space(&model_pos_xyz, &self.camera)
     }
 
     fn screen_to_world(&self, pos: &Vector2<f64>) -> Option<LonLatT<f64>> {

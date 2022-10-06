@@ -30,7 +30,8 @@ use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
 use al_core::image::format::R64F;
-async fn query_image<F: ImageFormat>(url: &str) -> Result<ImageBuffer<F>, JsValue> {
+use al_core::{info, inforec};
+async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
     let image = web_sys::HtmlImageElement::new().unwrap_abort();
     let image_cloned = image.clone();
 
@@ -55,7 +56,6 @@ async fn query_image<F: ImageFormat>(url: &str) -> Result<ImageBuffer<F>, JsValu
     let canvas = document
         .create_element("canvas")?
         .dyn_into::<web_sys::HtmlCanvasElement>()?;
-    document.body().unwrap_abort().append_child(&canvas)?;
     canvas.set_width(image.width());
     canvas.set_height(image.height());
     let context = canvas
@@ -70,7 +70,7 @@ async fn query_image<F: ImageFormat>(url: &str) -> Result<ImageBuffer<F>, JsValu
 
     Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w as i32, h as i32))
 }
-
+use al_core::log;
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
@@ -88,140 +88,146 @@ impl From<query::Allsky> for AllskyRequest {
         let url_clone = url.clone();
 
         let request = Request::new(async move {
-            let mut opts = RequestInit::new();
-            opts.method("GET");
-            opts.mode(RequestMode::Cors);
-            let window = web_sys::window().unwrap_abort();
+            match format {
+                ImageFormatType::RGB8U => {
+                    let allsky_tile_size = std::cmp::min(tile_size, 64);
+                    let allsky = query_image(&url_clone).await?;
 
-            let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts)?;
-            if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
-                let tile_size = tile_size as i32;
-                // `resp_value` is a `Response` object.
-                debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
+                    let allsky_tiles = handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size, tile_size)?
+                        .into_iter()
+                        .map(|image| {
+                            let ImageBuffer { data, size } = image;
+                            let data = data.into_iter().enumerate().filter(|&(i, _)| i % 4 != 3).map(|(_, v)| v).collect();
+                            let image = ImageBuffer::new(data, size.x, size.y);
 
-                let buf = JsFuture::from(resp.array_buffer()?).await?;
+                            ImageType::RawRgb8u { image }
+                        })
+                        .collect();
 
-                let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
-                let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
+                    Ok(allsky_tiles)
+                }
+                ImageFormatType::RGBA8U => {
+                    let allsky_tile_size = std::cmp::min(tile_size, 64);
+                    let allsky = query_image(&url_clone).await?;
 
-                let num_pixels = (width_allsky_px * height_allsky_px) as usize;
+                    let allsky_tiles = handle_allsky_file(allsky, allsky_tile_size, texture_size, tile_size)?
+                        .into_iter()
+                        .map(|image| ImageType::RawRgba8u { image })
+                        .collect();
 
-                let allsky_tiles = match format {
-                    ImageFormatType::RGB8U => {
-                        /*let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                        let allsky =
-                            ImageBuffer::<RGB8U>::from_encoded_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
-                        */
-                        let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        let allsky = query_image::<RGB8U>(&url_clone).await?;
-
-                        handle_allsky_file::<RGB8U>(allsky, allsky_tile_size, texture_size, tile_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawRgb8u { image })
-                            .collect()
-                    }
-                    ImageFormatType::RGBA8U => {
-                        /*let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
-                        let allsky =
-                            ImageBuffer::<RGBA8U>::from_encoded_raw_bytes(&raw_bytes[..], width_allsky_px, height_allsky_px)?;
-                        */
-                        let allsky_tile_size = std::cmp::min(tile_size, 64);
-                        let allsky = query_image::<RGBA8U>(&url_clone).await?;
-
-                        handle_allsky_file::<RGBA8U>(allsky, allsky_tile_size, texture_size, tile_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawRgba8u { image })
-                            .collect()
-                    }
-                    ImageFormatType::R32F => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf);
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let image = Fits::<R32F>::new(&raw_bytes)?;
-                        let raw = unsafe {
-                            std::slice::from_raw_parts(
-                                image.aligned_data_raw_bytes_ptr,
-                                num_pixels,
-                            )
+                    Ok(allsky_tiles)
+                }
+                _ => {
+                    let mut opts = RequestInit::new();
+                    opts.method("GET");
+                    opts.mode(RequestMode::Cors);
+                    let window = web_sys::window().unwrap_abort();
+        
+                    let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts)?;
+                    if let Ok(resp_value) = JsFuture::from(window.fetch_with_request(&request)).await {
+                        let tile_size = tile_size as i32;
+                        // `resp_value` is a `Response` object.
+                        debug_assert!(resp_value.is_instance_of::<Response>());
+                        let resp: Response = resp_value.dyn_into()?;
+        
+                        let buf = JsFuture::from(resp.array_buffer()?).await?;
+        
+                        let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
+                        let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
+        
+                        let num_pixels = (width_allsky_px * height_allsky_px) as usize;
+        
+                        let allsky_tiles = match format {
+                            ImageFormatType::R32F => {
+                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                                let image = Fits::<R32F>::new(&raw_bytes)?;
+                                let raw = unsafe {
+                                    std::slice::from_raw_parts(
+                                        image.aligned_data_raw_bytes_ptr,
+                                        num_pixels,
+                                    )
+                                };
+        
+                                handle_allsky_fits(raw, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR32f { image })
+                                    .collect()
+                            }
+                            ImageFormatType::R64F => {
+                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                                let image = Fits::<R64F>::new(&raw_bytes)?;
+                                let raw: &[f64] = unsafe {
+                                    std::slice::from_raw_parts(
+                                        image.aligned_data_raw_bytes_ptr,
+                                        num_pixels,
+                                    )
+                                };
+        
+                                let raw_f32 = raw.iter().map(|&v| v as f32).collect::<Vec<_>>();
+        
+                                handle_allsky_fits(&raw_f32, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR32f { image })
+                                    .collect()
+                            }
+                            ImageFormatType::R32I => {
+                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                                let image = Fits::<R32I>::new(&raw_bytes)?;
+                                let raw = unsafe {
+                                    std::slice::from_raw_parts(
+                                        image.aligned_data_raw_bytes_ptr,
+                                        num_pixels,
+                                    )
+                                };
+        
+                                handle_allsky_fits(raw, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR32i { image })
+                                    .collect()
+                            }
+                            ImageFormatType::R16I => {
+                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                                let image = Fits::<R16I>::new(&raw_bytes)?;
+                                let raw = unsafe {
+                                    std::slice::from_raw_parts(
+                                        image.aligned_data_raw_bytes_ptr,
+                                        num_pixels,
+                                    )
+                                };
+        
+                                handle_allsky_fits(raw, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR16i { image })
+                                    .collect()
+                            }
+                            ImageFormatType::R8UI => {
+                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                // Parsing the raw bytes coming from the received array buffer (Uint8Array)
+                                let image = Fits::<R8UI>::new(&raw_bytes)?;
+                                let raw = unsafe {
+                                    std::slice::from_raw_parts(
+                                        image.aligned_data_raw_bytes_ptr,
+                                        num_pixels,
+                                    )
+                                };
+        
+                                handle_allsky_fits(raw, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR8ui { image })
+                                    .collect()
+                            }
+                            _ => return Err(js_sys::Error::new("Format not supported").into()),
                         };
-
-                        handle_allsky_fits(raw, tile_size, texture_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawR32f { image })
-                            .collect()
+        
+                        Ok(allsky_tiles)
+                    } else {
+                        Err(js_sys::Error::new("Allsky not fetched").into())
                     }
-                    ImageFormatType::R64F => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf);
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let image = Fits::<R64F>::new(&raw_bytes)?;
-                        let raw: &[f64] = unsafe {
-                            std::slice::from_raw_parts(
-                                image.aligned_data_raw_bytes_ptr,
-                                num_pixels,
-                            )
-                        };
-
-                        let raw_f32 = raw.iter().map(|&v| v as f32).collect::<Vec<_>>();
-
-                        handle_allsky_fits(&raw_f32, tile_size, texture_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawR32f { image })
-                            .collect()
-                    }
-                    ImageFormatType::R32I => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf);
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let image = Fits::<R32I>::new(&raw_bytes)?;
-                        let raw = unsafe {
-                            std::slice::from_raw_parts(
-                                image.aligned_data_raw_bytes_ptr,
-                                num_pixels,
-                            )
-                        };
-
-                        handle_allsky_fits(raw, tile_size, texture_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawR32i { image })
-                            .collect()
-                    }
-                    ImageFormatType::R16I => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf);
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let image = Fits::<R16I>::new(&raw_bytes)?;
-                        let raw = unsafe {
-                            std::slice::from_raw_parts(
-                                image.aligned_data_raw_bytes_ptr,
-                                num_pixels,
-                            )
-                        };
-
-                        handle_allsky_fits(raw, tile_size, texture_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawR16i { image })
-                            .collect()
-                    }
-                    ImageFormatType::R8UI => {
-                        let raw_bytes = js_sys::Uint8Array::new(&buf);
-                        // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                        let image = Fits::<R8UI>::new(&raw_bytes)?;
-                        let raw = unsafe {
-                            std::slice::from_raw_parts(
-                                image.aligned_data_raw_bytes_ptr,
-                                num_pixels,
-                            )
-                        };
-
-                        handle_allsky_fits(raw, tile_size, texture_size)?
-                            .into_iter()
-                            .map(|image| ImageType::RawR8ui { image })
-                            .collect()
-                    }
-                    _ => return Err(js_sys::Error::new("Format not supported").into()),
-                };
-
-                Ok(allsky_tiles)
-            } else {
-                Err(js_sys::Error::new("Allsky not fetched").into())
+                }
             }
         });
 

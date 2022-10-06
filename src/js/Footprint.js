@@ -34,6 +34,7 @@ export let Footprint = (function() {
     // constructor
     let Footprint = function(polygons) {
         this.polygons = polygons;
+        // TODO: compute a bounding box here
     	this.overlay = null;
 
         // TODO : all graphic overlays should have an id

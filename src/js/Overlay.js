@@ -236,6 +236,8 @@ export let Overlay = (function() {
         }
         var xyviewArray = [];
         var radecArray = f.polygons;
+        var firstVertex = true;
+
         for (var k=0, len=radecArray.length; k<len; k++) {
             var xyview = AladinUtils.radecToViewXy(radecArray[k][0], radecArray[k][1], this.view);
             if (!xyview) {
@@ -243,17 +245,31 @@ export let Overlay = (function() {
             }
 
             xyviewArray.push(xyview);
+
+            if(xyviewArray.length >= 2) {
+                const line = new Line(xyviewArray[k-1][0], xyviewArray[k-1][1], xyviewArray[k][0], xyviewArray[k][1]);
+                if (line.isInsideView(width, height)) {
+                    if (firstVertex) {
+                        firstVertex = false;
+                        ctx.moveTo(xyviewArray[k-1][0], xyviewArray[k-1][1]);
+                    }
+                    ctx.lineTo(xyviewArray[k][0], xyviewArray[k][1]);
+                } else {
+                    firstVertex = false;
+                    ctx.moveTo(xyviewArray[k][0], xyviewArray[k][1]);
+                }
+            }
         }
 
-        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        /*ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
         for (var k=0, len=xyviewArray.length-1; k<len; k++) {
-            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            
             if (line.isInsideView(width, height)) {
                 ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             } else {
                 ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             }
-        }        
+        }*/
 
         return xyviewArray;
     };

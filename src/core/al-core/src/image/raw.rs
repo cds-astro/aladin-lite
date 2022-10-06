@@ -6,8 +6,8 @@ pub struct ImageBuffer<T>
 where
     T: ImageFormat,
 {
-    data: Vec<<<T as ImageFormat>::P as Pixel>::Item>,
-    size: Vector2<i32>,
+    pub data: Vec<<<T as ImageFormat>::P as Pixel>::Item>,
+    pub size: Vector2<i32>,
 }
 
 use crate::image::format::Bytes;
@@ -18,7 +18,8 @@ pub struct ImageBufferView {
     pub w: i32,
     pub h: i32,
 }
-
+use crate::log;
+use crate::{info, inforec};
 use wasm_bindgen::JsValue;
 impl<T> ImageBuffer<T>
 where
@@ -50,6 +51,8 @@ where
 
     pub fn from_raw_bytes(mut raw_bytes: Vec<u8>, width: i32, height: i32) -> Self {
         let size_buf = width * height * (std::mem::size_of::<T::P>() as i32);
+        let len = raw_bytes.len();
+        crate::info!(len);
         debug_assert!(size_buf == raw_bytes.len() as i32);
 
         let decoded_pixels = unsafe {

@@ -178,12 +178,10 @@ pub trait Projection
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector2<f64>> {
-        let view_coosys = camera.get_system();
-        let c = CooSystem::ICRSJ2000.to::<f64>(view_coosys);
-
-        let m2w = camera.get_m2w();
-        let pos_world_space = m2w * c * pos_model_space;
-        self.world_to_screen_space(&pos_world_space, camera)
+        self.view_to_normalized_device_space(pos_model_space, camera)
+            .map(|ndc_pos| {
+                crate::ndc_to_screen_space(&ndc_pos, camera)
+            })
     }
 
     fn view_to_normalized_device_space(

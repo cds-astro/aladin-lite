@@ -69,9 +69,9 @@ pub fn subdivide_along_longitude_and_latitudes(
     let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
     let cc = math::lonlat::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
 
-    let a = projection.model_to_ndc_space(&aa.extend(1.0), camera);
-    let b = projection.model_to_ndc_space(&bb.extend(1.0), camera);
-    let c = projection.model_to_ndc_space(&cc.extend(1.0), camera);
+    let a = projection.view_to_normalized_device_space(&aa.extend(1.0), camera);
+    let b = projection.view_to_normalized_device_space(&bb.extend(1.0), camera);
+    let c = projection.view_to_normalized_device_space(&cc.extend(1.0), camera);
 
     match (a, b, c) {
         (None, None, None) => (),
@@ -324,9 +324,9 @@ pub fn subdivide_along_great_circles(
     // Project them. We are always facing the camera
     let mp = &[mp[0].normalize(), mp[1].normalize(), mp[2].normalize()];
 
-    let a = projection.model_to_ndc_space(&mp[0].extend(1.0), camera);
-    let b = projection.model_to_ndc_space(&mp[1].extend(1.0), camera);
-    let c = projection.model_to_ndc_space(&mp[2].extend(1.0), camera);
+    let a = projection.view_to_normalized_device_space(&mp[0].extend(1.0), camera);
+    let b = projection.view_to_normalized_device_space(&mp[1].extend(1.0), camera);
+    let c = projection.view_to_normalized_device_space(&mp[2].extend(1.0), camera);
 
     match (a, b, c) {
         (None, None, None) => (),
@@ -337,6 +337,12 @@ pub fn subdivide_along_great_circles(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
+            if ab_l < 1e-4 || bc_l < 1e-4 {
+                vertices.push(a);
+                vertices.push(c);
+                return;
+            }
+
             let ab = ab.normalize();
             let bc = bc.normalize();
             let theta = math::vector::angle2(&ab, &bc);
@@ -345,25 +351,24 @@ pub fn subdivide_along_great_circles(
             let ndc_length_enough_small = ab_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 && bc_l < MAX_LENGTH_LINE_SEGMENT_SQUARED
                 || camera.get_aperture() < ArcDeg(10.0);
-            let ndc_length_too_small = ab_l < 2e-6 || bc_l < 2e-6;
+            let is_vertices_near = math::vector::angle3(&mp[0], &mp[1]) < ArcDeg(1.0)
+                && math::vector::angle3(&mp[1], &mp[2]) < ArcDeg(1.0);
 
-            if (vectors_nearly_colinear && ndc_length_enough_small) || ndc_length_too_small {
+            if vectors_nearly_colinear || ndc_length_enough_small {
                 // Check if ab and bc are colinear
                 let colinear = (ab.x * bc.y - bc.x * ab.y).abs() < 1e-2;
                 if colinear {
                     vertices.push(a);
                     vertices.push(c);
                 } else {
+                    // not colinear
                     vertices.push(a);
                     vertices.push(b);
 
                     vertices.push(b);
                     vertices.push(c);
                 }
-            } else if (ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1)
-                && (ab_l.min(bc_l) < MAX_LENGTH_LINE_SEGMENT_SQUARED
-                    || camera.get_aperture() < ArcDeg(10.0))
-            {
+            } else if is_vertices_near && ab_l.min(bc_l) / ab_l.max(bc_l) < 0.1 {
                 if ab_l < bc_l {
                     vertices.push(a);
                     vertices.push(b);

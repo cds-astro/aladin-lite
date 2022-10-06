@@ -101,39 +101,32 @@ export let Polyline= (function() {
         if (! this.radecArray || this.radecArray.length<2) {
             return;
         }
-        
+
         if (this.color) {
             ctx.strokeStyle= this.color;
         }
-        /*var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
-        if (! start) {
-            return;
-        }
-       
-        ctx.beginPath();
-        ctx.moveTo(start.vx, start.vy);
-        var pt;
-        for (var k=1; k<this.radecArray.length; k++) {
-            pt = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
-            if (!pt) {
-                break;
-            }
-            ctx.lineTo(pt.vx, pt.vy);
-        }
-        
-        
-        ctx.stroke();*/
-        ctx.beginPath();
-        for(var l=0; l<this.radecArray.length-1; l++) {
-            let pts = view.aladin.webglAPI.projectLine(this.radecArray[l][0], this.radecArray[l][1], this.radecArray[l+1][0], this.radecArray[l+1][1]);
-            for(var k=0; k<pts.length; k+=4) {
-                let line = new Line(pts[k], pts[k+1], pts[k+2], pts[k+3]);
-                if (line.isInsideView(width, height)) {
-                    line.draw(ctx);
-                }    
-            }
-        }
 
+        var xyviewArray = [];
+        for (var k=0, len=this.radecArray.length; k<len; k++) {
+            var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view);
+            if (!xyview) {
+                return;
+            }
+
+            xyviewArray.push(xyview);
+        }
+        
+        ctx.lineWidth = this.lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            } else {
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            }
+        }
         ctx.stroke();
     };
 

@@ -558,14 +558,13 @@ impl WebClient {
     /// * `pos_y` - The y screen coordinate in pixels
     #[wasm_bindgen(js_name = screenToWorld)]
     pub fn screen_to_world(&self, pos_x: f64, pos_y: f64) -> Option<Box<[f64]>> {
-        if let Some(lonlat) = self.app.screen_to_world(&Vector2::new(pos_x, pos_y)) {
-            let lon_deg: ArcDeg<f64> = lonlat.lon().into();
-            let lat_deg: ArcDeg<f64> = lonlat.lat().into();
+        self.app.screen_to_world(&Vector2::new(pos_x, pos_y))
+            .map(|lonlat| {
+                let lon_deg: ArcDeg<f64> = lonlat.lon().into();
+                let lat_deg: ArcDeg<f64> = lonlat.lat().into();
 
-            Some(Box::new([lon_deg.0, lat_deg.0]))
-        } else {
-            None
-        }
+                Box::new([lon_deg.0, lat_deg.0]) as Box<[f64]>
+            })
     }
 
     /// Signal the backend when the left mouse button has been released.

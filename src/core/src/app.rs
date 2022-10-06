@@ -76,15 +76,15 @@ pub struct App {
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
     out_of_fov: bool,
-    tasks_finished: bool,
+    //tasks_finished: bool,
     catalog_loaded: bool,
     start_time_frame: f32,
 
-    final_rendering_pass: RenderPass,
-    fbo_view: FrameBufferObject,
-    pub fbo_ui: FrameBufferObject,
+    _final_rendering_pass: RenderPass,
+    _fbo_view: FrameBufferObject,
+    _fbo_ui: FrameBufferObject,
 
-    pub colormaps: Colormaps,
+    colormaps: Colormaps,
 
     projection: ProjectionType,
 }
@@ -152,8 +152,8 @@ impl App {
         let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, projection);
         let screen_size = &camera.get_screen_size();
 
-        let fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
-        let fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+        let _fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
+        let _fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
         let surveys = ImageSurveys::new(&gl, projection);
@@ -168,7 +168,7 @@ impl App {
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
-        let tasks_finished = false;
+        //let tasks_finished = false;
         let request_redraw = false;
         let rendering = true;
         let prev_cam_position = camera.get_center().truncate();
@@ -178,7 +178,7 @@ impl App {
 
         let colormaps = Colormaps::new(&gl, &resources)?;
 
-        let final_rendering_pass = RenderPass::new(&gl)?;
+        let _final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
 
         //let ui = Gui::new(aladin_div_name, &gl)?;
@@ -209,15 +209,15 @@ impl App {
             exec,
             prev_center,
 
-            fbo_view,
-            fbo_ui,
-            final_rendering_pass,
+            _fbo_view,
+            _fbo_ui,
+            _final_rendering_pass,
 
             inertial_move_animation,
             prev_cam_position,
             out_of_fov,
 
-            tasks_finished,
+            //tasks_finished,
             catalog_loaded,
 
             tile_fetcher,
@@ -944,10 +944,6 @@ impl App {
         self.request_redraw = true;
     }
 
-    pub(crate) fn get_coo_system(&self) -> &CooSystem {
-        self.camera.get_system()
-    }
-
     pub(crate) fn get_max_fov(&self) -> f64 {
         self.projection.aperture_start()
     }
@@ -1000,7 +996,7 @@ impl App {
         self.surveys.set_survey_url(past_url, new_url)
     }
 
-    pub(crate) fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
+    /*pub(crate) fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
         let colormap = self.colormaps.get(&colormap);
 
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
@@ -1012,7 +1008,7 @@ impl App {
         self.request_redraw = true;
 
         Ok(())
-    }
+    }*/
 
     pub(crate) fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {

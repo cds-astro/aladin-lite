@@ -35,6 +35,7 @@ import { Footprint } from "./Footprint.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
 import { Line } from './Line.js';
 import { Utils } from './Utils.js';
+import { Aladin } from "./Aladin.js";
 
 export let Overlay = (function() {
    let Overlay = function(options) {
@@ -185,6 +186,7 @@ export let Overlay = (function() {
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
     	var xyviews = [];
+
     	for (var k=0, len = this.overlays.length; k<len; k++) {
     		xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
     	}
@@ -233,53 +235,27 @@ export let Overlay = (function() {
             return null;
         }
         var xyviewArray = [];
-        //var show = false;
         var radecArray = f.polygons;
-        for(var l=0; l<radecArray.length-1; l++) {
-            let pts = this.view.aladin.webglAPI.projectLine(radecArray[l][0], radecArray[l][1], radecArray[l+1][0], radecArray[l+1][1]);
-            for(var k=0; k<pts.length; k+=4) {
-                let line = new Line(pts[k], pts[k+1], pts[k+2], pts[k+3]);
-                if (line.isInsideView(width, height)) {
-                    line.draw(ctx);
-                }    
+        for (var k=0, len=radecArray.length; k<len; k++) {
+            var xyview = AladinUtils.radecToViewXy(radecArray[k][0], radecArray[k][1], this.view);
+            if (!xyview) {
+                return null;
             }
+
+            xyviewArray.push(xyview);
         }
 
-        // for
-            /*for (var k=0, len=radecArray.length; k<len; k++) {
-                var xy;
-                if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-                    var lonlat = CooConversion.J2000ToGalactic([radecArray[k][0], radecArray[k][1]]);
-                    xy = projection.project(lonlat[0], lonlat[1]);
-                }
-                else {
-                    xy = projection.project(radecArray[k][0], radecArray[k][1]);
-                }
-                if (!xy) {
-                    return null;
-                }
-                var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor);
-                xyviewArray.push(xyview);
-                if (!show && xyview.vx<width  && xyview.vx>=0 && xyview.vy<=height && xyview.vy>=0) {
-                    show = true;
-                }
+        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            } else {
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             }
-
-            if (show) {
-                ctx.moveTo(xyviewArray[0].vx, xyviewArray[0].vy);
-                for (var k=1, len=xyviewArray.length; k<len; k++) {
-                    ctx.lineTo(xyviewArray[k].vx, xyviewArray[k].vy);
-                }
-            }
-            else {
-                //return null;
-            }
-        // end for*/
+        }        
 
         return xyviewArray;
-
-
-
     };
 
     Overlay.prototype.drawFootprintSelected = function(ctx, xyview) {
@@ -288,9 +264,14 @@ export let Overlay = (function() {
         }
 
         var xyviewArray = xyview;
-        ctx.moveTo(xyviewArray[0].vx, xyviewArray[0].vy);
-        for (var k=1, len=xyviewArray.length; k<len; k++) {
-            ctx.lineTo(xyviewArray[k].vx, xyviewArray[k].vy);
+        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            } else {
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            }
         }
     };
 

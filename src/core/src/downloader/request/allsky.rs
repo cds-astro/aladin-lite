@@ -1,6 +1,5 @@
 
 use al_core::image::format::ImageFormatType;
-use wasm_bindgen::Clamped;
 
 use crate::downloader::{query};
 use al_core::image::{fits::Fits, ImageType};

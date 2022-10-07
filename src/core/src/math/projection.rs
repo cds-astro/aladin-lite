@@ -210,7 +210,7 @@ pub trait Projection
         self.world_to_normalized_device_space_unchecked(&pos_world_space, camera)
     }
 
-    fn model_to_ndc_space(
+    fn model_to_normalized_device_space(
         &self,
         pos_model_space: &Vector4<f64>,
         camera: &CameraViewPort,

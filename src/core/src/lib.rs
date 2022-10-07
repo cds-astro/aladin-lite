@@ -677,7 +677,7 @@ impl WebClient {
     /// * `lat1` - The latitude in degrees of the starting line point
     /// * `lon2` - The longitude in degrees of the ending line point
     /// * `lat2` - The latitude in degrees of the ending line point
-    #[wasm_bindgen(js_name = projectLine)]
+    /*#[wasm_bindgen(js_name = projectLine)]
     pub fn project_line(
         &self,
         lon1: f64,
@@ -693,7 +693,7 @@ impl WebClient {
             .collect::<Vec<_>>();
 
         Ok(vertices.into_boxed_slice())
-    }
+    }*/
 
     /// Get the list of colormap supported
     ///

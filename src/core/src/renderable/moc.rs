@@ -40,7 +40,7 @@ fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Camera
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
             
-            projection.model_to_ndc_space(&xyzw, camera)
+            projection.model_to_normalized_device_space(&xyzw, camera)
                 .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()
@@ -107,7 +107,7 @@ fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Cam
             let xyzw = crate::math::lonlat::radec_to_xyzw(Angle(*lon), Angle(*lat));
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
-            projection.model_to_ndc_space(&xyzw, camera)
+            projection.model_to_normalized_device_space(&xyzw, camera)
                 .map(|v| [v.x as f32, v.y as f32])
         })
         .flatten()

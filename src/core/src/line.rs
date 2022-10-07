@@ -33,24 +33,7 @@ pub fn project_along_longitudes_and_latitudes(
 
     s_vert
 }
-pub fn project_along_great_circles(
-    v1: &Vector3<f64>,
-    v2: &Vector3<f64>,
-    camera: &CameraViewPort,
-    projection: ProjectionType,
-) -> Vec<Vector2<f64>> {
-    let mid = (v1 + v2).normalize();
-
-    let mut s_vert = vec![];
-    subdivide_along_great_circles(&mut s_vert, &[*v1, mid, *v2], camera, projection);
-
-    for ndc_vert in s_vert.iter_mut() {
-        *ndc_vert = ndc_to_screen_space(ndc_vert, camera);
-    }
-
-    s_vert
-}
-
+use crate::ProjectionType;
 use crate::ArcDeg;
 const MAX_LENGTH_LINE_SEGMENT_SQUARED: f64 = 2.5e-2;
 use crate::math::{self, angle::Angle};
@@ -69,9 +52,9 @@ pub fn subdivide_along_longitude_and_latitudes(
     let bb = math::lonlat::radec_to_xyz(Angle(mp[1].x), Angle(mp[1].y));
     let cc = math::lonlat::radec_to_xyz(Angle(mp[2].x), Angle(mp[2].y));
 
-    let a = projection.view_to_normalized_device_space(&aa.extend(1.0), camera);
-    let b = projection.view_to_normalized_device_space(&bb.extend(1.0), camera);
-    let c = projection.view_to_normalized_device_space(&cc.extend(1.0), camera);
+    let a = projection.model_to_normalized_device_space(&aa.extend(1.0), camera);
+    let b = projection.model_to_normalized_device_space(&bb.extend(1.0), camera);
+    let c = projection.model_to_normalized_device_space(&cc.extend(1.0), camera);
 
     match (a, b, c) {
         (None, None, None) => (),
@@ -314,7 +297,24 @@ pub fn subdivide_along_longitude_and_latitudes(
     }
 }
 
-use crate::ProjectionType;
+/*pub fn project_along_great_circles(
+    v1: &Vector3<f64>,
+    v2: &Vector3<f64>,
+    camera: &CameraViewPort,
+    projection: ProjectionType,
+) -> Vec<Vector2<f64>> {
+    let mid = (v1 + v2).normalize();
+
+    let mut s_vert = vec![];
+    subdivide_along_great_circles(&mut s_vert, &[*v1, mid, *v2], camera, projection);
+
+    for ndc_vert in s_vert.iter_mut() {
+        *ndc_vert = ndc_to_screen_space(ndc_vert, camera);
+    }
+
+    s_vert
+}
+
 pub fn subdivide_along_great_circles(
     vertices: &mut Vec<Vector2<f64>>,
     mp: &[Vector3<f64>; 3],
@@ -336,6 +336,9 @@ pub fn subdivide_along_great_circles(
             let bc = c - b;
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
+
+            let alpha_ab = math::vector::angle3(&mp[0], &mp[1]);
+            let alpha_bc = math::vector::angle3(&mp[1], &mp[2]);
 
             if ab_l < 1e-4 || bc_l < 1e-4 {
                 vertices.push(a);
@@ -551,3 +554,4 @@ pub fn subdivide_along_great_circles(
         }
     }
 }
+*/

@@ -77,7 +77,7 @@ export let MOC = (function() {
             this.promiseFetchData
                 .then((arrayBuffer) => {
                     // Add the fetched moc to the rust backend
-                    self.view.aladin.webglAPI.addFITSMoc(self.mocParams, arrayBuffer);
+                    self.view.aladin.webglAPI.addFITSMoc(self.mocParams, new Uint8Array(arrayBuffer));
                     self.ready = true;
 
                     if (self.successCallback) {

@@ -812,9 +812,9 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addFITSMoc)]
-    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, array_buffer: &JsValue) -> Result<(), JsValue> {
-        let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
-        let moc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), false).map_err(|e| JsValue::from_str(&e.to_string()))? {
+    pub fn add_fits_moc(&mut self, params: &al_api::moc::MOC, data: &[u8]) -> Result<(), JsValue> {
+        //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
+        let moc = match fits::from_fits_ivoa_custom(Cursor::new(&data[..]), false).map_err(|e| JsValue::from_str(&e.to_string()))? {
             MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(crate::downloader::request::moc::from_fits_hpx(moc)),
             MocIdxType::U32(MocQtyType::<u32, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),
             MocIdxType::U64(MocQtyType::<u64, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),

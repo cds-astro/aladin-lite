@@ -51,6 +51,20 @@
         if (searchParams.has('ra') && searchParams.has('dec')) {
             aladin.gotoRaDec(parseFloat(searchParams.get('ra')), parseFloat(searchParams.get('dec')));
         }
+        if (searchParams.has('showReticle')) {
+            aladin.showReticle(searchParams.get('showReticle')==='true');
+        }
+        if (searchParams.has('projection')) {
+            aladin.setProjection(searchParams.get('projection'));
+        }
+        if (searchParams.has('showCooGrid')) {
+            const b = searchParams.get('showCooGrid') === 'true';
+            aladin.view.setGridConfig({
+                enabled: b
+            });
+
+            aladin.view.showCooGrid = b;
+        }
 
 
     });

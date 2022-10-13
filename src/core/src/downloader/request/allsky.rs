@@ -30,7 +30,7 @@ use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
 use al_core::image::format::R64F;
-use al_core::{info, inforec};
+
 async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
     let image = web_sys::HtmlImageElement::new().unwrap_abort();
     let image_cloned = image.clone();
@@ -70,7 +70,7 @@ async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
 
     Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w as i32, h as i32))
 }
-use al_core::log;
+
 impl From<query::Allsky> for AllskyRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Allsky) -> Self {
@@ -325,7 +325,7 @@ fn handle_allsky_fits<F: ImageFormat>(
     Ok(allsky_tiles)
 }
 
-use al_core::image::format::{R16I, R32F, R32I, R8UI, RGB8U, RGBA8U};
+use al_core::image::format::{R16I, R32F, R32I, R8UI, RGBA8U};
 
 use crate::time::Time;
 use std::sync::{Arc, Mutex};

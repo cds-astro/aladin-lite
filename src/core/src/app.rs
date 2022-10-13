@@ -3,7 +3,6 @@ use crate::{
     camera::CameraViewPort,
     colormap::Colormaps,
     downloader::Downloader,
-    line,
     math::{
         self,
         angle::{Angle, ArcDeg},
@@ -931,14 +930,14 @@ impl App {
     }
 
     // Width and height given are in pixels
-    pub(crate) fn set_projection(&mut self, projection: ProjectionType) {
+    pub(crate) fn set_projection(&mut self, projection: ProjectionType, width: f32, height: f32) {
         self.projection = projection;
 
         // Recompute the ndc_to_clip
-        self.camera.set_screen_size(self.camera.get_width(), self.camera.get_height(), projection);
+        self.camera.set_screen_size(width, height, projection);
+        self.camera.set_aperture(self.camera.get_aperture(), projection);
         // Recompute clip zoom factor
         self.surveys.set_projection(projection);
-        self.camera.set_aperture(self.camera.get_aperture(), projection);
 
         self.look_for_new_tiles();
         self.request_redraw = true;

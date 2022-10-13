@@ -230,6 +230,8 @@ impl CameraViewPort {
 
         self.aspect = width / height;
 
+        self.set_canvas_size(projection);
+
         // Compute the new clip zoom factor
         self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
 
@@ -248,7 +250,6 @@ impl CameraViewPort {
             self,
         ));
 
-        self.set_canvas_size(projection);
     }
 
     pub fn set_aperture(&mut self, aperture: Angle<f64>, projection: ProjectionType) {

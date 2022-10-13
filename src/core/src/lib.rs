@@ -206,28 +206,30 @@ impl WebClient {
     pub fn set_projection(
         &mut self,
         projection: String,
+        w: f32,
+        h: f32
     ) -> Result<(), JsValue> {
         match projection.as_str() {
             "AIT" => {
-                self.app.set_projection(ProjectionType::Aitoff(Aitoff));
+                self.app.set_projection(ProjectionType::Aitoff(Aitoff), w, h);
             },
             "SIN" => {
-                self.app.set_projection(ProjectionType::Orthographic(Orthographic));
+                self.app.set_projection(ProjectionType::Orthographic(Orthographic), w, h);
             },
             "MOL" => {
-                self.app.set_projection(ProjectionType::Mollweide(Mollweide));
+                self.app.set_projection(ProjectionType::Mollweide(Mollweide), w, h);
             },
             "ARC" => {
-                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant));
+                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant), w, h);
             },
             "TAN" => {
-                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic));
+                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic), w, h);
             },
             "MER" => {
-                self.app.set_projection(ProjectionType::Mercator(Mercator));
+                self.app.set_projection(ProjectionType::Mercator(Mercator), w, h);
             },
             "HPX" => {
-                self.app.set_projection(ProjectionType::HEALPix(HEALPix));
+                self.app.set_projection(ProjectionType::HEALPix(HEALPix), w, h);
             },
             _ => {
                 return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));

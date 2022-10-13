@@ -76,7 +76,6 @@ impl ShaderManager {
                 })?;
 
                 let shader = Shader::new(gl, vert_src, frag_src).unwrap_abort();
-
                 v.insert(shader)
             }
         };
@@ -136,7 +135,6 @@ define_shader_getter!(catalog, hpx, "CatalogHEALPixVS", "CatalogFS");
 define_shader_getter!(catalog, mer, "CatalogMercatVS", "CatalogFS");
 define_shader_getter!(catalog, ort, "CatalogOrthoVS", "CatalogOrthoFS");
 define_shader_getter!(catalog, tan, "CatalogTanVS", "CatalogFS");*/
-
 pub(crate) fn get_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager, vert: &'static str, frag: &'static str) -> &'a Shader {
     shaders.get(
         gl,

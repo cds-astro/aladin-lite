@@ -1732,7 +1732,7 @@ export let View = (function () {
                 this.fovLimit = 1000.0;
         }
         // Change the projection here
-        this.aladin.webglAPI.setProjection(projectionName);
+        this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);
         const fov = this.aladin.webglAPI.getFieldOfView();
         this.setZoom(fov);
 

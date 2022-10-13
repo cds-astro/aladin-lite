@@ -114,8 +114,9 @@ module.exports = {
                     loader: 'webpack-glsl-minify',
                     options: {
                         output: 'source',
-                        preserveVariables: true,
-                        preserveUniforms: true,
+                        //preserveVariables: true,
+                        //preserveUniforms: true,
+                        preserveAll: true,
                     }
                 }
             },

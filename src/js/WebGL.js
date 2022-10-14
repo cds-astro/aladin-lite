@@ -28,10 +28,8 @@ export let WebGLCtx = (function() {
     WebGLCtx.init = function(ctx, div) {
         //const shaders = WebGLCtx.checkForWebGL2Support() ? loadShadersWebGL2() : loadShadersWebGL1();
         let shaders = loadShadersWebGL2();
-        //console.log(shaders)
         //shaders = shaders.map((s) => { return {id: s.id, content: s.content.sourceCode}; });
         const lettersMeta = JSON.stringify(lettersMetadata);
-
         return new ctx.WebClient(
             div,
             shaders,

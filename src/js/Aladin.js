@@ -380,7 +380,7 @@ export let Aladin = (function () {
         // go to full screen ?
         if (options.fullScreen) {
             // strange behaviour to wait for a sec
-            window.setTimeout(function () { self.toggleFullscreen(self.options.realFullscreen); }, 10);
+            self.toggleFullscreen(self.options.realFullscreen);
         }
     };
 
@@ -422,6 +422,8 @@ export let Aladin = (function () {
 
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate 
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
+        let self = this;
+
         realFullscreen = Boolean(realFullscreen);
 
         this.fullScreenBtn.toggleClass('aladin-maximize aladin-restore');
@@ -464,14 +466,17 @@ export let Aladin = (function () {
             }
         }
 
-        this.view.fixLayoutDimensions();
+        // Delay the fixLayoutDimensions layout for firefox
+        setTimeout(function () {
+            self.view.fixLayoutDimensions();
 
-        // force call to zoomChanged callback
-        var fovChangedFn = this.callbacksByEventName['zoomChanged'];
-        (typeof fovChangedFn === 'function') && fovChangedFn(this.view.fov);
+            // force call to zoomChanged callback
+            var fovChangedFn = self.callbacksByEventName['zoomChanged'];
+            (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);
 
-        var fullScreenToggledFn = this.callbacksByEventName['fullScreenToggled'];
-        (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
+            var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
+            (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
+        }, 10);
     };
 
     Aladin.prototype.setAngleRotation = function (theta) {

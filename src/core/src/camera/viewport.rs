@@ -216,6 +216,11 @@ impl CameraViewPort {
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
+
+
+        self.width = (width as f32) * self.dpi;
+        self.height = (height as f32) * self.dpi;
+
         canvas
             .style()
             .set_property("width", &format!("{}px", width))
@@ -225,12 +230,8 @@ impl CameraViewPort {
             .set_property("height", &format!("{}px", height))
             .unwrap_abort();
 
-        self.width = (width as f32) * self.dpi;
-        self.height = (height as f32) * self.dpi;
-
         self.aspect = width / height;
 
-        self.set_canvas_size(projection);
 
         // Compute the new clip zoom factor
         self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
@@ -249,6 +250,7 @@ impl CameraViewPort {
             &Vector2::new(-1.0, -1.0),
             self,
         ));
+        self.set_canvas_size(projection);
 
     }
 

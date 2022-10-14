@@ -979,6 +979,7 @@ impl App {
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
         self.camera.set_screen_size(width, height, self.projection);
+        self.camera.set_aperture(self.camera.get_aperture(), self.projection);
         // resize the view fbo
         //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo

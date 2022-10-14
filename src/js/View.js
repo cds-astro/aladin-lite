@@ -187,14 +187,14 @@ export let View = (function () {
         this.resizeTimer = null;
         var self = this;
         $(window).resize(function () {
-            self.fixLayoutDimensions(self);
+            self.fixLayoutDimensions();
             self.requestRedraw();
         });
 
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
         // The following line tries to fix this issue
-        setTimeout(function () {
+        //setTimeout(function () {
             var computedWidth = $(self.aladinDiv).width();
             var computedHeight = $(self.aladinDiv).height();
 
@@ -205,7 +205,9 @@ export let View = (function () {
 
                 self.setZoom(self.fov); // needed to force recomputation of displayed FoV
             }
-        }, 1000);
+
+            self.requestRedraw();
+        //}, 1000);
 
     };
 

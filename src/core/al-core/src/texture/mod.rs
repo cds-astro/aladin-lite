@@ -29,12 +29,14 @@ pub struct Texture2D {
 
     gl: WebGlContext,
 
-    metadata: Option<Texture2DMeta>,
+    metadata: Option<Rc<RefCell<Texture2DMeta>>>,
 }
-use super::pixel::Pixel;
+
 use crate::image::format::ImageFormat;
 //use super::pixel::PixelType;
 use std::path::Path;
+use std::rc::Rc;
+use std::cell::RefCell;
 impl Texture2D {
     pub fn create_from_path<P: AsRef<Path>, F: ImageFormat>(
         gl: &WebGlContext,
@@ -51,10 +53,22 @@ impl Texture2D {
             }) as Box<dyn Fn()>)
         };
 
+        let width = image.width();
+        let height = image.height();
+
+        let metadata = Rc::new(RefCell::new(Texture2DMeta {
+            width: width,
+            height: height,
+            internal_format: F::INTERNAL_FORMAT,
+            format: F::FORMAT,
+            type_: F::TYPE,
+        }));
+
         let onload = {
             let image = image.clone();
             let gl = gl.clone();
             let texture = texture.clone();
+            let metadata = metadata.clone();
 
             Closure::wrap(Box::new(move || {
                 gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
@@ -83,6 +97,10 @@ impl Texture2D {
                     &image,
                 )
                 .expect("Texture 2D");
+
+                metadata.borrow_mut().width = image.width();
+                metadata.borrow_mut().height = image.height();
+
                 //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
             }) as Box<dyn Fn()>)
         };
@@ -96,20 +114,14 @@ impl Texture2D {
         onload.forget();
         onerror.forget();
 
-        let metadata = Some(Texture2DMeta {
-            width: image.width(),
-            height: image.height(),
-            internal_format: F::INTERNAL_FORMAT,
-            format: F::FORMAT,
-            type_: F::TYPE,
-        });
+
         let gl = gl.clone();
         Ok(Texture2D {
             texture,
 
             gl,
 
-            metadata,
+            metadata: Some(metadata),
         })
     }
 
@@ -142,13 +154,13 @@ impl Texture2D {
         .expect("Texture 2D");
 
         let gl = gl.clone();
-        let metadata = Some(Texture2DMeta {
+        let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             type_: F::TYPE,
-        });
+        })));
 
         Ok(Texture2D {
             texture,
@@ -212,13 +224,13 @@ impl Texture2D {
         //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
 
         let gl = gl.clone();
-        let metadata = Some(Texture2DMeta {
+        let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             width: width as u32,
             height: height as u32,
             internal_format: F::INTERNAL_FORMAT,
             format: F::FORMAT,
             type_: F::TYPE,
-        });
+        })));
         Ok(Texture2D {
             texture,
 
@@ -240,17 +252,17 @@ impl Texture2D {
 
     pub fn get_size(&self) -> (u32, u32) {
         (
-            self.metadata.as_ref().unwrap_abort().width,
-            self.metadata.as_ref().unwrap_abort().height,
+            self.metadata.as_ref().unwrap_abort().borrow().width,
+            self.metadata.as_ref().unwrap_abort().borrow().height,
         )
     }
 
     pub fn width(&self) -> u32 {
-        self.metadata.as_ref().unwrap_abort().width
+        self.metadata.as_ref().unwrap_abort().borrow().width
     }
 
     pub fn height(&self) -> u32 {
-        self.metadata.as_ref().unwrap_abort().height
+        self.metadata.as_ref().unwrap_abort().borrow().height
     }
 
     pub fn active_texture(&self, idx_tex_unit: u8) -> &Self {
@@ -302,16 +314,10 @@ impl Texture2D {
             Err(JsValue::from_str("incomplete framebuffer"))
         } else {
             // set the viewport as the FBO won't be the same dimension as the screen
-            let Texture2DMeta {
-                width,
-                height,
-                format,
-                type_,
-                ..
-            } = self.metadata.as_ref().unwrap_abort();
-            self.gl.viewport(x, y, *width as i32, *height as i32);
+            let metadata = self.metadata.as_ref().unwrap_abort().borrow();
+            self.gl.viewport(x, y, metadata.width as i32, metadata.height as i32);
             #[cfg(feature = "webgl2")]
-            let value = match (*format, *type_) {
+            let value = match (metadata.format, metadata.type_) {
                 (WebGlRenderingCtx::RED_INTEGER, WebGlRenderingCtx::UNSIGNED_BYTE) => {
                     let p = <[u8; 1]>::read_pixel(&self.gl, x, y)?;
                     Ok(serde_wasm_bindgen::to_value(&p[0])?)
@@ -409,7 +415,7 @@ impl<'a> Texture2DBound<'a> {
         dy: i32,
         image: &HtmlImageElement,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
 
         #[cfg(feature = "webgl2")]
         self.texture_2d
@@ -419,8 +425,8 @@ impl<'a> Texture2DBound<'a> {
                 0,
                 dx,
                 dy,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 image,
             )
             .expect("Sub texture 2d");
@@ -432,8 +438,8 @@ impl<'a> Texture2DBound<'a> {
                 0,
                 dx,
                 dy,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 image,
             )
             .expect("Sub texture 2d");
@@ -446,7 +452,7 @@ impl<'a> Texture2DBound<'a> {
         dy: i32,
         image: &web_sys::ImageBitmap,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
 
         #[cfg(feature = "webgl2")]
         self.texture_2d
@@ -456,8 +462,8 @@ impl<'a> Texture2DBound<'a> {
                 0,
                 dx,
                 dy,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 image,
             )
             .expect("Sub texture 2d");
@@ -469,8 +475,8 @@ impl<'a> Texture2DBound<'a> {
                 0,
                 dx,
                 dy,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 image,
             )
             .expect("Sub texture 2d");
@@ -484,7 +490,7 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         image: Option<&js_sys::Object>,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
 
         self.texture_2d
             .gl
@@ -495,8 +501,8 @@ impl<'a> Texture2DBound<'a> {
                 dy,
                 width,
                 height,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 image,
             )
             .expect("Sub texture 2d");
@@ -511,7 +517,7 @@ impl<'a> Texture2DBound<'a> {
         height: i32, // Height of the image
         pixels: Option<&[u8]>,
     ) {
-        let Texture2DMeta { format, type_, .. } = self.texture_2d.metadata.as_ref().unwrap_abort();
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
         self.texture_2d
             .gl
             .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
@@ -521,8 +527,8 @@ impl<'a> Texture2DBound<'a> {
                 dy,
                 width,
                 height,
-                *format,
-                *type_,
+                metadata.format,
+                metadata.type_,
                 pixels,
             )
             .expect("Sub texture 2d");
@@ -564,12 +570,12 @@ impl<'a> Texture2DBoundMut<'a> {
             .expect("Sub texture 2d");
         //self.texture_2d.gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
 
-        self.texture_2d.metadata = Some(Texture2DMeta {
+        self.texture_2d.metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
             format: src_format,
             internal_format,
             type_: src_type,
             width: width as u32,
             height: height as u32,
-        });
+        })));
     }
 }

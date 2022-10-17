@@ -295,7 +295,7 @@ pub fn get_raster_shader<'a>(
             }
             GrayscaleColor::Colormap { .. } => {
                 if unsigned_tex {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerVSGrayscale2ColorUnsignedFS")
+                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS")
                 } else if integer_tex {
                     crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS")
                 } else {

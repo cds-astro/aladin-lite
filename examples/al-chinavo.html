@@ -3,7 +3,6 @@
 <head>
 
 <link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<!--<link rel="stylesheet" href="./layers.css" />-->
 </head>
 <body>
 
@@ -15,10 +14,12 @@
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-    let aladin;
-    A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {fullScreen: true, survey: ['P/DM/vizMine', 'P/HST/GOODS/color', 'P/MATLAS/g'], target: '0 0', showCooGrid: true, fov: 180});
-    });
+  let aladin;
+  A.init.then(() => {
+      // Start up Aladin Lite
+      aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 360, showCooGrid: true});
+      aladin.setImageSurvey(aladin.createImageSurvey('Panstarrs', 'Panstarrs', 'http://hips.china-vo.org/change2-moon-7m-dom', 'equatorial', 9, {imgFormat: 'fits', colormap: "redtemperature"}));
+  });
 </script>
 
 </body>

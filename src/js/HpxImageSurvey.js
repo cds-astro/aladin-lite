@@ -607,6 +607,8 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setOpacity = function(opacity) {
+        this.prevOpacity = this.options.opacity;
+
         opacity = +opacity; // coerce to number
         this.options.opacity = Math.max(0, Math.min(opacity, 1));
 
@@ -616,6 +618,15 @@ export let HpxImageSurvey = (function() {
         if( this.ready && this.added ) {
             this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
             ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.toggle = function() {
+        if (this.options.opacity != 0.0) {
+            this.setOpacity(0.0);
+        } else {
+            this.setOpacity(this.prevOpacity);
         }
     };
 

@@ -27,7 +27,7 @@ module.exports = {
         hints: false,
     },
     optimization: {
-        minimize: false,
+        //minimize: false,
         minimizer: [
             new TerserPlugin({
                 terserOptions: {
@@ -81,7 +81,7 @@ module.exports = {
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
-            pluginLogLevel: 'info'
+            pluginLogLevel: 'error'
         }),
         /*
         // Have this example work in Edge which doesn't ship `TextEncoder` or

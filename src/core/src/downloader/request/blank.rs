@@ -150,9 +150,10 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
     }
 }
 
+use std::sync::{Mutex, Arc};
 #[derive(Debug)]
 pub struct PixelMetadata {
-    pub value: Metadata,
+    pub value: Arc<Mutex<Option<Metadata>>>,
     pub hips_url: String,
     pub url: String,
 }
@@ -174,7 +175,7 @@ impl<'a> From<&'a PixelMetadataRequest> for Option<PixelMetadata> {
             Some(PixelMetadata {
                 hips_url: hips_url.clone(),
                 url: url.to_string(),
-                value: data.lock().unwrap_abort().unwrap_abort(),
+                value: data.clone(),
             })
         } else {
             None

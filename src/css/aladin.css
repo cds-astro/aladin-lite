@@ -464,7 +464,7 @@ input[type=number], input[type=text] {
 	width: 100% !important;
 	border: 0 !important;
     max-width: none !important;
-    background: #fff; /* allows to hide all HTML elements in the background */
+    background: #fff;
 }
 
 .aladin-zoomControl {

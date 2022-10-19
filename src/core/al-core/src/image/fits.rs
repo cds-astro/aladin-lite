@@ -27,6 +27,63 @@ impl<F> Fits<F>
 where
     F: FitsImageFormat,
 {
+    /*pub async fn new_async(fits_raw_bytes: &[u8]) -> Result<Self, JsValue>
+    where
+        <F as FitsImageFormat>::Type: std::fmt::Debug
+    {
+        let fitsrs::Fits { data, header } = Fits::<F::Type>::from_byte_slice_async(fits_raw_bytes)
+                .map_err(|_| js_sys::Error::new("parsing FITS error"))?;
+
+        let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
+            *bscale as f32
+        } else {
+            1.0
+        };
+
+        let bzero = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
+            *bzero as f32
+        } else {
+            0.0
+        };
+
+        let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
+            *blank as f32
+        } else {
+            std::f32::NAN
+        };
+
+        let width = header
+            .get("NAXIS1")
+            .and_then(|k| match k {
+                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
+            })
+            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
+
+        let height = header
+            .get("NAXIS2")
+            .and_then(|k| match k {
+                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
+            })
+            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
+
+        Ok(Self {
+            // Metadata fits header properties
+            blank,
+            bzero,
+            bscale,
+            // Tile size
+            size: Vector2::new(width, height),
+
+            // Allocation info of the layout
+            layout,
+            aligned_raw_bytes_ptr,
+
+            aligned_data_raw_bytes_ptr: data.as_ptr(),
+        })
+    }*/
+
     pub fn new(fits_raw_bytes: &js_sys::Uint8Array) -> Result<Self, JsValue>
     where
         <F as FitsImageFormat>::Type: std::fmt::Debug
@@ -48,7 +105,9 @@ where
 
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
             FitsMemAligned::<F::Type>::from_byte_slice(aligned_raw_bytes)
-                .map_err(|_| js_sys::Error::new("parsing FITS error"))?
+                .map_err(|err| {
+                    JsValue::from_str(&format!("Parsing fits error: {}", err))
+                })?
         };
 
         let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {

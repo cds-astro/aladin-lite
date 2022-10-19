@@ -201,8 +201,18 @@ export let Aladin = (function () {
             // button to show Stack interface
             var d = $('<div class="aladin-layersControl-container" style="top: ' + top_px + 'px" title="Manage layers"><div class="aladin-layersControl"></div></div>');
             d.appendTo(aladinDiv);
+
+            if (options.expandLayersControl) {
+                self.hideBoxes();
+                self.showLayerBox();
+            }
+
             // we return false so that the default event is not submitted, and to prevent event bubbling
-            d.click(function () { self.hideBoxes(); self.showLayerBox(); return false; });
+            d.click(function () {
+                self.hideBoxes();
+                self.showLayerBox();
+                return false;
+            });
             top_px += 38;
         }
 
@@ -429,7 +439,12 @@ export let Aladin = (function () {
         this.fullScreenBtn.toggleClass('aladin-maximize aladin-restore');
         var isInFullscreen = this.fullScreenBtn.hasClass('aladin-restore');
         this.fullScreenBtn.attr('title', isInFullscreen ? 'Restore original size' : 'Full screen');
-        $(this.aladinDiv).toggleClass('aladin-fullscreen');
+        //$(this.aladinDiv).toggleClass('aladin-fullscreen');
+        if (this.aladinDiv.classList.contains('aladin-fullscreen')) {
+            this.aladinDiv.classList.remove('aladin-fullscreen');
+        } else {
+            this.aladinDiv.classList.add('aladin-fullscreen');
+        }
 
         if (realFullscreen) {
             // go to "real" full screen mode
@@ -465,18 +480,18 @@ export let Aladin = (function () {
                 }
             }
         }
-
+        
         // Delay the fixLayoutDimensions layout for firefox
         setTimeout(function () {
             self.view.fixLayoutDimensions();
+        }, 100);
 
-            // force call to zoomChanged callback
-            var fovChangedFn = self.callbacksByEventName['zoomChanged'];
-            (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);
+        // force call to zoomChanged callback
+        var fovChangedFn = self.callbacksByEventName['zoomChanged'];
+        (typeof fovChangedFn === 'function') && fovChangedFn(self.view.fov);
 
-            var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
-            (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
-        }, 10);
+        var fullScreenToggledFn = self.callbacksByEventName['fullScreenToggled'];
+        (typeof fullScreenToggledFn === 'function') && fullScreenToggledFn(isInFullscreen);
     };
 
     Aladin.prototype.setAngleRotation = function (theta) {

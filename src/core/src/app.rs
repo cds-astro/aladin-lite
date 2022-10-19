@@ -518,7 +518,6 @@ impl App {
 
     pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
-
         if let Some(InertiaAnimation {
             time_start_anim,
             d0,
@@ -556,7 +555,6 @@ impl App {
         // The rendering is done following these different situations:
         // - the camera has moved
         let has_camera_moved = self.camera.has_moved();
-
         {
             // Newly available tiles must lead to
             // 1. Surveys must be aware of the new available tiles
@@ -566,6 +564,7 @@ impl App {
             .downloader
             .get_resolved_tiles(/*&available_tiles, */&mut self.surveys);*/
             let rscs = self.downloader.get_received_resources();
+
             let mut num_tile_received = 0;
             let mut tile_copied = false;
             for rsc in rscs.into_iter() {
@@ -576,13 +575,10 @@ impl App {
                             let is_tile_root = tile.is_root;
     
                             if let Some(survey) = self.surveys.get_mut(tile.get_hips_url()) {
-                                if is_tile_root && tile.missing() {
-                                    // If at least one tile root is missing, query the allsky!
-                                    self.downloader.fetch(query::Allsky::new(survey.get_config()));
-                                } else if is_tile_root {
-                                        survey.add_tile(tile);
-    
-                                        self.request_redraw = true;
+                                if is_tile_root {
+                                    survey.add_tile(tile);
+
+                                    self.request_redraw = true;
                                 } else {
                                     let cfg = survey.get_config();
                                     let coverage = survey.get_view().get_coverage();
@@ -634,9 +630,12 @@ impl App {
                         Resource::PixelMetadata(metadata) => {
                             if let Some(survey) = self.surveys.get_mut(&metadata.hips_url) {
                                 let mut cfg = survey.get_config_mut();
-                                cfg.blank = metadata.value.blank;
-                                cfg.offset = metadata.value.offset;
-                                cfg.scale = metadata.value.scale;
+
+                                if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
+                                    cfg.blank = metadata.blank;
+                                    cfg.offset = metadata.offset;
+                                    cfg.scale = metadata.scale;
+                                }
                             }
                         },
                         Resource::Moc(moc) => {
@@ -854,8 +853,8 @@ impl App {
             self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
 
             let tile_size = cfg.get_tile_size();
-            //Request the allsky for the small tile size
-            if tile_size <= 128 {
+            //Request the allsky for the small tile size or if base tiles are not available
+            if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
                 // Request the allsky
                 self.downloader.fetch(query::Allsky::new(cfg));
             } else {
@@ -907,7 +906,7 @@ impl App {
         // Try to fetch the MOC
         self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
         //Request the allsky for the small tile size
-        if tile_size <= 128 {
+        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
             // Request the allsky
             self.downloader.fetch(query::Allsky::new(cfg));
         } else {

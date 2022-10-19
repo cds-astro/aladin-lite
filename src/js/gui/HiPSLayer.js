@@ -474,7 +474,7 @@ export class HiPSLayer {
 
         let surveys = HpxImageSurvey.SURVEYS.sort(function (a, b) {
             if (!a.order) {
-                return a.id > b.id;
+                return a.name > b.name ? 1 : -1;
             }
             return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });

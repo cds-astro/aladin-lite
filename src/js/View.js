@@ -152,7 +152,7 @@ export let View = (function () {
 
 
 
-        this.fixLayoutDimensions();
+        //this.fixLayoutDimensions();
 
         this.firstHiPS = true;
         this.curNorder = 1;
@@ -176,37 +176,38 @@ export let View = (function () {
         }
 
         this.fadingLatestUpdate = null;
-
         this.dateRequestRedraw = null;
 
-
         init(this);
-
-
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
         var self = this;
-        $(window).resize(function () {
+        let resizeObserver = new ResizeObserver(() => { 
             self.fixLayoutDimensions();
             self.requestRedraw();
         });
 
+        resizeObserver.observe(this.aladinDiv); 
+        //$(window).resize(() => {
+            self.fixLayoutDimensions();
+            //self.requestRedraw();
+        //});
         // in some contexts (Jupyter notebook for instance), the parent div changes little time after Aladin Lite creation
         // this results in canvas dimension to be incorrect.
         // The following line tries to fix this issue
         //setTimeout(function () {
-            var computedWidth = $(self.aladinDiv).width();
-            var computedHeight = $(self.aladinDiv).height();
+        //var computedWidth = $(self.aladinDiv).width();
+        //var computedHeight = $(self.aladinDiv).height();
 
-            if (self.width !== computedWidth || self.height === computedHeight) {
-                self.fixLayoutDimensions();
-                // As the WebGL backend has been resized correctly by
-                // the previous call, we can get the zoom factor from it
+        //if (self.width !== computedWidth || self.height === computedHeight) {
+        //self.fixLayoutDimensions();
+        // As the WebGL backend has been resized correctly by
+        // the previous call, we can get the zoom factor from it
 
-                self.setZoom(self.fov); // needed to force recomputation of displayed FoV
-            }
+        //self.setZoom(self.fov); // needed to force recomputation of displayed FoV
+        //}
 
-            self.requestRedraw();
+        self.requestRedraw();
         //}, 1000);
 
     };
@@ -258,7 +259,11 @@ export let View = (function () {
 
         // reinitialize 2D context
         this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
+        //this.aladinDiv.style.width = this.width + "px";
+        //this.aladinDiv.style.height = this.height + "px";
+
         this.aladin.webglAPI.resize(this.width, this.height);
+
         this.catalogCtx = this.catalogCanvas.getContext("2d");
 
         this.catalogCtx.canvas.width = this.width;
@@ -282,6 +287,8 @@ export let View = (function () {
         }
 
         this.computeNorder();
+
+        this.redraw();
     };
 
     var pixelateCanvasContext = function (ctx, pixelateFlag) {

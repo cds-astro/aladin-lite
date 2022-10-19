@@ -49,11 +49,10 @@ where
 
             let fut = async move {
                 let resp = f.await;
-
                 if let Ok(resp) = resp {
                     *(data_cloned.lock().unwrap_abort()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
-                } else if let Err(_err) = resp {
+                } else if let Err(err) = resp {
                     resolved_cloned.set(ResolvedStatus::Failed);
                 }
             };

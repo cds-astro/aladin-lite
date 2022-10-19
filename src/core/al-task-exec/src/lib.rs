@@ -164,7 +164,7 @@ where
                 match r {
                     Poll::Pending => {
                         // Wake up the task pending immediately
-                        //cx.waker().clone().wake();
+                        cx.waker().clone().wake();
                         // Reinsert not finished futures into the tasks queue
                         tasks.push_front(k, task);
                     }
@@ -247,10 +247,10 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let executor = Executor::new();
+        let mut executor = Executor::new();
         let spawner = executor.spawner();
         // Spawn a task to print before and after waiting on a timer.
-        spawner.spawn(async {
+        spawner.spawn("learning", async {
             println!("LEARN begin!");
             // Wait for our timer future to complete after two seconds.
             LearnTask::new().await;
@@ -258,7 +258,7 @@ mod tests {
 
             10
         });
-        spawner.spawn(async {
+        spawner.spawn("dancing", async {
             println!("DANCE begin!");
             // Wait for our timer future to complete after two seconds.
             DanceTask::new().await;
@@ -292,7 +292,7 @@ mod tests {
         /// Attempt to resolve the next item in the stream.
         /// Returns `Poll::Pending` if not ready, `Poll::Ready(Some(x))` if a value
         /// is ready, and `Poll::Ready(None)` if the stream has completed.
-        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
             // Deserialize row by row.
             let len = self.table.len();
             let idx = self.idx as usize;
@@ -317,10 +317,10 @@ mod tests {
     use futures::stream::StreamExt; // for `next`
     #[test]
     fn it_works2() {
-        let executor = Executor::new();
+        let mut executor = Executor::new();
         let spawner = executor.spawner();
         // Spawn a task to print before and after waiting on a timer.
-        spawner.spawn(async {
+        spawner.spawn("parsing", async {
             println!("BEGIN parsing!");
             let mut stream = ParseTable::new((0..100000).collect());
             let mut results: Vec<u32> = vec![];

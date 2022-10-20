@@ -169,8 +169,8 @@ impl From<query::Tile> for TileRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R32F>::new(bytes)?;
                 Ok(ImageType::FitsImageR32f { image })
             }),
             ImageFormatType::R64F => Request::new(async move {
@@ -185,8 +185,8 @@ impl From<query::Tile> for TileRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R64F>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R64F>::new(bytes)?;
                 Ok(ImageType::FitsImageR64f { image })
             }),
             ImageFormatType::R32I => Request::new(async move {
@@ -203,8 +203,8 @@ impl From<query::Tile> for TileRequest {
                 let blob: Blob = JsFuture::from(resp.blob()?).await?.into();
                 let array_buffer = JsFuture::from(blob.array_buffer()).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::new(bytes)?;
                 Ok(ImageType::FitsImageR32i { image })
             }),
             ImageFormatType::R16I => Request::new(async move {
@@ -219,8 +219,8 @@ impl From<query::Tile> for TileRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::new(bytes)?;
                 Ok(ImageType::FitsImageR16i { image })
             }),
             ImageFormatType::R8UI => Request::new(async move {
@@ -235,8 +235,8 @@ impl From<query::Tile> for TileRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::new(bytes)?;
                 Ok(ImageType::FitsImageR8ui { image })
             }),
             _ => todo!(),

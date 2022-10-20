@@ -68,8 +68,8 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R32F>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R32F>::new(bytes)?;
                 Ok(Metadata {
                     blank: image.blank,
                     scale: image.bscale,
@@ -90,8 +90,8 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 let blob: Blob = JsFuture::from(resp.blob()?).await?.into();
                 let array_buffer = JsFuture::from(blob.array_buffer()).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R32I>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R32I>::new(bytes)?;
                 Ok(Metadata {
                     blank: image.blank,
                     scale: image.bscale,
@@ -110,8 +110,8 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R16I>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R16I>::new(bytes)?;
                 Ok(Metadata {
                     blank: image.blank,
                     scale: image.bscale,
@@ -130,8 +130,8 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 let resp: Response = resp_value.dyn_into()?;
                 let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer);
-                let image = Fits::<al_core::image::format::R8UI>::new(&bytes)?;
+                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+                let image = Fits::<al_core::image::format::R8UI>::new(bytes)?;
                 Ok(Metadata {
                     blank: image.blank,
                     scale: image.bscale,

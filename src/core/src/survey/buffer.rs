@@ -453,7 +453,6 @@ impl ImageSurveyTextures {
         };
 
         self.available_tiles_during_frame = true;
-
         if tex_cell.is_root() && texture.is_available() {
             self.num_root_textures_available += 1;
             debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);

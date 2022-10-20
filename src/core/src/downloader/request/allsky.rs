@@ -139,9 +139,9 @@ impl From<query::Allsky> for AllskyRequest {
         
                         let allsky_tiles = match format {
                             ImageFormatType::R32F => {
-                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                                 // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                                let image = Fits::<R32F>::new(&raw_bytes)?;
+                                let image = Fits::<R32F>::new(raw_bytes)?;
                                 let raw = unsafe {
                                     std::slice::from_raw_parts(
                                         image.aligned_data_raw_bytes_ptr,
@@ -155,9 +155,9 @@ impl From<query::Allsky> for AllskyRequest {
                                     .collect()
                             }
                             ImageFormatType::R64F => {
-                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                                 // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                                let image = Fits::<R64F>::new(&raw_bytes)?;
+                                let image = Fits::<R64F>::new(raw_bytes)?;
                                 let raw: &[f64] = unsafe {
                                     std::slice::from_raw_parts(
                                         image.aligned_data_raw_bytes_ptr,
@@ -173,9 +173,9 @@ impl From<query::Allsky> for AllskyRequest {
                                     .collect()
                             }
                             ImageFormatType::R32I => {
-                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                                 // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                                let image = Fits::<R32I>::new(&raw_bytes)?;
+                                let image = Fits::<R32I>::new(raw_bytes)?;
                                 let raw = unsafe {
                                     std::slice::from_raw_parts(
                                         image.aligned_data_raw_bytes_ptr,
@@ -189,9 +189,9 @@ impl From<query::Allsky> for AllskyRequest {
                                     .collect()
                             }
                             ImageFormatType::R16I => {
-                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                                 // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                                let image = Fits::<R16I>::new(&raw_bytes)?;
+                                let image = Fits::<R16I>::new(raw_bytes)?;
                                 let raw = unsafe {
                                     std::slice::from_raw_parts(
                                         image.aligned_data_raw_bytes_ptr,
@@ -205,9 +205,9 @@ impl From<query::Allsky> for AllskyRequest {
                                     .collect()
                             }
                             ImageFormatType::R8UI => {
-                                let raw_bytes = js_sys::Uint8Array::new(&buf);
+                                let raw_bytes = js_sys::Uint8Array::new(&buf).to_vec();
                                 // Parsing the raw bytes coming from the received array buffer (Uint8Array)
-                                let image = Fits::<R8UI>::new(&raw_bytes)?;
+                                let image = Fits::<R8UI>::new(raw_bytes)?;
                                 let raw = unsafe {
                                     std::slice::from_raw_parts(
                                         image.aligned_data_raw_bytes_ptr,

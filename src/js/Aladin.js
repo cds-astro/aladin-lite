@@ -1491,6 +1491,7 @@ Aladin.prototype.getEmbedCode = function () {
  */
 Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback) {
     options = options || {};
+
     var data = { url: url };
     if (options.color) {
         data.color = true;
@@ -1505,7 +1506,16 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
         data.nocache = options.nocache;
     }
     let self = this;
-    const request = ( url, params = {}, method = 'GET' ) => {
+
+    fetch(url)
+        .then((resp) => resp.arrayBuffer())
+        .then((arrayBuffer) => {
+            console.log('received fits', arrayBuffer)
+            self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
+            console.log("parsed")
+        });
+
+    /*const request = ( url, params = {}, method = 'GET' ) => {
         let options = {
             method
         };
@@ -1550,7 +1560,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // downloading the base tiles of the other surveys loading!
             // This has to be fixed in the backend but a fast fix is just to wait
             // before setting a new image survey
-        });
+        });*/
 };
 
 // @API

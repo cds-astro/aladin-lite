@@ -1,5 +1,82 @@
 use cgmath::{Vector2, Vector3};
 use fitsrs::FitsMemAligned;
+use fitsrs::FitsMemAlignedUnchecked;
+
+#[derive(Debug)]
+pub struct FitsBorrowed<'a> {
+    // Fits header properties
+    pub blank: f32,
+    pub bzero: f32,
+    pub bscale: f32,
+
+    // Tile size
+    size: Vector2<i32>,
+
+    // Raw pointer to the data part of the fits
+    fits: FitsMemAligned<'a>,
+}
+
+impl<'a> FitsBorrowed<'a> {
+    pub fn new(fits_raw_bytes: &'a [u8]) -> Result<Self, JsValue> {
+        let fits = unsafe {
+            // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
+            FitsMemAligned::from_byte_slice(fits_raw_bytes)
+                .map_err(|err| {
+                    JsValue::from_str(&format!("Parsing fits error: {}", err))
+                })?
+        };
+
+        let bscale = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bscale), .. }) = fits.header.get("BSCALE") {
+            *bscale as f32
+        } else {
+            1.0
+        };
+
+        let bzero = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bzero), .. }) = fits.header.get("BZERO") {
+            *bzero as f32
+        } else {
+            0.0
+        };
+
+        let blank = if let Some(FITSCard::Blank(blank)) = fits.header.get("BLANK") {
+            *blank as f32
+        } else {
+            std::f32::NAN
+        };
+
+        let width = fits.header
+            .get("NAXIS1")
+            .and_then(|k| match k {
+                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
+            })
+            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
+
+        let height = fits.header
+            .get("NAXIS2")
+            .and_then(|k| match k {
+                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
+                _ => None,
+            })
+            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
+
+        Ok(Self {
+            // Metadata fits header properties
+            blank,
+            bzero,
+            bscale,
+            // Tile size
+            size: Vector2::new(width, height),
+
+            // Allocation info of the layout            
+            fits
+        })
+    }
+
+    pub fn get_size(&self) -> &Vector2<i32> {
+        &self.size
+    }
+}
 
 #[derive(Debug)]
 pub struct Fits<F>
@@ -14,115 +91,41 @@ where
     // Tile size
     size: Vector2<i32>,
 
-    // Aligned allocation layout
-    layout: std::alloc::Layout,
-    // Raw pointer to the fits in memory
-    aligned_raw_bytes_ptr: *mut u8,
     // Raw pointer to the data part of the fits
     pub aligned_data_raw_bytes_ptr: *const F::Type,
+
+    pub bytes: Vec<u8>,
 }
 
-use std::alloc::{alloc, Layout};
 impl<F> Fits<F>
 where
     F: FitsImageFormat,
 {
-    /*pub async fn new_async(fits_raw_bytes: &[u8]) -> Result<Self, JsValue>
+    pub fn new(fits_raw_bytes: Vec<u8>) -> Result<Self, JsValue>
     where
         <F as FitsImageFormat>::Type: std::fmt::Debug
     {
-        let fitsrs::Fits { data, header } = Fits::<F::Type>::from_byte_slice_async(fits_raw_bytes)
-                .map_err(|_| js_sys::Error::new("parsing FITS error"))?;
-
-        let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
-            *bscale as f32
-        } else {
-            1.0
-        };
-
-        let bzero = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
-            *bzero as f32
-        } else {
-            0.0
-        };
-
-        let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
-            *blank as f32
-        } else {
-            std::f32::NAN
-        };
-
-        let width = header
-            .get("NAXIS1")
-            .and_then(|k| match k {
-                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
-            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
-
-        let height = header
-            .get("NAXIS2")
-            .and_then(|k| match k {
-                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
-            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-
-        Ok(Self {
-            // Metadata fits header properties
-            blank,
-            bzero,
-            bscale,
-            // Tile size
-            size: Vector2::new(width, height),
-
-            // Allocation info of the layout
-            layout,
-            aligned_raw_bytes_ptr,
-
-            aligned_data_raw_bytes_ptr: data.as_ptr(),
-        })
-    }*/
-
-    pub fn new(fits_raw_bytes: &js_sys::Uint8Array) -> Result<Self, JsValue>
-    where
-        <F as FitsImageFormat>::Type: std::fmt::Debug
-    {
-        // Create a correctly aligned buffer to the type F
-        let align = std::mem::size_of::<F::Type>();
-        let layout = Layout::from_size_align(fits_raw_bytes.length() as usize, align)
-            .expect("Cannot create sized aligned memory layout");
-        // 1. Alloc the aligned memory buffer
-        let aligned_raw_bytes_ptr = unsafe { alloc(layout) };
-
-        let FitsMemAligned { data, header } = unsafe {
-            // 2. Copy the raw fits bytes into that aligned memory space
-            fits_raw_bytes.raw_copy_to_ptr(aligned_raw_bytes_ptr);
-
-            // 3. Convert to a slice of bytes
-            let aligned_raw_bytes =
-                std::slice::from_raw_parts(aligned_raw_bytes_ptr, fits_raw_bytes.length() as usize);
-
+        let FitsMemAlignedUnchecked { data, header } = unsafe {
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
-            FitsMemAligned::<F::Type>::from_byte_slice(aligned_raw_bytes)
+            FitsMemAlignedUnchecked::<F::Type>::from_byte_slice(fits_raw_bytes.as_slice())
                 .map_err(|err| {
                     JsValue::from_str(&format!("Parsing fits error: {}", err))
                 })?
         };
 
-        let bscale = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
+        let bscale = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
             *bscale as f32
         } else {
             1.0
         };
 
-        let bzero = if let Some(FITSHeaderKeyword::Other { value: FITSKeywordValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
+        let bzero = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
             *bzero as f32
         } else {
             0.0
         };
 
-        let blank = if let Some(FITSHeaderKeyword::Blank(blank)) = header.get("BLANK") {
+        let blank = if let Some(FITSCard::Blank(blank)) = header.get("BLANK") {
             *blank as f32
         } else {
             std::f32::NAN
@@ -131,7 +134,7 @@ where
         let width = header
             .get("NAXIS1")
             .and_then(|k| match k {
-                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
                 _ => None,
             })
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
@@ -139,7 +142,7 @@ where
         let height = header
             .get("NAXIS2")
             .and_then(|k| match k {
-                FITSHeaderKeyword::NaxisSize { size, .. } => Some(*size as i32),
+                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
                 _ => None,
             })
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
@@ -152,11 +155,10 @@ where
             // Tile size
             size: Vector2::new(width, height),
 
-            // Allocation info of the layout
-            layout,
-            aligned_raw_bytes_ptr,
-
+            // Allocation info of the layout            
             aligned_data_raw_bytes_ptr: data.as_ptr(),
+
+            bytes: fits_raw_bytes,
         })
     }
 
@@ -204,19 +206,41 @@ where
     }*/
 }
 
-impl<F> Drop for Fits<F>
-where
-    F: FitsImageFormat,
-{
-    fn drop(&mut self) {
-        //al_core::log("dealloc fits tile");
-        unsafe {
-            std::alloc::dealloc(self.aligned_raw_bytes_ptr, self.layout);
-        }
-    }
-}
+/*impl<'a> Image for FitsBorrowed<'a> {
+    fn tex_sub_image_3d(
+        &self,
+        // The texture array
+        textures: &Texture2DArray,
+        // An offset to write the image in the texture array
+        offset: &Vector3<i32>,
+    ) {
+        let num_pixels = self.size.x * self.size.y;
+        let slice_raw_bytes = unsafe {
+            std::slice::from_raw_parts(
+                self.aligned_data_raw_bytes_ptr as *const _,
+                num_pixels as usize,
+            )
+        };
 
-use fitsrs::{FITSHeaderKeyword, FITSKeywordValue};
+        let array = unsafe { F::view(slice_raw_bytes) };
+        textures[offset.z as usize]
+            .bind()
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                offset.x,
+                offset.y,
+                self.size.x,
+                self.size.y,
+                Some(array.as_ref()),
+            );
+    }
+
+    // The size of the image
+    /*fn get_size(&self) -> &Vector2<i32> {
+        &self.size
+    }*/
+}*/
+
+use fitsrs::{FITSCard, FITSCardValue};
 use wasm_bindgen::JsValue;
 
 use crate::image::format::ImageFormat;

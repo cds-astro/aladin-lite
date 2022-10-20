@@ -1,0 +1,27 @@
+
+<!doctype html>
+<html>
+<head>
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+<!--<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" /> -->
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width:440px;height:300px"></div>
+
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {target: "0 0", cooFrame: "gal"});
+
+        aladin.displayFITS(
+            './cutout-CDS_P_HST_PHAT_F475W.fits',
+        );
+    });
+</script>
+</body>
+</html>

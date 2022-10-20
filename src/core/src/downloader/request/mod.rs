@@ -52,7 +52,7 @@ where
                 if let Ok(resp) = resp {
                     *(data_cloned.lock().unwrap_abort()) = Some(resp);
                     resolved_cloned.set(ResolvedStatus::Found);
-                } else if let Err(err) = resp {
+                } else {
                     resolved_cloned.set(ResolvedStatus::Failed);
                 }
             };

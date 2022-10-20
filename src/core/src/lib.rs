@@ -745,53 +745,6 @@ impl WebClient {
         Ok(pixel)
     }
 
-    /*/// TODO! This will be removed when integrating the MOC code in wasm because
-    /// this method is only called in MOC.js
-    /// Computes the location on the unit sphere of the 4 vertices of the given HEALPix cell
-    /// (define by its depth and number).
-    /// # Inputs
-    /// - `order` the order of the cell we look for the vertices
-    /// - `icell`: the cell number value of the cell we look for the unprojected center, in the NESTED scheme
-    /// # Output
-    /// - array containing the longitudes and latitudes (in degrees) of the vertices in the following order:
-    ///   `[SouthLon, SouthLat, EastLon, EastLat, NoethLon, NorthLat, WestLon, WestLat]`
-    #[wasm_bindgen(js_name = hpxNestedVertices)]
-    pub fn hpx_nested_vertices(&self, depth: u8, hash: f64) -> Box<[f64]> {
-        let [(s_lon, s_lat), (e_lon, e_lat), (n_lon, n_lat), (w_lon, w_lat)] =
-            cdshealpix::nested::vertices(depth, hash as u64);
-        Box::new([
-            s_lon.to_degrees(),
-            s_lat.to_degrees(),
-            e_lon.to_degrees(),
-            e_lat.to_degrees(),
-            n_lon.to_degrees(),
-            n_lat.to_degrees(),
-            w_lon.to_degrees(),
-            w_lat.to_degrees(),
-        ])
-    }
-
-    #[wasm_bindgen(js_name = queryDisc)]
-    pub fn query_disc(
-        &self,
-        depth: u8,
-        lon_degrees: f64,
-        lat_degrees: f64,
-        radius_degress: f64,
-    ) -> Box<[f64]> {
-        cdshealpix::nested::cone_coverage_approx(
-            depth,
-            lon_degrees.to_radians(),
-            lat_degrees.to_radians(),
-            radius_degress.to_radians(),
-        )
-        .to_flat_array()
-        .iter()
-        .map(|&v| v as f64)
-        .collect::<Vec<_>>()
-        .into_boxed_slice()
-    }*/
-
     #[wasm_bindgen(js_name = getVisibleCells)]
     pub fn get_visible_cells(&self, depth: u8) -> Result<JsValue, JsValue> {
         let cells = self.app.get_visible_cells(depth);
@@ -829,6 +782,15 @@ impl WebClient {
         }?;
 
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = addFITSImage)]
+    pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
+        //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
+        use al_core::image::fits::FitsBorrowed;
+        let fits = FitsBorrowed::new(raw_bytes);
 
         Ok(())
     }

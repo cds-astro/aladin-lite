@@ -27,8 +27,8 @@ module.exports = {
         hints: false,
     },
     optimization: {
-        //minimize: false,
-        minimizer: [
+        minimize: false,
+        /*minimizer: [
             new TerserPlugin({
                 terserOptions: {
                     mangle: true,
@@ -37,7 +37,7 @@ module.exports = {
                     safari10: true
                 }
             }),
-        ],
+        ],*/
     },
     plugins: [
         // WebGL2 app
@@ -77,7 +77,7 @@ module.exports = {
             //
             // the mode `development` makes `wasm-pack` build in `debug` mode.
             // the mode `production` makes `wasm-pack` build in `release` mode.
-            forceMode: "production",
+            forceMode: "development",
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.

@@ -80,9 +80,10 @@ export class Stack {
 
         if (this.imgLayers.size > 1) {
             layerBox.append('<div class="aladin-label">Overlay layers</div>')
+            Array.from(self.aladin.view.overlayLayers).reverse().forEach((layer) => {
+                let imgLayer = self.imgLayers.get(layer);
 
-            Array.from(this.imgLayers.values()).reverse().forEach((imgLayer) => {
-                if (imgLayer.survey.layer !== "base") {
+                if (imgLayer && imgLayer.survey.layer !== "base") {
                     imgLayer.attachTo(layerBox);
                 }
             });

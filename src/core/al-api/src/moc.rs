@@ -10,13 +10,14 @@ pub struct MOC {
     line_width: f32,
     is_showing: bool,
     color: ColorRGB,
+    adaptative_display: bool,
 }
 use std::convert::TryInto;
 use crate::Abort;
 #[wasm_bindgen]
 impl MOC {
     #[wasm_bindgen(constructor)]
-    pub fn new(uuid: String, opacity: f32, line_width: f32, is_showing: bool, hex_color: String) -> Self {
+    pub fn new(uuid: String, opacity: f32, line_width: f32, is_showing: bool, hex_color: String, adaptative_display: bool) -> Self {
         let color = Color::hexToRgb(hex_color);
         let color = color.try_into().unwrap_abort();
         Self {
@@ -25,6 +26,7 @@ impl MOC {
             line_width,
             color,
             is_showing,
+            adaptative_display
         }
     }
 
@@ -54,6 +56,10 @@ impl MOC {
     pub fn is_showing(&self) -> bool {
         self.is_showing
     }
+
+    pub fn is_adaptative_display(&self) -> bool {
+        self.adaptative_display
+    }
 }
 
 impl Default for MOC {
@@ -64,6 +70,7 @@ impl Default for MOC {
             line_width: 1.0,
             is_showing: true,
             color: ColorRGB {r: 1.0, g: 0.0, b: 0.0},
+            adaptative_display: true,
         }
     }
 }

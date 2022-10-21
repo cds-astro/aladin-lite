@@ -289,9 +289,15 @@ impl MOC {
                 let moc = if !params.is_showing() {
                     None
                 } else {
-                    let partially_degraded_moc = coverage.get(depth);
-                    let moc = HEALPixCoverage(fov_moc.intersection(partially_degraded_moc).degraded(depth));
-                    Some(moc)
+                    let moc = if params.is_adaptative_display() {
+                        let partially_degraded_moc = coverage.get(depth);
+                        fov_moc.intersection(partially_degraded_moc).degraded(depth)
+                    } else {
+                        let full_moc = coverage.get_full_moc();
+                        fov_moc.intersection(full_moc)
+                    };
+
+                    Some(HEALPixCoverage(moc))
                 };
 
                 (layer.clone(), moc)

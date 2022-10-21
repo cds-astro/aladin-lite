@@ -1138,7 +1138,6 @@ impl App {
         });
 
         self.look_for_new_tiles();
-
         self.request_redraw = true;
     }
 

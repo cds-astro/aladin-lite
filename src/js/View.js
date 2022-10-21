@@ -708,7 +708,7 @@ export let View = (function () {
 
                 // zoom
                 const dist = Math.sqrt(Math.pow(e.originalEvent.touches[0].clientX - e.originalEvent.touches[1].clientX, 2) + Math.pow(e.originalEvent.touches[0].clientY - e.originalEvent.touches[1].clientY, 2));
-                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), this.fovLimit);
+                const fov = Math.min(Math.max(view.pinchZoomParameters.initialFov * view.pinchZoomParameters.initialDistance / dist, 0.00002777777), view.fovLimit);
                 view.setZoom(fov);
 
                 return;
@@ -730,7 +730,6 @@ export let View = (function () {
                     }
                     lastMouseMovePos = pos;
                 }
-
 
                 if (!view.dragging && !view.mode == View.SELECT) {
                     // objects under the mouse ?

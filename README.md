@@ -12,19 +12,36 @@ More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/Alad
 
 This repo contains the Aladin Lite v3 source code and specifically the code of its new WebGL core written in Rust.
 
-## How to test it ?
+# How to test it ?
 
-You can test it [here](https://bmatthieu3.github.io/hips_webgl_renderer/test_moc_moll.html)!
+Aladin Lite v3 beta is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).
+The code source is currently under the `develop` branch of this repository.
 
-For Safari users only: make sure to enable WebGL2 experimental feature and refresh the page once it is done. You can find it in the Developer Menu > Experimental Features > WebGL2.
-Safari will soon [enable WebGL2 by default](https://developer.apple.com/safari/technology-preview/release-notes/).
+If you want to embed it into your webpage, please include [the javascript script of Aladin Lite v3](https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js) into your project. API differences from the v2 are minimal, here is a snippet of code you can use to embed it into your webpages:
 
-Do not hesitate to give a feedback either by sending a mail to:
+```js
+<!doctype html>
+<html>
+<head>
+    <!-- Mandatory when setting up Aladin Lite v3 for a smartphones/tablet usage -->
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+</head>
+<body>
 
-- matthieu.baumann@astro.unistra.fr / baumannmatthieu0@gmail.com
-- thomas.boch@astro.unistra.fr
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
 
-or simply by posting an issue in this repo.
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
+    });
+</script>
+
+</body>
+</html>
+```
 
 ## Goals of v3
 
@@ -32,9 +49,7 @@ or simply by posting an issue in this repo.
 
 - Remove jQuery dep
 
-- UI dev, using VueJS, better support for smartphones
-
-- package the core and its API as a WASM npm package
+- UI dev, better support for smartphones
 
 - FITS images support
 

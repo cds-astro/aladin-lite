@@ -81,6 +81,7 @@ mod survey;
 mod tile_fetcher;
 mod time;
 mod fifo_cache;
+mod wcs;
 
 use crate::{
     camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
@@ -103,6 +104,8 @@ use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
+
+use al_core::{info, inforec, log};
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -785,8 +788,12 @@ impl WebClient {
     pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
         //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
         use al_core::image::fits::FitsBorrowed;
-        let fits = FitsBorrowed::new(raw_bytes);
+        let fits = FitsBorrowed::new(raw_bytes)?;
 
+        use crate::wcs::WCS2;
+        let wcs = WCS2::new(&fits);
+
+        al_core::info!(wcs);
         Ok(())
     }
 

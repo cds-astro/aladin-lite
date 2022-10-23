@@ -16,6 +16,7 @@ pub struct FitsBorrowed<'a> {
     fits: FitsMemAligned<'a>,
 }
 
+use fitsrs::PrimaryHeader;
 impl<'a> FitsBorrowed<'a> {
     pub fn new(fits_raw_bytes: &'a [u8]) -> Result<Self, JsValue> {
         let fits = unsafe {
@@ -71,6 +72,10 @@ impl<'a> FitsBorrowed<'a> {
             // Allocation info of the layout            
             fits
         })
+    }
+
+    pub fn get_header(&self) -> &PrimaryHeader<'_> {
+        &self.fits.header
     }
 
     pub fn get_size(&self) -> &Vector2<i32> {

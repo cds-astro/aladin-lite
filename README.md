@@ -9,6 +9,38 @@ Aladin Lite is built to be easily embeddable in any web page. It powers astronom
 
 More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
 
+
+# How to test the V3 ?
+
+Aladin Lite v3 beta is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).
+The code source is currently under the `develop` branch of this repository.
+
+If you want to embed it into your webpage, please include [the javascript script of Aladin Lite v3](https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js) into your project. API differences from the v2 are minimal, here is a snippet of code you can use to embed it into your webpages:
+
+```js
+<!doctype html>
+<html>
+<head>
+    <!-- Mandatory when setting up Aladin Lite v3 for a smartphones/tablet usage -->
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", cooFrame: 'equatorial', showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
+    });
+</script>
+
+</body>
+</html>
+```
+
 ## Source code
 
 Source code is available in the ``src`` directory.

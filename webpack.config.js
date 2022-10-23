@@ -77,7 +77,7 @@ module.exports = {
             //
             // the mode `development` makes `wasm-pack` build in `debug` mode.
             // the mode `production` makes `wasm-pack` build in `release` mode.
-            forceMode: "production",
+            forceMode: "development",
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
@@ -142,6 +142,6 @@ module.exports = {
         ],
     },
     //mode: 'development',
-    mode: 'production',
+    mode: 'development',
     //devtool: 'source-map'
 };

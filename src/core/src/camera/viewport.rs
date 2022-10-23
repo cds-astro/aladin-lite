@@ -167,9 +167,12 @@ impl CameraViewPort {
     }
 
     fn set_canvas_size(&self, projection: ProjectionType) {
+        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         self.gl.scissor(0, 0, self.width as i32, self.height as i32);
-
+        
         let canvas = self.gl
             .canvas()
             .unwrap_abort()
@@ -182,10 +185,7 @@ impl CameraViewPort {
         self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.update_scissor(projection);
-    }
-
-    fn update_scissor(&self, projection: ProjectionType) {
+        // Update the scissor
         let (wc, hc) = projection.clip_size();
 
         let tl_c = Vector2::new(-wc * 0.5, hc * 0.5);
@@ -206,6 +206,7 @@ impl CameraViewPort {
 
         let w = (tr_s.x - tl_s.x).min(self.width as f64);
         let h = (br_s.y - tr_s.y).min(self.height as f64);
+
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
     }
 
@@ -216,7 +217,6 @@ impl CameraViewPort {
             .unwrap_abort()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap_abort();
-
 
         self.width = (width as f32) * self.dpi;
         self.height = (height as f32) * self.dpi;
@@ -231,7 +231,6 @@ impl CameraViewPort {
             .unwrap_abort();
 
         self.aspect = width / height;
-
 
         // Compute the new clip zoom factor
         self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
@@ -251,7 +250,6 @@ impl CameraViewPort {
             self,
         ));
         self.set_canvas_size(projection);
-
     }
 
     pub fn set_aperture(&mut self, aperture: Angle<f64>, projection: ProjectionType) {
@@ -315,9 +313,7 @@ impl CameraViewPort {
             self,
         ));
 
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
-        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
-        self.update_scissor(projection);
+        self.set_canvas_size(projection);
     }
 
     pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, projection: ProjectionType) {

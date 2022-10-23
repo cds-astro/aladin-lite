@@ -19,7 +19,6 @@ use crate::{
     survey::ImageSurveys,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
-    utils,
 };
 
 use al_core::WebGlContext;
@@ -77,7 +76,9 @@ pub struct App {
     out_of_fov: bool,
     //tasks_finished: bool,
     catalog_loaded: bool,
-    start_time_frame: f32,
+    start_time_frame: Time,
+    last_time_request_for_new_tiles: Time,
+    request_for_new_tiles: bool,
 
     _final_rendering_pass: RenderPass,
     _fbo_view: FrameBufferObject,
@@ -181,7 +182,10 @@ impl App {
         let tile_fetcher = TileFetcherQueue::new();
 
         //let ui = Gui::new(aladin_div_name, &gl)?;
-        let start_time_frame = crate::utils::get_current_time();
+        let start_time_frame = Time::now();
+        let last_time_request_for_new_tiles = Time::now();
+
+        let request_for_new_tiles = true;
 
         let moc = MOC::new(&gl);
 
@@ -193,6 +197,8 @@ impl App {
 
             camera,
 
+            last_time_request_for_new_tiles,
+            request_for_new_tiles,
             downloader,
             surveys,
 
@@ -228,7 +234,6 @@ impl App {
 
     fn look_for_new_tiles(&mut self) {
         // Move the views of the different active surveys
-        self.surveys.refresh_views(&mut self.camera);
         self.tile_fetcher.clear();
         // Loop over the surveys
         for (_, survey) in self.surveys.iter_mut() {
@@ -524,7 +529,7 @@ impl App {
             axis,
         }) = self.inertial_move_animation
         {
-            let t = ((utils::get_current_time() - time_start_anim.as_millis()) / 1000.0) as f64;
+            let t = ((Time::now() - time_start_anim).as_millis() / 1000.0) as f64;
 
             // Undamped angular frequency of the oscillator
             // From wiki: https://en.wikipedia.org/wiki/Harmonic_oscillator
@@ -534,21 +539,21 @@ impl App {
             // * k is the stiffness of the ressort
             // * m is its mass
             let w0 = 5.0;
-            let d1 = Angle(0.0);
             // The angular distance goes from d0 to 0.0
-            let d = d1 + (d0 - d1) * (w0 * t + 1.0) * ((-w0 * t).exp());
+            let d = d0 * ((-w0 * t).exp());
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
 
             self.camera.rotate(&axis, d, self.projection);
-            self.look_for_new_tiles();
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
             // speed
             let thresh: Angle<f64> = d0 * 1e-3;
             if d < thresh {
                 self.inertial_move_animation = None;
+                // When the inertia is stopped we can look for new tiles
+                self.request_for_new_tiles = true;
             }
         }
 
@@ -568,7 +573,7 @@ impl App {
             let mut num_tile_received = 0;
             let mut tile_copied = false;
             for rsc in rscs.into_iter() {
-                if !has_camera_moved || crate::utils::get_current_time() - self.start_time_frame < 24.0 || !tile_copied {
+                if !has_camera_moved || (Time::now() - self.start_time_frame < DeltaTime::from(24.0)) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
                             tile_copied = true;
@@ -650,7 +655,7 @@ impl App {
                                 if let Some(moc) = &*moc.lock().unwrap_abort() {
                                     survey.set_moc(moc.clone());
 
-                                    self.look_for_new_tiles();
+                                    self.request_for_new_tiles = true;
                                     self.request_redraw = true;
                                 };
                             }
@@ -669,6 +674,18 @@ impl App {
             //self.surveys.add_resolved_tiles(resolved_tiles);
             // 3. Try sending new tile requests after
             //self.downloader.try_sending_tile_requests()?;
+        }
+
+        // Then, check for new tiles
+        if has_camera_moved {
+            self.surveys.refresh_views(&mut self.camera);
+        }
+
+        if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500_f32) {
+            self.look_for_new_tiles();
+
+            self.request_for_new_tiles = false;
+            self.last_time_request_for_new_tiles = Time::now();
         }
 
         // - there is at least one tile in its blending phase
@@ -692,12 +709,11 @@ impl App {
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
             // Catalogues update
-            if let Some(view) = self.surveys.get_view() {
+            /*if let Some(view) = self.surveys.get_view() {
                 self.manager.update(&self.camera, view);
-            }
+            }*/
             // MOCs update
             self.moc.update(&self.camera, self.projection);
-
             self.grid.update(&self.camera, self.projection);
         }
 
@@ -740,7 +756,7 @@ impl App {
     }
 
     pub(crate) fn draw(&mut self, force_render: bool) -> Result<(), JsValue> {
-        self.start_time_frame = crate::utils::get_current_time();
+        self.start_time_frame = Time::now();
 
         /*let scene_redraw = self.rendering | force_render;
         let mut ui = self.ui.lock();
@@ -869,7 +885,7 @@ impl App {
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
         self.request_redraw = true;
         self.grid.update(&self.camera, self.projection);
 
@@ -921,7 +937,7 @@ impl App {
         
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
 
         self.request_redraw = true;
 
@@ -938,7 +954,7 @@ impl App {
         // Recompute clip zoom factor
         self.surveys.set_projection(projection);
 
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
         self.request_redraw = true;
     }
 
@@ -985,7 +1001,7 @@ impl App {
         //self.fbo_ui.resize(w as usize, h as usize);
 
         // launch the new tile requests
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
         self.manager.set_kernel_size(&self.camera);
 
         self.request_redraw = true;
@@ -1042,7 +1058,7 @@ impl App {
 
     pub(crate) fn set_coo_system(&mut self, coo_system: CooSystem) {
         self.camera.set_coo_system(coo_system, self.projection);
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
 
         self.request_redraw = true;
     }
@@ -1086,7 +1102,7 @@ impl App {
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
         self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, self.projection);
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one
         self.inertial_move_animation = None;
@@ -1127,18 +1143,16 @@ impl App {
 
         // Angular distance between the previous and current
         // center position
-        let x = self.prev_cam_position;
-        let axis = x.cross(center).normalize();
-        let d0 = math::vector::angle3(&x, &center);
+        let axis = self.prev_cam_position.cross(center).normalize();
+
+        let delta_time = (now - time_of_last_move).0 as f64;
+        let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
-            d0,
+            d0: delta_angle / delta_time,
             axis,
             time_start_anim: Time::now(),
         });
-
-        self.look_for_new_tiles();
-        self.request_redraw = true;
     }
 
     /*fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {
@@ -1160,7 +1174,7 @@ impl App {
     pub(crate) fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
         self.camera.set_rotation_around_center(theta.into(), self.projection);
         // New tiles can be needed and some tiles can be removed
-        self.look_for_new_tiles();
+        self.request_for_new_tiles = true;
 
         self.request_redraw = true;
     }
@@ -1173,9 +1187,9 @@ impl App {
         // For the moment, no animation is triggered.
         // The fov is directly set
         self.camera.set_aperture(fov, self.projection);
-        self.look_for_new_tiles();
-
+        self.request_for_new_tiles = true;
         self.request_redraw = true;
+
     }
 
     /*pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {
@@ -1201,7 +1215,7 @@ impl App {
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
                     self.camera.rotate(&(-axis), d, self.projection);
-                    self.look_for_new_tiles();
+                    self.request_for_new_tiles = true;
                 }
                 return;
             }

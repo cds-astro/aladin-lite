@@ -149,7 +149,7 @@ export let View = (function () {
         this.mocs = [];
         // reference to all overlay layers (= catalogs + overlays + mocs)
         this.allOverlayLayers = []
-
+        //console.log("alv3 starting...")
 
 
         //this.fixLayoutDimensions();

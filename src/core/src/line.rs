@@ -65,7 +65,7 @@ pub fn subdivide_along_longitude_and_latitudes(
             let ab_l = ab.magnitude2();
             let bc_l = bc.magnitude2();
 
-            if ab_l < 1e-6 || bc_l < 1e-6 {
+            if ab_l < 1e-5 || bc_l < 1e-5 {
                 return;
             }
 

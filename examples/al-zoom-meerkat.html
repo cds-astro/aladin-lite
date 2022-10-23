@@ -23,13 +23,11 @@
         aladin.setOverlayImageLayer(meerkat)
         aladin.setProjection("MOL")
 
-        let fov = 360;
-        setTimeout(function zoom() {
-            fov *= 0.995;
-            aladin.setFov(fov);
-
+        let fov = 1000;
+        setInterval(function zoom() {
             if (fov > 1) {
-                setTimeout(zoom, 10)
+                fov *= 0.995;
+                aladin.setFov(fov);
             }
         }, 10);
 

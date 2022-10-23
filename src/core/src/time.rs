@@ -12,6 +12,12 @@ impl Time {
     }
 }
 
+impl From<f32> for DeltaTime {
+    fn from(x: f32) -> Self {
+        DeltaTime(x)
+    }
+}
+
 impl Eq for Time {}
 
 use core::ops::Sub;
@@ -32,6 +38,10 @@ impl DeltaTime {
 
     pub fn zero() -> Self {
         DeltaTime(0.0)
+    }
+
+    pub fn as_millis(&self) -> f32 {
+        self.0
     }
 }
 

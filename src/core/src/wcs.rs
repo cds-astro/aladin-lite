@@ -139,49 +139,52 @@ impl WCS2 {
 
         let pc = Matrix2::new(pc11, pc21, pc12, pc22);
         let pc_inv = pc.transpose();
+
         // Native to celestial coordinates matrix
         let (alpha_p, delta_p, phi_p) = if ctype_proj.is_zenithal() {
-            let alpha_p = crval1.to_radians();
-            let delta_p = crval2.to_radians();
-
-            Ok((crval1, crval2, lonpole.to_radians()))
+            Ok((crval1.to_radians(), crval2.to_radians(), lonpole.to_radians()))
         } else {
             Err("cylindrical alpha_p, delta_p, phi_p not yet implemented. See p1080 of the reference paper")
         }?;
 
-        let (s_ap, c_ap) = alpha_p.sin_cos();
-        let (s_dp, c_dp) = delta_p.sin_cos();
-        let (s_pp, c_pp) = phi_p.sin_cos();
+        // (Y-X'-Y'') Euler angles matrix
+        let a = -alpha_p;
+        let b = delta_p;
+        let c = -phi_p + crate::math::PI;
 
-        let r11 = -s_ap * s_pp - c_ap * c_pp * s_dp;
-        let r12 = c_ap * s_pp - s_ap * c_pp * s_dp;
-        let r13 = c_pp * c_dp;
-        
-        let r21 = s_ap * c_pp - c_ap * s_pp * s_dp;
-        let r22 = -c_ap * c_pp - s_ap * s_pp * s_dp;
-        let r23 = s_pp * c_dp;
+        let (s1, c1) = c.sin_cos();
+        let (s2, c2) = b.sin_cos();
+        let (s3, c3) = a.sin_cos();
 
-        let r31 = c_ap * c_dp;
-        let r32 = s_ap * c_dp;
-        let r33 = s_dp;
+        let r11 = c1*c3 - c2*s1*s3;
+        let r12 = s1*s2;
+        let r13 = c1*s3 + c2*c3*s1;
+
+        let r21 = s2*s3;
+        let r22 = c2;
+        let r23 = -c3*s2;
+
+        let r31 = -c3*s1 - c1*c2*s3;
+        let r32 = c1*s2;
+        let r33 = c1*c2*c3 - s1*s3;
 
         let r = Matrix4::new(
-            r31, r11, r21, 0.0,
-            r32, r12, r22, 0.0,
-            r33, r13, r23, 0.0,
+            r11, r21, r31, 0.0,
+            r12, r22, r32, 0.0,
+            r13, r23, r33, 0.0,
             0.0, 0.0, 0.0, 1.0
         );
         let r_inv = r.transpose();
         Ok(WCS2 {
             crpix: Vector2::new(crpix1, crpix2),
-            crval: Vector2::new(crval1, crval2),
-            cdelt: Vector2::new(cdelt1, cdelt2),
+            crval: Vector2::new(crval1.to_radians(), crval2.to_radians()),
+            cdelt: Vector2::new(cdelt1.to_radians(), cdelt2.to_radians()),
             pc,
             pc_inv,
             r,
             r_inv,
-            lonpole,
-            latpole,
+            lonpole: lonpole.to_radians(),
+            latpole: latpole.to_radians(),
             ctype_coo_ref,
             ctype_proj,
             radesys
@@ -194,15 +197,15 @@ impl WCS2 {
         let p_rot = self.pc * p_off;
 
         Vector2::new(
-            (p_rot.x * self.cdelt.x).to_radians(),
-            (p_rot.y * self.cdelt.y).to_radians(),
+            -p_rot.x * self.cdelt.x,
+            p_rot.y * self.cdelt.y,
         )
     }
 
     fn interm_world_to_pixel_coordinates(&self, x: &Vector2<f64>) -> Vector2<f64> {
         let p_rot = Vector2::new(
-            x.x.to_degrees() / self.cdelt.x,
-            x.y.to_degrees() / self.cdelt.y,
+            -x.x / self.cdelt.x,
+            x.y / self.cdelt.y,
         );
 
         let p_off = self.pc_inv * p_rot;
@@ -334,4 +337,73 @@ enum RADESYS {
     FK4_NO_E,
     // Geocentric apparent place, IAU 1984 system
     GAPPT,
+}
+
+ mod tests {
+    use std::fs::File;
+    use std::io::Read;
+
+    use cgmath::Vector2;
+    use crate::wcs::WCS2;
+    use al_core::image::fits::FitsBorrowed;
+
+    macro_rules! assert_delta {
+        ($x:expr, $y:expr, $d:expr) => {
+            if ($x - $y).abs() > $d { assert!(false); }
+        }
+    }
+
+    #[test]
+    fn proj_deproj_round_trip() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let p = Vector2::new(0.0, 0.0);
+        let xyz = wcs.deproj(&p).unwrap().unwrap();
+        let p_prim = wcs.proj(&xyz).unwrap().unwrap();
+
+        assert_delta!(p.x, p_prim.x, 1e-6);
+        assert_delta!(p.y, p_prim.y, 1e-6);
+    }
+
+    use crate::math::angle::Angle;
+    #[test]
+    fn deproj() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let p = Vector2::new(1500.0, 1500.0);
+        let xyz = wcs.deproj(&p).unwrap().unwrap();
+
+        let (Angle(lon), Angle(lat)) = crate::math::lonlat::xyzw_to_radec(&xyz);
+
+        assert_delta!(lon, wcs.crval.x, 1e-6);
+        assert_delta!(lat, wcs.crval.y, 1e-6);
+    }
+
+    use crate::LonLatT;
+    use crate::ArcDeg;
+    #[test]
+    fn proj() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let xyz = LonLatT::new(Angle(wcs.crval.x), Angle(wcs.crval.y)).vector();
+        let p = dbg!(wcs.proj(&xyz).unwrap().unwrap());
+
+        assert_delta!(p.x, 1500.0, 1e-6);
+        assert_delta!(p.y, 1500.0, 1e-6);
+    }
 }

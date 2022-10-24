@@ -1007,12 +1007,13 @@ impl Projection for HEALPix {
 }
 
 mod tests {
+    use crate::Abort;
     #[test]
     fn generate_maps() {
         use super::*;
         use cgmath::Vector2;
         use image_decoder::{Rgb, RgbImage};
-        fn generate_projection_map<P: Projection>(filename: &str) {
+        fn generate_projection_map(filename: &str, projection: ProjectionType) {
             let (w, h) = (1024.0, 1024.0);
             let mut img = RgbImage::new(w as u32, h as u32);
             for x in 0..(w as u32) {
@@ -1022,7 +1023,7 @@ mod tests {
                         2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
                         2.0 * ((xy.y as f64) / (h as f64)) - 1.0,
                     );
-                    let rgb = if let Some(pos) = P::clip_to_world_space(&clip_xy) {
+                    let rgb = if let Some(pos) = projection.clip_to_world_space(&clip_xy) {
                         let pos = pos.truncate().normalize();
                         Rgb([
                             ((pos.x * 0.5 + 0.5) * 256.0) as u8,
@@ -1039,12 +1040,12 @@ mod tests {
             img.save(filename).unwrap_abort();
         }
 
-        generate_projection_map::<Aitoff>("./../img/aitoff.png");
-        generate_projection_map::<Gnomonic>("./../img/tan.png");
-        generate_projection_map::<AzimuthalEquidistant>("./../img/arc.png");
-        generate_projection_map::<Mollweide>("./../img/mollweide.png");
-        generate_projection_map::<Mercator>("./../img/mercator.png");
-        generate_projection_map::<Orthographic>("./../img/sinus.png");
-        generate_projection_map::<HEALPix>("./../img/healpix.png");
+        generate_projection_map("./../img/aitoff.png", ProjectionType::Aitoff(Aitoff));
+        generate_projection_map("./../img/tan.png", ProjectionType::Gnomonic(Gnomonic));
+        generate_projection_map("./../img/arc.png", ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant));
+        generate_projection_map("./../img/mollweide.png", ProjectionType::Mollweide(Mollweide));
+        generate_projection_map("./../img/mercator.png", ProjectionType::Mercator(Mercator));
+        generate_projection_map("./../img/sinus.png", ProjectionType::Orthographic(Orthographic));
+        generate_projection_map("./../img/healpix.png", ProjectionType::HEALPix(HEALPix));
     }
 }

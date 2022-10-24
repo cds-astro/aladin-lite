@@ -1,5 +1,5 @@
 use fitsrs::PrimaryHeader;
-use cgmath::{Matrix2, Vector2, Vector4};
+use cgmath::{Matrix2, Matrix4, Matrix, Vector2, Vector4};
 
 use al_core::image::fits::FitsBorrowed;
 use crate::{Gnomonic, Orthographic};
@@ -17,6 +17,8 @@ pub struct WCS2 {
     cdelt: Vector2<f64>,
     // Linear transformation matrix (m_ij)
     pc: Matrix2<f64>,
+    // Inv of the linear transformation matrix (m_ij)
+    pc_inv: Matrix2<f64>,
     // Coordinate value at reference point [deg]
     crval: Vector2<f64>,
     // Coordinate reference (radec, galactic lonlat, ...)
@@ -29,6 +31,11 @@ pub struct WCS2 {
     latpole: f64,
     // Coordinate system
     radesys: RADESYS,
+
+    // Coordinate rotation matrix coding the native to celestial spherical coordinates
+    r: Matrix4<f64>,
+    // Inv of r
+    r_inv: Matrix4<f64>
 }
 
 use fitsrs::{FITSCardValue, FITSCard};
@@ -52,22 +59,33 @@ impl WCS2 {
         let crpix1 = get_card_float_value(hdu, "CRPIX1", 0.0)?;
         let crpix2 = get_card_float_value(hdu, "CRPIX2", 0.0)?;
 
-        let pc11 = get_card_float_value(hdu, "PC1_1", 1.0)?;
-        let pc12 = get_card_float_value(hdu, "PC1_2", 0.0)?;
-        let pc21 = get_card_float_value(hdu, "PC2_1", 0.0)?;
-        let pc22 = get_card_float_value(hdu, "PC2_2", 1.0)?;
-
         let cdelt1 = get_card_float_value(hdu, "CDELT1", 1.0)?;
         let cdelt2 = get_card_float_value(hdu, "CDELT2", 1.0)?;
 
         let crval1 = get_card_float_value(hdu, "CRVAL1", 0.0)?;
         let crval2 = get_card_float_value(hdu, "CRVAL2", 0.0)?;
 
-        let lonpole = get_card_float_value(hdu, "LONPOLE", 0.0)?;
-        let latpole = get_card_float_value(hdu, "LATPOLE", 0.0)?;
-
         let ctype1 = get_card_str_value(hdu, "CTYPE1")?;
         let ctype2 = get_card_str_value(hdu, "CTYPE2")?;
+
+        let ctype_proj = match &ctype1[5..8] {
+            /* Zenithal projections */ 
+            // zenithal/azimuthal perspective
+            "AZP" => Ok(CTYPE_PROJ::AZP),
+            // slant zenithal perspective
+            "SZP" => Ok(CTYPE_PROJ::SZP),
+            // Gnomonic
+            "TAN" => Ok(CTYPE_PROJ::TAN),
+            // Orthographic
+            "SIN" => Ok(CTYPE_PROJ::SIN),
+
+            /* Cylindrical projections */ 
+            // Mollweide’s projection
+            "MOL" => Ok(CTYPE_PROJ::MOL),
+            // Hammer-Aitoff
+            "AIT" => Ok(CTYPE_PROJ::AIT),
+            _ => Err("CTYPE last 3-character not recognized")
+        }?;
 
         let ctype_coo_ref = match (&ctype1[0..4], &ctype2[0..4]) {
             ("RA--", "DEC-") => Ok(CTYPE_COO_REF::RA_DEC),
@@ -78,19 +96,26 @@ impl WCS2 {
             _ => Err("CTYPE first 4-character not recognized")
         }?;
 
-        let ctype_proj = match &ctype1[5..8] {
-            // zenithal/azimuthal perspective
-            "AZP" => Ok(CTYPE_PROJ::AZP),
-            // slant zenithal perspective
-            "SZP" => Ok(CTYPE_PROJ::SZP),
-            // Gnomonic
-            "TAN" => Ok(CTYPE_PROJ::TAN),
-            // Mollweide’s projection
-            "MOL" => Ok(CTYPE_PROJ::MOL),
-            // Hammer-Aitoff
-            "AIT" => Ok(CTYPE_PROJ::AIT),
-            _ => Err("CTYPE last 3-character not recognized")
-        }?;
+        let default_lonpole = if ctype_proj.is_zenithal() {
+            // For zenithal projection, as theta_0, the latitude of the fiducial point
+            // corresponds to the native point, then lonpole = 0, unless delta_0 equals 90.0
+            if crval2 == 90.0 {
+                0.0
+            } else {
+                180.0
+            }
+        } else if ctype_proj.is_cylindrical() {
+            if crval2 >= 0.0 {
+                0.0
+            } else {
+                180.0
+            }
+        } else {
+            return Err("Other from cylindrical and zenithal projections not yet implemented!");
+        };
+
+        let lonpole = get_card_float_value(hdu, "LONPOLE", default_lonpole)?;
+        let latpole = get_card_float_value(hdu, "LATPOLE", 0.0)?;
 
         let radesys = match get_card_str_value(hdu, "RADESYS")? {
             // International Celestial Reference System
@@ -106,11 +131,55 @@ impl WCS2 {
             _ => Err("Reference system not recognized")
         }?;
 
+        // Linear transformation matrix
+        let pc11 = get_card_float_value(hdu, "PC1_1", 1.0)?;
+        let pc12 = get_card_float_value(hdu, "PC1_2", 0.0)?;
+        let pc21 = get_card_float_value(hdu, "PC2_1", 0.0)?;
+        let pc22 = get_card_float_value(hdu, "PC2_2", 1.0)?;
+
+        let pc = Matrix2::new(pc11, pc21, pc12, pc22);
+        let pc_inv = pc.transpose();
+        // Native to celestial coordinates matrix
+        let (alpha_p, delta_p, phi_p) = if ctype_proj.is_zenithal() {
+            let alpha_p = crval1.to_radians();
+            let delta_p = crval2.to_radians();
+
+            Ok((crval1, crval2, lonpole.to_radians()))
+        } else {
+            Err("cylindrical alpha_p, delta_p, phi_p not yet implemented. See p1080 of the reference paper")
+        }?;
+
+        let (s_ap, c_ap) = alpha_p.sin_cos();
+        let (s_dp, c_dp) = delta_p.sin_cos();
+        let (s_pp, c_pp) = phi_p.sin_cos();
+
+        let r11 = -s_ap * s_pp - c_ap * c_pp * s_dp;
+        let r12 = c_ap * s_pp - s_ap * c_pp * s_dp;
+        let r13 = c_pp * c_dp;
+        
+        let r21 = s_ap * c_pp - c_ap * s_pp * s_dp;
+        let r22 = -c_ap * c_pp - s_ap * s_pp * s_dp;
+        let r23 = s_pp * c_dp;
+
+        let r31 = c_ap * c_dp;
+        let r32 = s_ap * c_dp;
+        let r33 = s_dp;
+
+        let r = Matrix4::new(
+            r31, r11, r21, 0.0,
+            r32, r12, r22, 0.0,
+            r33, r13, r23, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
+        let r_inv = r.transpose();
         Ok(WCS2 {
             crpix: Vector2::new(crpix1, crpix2),
             crval: Vector2::new(crval1, crval2),
             cdelt: Vector2::new(cdelt1, cdelt2),
-            pc: Matrix2::new(pc11, pc21, pc12, pc22),
+            pc,
+            pc_inv,
+            r,
+            r_inv,
             lonpole,
             latpole,
             ctype_coo_ref,
@@ -119,54 +188,96 @@ impl WCS2 {
         })
     }
 
-    pub fn pixel_to_intermediate_world_coordinates(&self, p: &Vector2<f64>) -> Vector2<f64> {
+    /* Pixel <=> projection plane coordinates transformation */
+    fn pixel_to_interm_world_coordinates(&self, p: &Vector2<f64>) -> Vector2<f64> {
         let p_off = p - self.crpix;
         let p_rot = self.pc * p_off;
 
-        let p_s = Vector2::new(
-            p_rot.x * self.cdelt.x,
-            p_rot.y * self.cdelt.y,
-        );
-
-        p_s
+        Vector2::new(
+            (p_rot.x * self.cdelt.x).to_radians(),
+            (p_rot.y * self.cdelt.y).to_radians(),
+        )
     }
 
-    pub fn intermediate_world_to_pixel_coordinates(&self, p: &Vector2<f64>) -> Vector2<f64> {
-        let p_off = p - self.crpix;
-        let p_rot = self.pc * p_off;
-
-        let p_s = Vector2::new(
-            p_rot.x * self.cdelt.x,
-            p_rot.y * self.cdelt.y,
+    fn interm_world_to_pixel_coordinates(&self, x: &Vector2<f64>) -> Vector2<f64> {
+        let p_rot = Vector2::new(
+            x.x.to_degrees() / self.cdelt.x,
+            x.y.to_degrees() / self.cdelt.y,
         );
 
-        p_s
+        let p_off = self.pc_inv * p_rot;
+
+        p_off + self.crpix
     }
 
-    pub fn interm_world_to_celestial_spherical_coordinates(&self, x: &Vector2<f64>) -> Option<Vector4<f64>> {
+    /* Projection plane <=> native spherical coordinates transformation */
+    fn interm_world_to_native_spherical_coordinates(&self, x: &Vector2<f64>) -> Result<Option<Vector4<f64>>, &'static str> {
         match self.ctype_proj {
             // Zenithal/azimuthal perspective
-            CTYPE_PROJ::AZP => unimplemented!(),
+            CTYPE_PROJ::AZP => Err("AZP not implemented yet!"),
             // Slant zenithal perspective
-            CTYPE_PROJ::SZP => unimplemented!(),
+            CTYPE_PROJ::SZP => Err("SZP not implemented yet!"),
             // Gnomonic
             CTYPE_PROJ::TAN => {
-                Gnomonic.clip_to_world_space(x)
+                Ok(Gnomonic.clip_to_world_space(x))
             },
             // Orthographic
             CTYPE_PROJ::SIN => {
-                Orthographic.clip_to_world_space(x)
+                Ok(Orthographic.clip_to_world_space(x))
             },
             // Mollweide’s projection
-            CTYPE_PROJ::MOL => unimplemented!(),
+            CTYPE_PROJ::MOL => Err("MOL not implemented yet!"),
             // Hammer-Aitoff
-            CTYPE_PROJ::AIT => unimplemented!(),
+            CTYPE_PROJ::AIT => Err("AIT not implemented yet!"),
         }
     }
 
-    pub fn pixel_to_celestial_spherical_coordinates(&self, p: &Vector2<f64>) -> Option<Vector4<f64>> {
-        let x = self.pixel_to_intermediate_world_coordinates(p);
-        self.interm_world_to_celestial_spherical_coordinates(&x)
+    fn native_spherical_to_interm_world_coordinates(&self, xyz: &Vector4<f64>) -> Result<Option<Vector2<f64>>, &'static str> {
+        match self.ctype_proj {
+            // Zenithal/azimuthal perspective
+            CTYPE_PROJ::AZP => Err("AZP not implemented yet!"),
+            // Slant zenithal perspective
+            CTYPE_PROJ::SZP => Err("SZP not implemented yet!"),
+            // Gnomonic
+            CTYPE_PROJ::TAN => {
+                Ok(Gnomonic.world_to_clip_space(xyz))
+            },
+            // Orthographic
+            CTYPE_PROJ::SIN => {
+                Ok(Orthographic.world_to_clip_space(xyz))
+            },
+            // Mollweide’s projection
+            CTYPE_PROJ::MOL => Err("MOL not implemented yet!"),
+            // Hammer-Aitoff
+            CTYPE_PROJ::AIT => Err("AIT not implemented yet!"),
+        }
+    }
+
+    /* Native <=> celestial spherical coordinates transformation */
+    fn native_to_celestial_spherical_coordinates(&self, xyz: &Vector4<f64>) -> Vector4<f64> {
+        self.r_inv * xyz
+    }
+
+    fn celestial_to_native_spherical_coordinates(&self, xyz: &Vector4<f64>) -> Vector4<f64> {
+        self.r * xyz
+    }
+
+    pub fn proj(&self, xyz: &Vector4<f64>) -> Result<Option<Vector2<f64>>, &'static str> {
+        let p = self.native_spherical_to_interm_world_coordinates(
+            &self.celestial_to_native_spherical_coordinates(xyz)
+        )?
+        .map(|x| self.interm_world_to_pixel_coordinates(&x));
+
+        Ok(p)
+    }
+
+    pub fn deproj(&self, p: &Vector2<f64>) -> Result<Option<Vector4<f64>>, &'static str> {
+        let xyz = self.interm_world_to_native_spherical_coordinates(
+            &self.pixel_to_interm_world_coordinates(p)
+        )?
+        .map(|xyz| self.native_to_celestial_spherical_coordinates(&xyz));
+
+        Ok(xyz)
     }
 }
 
@@ -193,6 +304,22 @@ enum CTYPE_PROJ {
     MOL,
     // Hammer-Aitoff
     AIT,
+}
+
+impl CTYPE_PROJ {
+    fn is_zenithal(&self) -> bool {
+        match self {
+            CTYPE_PROJ::AZP | CTYPE_PROJ::SZP | CTYPE_PROJ::SIN | CTYPE_PROJ::TAN => true,
+            _ => false
+        }
+    }
+
+    fn is_cylindrical(&self) -> bool {
+        match self {
+            CTYPE_PROJ::MOL | CTYPE_PROJ::AIT => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -166,11 +166,13 @@ impl WCS2 {
         let r33 = s_dp;
 
         let r = Matrix4::new(
-            r31, r11, r21, 0.0,
-            r32, r12, r22, 0.0,
-            r33, r13, r23, 0.0,
+            r11, r21, r31, 0.0,
+            r12, r22, r32, 0.0,
+            r13, r23, r33, 0.0,
             0.0, 0.0, 0.0, 1.0
         );
+        use cgmath::SquareMatrix;
+        //let r = Matrix4::identity();
         let r_inv = r.transpose();
         Ok(WCS2 {
             crpix: Vector2::new(crpix1, crpix2),
@@ -335,3 +337,51 @@ enum RADESYS {
     // Geocentric apparent place, IAU 1984 system
     GAPPT,
 }
+
+ mod tests {
+    use std::fs::File;
+    use std::io::Read;
+
+    use cgmath::Vector2;
+    use crate::wcs::WCS2;
+    use al_core::image::fits::FitsBorrowed;
+
+    macro_rules! assert_delta {
+        ($x:expr, $y:expr, $d:expr) => {
+            if !($x - $y < $d || $y - $x < $d) { panic!(); }
+        }
+    }
+
+    #[test]
+    fn identity() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let p = Vector2::new(1500.0, 1500.0);
+        let xyz = wcs.deproj(&p).unwrap().unwrap();
+        let p_prim = wcs.proj(&xyz).unwrap().unwrap();
+
+        assert_delta!(p.x, p_prim.x, 1e-6);
+        assert_delta!(p.y, p_prim.y, 1e-6);
+    }
+
+    #[test]
+    fn deproj() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let p = Vector2::new(1500.0, 1500.0);
+        let lonlat = wcs.deproj(&p).unwrap().unwrap().lonlat();
+
+        use crate::math::lonlat::LonLat;
+        println!("{:?} {:?}", wcs, lonlat);
+    }
+ }

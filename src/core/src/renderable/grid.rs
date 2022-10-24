@@ -532,7 +532,8 @@ impl GridLine {
                     &Vector2::new(lon, lat.end)
                 ],
                 camera,
-                projection
+                projection,
+                0
             );
 
             let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection);
@@ -563,7 +564,8 @@ impl GridLine {
                     &Vector2::new(lon.end, lat),
                 ],
                 camera,
-                projection
+                projection,
+                0
             );
 
             let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);

@@ -117,10 +117,10 @@ impl HEALPixCell {
             0..=3 => {
                 (((idx_d0 + 1) << (2*self.depth())) - 1) == self.idx()
             },
+            4..=7 => false,
             8..=11 => {
                 (idx_d0 << (2*self.depth())) == self.idx()
             },
-            4..=7 => false,
             _ => unreachable!()
         }
     }

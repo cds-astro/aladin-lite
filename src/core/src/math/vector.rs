@@ -27,3 +27,13 @@ pub fn ccw_tri<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>, c: &Vector2<S>) -> 
 
     a.x*b.y + a.y*c.x + b.x*c.y - c.x*b.y - c.y*a.x - b.x*a.y >= S::zero()
 }
+
+#[inline]
+pub fn det<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>) -> S {
+    a.x * b.y - a.y * b.x
+}
+
+#[inline]
+pub fn dot<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>) -> S {
+    a.x * b.x + a.y * b.y
+}

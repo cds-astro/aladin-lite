@@ -24,7 +24,8 @@ pub fn project_along_longitudes_and_latitudes(
             &Vector2::new(end.0 .0, end.1 .0),
         ],
         camera,
-        projection
+        projection,
+        0
     );
 
     for ndc_vert in s_vert.iter_mut() {
@@ -41,11 +42,13 @@ use crate::CameraViewPort;
 use cgmath::InnerSpace;
 use cgmath::{Vector2, Vector3};
 
+const MAX_ITER: usize = 4;
 pub fn subdivide_along_longitude_and_latitudes(
     vertices: &mut Vec<Vector2<f64>>,
     mp: [&Vector2<f64>; 3],
     camera: &CameraViewPort,
-    projection: ProjectionType
+    projection: ProjectionType,
+    iter: usize,
 ) {
     // Project them. We are always facing the camera
     let aa = math::lonlat::radec_to_xyz(Angle(mp[0].x), Angle(mp[0].y));
@@ -108,23 +111,32 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
 
                 subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
         }
-        (Some(_), Some(_), None) => {
+        (Some(a), Some(b), None) => {
+            if iter >= MAX_ITER {
+                vertices.push(a);
+                vertices.push(b);
+                return;
+            }
+            
             subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((mp[0] + mp[1]) * 0.5), mp[1]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             // and try subdividing a little further
@@ -134,7 +146,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((mp[1] + e) * 0.5), &e],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
@@ -143,17 +156,25 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e, &((mp[2] + e) * 0.5), mp[2]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
         }
-        (None, Some(_), Some(_)) => {
+        (None, Some(b), Some(c)) => {
+            if iter >= MAX_ITER {
+                vertices.push(b);
+                vertices.push(c);
+                return;
+            }
+
             // relay the subdivision to the second half
             subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((mp[1] + mp[2]) * 0.5), mp[2]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             // and try subdividing a little further
@@ -163,7 +184,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e, &((mp[1] + e) * 0.5), mp[1]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
@@ -172,7 +194,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((mp[0] + e) * 0.5), &e],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
         }
@@ -183,7 +206,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((mp[0] + e) * 0.5), &e],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
@@ -192,7 +216,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e, &((mp[1] + e) * 0.5), mp[1]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
 
@@ -203,7 +228,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e, &((mp[2] + e) * 0.5), mp[2]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[2] - mp[1]).magnitude2();
@@ -212,7 +238,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((mp[1] + e) * 0.5), &e],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
         }
@@ -224,7 +251,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
@@ -233,7 +261,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
 
@@ -241,7 +270,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[1] - mp[2]).magnitude2();
@@ -250,7 +280,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
             //}
@@ -261,7 +292,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [mp[0], &((e1 + mp[0]) * 0.5), &e1],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
 
             let half_angle_length_sq = (mp[0] - mp[1]).magnitude2();
@@ -270,7 +302,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [&e1, &((e1 + mp[1]) * 0.5), mp[1]],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
         }
@@ -283,7 +316,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                     vertices,
                     [mp[1], &((e2 + mp[1]) * 0.5), &e2],
                     camera,
-                    projection
+                    projection,
+                    iter + 1
                 );
             }
 
@@ -291,7 +325,8 @@ pub fn subdivide_along_longitude_and_latitudes(
                 vertices,
                 [&e2, &((e2 + mp[2]) * 0.5), mp[2]],
                 camera,
-                projection
+                projection,
+                iter + 1
             );
         }
     }

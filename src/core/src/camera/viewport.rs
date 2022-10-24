@@ -172,7 +172,10 @@ impl CameraViewPort {
 
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         self.gl.scissor(0, 0, self.width as i32, self.height as i32);
-        
+
+        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
         let canvas = self.gl
             .canvas()
             .unwrap_abort()
@@ -181,9 +184,6 @@ impl CameraViewPort {
 
         canvas.set_width(self.width as u32);
         canvas.set_height(self.height as u32);
-
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
-        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // Update the scissor
         let (wc, hc) = projection.clip_size();

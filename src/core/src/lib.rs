@@ -791,9 +791,14 @@ impl WebClient {
         let fits = FitsBorrowed::new(raw_bytes)?;
 
         use crate::wcs::WCS2;
-        let wcs = WCS2::new(&fits);
+        let wcs = WCS2::new(&fits).map_err(|e| JsValue::from_str(e))?;
+        use crate::math::lonlat::LonLat;
+        use crate::math::angle::Angle;
+        let xyz = LonLatT::new(Angle(0.19283736400376558), Angle(0.726503953787)).vector();
 
-        al_core::info!(wcs);
+        let p = wcs.proj(&xyz)?
+            .unwrap();
+        al_core::info!(wcs, p);
         Ok(())
     }
 

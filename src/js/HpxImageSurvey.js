@@ -786,13 +786,13 @@ export let HpxImageSurvey = (function() {
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
         {
-            id: "CDS/P/2MASS/color",
+            id: "P/2MASS/color",
             name: "2MASS colored",
             url: "https://alasky.cds.unistra.fr/2MASS/Color",
             maxOrder: 9,
         },
         {
-            id: "CDS/P/DSS2/color",
+            id: "P/DSS2/color",
             name: "DSS colored",
             url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
             maxOrder: 9,
@@ -952,7 +952,7 @@ export let HpxImageSurvey = (function() {
             maxOrder: 7,
         },
         {
-            id: "CDS/P/allWISE/color",
+            id: "P/allWISE/color",
             name: "AllWISE color",
             url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,

@@ -156,9 +156,6 @@ export let Aladin = (function () {
         // Aladin logo
         new AladinLogo(aladinDiv);
 
-        // Projection selector
-        new ProjectionSelector(aladinDiv, this);
-
         // we store the boxes
         this.boxes = [];
 
@@ -189,9 +186,12 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
+        // Projection selector
+        new ProjectionSelector(aladinDiv, this);
+
         // Set the projection
         let projection = (options && options.projection) || 'SIN';
-        this.view.setProjection(projection)
+        this.setProjection(projection)
 
         let top_px = 30;
 

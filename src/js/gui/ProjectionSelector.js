@@ -40,7 +40,7 @@
          this.mainDiv.classList.add('aladin-projSelection');
  
          parentDiv.appendChild(this.mainDiv);
- 
+         
          this._createComponent();
          this._addListeners();
      }
@@ -53,7 +53,7 @@
         this.selectProjection.empty();
         
         ["SIN", "AIT", "MOL", "MER", "ARC", "TAN", "HPX"].forEach(p => {
-            this.selectProjection.append($("<option />").attr("selected", p == this.aladin.projection).val(p).text(p));
+            this.selectProjection.append($("<option />").val(p).text(p));
         });
         let self = this;
         this.selectProjection.change(function () {

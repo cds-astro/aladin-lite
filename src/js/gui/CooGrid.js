@@ -130,14 +130,14 @@
             }
         });
         ALEvent.COO_GRID_UPDATED.listenedBy(self.aladinDiv, function (e) {
-            let c = e.detail.color;
             let opacity = e.detail.opacity;
 
             if (gridOpacityInput.val() != opacity) {
                 gridOpacityInput.val(opacity);
             }
 
-            let hexColor = Color.rgbToHex(Math.round(255 * c[0]), Math.round(255 * c[1]), Math.round(255 * c[2]));
+            let color = e.detail.color;
+            let hexColor = Color.rgbToHex(Math.round(255 * color.r), Math.round(255 * color.g), Math.round(255 * color.b));
             if (gridColorInput.val() != hexColor) {
                 gridColorInput.val(hexColor);
             }

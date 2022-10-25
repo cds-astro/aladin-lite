@@ -16,6 +16,9 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
+extern crate console_error_panic_hook;
+use std::panic;
+
 pub trait Abort {
     type Item;
     fn unwrap_abort(self) -> Self::Item where Self: Sized;
@@ -132,6 +135,8 @@ impl WebClient {
         shaders: JsValue,
         resources: JsValue,
     ) -> Result<WebClient, JsValue> {
+        panic::set_hook(Box::new(console_error_panic_hook::hook));
+
         let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
         //panic::set_hook(Box::new(console_error_panic_hook::hook));

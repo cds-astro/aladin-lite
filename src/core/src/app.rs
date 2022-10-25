@@ -361,6 +361,8 @@ impl App {
         Ok(())
     }*/
 }
+
+use al_core::{info, inforec, log};
 use al_api::hips::HiPSTileFormat;
 /*#[enum_dispatch(AppType)]
 pub trait AppTrait {
@@ -544,7 +546,6 @@ impl App {
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-
             self.camera.rotate(&axis, d, self.projection);
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
@@ -1145,7 +1146,7 @@ impl App {
         // center position
         let axis = self.prev_cam_position.cross(center).normalize();
 
-        let delta_time = (now - time_of_last_move).0 as f64;
+        let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
         let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
@@ -1209,6 +1210,7 @@ impl App {
                 //let next_pos = w2.truncate();
                 if cur_pos != next_pos {
                     let axis = cur_pos.cross(next_pos).normalize();
+
                     let d = math::vector::angle3(&cur_pos, &next_pos);
                     self.prev_cam_position = self.camera.get_center().truncate();
 

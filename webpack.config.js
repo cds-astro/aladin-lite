@@ -81,7 +81,7 @@ module.exports = {
 
             // Controls plugin output verbosity, either 'info' or 'error'.
             // Defaults to 'info'.
-            pluginLogLevel: 'error'
+            pluginLogLevel: 'info'
         }),
         /*
         // Have this example work in Edge which doesn't ship `TextEncoder` or

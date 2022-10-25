@@ -1593,6 +1593,7 @@ export let View = (function () {
                         imgFormat: s.options.imgFormat.toUpperCase(),
                     };
                 });
+            this.aladin.empty = false;
             this.aladin.webglAPI.setImageSurveys(surveys);
 
             //const fov = this.aladin.webglAPI.getCenter();

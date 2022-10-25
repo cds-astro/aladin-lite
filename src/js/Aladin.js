@@ -102,6 +102,8 @@ export let Aladin = (function () {
             }
         }
 
+        this.empty = true;
+
         this.options = options;
 
         $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
@@ -1336,12 +1338,6 @@ let A = {};
 A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
-
-/*//@API
-// TODO : lecture de properties
-A.imageLayer = function (rootURLOrHiPSDefinition, options) {
-    return new HpxImageSurvey(rootURLOrHiPSDefinition, null, null, options);
-};*/
 
 // @API
 A.source = function (ra, dec, data, options) {

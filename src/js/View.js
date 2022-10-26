@@ -483,19 +483,8 @@ export let View = (function () {
                 return;
             }
 
-            var xymouse = view.imageCanvas.relMouseCoords(e);
-            if (e.originalEvent && e.originalEvent.targetTouches) {
-                view.dragx = e.originalEvent.targetTouches[0].clientX;
-                view.dragy = e.originalEvent.targetTouches[0].clientY;
-            }
-            else {
-                /*
-                view.dragx = e.clientX;
-                view.dragy = e.clientY;
-                */
-                view.dragx = xymouse.x;
-                view.dragy = xymouse.y;
-            }
+            view.dragx = xymouse.x;
+            view.dragy = xymouse.y;
 
             view.dragging = true;
             if (view.mode == View.PAN) {
@@ -763,59 +752,16 @@ export let View = (function () {
             }
             //var xoffset, yoffset;
             var s1, s2;
-            if (e.originalEvent && e.originalEvent.targetTouches) {
-                /*xoffset = e.originalEvent.targetTouches[0].clientX-view.dragx;
-                yoffset = e.originalEvent.targetTouches[0].clientY-view.dragy;
-                var xy1 = AladinUtils.viewToXy(e.originalEvent.targetTouches[0].clientX, e.originalEvent.targetTouches[0].clientY, view.width, view.height, view.largestDim, view.zoomFactor);
-                var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
-
-                pos1 = view.projection.unproject(xy1.x, xy1.y);
-                pos2 = view.projection.unproject(xy2.x, xy2.y);*/
-                s1 = { x: view.dragx, y: view.dragy };
-                s2 = { x: e.originalEvent.targetTouches[0].clientX, y: e.originalEvent.targetTouches[0].clientY };
-            }
-            else {
-                /*
-                xoffset = e.clientX-view.dragx;
-                yoffset = e.clientY-view.dragy;
-
-                xoffset = xymouse.x-view.dragx;
-                yoffset = xymouse.y-view.dragy;
-                var xy1 = AladinUtils.viewToXy(xymouse.x, xymouse.y, view.width, view.height, view.largestDim, view.zoomFactor);
-                var xy2 = AladinUtils.viewToXy(view.dragx, view.dragy, view.width, view.height, view.largestDim, view.zoomFactor);
-                */
-                //pos1 = view.projection.unproject(xy1.x, xy1.y);
-                //pos2 = view.projection.unproject(xy2.x, xy2.y);
-
-                /*pos1 = webglAPI.screenToWorld(view.dragx, view.dragy);
-                pos2 = webglAPI.screenToWorld(xymouse.x, xymouse.y);
-
-                if (pos2 == undefined)  {
-                    return;
-                }*/
-                s1 = { x: view.dragx, y: view.dragy };
-                s2 = { x: xymouse.x, y: xymouse.y };
-            }
-
-
+            s1 = { x: view.dragx, y: view.dragy };
+            s2 = { x: xymouse.x, y: xymouse.y };
 
             // TODO : faut il faire ce test ??
             //            var distSquared = xoffset*xoffset+yoffset*yoffset;
             //            if (distSquared<3) {
             //                return;
             //            }
-            if (e.originalEvent && e.originalEvent.targetTouches) {
-                view.dragx = e.originalEvent.targetTouches[0].clientX;
-                view.dragy = e.originalEvent.targetTouches[0].clientY;
-            }
-            else {
-                view.dragx = xymouse.x;
-                view.dragy = xymouse.y;
-                /*
-                view.dragx = e.clientX;
-                view.dragy = e.clientY;
-                */
-            }
+            view.dragx = xymouse.x;
+            view.dragy = xymouse.y;
 
             if (view.mode == View.SELECT) {
                 view.requestRedraw();

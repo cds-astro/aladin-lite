@@ -188,8 +188,10 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
-        // Projection selector
-        new ProjectionSelector(aladinDiv, this);
+        if (options && (options.showProjectionControl === undefined || options.showProjectionControl === true)) {
+            // Projection selector
+            new ProjectionSelector(aladinDiv, this);
+        }
 
         // Set the projection
         let projection = (options && options.projection) || 'SIN';

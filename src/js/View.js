@@ -408,9 +408,7 @@ export let View = (function () {
         // various listeners
         let onDblClick = function (e) {
             var xymouse = view.imageCanvas.relMouseCoords(e);
-            /*if(view.aladin.webglAPI.posOnUi()) {
-                return;
-            }*/
+
             try {
                 const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
                 var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);

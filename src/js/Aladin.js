@@ -1678,9 +1678,18 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 A.init = (async () => {
-    Aladin.wasmLibs.webgl = await WebGLCtx();
+    const isWebGL2Supported = document
+        .createElement('canvas')
+        .getContext('webgl2');
+
+    // Check for webgl2 support
+    if (isWebGL2Supported) {
+        Aladin.wasmLibs.webgl = await import('../../pkg-webgl2');
+    } else {
+        // WebGL1 not supported
+        // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users
+        throw "WebGL2 not supported by your browser";
+    }
 })();
 
-// this is ugly for sure and there must be a better way (export A ??)
 window.A = A;
-

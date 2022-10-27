@@ -38,7 +38,6 @@ import { AladinUtils } from "./AladinUtils.js";
 import { Utils } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { Stats } from "./libs/Stats.js";
-import { ColorMap } from "./ColorMap.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
@@ -56,14 +55,14 @@ export let View = (function () {
         this.options = aladin.options;
         this.aladinDiv = this.aladin.aladinDiv;
         this.popup = new Popup(this.aladinDiv, this);
-        this.webGL2Support = WebGLCtx.checkForWebGL2Support();
         this.createCanvases();
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
         try {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-            this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
+            const webglCtx = new WebGLCtx(Aladin.wasmLibs.webgl, this.aladinDiv.id);
+            this.aladin.webglAPI = webglCtx.webclient;
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -258,7 +257,7 @@ export let View = (function () {
         this.mouseMoveIncrement = 160 / this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
+        this.imageCtx = this.imageCanvas.getContext("webgl2");
         //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
 

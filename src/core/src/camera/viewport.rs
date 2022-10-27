@@ -169,13 +169,13 @@ impl CameraViewPort {
     }
 
     fn set_canvas_size(&self, projection: ProjectionType) {
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear_color(0.15, 0.15, 0.15, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         self.gl.viewport(0, 0, self.width as i32, self.height as i32);
         self.gl.scissor(0, 0, self.width as i32, self.height as i32);
 
-        self.gl.clear_color(0.08, 0.08, 0.08, 1.0);
+        self.gl.clear_color(0.15, 0.15, 0.15, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         let canvas = self.gl
@@ -210,6 +210,10 @@ impl CameraViewPort {
         let h = (br_s.y - tr_s.y).min(self.height as f64);
 
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
+    }
+
+    pub fn contains_pole(&self) -> bool {
+        self.vertices.contains_pole()
     }
 
     pub fn set_screen_size(&mut self, width: f32, height: f32, projection: ProjectionType) {

@@ -139,7 +139,6 @@ impl WebClient {
 
         let shaders = serde_wasm_bindgen::from_value(shaders)?;
         let resources = serde_wasm_bindgen::from_value(resources)?;
-        //panic::set_hook(Box::new(console_error_panic_hook::hook));
         let gl = WebGlContext::new(aladin_div_name)?;
 
         let shaders = ShaderManager::new(&gl, shaders).unwrap_abort();
@@ -167,15 +166,12 @@ impl WebClient {
         // dt refers to the time taking (in ms) rendering the previous frame
         self.dt = DeltaTime::from_millis(dt);
 
-        // Update the application and get ba    ck the
+        // Update the application and get back the
         // world coordinates of the center of projection in (ra, dec)
         self.app.update(
             // Time of the previous frame rendering
-            self.dt, // Force the update of some elements:
-                    // i.e. the grid
-        )?;
-
-        Ok(())
+            self.dt,
+        )
     }
 
     /// Resize the window

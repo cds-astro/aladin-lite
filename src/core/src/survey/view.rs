@@ -125,26 +125,52 @@ use healpix::coverage::HEALPixCoverage;
 pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &CooSystem) -> HEALPixCoverage {
     if depth <= 1 {
         HEALPixCoverage::allsky(depth)
-    } else if let Some(vertices) = camera.get_vertices() {
-        // The vertices coming from the camera are in a specific coo sys
-        // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
-        let camera_frame = camera.get_system();
-        let vertices = vertices
-            .iter()
-            .map(|v| coosys::apply_coo_system(camera_frame, dst_frame, v))
-            .collect::<Vec<_>>();
-
-        let inside_vertex = camera.get_center();
-        let inside_vertex = coosys::apply_coo_system(camera_frame, dst_frame, inside_vertex);
-
-        // Prefer to query from_polygon with depth >= 2
-        HEALPixCoverage::new(
-            depth,
-            &vertices[..],
-            &inside_vertex.truncate(),
-        )
     } else {
-        HEALPixCoverage::allsky(depth)
+        if let Some(vertices) = camera.get_vertices() {
+            // The vertices coming from the camera are in a specific coo sys
+            // but cdshealpix accepts them to be given in ICRSJ2000 coo sys
+            let camera_frame = camera.get_system();
+            let vertices = vertices
+                .iter()
+                .map(|v| coosys::apply_coo_system(camera_frame, dst_frame, v))
+                .collect::<Vec<_>>();
+
+            // Check if the polygon is too small with respect to the angular size
+            // of a cell at depth order
+            let fov_bbox = camera.get_bounding_box();
+            let d_lon = fov_bbox.get_lon_size();
+            let d_lat = fov_bbox.get_lat_size();
+
+            let size_hpx_cell = crate::healpix::utils::MEAN_HPX_CELL_RES[depth as usize];
+            if d_lon < size_hpx_cell && d_lat < size_hpx_cell {
+                // Polygon is small and this may result in a moc having only a few cells
+                // One can build the moc from a list of cells
+                // This particular case avoids falling into a panic in cdshealpix
+                // See https://github.com/cds-astro/cds-moc-rust/issues/3
+
+                let hpx_idxs_iter = vertices
+                    .iter()
+                    .map(|v| {
+                        let (lon, lat) = crate::math::lonlat::xyzw_to_radec(&v);
+                        cdshealpix::nested::hash(depth, lon.0, lat.0)
+                    });
+
+                HEALPixCoverage::from_hpx_cells(depth, hpx_idxs_iter, Some(vertices.len()))
+            } else {
+                // The polygon is not too small for the depth asked
+                let inside_vertex = camera.get_center();
+                let inside_vertex = coosys::apply_coo_system(camera_frame, dst_frame, inside_vertex);
+
+                // Prefer to query from_polygon with depth >= 2
+                HEALPixCoverage::new(
+                    depth,
+                    &vertices[..],
+                    &inside_vertex.truncate(),
+                )
+            }
+        } else {
+            HEALPixCoverage::allsky(depth)
+        }
     }
 }
 

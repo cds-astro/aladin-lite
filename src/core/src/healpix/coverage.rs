@@ -12,6 +12,7 @@ use crate::healpix::cell::HEALPixCell;
 pub struct HEALPixCoverage(pub Smoc);
 
 use moclib::elemset::range::MocRanges;
+use al_core::{log, info, inforec};
 impl HEALPixCoverage {
     pub fn new(
         // The depth of the smallest HEALPix cells contained in it
@@ -22,6 +23,7 @@ impl HEALPixCoverage {
         // typically the center of projection
         inside: &Vector3<f64>,
     ) -> Self {
+
         let lonlat = vertices
             .iter()
             .map(|vertex| {
@@ -30,9 +32,13 @@ impl HEALPixCoverage {
             })
             .collect::<Vec<_>>();
         let (inside_lon, inside_lat) = math::lonlat::xyz_to_radec(inside);
-
+        
         let moc = RangeMOC::from_polygon_with_control_point(&lonlat[..], (inside_lon.0, inside_lat.0), depth);
+        HEALPixCoverage(moc)
+    }
 
+    pub fn from_hpx_cells(depth: u8, hpx_idx: impl Iterator<Item = u64>, cap: Option<usize>) -> Self {
+        let moc = RangeMOC::from_fixed_depth_cells(depth, hpx_idx, cap);
         HEALPixCoverage(moc)
     }
 

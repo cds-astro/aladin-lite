@@ -205,3 +205,20 @@ pub fn radec_to_basis<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Matrix3
         -theta.sin()
     )
 }
+
+use crate::CameraViewPort;
+use crate::ProjectionType;
+use crate::math::projection::Projection;
+use cgmath::Vector2;
+#[inline]
+pub fn proj(lon: f64, lat: f64, projection: ProjectionType, camera: &CameraViewPort) -> Option<Vector2<f64>> {
+    let xyz = crate::math::lonlat::radec_to_xyz(Angle(lon), Angle(lat));
+    let xyzw = xyz.extend(1.0);
+
+    projection.model_to_normalized_device_space(&xyzw, camera)
+}
+
+#[inline]
+pub fn unproj(p: &Vector2<f64>, projection: ProjectionType, camera: &CameraViewPort) -> Option<(f64, f64)> {
+    todo!();
+}

@@ -959,7 +959,7 @@ export let View = (function () {
             //var dt = now_update - this.prev;
             this.aladin.webglAPI.update(Date.now() - this.then);
         } catch (e) {
-            console.error(e)
+            console.warn(e)
         }
 
         // check whether a catalog has been parsed and

@@ -217,7 +217,6 @@ pub trait Projection
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-        //pos_world_space.x = -pos_world_space.x;
         self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 

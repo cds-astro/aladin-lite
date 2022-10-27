@@ -362,7 +362,6 @@ impl App {
     }*/
 }
 
-use al_core::{info, inforec, log};
 use al_api::hips::HiPSTileFormat;
 /*#[enum_dispatch(AppType)]
 pub trait AppTrait {
@@ -458,6 +457,7 @@ use crate::downloader::request::Resource;
 
 use crate::healpix::cell::HEALPixCell;
 use al_api::color::ColorRGB;
+use al_core::{info, inforec, log};
 impl App {
     pub(crate) fn set_font_color(&mut self, color: ColorRGB) {
         self.surveys.set_font_color(color);
@@ -831,7 +831,7 @@ impl App {
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             // Render the scene
-            gl.clear_color(0.08, 0.08, 0.08, 1.0);
+            gl.clear_color(0.15, 0.15, 0.15, 1.0);
             gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw(camera, shaders, colormaps, self.projection);

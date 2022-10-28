@@ -1044,11 +1044,11 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.increaseZoom = function () {
-        this.view.increaseZoom();
+        this.view.increaseZoom(0.01);
     };
 
     Aladin.prototype.decreaseZoom = function () {
-        this.view.decreaseZoom();
+        this.view.decreaseZoom(0.01);
     };
 
     // @api

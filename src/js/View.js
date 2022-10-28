@@ -780,7 +780,13 @@ export let View = (function () {
 
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
-
+        var eventCount = 0;
+        var eventCountStart;
+        var isTouchPad;
+        var firstZoomDone = false;
+        var scrolling = false;
+        var oldTime = 0;
+        var newTime = 0;
         $(view.catalogCanvas).on('wheel', function (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -788,13 +794,6 @@ export let View = (function () {
             if (view.rightClick) {
                 return;
             }
-            //var xymouse = view.imageCanvas.relMouseCoords(event);
-
-            /*if(view.aladin.webglAPI.posOnUi()) {
-                return;
-            }*/
-            //var xymouse = view.imageCanvas.relMouseCoords(event);
-            //var level = view.zoomLevel;
 
             var delta = event.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
@@ -802,20 +801,59 @@ export let View = (function () {
             if (event.hasOwnProperty('originalEvent')) {
                 delta = -event.originalEvent.deltaY;
             }
-            /*if (delta>0) {
-                level += 1;
-                //zoom
+
+            // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
+            // for detecting the use of a touchpad
+            var isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
+            if (!isTouchPadDefined) {
+                if (eventCount === 0) {
+                    eventCountStart = new Date().getTime();
+                }
+
+                eventCount++;
+
+                if (new Date().getTime() - eventCountStart > 100) {
+                    if (eventCount > 10) {
+                        isTouchPad = true;
+                    } else {
+                        isTouchPad = false;
+                    }
+                    isTouchPadDefined = true;
+                }
             }
-            else {
-                level -= 1;
-                //unzoom
-            }*/
+
             // The value of the field of view is determined
             // inside the backend
-            if (delta > 0.0) {
-                view.increaseZoom();
+
+            const triggerZoom = (amount) => {
+                if (delta > 0.0) {
+                    view.increaseZoom(amount);
+                } else {
+                    view.decreaseZoom(amount);
+                }
+            };
+            
+            if (!isTouchPadDefined) {
+                if (!firstZoomDone) {
+                    // zoom for the first time
+                    triggerZoom(0.003);
+    
+                    firstZoomDone = true;
+                }
             } else {
-                view.decreaseZoom();
+                if (isTouchPad) {
+                    // touchpad
+                    newTime = new Date().getTime();
+
+                    if ( newTime - oldTime > 20 ) {
+                        triggerZoom(0.003);
+
+                        oldTime = new Date().getTime();
+                    }
+                } else {
+                    // mouse 
+                    triggerZoom(0.007);
+                }
             }
 
             if (!view.debounceProgCatOnZoom) {
@@ -1312,10 +1350,9 @@ export let View = (function () {
         this.updateFovDiv();
     };
 
-    View.prototype.increaseZoom = function () {
+    View.prototype.increaseZoom = function (amount) {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.005;
 
         let initialAccDelta = this.pinchZoomParameters.initialAccDelta + amount;
         let new_fov = si / Math.pow(initialAccDelta, alpha);
@@ -1328,10 +1365,9 @@ export let View = (function () {
         this.setZoom(new_fov);
     }
 
-    View.prototype.decreaseZoom = function () {
+    View.prototype.decreaseZoom = function (amount) {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.005;
 
         let initialAccDelta = this.pinchZoomParameters.initialAccDelta - amount;
 

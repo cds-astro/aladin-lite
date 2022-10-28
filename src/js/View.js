@@ -787,6 +787,7 @@ export let View = (function () {
         var scrolling = false;
         var oldTime = 0;
         var newTime = 0;
+        var scrolling;
         $(view.catalogCanvas).on('wheel', function (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -863,8 +864,6 @@ export let View = (function () {
                 }, 300);
             }
             view.debounceProgCatOnZoom();
-            //view.setZoomLevel(level);
-            //view.refreshProgressiveCats();
 
             return false;
         });
@@ -1382,6 +1381,10 @@ export let View = (function () {
 
         this.pinchZoomParameters.initialAccDelta = initialAccDelta;
         this.setZoom(new_fov);
+    }
+
+    View.prototype.setRotation = function(rotation) {
+        this.aladin.webglAPI.setRotationAroundCenter(rotation);
     }
 
     View.prototype.setGridConfig = function (gridCfg) {

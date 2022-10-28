@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: ["P/PanSTARRS/DR1/color-i-r-g"], projection: "AIT", cooFrame: 'galactic', target: "93.2721132 -20.9942421", fov: 1000, fullScreen: true, showCooGrid: true});
+        
+        const chft = aladin.createImageSurvey('CFHT', "CFHT", "https://cds.unistra.fr/~derriere/PR_HiPS/2022_Duc/", null, null, {imgFormat: 'png'});
+        const nircamJWST = aladin.createImageSurvey('Nircam', "Stephans Quintet NIRCam+MIRI", "http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI/", null, null, {imgFormat: 'png'});
+        
+        aladin.setOverlayImageLayer("CFHT");
+        aladin.setOverlayImageLayer("Nircam", "Nircam");
+
+        aladin.getOverlayImageLayer("overlay").toggle();
+        aladin.getOverlayImageLayer("Nircam").toggle();
+
+        let fov = 1000;
+        let rotation = 0;
+
+        setInterval(function zoom() {
+            if (fov > 0.09) {
+                fov *= 0.995;
+                rotation += 0.053;
+
+                aladin.setRotation(rotation)
+                aladin.setFov(fov);
+
+                if (fov < 3 && fov > 0.5) {
+                    let opacity = 1.0 - (fov - 0.5)/(3 - 0.5); 
+                    aladin.getOverlayImageLayer("overlay").setOpacity(opacity);
+                }
+
+                if (fov < 0.5 && fov > 0.1) {
+                    let opacity = 1.0 - (fov - 0.1)/(0.5 - 0.1); 
+                    aladin.getOverlayImageLayer("Nircam").setOpacity(opacity);
+                }
+            }
+        }, 10);
+
+        setInterval(function () {
+            const t = Date.now() / 1000;
+            let lambda = Math.sin(t) * 0.5 + 0.5;
+        })
+    });
+</script>
+
+</body>
+</html>

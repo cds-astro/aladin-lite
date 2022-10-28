@@ -98,6 +98,11 @@ export class Stack {
         let fontColorInput = $('<input type="color">');
         layerBox.append(fontColorInput);
 
+        // Set a default background color
+        const defaultBackgroundClr = '#6699ff';
+        fontColorInput.val(defaultBackgroundClr);
+        self.view.aladin.webglAPI.setFontColor(Color.hexToRgb(defaultBackgroundClr));
+
         let updateFontColor = function () {
             let rgb = Color.hexToRgb(fontColorInput.val());
             self.view.aladin.webglAPI.setFontColor(rgb);

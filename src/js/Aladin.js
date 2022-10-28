@@ -1051,6 +1051,10 @@ export let Aladin = (function () {
         this.view.decreaseZoom(0.01);
     };
 
+    Aladin.prototype.setRotation = function(rotation) {
+        this.view.setRotation(rotation);
+    }
+
     // @api
     // Set the current layer that is targeted
     // Rightclicking for changing the cuts is done the targeted layer

@@ -817,8 +817,8 @@ impl Projection for Gnomonic {
         //if pos_clip_space.x * pos_clip_space.x + pos_clip_space.y * pos_clip_space.y >= 1.0 {
         //    None
         //} else {
-        let x_2d = pos_clip_space.x * PI;
-        let y_2d = pos_clip_space.y * PI;
+        let x_2d = pos_clip_space.x;
+        let y_2d = pos_clip_space.y;
         let r = x_2d * x_2d + y_2d * y_2d;
 
         let z = 1.0 / (1.0 + r).sqrt();
@@ -850,8 +850,8 @@ impl Projection for Gnomonic {
     fn world_to_clip_space_unchecked(&self, pos_world_space: &Vector4<f64>) -> Vector2<f64> {
         let z = pos_world_space.z.abs();
         Vector2::new(
-            (-pos_world_space.x / z) / std::f64::consts::PI,
-            (pos_world_space.y / z) / std::f64::consts::PI,
+            -pos_world_space.x / z,
+            pos_world_space.y / z,
         )
     }
 }

@@ -60,7 +60,7 @@ pub fn project_along_longitudes_and_latitudes(
 }
 use crate::ArcDeg;
 use crate::LonLatT;
-const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.20943951023); // 12 degrees
+const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10943951023); // 12 degrees
 const MAX_ITERATION: usize = 3;
 pub fn subdivide_along_longitude_and_latitudes(
     vertices: &mut Vec<Vector2<f64>>,

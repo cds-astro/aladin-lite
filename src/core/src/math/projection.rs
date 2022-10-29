@@ -307,7 +307,8 @@ pub trait Projection
 impl ProjectionType {
     pub fn aperture_start(&self) -> f64 {
         match self {
-            ProjectionType::Orthographic(_) | ProjectionType::Gnomonic(_) => 180.0,
+            ProjectionType::Orthographic(_) => 180.0,
+            ProjectionType::Gnomonic(_) => 90.0,
             _ => 360.0
         }
     }

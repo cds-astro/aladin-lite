@@ -1407,6 +1407,7 @@ export let View = (function () {
                 ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, { color: gridCfg.color, opacity: gridCfg.opacity });
             }
         }
+
         this.requestRedraw();
     };
 
@@ -1703,7 +1704,7 @@ export let View = (function () {
                 break;
             case "TAN":
                 this.projection.setProjection(ProjectionEnum.TAN);
-                this.fovLimit = 180.0;
+                this.fovLimit = 90.0;
                 break;
             case "ARC":
                 this.projection.setProjection(ProjectionEnum.ARC);

@@ -21,12 +21,13 @@ pub fn project_along_longitudes_and_latitudes(
     }
 
     let num_point_max = if camera.is_allsky() {
-        15
+        12
     } else {
-        if camera.contains_pole() {
-            5
+        let one_deg: Angle<f64> = ArcDeg(40.0).into();
+        if camera.get_aperture() < one_deg && !camera.contains_pole() {
+            2
         } else {
-            3
+            6
         }
     };
 

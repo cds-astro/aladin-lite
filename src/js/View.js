@@ -788,7 +788,7 @@ export let View = (function () {
                 eventCount++;
 
                 if (new Date().getTime() - eventCountStart > 100) {
-                    if (eventCount > 5) {
+                    if (eventCount > 7) {
                         isTouchPad = true;
                     } else {
                         isTouchPad = false;

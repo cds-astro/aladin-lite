@@ -918,7 +918,7 @@ impl ImageSurvey {
         raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
-        camera: &mut CameraViewPort,
+        camera: &CameraViewPort,
         color: &HiPSColor,
         mut opacity: f32,
         colormaps: &Colormaps,
@@ -1194,7 +1194,7 @@ impl ImageSurveys {
 
     pub fn draw(
         &mut self,
-        camera: &mut CameraViewPort,
+        camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         projection: ProjectionType

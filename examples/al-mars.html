@@ -42,7 +42,8 @@
         geoFeatures.addSources(A.source(117.5, 46.7, {name: 'Utopia Basin'}));
         geoFeatures.addSources(A.source(350, -45, {name: 'Noachis Terra'}));
         
-        var landingSites = A.catalog({sourceSize: 16}); aladin.addCatalog(landingSites);
+        var landingSites = A.catalog({sourceSize: 16});
+        aladin.addCatalog(landingSites);
         
         landingSites.addSources([A.marker(-47.95, 22.27, {popupTitle: 'Viking 1', popupDesc: 'Landing date: July 20, 1976 11:53:06'})]);
         landingSites.addSources([A.marker(-125.7, 68.22, {popupTitle: 'Phoenix', popupDesc: 'Landing date: May 25, 2008 23:53:44 UTC'})]);

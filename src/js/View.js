@@ -372,32 +372,6 @@ export let View = (function () {
         this.selectedSurveyLayer = layer;
     };
 
-    View.prototype.updateFovDiv = function () {
-        if (isNaN(this.fov)) {
-            this.fovDiv.html("FoV:");
-            return;
-        }
-        // update FoV value
-        var fovStr;
-        let fov = this.fov;
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
-            fov = 180.0;
-        } else if (fov >= 360.0) {
-            fov = 360.0;
-        }
-
-        if (fov > 1) {
-            fovStr = Math.round(fov * 100) / 100 + "°";
-        }
-        else if (fov * 60 > 1) {
-            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
-        }
-        else {
-            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
-        }
-        this.fovDiv.html("FoV: " + fovStr);
-    }
-
     var createListeners = function (view) {
         var hasTouchEvents = false;
         if ('ontouchstart' in window) {
@@ -1332,21 +1306,8 @@ export let View = (function () {
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
-        const si = 500000.0;
-        const alpha = 40.0;
-        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fovDegrees, 1.0 / alpha);
-        /*if (fovDegrees<0) {
-            return;
-        }*/
-        //const si = 500000.0;
-        //const alpha = 40.0;
-
-        // Erase the field of view state of the backend by
         this.aladin.webglAPI.setFieldOfView(fovDegrees);
-        //var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
-        //this.setZoomLevel(zoomLevel);
         this.updateZoomState();
-        this.updateFovDiv();
     };
 
     View.prototype.increaseZoom = function (amount) {
@@ -1412,10 +1373,41 @@ export let View = (function () {
     };
 
     View.prototype.updateZoomState = function () {
+        // Get the new zoom values from the backend
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
-        this.fov = this.aladin.webglAPI.getFieldOfView();
+        let fov = this.aladin.webglAPI.getFieldOfView();
 
+        // Update the pinch zoom parameters consequently
+        const si = 500000.0;
+        const alpha = 40.0;
+        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fov, 1.0 / alpha);
+
+        // Save it
+        this.fov = fov;
         this.computeNorder();
+
+        // Update the lower left FoV div
+        if (isNaN(this.fov)) {
+            this.fovDiv.html("FoV:");
+            return;
+        }
+        var fovStr;
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
+            fov = 180.0;
+        } else if (fov >= 360.0) {
+            fov = 360.0;
+        }
+
+        if (fov > 1) {
+            fovStr = Math.round(fov * 100) / 100 + "°";
+        }
+        else if (fov * 60 > 1) {
+            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
+        }
+        else {
+            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
+        }
+        this.fovDiv.html("FoV: " + fovStr);
     };
 
     /**
@@ -1724,9 +1716,8 @@ export let View = (function () {
                 this.fovLimit = 1000.0;
         }
         // Change the projection here
-        this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);
-        const fov = this.aladin.webglAPI.getFieldOfView();
-        this.setZoom(fov);
+        this.aladin.webglAPI.setProjection(projectionName);
+        this.updateZoomState();
 
         this.requestRedraw();
     };

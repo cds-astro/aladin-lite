@@ -189,6 +189,8 @@ impl App {
 
         let moc = MOC::new(&gl);
 
+        gl.clear_color(0.15, 0.15, 0.15, 1.0);
+
         Ok(App {
             gl,
             start_time_frame,
@@ -823,16 +825,15 @@ impl App {
         //if scene_redraw || ui_redraw {
         if scene_redraw {
             let shaders = &mut self.shaders;
-            let gl = self.gl.clone();
-            let camera = &mut self.camera;
 
             let grid = &mut self.grid;
             let surveys = &mut self.surveys;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
+            let camera = &self.camera;
             // Render the scene
-            gl.clear_color(0.15, 0.15, 0.15, 1.0);
-            gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            // Clear all the screen first (only the region set by the scissor)
+            self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw(camera, shaders, colormaps, self.projection);
             self.moc.draw(shaders, camera);
@@ -840,7 +841,7 @@ impl App {
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
-            catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
+            //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
             grid.draw(camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
@@ -946,12 +947,11 @@ impl App {
     }
 
     // Width and height given are in pixels
-    pub(crate) fn set_projection(&mut self, projection: ProjectionType, width: f32, height: f32) {
+    pub(crate) fn set_projection(&mut self, projection: ProjectionType) {
         self.projection = projection;
 
         // Recompute the ndc_to_clip
-        self.camera.set_screen_size(width, height, projection);
-        self.camera.set_aperture(self.camera.get_aperture(), projection);
+        self.camera.set_projection(projection);
         // Recompute clip zoom factor
         self.surveys.set_projection(projection);
 

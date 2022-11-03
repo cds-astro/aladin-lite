@@ -17,8 +17,11 @@
 <script type="text/javascript">
     let aladin;
     A.init.then(() => {
-        aladin = A.aladin('#aladin-lite-div', {target: '240 +10.65', cooFrame: 'j2000d', fov: 90, showFrame: false, showCooGrid: true, showLayersControl: false, showGotoControl: false, fullScreen: true});
+        aladin = A.aladin('#aladin-lite-div', {fov: 180, target: '226.79 +18.35', cooFrame: 'j2000d', showFrame: false, showGotoControl: false});
         var mars = aladin.createImageSurvey('Mars', 'Mars', 'http://hips-calculator1.astro.unistra.fr/boch/MARS-CTX/hips', 'j2000', 11);
+        mars.setColormap("yiorbr");
+        mars.setCuts([1, 145]);
+
         aladin.setImageSurvey(mars);
         
         var c = document.createElement('canvas'); c.width = c.height = 11; var ctx = c.getContext('2d'); ctx.beginPath(); ctx.arc(5, 5, 4, 0, 2 * Math.PI, false); ctx.closePath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2; ctx.stroke();

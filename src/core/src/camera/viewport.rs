@@ -32,6 +32,9 @@ pub struct CameraViewPort {
     // should be equal to 2
     dpi: f32,
 
+    // HEALPix depth of 512 large tiles
+    tile_depth: u8,
+
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f64>,
     clip_zoom_factor: f64,
@@ -120,6 +123,8 @@ impl CameraViewPort {
         let rotation_center_angle = Angle(0.0);
         let reversed_longitude = false;
 
+        let tile_depth = 0;
+
         let camera = CameraViewPort {
             // The field of view angle
             aperture,
@@ -155,6 +160,8 @@ impl CameraViewPort {
             // Time when the camera has moved
             // for the last time
             time_last_move,
+
+            tile_depth,
 
             // A reference to the WebGL2 context
             gl,
@@ -264,7 +271,7 @@ impl CameraViewPort {
     pub fn set_projection(&mut self, projection: ProjectionType) {
         // Compute the new clip zoom factor
         self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
-        self.set_aperture(self.get_aperture(), projection);
+        self.set_aperture(self.aperture, projection);
     }
 
     pub fn set_aperture(&mut self, aperture: Angle<f64>, projection: ProjectionType) {
@@ -328,8 +335,38 @@ impl CameraViewPort {
             self,
         ));
 
+        self.compute_tile_depth();
+
         // recompute the scissor with the new aperture
         self.recompute_scissor(projection);
+    }
+
+    fn compute_tile_depth(&mut self) {
+        // Compute a depth from a number of pixels on screen
+        let width = self.width;
+        let aperture = self.aperture.0 as f32;
+
+        let angle_per_pixel = aperture / width;
+
+        let two_power_two_times_depth_pixel =
+            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
+        let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
+
+        //let survey_max_depth = conf.get_max_depth();
+        // The depth of the texture
+        // A texture of 512x512 pixels will have a depth of 9
+        const DEPTH_OFFSET_TEXTURE: u32 = 9;
+        // The depth of the texture corresponds to the depth of a pixel
+        // minus the offset depth of the texture
+        self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+            0_u8
+        } else {
+            (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
+        };
+    }
+
+    pub fn get_tile_depth(&self) -> u8 {
+        self.tile_depth
     }
 
     pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, projection: ProjectionType) {

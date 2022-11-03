@@ -276,8 +276,6 @@ impl MOC {
     }
 
     fn recompute_draw_mocs(&mut self, camera: &CameraViewPort) {
-
-
         let view_depth = self.view.get_depth();
         let depth = view_depth + 5;
 
@@ -495,8 +493,7 @@ impl MOC {
         }
 
         // Compute or retrieve the mocs to render
-        let new_depth = crate::survey::view::depth_from_pixels_on_screen(camera, 512);
-        self.view.refresh(new_depth, CooSystem::ICRSJ2000, camera);
+        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRSJ2000, camera);
 
         if self.view.has_view_changed() {
             self.recompute_draw_mocs(camera);

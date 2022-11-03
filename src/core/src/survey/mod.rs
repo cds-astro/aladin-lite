@@ -644,16 +644,40 @@ impl ImageSurvey {
         let survey_config = self.textures.config();
         
         let last_user_action = camera.get_last_user_action();
-        let mut textures = match last_user_action {
-            UserAction::Unzooming => {
-                UnZoom::get_textures_from_survey(&self.view, &self.textures)
+        let mut textures = {
+            let cells_to_draw = self.view.get_cells();
+            let mut textures = Vec::with_capacity(self.view.num_of_cells());
+    
+            for cell in cells_to_draw {
+                if self.textures.contains(cell) {
+                    let parent_cell = self.textures.get_nearest_parent(cell);
+    
+                    if let Some(ending_cell_in_tex) = self.textures.get(cell) {
+                        if let Some(starting_cell_in_tex) = self.textures.get(&parent_cell) {
+                            textures.push(TextureToDraw::new(
+                                starting_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ));
+                        }
+                    }
+                } else {
+                    let parent_cell = self.textures.get_nearest_parent(cell);
+                    let grand_parent_cell = self.textures.get_nearest_parent(&parent_cell);
+    
+                    if let Some(ending_cell_in_tex) = self.textures.get(&parent_cell) {
+                        if let Some(starting_cell_in_tex) = self.textures.get(&grand_parent_cell) {
+                            textures.push(TextureToDraw::new(
+                                starting_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ));
+                        }
+                    }
+                }
             }
-            UserAction::Zooming => {
-                Zoom::get_textures_from_survey(&self.view, &self.textures)
-            }
-            _ => {
-                Move::get_textures_from_survey(&self.view, &self.textures)
-            }
+
+            textures
         };
 
         if let Some(moc) = self.footprint_moc.as_ref() {
@@ -817,17 +841,16 @@ impl ImageSurvey {
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
         let max_tile_depth = cfg.get_max_tile_depth();
+        let delta_depth = cfg.delta_depth();
 
         let hips_frame = cfg.get_frame();
         // Compute that depth
-        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-        let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+        let camera_tile_depth = camera.get_tile_depth();
         self.depth_tile = camera_tile_depth.min(max_tile_depth);
 
         // Set the depth of the HiPS textures
-        self.depth = if self.depth_tile > cfg.delta_depth() {
-            self.depth_tile - cfg.delta_depth()
+        self.depth = if self.depth_tile > delta_depth {
+            self.depth_tile - delta_depth
         } else {
             0
         };

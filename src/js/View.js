@@ -973,6 +973,7 @@ export let View = (function () {
             console.warn(e)
         }
 
+
         // check whether a catalog has been parsed and
         // is ready to be plot
         let catReady = this.aladin.webglAPI.isCatalogLoaded();

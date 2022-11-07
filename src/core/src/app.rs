@@ -833,7 +833,7 @@ impl App {
             let camera = &self.camera;
             // Render the scene
             // Clear all the screen first (only the region set by the scissor)
-            self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            //self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw(camera, shaders, colormaps, self.projection);
             self.moc.draw(shaders, camera);

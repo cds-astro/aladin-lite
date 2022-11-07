@@ -142,7 +142,11 @@ impl App {
             WebGl2RenderingContext::ONE,
         );
 
-        gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
+        // TODO: https://caniuse.com/?search=scissor is not supported for safari <= 14.1
+        // When it will be supported nearly everywhere, we will need to uncomment this line to
+        // enable it
+        //gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
+
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
@@ -463,7 +467,6 @@ use al_core::{info, inforec, log};
 impl App {
     pub(crate) fn set_font_color(&mut self, color: ColorRGB) {
         self.surveys.set_font_color(color);
-
         self.request_redraw = true;
     }
 
@@ -833,7 +836,7 @@ impl App {
             let camera = &self.camera;
             // Render the scene
             // Clear all the screen first (only the region set by the scissor)
-            //self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw(camera, shaders, colormaps, self.projection);
             self.moc.draw(shaders, camera);

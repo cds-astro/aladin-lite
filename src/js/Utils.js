@@ -48,7 +48,7 @@ function relMouseCoords(event) {
     var currentElement = this;
    
     if (event.offsetX) {
-        return {x: event.offsetX, y:event.offsetY};
+        return {x: event.offsetX, y: event.offsetY};
     } 
     else {
         if (!Utils.cssScale) {
@@ -81,6 +81,7 @@ function relMouseCoords(event) {
         if (e.originalEvent.changedTouches) {
             clientX = e.originalEvent.changedTouches[0].clientX;
             clientY = e.originalEvent.changedTouches[0].clientY;
+
         }
 
         var offsetX = clientX - borderLeftWidth - rect.left;

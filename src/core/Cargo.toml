@@ -19,9 +19,6 @@ members = [
 crate-type = ["cdylib"]
 
 [dependencies]
-#paste = "1.0.9"
-#console_error_panic_hook = "0.1.6"
-#wee_alloc = "0.4.5"
 futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
@@ -31,9 +28,7 @@ moclib = { package = "moc", git = 'https://github.com/cds-astro/cds-moc-rust', b
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 serde-wasm-bindgen = "0.4"
-#num = "*"
-#egui = "*"
-#epi = "*"
+console_error_panic_hook = "0.1.7"
 fitsrs = { package = "fitsrs", git = 'https://github.com/cds-astro/fitsrs', branch = 'async' }
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"

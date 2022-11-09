@@ -2,7 +2,6 @@
 <html>
 <head>
 
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
 </head>
 <body>
 
@@ -13,19 +12,17 @@
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-  let aladin;
-  A.init.then(() => {
+    let aladin;
+    A.init.then(() => {
         // Start up Aladin Lite
         aladin = A.aladin('#aladin-lite-div', {
             fov: 360,
             target: '0 0',
             fullScreen: true,
-            survey: "CDS/P/Mars/Pan-Perseverance-PIA24422",
+            survey: ["fsdfsd", "jfjfj", "jfj", "P/allWISE/color"],
             showCooGrid: true,
-            showCooGridControl: true,
         });
-        aladin.setProjection('MER');
-  });
+    });
 </script>
 
 </body>

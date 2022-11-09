@@ -102,6 +102,8 @@ export let Aladin = (function () {
             }
         }
 
+        this.empty = true;
+
         this.options = options;
 
         $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
@@ -156,9 +158,6 @@ export let Aladin = (function () {
         // Aladin logo
         new AladinLogo(aladinDiv);
 
-        // Projection selector
-        new ProjectionSelector(aladinDiv, this);
-
         // we store the boxes
         this.boxes = [];
 
@@ -189,9 +188,14 @@ export let Aladin = (function () {
             this.view.showCooGrid = true;
         }
 
+        if (options && (options.showProjectionControl === undefined || options.showProjectionControl === true)) {
+            // Projection selector
+            new ProjectionSelector(aladinDiv, this);
+        }
+
         // Set the projection
         let projection = (options && options.projection) || 'SIN';
-        this.view.setProjection(projection)
+        this.setProjection(projection)
 
         let top_px = 30;
 
@@ -1336,12 +1340,6 @@ let A = {};
 A.aladin = function (divSelector, options) {
     return new Aladin($(divSelector)[0], options);
 };
-
-/*//@API
-// TODO : lecture de properties
-A.imageLayer = function (rootURLOrHiPSDefinition, options) {
-    return new HpxImageSurvey(rootURLOrHiPSDefinition, null, null, options);
-};*/
 
 // @API
 A.source = function (ra, dec, data, options) {

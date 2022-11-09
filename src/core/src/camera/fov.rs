@@ -91,6 +91,8 @@ fn create_coverage(vertices: &[Vector4<f64>], inside: &Vector3<f64>, camera_fram
 
     coverage
 }*/
+
+use al_core::{log, info, inforec};
 use crate::ProjectionType;
 impl FieldOfViewVertices {
     pub fn new(
@@ -168,9 +170,6 @@ impl FieldOfViewVertices {
     fn set_great_circles(&mut self, center: &Vector4<f64>) {
         if let Some(vertices) = &self.model_coo {
             self.great_circles = FieldOfViewType::new_polygon(vertices, center);
-            /*if self.great_circles.contains_both_poles() {
-                self.great_circles = FieldOfViewType::Allsky;
-            }*/
         } else {
             self.great_circles = FieldOfViewType::Allsky;
         }

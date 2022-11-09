@@ -1,5 +1,5 @@
 use fitsrs::PrimaryHeader;
-use cgmath::{Matrix2, Matrix4, Matrix, Vector2, Vector4};
+use cgmath::{Matrix2, Matrix4, Matrix, Vector2, Vector4, SquareMatrix};
 
 use al_core::image::fits::FitsBorrowed;
 use crate::{Gnomonic, Orthographic};
@@ -13,12 +13,8 @@ const NAXIS: u8 = 2;
 pub struct WCS2 {
     // Pixel coordinates of a coordinate reference point (r_j)
     crpix: Vector2<f64>,
-    // Coordinate increment at reference point [deg] (s_i)
-    cdelt: Vector2<f64>,
-    // Linear transformation matrix (m_ij)
-    pc: Matrix2<f64>,
-    // Inv of the linear transformation matrix (m_ij)
-    pc_inv: Matrix2<f64>,
+    // Pixel to interm coordianates keywords
+    pixel_interm_params: Pixel2IntermParams,
     // Coordinate value at reference point [deg]
     crval: Vector2<f64>,
     // Coordinate reference (radec, galactic lonlat, ...)
@@ -38,7 +34,30 @@ pub struct WCS2 {
     r_inv: Matrix4<f64>
 }
 
+#[derive(Debug)]
+enum Pixel2IntermParams {
+    CDELT_PC {
+        // Coordinate increment at reference point [deg] (s_i)
+        cdelt: Vector2<f64>,
+        // Linear transformation matrix (m_ij)
+        pc: Matrix2<f64>,
+        // Inv of the linear transformation matrix (m_ij)
+        pc_inv: Matrix2<f64>,
+    },
+    CD {
+        // Linear transformation matrix (s_i x m_ij)
+        cd: Matrix2<f64>,
+        // Inv of linear transformation matrix (s_i x m_ij)
+        cd_inv: Matrix2<f64>,
+    },
+    CROTA
+}
+
 use fitsrs::{FITSCardValue, FITSCard};
+fn has_specific_card<'a>(hdu: &'a PrimaryHeader<'a>, keyword: &'static str) -> bool {
+    hdu.get(keyword).is_some()
+}
+
 fn get_card_float_value<'a>(hdu: &'a PrimaryHeader<'a>, keyword: &'static str, default: f64) -> Result<f64, &'static str> {
     match hdu.get(keyword) {
         None => Ok(default),
@@ -53,14 +72,84 @@ fn get_card_str_value<'a>(hdu: &'a PrimaryHeader<'a>, keyword: &'static str) -> 
     }
 }
 
+// (Y-X'-Y'') Euler angles matrix
+// See: https://en.wikipedia.org/wiki/Euler_angles#Rotation_matrix
+fn create_yxy_euler_rotation_matrix(alpha: f64, delta: f64, phi: f64) -> Matrix4<f64> {
+    let (s1, c1) = phi.sin_cos();
+    let (s2, c2) = delta.sin_cos();
+    let (s3, c3) = alpha.sin_cos();
+
+    let r11 = c1*c3 - c2*s1*s3;
+    let r12 = s1*s2;
+    let r13 = c1*s3 + c2*c3*s1;
+
+    let r21 = s2*s3;
+    let r22 = c2;
+    let r23 = -c3*s2;
+
+    let r31 = -c3*s1 - c1*c2*s3;
+    let r32 = c1*s2;
+    let r33 = c1*c2*c3 - s1*s3;
+
+    Matrix4::new(
+        r11, r21, r31, 0.0,
+        r12, r22, r32, 0.0,
+        r13, r23, r33, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    )
+}
+
 impl WCS2 {
     pub fn new<'a>(fits: &FitsBorrowed<'a>) -> Result<Self, &'static str> {
         let hdu = fits.get_header();
         let crpix1 = get_card_float_value(hdu, "CRPIX1", 0.0)?;
         let crpix2 = get_card_float_value(hdu, "CRPIX2", 0.0)?;
 
-        let cdelt1 = get_card_float_value(hdu, "CDELT1", 1.0)?;
-        let cdelt2 = get_card_float_value(hdu, "CDELT2", 1.0)?;
+        let pixel_interm_params = (if has_specific_card(hdu, "CDELT1") {
+            let cdelt1 = get_card_float_value(hdu, "CDELT1", 1.0)?;
+            let cdelt2 = get_card_float_value(hdu, "CDELT2", 1.0)?;
+
+            // Linear transformation matrix (m_ij)
+            let pc11 = get_card_float_value(hdu, "PC1_1", 1.0)?;
+            let pc12 = get_card_float_value(hdu, "PC1_2", 0.0)?;
+            let pc21 = get_card_float_value(hdu, "PC2_1", 0.0)?;
+            let pc22 = get_card_float_value(hdu, "PC2_2", 1.0)?;
+
+            let pc = Matrix2::new(pc11, pc21, pc12, pc22);
+            let pc_inv = pc.transpose();
+
+            Ok(Pixel2IntermParams::CDELT_PC {
+                cdelt: Vector2::new(cdelt1.to_radians(), cdelt2.to_radians()),
+                pc: pc,
+                pc_inv: pc_inv
+            })
+        } else if has_specific_card(hdu, "CD1_1") {
+            // Linear transformation matrix (m_ij * s_i)
+            let cd11 = get_card_float_value(hdu, "CD1_1", 1.0)?;
+            let cd12 = get_card_float_value(hdu, "CD1_2", 0.0)?;
+            let cd21 = get_card_float_value(hdu, "CD2_1", 0.0)?;
+            let cd22 = get_card_float_value(hdu, "CD2_2", 1.0)?;
+
+            let cd = Matrix2::new(cd11, cd21, cd12, cd22);
+            let cd_inv = cd.transpose();
+
+            Ok(Pixel2IntermParams::CD {
+                cd,
+                cd_inv
+            })
+        } else if has_specific_card(hdu, "CROTA") {
+            Err("CROTA not implemented")
+        } else {
+            // Default case
+            let pc = Matrix2::identity();
+
+            Ok(Pixel2IntermParams::CDELT_PC {
+                cdelt: Vector2::new(1.0_f64.to_radians(), 1.0_f64.to_radians()),
+                pc_inv: pc.clone(),
+                pc
+            })
+        })?;
+        
 
         let crval1 = get_card_float_value(hdu, "CRVAL1", 0.0)?;
         let crval2 = get_card_float_value(hdu, "CRVAL2", 0.0)?;
@@ -131,59 +220,25 @@ impl WCS2 {
             _ => Err("Reference system not recognized")
         }?;
 
-        // Linear transformation matrix
-        let pc11 = get_card_float_value(hdu, "PC1_1", 1.0)?;
-        let pc12 = get_card_float_value(hdu, "PC1_2", 0.0)?;
-        let pc21 = get_card_float_value(hdu, "PC2_1", 0.0)?;
-        let pc22 = get_card_float_value(hdu, "PC2_2", 1.0)?;
-
-        let pc = Matrix2::new(pc11, pc21, pc12, pc22);
-        let pc_inv = pc.transpose();
         // Native to celestial coordinates matrix
         let (alpha_p, delta_p, phi_p) = if ctype_proj.is_zenithal() {
-            let alpha_p = crval1.to_radians();
-            let delta_p = crval2.to_radians();
-
-            Ok((crval1, crval2, lonpole.to_radians()))
+            Ok((crval1.to_radians(), crval2.to_radians(), lonpole.to_radians()))
         } else {
             Err("cylindrical alpha_p, delta_p, phi_p not yet implemented. See p1080 of the reference paper")
         }?;
 
-        let (s_ap, c_ap) = alpha_p.sin_cos();
-        let (s_dp, c_dp) = delta_p.sin_cos();
-        let (s_pp, c_pp) = phi_p.sin_cos();
-
-        let r11 = -s_ap * s_pp - c_ap * c_pp * s_dp;
-        let r12 = c_ap * s_pp - s_ap * c_pp * s_dp;
-        let r13 = c_pp * c_dp;
-        
-        let r21 = s_ap * c_pp - c_ap * s_pp * s_dp;
-        let r22 = -c_ap * c_pp - s_ap * s_pp * s_dp;
-        let r23 = s_pp * c_dp;
-
-        let r31 = c_ap * c_dp;
-        let r32 = s_ap * c_dp;
-        let r33 = s_dp;
-
-        let r = Matrix4::new(
-            r11, r21, r31, 0.0,
-            r12, r22, r32, 0.0,
-            r13, r23, r33, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        );
-        use cgmath::SquareMatrix;
-        //let r = Matrix4::identity();
+        // (Y-X'-Y'') Euler angles matrix
+        let r = create_yxy_euler_rotation_matrix(-alpha_p, delta_p, -phi_p + crate::math::PI);
         let r_inv = r.transpose();
+
         Ok(WCS2 {
             crpix: Vector2::new(crpix1, crpix2),
-            crval: Vector2::new(crval1, crval2),
-            cdelt: Vector2::new(cdelt1, cdelt2),
-            pc,
-            pc_inv,
+            crval: Vector2::new(crval1.to_radians(), crval2.to_radians()),
+            pixel_interm_params,
             r,
             r_inv,
-            lonpole,
-            latpole,
+            lonpole: lonpole.to_radians(),
+            latpole: latpole.to_radians(),
             ctype_coo_ref,
             ctype_proj,
             radesys
@@ -191,25 +246,52 @@ impl WCS2 {
     }
 
     /* Pixel <=> projection plane coordinates transformation */
-    fn pixel_to_interm_world_coordinates(&self, p: &Vector2<f64>) -> Vector2<f64> {
+    fn pixel_to_interm_world_coordinates(&self, p: &Vector2<f64>) -> Result<Vector2<f64>, &'static str> {
         let p_off = p - self.crpix;
-        let p_rot = self.pc * p_off;
 
-        Vector2::new(
-            (p_rot.x * self.cdelt.x).to_radians(),
-            (p_rot.y * self.cdelt.y).to_radians(),
-        )
+        match &self.pixel_interm_params {
+            Pixel2IntermParams::CDELT_PC { pc, cdelt, .. } => {
+                let p_rot = pc * p_off;
+
+                Ok(Vector2::new(
+                    -p_rot.x * cdelt.x,
+                    p_rot.y * cdelt.y,
+                ))
+            },
+            Pixel2IntermParams::CD { cd, .. } => {
+                let p_rot = cd * p_off;
+
+                Ok(Vector2::new(
+                    -p_rot.x,
+                    p_rot.y,
+                ))
+            },
+            _ => Err("CROTA not implemented")
+        }
     }
 
-    fn interm_world_to_pixel_coordinates(&self, x: &Vector2<f64>) -> Vector2<f64> {
-        let p_rot = Vector2::new(
-            x.x.to_degrees() / self.cdelt.x,
-            x.y.to_degrees() / self.cdelt.y,
-        );
+    fn interm_world_to_pixel_coordinates(&self, x: &Vector2<f64>) -> Result<Vector2<f64>, &'static str> {
+        let p_off = (match &self.pixel_interm_params {
+            Pixel2IntermParams::CDELT_PC { pc_inv, cdelt, .. } => {
+                let p_rot = Vector2::new(
+                    -x.x / cdelt.x,
+                    x.y / cdelt.y,
+                );
+        
+                Ok(pc_inv * p_rot)
+            },
+            Pixel2IntermParams::CD { cd_inv, .. } => {
+                let p_rot = Vector2::new(
+                    -x.x ,
+                    x.y,
+                );
+        
+                Ok(cd_inv * p_rot)
+            },
+            _ => Err("CROTA not implemented")
+        })?;
 
-        let p_off = self.pc_inv * p_rot;
-
-        p_off + self.crpix
+        Ok(p_off + self.crpix)
     }
 
     /* Projection plane <=> native spherical coordinates transformation */
@@ -265,17 +347,20 @@ impl WCS2 {
     }
 
     pub fn proj(&self, xyz: &Vector4<f64>) -> Result<Option<Vector2<f64>>, &'static str> {
-        let p = self.native_spherical_to_interm_world_coordinates(
+        let x = self.native_spherical_to_interm_world_coordinates(
             &self.celestial_to_native_spherical_coordinates(xyz)
-        )?
-        .map(|x| self.interm_world_to_pixel_coordinates(&x));
+        )?;
 
-        Ok(p)
+        if let Some(x) = x {
+            Ok(Some(self.interm_world_to_pixel_coordinates(&x)?))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn deproj(&self, p: &Vector2<f64>) -> Result<Option<Vector4<f64>>, &'static str> {
         let xyz = self.interm_world_to_native_spherical_coordinates(
-            &self.pixel_to_interm_world_coordinates(p)
+            &self.pixel_to_interm_world_coordinates(p)?
         )?
         .map(|xyz| self.native_to_celestial_spherical_coordinates(&xyz));
 
@@ -348,12 +433,12 @@ enum RADESYS {
 
     macro_rules! assert_delta {
         ($x:expr, $y:expr, $d:expr) => {
-            if !($x - $y < $d || $y - $x < $d) { panic!(); }
+            if ($x - $y).abs() > $d { assert!(false); }
         }
     }
 
     #[test]
-    fn identity() {
+    fn proj_deproj_round_trip() {
         let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
         let mut buf = Vec::new();
         f.read_to_end(&mut buf).unwrap();
@@ -361,7 +446,7 @@ enum RADESYS {
         let fits = FitsBorrowed::new(&buf).unwrap();
 
         let wcs = WCS2::new(&fits).unwrap();
-        let p = Vector2::new(1500.0, 1500.0);
+        let p = Vector2::new(0.0, 0.0);
         let xyz = wcs.deproj(&p).unwrap().unwrap();
         let p_prim = wcs.proj(&xyz).unwrap().unwrap();
 
@@ -369,6 +454,7 @@ enum RADESYS {
         assert_delta!(p.y, p_prim.y, 1e-6);
     }
 
+    use crate::math::angle::Angle;
     #[test]
     fn deproj() {
         let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
@@ -379,9 +465,29 @@ enum RADESYS {
 
         let wcs = WCS2::new(&fits).unwrap();
         let p = Vector2::new(1500.0, 1500.0);
-        let lonlat = wcs.deproj(&p).unwrap().unwrap().lonlat();
+        let xyz = wcs.deproj(&p).unwrap().unwrap();
 
-        use crate::math::lonlat::LonLat;
-        println!("{:?} {:?}", wcs, lonlat);
+        let (Angle(lon), Angle(lat)) = crate::math::lonlat::xyzw_to_radec(&xyz);
+
+        assert_delta!(lon, wcs.crval.x, 1e-6);
+        assert_delta!(lat, wcs.crval.y, 1e-6);
     }
- }
+
+    use crate::LonLatT;
+    use crate::ArcDeg;
+    #[test]
+    fn proj() {
+        let mut f = File::open("../../examples/cutout-CDS_P_HST_PHAT_F475W.fits").unwrap();
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+
+        let fits = FitsBorrowed::new(&buf).unwrap();
+
+        let wcs = WCS2::new(&fits).unwrap();
+        let xyz = LonLatT::new(Angle(wcs.crval.x), Angle(wcs.crval.y)).vector();
+        let p = dbg!(wcs.proj(&xyz).unwrap().unwrap());
+
+        assert_delta!(p.x, 1500.0, 1e-6);
+        assert_delta!(p.y, 1500.0, 1e-6);
+    }
+}

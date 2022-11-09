@@ -72,8 +72,7 @@ export class Stack {
             '<button class="aladin-btn add-layer-hips" type="button">Add image layer</button>'
         );
         $(this.mainDiv).find('.add-layer-hips').click(function () {
-            const layerName = Utils.uuidv4();
-
+            let layerName = Utils.uuidv4();
             // A HIPS_LAYER_ADDED will be called after the hips is added to the view
             self.aladin.setOverlayImageLayer('CDS/P/DSS2/color', layerName);
         });

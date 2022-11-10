@@ -857,6 +857,8 @@ impl App {
                 self.surveys.reset_frame();
                 self.moc.reset_frame();
             }
+
+            self.gl.flush();
         }
 
         Ok(())
@@ -1153,7 +1155,7 @@ impl App {
         let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
-            d0: delta_angle / delta_time,
+            d0: delta_angle * 0.1,
             axis,
             time_start_anim: Time::now(),
         });
@@ -1193,7 +1195,6 @@ impl App {
         self.camera.set_aperture(fov, self.projection);
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-
     }
 
     /*pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {

@@ -9,16 +9,11 @@ use std::collections::HashMap;
 pub trait RenderManager {
     fn begin_frame(&mut self);
     fn end_frame(&mut self);
-    fn draw(&mut self, camera: &CameraViewPort) -> Result<(), JsValue>;
+    fn draw(&mut self, camera: &CameraViewPort, color: &ColorRGB, opacity: f32, scale: f32) -> Result<(), JsValue>;
 }
 
 use cgmath::Matrix2;
 struct LabelMeta {
-    rot: Matrix2<f32>,
-    color: ColorRGB,
-    opacity: f32,
-    screen_pos: Vector2<f32>,
-    scale: f32,
     off_idx: u16,
     num_idx: u16,
 }
@@ -80,9 +75,9 @@ impl TextRenderManager {
         vao.bind_for_update()
             .add_array_buffer(
                 "vertices",
-                4 * std::mem::size_of::<f32>(),
-                &[2, 2],
-                &[0, 2 * std::mem::size_of::<f32>()],
+                7 * std::mem::size_of::<f32>(),
+                &[2, 2, 2, 1],
+                &[0, 2 * std::mem::size_of::<f32>(), 4 * std::mem::size_of::<f32>(), 6 * std::mem::size_of::<f32>()],
                 WebGl2RenderingContext::DYNAMIC_DRAW,
                 VecData::<f32>(&vertices),
             )
@@ -211,9 +206,6 @@ impl TextRenderManager {
         &mut self,
         text: &str,
         screen_pos: &Vector2<f32>,
-        scale: f32,
-        color: &ColorRGB,
-        opacity: f32,
         angle_rot: A,
     ) {
         // 1. Loop over the text chars to compute the size of the text to plot
@@ -235,6 +227,7 @@ impl TextRenderManager {
         let off_idx = self.indices.len() as u16;
         let mut num_idx = 0;
 
+        let rot: Rad<_> = angle_rot.into();
         for c in text.chars() {
             if let Some(l) = self.letters.get(&c) {
                 let u1 = (l.x_min as f32) / (f_tex_size.0 as f32);
@@ -250,7 +243,7 @@ impl TextRenderManager {
                 let v4 = (l.y_min as f32 + l.h as f32) / (f_tex_size.1 as f32);
 
                 #[cfg(feature = "webgl2")]
-                let num_vertices = (self.vertices.len() / 4) as u16;
+                let num_vertices = (self.vertices.len() / 7) as u16;
                 #[cfg(feature = "webgl1")]
                 let num_vertices = (self.pos.len() / 2) as u16;
 
@@ -263,18 +256,30 @@ impl TextRenderManager {
                     y_pos - ymin,
                     u1,
                     v1,
+                    screen_pos.x,
+                    screen_pos.y,
+                    rot.0,
                     x_pos + x_offset + (l.w as f32) + xmin,
                     y_pos - ymin,
                     u2,
                     v2,
+                    screen_pos.x,
+                    screen_pos.y,
+                    rot.0,
                     x_pos + x_offset + (l.w as f32) + xmin,
                     y_pos + (l.h as f32) - ymin,
                     u3,
                     v3,
+                    screen_pos.x,
+                    screen_pos.y,
+                    rot.0,
                     x_pos + x_offset + xmin,
                     y_pos + (l.h as f32) - ymin,
                     u4,
                     v4,
+                    screen_pos.x,
+                    screen_pos.y,
+                    rot.0,
                 ]);
                 #[cfg(feature = "webgl1")]
                 self.pos.extend([
@@ -303,16 +308,9 @@ impl TextRenderManager {
             }
         }
 
-        let angle: Rad<_> = angle_rot.into();
-        let rot: Basis2<f32> = Rotation2::from_angle(angle);
         self.labels.push(LabelMeta {
             off_idx,
             num_idx,
-            scale,
-            color: *color,
-            opacity,
-            screen_pos: *screen_pos,
-            rot: rot.into(),
         });
     }
 
@@ -368,7 +366,7 @@ impl RenderManager for TextRenderManager {
             .update_element_array(WebGl2RenderingContext::DYNAMIC_DRAW, VecData(&self.indices));
     }
 
-    fn draw(&mut self, camera: &CameraViewPort) -> Result<(), JsValue> {
+    fn draw(&mut self, camera: &CameraViewPort, color: &ColorRGB, opacity: f32, scale: f32) -> Result<(), JsValue> {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
@@ -381,25 +379,20 @@ impl RenderManager for TextRenderManager {
 
         {
             let shader = self.shader.bind(&self.gl);
-            shader
-                .attach_uniform("u_sampler_font", &self.font_texture) // Font letters texture
-                .attach_uniform("u_screen_size", &camera.get_screen_size());
-            for label in self.labels.iter() {
-                shader
-                    .attach_uniform("u_color", &label.color) // Strengh of the kernel
-                    .attach_uniform("u_opacity", &label.opacity)
-                    .attach_uniform("u_screen_pos", &label.screen_pos)
-                    .attach_uniform("u_rot", &label.rot)
-                    .attach_uniform("u_scale", &label.scale)
-                    .attach_uniform("u_dpi", &camera.get_dpi())
-                    .bind_vertex_array_object_ref(&self.vao)
+            shader.attach_uniform("u_sampler_font", &self.font_texture) // Font letters texture
+                .attach_uniform("u_screen_size", &camera.get_screen_size())
+                .attach_uniform("u_dpi", &camera.get_dpi())
+                .attach_uniform("u_color", &color)
+                .attach_uniform("u_opacity", &opacity)
+                .attach_uniform("u_scale", &scale)
+                .bind_vertex_array_object_ref(&self.vao)
                     .draw_elements_with_i32(
                         WebGl2RenderingContext::TRIANGLES,
-                        Some(label.num_idx as i32),
+                        Some(self.indices.len() as i32),
                         WebGl2RenderingContext::UNSIGNED_SHORT,
-                        (label.off_idx as i32) * (std::mem::size_of::<u16>() as i32),
+                        0,
                     );
-            }
+            
         }
         self.gl.enable(WebGl2RenderingContext::CULL_FACE);
         self.gl.disable(WebGl2RenderingContext::BLEND);

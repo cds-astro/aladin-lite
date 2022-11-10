@@ -652,7 +652,6 @@ export let View = (function () {
             }
 
             if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {
-
                 // rotation
                 var currentFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
                 var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;
@@ -757,11 +756,10 @@ export let View = (function () {
         var eventCount = 0;
         var eventCountStart;
         var isTouchPad;
-        var firstZoomDone = false;
-        var scrolling = false;
         var oldTime = 0;
         var newTime = 0;
-        var scrolling;
+        var countWheel;
+
         $(view.catalogCanvas).on('wheel', function (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -808,21 +806,13 @@ export let View = (function () {
                 }
             };
             
-            if (!isTouchPadDefined) {
-                if (!firstZoomDone) {
-                    // zoom for the first time
-                    triggerZoom(0.003);
-    
-                    firstZoomDone = true;
-                }
-            } else {
+            if (isTouchPadDefined) {
                 if (isTouchPad) {
                     // touchpad
                     newTime = new Date().getTime();
 
                     if ( newTime - oldTime > 20 ) {
                         triggerZoom(0.003);
-
                         oldTime = new Date().getTime();
                     }
                 } else {

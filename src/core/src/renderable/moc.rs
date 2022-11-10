@@ -277,7 +277,7 @@ impl MOC {
 
     fn recompute_draw_mocs(&mut self, camera: &CameraViewPort) {
         let view_depth = self.view.get_depth();
-        let depth = view_depth + 5;
+        let depth = view_depth + 6;
 
         let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.layers.iter()

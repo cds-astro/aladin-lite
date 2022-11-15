@@ -1,6 +1,4 @@
 use cgmath::{Vector2, Vector3};
-use fitsrs::FitsMemAligned;
-use fitsrs::FitsMemAlignedUnchecked;
 
 #[derive(Debug)]
 pub struct FitsBorrowed<'a> {
@@ -13,52 +11,42 @@ pub struct FitsBorrowed<'a> {
     size: Vector2<i32>,
 
     // Raw pointer to the data part of the fits
-    fits: FitsMemAligned<'a>,
+    fits: fitsrs::Fits<'a>,
 }
 
-use fitsrs::PrimaryHeader;
+use fitsrs::card;
 impl<'a> FitsBorrowed<'a> {
     pub fn new(fits_raw_bytes: &'a [u8]) -> Result<Self, JsValue> {
         let fits = unsafe {
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
-            FitsMemAligned::from_byte_slice(fits_raw_bytes)
+            Fits::from_byte_slice(fits_raw_bytes)
                 .map_err(|err| {
                     JsValue::from_str(&format!("Parsing fits error: {}", err))
                 })?
         };
 
-        let bscale = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bscale), .. }) = fits.header.get("BSCALE") {
+        let bscale = if let Some(card::Value::FloatingPoint(bscale)) = fits.hdu.header.get("BSCALE  ") {
             *bscale as f32
         } else {
             1.0
         };
 
-        let bzero = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bzero), .. }) = fits.header.get("BZERO") {
+        let bzero = if let Some(card::Value::FloatingPoint(bzero)) = fits.hdu.header.get("BZERO   ") {
             *bzero as f32
         } else {
             0.0
         };
 
-        let blank = if let Some(FITSCard::Blank(blank)) = fits.header.get("BLANK") {
+        let blank = if let Some(card::Value::FloatingPoint(blank)) = fits.hdu.header.get("BLANK   ") {
             *blank as f32
         } else {
             std::f32::NAN
         };
 
-        let width = fits.header
-            .get("NAXIS1")
-            .and_then(|k| match k {
-                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
+        let width = fits.hdu.header.get_axis_size(1)
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
 
-        let height = fits.header
-            .get("NAXIS2")
-            .and_then(|k| match k {
-                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
+        let height = fits.hdu.header.get_axis_size(2)
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
 
         Ok(Self {
@@ -110,46 +98,36 @@ where
     where
         <F as FitsImageFormat>::Type: std::fmt::Debug
     {
-        let FitsMemAlignedUnchecked { data, header } = unsafe {
+        let Fits { data, header } = unsafe {
             // 4. Parse the fits file to extract its data (big endianness is handled inside fitsrs and is O(n))
-            FitsMemAlignedUnchecked::<F::Type>::from_byte_slice(fits_raw_bytes.as_slice())
+            Fits::<F::Type>::from_byte_slice(fits_raw_bytes.as_slice())
                 .map_err(|err| {
                     JsValue::from_str(&format!("Parsing fits error: {}", err))
                 })?
         };
 
-        let bscale = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bscale), .. }) = header.get("BSCALE") {
+        let bscale = if let Some(card::Value::FloatingPoint(bscale)) = fits.hdu.header.get("BSCALE  ") {
             *bscale as f32
         } else {
             1.0
         };
 
-        let bzero = if let Some(FITSCard::Other { value: FITSCardValue::FloatingPoint(bzero), .. }) = header.get("BZERO") {
+        let bzero = if let Some(card::Value::FloatingPoint(bzero)) = fits.hdu.header.get("BZERO   ") {
             *bzero as f32
         } else {
             0.0
         };
 
-        let blank = if let Some(FITSCard::Blank(blank)) = header.get("BLANK") {
+        let blank = if let Some(card::Value::FloatingPoint(blank)) = fits.hdu.header.get("BLANK   ") {
             *blank as f32
         } else {
             std::f32::NAN
         };
 
-        let width = header
-            .get("NAXIS1")
-            .and_then(|k| match k {
-                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
+        let width = fits.hdu.header.get_axis_size(1)
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
 
-        let height = header
-            .get("NAXIS2")
-            .and_then(|k| match k {
-                FITSCard::NaxisSize { size, .. } => Some(*size as i32),
-                _ => None,
-            })
+        let height = fits.hdu.header.get_axis_size(2)
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
 
         Ok(Self {
@@ -245,13 +223,12 @@ where
     }*/
 }*/
 
-use fitsrs::{FITSCard, FITSCardValue};
 use wasm_bindgen::JsValue;
 
 use crate::image::format::ImageFormat;
-use fitsrs::ToBigEndian;
+
 pub trait FitsImageFormat: ImageFormat {
-    type Type: ToBigEndian + Clone;
+    type Type: Clone;
     type ArrayBufferView: AsRef<js_sys::Object>;
 
     /// Creates a JS typed array which is a view into wasm's linear memory at the slice specified.

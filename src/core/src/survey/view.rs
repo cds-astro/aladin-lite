@@ -73,54 +73,6 @@ pub fn project(cell: HEALPixCellProjeted, camera: &CameraViewPort, projection: P
     }
 }
 
-// Compute a depth from a number of pixels on screen
-pub fn depth_from_pixels_on_screen(camera: &CameraViewPort, num_pixels: i32) -> u8 {
-    let width = camera.get_screen_size().x;
-    let aperture = camera.get_aperture().0 as f32;
-
-    let angle_per_pixel = aperture / width;
-
-    let two_power_two_times_depth_pixel =
-        std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
-    let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
-
-    //let survey_max_depth = conf.get_max_depth();
-    // The depth of the texture
-    // A texture of 512x512 pixels will have a depth of 9
-    let depth_offset_texture = math::utils::log_2_unchecked(num_pixels);
-    // The depth of the texture corresponds to the depth of a pixel
-    // minus the offset depth of the texture
-    if depth_offset_texture > depth_pixel {
-        0_u8
-    } else {
-        (depth_pixel - depth_offset_texture) as u8
-    }
-
-    /*let mut depth = 0;
-    let mut d1 = std::f64::MAX;
-    let mut d2 = std::f64::MAX;
-
-    while d1 > 512.0*512.0 && d2 > 512.0*512.0 {
-
-        let (lon, lat) = crate::math::lonlat::xyzw_to_radec(camera.get_center());
-        let lonlat = math::lonlat::LonLatT(lon, lat);
-
-        let (ipix, _, _) = crate::healpix::utils::hash_with_dxdy(depth, &lonlat);
-        let vertices = project_vertices::<P>(&HEALPixCell(depth, ipix), camera);
-
-        d1 = crate::math::vector::dist2(&vertices[0], &vertices[2]);
-        d2 = crate::math::vector::dist2(&vertices[1], &vertices[3]);
-
-        depth += 1;
-    }
-    al_core::info!(depth);
-    if depth > 0 {
-        depth - 1
-    } else {
-        0
-    }*/
-}
-
 use healpix::coverage::HEALPixCoverage;
 pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &CooSystem) -> HEALPixCoverage {
     if depth <= 1 {
@@ -175,21 +127,6 @@ pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &Coo
 }
 
 use crate::healpix;
-use al_api::coo_system::CooSystem;
-pub fn get_tile_cells_in_camera(
-    depth_tile: u8,
-    camera: &CameraViewPort,
-    hips_frame: &CooSystem,
-) -> (HEALPixCoverage, Vec<HEALPixCell>) {
-    let moc = compute_view_coverage(camera, depth_tile, hips_frame);
-    let cells = moc.flatten_to_fixed_depth_cells()
-        .map(|idx| {
-            HEALPixCell(depth_tile, idx)
-        })
-        .collect();
-    
-    (moc, cells)
-}
 
 // Contains the cells being in the FOV for a specific
 pub struct HEALPixCellsInView {
@@ -216,6 +153,7 @@ impl Default for HEALPixCellsInView {
     }
 }
 
+use al_api::coo_system::CooSystem;
 use crate::camera::CameraViewPort;
 impl HEALPixCellsInView {
     pub fn new() -> Self {
@@ -245,28 +183,22 @@ impl HEALPixCellsInView {
     // that moves the camera.
     // Everytime the user moves or zoom, the views must be updated
     // The new cells obtained are used for sending new requests
-    pub fn refresh(&mut self, new_depth: u8, hips_frame: CooSystem, camera: &CameraViewPort) {
-        self.depth = new_depth;
+    pub fn refresh(&mut self, tile_depth: u8, hips_frame: CooSystem, camera: &CameraViewPort) {
+        self.depth = tile_depth;
         self.frame = hips_frame;
 
         // Get the cells of that depth in the current field of view
-        let (coverage, tile_cells) = get_tile_cells_in_camera(self.depth, camera, &self.frame);
-        self.coverage = coverage;
-
-        // Update cells in the fov
-        self.update_cells_in_fov(&tile_cells);
-    }
-
-    fn update_cells_in_fov(&mut self, cells_in_fov: &[HEALPixCell]) {
-        let new_cells = cells_in_fov
-            .iter()
-            .map(|cell| {
-                let new = !self.cells.contains_key(cell);
+        let coverage = compute_view_coverage(camera, tile_depth, &self.frame);
+        let new_cells = coverage.flatten_to_fixed_depth_cells()
+            .map(|idx| {
+                let cell = HEALPixCell(tile_depth, idx);
+                let new = !self.cells.contains_key(&cell);
                 self.is_new_cells_added |= new;
 
-                (*cell, new)
+                (cell, new)
             })
             .collect::<HashMap<_, _>>();
+        self.coverage = coverage;
 
         // If no new cells have been added
         self.view_unchanged = !self.is_new_cells_added && new_cells.len() == self.cells.len();

@@ -178,13 +178,25 @@ export let Aladin = (function () {
         this.boxes.push(this.stack);
         this.boxes.push(this.coogrid);
 
+        // Grid
+        var color, opacity;
+        if (options.gridOptions) {
+            color = options.gridOptions.color && Color.hexToRgb(options.gridOptions.color);
+            opacity = options.gridOptions.opacity;
+        } else {
+            color = {r:0.0, g:1.0, b:0.0};
+            opacity = 1.0;
+        }
+
+        this.view.setGridConfig({
+            color: color,
+            opacity: opacity,
+        });
+
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
-                color: {r:0.0, g:1.0, b:0.0},
-                opacity: 1.0,
             });
-
             this.view.showCooGrid = true;
         }
 
@@ -1050,6 +1062,10 @@ export let Aladin = (function () {
     Aladin.prototype.decreaseZoom = function () {
         this.view.decreaseZoom(0.01);
     };
+
+    Aladin.prototype.setRotation = function(rotation) {
+        this.view.setRotation(rotation);
+    }
 
     // @api
     // Set the current layer that is targeted

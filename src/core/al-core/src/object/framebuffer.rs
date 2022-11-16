@@ -106,7 +106,7 @@ impl FrameBufferObject {
         self.bind();
 
         // clear the fbo
-        self.gl.clear_color(0.0, 0.0, 0.0, 0.0);
+        self.gl.clear_color(0.0, 0.0, 0.0, 1.0);
         self.gl.clear(WebGlRenderingCtx::COLOR_BUFFER_BIT);
 
         // render all the things onto the fbo

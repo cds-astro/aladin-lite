@@ -57,7 +57,7 @@ fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: Proj
         num_sub = 3 - d;
     }
 
-    // Largest deformation cell among the cells of a specific depth
+    /*// Largest deformation cell among the cells of a specific depth
     let largest_center_to_vertex_dist =
     cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
     let smallest_center_to_vertex_dist =
@@ -73,15 +73,11 @@ fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: Proj
         num_sub += 1;
     }
 
-    /*
-    if skewed_factor > 0.25 {
-        num_sub += 1;
-    }
+    num_sub*/
 
-    if is_too_large::<P>(cell, camera) || cell.is_on_pole() {
+    if cell.is_on_pole() {
         num_sub += 1;
     }
-    */
 
     num_sub
 }
@@ -398,7 +394,7 @@ use crate::{
 use web_sys::{WebGl2RenderingContext};
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
-
+use al_core::SliceData;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -418,13 +414,13 @@ impl ImageSurvey {
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
 
         //let vertices = vec![];
-        let position = vec![];
-        let uv_start = vec![];
-        let uv_end = vec![];
-        let time_tile_received = vec![];
-        let m0 = vec![];
-        let m1 = vec![];
-        let idx_vertices = vec![];
+        let position = Vec::with_capacity(8192);
+        let uv_start = Vec::with_capacity(8192);
+        let uv_end = Vec::with_capacity(8192);
+        let time_tile_received = Vec::with_capacity(8192);
+        let m0 = Vec::with_capacity(8192);
+        let m1 = Vec::with_capacity(8192);
+        let idx_vertices = Vec::with_capacity(8192);
 
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()
@@ -641,28 +637,7 @@ impl ImageSurvey {
         self.m1.clear();
         self.idx_vertices.clear();
 
-        let survey_config = self.textures.config();
-        
-        let last_user_action = camera.get_last_user_action();
-        let mut textures = match last_user_action {
-            UserAction::Unzooming => {
-                UnZoom::get_textures_from_survey(&self.view, &self.textures)
-            }
-            UserAction::Zooming => {
-                Zoom::get_textures_from_survey(&self.view, &self.textures)
-            }
-            _ => {
-                Move::get_textures_from_survey(&self.view, &self.textures)
-            }
-        };
-
-        if let Some(moc) = self.footprint_moc.as_ref() {
-            textures = textures.into_iter()
-                // filter textures that are not in the moc
-                .filter(|TextureToDraw { cell, .. }| {
-                    moc.contains(cell)
-                }).collect::<Vec<_>>();
-        }
+        let cfg = self.textures.config();
 
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
@@ -674,108 +649,148 @@ impl ImageSurvey {
         let v2w = w2v.transpose();
 
         let longitude_reversed = camera.get_longitude_reversed();
-
-        for TextureToDraw {
-            starting_texture,
-            ending_texture,
-            cell,
-        } in textures.iter() {
-            let uv_0 = TileUVW::new(cell, starting_texture, survey_config);
-            let uv_1 = TileUVW::new(cell, ending_texture, survey_config);
-            let start_time = ending_texture.start_time().as_millis();
-
-            let miss_0 = (starting_texture.is_missing()) as i32 as f32;
-            let miss_1 = (ending_texture.is_missing()) as i32 as f32;
-            
-            let num_subdivision = num_subdivision(cell, camera, projection);
-
-            let n_segments_by_side: usize = 1 << (num_subdivision as usize);
-            let n_vertices_per_segment = n_segments_by_side + 1;
-
-            // Indices overwritten
-            let off_idx_vertices = (self.position.len() / 2) as u16;
-
-            let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
-            let n_segments_by_side_f32 = n_segments_by_side as f32;
-            for i in 0..n_vertices_per_segment {
-                for j in 0..n_vertices_per_segment {
-                    let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
-                    let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
-
-                    let ndc_pos = projection.world_to_normalized_device_space_unchecked(&world_pos, camera);
-                    self.position.extend(&[ndc_pos.x as f32, ndc_pos.y as f32]);
-
-                    let hj0 = (j as f32) / n_segments_by_side_f32;
-                    let hi0 = (i as f32) / n_segments_by_side_f32;
-
-                    let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-                    let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-
-                    let uv_s_vertex_0 = Vector3::new(
-                        uv_0[TileCorner::BottomLeft].x + hj0 * d01s,
-                        uv_0[TileCorner::BottomLeft].y + hi0 * d02s,
-                        uv_0[TileCorner::BottomLeft].z,
-                    );
-
-                    let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-                    let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-                    let uv_e_vertex_0 = Vector3::new(
-                        uv_1[TileCorner::BottomLeft].x + hj0 * d01e,
-                        uv_1[TileCorner::BottomLeft].y + hi0 * d02e,
-                        uv_1[TileCorner::BottomLeft].z,
-                    );
-
-                    self.uv_start.extend([
-                        uv_s_vertex_0.x as f32,
-                        uv_s_vertex_0.y as f32,
-                        uv_s_vertex_0.z as f32,
-                    ]);
-                    self.uv_end.extend([
-                        uv_e_vertex_0.x as f32,
-                        uv_e_vertex_0.y as f32,
-                        uv_e_vertex_0.z as f32,
-                    ]);
-                    self.time_tile_received.push(start_time);
-                    self.m0.push(miss_0);
-                    self.m1.push(miss_1);
+        //al_core::log(&format!("{:?}", self.view.num_of_cells()));
+        for cell in self.view.get_cells() {
+            // filter textures that are not in the moc
+            let cell = if let Some(moc) = self.footprint_moc.as_ref() {
+                if moc.contains(cell) {
+                    Some(cell)
+                } else {
+                    None
                 }
-            }
+            } else {
+                Some(cell)
+            };
 
-            for i in 0..n_segments_by_side {
-                for j in 0..n_segments_by_side {            
-                    let idx_0 = (j + i * n_vertices_per_segment) as u16;
-                    let idx_1 = (j + 1 + i * n_vertices_per_segment) as u16;
-                    let idx_2 = (j + (i + 1) * n_vertices_per_segment) as u16;
-                    let idx_3 = (j + 1 + (i + 1) * n_vertices_per_segment) as u16;
+            if let Some(cell) = cell {
+                let texture_to_draw = if self.textures.contains(cell) {
+                    let parent_cell = self.textures.get_nearest_parent(cell);
 
-                    let i0 = 2*(idx_0 + off_idx_vertices) as usize;
-                    let i1 = 2*(idx_1 + off_idx_vertices) as usize;
-                    let i2 = 2*(idx_2 + off_idx_vertices) as usize;
-                    let i3 = 2*(idx_3 + off_idx_vertices) as usize;
-
-                    let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
-                    let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
-                    let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
-                    let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
-            
-                    let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
-                    let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
-
-                    if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
-                        self.idx_vertices.push(off_idx_vertices + idx_0);
-                        self.idx_vertices.push(off_idx_vertices + idx_1);
-                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                    if let Some(ending_cell_in_tex) = self.textures.get(cell) {
+                        if let Some(starting_cell_in_tex) = self.textures.get(&parent_cell) {
+                            Some(TextureToDraw::new(
+                                starting_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
                     }
+                } else {
+                    let parent_cell = self.textures.get_nearest_parent(cell);
+                    let grand_parent_cell = self.textures.get_nearest_parent(&parent_cell);
 
-                    if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
-                        self.idx_vertices.push(off_idx_vertices + idx_1);
-                        self.idx_vertices.push(off_idx_vertices + idx_3);
-                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                    if let Some(ending_cell_in_tex) = self.textures.get(&parent_cell) {
+                        if let Some(starting_cell_in_tex) = self.textures.get(&grand_parent_cell) {
+                            Some(TextureToDraw::new(
+                                starting_cell_in_tex,
+                                ending_cell_in_tex,
+                                cell,
+                            ))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                };
+
+                if let Some(TextureToDraw {cell, starting_texture, ending_texture}) = texture_to_draw {
+                    let uv_0 = TileUVW::new(cell, starting_texture, cfg);
+                    let uv_1 = TileUVW::new(cell, ending_texture, cfg);
+                    let start_time = ending_texture.start_time().as_millis();
+        
+                    let miss_0 = (starting_texture.is_missing()) as i32 as f32;
+                    let miss_1 = (ending_texture.is_missing()) as i32 as f32;
+                    
+                    let num_subdivision = num_subdivision(cell, camera, projection);
+        
+                    let n_segments_by_side: usize = 1 << (num_subdivision as usize);
+                    let n_vertices_per_segment = n_segments_by_side + 1;
+        
+                    // Indices overwritten
+                    let off_idx_vertices = (self.position.len() / 2) as u16;
+        
+                    let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
+                    let n_segments_by_side_f32 = n_segments_by_side as f32;
+                    for i in 0..n_vertices_per_segment {
+                        for j in 0..n_vertices_per_segment {
+                            let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
+                            let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
+        
+                            let ndc_pos = projection.world_to_normalized_device_space_unchecked(&world_pos, camera);
+                            self.position.push(ndc_pos.x as f32);
+                            self.position.push(ndc_pos.y as f32);
+        
+                            let hj0 = (j as f32) / n_segments_by_side_f32;
+                            let hi0 = (i as f32) / n_segments_by_side_f32;
+        
+                            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+                            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+                            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+                            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
+        
+                            self.uv_start.push(uv_0[TileCorner::BottomLeft].x + hj0 * d01s);
+                            self.uv_start.push(uv_0[TileCorner::BottomLeft].y + hi0 * d02s);
+                            self.uv_start.push(uv_0[TileCorner::BottomLeft].z);
+
+                            self.uv_end.push(uv_1[TileCorner::BottomLeft].x + hj0 * d01e);
+                            self.uv_end.push(uv_1[TileCorner::BottomLeft].y + hi0 * d02e);
+                            self.uv_end.push(uv_1[TileCorner::BottomLeft].z);
+
+                            self.time_tile_received.push(start_time);
+                            self.m0.push(miss_0);
+                            self.m1.push(miss_1);
+
+                            // push to idx_vertices
+                            if i > 0 && j > 0 {
+                                let idx_0 = (j - 1 + (i - 1) * n_vertices_per_segment) as u16;
+                                let idx_1 = (j + (i - 1) * n_vertices_per_segment) as u16;
+                                let idx_2 = (j - 1 + i * n_vertices_per_segment) as u16;
+                                let idx_3 = (j + i * n_vertices_per_segment) as u16;
+            
+                                let i0 = 2*(idx_0 + off_idx_vertices) as usize;
+                                let i1 = 2*(idx_1 + off_idx_vertices) as usize;
+                                let i2 = 2*(idx_2 + off_idx_vertices) as usize;
+                                let i3 = 2*(idx_3 + off_idx_vertices) as usize;
+            
+                                let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
+                                let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
+                                let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
+                                let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
+                        
+                                let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+                                let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+            
+                                if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
+                                    self.idx_vertices.push(off_idx_vertices + idx_0);
+                                    self.idx_vertices.push(off_idx_vertices + idx_1);
+                                    self.idx_vertices.push(off_idx_vertices + idx_2);
+                                }
+            
+                                if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
+                                    self.idx_vertices.push(off_idx_vertices + idx_1);
+                                    self.idx_vertices.push(off_idx_vertices + idx_3);
+                                    self.idx_vertices.push(off_idx_vertices + idx_2);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
         self.num_idx = self.idx_vertices.len();
+        /*self.position.shrink_to_fit();
+        self.uv_start.shrink_to_fit();
+        self.uv_end.shrink_to_fit();
+        self.time_tile_received.shrink_to_fit();
+        self.m0.shrink_to_fit();
+        self.m1.shrink_to_fit();
+        self.idx_vertices.shrink_to_fit();*/
 
         let mut vao = self.vao.bind_for_update();
         vao.update_array(
@@ -817,17 +832,16 @@ impl ImageSurvey {
     fn refresh_view(&mut self, camera: &CameraViewPort) {
         let cfg = self.textures.config();
         let max_tile_depth = cfg.get_max_tile_depth();
+        let delta_depth = cfg.delta_depth();
 
         let hips_frame = cfg.get_frame();
         // Compute that depth
-        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, cfg.get_texture_size());
-        let camera_tile_depth = self::view::depth_from_pixels_on_screen(camera, 512);
-        //let camera_depth = self::view::depth_from_pixels_on_screen(camera, 512);
+        let camera_tile_depth = camera.get_tile_depth();
         self.depth_tile = camera_tile_depth.min(max_tile_depth);
 
         // Set the depth of the HiPS textures
-        self.depth = if self.depth_tile > cfg.delta_depth() {
-            self.depth_tile - cfg.delta_depth()
+        self.depth = if self.depth_tile > delta_depth {
+            self.depth_tile - delta_depth
         } else {
             0
         };
@@ -918,7 +932,7 @@ impl ImageSurvey {
         raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
-        camera: &mut CameraViewPort,
+        camera: &CameraViewPort,
         color: &HiPSColor,
         mut opacity: f32,
         colormaps: &Colormaps,
@@ -1194,7 +1208,7 @@ impl ImageSurveys {
 
     pub fn draw(
         &mut self,
-        camera: &mut CameraViewPort,
+        camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         projection: ProjectionType

@@ -156,9 +156,6 @@ impl ProjetedGrid {
             self.text_renderer.add_label(
                 &label.content,
                 &label.position.cast::<f32>().unwrap_abort(),
-                1.0,
-                &self.color,
-                self.opacity,
                 cgmath::Rad(label.rot as f32),
             );
         }
@@ -194,9 +191,6 @@ impl ProjetedGrid {
             self.text_renderer.add_label(
                 &label.content,
                 &label.position.cast::<f32>().unwrap_abort(),
-                1.0,
-                &self.color,
-                self.opacity,
                 cgmath::Rad(label.rot as f32),
             );
         }
@@ -286,7 +280,7 @@ impl ProjetedGrid {
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
             if self.show_labels {
-                self.text_renderer.draw(camera)?;
+                self.text_renderer.draw(camera, &self.color, self.opacity, self.label_scale)?;
             }
         }
 

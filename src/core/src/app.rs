@@ -142,7 +142,11 @@ impl App {
             WebGl2RenderingContext::ONE,
         );
 
-        gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
+        // TODO: https://caniuse.com/?search=scissor is not supported for safari <= 14.1
+        // When it will be supported nearly everywhere, we will need to uncomment this line to
+        // enable it
+        //gl.enable(WebGl2RenderingContext::SCISSOR_TEST);
+
         gl.enable(WebGl2RenderingContext::CULL_FACE);
         gl.cull_face(WebGl2RenderingContext::BACK);
 
@@ -188,6 +192,8 @@ impl App {
         let request_for_new_tiles = true;
 
         let moc = MOC::new(&gl);
+
+        gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
         Ok(App {
             gl,
@@ -461,7 +467,6 @@ use al_core::{info, inforec, log};
 impl App {
     pub(crate) fn set_font_color(&mut self, color: ColorRGB) {
         self.surveys.set_font_color(color);
-
         self.request_redraw = true;
     }
 
@@ -823,16 +828,15 @@ impl App {
         //if scene_redraw || ui_redraw {
         if scene_redraw {
             let shaders = &mut self.shaders;
-            let gl = self.gl.clone();
-            let camera = &mut self.camera;
 
             let grid = &mut self.grid;
             let surveys = &mut self.surveys;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
+            let camera = &self.camera;
             // Render the scene
-            gl.clear_color(0.15, 0.15, 0.15, 1.0);
-            gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+            // Clear all the screen first (only the region set by the scissor)
+            self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
             surveys.draw(camera, shaders, colormaps, self.projection);
             self.moc.draw(shaders, camera);
@@ -840,7 +844,7 @@ impl App {
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
             //catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
-            catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
+            //catalogs.draw(&gl, shaders, camera, colormaps, None, self.projection)?;
             grid.draw(camera, shaders)?;
 
             //let dpi  = self.camera.get_dpi();
@@ -853,6 +857,8 @@ impl App {
                 self.surveys.reset_frame();
                 self.moc.reset_frame();
             }
+
+            self.gl.flush();
         }
 
         Ok(())
@@ -946,12 +952,11 @@ impl App {
     }
 
     // Width and height given are in pixels
-    pub(crate) fn set_projection(&mut self, projection: ProjectionType, width: f32, height: f32) {
+    pub(crate) fn set_projection(&mut self, projection: ProjectionType) {
         self.projection = projection;
 
         // Recompute the ndc_to_clip
-        self.camera.set_screen_size(width, height, projection);
-        self.camera.set_aperture(self.camera.get_aperture(), projection);
+        self.camera.set_projection(projection);
         // Recompute clip zoom factor
         self.surveys.set_projection(projection);
 
@@ -1150,7 +1155,7 @@ impl App {
         let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
-            d0: delta_angle / delta_time,
+            d0: delta_angle * 0.7 / delta_time,
             axis,
             time_start_anim: Time::now(),
         });
@@ -1190,7 +1195,6 @@ impl App {
         self.camera.set_aperture(fov, self.projection);
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-
     }
 
     /*pub(crate) fn project_line(&self, lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> Vec<Vector2<f64>> {

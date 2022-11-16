@@ -21,12 +21,13 @@ pub fn project_along_longitudes_and_latitudes(
     }
 
     let num_point_max = if camera.is_allsky() {
-        15
+        12
     } else {
-        if camera.contains_pole() {
-            5
+        let one_deg: Angle<f64> = ArcDeg(40.0).into();
+        if camera.get_aperture() < one_deg && !camera.contains_pole() {
+            2
         } else {
-            3
+            6
         }
     };
 
@@ -60,7 +61,7 @@ pub fn project_along_longitudes_and_latitudes(
 }
 use crate::ArcDeg;
 use crate::LonLatT;
-const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.20943951023); // 12 degrees
+const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10943951023); // 12 degrees
 const MAX_ITERATION: usize = 3;
 pub fn subdivide_along_longitude_and_latitudes(
     vertices: &mut Vec<Vector2<f64>>,

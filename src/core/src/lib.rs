@@ -204,33 +204,28 @@ impl WebClient {
     ///
     /// * `name` - Can be aitoff, mollweide, arc, sinus, tan or mercator
     #[wasm_bindgen(js_name = setProjection)]
-    pub fn set_projection(
-        &mut self,
-        projection: String,
-        w: f32,
-        h: f32
-    ) -> Result<(), JsValue> {
-        match projection.as_str() {
+    pub fn set_projection(&mut self, projection: &str) -> Result<(), JsValue> {
+        match projection {
             "AIT" => {
-                self.app.set_projection(ProjectionType::Aitoff(Aitoff), w, h);
+                self.app.set_projection(ProjectionType::Aitoff(Aitoff));
             },
             "SIN" => {
-                self.app.set_projection(ProjectionType::Orthographic(Orthographic), w, h);
+                self.app.set_projection(ProjectionType::Orthographic(Orthographic));
             },
             "MOL" => {
-                self.app.set_projection(ProjectionType::Mollweide(Mollweide), w, h);
+                self.app.set_projection(ProjectionType::Mollweide(Mollweide));
             },
             "ARC" => {
-                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant), w, h);
+                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant));
             },
             "TAN" => {
-                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic), w, h);
+                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic));
             },
             "MER" => {
-                self.app.set_projection(ProjectionType::Mercator(Mercator), w, h);
+                self.app.set_projection(ProjectionType::Mercator(Mercator));
             },
             "HPX" => {
-                self.app.set_projection(ProjectionType::HEALPix(HEALPix), w, h);
+                self.app.set_projection(ProjectionType::HEALPix(HEALPix));
             },
             _ => {
                 return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));

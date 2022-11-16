@@ -32,6 +32,9 @@ pub struct CameraViewPort {
     // should be equal to 2
     dpi: f32,
 
+    // HEALPix depth of 512 large tiles
+    tile_depth: u8,
+
     // Internal variable used for projection purposes
     ndc_to_clip: Vector2<f64>,
     clip_zoom_factor: f64,
@@ -120,6 +123,8 @@ impl CameraViewPort {
         let rotation_center_angle = Angle(0.0);
         let reversed_longitude = false;
 
+        let tile_depth = 0;
+
         let camera = CameraViewPort {
             // The field of view angle
             aperture,
@@ -156,6 +161,8 @@ impl CameraViewPort {
             // for the last time
             time_last_move,
 
+            tile_depth,
+
             // A reference to the WebGL2 context
             gl,
             // coo system
@@ -163,29 +170,15 @@ impl CameraViewPort {
             // a flag telling if the viewport has a reversed longitude axis
             reversed_longitude,
         };
-        camera.set_canvas_size(projection);
+        camera.set_canvas_size();
 
         camera
     }
 
-    fn set_canvas_size(&self, projection: ProjectionType) {
-        self.gl.clear_color(0.15, 0.15, 0.15, 1.0);
-        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
+    fn recompute_scissor(&self, projection: ProjectionType) {
+        // Clear all the screen before updating the scissor
         self.gl.scissor(0, 0, self.width as i32, self.height as i32);
-
-        self.gl.clear_color(0.15, 0.15, 0.15, 1.0);
         self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
-        let canvas = self.gl
-            .canvas()
-            .unwrap_abort()
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .unwrap_abort();
-
-        canvas.set_width(self.width as u32);
-        canvas.set_height(self.height as u32);
 
         // Update the scissor
         let (wc, hc) = projection.clip_size();
@@ -209,7 +202,21 @@ impl CameraViewPort {
         let w = (tr_s.x - tl_s.x).min(self.width as f64);
         let h = (br_s.y - tr_s.y).min(self.height as f64);
 
+        // Specify a scissor here
         self.gl.scissor((tl_s.x as i32).max(0), (tl_s.y as i32).max(0), w as i32, h as i32);
+    }
+
+    fn set_canvas_size(&self) {
+        let canvas = self.gl
+            .canvas()
+            .unwrap_abort()
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .unwrap_abort();
+
+        canvas.set_width(self.width as u32);
+        canvas.set_height(self.height as u32);
+        // Once the canvas size is changed, we have to set the viewport as well
+        self.gl.viewport(0, 0, self.width as i32, self.height as i32);
     }
 
     pub fn contains_pole(&self) -> bool {
@@ -241,8 +248,8 @@ impl CameraViewPort {
         // Compute the new clip zoom factor
         self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
 
-        self.moved = true;
-        self.last_user_action = UserAction::Starting;
+        //self.moved = true;
+        //self.last_user_action = UserAction::Starting;
 
         self.vertices.set_fov(
             &self.ndc_to_clip,
@@ -255,7 +262,16 @@ impl CameraViewPort {
             &Vector2::new(-1.0, -1.0),
             self,
         ));
-        self.set_canvas_size(projection);
+        // Update the size of the canvas
+        self.set_canvas_size();
+        // Once it is done, recompute the scissor
+        self.recompute_scissor(projection);
+    }
+
+    pub fn set_projection(&mut self, projection: ProjectionType) {
+        // Compute the new clip zoom factor
+        self.ndc_to_clip = projection.compute_ndc_to_clip_factor(self.width as f64, self.height as f64);
+        self.set_aperture(self.aperture, projection);
     }
 
     pub fn set_aperture(&mut self, aperture: Angle<f64>, projection: ProjectionType) {
@@ -319,7 +335,38 @@ impl CameraViewPort {
             self,
         ));
 
-        self.set_canvas_size(projection);
+        self.compute_tile_depth();
+
+        // recompute the scissor with the new aperture
+        self.recompute_scissor(projection);
+    }
+
+    fn compute_tile_depth(&mut self) {
+        // Compute a depth from a number of pixels on screen
+        let width = self.width;
+        let aperture = self.aperture.0 as f32;
+
+        let angle_per_pixel = aperture / width;
+
+        let two_power_two_times_depth_pixel =
+            std::f32::consts::PI / (3.0 * angle_per_pixel * angle_per_pixel);
+        let depth_pixel = (two_power_two_times_depth_pixel.log2() / 2.0).floor() as u32;
+
+        //let survey_max_depth = conf.get_max_depth();
+        // The depth of the texture
+        // A texture of 512x512 pixels will have a depth of 9
+        const DEPTH_OFFSET_TEXTURE: u32 = 9;
+        // The depth of the texture corresponds to the depth of a pixel
+        // minus the offset depth of the texture
+        self.tile_depth = if DEPTH_OFFSET_TEXTURE > depth_pixel {
+            0_u8
+        } else {
+            (depth_pixel - DEPTH_OFFSET_TEXTURE) as u8
+        };
+    }
+
+    pub fn get_tile_depth(&self) -> u8 {
+        self.tile_depth
     }
 
     pub fn rotate(&mut self, axis: &cgmath::Vector3<f64>, angle: Angle<f64>, projection: ProjectionType) {

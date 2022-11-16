@@ -18,7 +18,7 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 110, target: 'galactic center'});
-        aladin.setBaseImageLayer('P/Mellinger/color');
+        aladin.setBaseImageLayer('https://alasky.cds.unistra.fr/MellingerRGB');
         aladin.setOverlayImageLayer(aladin.createImageSurvey('VTSS', 'VTSS', 'https://alasky.u-strasbg.fr/VTSS/Ha', 'galactic', 3, {imgFormat: 'png'}));
         aladin.getOverlayImageLayer().setOpacity(0.5);
     });

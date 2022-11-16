@@ -1,6 +1,8 @@
 extern crate jpeg_decoder as jpeg;
 extern crate png;
 extern crate serde_json;
+extern crate futures;
+extern crate wasm_streams;
 
 pub mod text;
 

@@ -42,6 +42,8 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, RequestInit, RequestMode, Response};
 use crate::downloader::query::Query;
 use wasm_bindgen::JsCast;
+use wasm_streams::ReadableStream;
+use wasm_bindgen::JsValue;
 impl From<query::PixelMetadata> for PixelMetadataRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::PixelMetadata) -> Self {
@@ -56,7 +58,7 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
 
         let window = web_sys::window().unwrap_abort();
         let request = match format {
-            ImageFormatType::R32F => Request::new(async move {
+            ImageFormatType::R32F | ImageFormatType::R32I | ImageFormatType::R16I | ImageFormatType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);
@@ -66,72 +68,14 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 // `resp_value` is a `Response` object.
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
-                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+                // See https://github.com/MattiasBuelens/wasm-streams/blob/f6dacf58a8826dc67923ab4a3bae87635690ca64/examples/fetch_as_stream.rs#L25-L33
+                let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
+                let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
-                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-                let image = Fits::<al_core::image::format::R32F>::new(bytes)?;
-                Ok(Metadata {
-                    blank: image.blank,
-                    scale: image.bscale,
-                    offset: image.bzero,
-                })
-            }),
-            ImageFormatType::R32I => Request::new(async move {
-                let mut opts = RequestInit::new();
-                opts.method("GET");
-                opts.mode(RequestMode::Cors);
+                // Convert the JS ReadableStream to a Rust stream
+                let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;
+                let image = Fits::new(reader).await?;
 
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
-                let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-                // `resp_value` is a `Response` object.
-                debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
-
-                let blob: Blob = JsFuture::from(resp.blob()?).await?.into();
-                let array_buffer = JsFuture::from(blob.array_buffer()).await?;
-
-                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-                let image = Fits::<al_core::image::format::R32I>::new(bytes)?;
-                Ok(Metadata {
-                    blank: image.blank,
-                    scale: image.bscale,
-                    offset: image.bzero,
-                })
-            }),
-            ImageFormatType::R16I => Request::new(async move {
-                let mut opts = RequestInit::new();
-                opts.method("GET");
-                opts.mode(RequestMode::Cors);
-
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
-                let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-                // `resp_value` is a `Response` object.
-                debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
-                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
-
-                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-                let image = Fits::<al_core::image::format::R16I>::new(bytes)?;
-                Ok(Metadata {
-                    blank: image.blank,
-                    scale: image.bscale,
-                    offset: image.bzero,
-                })
-            }),
-            ImageFormatType::R8UI => Request::new(async move {
-                let mut opts = RequestInit::new();
-                opts.method("GET");
-                opts.mode(RequestMode::Cors);
-
-                let request = web_sys::Request::new_with_str_and_init(&url_clone, &opts).unwrap_abort();
-                let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-                // `resp_value` is a `Response` object.
-                debug_assert!(resp_value.is_instance_of::<Response>());
-                let resp: Response = resp_value.dyn_into()?;
-                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
-
-                let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
-                let image = Fits::<al_core::image::format::R8UI>::new(bytes)?;
                 Ok(Metadata {
                     blank: image.blank,
                     scale: image.bscale,

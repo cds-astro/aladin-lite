@@ -1,4 +1,4 @@
-use fitsrs::PrimaryHeader;
+/*use fitsrs::PrimaryHeader;
 use cgmath::{Matrix2, Matrix4, Matrix, Vector2, Vector4, SquareMatrix};
 
 use al_core::image::fits::FitsBorrowed;
@@ -491,3 +491,4 @@ enum RADESYS {
         assert_delta!(p.y, 1500.0, 1e-6);
     }
 }
+*/

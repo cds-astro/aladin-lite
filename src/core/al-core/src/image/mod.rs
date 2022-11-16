@@ -266,11 +266,7 @@ use raw::ImageBuffer;
 #[derive(Debug)]
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
-    FitsImageR64f { image: Fits<R64F> },
-    FitsImageR32f { image: Fits<R32F> },
-    FitsImageR32i { image: Fits<R32I> },
-    FitsImageR16i { image: Fits<R16I> },
-    FitsImageR8ui { image: Fits<R8UI> },
+    FitsImage { image: Fits },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
     JpgImageRgb8u { image: Bitmap<RGB8U> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
@@ -285,7 +281,7 @@ pub enum ImageType {
 
 #[cfg(feature = "webgl1")]
 pub enum ImageType {
-    FitsImageR32f { image: Fits<R32F> },
+    FitsImage { image: Fits<R32F> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
     JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
@@ -305,17 +301,7 @@ impl Image for ImageType {
         offset: &Vector3<i32>,
     ) {
         match self {
-            ImageType::FitsImageR64f { image } => {
-                let size = image.get_size();
-                let slice = unsafe { std::slice::from_raw_parts(image.aligned_data_raw_bytes_ptr as *const f64, (size.x as usize) * (size.y as usize) ) };
-                let data = slice.iter().map(|&v| v as f32).collect();
-                let image = ImageBuffer::<R32F>::new(data, size.x, size.y);
-                image.tex_sub_image_3d(textures, offset)
-            },
-            ImageType::FitsImageR32f { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::FitsImageR32i { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::FitsImageR16i { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::FitsImageR8ui { image } => image.tex_sub_image_3d(textures, offset),
+            ImageType::FitsImage { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),

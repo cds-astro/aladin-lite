@@ -16,6 +16,7 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
+extern crate wasm_streams;
 extern crate console_error_panic_hook;
 use std::panic;
 
@@ -789,11 +790,10 @@ impl WebClient {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = addFITSImage)]
+    /*#[wasm_bindgen(js_name = addFITSImage)]
     pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        //let bytes = js_sys::Uint8Array::new(array_buffer).to_vec();
-        use al_core::image::fits::FitsBorrowed;
-        let fits = FitsBorrowed::new(raw_bytes)?;
+        use al_core::image::fits::Fits;
+        let fits = Fits::new(raw_bytes)?;
 
         use crate::wcs::WCS2;
         let wcs = WCS2::new(&fits).map_err(|e| JsValue::from_str(e))?;
@@ -805,7 +805,7 @@ impl WebClient {
             .unwrap();
         al_core::info!(wcs, p);
         Ok(())
-    }
+    }*/
 
     #[wasm_bindgen(js_name = removeMoc)]
     pub fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {

@@ -1,7 +1,10 @@
 use al_core::image::format::ImageFormatType;
 
 use crate::downloader::{query};
-use al_core::image::fits::Fits;
+use fitsrs::{
+    fits::Fits,
+    hdu::{HDU, header::Header}
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Metadata {
@@ -69,18 +72,41 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
                 // See https://github.com/MattiasBuelens/wasm-streams/blob/f6dacf58a8826dc67923ab4a3bae87635690ca64/examples/fetch_as_stream.rs#L25-L33
-                let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
+                /*let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
                 let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
                 // Convert the JS ReadableStream to a Rust stream
                 let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;
-                let image = Fits::new(reader).await?;
+                let image = Fits::new(reader).await?;*/
 
-                Ok(Metadata {
-                    blank: image.blank,
-                    scale: image.bscale,
-                    offset: image.bzero,
-                })
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+                let bytes_buffer = js_sys::Uint8Array::new(&array_buffer);
+
+                let num_bytes = bytes_buffer.length() as usize;
+                let mut raw_bytes = Vec::with_capacity(num_bytes);
+                unsafe { raw_bytes.set_len(num_bytes); }
+                bytes_buffer.copy_to(&mut raw_bytes[..]);
+                let Fits { hdu: HDU { header, .. } } = Fits::from_reader(&raw_bytes[..])
+                    .map_err(|_| {
+                        JsValue::from_str("Parsing fits error")
+                    })?;
+                let scale = if let Some(fitsrs::card::Value::Float(bscale)) = header.get(b"BSCALE  ") {
+                    *bscale as f32
+                } else {
+                    1.0
+                };
+                let offset = if let Some(fitsrs::card::Value::Float(bzero)) = header.get(b"BZERO   ") {
+                    *bzero as f32
+                } else {
+                    0.0
+                };
+                let blank = if let Some(fitsrs::card::Value::Float(blank)) = header.get(b"BLANK   ") {
+                    *blank as f32
+                } else {
+                    std::f32::NAN
+                };
+
+                Ok(Metadata { blank, scale, offset })
             }),
             _ => Request::new(async move { Ok(Metadata::default()) }),
         };

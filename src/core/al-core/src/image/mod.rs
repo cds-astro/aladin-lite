@@ -266,7 +266,7 @@ use raw::ImageBuffer;
 #[derive(Debug)]
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
-    FitsImage { image: Fits },
+    FitsImage { raw_bytes: js_sys::Uint8Array },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
     JpgImageRgb8u { image: Bitmap<RGB8U> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
@@ -281,7 +281,7 @@ pub enum ImageType {
 
 #[cfg(feature = "webgl1")]
 pub enum ImageType {
-    FitsImage { image: Fits<R32F> },
+    FitsImage { raw_bytes: js_sys::Uint8Array },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
     JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
@@ -301,7 +301,15 @@ impl Image for ImageType {
         offset: &Vector3<i32>,
     ) {
         match self {
-            ImageType::FitsImage { image } => image.tex_sub_image_3d(textures, offset),
+            ImageType::FitsImage { raw_bytes: raw_bytes_buf } => {
+                let num_bytes = raw_bytes_buf.length() as usize;
+                let mut raw_bytes = Vec::with_capacity(num_bytes);
+                unsafe { raw_bytes.set_len(num_bytes); }
+                raw_bytes_buf.copy_to(&mut raw_bytes[..]);
+
+                let fits_img = Fits::from_byte_slice(raw_bytes.as_slice()).unwrap();
+                fits_img.tex_sub_image_3d(textures, offset)
+            },
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
             ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),

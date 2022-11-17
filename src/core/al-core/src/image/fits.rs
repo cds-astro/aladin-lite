@@ -1,54 +1,34 @@
 use cgmath::{Vector2, Vector3};
 
 #[derive(Debug)]
-pub struct Fits {
-    // Fits header properties
-    pub blank: f32,
-    pub bzero: f32,
-    pub bscale: f32,
-
+pub struct Fits<'a> {
     // Tile size
     size: Vector2<i32>,
 
-    pub data: Data,
+    pub data: Data<'a>,
 }
 
+use std::borrow::Cow;
+use std::io::BufReader;
+use std::io::Read;
+use std::fmt::Debug;
 #[derive(Debug)]
-pub enum Data {
-    U8(Vec<u8>),
-    I16(Vec<i16>),
-    I32(Vec<i32>),
-    F32(Vec<f32>),
+pub enum Data<'a> {
+    U8(Cow<'a, [u8]>),
+    I16(Cow<'a, [i16]>),
+    I32(Cow<'a, [i32]>),
+    F32(Cow<'a, [f32]>),
 }
-use fitsrs::{hdu::{AsyncHDU, data_async::DataOwnedSt}, fits::AsyncFits, card::Value};
+use fitsrs::{hdu::{DataRead, AsyncHDU, HDU, data_async::DataOwnedSt}, fits::AsyncFits, card::Value};
 use wasm_streams::readable::IntoAsyncRead;
 use futures::stream::StreamExt;
 use fitsrs::hdu::Header;
-impl Fits {
-    pub async fn new(reader: IntoAsyncRead<'static>) -> Result<Self, JsValue> {
-        let AsyncFits { hdu: AsyncHDU { data, header } } = AsyncFits::from_reader(futures::io::BufReader::new(reader))
-            .await
+impl<'a> Fits<'a> {
+    pub fn from_byte_slice(bytes: &'a [u8]) -> Result<Self, JsValue> {
+        let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(bytes)
             .map_err(|err| {
-                JsValue::from_str(&format!("Parsing fits error: {}", err))
+                JsValue::from_str(&"Parsing fits error")
             })?;
-
-        let bscale = if let Some(Value::Float(bscale)) = header.get(b"BSCALE  ") {
-            *bscale as f32
-        } else {
-            1.0
-        };
-
-        let bzero = if let Some(Value::Float(bzero)) = header.get(b"BZERO   ") {
-            *bzero as f32
-        } else {
-            0.0
-        };
-
-        let blank = if let Some(Value::Float(blank)) = header.get(b"BLANK   ") {
-            *blank as f32
-        } else {
-            std::f32::NAN
-        };
 
         let width = header.get_axis_size(1)
             .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
@@ -57,37 +37,76 @@ impl Fits {
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
 
         let data = match data {
-            fitsrs::hdu::data_async::DataOwned::U8(stream) => {
-                let data = stream.collect().await;
-                Data::U8(data)
+            fitsrs::hdu::data::DataBorrowed::U8(slice) => {
+                Data::U8(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data_async::DataOwned::I16(stream) => {
-                let data = stream.collect().await;
-                Data::I16(data)
+            fitsrs::hdu::data::DataBorrowed::I16(slice) => {
+                Data::I16(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data_async::DataOwned::I32(stream) => {
-                let data = stream.collect().await;
-                Data::I32(data)
+            fitsrs::hdu::data::DataBorrowed::I32(slice) => {
+                Data::I32(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data_async::DataOwned::I64(stream) => {
-                let data = stream.map(|v| v as i32).collect().await;
-                Data::I32(data)
+            fitsrs::hdu::data::DataBorrowed::I64(slice) => {
+                let data = slice.iter().map(|v| *v as i32).collect();
+                Data::I32(Cow::Owned(data))
             },
-            fitsrs::hdu::data_async::DataOwned::F32(stream) => {
-                let data = stream.collect().await;
-                Data::F32(data)
+            fitsrs::hdu::data::DataBorrowed::F32(slice) => {
+                Data::F32(Cow::Borrowed(slice))
             },
-            fitsrs::hdu::data_async::DataOwned::F64(stream) => {
-                let data = stream.map(|v| v as f32).collect().await;
-                Data::F32(data)
+            fitsrs::hdu::data::DataBorrowed::F64(slice) => {
+                let data = slice.iter().map(|v| *v as f32).collect();
+                Data::F32(Cow::Owned(data))
             }
         };
 
         Ok(Self {
-            // Metadata fits header properties
-            blank,
-            bzero,
-            bscale,
+            // Tile size
+            size: Vector2::new(*width as i32, *height as i32),
+
+            // Allocation info of the layout            
+            data
+        })
+    }
+
+    pub fn from_reader<R>(reader: BufReader<R>) -> Result<Self, JsValue>
+    where
+        R: Read + Debug
+    {
+        let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(reader)
+            .map_err(|err| {
+                JsValue::from_str(&"Parsing fits error")
+            })?;
+
+        let width = header.get_axis_size(1)
+            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
+
+        let height = header.get_axis_size(2)
+            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
+
+        let data = match data {
+            fitsrs::hdu::data::DataOwned::U8(it) => {
+                Data::U8(Cow::Owned(it.collect()))
+            },
+            fitsrs::hdu::data::DataOwned::I16(it) => {
+                Data::I16(Cow::Owned(it.collect()))
+            },
+            fitsrs::hdu::data::DataOwned::I32(it) => {
+                Data::I32(Cow::Owned(it.collect()))
+            },
+            fitsrs::hdu::data::DataOwned::I64(it) => {
+                let data = it.map(|v| v as i32).collect();
+                Data::I32(Cow::Owned(data))
+            },
+            fitsrs::hdu::data::DataOwned::F32(it) => {
+                Data::F32(Cow::Owned(it.collect()))
+            },
+            fitsrs::hdu::data::DataOwned::F64(it) => {
+                let data = it.map(|v| v as f32).collect();
+                Data::F32(Cow::Owned(data))
+            }
+        };
+
+        Ok(Self {
             // Tile size
             size: Vector2::new(*width as i32, *height as i32),
 
@@ -100,9 +119,60 @@ impl Fits {
         &self.size
     }
 }
+
+impl Fits<'static> {
+    pub async fn from_async_reader(reader: IntoAsyncRead<'static>) -> Result<Self, JsValue> {
+        let fitsrs::fits::AsyncFits { hdu: AsyncHDU { data, header } } = fitsrs::fits::AsyncFits::from_reader(futures::io::BufReader::new(reader))
+            .await
+            .map_err(|err| {
+                JsValue::from_str(&format!("Parsing fits error: {}", err))
+            })?;
+
+        let width = header.get_axis_size(1)
+            .ok_or_else(|| JsValue::from_str("NAXIS1 not found in the fits"))?;
+
+        let height = header.get_axis_size(2)
+            .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
+
+        let data = match data {
+            fitsrs::hdu::data_async::DataOwned::U8(stream) => {
+                let data = stream.collect().await;
+                Data::U8(Cow::Owned(data))
+            },
+            fitsrs::hdu::data_async::DataOwned::I16(stream) => {
+                let data = stream.collect().await;
+                Data::I16(Cow::Owned(data))
+            },
+            fitsrs::hdu::data_async::DataOwned::I32(stream) => {
+                let data = stream.collect().await;
+                Data::I32(Cow::Owned(data))
+            },
+            fitsrs::hdu::data_async::DataOwned::I64(stream) => {
+                let data = stream.map(|v| v as i32).collect().await;
+                Data::I32(Cow::Owned(data))
+            },
+            fitsrs::hdu::data_async::DataOwned::F32(stream) => {
+                let data = stream.collect().await;
+                Data::F32(Cow::Owned(data))
+            },
+            fitsrs::hdu::data_async::DataOwned::F64(stream) => {
+                let data = stream.map(|v| v as f32).collect().await;
+                Data::F32(Cow::Owned(data))
+            }
+        };
+
+        Ok(Self {
+            // Tile size
+            size: Vector2::new(*width as i32, *height as i32),
+
+            // Allocation info of the layout            
+            data
+        })
+    }
+}
 use crate::Texture2DArray;
 use crate::image::Image;
-impl Image for Fits {
+impl Image for Fits<'_> {
     fn tex_sub_image_3d(
         &self,
         // The texture array
@@ -161,12 +231,10 @@ impl Image for Fits {
             }
         }
     }
-
-    // The size of the image
-    /*fn get_size(&self) -> &Vector2<i32> {
-        &self.size
-    }*/
 }
+
+
+
 
 use wasm_bindgen::JsValue;
 

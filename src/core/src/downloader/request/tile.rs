@@ -170,14 +170,17 @@ impl From<query::Tile> for TileRequest {
                 debug_assert!(resp_value.is_instance_of::<Response>());
                 let resp: Response = resp_value.dyn_into()?;
                 // See https://github.com/MattiasBuelens/wasm-streams/blob/f6dacf58a8826dc67923ab4a3bae87635690ca64/examples/fetch_as_stream.rs#L25-L33
-                let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
+                /*let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
                 let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
                 // Convert the JS ReadableStream to a Rust stream
                 let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;
                 let image = Fits::new(reader).await?;
+                */
+                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+                let raw_bytes = js_sys::Uint8Array::new(&array_buffer);
 
-                Ok(ImageType::FitsImage { image })
+                Ok(ImageType::FitsImage { raw_bytes })
             }),
             _ => todo!(),
         };

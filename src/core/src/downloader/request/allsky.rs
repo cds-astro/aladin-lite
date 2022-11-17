@@ -2,7 +2,12 @@
 use al_core::image::format::ImageFormatType;
 
 use crate::downloader::{query};
-use al_core::image::{fits, ImageType};
+use al_core::image::ImageType;
+
+use fitsrs::{
+    fits::Fits,
+    hdu::{HDU, header::Header}
+};
 
 use super::{Request, RequestType};
 use crate::downloader::QueryId;
@@ -129,36 +134,61 @@ impl From<query::Allsky> for AllskyRequest {
                     debug_assert!(resp_value.is_instance_of::<Response>());
                     let resp: Response = resp_value.dyn_into()?;
                     // See https://github.com/MattiasBuelens/wasm-streams/blob/f6dacf58a8826dc67923ab4a3bae87635690ca64/examples/fetch_as_stream.rs#L25-L33
-                    let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
+                    /*let raw_body = resp.body().ok_or(JsValue::from_str("Cannot extract readable stream"))?;
                     let body = ReadableStream::from_raw(raw_body.dyn_into()?);
     
                     // Convert the JS ReadableStream to a Rust stream
-                    let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;
-                    let fits = fits::Fits::new(reader).await?;
+                    let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;*/
+                    
+                    let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+                    let bytes_buffer = js_sys::Uint8Array::new(&array_buffer);
+    
+                    let num_bytes = bytes_buffer.length() as usize;
+                    let mut raw_bytes = Vec::with_capacity(num_bytes);
+                    unsafe { raw_bytes.set_len(num_bytes); }
+                    bytes_buffer.copy_to(&mut raw_bytes[..]);
+                    let Fits { hdu: HDU { data, .. }} = Fits::from_reader(raw_bytes.as_slice())
+                        .map_err(|_| {
+                            JsValue::from_str("Parsing fits error")
+                        })?;
         
-                    let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
-                    let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
+                    //let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
+                    //let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
         
-                    match fits.data {
-                        fits::Data::U8(data) => {
+                    match data {
+                        fitsrs::hdu::data::DataBorrowed::U8(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR8ui { image })
                                 .collect())
                         }
-                        fits::Data::I16(data) => {
+                        fitsrs::hdu::data::DataBorrowed::I16(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR16i { image })
                                 .collect())
                         }
-                        fits::Data::I32(data) => {
+                        fitsrs::hdu::data::DataBorrowed::I32(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         }
-                        fits::Data::F32(data) => {
+                        fitsrs::hdu::data::DataBorrowed::F32(data) => {
+                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
+                                .into_iter()
+                                .map(|image| ImageType::RawR32f { image })
+                                .collect())
+                        }
+                        fitsrs::hdu::data::DataBorrowed::I64(data) => {
+                            let data = data.iter().map(|v| *v as i32).collect::<Vec<_>>();
+                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
+                                .into_iter()
+                                .map(|image| ImageType::RawR32i { image })
+                                .collect())
+                        },
+                        fitsrs::hdu::data::DataBorrowed::F64(data) => {
+                            let data = data.iter().map(|v| *v as f32).collect::<Vec<_>>();
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR32f { image })

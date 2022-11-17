@@ -111,15 +111,16 @@ impl HEALPixCell {
 
     #[inline]
     pub fn is_on_pole(&self) -> bool {
-        let idx_d0 = self.idx() >> (2*self.depth());
+        let two_times_depth = 2*self.depth();
+        let idx_d0 = self.idx() >> two_times_depth;
 
         match idx_d0 {
             0..=3 => {
-                (((idx_d0 + 1) << (2*self.depth())) - 1) == self.idx()
+                (((idx_d0 + 1) << two_times_depth) - 1) == self.idx()
             },
             4..=7 => false,
             8..=11 => {
-                (idx_d0 << (2*self.depth())) == self.idx()
+                (idx_d0 << two_times_depth) == self.idx()
             },
             _ => unreachable!()
         }

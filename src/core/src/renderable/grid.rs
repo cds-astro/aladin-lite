@@ -156,9 +156,6 @@ impl ProjetedGrid {
             self.text_renderer.add_label(
                 &label.content,
                 &label.position.cast::<f32>().unwrap_abort(),
-                1.0,
-                &self.color,
-                self.opacity,
                 cgmath::Rad(label.rot as f32),
             );
         }
@@ -194,9 +191,6 @@ impl ProjetedGrid {
             self.text_renderer.add_label(
                 &label.content,
                 &label.position.cast::<f32>().unwrap_abort(),
-                1.0,
-                &self.color,
-                self.opacity,
                 cgmath::Rad(label.rot as f32),
             );
         }
@@ -286,7 +280,7 @@ impl ProjetedGrid {
             self.gl.disable(WebGl2RenderingContext::BLEND);
 
             if self.show_labels {
-                self.text_renderer.draw(camera)?;
+                self.text_renderer.draw(camera, &self.color, self.opacity, self.label_scale)?;
             }
         }
 
@@ -510,6 +504,7 @@ use crate::math::{
     angle::ArcDeg,
     lonlat::{LonLat, LonLatT},
 };
+
 impl GridLine {
     fn meridian(
         lon: f64,
@@ -522,18 +517,11 @@ impl GridLine {
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
-            let mut vertices = vec![];
-
-            crate::line::subdivide_along_longitude_and_latitudes(
-                &mut vertices,
-                [
-                    &Vector2::new(lon, lat.start),
-                    &Vector2::new(lon, 0.5*(lat.start + lat.end)),
-                    &Vector2::new(lon, lat.end)
-                ],
+            let vertices = crate::line::project_along_longitudes_and_latitudes(
+                lon, lat.start,
+                lon, lat.end,
                 camera,
                 projection,
-                0
             );
 
             let label = Label::meridian(fov, lon, &p, camera, sp, text_renderer, projection);
@@ -554,18 +542,11 @@ impl GridLine {
         let fov = camera.get_field_of_view();
 
         if let Some(p) = fov.intersect_parallel(Rad(lat), camera) {
-            let mut vertices = vec![];
-
-            crate::line::subdivide_along_longitude_and_latitudes(
-                &mut vertices,
-                [
-                    &Vector2::new(lon.start, lat),
-                    &Vector2::new(0.5 * (lon.start + lon.end), lat),
-                    &Vector2::new(lon.end, lat),
-                ],
+            let vertices = crate::line::project_along_longitudes_and_latitudes(
+                lon.start, lat,
+                lon.end, lat,
                 camera,
                 projection,
-                0
             );
 
             let label = Label::parallel(fov, lat, &p, camera, text_renderer, projection);
@@ -695,7 +676,6 @@ fn lines(
     /*if stop_alpha == HALF_PI {
         stop_alpha -= 1e-3;
     }*/
-
     while alpha < stop_alpha {
         if let Some(line) = GridLine::parallel(&bbox.get_lon(), alpha, camera, text_renderer, projection) {
             lines.push(line);

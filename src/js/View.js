@@ -38,7 +38,6 @@ import { AladinUtils } from "./AladinUtils.js";
 import { Utils } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { Stats } from "./libs/Stats.js";
-import { ColorMap } from "./ColorMap.js";
 import { Footprint } from "./Footprint.js";
 import { Circle } from "./Circle.js";
 import { CooFrameEnum } from "./CooFrameEnum.js";
@@ -56,14 +55,14 @@ export let View = (function () {
         this.options = aladin.options;
         this.aladinDiv = this.aladin.aladinDiv;
         this.popup = new Popup(this.aladinDiv, this);
-        this.webGL2Support = WebGLCtx.checkForWebGL2Support();
         this.createCanvases();
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
         try {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-            this.aladin.webglAPI = new WebGLCtx.init(Aladin.wasmLibs.webgl, this.aladinDiv.id);
+            const webglCtx = new WebGLCtx(Aladin.wasmLibs.webgl, this.aladinDiv.id);
+            this.aladin.webglAPI = webglCtx.webclient;
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -258,7 +257,7 @@ export let View = (function () {
         this.mouseMoveIncrement = 160 / this.largestDim;
 
         // reinitialize 2D context
-        this.imageCtx = this.imageCanvas.getContext(this.webGL2Support ? "webgl2" : "webgl");
+        this.imageCtx = this.imageCanvas.getContext("webgl2");
         //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
 
@@ -372,32 +371,6 @@ export let View = (function () {
 
         this.selectedSurveyLayer = layer;
     };
-
-    View.prototype.updateFovDiv = function () {
-        if (isNaN(this.fov)) {
-            this.fovDiv.html("FoV:");
-            return;
-        }
-        // update FoV value
-        var fovStr;
-        let fov = this.fov;
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
-            fov = 180.0;
-        } else if (fov >= 360.0) {
-            fov = 360.0;
-        }
-
-        if (fov > 1) {
-            fovStr = Math.round(fov * 100) / 100 + "°";
-        }
-        else if (fov * 60 > 1) {
-            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
-        }
-        else {
-            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
-        }
-        this.fovDiv.html("FoV: " + fovStr);
-    }
 
     var createListeners = function (view) {
         var hasTouchEvents = false;
@@ -679,7 +652,6 @@ export let View = (function () {
             }
 
             if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {
-
                 // rotation
                 var currentFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
                 var fingerAngleDiff = view.fingersRotationParameters.initialFingerAngle - currentFingerAngle;
@@ -781,6 +753,11 @@ export let View = (function () {
 
         // disable text selection on IE
         $(view.aladinDiv).onselectstart = function () { return false; }
+        var eventCount = 0;
+        var eventCountStart;
+        var isTouchPad;
+        var oldTime = 0;
+        var newTime = 0;
 
         $(view.catalogCanvas).on('wheel', function (event) {
             event.preventDefault();
@@ -789,13 +766,6 @@ export let View = (function () {
             if (view.rightClick) {
                 return;
             }
-            //var xymouse = view.imageCanvas.relMouseCoords(event);
-
-            /*if(view.aladin.webglAPI.posOnUi()) {
-                return;
-            }*/
-            //var xymouse = view.imageCanvas.relMouseCoords(event);
-            //var level = view.zoomLevel;
 
             var delta = event.deltaY;
             // this seems to happen in context of Jupyter notebook --> we have to invert the direction of scroll
@@ -803,20 +773,50 @@ export let View = (function () {
             if (event.hasOwnProperty('originalEvent')) {
                 delta = -event.originalEvent.deltaY;
             }
-            /*if (delta>0) {
-                level += 1;
-                //zoom
+
+            // See https://stackoverflow.com/questions/10744645/detect-touchpad-vs-mouse-in-javascript
+            // for detecting the use of a touchpad
+            var isTouchPadDefined = isTouchPad || typeof isTouchPad !== "undefined";
+            if (!isTouchPadDefined) {
+                if (eventCount === 0) {
+                    eventCountStart = new Date().getTime();
+                }
+
+                eventCount++;
+
+                if (new Date().getTime() - eventCountStart > 100) {
+                    if (eventCount > 7) {
+                        isTouchPad = true;
+                    } else {
+                        isTouchPad = false;
+                    }
+                    isTouchPadDefined = true;
+                }
             }
-            else {
-                level -= 1;
-                //unzoom
-            }*/
+
             // The value of the field of view is determined
             // inside the backend
-            if (delta > 0.0) {
-                view.increaseZoom();
-            } else {
-                view.decreaseZoom();
+            const triggerZoom = (amount) => {
+                if (delta > 0.0) {
+                    view.increaseZoom(amount);
+                } else {
+                    view.decreaseZoom(amount);
+                }
+            };
+            
+            if (isTouchPadDefined) {
+                if (isTouchPad) {
+                    // touchpad
+                    newTime = new Date().getTime();
+
+                    if ( newTime - oldTime > 20 ) {
+                        triggerZoom(0.003);
+                        oldTime = new Date().getTime();
+                    }
+                } else {
+                    // mouse 
+                    triggerZoom(0.007);
+                }
             }
 
             if (!view.debounceProgCatOnZoom) {
@@ -827,8 +827,6 @@ export let View = (function () {
                 }, 300);
             }
             view.debounceProgCatOnZoom();
-            //view.setZoomLevel(level);
-            //view.refreshProgressiveCats();
 
             return false;
         });
@@ -960,8 +958,9 @@ export let View = (function () {
             //var dt = now_update - this.prev;
             this.aladin.webglAPI.update(Date.now() - this.then);
         } catch (e) {
-            console.error(e)
+            console.warn(e)
         }
+
 
         // check whether a catalog has been parsed and
         // is ready to be plot
@@ -1296,27 +1295,13 @@ export let View = (function () {
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
-        const si = 500000.0;
-        const alpha = 40.0;
-        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fovDegrees, 1.0 / alpha);
-        /*if (fovDegrees<0) {
-            return;
-        }*/
-        //const si = 500000.0;
-        //const alpha = 40.0;
-
-        // Erase the field of view state of the backend by
         this.aladin.webglAPI.setFieldOfView(fovDegrees);
-        //var zoomLevel = Math.log(180/fovDegrees)/Math.log(1.15);
-        //this.setZoomLevel(zoomLevel);
         this.updateZoomState();
-        this.updateFovDiv();
     };
 
-    View.prototype.increaseZoom = function () {
+    View.prototype.increaseZoom = function (amount) {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.005;
 
         let initialAccDelta = this.pinchZoomParameters.initialAccDelta + amount;
         let new_fov = si / Math.pow(initialAccDelta, alpha);
@@ -1329,10 +1314,9 @@ export let View = (function () {
         this.setZoom(new_fov);
     }
 
-    View.prototype.decreaseZoom = function () {
+    View.prototype.decreaseZoom = function (amount) {
         const si = 500000.0;
         const alpha = 40.0;
-        const amount = 0.005;
 
         let initialAccDelta = this.pinchZoomParameters.initialAccDelta - amount;
 
@@ -1348,6 +1332,10 @@ export let View = (function () {
 
         this.pinchZoomParameters.initialAccDelta = initialAccDelta;
         this.setZoom(new_fov);
+    }
+
+    View.prototype.setRotation = function(rotation) {
+        this.aladin.webglAPI.setRotationAroundCenter(rotation);
     }
 
     View.prototype.setGridConfig = function (gridCfg) {
@@ -1369,14 +1357,46 @@ export let View = (function () {
                 ALEvent.COO_GRID_UPDATED.dispatchedTo(this.aladinDiv, { color: gridCfg.color, opacity: gridCfg.opacity });
             }
         }
+
         this.requestRedraw();
     };
 
     View.prototype.updateZoomState = function () {
+        // Get the new zoom values from the backend
         this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
-        this.fov = this.aladin.webglAPI.getFieldOfView();
+        let fov = this.aladin.webglAPI.getFieldOfView();
 
+        // Update the pinch zoom parameters consequently
+        const si = 500000.0;
+        const alpha = 40.0;
+        this.pinchZoomParameters.initialAccDelta = Math.pow(si / fov, 1.0 / alpha);
+
+        // Save it
+        this.fov = fov;
         this.computeNorder();
+
+        // Update the lower left FoV div
+        if (isNaN(this.fov)) {
+            this.fovDiv.html("FoV:");
+            return;
+        }
+        var fovStr;
+        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
+            fov = 180.0;
+        } else if (fov >= 360.0) {
+            fov = 360.0;
+        }
+
+        if (fov > 1) {
+            fovStr = Math.round(fov * 100) / 100 + "°";
+        }
+        else if (fov * 60 > 1) {
+            fovStr = Math.round(fov * 60 * 100) / 100 + "'";
+        }
+        else {
+            fovStr = Math.round(fov * 3600 * 100) / 100 + '"';
+        }
+        this.fovDiv.html("FoV: " + fovStr);
     };
 
     /**
@@ -1665,7 +1685,7 @@ export let View = (function () {
                 break;
             case "TAN":
                 this.projection.setProjection(ProjectionEnum.TAN);
-                this.fovLimit = 180.0;
+                this.fovLimit = 90.0;
                 break;
             case "ARC":
                 this.projection.setProjection(ProjectionEnum.ARC);
@@ -1685,9 +1705,8 @@ export let View = (function () {
                 this.fovLimit = 1000.0;
         }
         // Change the projection here
-        this.aladin.webglAPI.setProjection(projectionName, this.width, this.height);
-        const fov = this.aladin.webglAPI.getFieldOfView();
-        this.setZoom(fov);
+        this.aladin.webglAPI.setProjection(projectionName);
+        this.updateZoomState();
 
         this.requestRedraw();
     };

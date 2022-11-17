@@ -6,31 +6,13 @@ import colormaps from '../img/colormaps/colormaps.png';
 import letters from '../img/letters.png';
 import lettersMetadata from '../img/letters.json';
 
-
 export let WebGLCtx = (function() {
-    /** Constructor */
-    async function WebGLCtx () {
-        // Check for webgl2 support
-        const webGL2support = checkForWebGL2Support();
-
-        if (webGL2support) {
-            return await import('../../pkg-webgl2');
-        } else {
-            // WebGL1 not supported
-            // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users
-            throw "WebGL2 not supported by your browser";
-            //return await import('../core/pkg-webgl1');
-        }
-    };
-
-    WebGLCtx.checkForWebGL2Support = checkForWebGL2Support;
-
-    WebGLCtx.init = function(ctx, div) {
-        //const shaders = WebGLCtx.checkForWebGL2Support() ? loadShadersWebGL2() : loadShadersWebGL1();
-        let shaders = loadShadersWebGL2();
-        //shaders = shaders.map((s) => { return {id: s.id, content: s.content.sourceCode}; });
+    // constructor
+    function WebGLCtx(ctx, div) {
+        const shaders = loadShadersWebGL2();
         const lettersMeta = JSON.stringify(lettersMetadata);
-        return new ctx.WebClient(
+
+        this.webclient = new ctx.WebClient(
             div,
             shaders,
             {
@@ -40,20 +22,8 @@ export let WebGLCtx = (function() {
                 'letters_metadata': lettersMeta,
             }
         );
-    }
+    };
 
     return WebGLCtx;
 })();
-
-function checkForWebGL2Support() {        
-    const gl = document
-        .createElement('canvas')
-        .getContext('webgl2');
-    return gl;
-    /*
-    // Run WebGL1 version only
-    return false;
-    */
-}
-
 

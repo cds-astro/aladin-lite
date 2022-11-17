@@ -26,14 +26,13 @@ impl Texture2DArray {
         num_slices: i32,
         tex_params: &'static [(u32, u32)],
     ) -> Result<Texture2DArray, JsValue> {
-        let mut textures = vec![];
-        
-        for _ in 0..num_slices {
-            let texture = Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)?;
-            textures.push(texture);
-        }
+        let textures: Result<Vec<_>, _> = (0..num_slices)
+            .map(|_| {
+                Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)
+            })
+            .collect();
 
-        Ok(Texture2DArray { textures })
+        Ok(Texture2DArray { textures: textures? })
     }
 }
 

@@ -200,7 +200,6 @@ impl HierarchicalHpxCoverage {
         &self.full_moc
     }
 }
-
 use crate::ProjectionType;
 impl MOC {
     pub fn new(gl: &WebGlContext) -> Self {
@@ -278,7 +277,7 @@ impl MOC {
 
     fn recompute_draw_mocs(&mut self, camera: &CameraViewPort) {
         let view_depth = self.view.get_depth();
-        let depth = view_depth + 5;
+        let depth = view_depth + 6;
 
         let fov_moc = crate::survey::view::compute_view_coverage(camera, view_depth, &CooSystem::ICRSJ2000);
         self.adaptative_mocs = self.layers.iter()
@@ -489,9 +488,12 @@ impl MOC {
     }
 
     pub fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+        if self.is_empty() {
+            return;
+        }
+
         // Compute or retrieve the mocs to render
-        let new_depth = crate::survey::view::depth_from_pixels_on_screen(camera, 512);
-        self.view.refresh(new_depth, CooSystem::ICRSJ2000, camera);
+        self.view.refresh(camera.get_tile_depth(), CooSystem::ICRSJ2000, camera);
 
         if self.view.has_view_changed() {
             self.recompute_draw_mocs(camera);
@@ -500,11 +502,19 @@ impl MOC {
         self.update_buffers(camera, projection);
     }
     
+    pub fn is_empty(&self) -> bool {
+        self.layers.is_empty()
+    } 
+
     pub fn draw(
         &self,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
     ) {
+        if self.is_empty() {
+            return;
+        }
+
         self.gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,

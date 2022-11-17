@@ -51,8 +51,8 @@ fn linspace(a: f64, b: f64, num: usize) -> Vec<f64> {
     res
 }
 
-const NUM_VERTICES_WIDTH: usize = 6;
-const NUM_VERTICES_HEIGHT: usize = 6;
+const NUM_VERTICES_WIDTH: usize = 4;
+const NUM_VERTICES_HEIGHT: usize = 4;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
@@ -66,33 +66,7 @@ pub struct FieldOfViewVertices {
     //moc: [Option<HEALPixCoverage>; al_api::coo_system::NUM_COOSYSTEM],
     //depth: u8,
 }
-/*
-fn create_coverage(vertices: &[Vector4<f64>], inside: &Vector3<f64>, camera_frame: &CooSystem, hips_frame: &CooSystem) -> HEALPixCoverage {
-    let mut depth = 0;
-    let mut coverage = HEALPixCoverage::new(depth, vertices, inside);
 
-    let vertices = vertices
-        .iter()
-        .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
-        .collect::<Vec<_>>();
-
-    let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &inside);
-    // Prefer to query from_polygon with depth >= 2
-    let mut coverage = crate::healpix::coverage::HEALPixCoverage::new(
-        self.depth,
-        &vertices[..],
-        &inside.truncate(),
-    );
-
-    while coverage.n_depth_max_cells() < 7 && depth < cdshealpix::DEPTH_MAX {
-        depth += 1;
-        coverage = HEALPixCoverage::new(depth, &vertices, &inside.truncate());
-    }
-
-    coverage
-}*/
-
-use al_core::{log, info, inforec};
 use crate::ProjectionType;
 impl FieldOfViewVertices {
     pub fn new(
@@ -187,30 +161,9 @@ impl FieldOfViewVertices {
         self.great_circles.get_bounding_box()
     }
 
-    /*pub fn get_coverage(&mut self, camera_frame: &CooSystem, hips_frame: &CooSystem, inside: &Vector4<f64>) -> &HEALPixCoverage {
-        if self.moc[*hips_frame as usize].is_none() {
-            let coverage = if let Some(vertices) = &self.model_coo {
-                let vertices = vertices
-                    .iter()
-                    .map(|v| crate::coosys::apply_coo_system(camera_frame, &hips_frame, v))
-                    .collect::<Vec<_>>();
-
-                let inside = crate::coosys::apply_coo_system(camera_frame, &hips_frame, &inside);
-                // Prefer to query from_polygon with depth >= 2
-                crate::healpix::coverage::HEALPixCoverage::new(
-                    self.depth,
-                    &vertices[..],
-                    &inside.truncate(),
-                )
-            } else {
-                HEALPixCoverage::allsky()
-            };
-
-            self.moc[*hips_frame as usize] = Some(coverage);
-        }
-
-        self.moc[*hips_frame as usize].as_ref().unwrap_abort()
-    }*/
+    pub fn contains_pole(&self) -> bool {
+        self.great_circles.contains_pole()
+    }
 
     pub fn _type(&self) -> &FieldOfViewType {
         &self.great_circles

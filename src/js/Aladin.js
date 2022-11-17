@@ -178,13 +178,25 @@ export let Aladin = (function () {
         this.boxes.push(this.stack);
         this.boxes.push(this.coogrid);
 
+        // Grid
+        var color, opacity;
+        if (options.gridOptions) {
+            color = options.gridOptions.color && Color.hexToRgb(options.gridOptions.color);
+            opacity = options.gridOptions.opacity;
+        } else {
+            color = {r:0.0, g:1.0, b:0.0};
+            opacity = 1.0;
+        }
+
+        this.view.setGridConfig({
+            color: color,
+            opacity: opacity,
+        });
+
         if (options && options.showCooGrid) {
             this.view.setGridConfig({
                 enabled: true,
-                color: {r:0.0, g:1.0, b:0.0},
-                opacity: 1.0,
             });
-
             this.view.showCooGrid = true;
         }
 
@@ -1044,12 +1056,16 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.increaseZoom = function () {
-        this.view.increaseZoom();
+        this.view.increaseZoom(0.01);
     };
 
     Aladin.prototype.decreaseZoom = function () {
-        this.view.decreaseZoom();
+        this.view.decreaseZoom(0.01);
     };
+
+    Aladin.prototype.setRotation = function(rotation) {
+        this.view.setRotation(rotation);
+    }
 
     // @api
     // Set the current layer that is targeted
@@ -1688,9 +1704,18 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 A.init = (async () => {
-    Aladin.wasmLibs.webgl = await WebGLCtx();
+    const isWebGL2Supported = document
+        .createElement('canvas')
+        .getContext('webgl2');
+
+    // Check for webgl2 support
+    if (isWebGL2Supported) {
+        Aladin.wasmLibs.webgl = await import('../../pkg-webgl2');
+    } else {
+        // WebGL1 not supported
+        // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users
+        throw "WebGL2 not supported by your browser";
+    }
 })();
 
-// this is ugly for sure and there must be a better way (export A ??)
 window.A = A;
-

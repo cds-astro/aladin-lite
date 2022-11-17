@@ -100,7 +100,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(Angle(lon), center.lat()).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox: _, poles: _ } => {
+            FieldOfViewType::Polygon { poly, .. } => {
                 let lon = if lon < 0.0 { lon + TWICE_PI } else { lon };
 
                 // The arc length must be < PI, so we create an arc from [(lon, -PI/2); (lon, PI/2)[
@@ -136,7 +136,7 @@ impl FieldOfViewType {
                 let pos: Vector3<f64> = LonLatT::new(center.lon(), Angle(lat)).vector();
                 Some(pos)
             }
-            FieldOfViewType::Polygon { poly, bbox, poles: _ } => {
+            FieldOfViewType::Polygon { poly, bbox, .. } => {
                 // Prune parallels that do not intersect the fov
                 if bbox.contains_latitude(lat) {
                     // For those intersecting, perform the intersection

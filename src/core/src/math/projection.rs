@@ -217,7 +217,6 @@ pub trait Projection
     ) -> Option<Vector2<f64>> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
-        //pos_world_space.x = -pos_world_space.x;
         self.world_to_normalized_device_space(&pos_world_space, camera)
     }
 
@@ -308,7 +307,8 @@ pub trait Projection
 impl ProjectionType {
     pub fn aperture_start(&self) -> f64 {
         match self {
-            ProjectionType::Orthographic(_) | ProjectionType::Gnomonic(_) => 180.0,
+            ProjectionType::Orthographic(_) => 180.0,
+            ProjectionType::Gnomonic(_) => 90.0,
             _ => 360.0
         }
     }

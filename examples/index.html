@@ -10,7 +10,7 @@
 <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-    let aladin;
+    var aladin;
     A.init.then(() => {
         /*aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
         aladin.setProjection('MOL');
@@ -27,7 +27,7 @@
         aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
         aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});*/
 
-        aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: false, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: true, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: true});
         //aladin.setProjection('AIT');
 
         //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );

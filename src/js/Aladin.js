@@ -1710,7 +1710,8 @@ A.init = (async () => {
 
     // Check for webgl2 support
     if (isWebGL2Supported) {
-        Aladin.wasmLibs.webgl = await import('../../pkg-webgl2');
+        const module = await import('./../../pkg-webgl2');
+        Aladin.wasmLibs.webgl = module;
     } else {
         // WebGL1 not supported
         // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users

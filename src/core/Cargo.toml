@@ -100,7 +100,7 @@ features = [
 image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
 
 [profile.dev]
-opt-level = 's'
+opt-level = 3
 debug = true
 debug-assertions = true
 overflow-checks = true

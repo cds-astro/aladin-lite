@@ -70,7 +70,14 @@ impl From<query::Moc> for MOCRequest {
             let resp: Response = resp_value.dyn_into()?;
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-            let bytes = js_sys::Uint8Array::new(&array_buffer).to_vec();
+            let start_time = crate::utils::get_current_time();
+
+            let bytes_buf = js_sys::Uint8Array::new(&array_buffer);
+            let num_bytes = bytes_buf.length() as usize;
+            let mut bytes = Vec::with_capacity(num_bytes);
+            unsafe { bytes.set_len(num_bytes); }
+            bytes_buf.copy_to(&mut bytes[..]);
+    
             // Coosys is permissive because we load a moc
             let smoc = match fits::from_fits_ivoa_custom(Cursor::new(&bytes[..]), true).map_err(|e| JsValue::from_str(&e.to_string()))? {
                 MocIdxType::U16(MocQtyType::<u16, _>::Hpx(moc)) => Ok(from_fits_hpx(moc)),

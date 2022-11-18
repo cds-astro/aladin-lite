@@ -414,13 +414,13 @@ impl ImageSurvey {
         //let indices = vec![0_u16; MAX_NUM_INDICES_TO_DRAW];
 
         //let vertices = vec![];
-        let position = Vec::with_capacity(8192);
-        let uv_start = Vec::with_capacity(8192);
-        let uv_end = Vec::with_capacity(8192);
-        let time_tile_received = Vec::with_capacity(8192);
-        let m0 = Vec::with_capacity(8192);
-        let m1 = Vec::with_capacity(8192);
-        let idx_vertices = Vec::with_capacity(8192);
+        let position = vec![];
+        let uv_start = vec![];
+        let uv_end = vec![];
+        let time_tile_received = vec![];
+        let m0 = vec![];
+        let m1 = vec![];
+        let idx_vertices = vec![];
 
         #[cfg(feature = "webgl2")]
         vao.bind_for_update()

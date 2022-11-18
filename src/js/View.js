@@ -785,7 +785,7 @@ export let View = (function () {
                 eventCount++;
 
                 if (new Date().getTime() - eventCountStart > 100) {
-                    if (eventCount > 7) {
+                    if (eventCount > 10) {
                         isTouchPad = true;
                     } else {
                         isTouchPad = false;
@@ -948,51 +948,58 @@ export let View = (function () {
         };
     };
 
+    View.FPS_INTERVAL = 1000 / 60;
+
     /**
      * redraw the whole view
      */
     View.prototype.redraw = function () {
-        // calc elapsed time since last loop
-        // Put your drawing code here
-        try {
-            //var dt = now_update - this.prev;
-            this.aladin.webglAPI.update(Date.now() - this.then);
-        } catch (e) {
-            console.warn(e)
-        }
-
-
-        // check whether a catalog has been parsed and
-        // is ready to be plot
-        let catReady = this.aladin.webglAPI.isCatalogLoaded();
-        if (catReady) {
-            var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
-            (typeof callbackFn === 'function') && callbackFn();
-        }
-
-        try {
-            this.aladin.webglAPI.render(this.needRedraw);
-        } catch (e) {
-            console.error("Error: ", e);
-        }
-
-        ////// 2. Draw catalogues////////
-        const isViewRendering = this.aladin.webglAPI.isRendering();
-        if (isViewRendering || this.needRedraw) {
-            this.drawAllOverlays();
-        }
-        this.needRedraw = false;
-
-        // objects lookup
-        if (!this.dragging) {
-            this.updateObjectsLookup();
-        }
-
-        this.then = Date.now();
-        // execute 'positionChanged' and 'zoomChanged' callbacks
-        this.executeCallbacksThrottled();
         // request another frame
         requestAnimFrame(this.redraw.bind(this));
+
+        const now = Date.now();
+        const elapsedTime = Date.now() - this.then;
+
+        if (elapsedTime >= View.FPS_INTERVAL) {
+            this.then = now - elapsedTime % View.FPS_INTERVAL;
+
+            // calc elapsed time since last loop
+            // Put your drawing code here
+            try {
+                this.aladin.webglAPI.update(elapsedTime);
+            } catch (e) {
+                console.warn(e)
+            }
+
+            // check whether a catalog has been parsed and
+            // is ready to be plot
+            let catReady = this.aladin.webglAPI.isCatalogLoaded();
+            if (catReady) {
+                var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
+                (typeof callbackFn === 'function') && callbackFn();
+            }
+
+            try {
+                this.aladin.webglAPI.render(this.needRedraw);
+            } catch (e) {
+                console.error("Error: ", e);
+            }
+
+            ////// 2. Draw catalogues////////
+            const isViewRendering = this.aladin.webglAPI.isRendering();
+            if (isViewRendering || this.needRedraw) {
+                this.drawAllOverlays();
+            }
+            this.needRedraw = false;
+
+            // objects lookup
+            if (!this.dragging) {
+                this.updateObjectsLookup();
+            }
+
+            // execute 'positionChanged' and 'zoomChanged' callbacks
+            this.executeCallbacksThrottled();
+        }
     };
 
     View.prototype.drawAllOverlays = function () {

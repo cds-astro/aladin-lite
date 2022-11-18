@@ -177,8 +177,8 @@ impl CameraViewPort {
 
     fn recompute_scissor(&self, projection: ProjectionType) {
         // Clear all the screen before updating the scissor
-        self.gl.scissor(0, 0, self.width as i32, self.height as i32);
-        self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        //self.gl.scissor(0, 0, self.width as i32, self.height as i32);
+        //self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
         // Update the scissor
         let (wc, hc) = projection.clip_size();

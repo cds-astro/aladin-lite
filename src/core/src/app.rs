@@ -736,6 +736,8 @@ impl App {
             }
         }*/
 
+        self.draw(false)?;
+
         Ok(())
     }
 
@@ -857,8 +859,6 @@ impl App {
                 self.surveys.reset_frame();
                 self.moc.reset_frame();
             }
-
-            self.gl.flush();
         }
 
         Ok(())

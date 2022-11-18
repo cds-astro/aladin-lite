@@ -21,7 +21,8 @@ module.exports = {
         extensions: ['.js', '.glsl', '.vert', '.frag'],
     },
     experiments: {
-        asyncWebAssembly: true
+        syncWebAssembly: true,
+        asyncWebAssembly: true,
     },
     performance: {
         hints: false,

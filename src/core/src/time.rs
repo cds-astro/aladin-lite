@@ -2,7 +2,17 @@
 pub struct Time(pub f32);
 
 use crate::utils;
+use wasm_bindgen::JsValue;
 impl Time {
+    pub fn measure_perf<T>(mut f: impl FnOnce() -> Result<T, JsValue>) -> Result<T, JsValue> {
+        let start_time = Time::now();
+        let r = f()?;
+        let duration = Time::now() - start_time;
+        al_core::log(&format!("duration: {}", duration.as_millis()));
+
+        Ok(r)
+    }
+
     pub fn now() -> Self {
         Time(utils::get_current_time())
     }

@@ -189,19 +189,6 @@ impl WebClient {
         Ok(())
     }
 
-    /// Render the frame to the canvas
-    ///
-    /// The rendering does not redraw the scene if nothing has changed
-    ///
-    /// # Arguments
-    ///
-    /// * `force` - Force the rendering of the frame
-    pub fn render(&mut self, force: bool) -> Result<(), JsValue> {
-        self.app.draw(force)?;
-
-        Ok(())
-    }
-
     /// Set the type of projections
     ///
     /// # Arguments

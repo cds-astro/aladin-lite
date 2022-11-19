@@ -973,17 +973,11 @@ export let View = (function () {
 
             // check whether a catalog has been parsed and
             // is ready to be plot
-            let catReady = this.aladin.webglAPI.isCatalogLoaded();
+            /*let catReady = this.aladin.webglAPI.isCatalogLoaded();
             if (catReady) {
                 var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
                 (typeof callbackFn === 'function') && callbackFn();
-            }
-
-            try {
-                this.aladin.webglAPI.render(this.needRedraw);
-            } catch (e) {
-                console.error("Error: ", e);
-            }
+            }*/
 
             ////// 2. Draw catalogues////////
             const isViewRendering = this.aladin.webglAPI.isRendering();

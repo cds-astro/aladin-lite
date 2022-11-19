@@ -418,8 +418,13 @@ impl CameraViewPort {
         self.system = new_system;
     }
 
-    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool) {
+    pub fn set_longitude_reversed(&mut self, reversed_longitude: bool, projection: ProjectionType) {
+        if self.reversed_longitude != reversed_longitude {
+            self.rotation_center_angle = -self.rotation_center_angle;
+            self.update_rot_matrices(projection);
+        }
         self.reversed_longitude = reversed_longitude;
+
         // The camera is reversed => it has moved
         self.moved = true;
     }
@@ -519,7 +524,7 @@ impl CameraViewPort {
     }
 
     pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, projection: ProjectionType) {
-        self.rotation_center_angle = theta;
+        self.rotation_center_angle = if self.reversed_longitude { -theta } else { theta };
         self.update_rot_matrices(projection);
     }
 

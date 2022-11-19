@@ -865,7 +865,7 @@ impl App {
     }
 
     pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera)?;
+        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera, self.projection)?;
 
         for survey in self.surveys.surveys.values_mut() {
             let cfg = survey.get_config();
@@ -1155,7 +1155,7 @@ impl App {
         let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
         self.inertial_move_animation = Some(InertiaAnimation {
-            d0: delta_angle * 0.7 / delta_time,
+            d0: delta_angle * 3.0 / delta_time,
             axis,
             time_start_anim: Time::now(),
         });

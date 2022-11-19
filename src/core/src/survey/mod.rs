@@ -1299,6 +1299,7 @@ impl ImageSurveys {
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
         camera: &mut CameraViewPort,
+        projection: ProjectionType
     ) -> Result<(), JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
@@ -1381,7 +1382,7 @@ impl ImageSurveys {
             self.layers.push(layer);
         }
 
-        camera.set_longitude_reversed(longitude_reversed);
+        camera.set_longitude_reversed(longitude_reversed, projection);
 
         Ok(())
     }

@@ -958,7 +958,7 @@ export let View = (function () {
         requestAnimFrame(this.redraw.bind(this));
 
         const now = Date.now();
-        const elapsedTime = Date.now() - this.then;
+        const elapsedTime = now - this.then;
 
         if (elapsedTime >= View.FPS_INTERVAL) {
             this.then = now - elapsedTime % View.FPS_INTERVAL;

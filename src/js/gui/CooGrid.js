@@ -68,7 +68,7 @@
         let optionsOpenerForCoordinatesGrid = $('<span class="indicator right-triangle"> </span>');
         let coordinatesGridCb = $('<input type="checkbox" ' + checked + ' id="displayCoordinatesGrid"/>');
         let labelCoordinatesGridCb = $('<label>Coordinates grid</label>');
-        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" value="1.0" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" min="0" max="1" step="0.01"></td></tr></table></div>');
+        let cooGridOptions = $('<div class="layer-options" style="display: none;"><table><tbody><tr><td>Color</td><td><input type="color" value="#00ff00"></td></tr><tr><td>Opacity</td><td><input class="opacity" value="1.0" type="range" min="0" max="1" step="0.05"></td></tr><tr><td>Label size</td><td><input class="label-size" type="range" value="1" min="0" max="1" step="0.01"></td></tr></table></div>');
         labelCoordinatesGridCb.prepend(coordinatesGridCb);
         layerBox.append(optionsOpenerForCoordinatesGrid).append(labelCoordinatesGridCb).append(cooGridOptions);
         coordinatesGridCb.change(function () {

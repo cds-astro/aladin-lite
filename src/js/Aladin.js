@@ -962,6 +962,27 @@ export let Aladin = (function () {
         }
     };
 
+    Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
+        const idOrUrl = rootUrlOrId;
+        // Check if the survey has already been added
+        // Create a new HpxImageSurvey
+        let isUrl = false;
+        if (idOrUrl.includes("http")) {
+            isUrl = true;
+        }
+        const name = idOrUrl;
+        if (isUrl) {
+            const url = idOrUrl;
+            const id = url;
+            // Url
+            return this.createImageSurvey(id, name, url, null, null, options);
+        } else {
+            const id = idOrUrl;
+            // ID
+            return this.createImageSurvey(id, name, undefined, null, null, options);
+        }
+    }
+
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
@@ -1368,12 +1389,7 @@ A.marker = function (ra, dec, options, data) {
     options['marker'] = true;
     return A.source(ra, dec, data, options);
 };
-/*
-A.createImageSurvey = async function(rootUrlOrId, options) {
-    const survey = await HpxImageSurvey.create(rootUrlOrId, options);
-    return survey;
-}
-*/
+
 // @API
 A.polygon = function (raDecArray) {
     var l = raDecArray.length;
@@ -1523,15 +1539,15 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
     }
     let self = this;
 
-    fetch(url)
+    /*fetch(url)
         .then((resp) => resp.arrayBuffer())
         .then((arrayBuffer) => {
             console.log('received fits', arrayBuffer)
             self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
             console.log("parsed")
-        });
+        });*/
 
-    /*const request = ( url, params = {}, method = 'GET' ) => {
+    const request = ( url, params = {}, method = 'GET' ) => {
         let options = {
             method
         };
@@ -1576,7 +1592,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // downloading the base tiles of the other surveys loading!
             // This has to be fixed in the backend but a fast fix is just to wait
             // before setting a new image survey
-        });*/
+        });
 };
 
 // @API

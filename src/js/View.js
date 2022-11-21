@@ -957,14 +957,17 @@ export let View = (function () {
         // request another frame
         requestAnimFrame(this.redraw.bind(this));
 
+        // Elapsed time since last loop
         const now = Date.now();
         const elapsedTime = now - this.then;
 
+        // If enough time has elapsed, draw the next frame
         if (elapsedTime >= View.FPS_INTERVAL) {
+            // Get ready for next frame by setting then=now, but also adjust for your
+            // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
             this.then = now - elapsedTime % View.FPS_INTERVAL;
 
-            // calc elapsed time since last loop
-            // Put your drawing code here
+            // Drawing code
             try {
                 this.aladin.webglAPI.update(elapsedTime);
             } catch (e) {

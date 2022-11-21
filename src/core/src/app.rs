@@ -524,6 +524,7 @@ impl App {
     pub(crate) fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
         self.moc.set_params(params, &self.camera, self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
+        self.request_redraw = true;
 
         Ok(())
     }
@@ -718,9 +719,9 @@ impl App {
             /*if let Some(view) = self.surveys.get_view() {
                 self.manager.update(&self.camera, view);
             }*/
+            self.grid.update(&self.camera, self.projection);
             // MOCs update
             self.moc.update(&self.camera, self.projection);
-            self.grid.update(&self.camera, self.projection);
         }
 
         /*{

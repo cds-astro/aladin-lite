@@ -422,20 +422,9 @@ impl MOC {
                         .filter_map(|Cell { depth, idx, .. }| {
                             let delta_depth = (depth_max as i32 - depth as i32).max(0);
                             let n_segment_by_side = (1 << delta_depth) as usize;
-    
+
                             let cell = HEALPixCell(depth, idx);
-                            if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell(
-                                &cell,
-                                n_segment_by_side,
-                                camera,
-                                &mut idx_off,
-                                projection
-                            ) {
-                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
-                                indices_moc.extend(indices_cell);
-    
-                                Some(vertices_cell)
-                            } else if depth < 3 {
+                            if depth < 3 {
                                 let mut vertices = vec![];
     
                                 let depth_sub_cell = 3;
@@ -456,6 +445,17 @@ impl MOC {
                                 }
     
                                 Some(vertices)
+                            } else if let Some((vertices_cell, indices_cell)) = rasterize_hpx_cell(
+                                &cell,
+                                n_segment_by_side,
+                                camera,
+                                &mut idx_off,
+                                projection
+                            ) {
+                                // Generate the iterator: idx_off + 1, idx_off + 1, .., idx_off + 4*n_segment - 1, idx_off + 4*n_segment - 1
+                                indices_moc.extend(indices_cell);
+    
+                                Some(vertices_cell)
                             } else {
                                 None
                             }

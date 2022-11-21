@@ -57,7 +57,7 @@ fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: Proj
         num_sub = 3 - d;
     }
 
-    /*// Largest deformation cell among the cells of a specific depth
+    // Largest deformation cell among the cells of a specific depth
     let largest_center_to_vertex_dist =
     cdshealpix::largest_center_to_vertex_distance(d, 0.0, cdshealpix::TRANSITION_LATITUDE);
     let smallest_center_to_vertex_dist =
@@ -70,12 +70,6 @@ fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: Proj
     / (largest_center_to_vertex_dist - smallest_center_to_vertex_dist);
 
     if is_too_large(cell, camera, projection) || cell.is_on_pole() || skewed_factor > 0.25 {
-        num_sub += 1;
-    }
-
-    num_sub*/
-
-    if cell.is_on_pole() {
         num_sub += 1;
     }
 

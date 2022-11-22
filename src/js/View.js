@@ -45,6 +45,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
+import { HpxImageSurvey } from "./HpxImageSurvey.js";
 
 export let View = (function () {
 
@@ -63,6 +64,9 @@ export let View = (function () {
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
             const webglCtx = new WebGLCtx(Aladin.wasmLibs.webgl, this.aladinDiv.id);
             this.aladin.webglAPI = webglCtx.webclient;
+
+            // Retrieve all the possible colormaps
+            HpxImageSurvey.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console

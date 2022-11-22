@@ -600,6 +600,12 @@ export let HpxImageSurvey = (function() {
                 // Make it case insensitive
                 this.options.colormap = this.options.colormap.toLowerCase();
 
+                if (!HpxImageSurvey.COLORMAPS.includes(this.options.colormap)) {
+                    console.warn("The colormap \'" + this.options.colormap + "\' does not exist. You should use one of the following: " + HpxImageSurvey.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
+
+                    this.options.colormap = "native";
+                }
+
                 let reversed = this.options.reversed;
                 if (this.options.reversed === undefined) {
                     reversed = false;
@@ -848,7 +854,7 @@ export let HpxImageSurvey = (function() {
                 this.options.imgFormat = prevImageFmt;
                 this.fits = (this.options.imgFormat === 'FITS');
             }
-        }  
+        }
     };
 
     // @api
@@ -866,8 +872,11 @@ export let HpxImageSurvey = (function() {
         return this.backend.aladin.webglAPI.readPixel(x, y, this.layer);
     };
 
+    /* Some constants */
     HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
     
+    HpxImageSurvey.COLORMAPS = [];
+
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [
         {

@@ -224,6 +224,12 @@ impl TransferFunction {
     }
 }
 
+impl Default for TransferFunction {
+    fn default() -> Self {
+        TransferFunction::Linear
+    }
+}
+
 impl From<String> for TransferFunction {
     fn from(id: String) -> Self {
         TransferFunction::new(&id)
@@ -231,7 +237,6 @@ impl From<String> for TransferFunction {
 }
 
 use crate::colormap::Colormap;
-
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum HiPSColor {

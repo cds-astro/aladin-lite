@@ -443,7 +443,6 @@ export let Aladin = (function () {
         pixelateCanvas: true
     };
 
-
     // realFullscreen: AL div expands not only to the size of its parent, but takes the whole available screen estate 
     Aladin.prototype.toggleFullscreen = function (realFullscreen) {
         let self = this;

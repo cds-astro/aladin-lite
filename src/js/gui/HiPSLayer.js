@@ -82,7 +82,7 @@ export class HiPSLayer {
             '  <tr><td></td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
             '  <tr><td></td><td><input type="color" id="color-radio" name="color-radio" value="#ff0000" class="color-selector"></td></tr>' +
             '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +
-            '  <tr><td>Stretch</td><td><select class="stretch"><option>Pow2</option><option selected>Linear</option><option>Sqrt</option><option>Asinh</option><option>Log</option></select></td></tr>' +
+            '  <tr><td>Stretch</td><td><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></td></tr>' +
             '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
             '  <tr><td>Min cut</td><td><input type="number" class="min-cut"></td></tr>' +
             '  <tr><td>Max cut</td><td><input type="number" class="max-cut"></td></tr>' +

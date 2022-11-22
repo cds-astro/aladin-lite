@@ -302,7 +302,7 @@ impl ImageSurveyTextures {
     pub fn push_allsky(
         &mut self,
         allsky: Allsky,
-    ) {
+    ) -> Result<(), JsValue> {
         let Allsky {
             image, time_req, depth_tile, ..
         } = allsky;
@@ -315,11 +315,13 @@ impl ImageSurveyTextures {
                     &HEALPixCell(depth_tile, idx as u64),
                     Some(image),
                     time_req,
-                );
+                )?;
             }
         }
 
         self.set_ready();
+
+        Ok(())
     }
 
     pub fn set_ready(&mut self) {
@@ -336,133 +338,106 @@ impl ImageSurveyTextures {
         cell: &HEALPixCell,
         image: Option<I>,
         time_request: Time,
-    ) {
-        if self.contains_tile(cell) {
-            return;
-        }
+    ) -> Result<(), JsValue> {
+        if !self.contains_tile(cell) {
+            // Get the texture cell in which the tile has to be
+            let tex_cell = cell.get_texture_cell(&self.config);
 
-        // Get the texture cell in which the tile has to be
-        let tex_cell = cell.get_texture_cell(&self.config);
-        // Assert here to prevent pushing doublons
-        /*if self.contains_tile(cell) {
+            if !self.textures.contains_key(&tex_cell) {
+                let HEALPixCell(_, idx) = tex_cell;
+                let texture = if tex_cell.is_root() {
+                    Texture::new(&self.config, &tex_cell, idx as i32, time_request)
+                } else {
+                    // The texture is not among the essential ones
+                    // (i.e. is not a root texture)
+                    let texture = if self.is_heap_full() {
+                        // Pop the oldest requested texture
+                        let oldest_texture = self.heap.pop().unwrap_abort();
+                        // Ensure this is not a base texture
+                        debug_assert!(!oldest_texture.is_root());
+
+                        // Remove it from the textures HashMap
+                        let mut texture = self.textures.remove(&oldest_texture.cell).expect(
+                            "Texture (oldest one) has not been found in the buffer of textures",
+                        );
+                        // Clear and assign it to tex_cell
+                        texture.replace(
+                            &tex_cell,
+                            time_request,
+                        );
+
+                        texture
+                    } else {
+                        // The heap buffer is not full, let's create a new
+                        // texture with an unique idx
+                        // The idx is computed based on the current size of the buffer
+                        let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
+
+                        Texture::new(&self.config, &tex_cell, idx as i32, time_request)
+                    };
+                    // Push it to the buffer
+                    self.heap.push(&texture);
+
+                    texture
+                };
+                // Insert it the texture
+                self.textures.insert(tex_cell, texture);
+            }
+
+            // At this point, the texture that should contain the tile
+            // is in the buffer
+            // and the tile is not already in any textures of the buffer
+            // We can safely push it
+            // First get the texture
             let texture = self
-            .textures
-            .get_mut(&tex_cell)
-            .expect("the cell has to be in the tile buffer");
+                .textures
+                .get_mut(&tex_cell)
+                .expect("the cell has to be in the tile buffer");
 
-            if missing {
-                send_to_gpu(
-                    cell,
-                    texture,
-                    self.config.get_default_image(),
-                    self.texture_2d_array.clone(),
-                    &self.config,
-                );
-            } else {
+            if let Some(image) = image {
                 send_to_gpu(
                     cell,
                     texture,
                     image,
                     self.texture_2d_array.clone(),
                     &self.config,
+                )?;
+                // Once the texture has been received in the GPU
+                texture.append(
+                    cell, // The tile cell
+                    &self.config,
+                    false,
+                );
+            } else {
+                send_to_gpu(
+                    cell,
+                    texture,
+                    self.config.get_default_image(),
+                    self.texture_2d_array.clone(),
+                    &self.config,
+                )?;
+                // Once the texture has been received in the GPU
+                texture.append(
+                    cell, // The tile cell
+                    &self.config,
+                    true,
                 );
             };
 
-            return;
-        }*/
+            self.available_tiles_during_frame = true;
+            if tex_cell.is_root() && texture.is_available() {
+                self.num_root_textures_available += 1;
+                debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
 
-        if !self.textures.contains_key(&tex_cell) {
-            let HEALPixCell(_, idx) = tex_cell;
-            let texture = if tex_cell.is_root() {
-                Texture::new(&self.config, &tex_cell, idx as i32, time_request)
-            } else {
-                // The texture is not among the essential ones
-                // (i.e. is not a root texture)
-                let texture = if self.is_heap_full() {
-                    // Pop the oldest requested texture
-                    let oldest_texture = self.heap.pop().unwrap_abort();
-                    // Ensure this is not a base texture
-                    debug_assert!(!oldest_texture.is_root());
-
-                    // Remove it from the textures HashMap
-                    let mut texture = self.textures.remove(&oldest_texture.cell).expect(
-                        "Texture (oldest one) has not been found in the buffer of textures",
-                    );
-                    // Clear and assign it to tex_cell
-                    texture.replace(
-                        &tex_cell,
-                        time_request,
-                    );
-
-                    texture
-                } else {
-                    // The heap buffer is not full, let's create a new
-                    // texture with an unique idx
-                    // The idx is computed based on the current size of the buffer
-                    let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
-
-                    Texture::new(&self.config, &tex_cell, idx as i32, time_request)
-                };
-                // Push it to the buffer
-                self.heap.push(&texture);
-
-                texture
-            };
-            // Insert it the texture
-            self.textures.insert(tex_cell, texture);
-        }
-
-        // At this point, the texture that should contain the tile
-        // is in the buffer
-        // and the tile is not already in any textures of the buffer
-        // We can safely push it
-        // First get the texture
-        let texture = self
-            .textures
-            .get_mut(&tex_cell)
-            .expect("the cell has to be in the tile buffer");
-
-        if let Some(image) = image {
-            send_to_gpu(
-                cell,
-                texture,
-                image,
-                self.texture_2d_array.clone(),
-                &self.config,
-            );
-            // Once the texture has been received in the GPU
-            texture.append(
-                cell, // The tile cell
-                &self.config,
-                false,
-            );
-        } else {
-            send_to_gpu(
-                cell,
-                texture,
-                self.config.get_default_image(),
-                self.texture_2d_array.clone(),
-                &self.config,
-            );
-            // Once the texture has been received in the GPU
-            texture.append(
-                cell, // The tile cell
-                &self.config,
-                true,
-            );
-        };
-
-        self.available_tiles_during_frame = true;
-        if tex_cell.is_root() && texture.is_available() {
-            self.num_root_textures_available += 1;
-            debug_assert!(self.num_root_textures_available <= NUM_HPX_TILES_DEPTH_ZERO);
-
-            if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
-                self.ready = true;
-                // The survey is ready
-                self.start_time = Some(Time::now());
+                if self.num_root_textures_available == NUM_HPX_TILES_DEPTH_ZERO {
+                    self.ready = true;
+                    // The survey is ready
+                    self.start_time = Some(Time::now());
+                }
             }
         }
+
+        Ok(())
     }
 
     // Return if tiles did become available
@@ -668,7 +643,7 @@ fn send_to_gpu<I: Image>(
     image: I,
     texture_array: Rc<Texture2DArray>,
     cfg: &HiPSConfig,
-) {
+) -> Result<(), JsValue> {
     // Index of the texture in the total set of textures
     let texture_idx = texture.idx();
     // Index of the slice of textures
@@ -698,39 +673,14 @@ fn send_to_gpu<I: Image>(
         idx_slice,
     );
 
-    image.tex_sub_image_3d(&texture_array, &offset);
+    image.tex_sub_image_3d(&texture_array, &offset)
 }
 use super::texture::TextureUniforms;
 
 use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
-    /*
-    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        if self.is_ready() {
-            // Send the textures
-            let textures = self.get_textures();
-            let mut num_textures = 0;
-            for texture in textures.iter() {
-                if texture.is_available() {
-                    let texture_uniforms = TextureUniforms::new(texture, num_textures as i32);
-
-                    shader.attach_uniforms_from(&texture_uniforms);
-                    num_textures += 1;
-                }
-            }
-            let num_tiles = textures.len() as i32;
-            shader
-                .attach_uniform("num_tiles", &num_tiles)
-                .attach_uniforms_from(&self.config)
-                .attach_uniforms_from(&*self.texture_2d_array);
-        }
-
-        shader
-    }
-    */
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
-        //if self.is_ready() {
         // Send the textures
         let textures = self.get_allsky_textures();
         for (idx, texture) in textures.iter().enumerate() {
@@ -744,7 +694,6 @@ impl SendUniforms for ImageSurveyTextures {
             .attach_uniform("num_tiles", &num_tiles)
             .attach_uniforms_from(&self.config)
             .attach_uniforms_from(&*self.texture_2d_array);
-        //}
 
         shader
     }
@@ -755,11 +704,7 @@ impl Drop for ImageSurveyTextures {
         // Cleanup the heap
         self.heap.clear();
 
-        // Cancel the tasks that have not been finished
-        // by the exec
-        /*for texture in self.textures.values() {
-            texture.clear_tasks_in_progress(&self.config, &mut self.exec.borrow_mut());
-        }*/
+        // Cancel the tasks that have not been finished by the exec
         self.textures.clear();
     }
 }

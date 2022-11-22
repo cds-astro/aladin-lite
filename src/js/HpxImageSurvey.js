@@ -31,6 +31,7 @@ import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
+import { Aladin } from "./Aladin.js";
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -426,11 +427,10 @@ export let HpxImageSurvey = (function() {
                 }
             } catch(e) {
                 // Check if no surveys have been added
-                if (view.aladin.empty) {
-                    console.warn(e + ". DSS2/color is chosen by default.");
-                    view.aladin.setBaseImageLayer("CDS/P/DSS2/color");
-
-                    return;
+                if (view.aladin.empty && self.layer === "base") {
+                    console.error(e)
+                    console.warn("DSS2/color is chosen by default.");
+                    view.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey)
                 } else {
                     throw e;
                 }
@@ -571,6 +571,11 @@ export let HpxImageSurvey = (function() {
                 maxCut /= 255.0;
             }
 
+            // Make the stretch case insensitive
+            if (this.options.stretch) {
+                this.options.stretch = this.options.stretch.toLowerCase();
+            }
+
             if (this.options.color) {
                 this.meta.color = {
                     grayscale: {
@@ -591,6 +596,9 @@ export let HpxImageSurvey = (function() {
                 if (this.options.colormap === "native") {
                     this.options.colormap = "grayscale";
                 }
+
+                // Make it case insensitive
+                this.options.colormap = this.options.colormap.toLowerCase();
 
                 let reversed = this.options.reversed;
                 if (this.options.reversed === undefined) {
@@ -616,6 +624,8 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setOpacity = function(opacity) {
+        const oldOptions = this.options;
+
         this.prevOpacity = this.options.opacity;
 
         opacity = +opacity; // coerce to number
@@ -625,8 +635,17 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+            }
         }
     };
 
@@ -639,6 +658,7 @@ export let HpxImageSurvey = (function() {
         }
     };
 
+    // @oldapi
     HpxImageSurvey.prototype.setAlpha = HpxImageSurvey.prototype.setOpacity;
 
     // @api
@@ -648,19 +668,32 @@ export let HpxImageSurvey = (function() {
 
     // @api
     HpxImageSurvey.prototype.setBlendingConfig = function(additive = false) {
+        const oldOptions = this.options;
+
         this.options.additive = additive;
 
         this.updateMeta();
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+            }
         }
     };
 
     // @api
     HpxImageSurvey.prototype.setColor = function(color, options) {
+        const oldOptions = this.options;
+
         this.options = {...this.options, ...options};
         // Erase the colormap given first
         if (this.options.colormap) {
@@ -672,13 +705,24 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
         }
     };
 
     // @api
     HpxImageSurvey.prototype.setColormap = function(colormap, options) {
+        const oldOptions = this.options;
+
         this.options = {...this.options, ...options};
         // Erase the color given first
         if (this.options.color) {
@@ -690,13 +734,24 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
         }
     }
 
     // @api
     HpxImageSurvey.prototype.setCuts = function(cuts) {
+        const oldOptions = this.options;
+
         this.options.minCut = cuts[0];
         this.options.maxCut = cuts[1];
 
@@ -704,19 +759,39 @@ export let HpxImageSurvey = (function() {
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
         }
     };
 
     HpxImageSurvey.prototype.setOptions = function(options) {
-        this.options = options;
+        const oldOptions = this.options;
+
+        this.options = {...this.options, ...options};
         this.updateMeta();
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
-            this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
-            ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+            }
         }
     };
 
@@ -762,17 +837,18 @@ export let HpxImageSurvey = (function() {
         this.fits = (this.options.imgFormat === 'FITS');
 
         // Tell the view its meta have changed
-        try {
-            if ( this.ready && this.added ) {
+        if ( this.ready && this.added ) {
+            try {
+
                 this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                console.error(e);
+    
+                this.options.imgFormat = prevImageFmt;
+                this.fits = (this.options.imgFormat === 'FITS');
             }
-        } catch(e) {
-            console.error(e);
-
-            this.options.imgFormat = prevImageFmt;
-            this.fits = (this.options.imgFormat === 'FITS');
-        }
+        }  
     };
 
     // @api

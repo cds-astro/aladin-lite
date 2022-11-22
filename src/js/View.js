@@ -1547,28 +1547,24 @@ export let View = (function () {
     }
 
     View.prototype.updateImageLayerStack = function () {
-        try {
-            let surveys = this.buildSortedImageSurveys()
-                .filter(s => s !== undefined && s.properties)
-                .map(s => {
-                    //let {backend, ...survey} = s;
-                    //return survey;
-                    return {
-                        layer: s.layer,
-                        properties: s.properties,
-                        meta: s.meta,
-                        // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
-                        imgFormat: s.options.imgFormat.toUpperCase(),
-                    };
-                });
-            this.aladin.empty = false;
-            this.aladin.webglAPI.setImageSurveys(surveys);
+        let surveys = this.buildSortedImageSurveys()
+            .filter(s => s !== undefined && s.properties)
+            .map(s => {
+                //let {backend, ...survey} = s;
+                //return survey;
+                return {
+                    layer: s.layer,
+                    properties: s.properties,
+                    meta: s.meta,
+                    // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
+                    imgFormat: s.options.imgFormat.toUpperCase(),
+                };
+            });
+        this.aladin.empty = false;
+        this.aladin.webglAPI.setImageSurveys(surveys);
 
-            //const fov = this.aladin.webglAPI.getCenter();
-            this.setZoom(this.aladin.webglAPI.getFieldOfView());
-        } catch (e) {
-            console.error(e)
-        }
+        //const fov = this.aladin.webglAPI.getCenter();
+        this.setZoom(this.aladin.webglAPI.getFieldOfView());
     };
 
     View.prototype.removeImageSurvey = function (layer) {
@@ -1594,15 +1590,10 @@ export let View = (function () {
     };
 
     View.prototype.commitSurveysToBackend = function (survey, layer = "base") {
-        //const layerAlreadyContained = this.imageSurveys.has(layer); true
-
         try {
             this.updateImageLayerStack();
 
             if (survey.existedBefore) {
-                //if (this.selectedSurveyLayer && this.selectedSurveyLayer === layer) {
-                //    this.selectedSurveyLayer = layer;
-                //}
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, { survey: survey });
             } else {
                 survey.existedBefore = true;
@@ -1624,7 +1615,15 @@ export let View = (function () {
                 this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
             }
 
-            throw 'Error loading the HiPS ' + survey + ':' + e;
+            // Check if it concerns the base layer
+            if (layer === "base") {
+                // If so, tell that the aladin lite view is empty
+                // It will be set to display the default DSS color survey
+                this.aladin.empty = true;
+            }
+
+            // Throw the full error message for the user
+            throw 'Error loading the HiPS ' + survey.id + ':\n' + e;
         }
     }
 

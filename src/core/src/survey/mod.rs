@@ -857,7 +857,7 @@ impl ImageSurvey {
     pub fn add_tile(
         &mut self,
         tile: Tile,
-    ) {
+    ) -> Result<(), JsValue> {
         let is_missing = tile.missing();
         let Tile {
             cell,
@@ -875,14 +875,14 @@ impl ImageSurvey {
             None
         };
 
-        self.textures.push(&cell, image, time_req);
+        self.textures.push(&cell, image, time_req)
     }
 
     pub fn add_allsky(
         &mut self,
         allsky: Allsky,
-    ) {
-        self.textures.push_allsky(allsky);
+    ) -> Result<(), JsValue> {
+        self.textures.push_allsky(allsky)
     }
 
     /* Accessors */

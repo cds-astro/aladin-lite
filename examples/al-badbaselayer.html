@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+A.init.then(() => {
+    let aladin = A.aladin('#aladin-lite-div', {projection: "AIT"});
+    let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
+    aladin.setBaseImageLayer(hsc);
+
+});
+</script>
+</body>
+</html>

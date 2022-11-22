@@ -300,26 +300,9 @@ where
         }
     }
 
-    pub fn tex_sub(&self) -> bool {
+    pub fn tex_sub(&self) -> Result<bool, JsValue> {
         self.image
-            .tex_sub_image_3d(&self.texture_array, &self.offset);
-        true
-    }
-}
-
-use futures::Future;
-impl<I> Future for ImageTile2GpuTask<I>
-where
-    I: Image + 'static + std::fmt::Debug,
-{
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Self::Output> {
-        let finished = self.tex_sub();
-        if finished {
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
+            .tex_sub_image_3d(&self.texture_array, &self.offset)?;
+        Ok(true)
     }
 }

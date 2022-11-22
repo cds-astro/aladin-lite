@@ -601,7 +601,7 @@ impl App {
                                         });
 
                                     if included_or_near_coverage {
-                                        survey.add_tile(tile);
+                                        survey.add_tile(tile)?;
         
                                         self.request_redraw = true;
                                     } else {
@@ -633,7 +633,7 @@ impl App {
                                 } else {
                                     // tell the survey to not download tiles which order is <= 3 because the allsky
                                     // give them already
-                                    survey.add_allsky(allsky);
+                                    survey.add_allsky(allsky)?;
                                     // Once received ask for redraw
                                     self.request_redraw = true;
                                 }

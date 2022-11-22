@@ -199,6 +199,7 @@ impl Default for GrayscaleParameter {
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum TransferFunction {
     Linear,
     Sqrt,

@@ -588,7 +588,7 @@ impl App {
     
                             if let Some(survey) = self.surveys.get_mut(tile.get_hips_url()) {
                                 if is_tile_root {
-                                    survey.add_tile(tile);
+                                    survey.add_tile(tile)?;
 
                                     self.request_redraw = true;
                                 } else {

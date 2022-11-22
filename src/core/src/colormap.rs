@@ -33,8 +33,8 @@ impl Colormaps {
             ("spectral", Colormap::Spectral),
             ("summer", Colormap::Summer),
             ("viridis", Colormap::Viridis),
-            ("yignbu", Colormap::Yignbu),
-            ("yiorbr", Colormap::Yiorbr),
+            ("ylgnbu", Colormap::Ylgnbu),
+            ("ylorbr", Colormap::Ylorbr),
         ]
         .iter()
         .cloned()
@@ -88,8 +88,8 @@ impl Colormaps {
             "spectral",
             "summer",
             "viridis",
-            "yignbu",
-            "yiorbr",
+            "ylgnbu",
+            "ylorbr",
         ]
     }
 

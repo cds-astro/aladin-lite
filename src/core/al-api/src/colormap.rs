@@ -21,6 +21,6 @@ pub enum Colormap {
     Spectral = 13,
     Summer = 14,
     Viridis = 15,
-    Yignbu = 16,
-    Yiorbr = 17,
+    Ylgnbu = 16,
+    Ylorbr = 17,
 }

@@ -149,7 +149,7 @@ impl From<query::Allsky> for AllskyRequest {
                     bytes_buffer.copy_to(&mut raw_bytes[..]);
                     let Fits { hdu: HDU { data, .. }} = Fits::from_reader(raw_bytes.as_slice())
                         .map_err(|_| {
-                            JsValue::from_str("Parsing fits error")
+                            JsValue::from_str("Parsing fits error of allsky")
                         })?;
         
                     //let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;

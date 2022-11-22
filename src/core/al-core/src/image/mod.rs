@@ -179,7 +179,7 @@ impl ArrayBuffer for ArrayF64 {
 }
 
 use self::html::HTMLImage;
-
+use wasm_bindgen::JsValue;
 use super::Texture2DArray;
 pub trait Image {
     fn tex_sub_image_3d(
@@ -188,10 +188,7 @@ pub trait Image {
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    );
-
-    // The size of the image
-    //fn get_size(&self) -> &Vector2<i32>;
+    ) -> Result<(), JsValue>;
 }
 
 impl<'a, I> Image for &'a I
@@ -204,15 +201,12 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         let image = &**self;
         image.tex_sub_image_3d(textures, offset);
-    }
 
-    /*fn get_size(&self) -> &Vector2<i32> {
-        let image = &**self;
-        image.get_size()
-    }*/
+        Ok(())
+    }
 }
 
 use std::rc::Rc;
@@ -226,15 +220,12 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         let image = &**self;
         image.tex_sub_image_3d(textures, offset);
-    }
 
-    /*fn get_size(&self) -> &Vector2<i32> {
-        let image = &**self;
-        image.get_size()
-    }*/
+        Ok(())
+    }
 }
 use crate::Abort;
 
@@ -249,10 +240,12 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         if let Some(image) = &*self.lock().unwrap_abort() {
             image.tex_sub_image_3d(textures, offset);
         }
+
+        Ok(())
     }
 }
 
@@ -299,7 +292,7 @@ impl Image for ImageType {
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         match self {
             ImageType::FitsImage { raw_bytes: raw_bytes_buf } => {
                 let num_bytes = raw_bytes_buf.length() as usize;
@@ -307,19 +300,21 @@ impl Image for ImageType {
                 unsafe { raw_bytes.set_len(num_bytes); }
                 raw_bytes_buf.copy_to(&mut raw_bytes[..]);
 
-                let fits_img = Fits::from_byte_slice(raw_bytes.as_slice()).unwrap();
-                fits_img.tex_sub_image_3d(textures, offset)
+                let fits_img = Fits::from_byte_slice(raw_bytes.as_slice())?;
+                fits_img.tex_sub_image_3d(textures, offset)?
             },
-            ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::JpgHTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawR32i { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawR16i { image } => image.tex_sub_image_3d(textures, offset),
-            ImageType::RawR8ui { image } => image.tex_sub_image_3d(textures, offset),
+            ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::JpgHTMLImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawR32f { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawR32i { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawR16i { image } => image.tex_sub_image_3d(textures, offset)?,
+            ImageType::RawR8ui { image } => image.tex_sub_image_3d(textures, offset)?,
         }
+
+        Ok(())
     }
 }

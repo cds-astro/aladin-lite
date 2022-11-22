@@ -179,7 +179,7 @@ impl Image for Fits<'_> {
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         match &self.data {
             Data::U8(data) => { 
                 let view = unsafe { R8UI::view(&data) };
@@ -230,6 +230,8 @@ impl Image for Fits<'_> {
                     );
             }
         }
+
+        Ok(())
     }
 }
 

@@ -18,7 +18,7 @@ where
 }
 
 use cgmath::Vector3;
-
+use wasm_bindgen::JsValue;
 use crate::image::format::ImageFormat;
 use crate::image::Image;
 use crate::texture::Texture2DArray;
@@ -32,7 +32,7 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         textures[offset.z as usize]
             .bind()
             .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
@@ -40,5 +40,7 @@ where
                 offset.y,
                 &self.image,
             );
+
+        Ok(())
     }
 }

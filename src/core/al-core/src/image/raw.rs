@@ -153,7 +153,7 @@ where
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
+    ) -> Result<(), JsValue> {
         let js_array =
             <<<I as ImageFormat>::P as Pixel>::Container as ArrayBuffer>::new(&self.data);
         textures[offset.z as usize]
@@ -165,6 +165,8 @@ where
                 self.size.y,
                 Some(js_array.as_ref()),
             );
+
+        Ok(())
     }
 
     // The size of the image

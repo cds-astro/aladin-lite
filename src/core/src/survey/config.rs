@@ -94,8 +94,8 @@ impl Image for EmptyTileImage {
         textures: &Texture2DArray,
         // An offset to write the image in the texture array
         offset: &Vector3<i32>,
-    ) {
-        self.inner.tex_sub_image_3d(textures, offset);
+    ) -> Result<(), JsValue> {
+        self.inner.tex_sub_image_3d(textures, offset)
     }
 }
 

@@ -381,6 +381,7 @@ export let HpxImageSurvey = (function() {
 
                 if (metadata.hips_body !== undefined) {
                     if (self.backend.options.showFrame) {
+                        self.backend.aladin.setFrame('J2000d');
                         let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
                         frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
                     }

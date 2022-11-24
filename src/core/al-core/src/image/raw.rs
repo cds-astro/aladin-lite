@@ -18,8 +18,6 @@ pub struct ImageBufferView {
     pub w: i32,
     pub h: i32,
 }
-use crate::log;
-use crate::inforec;
 use wasm_bindgen::JsValue;
 impl<T> ImageBuffer<T>
 where

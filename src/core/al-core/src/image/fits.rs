@@ -19,14 +19,14 @@ pub enum Data<'a> {
     I32(Cow<'a, [i32]>),
     F32(Cow<'a, [f32]>),
 }
-use fitsrs::{hdu::{DataRead, AsyncHDU, HDU, data_async::DataOwnedSt}, fits::AsyncFits, card::Value};
+use fitsrs::hdu::{AsyncHDU, HDU};
 use wasm_streams::readable::IntoAsyncRead;
 use futures::stream::StreamExt;
 use fitsrs::hdu::Header;
 impl<'a> Fits<'a> {
     pub fn from_byte_slice(bytes: &'a [u8]) -> Result<Self, JsValue> {
         let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(bytes)
-            .map_err(|err| {
+            .map_err(|_| {
                 JsValue::from_str(&"Parsing fits error")
             })?;
 
@@ -73,7 +73,7 @@ impl<'a> Fits<'a> {
         R: Read + Debug
     {
         let fitsrs::fits::Fits { hdu: HDU { data, header } } = fitsrs::fits::Fits::from_reader(reader)
-            .map_err(|err| {
+            .map_err(|_| {
                 JsValue::from_str(&"Parsing fits error")
             })?;
 

@@ -109,8 +109,6 @@ use cgmath::{Vector2};
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
 
-use al_core::{info, inforec, log};
-
 #[wasm_bindgen]
 pub struct WebClient {
     // The app

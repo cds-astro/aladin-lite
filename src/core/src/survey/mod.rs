@@ -331,7 +331,7 @@ pub fn get_raytracer_shader<'a>(
 // Compute the size of the VBO in bytes
 // We do want to draw maximum 768 tiles
 //const MAX_NUM_CELLS_TO_DRAW: usize = 768;
-use cgmath::{Vector3, Vector4, Vector2};
+use cgmath::{Vector4, Vector2};
 use render::rasterizer::uv::{TileCorner, TileUVW};
 
 // This method computes positions and UVs of a healpix cells
@@ -380,7 +380,6 @@ pub struct ImageSurvey {
     footprint_moc: Option<HEALPixCoverage>,
 }
 use crate::{
-    camera::UserAction,
     math::lonlat::LonLatT,
     utils,
 };
@@ -388,7 +387,6 @@ use crate::{
 use web_sys::{WebGl2RenderingContext};
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
-use al_core::SliceData;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -643,7 +641,6 @@ impl ImageSurvey {
         let v2w = w2v.transpose();
 
         let longitude_reversed = camera.get_longitude_reversed();
-        //al_core::log(&format!("{:?}", self.view.num_of_cells()));
         for cell in self.view.get_cells() {
             // filter textures that are not in the moc
             let cell = if let Some(moc) = self.footprint_moc.as_ref() {
@@ -1428,7 +1425,6 @@ impl ImageSurveys {
             survey.refresh_view(camera);
             
             self.depth = self.depth.max(survey.get_depth());
-            //al_core::log(&format!("depth {:?} delta d {:?} max tile order {:?} depth tile {:?}", depth, cfg.delta_depth(), max_tile_depth, depth_tile));
         }
     }
 
@@ -1462,7 +1458,7 @@ impl ImageSurveys {
         self.surveys.values()
     }
 
-    pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
+    /*pub fn get_view(&self) -> Option<&HEALPixCellsInView> {
         if self.surveys.is_empty() {
             None
         } else {
@@ -1473,7 +1469,7 @@ impl ImageSurveys {
                     .get_view(),
             )
         }
-    }
+    }*/
 }
 
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};

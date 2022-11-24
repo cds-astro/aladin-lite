@@ -38,12 +38,11 @@ use super::config::HiPSConfig;
 
 impl Texture {
     pub fn new(
-        config: &HiPSConfig,
         texture_cell: &HEALPixCell,
         idx: i32,
         time_request: Time,
     ) -> Texture {
-        let tiles = HashSet::with_capacity(config.num_tiles_per_texture());
+        let tiles = HashSet::new();
 
         let start_time = None;
         let full = false;

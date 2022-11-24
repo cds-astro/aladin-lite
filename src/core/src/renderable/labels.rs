@@ -13,10 +13,6 @@ pub trait RenderManager {
 }
 
 use cgmath::Matrix2;
-struct LabelMeta {
-    off_idx: u16,
-    num_idx: u16,
-}
 
 pub struct TextRenderManager {
     gl: WebGlContext,
@@ -34,10 +30,9 @@ pub struct TextRenderManager {
     tx: Vec<f32>,
 
     indices: Vec<u16>,
-    labels: Vec<LabelMeta>,
 }
 use al_core::VecData;
-use cgmath::{Basis2, Rad, Rotation2, Vector2};
+use cgmath::{Rad, Vector2};
 use wasm_bindgen::JsValue;
 
 use crate::camera::CameraViewPort;
@@ -140,8 +135,6 @@ impl TextRenderManager {
             ],
         )?;
 
-        let labels = vec![];
-
         Ok(Self {
             gl,
             shader,
@@ -155,52 +148,8 @@ impl TextRenderManager {
             #[cfg(feature = "webgl1")]
             tx: vec![],
             indices: vec![],
-            labels,
         })
     }
-
-    /*pub fn set_text_size(&mut self, text_size: f32) -> Result<(), JsValue> {
-        self.text_size = text_size;
-        al_core::log("text size called");
-        /*let al_core::text::Font {
-            bitmap,
-            letters,
-        } = al_core::text::rasterize_font(text_size);
-        self.font_texture = Texture2D::create_from_raw_pixels::<al_core::image::format::RGBA8U>(
-            &self.gl,
-            al_core::text::TEX_SIZE as i32,
-            al_core::text::TEX_SIZE as i32,
-            &[
-                (
-                    WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                (
-                    WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                    WebGl2RenderingContext::LINEAR,
-                ),
-                // Prevents s-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_S,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-                // Prevents t-coordinate wrapping (repeating)
-                (
-                    WebGl2RenderingContext::TEXTURE_WRAP_T,
-                    WebGl2RenderingContext::CLAMP_TO_EDGE,
-                ),
-            ],
-            Some(&bitmap),
-        )?;*/
-
-        //self.letters = letters;
-
-        Ok(())
-    }*/
-
-    /*pub fn text_size(&self) -> f32 {
-        self.text_size
-    }*/
 
     pub fn add_label<A: Into<Rad<f32>>>(
         &mut self,
@@ -223,9 +172,6 @@ impl TextRenderManager {
         let f_tex_size = &self.font_texture.get_size();
 
         let mut x_offset = 0.0;
-
-        let off_idx = self.indices.len() as u16;
-        let mut num_idx = 0;
 
         let rot: Rad<_> = angle_rot.into();
         for c in text.chars() {
@@ -302,16 +248,10 @@ impl TextRenderManager {
                     num_vertices + 3,
                     num_vertices + 2,
                 ]);
-                num_idx += 6;
 
                 x_offset += l.x_advance as f32;
             }
         }
-
-        self.labels.push(LabelMeta {
-            off_idx,
-            num_idx,
-        });
     }
 
     pub fn get_width_pixel_size(&self, content: &str) -> f64 {
@@ -336,7 +276,6 @@ impl RenderManager for TextRenderManager {
         self.tx.clear();
 
         self.indices.clear();
-        self.labels.clear();
     }
 
     fn end_frame(&mut self) {

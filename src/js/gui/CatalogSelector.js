@@ -226,6 +226,10 @@ import  autocomplete from 'autocompleter';
 
                 input.blur();
             },
+            // attach container to AL div (to prevent it from being hidden in full screen mode)
+            customize: function(input, inputRect, container, maxHeight) {
+                self.parentDiv.appendChild(container);
+            },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");
                 itemElement.innerHTML = (item.obs_title || '') + ' - '  + '<span style="color: #ae8de1">' + item.ID + '</span>';

@@ -69,7 +69,7 @@ import  autocomplete from 'autocompleter';
         this.parentDiv.appendChild(this.mainDiv);
 
         // setup autocomplete
-        let input = document.getElementById(autocompleteId);
+        const input = document.getElementById(autocompleteId);
 
         // Unfocus the keyboard on android devices (maybe it concerns all smartphones) when the user click on enter
         $(input).on("change", function () {
@@ -78,6 +78,8 @@ import  autocomplete from 'autocompleter';
         
         // Query the mocserver
         MocServer.getAllHiPSes();
+
+
         autocomplete({
             input: input,
             fetch: function(text, update) {
@@ -132,6 +134,10 @@ import  autocomplete from 'autocompleter';
 
                 self.fnIdSelected && self.fnIdSelected(item.ID);
                 input.blur();
+            },
+            // attach container to AL div (to prevent it from being hidden in full screen mode)
+            customize: function(input, inputRect, container, maxHeight) {
+                self.parentDiv.appendChild(container);
             },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");

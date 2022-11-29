@@ -196,19 +196,21 @@ impl ImageSurveyTextures {
         debug_assert!(size >= NUM_HPX_TILES_DEPTH_ZERO);
         let heap = HEALPixCellHeap::with_capacity(size - NUM_HPX_TILES_DEPTH_ZERO);
         let textures = HashMap::with_capacity(size);
+
+        let now = Time::now();
         let base_textures = [
-            Texture::new(&config, &HEALPixCell(0, 0), 0, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 1), 1, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 2), 2, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 3), 3, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 4), 4, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 5), 5, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 6), 6, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 7), 7, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 8), 8, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 9), 9, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 10), 10, Time::now()),
-            Texture::new(&config, &HEALPixCell(0, 11), 11, Time::now()),
+            Texture::new(&HEALPixCell(0, 0), 0, now),
+            Texture::new(&HEALPixCell(0, 1), 1, now),
+            Texture::new(&HEALPixCell(0, 2), 2, now),
+            Texture::new(&HEALPixCell(0, 3), 3, now),
+            Texture::new(&HEALPixCell(0, 4), 4, now),
+            Texture::new(&HEALPixCell(0, 5), 5, now),
+            Texture::new(&HEALPixCell(0, 6), 6, now),
+            Texture::new(&HEALPixCell(0, 7), 7, now),
+            Texture::new(&HEALPixCell(0, 8), 8, now),
+            Texture::new(&HEALPixCell(0, 9), 9, now),
+            Texture::new(&HEALPixCell(0, 10), 10, now),
+            Texture::new(&HEALPixCell(0, 11), 11, now)
         ];
 
         #[cfg(feature = "webgl2")]
@@ -251,7 +253,6 @@ impl ImageSurveyTextures {
 
             ready,
             start_time,
-            //exec,
         })
     }
 
@@ -274,19 +275,20 @@ impl ImageSurveyTextures {
             ImageFormatType::R64F => Rc::new(create_texture_array::<R64F>(gl, &self.config)?),
         };
 
+        let now = Time::now();
         self.base_textures = [
-            Texture::new(&self.config, &HEALPixCell(0, 0), 0, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 1), 1, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 2), 2, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 3), 3, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 4), 4, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 5), 5, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 6), 6, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 7), 7, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 8), 8, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 9), 9, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 10), 10, Time::now()),
-            Texture::new(&self.config, &HEALPixCell(0, 11), 11, Time::now()),
+            Texture::new(&HEALPixCell(0, 0), 0, now),
+            Texture::new(&HEALPixCell(0, 1), 1, now),
+            Texture::new(&HEALPixCell(0, 2), 2, now),
+            Texture::new(&HEALPixCell(0, 3), 3, now),
+            Texture::new(&HEALPixCell(0, 4), 4, now),
+            Texture::new(&HEALPixCell(0, 5), 5, now),
+            Texture::new(&HEALPixCell(0, 6), 6, now),
+            Texture::new(&HEALPixCell(0, 7), 7, now),
+            Texture::new(&HEALPixCell(0, 8), 8, now),
+            Texture::new(&HEALPixCell(0, 9), 9, now),
+            Texture::new(&HEALPixCell(0, 10), 10, now),
+            Texture::new(&HEALPixCell(0, 11), 11, now),
         ];
 
         self.heap.clear();
@@ -346,7 +348,7 @@ impl ImageSurveyTextures {
             if !self.textures.contains_key(&tex_cell) {
                 let HEALPixCell(_, idx) = tex_cell;
                 let texture = if tex_cell.is_root() {
-                    Texture::new(&self.config, &tex_cell, idx as i32, time_request)
+                    Texture::new(&tex_cell, idx as i32, time_request)
                 } else {
                     // The texture is not among the essential ones
                     // (i.e. is not a root texture)
@@ -373,7 +375,7 @@ impl ImageSurveyTextures {
                         // The idx is computed based on the current size of the buffer
                         let idx = NUM_HPX_TILES_DEPTH_ZERO + self.heap.len();
 
-                        Texture::new(&self.config, &tex_cell, idx as i32, time_request)
+                        Texture::new(&tex_cell, idx as i32, time_request)
                     };
                     // Push it to the buffer
                     self.heap.push(&texture);

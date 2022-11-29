@@ -357,7 +357,10 @@ export let Aladin = (function () {
                 this.setBaseImageLayer(options.survey);
             }
         } else {
-            this.setBaseImageLayer(DEFAULT_OPTIONS.survey);
+            const idxServiceUrl = Math.round(Math.random());
+            const dssUrl = DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+
+            this.setBaseImageLayer(dssUrl);
         }
         
         this.view.showCatalog(options.showCatalog);
@@ -417,6 +420,7 @@ export let Aladin = (function () {
     // access to WASM libraries
     Aladin.wasmLibs = {};
     Aladin.DEFAULT_OPTIONS = {
+        surveyUrl: ["https://alaskybis.u-strasbg.fr/DSS/DSSColor", "https://alasky.u-strasbg.fr/DSS/DSSColor"],
         survey: "CDS/P/DSS2/color",
         target: "0 +0",
         cooFrame: "J2000",

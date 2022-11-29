@@ -4,7 +4,7 @@ pub struct Time(pub f32);
 use crate::utils;
 use wasm_bindgen::JsValue;
 impl Time {
-    pub fn measure_perf<T>(mut f: impl FnOnce() -> Result<T, JsValue>) -> Result<T, JsValue> {
+    pub fn measure_perf<T>(f: impl FnOnce() -> Result<T, JsValue>) -> Result<T, JsValue> {
         let start_time = Time::now();
         let r = f()?;
         let duration = Time::now() - start_time;

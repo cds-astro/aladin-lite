@@ -203,7 +203,7 @@ where
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         let image = &**self;
-        image.tex_sub_image_3d(textures, offset);
+        image.tex_sub_image_3d(textures, offset)?;
 
         Ok(())
     }

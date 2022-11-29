@@ -1,4 +1,4 @@
-use crate::{coosys, healpix::cell::HEALPixCell, math};
+use crate::{coosys, healpix::cell::HEALPixCell};
 use std::collections::HashMap;
 
 

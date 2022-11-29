@@ -177,10 +177,14 @@ impl From<query::Tile> for TileRequest {
                 let mut reader = body.try_into_async_read().map_err(|_| JsValue::from_str("readable stream locked"))?;
                 let image = Fits::new(reader).await?;
                 */
-                let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
-                let raw_bytes = js_sys::Uint8Array::new(&array_buffer);
+                if resp.ok() {
+                    let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+                    let raw_bytes = js_sys::Uint8Array::new(&array_buffer);
 
-                Ok(ImageType::FitsImage { raw_bytes })
+                    Ok(ImageType::FitsImage { raw_bytes })
+                } else {
+                    Err(JsValue::from_str("Response status code not between 200-299."))
+                }
             }),
             _ => todo!(),
         };

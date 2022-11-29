@@ -111,15 +111,42 @@ export let Aladin = (function () {
         this.reduceDeformations = true;
         // parent div
         $(aladinDiv).addClass("aladin-container");
-        var cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+        let cooFrame = CooFrameEnum.fromString(options.cooFrame, CooFrameEnum.J2000);
+
         // locationDiv is the div where we write the position
-        var locationDiv = $('<div class="aladin-location">'
+        const locationDiv = $('<div class="aladin-location">'
             + (options.showFrame ? '<select class="aladin-frameChoice"><option value="' + CooFrameEnum.J2000.label + '" '
                 + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
                 + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
                 + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option></select>' : '')
-            + '<span class="aladin-location-text"></span></div>')
+            + '<span class="aladin-clipboard" title="Copy coordinates to clipboard"></span>'
+            + '<span class="aladin-location-text"></span>'
+            + '</div>')
             .appendTo(aladinDiv);
+        const copyCoo = locationDiv.find('.aladin-clipboard');
+        copyCoo.hide();
+        copyCoo.click(function() {
+            let copyTextEl = locationDiv[0].querySelector('.aladin-location-text');
+            var r = document.createRange();
+            r.selectNode(copyTextEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(r);
+            try {
+                let successful = document.execCommand('copy');
+                let msg = successful ? 'successful' : 'unsuccessful';
+                console.log('Copying text command was ' + msg);
+            } catch (err) {
+                console.log('Oops, unable to copy');
+            }
+            window.getSelection().removeAllRanges();
+        });
+        locationDiv.mouseenter(function() {
+            copyCoo.show();
+        });
+        locationDiv.mouseleave(function() {
+            copyCoo.hide();
+        });
+
         // div where FoV value is written
         var fovDiv = $('<div class="aladin-fov"></div>').appendTo(aladinDiv);
 

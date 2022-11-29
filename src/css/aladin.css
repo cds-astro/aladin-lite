@@ -78,8 +78,14 @@
 }
 
 .aladin-location-text {
+    font-family: monospace, monospace;
 	font-size: 13px;
     margin-left: 4px;
+}
+
+.aladin-clipboard::before {
+    content: ' 📋';
+    cursor:pointer;
 }
 
 .aladin-measurement-div {

@@ -244,13 +244,19 @@ Coo.prototype = {
 			// decimal display
 			strlon = Numbers.format(this.lon, this.prec);
 			strlat = Numbers.format(this.lat, this.prec);
+            if (strlon.indexOf('0')==0) {
+                strlon = strlon.substr(1);
+            }
+            if (strlat.indexOf('0')==0) {
+                strlat = strlat.substr(1);
+            }
 		} else {
 			// sexagesimal display
 			var hlon = this.lon/15.0;
 			var strlon = Numbers.toSexagesimal(hlon, this.prec+1, false);
 			var strlat = Numbers.toSexagesimal(this.lat, this.prec, false);
 		}
-		if (this.lat > 0) strlat = '+'+strlat;
+		if (this.lat >= 0) strlat = '+'+strlat;
 
 		if (options.indexOf('/') >= 0) {
 			return strlon+' '+strlat;
@@ -392,13 +398,23 @@ Numbers.format = function(num, prec) {
 		var p = str.indexOf('.');
 		var nbdec = p >= 0 ? str.length-p-1 : 0;
 		if (prec >= nbdec) {
-			if (p < 0) str += '.';
+			if (p < 0) {
+                str += '.';
+            }
+            if (str.length==2) {
+                str = '0' + str;
+            }
 			for (var i=0; i<prec-nbdec; i++)
 				str += '0';
 			return str;
 		}
 		// HERE: prec > 0 and prec < nbdec
 		str = (num+Numbers.rndval[prec]).toString();
+        // add leading zero
+        if (p==1) {
+            str = '0' + str;
+            p = p+1;
+        }
 		return str.substr(0, p+prec+1);
 }
 

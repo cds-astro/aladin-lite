@@ -424,18 +424,19 @@ export let View = (function () {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    if (!survey.colored) {
+                    //if (!survey.colored) {
                         if (survey.fits) {
                             // properties default cuts always refers to fits tiles
                             cutMinInit = survey.properties.minCutout || survey.options.minCut;
                             cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
                         } else {
+                            console.log(cutMinInit, cutMaxInit)
                             cutMinInit = survey.options.minCut;
                             cutMaxInit = survey.options.maxCut;
                         }
-                    } else {
+                    //} else {
                         // todo: contrast
-                    }
+                    //}
                 }
 
                 return;
@@ -634,7 +635,7 @@ export let View = (function () {
 
             if (view.rightClick && view.selectedSurveyLayer) {
                 let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
-                if (!selectedSurvey.colored) {
+                //if (!selectedSurvey.colored) {
                     // we try to match DS9 contrast adjustment behaviour with right click
                     const cs = {
                         x: view.catalogCanvas.clientWidth * 0.5,
@@ -647,12 +648,13 @@ export let View = (function () {
 
                     const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
                     const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
+
                     if (lr <= rr) {
                         selectedSurvey.setCuts([lr, rr])
                     }
 
                     return;
-                }
+                //}
             }
 
             if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {

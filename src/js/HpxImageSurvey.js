@@ -191,7 +191,7 @@ export let HpxImageSurvey = (function() {
             surveyDef.options = this.options;
         }
 
-        this.updateMeta();
+        //this.updateMeta();
         let self = this;
         (async () => {
             try {
@@ -359,20 +359,19 @@ export let HpxImageSurvey = (function() {
                     };
                 }
 
-                if (!self.colored) {
-                    self.options.stretch = self.options.stretch || "Linear";
+                self.options.stretch = self.options.stretch || "linear";
 
-                    // For grayscale JPG/PNG hipses
-                    if (!self.fits) {
-                        // Erase the cuts with the default one for image tiles
-                        self.options.minCut = self.options.minCut || 0.0;
-                        self.options.maxCut = self.options.maxCut || 255.0;
-                    // For FITS hipses
-                    } else {
-                        self.options.minCut = self.options.minCut || self.properties.minCutout;
-                        self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
-                    }
+                // For grayscale JPG/PNG hipses
+                if (!self.fits) {
+                    // Erase the cuts with the default one for image tiles
+                    self.options.minCut = self.options.minCut || 0.0;
+                    self.options.maxCut = self.options.maxCut || 1.0;
+                // For FITS hipses
+                } else {
+                    self.options.minCut = self.options.minCut || self.properties.minCutout;
+                    self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
                 }
+
                 // Discard further processing if the layer has been associated to another hips
                 // before the request has been resolved
                 if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
@@ -561,71 +560,87 @@ export let HpxImageSurvey = (function() {
     }
 
     HpxImageSurvey.prototype.updateColor = function() {
-        if (this.colored) {
+        let minCut = this.options.minCut;
+        let maxCut = this.options.maxCut;
+
+        // Make the stretch case insensitive
+        let stretch = this.options.stretch;
+        if (stretch) {
+            stretch = stretch.toLowerCase();
+        }
+
+        let color = this.options.color;
+        let colormap = this.options.colormap;
+
+        if (color) {
+            this.meta.color = {
+                grayscale: {
+                    stretch: stretch,
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    color: {
+                        color: color,
+                    }
+                }
+            };
+
+            this.options.minCut = minCut;
+            this.options.maxCut = maxCut;
+            this.options.stretch = stretch;
+            this.options.color = color;
+        } else if(colormap || !this.colored) {
+            // If not defined we set the colormap to grayscale
+            if (!colormap) {
+                colormap = "grayscale";
+            }
+
+            if (colormap === "native") {
+                if(this.colored) {
+                    // Go back to native pixels
+                    this.meta.color = "color";
+                    return;
+                }
+
+                colormap = "grayscale";
+            }
+
+            // Make it case insensitive
+            colormap = colormap.toLowerCase();
+
+            if (!HpxImageSurvey.COLORMAPS.includes(colormap)) {
+                console.warn("The colormap \'" + colormap + "\' does not exist. You should use one of the following: " + HpxImageSurvey.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
+
+                colormap = "grayscale";
+            }
+
+            let reversed = this.options.reversed;
+            if (reversed === undefined) {
+                reversed = false;
+            }
+
+            this.meta.color = {
+                grayscale: {
+                    stretch: stretch,
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    color: {
+                        colormap: {
+                            reversed: reversed,
+                            name: colormap,
+                        }
+                    }
+                }
+            };
+
+            this.options.minCut = minCut;
+            this.options.maxCut = maxCut;
+            this.options.stretch = stretch;
+            this.options.reversed = reversed;
+            this.options.colormap = colormap;
+        } else if(this.colored) {
+            // neither colormap or color defined by the user
+            // so we keep the original pixels
             this.meta.color = "color";
-        } else {
-            let minCut = this.options.minCut;
-            let maxCut = this.options.maxCut;
-
-            if (this.options.imgFormat !== "FITS") {
-                minCut /= 255.0;
-                maxCut /= 255.0;
-            }
-
-            // Make the stretch case insensitive
-            if (this.options.stretch) {
-                this.options.stretch = this.options.stretch.toLowerCase();
-            }
-
-            if (this.options.color) {
-                this.meta.color = {
-                    grayscale: {
-                        stretch: this.options.stretch,
-                        minCut: minCut,
-                        maxCut: maxCut,
-                        color: {
-                            color: this.options.color,
-                        }
-                    }
-                };
-            } else {
-                // If not defined we set the colormap to grayscale
-                if (!this.options.colormap) {
-                    this.options.colormap = "grayscale";
-                }
-
-                if (this.options.colormap === "native") {
-                    this.options.colormap = "grayscale";
-                }
-
-                // Make it case insensitive
-                this.options.colormap = this.options.colormap.toLowerCase();
-
-                if (!HpxImageSurvey.COLORMAPS.includes(this.options.colormap)) {
-                    console.warn("The colormap \'" + this.options.colormap + "\' does not exist. You should use one of the following: " + HpxImageSurvey.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
-
-                    this.options.colormap = "native";
-                }
-
-                let reversed = this.options.reversed;
-                if (this.options.reversed === undefined) {
-                    reversed = false;
-                }
-
-                this.meta.color = {
-                    grayscale: {
-                        stretch: this.options.stretch,
-                        minCut: minCut,
-                        maxCut: maxCut,
-                        color: {
-                            colormap: {
-                                reversed: reversed,
-                                name: this.options.colormap,
-                            }
-                        }
-                    }
-                };
-            }
         }
     };
 
@@ -929,7 +944,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: 0,
                 maxCut: 12000,
-                stretch: 'Asinh',
+                stretch: 'asinh',
                 colormap: "rdyibu",
                 imgFormat: "fits",
             }
@@ -943,7 +958,7 @@ export let HpxImageSurvey = (function() {
             options: {
                 minCut: -34,
                 maxCut: 7000,
-                stretch: 'Asinh',
+                stretch: 'asinh',
                 colormap: "redtemperature",
                 imgFormat: "fits",
             }
@@ -1009,7 +1024,7 @@ export let HpxImageSurvey = (function() {
             url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
             maxOrder: 10,
             options: {
-                stretch: 'Asinh',
+                stretch: 'asinh',
                 colormap: "redtemperature",
                 imgFormat: "fits",
             }

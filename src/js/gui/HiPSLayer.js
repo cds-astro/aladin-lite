@@ -75,7 +75,7 @@ export class HiPSLayer {
         // - for FITS hipses, it is changed to grayscale
         // - for JPG/PNG hipses, we do not use any colormap in the backend
         this.nameRadioColorChoice = encodeURIComponent(Utils.uuidv4());
-        cmListStr += '<option>native</option>';
+        cmListStr += '<option selected>native</option>';
         this.mainDiv = $('<div class="aladin-frame" style="display: none;">' +
             '<table class="aladin-options"><tbody>' +
             '  <tr><td></td><td><div><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked>Color map</label> <label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color">Color</label></div></td></tr>' +
@@ -247,7 +247,7 @@ export class HiPSLayer {
             self.survey.changeImageFormat(imgFormat);
 
             let minCut = 0;
-            let maxCut = 255;
+            let maxCut = 1;
             if (imgFormat === "FITS") {
                 // FITS format
                 minCut = self.survey.properties.minCutout;
@@ -460,7 +460,6 @@ export class HiPSLayer {
             return;
         }
         const cmap = options.colormap;
-
         const reverse = options.reversed;
         const stretch = options.stretch;
 

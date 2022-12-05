@@ -169,10 +169,11 @@ impl HiPSProperties {
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[wasm_bindgen]
+#[serde(rename_all = "camelCase")]
 pub enum HiPSTileFormat {
-    FITS,
-    JPEG,
-    PNG,
+    Fits,
+    Jpeg,
+    Png,
 }
 
 use serde::Serialize;

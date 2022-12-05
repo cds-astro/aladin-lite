@@ -216,7 +216,7 @@ impl HiPSConfig {
         }
 
         let format = match img_format {
-            HiPSTileFormat::FITS => {
+            HiPSTileFormat::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = bitpix {
                     match bitpix {
@@ -259,8 +259,8 @@ impl HiPSConfig {
                     ))
                 }
             }
-            HiPSTileFormat::PNG => Ok(ImageFormatType::RGBA8U),
-            HiPSTileFormat::JPEG => Ok(ImageFormatType::RGB8U),
+            HiPSTileFormat::Png => Ok(ImageFormatType::RGBA8U),
+            HiPSTileFormat::Jpeg => Ok(ImageFormatType::RGB8U),
         }?;
 
         let empty_image = EmptyTileImage::new(tile_size, format);
@@ -328,7 +328,7 @@ impl HiPSConfig {
 
     pub fn set_image_fmt(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
         let format = match fmt {
-            HiPSTileFormat::FITS => {
+            HiPSTileFormat::Fits => {
                 // Check the bitpix to determine the internal format of the tiles
                 if let Some(bitpix) = self.bitpix {
                     match bitpix {
@@ -371,13 +371,13 @@ impl HiPSConfig {
                     ))
                 }
             }
-            HiPSTileFormat::PNG => {
+            HiPSTileFormat::Png => {
                 self.tex_storing_fits = false;
                 self.tex_storing_unsigned_int = false;
                 self.tex_storing_integers = false;
                 Ok(ImageFormatType::RGBA8U)
             },
-            HiPSTileFormat::JPEG => {
+            HiPSTileFormat::Jpeg => {
                 self.tex_storing_fits = false;
                 self.tex_storing_unsigned_int = false;
                 self.tex_storing_integers = false;

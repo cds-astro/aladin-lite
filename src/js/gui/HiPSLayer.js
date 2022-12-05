@@ -248,7 +248,7 @@ export class HiPSLayer {
 
             let minCut = 0;
             let maxCut = 1;
-            if (imgFormat === "FITS") {
+            if (imgFormat === "fits") {
                 // FITS format
                 minCut = self.survey.properties.minCutout;
                 maxCut = self.survey.properties.maxCutout;

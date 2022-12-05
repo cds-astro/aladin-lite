@@ -142,18 +142,18 @@ export let HpxImageSurvey = (function() {
         if (this.options.imgFormat) {
             // Img format preprocessing
             // transform to upper case
-            this.options.imgFormat = this.options.imgFormat.toUpperCase();
+            this.options.imgFormat = this.options.imgFormat.toLowerCase();
 
             // convert JPG -> JPEG
-            if (this.options.imgFormat === "JPG") {
-                this.options.imgFormat = "JPEG";
+            if (this.options.imgFormat === "jpg") {
+                this.options.imgFormat = "jpeg";
             }
         }
 
-        if (this.options.imgFormat === 'FITS') {
+        if (this.options.imgFormat === 'fits') {
             //tileFormat = "FITS";
             this.fits = true;
-        } else if (this.options.imgFormat === "PNG") {
+        } else if (this.options.imgFormat === "png") {
             //tileFormat = "PNG";
             this.fits = false;
         } else {
@@ -213,30 +213,30 @@ export let HpxImageSurvey = (function() {
 
                 // HiPS tile format
                 const formats = metadata.hips_tile_format || "jpeg";
-                const tileFormats = formats.split(' ').map((fmt) => fmt.toUpperCase());
+                const tileFormats = formats.split(' ').map((fmt) => fmt.toLowerCase());
                 if (self.options.imgFormat) {
                     // user wants a fits but the metadata tells this format is not available
-                    if (self.options.imgFormat === "FITS" && tileFormats.indexOf('FITS') < 0) {
+                    if (self.options.imgFormat === "fits" && tileFormats.indexOf('fits') < 0) {
                         throw self.name + " does not provide fits tiles";
                     }
                     
-                    if (self.options.imgFormat === "PNG" && tileFormats.indexOf('PNG') < 0) {
+                    if (self.options.imgFormat === "png" && tileFormats.indexOf('png') < 0) {
                         throw self.name + " does not provide png tiles";
                     }
                     
-                    if (self.options.imgFormat === "JPEG" && tileFormats.indexOf('JPEG') < 0) {
+                    if (self.options.imgFormat === "jpeg" && tileFormats.indexOf('jpeg') < 0) {
                         throw self.name + " does not provide jpeg tiles";
                     }
                 } else {
                     // user wants nothing then we choose one from the metadata
-                    if (tileFormats.indexOf('PNG') >= 0) {
-                        self.options.imgFormat = "PNG";
+                    if (tileFormats.indexOf('png') >= 0) {
+                        self.options.imgFormat = "png";
                         self.fits = false;
-                    } else if (tileFormats.indexOf('JPEG') >= 0) {
-                        self.options.imgFormat = "JPEG";
+                    } else if (tileFormats.indexOf('jpeg') >= 0) {
+                        self.options.imgFormat = "jpeg";
                         self.fits = false;
-                    } else if (tileFormats.indexOf('FITS') >= 0) {
-                        self.options.imgFormat = "FITS";
+                    } else if (tileFormats.indexOf('fits') >= 0) {
+                        self.options.imgFormat = "fits";
                         self.fits = true;
                     } else {
                         throw "Unsupported format(s) found in the metadata: " + tileFormats;
@@ -821,30 +821,31 @@ export let HpxImageSurvey = (function() {
     // @api
     HpxImageSurvey.prototype.changeImageFormat = function(format) {
         const prevImageFmt = this.options.imgFormat;
-        let imgFormat = format.toUpperCase();
-        if (imgFormat !== "FITS" && imgFormat !== "PNG" && imgFormat !== "JPG" && imgFormat !== "JPEG") {
+        let imgFormat = format.toLowerCase();
+        if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg") {
             throw 'Formats must lie in ["fits", "png", "jpg"]';
         }
 
-        if (imgFormat === "JPG") {
-            imgFormat = "JPEG";
+        if (imgFormat === "jpg") {
+            imgFormat = "jpeg";
         }
 
         // Check the properties to see if the given format is available among the list
         // If the properties have not been retrieved yet, it will be tested afterwards
         if (this.properties) {
             const availableFormats = this.properties.formats;
+            console.log(availableFormats)
             const idSurvey = this.properties.id;
             // user wants a fits but the metadata tells this format is not available
-            if (imgFormat === "FITS" && availableFormats.indexOf('FITS') < 0) {
+            if (imgFormat === "fits" && availableFormats.indexOf('fits') < 0) {
                 throw idSurvey + " does not provide fits tiles";
             }
             
-            if (imgFormat === "PNG" && availableFormats.indexOf('PNG') < 0) {
+            if (imgFormat === "png" && availableFormats.indexOf('png') < 0) {
                 throw idSurvey + " does not provide png tiles";
             }
             
-            if (imgFormat === "JPEG" && availableFormats.indexOf('JPEG') < 0) {
+            if (imgFormat === "jpeg" && availableFormats.indexOf('jpeg') < 0) {
                 throw idSurvey + " does not provide jpeg tiles";
             }
         }
@@ -857,7 +858,7 @@ export let HpxImageSurvey = (function() {
 
         this.options.imgFormat = imgFormat;
         // Check if it is a fits
-        this.fits = (this.options.imgFormat === 'FITS');
+        this.fits = (this.options.imgFormat === 'fits');
 
         // Tell the view its meta have changed
         if ( this.ready && this.added ) {
@@ -869,7 +870,7 @@ export let HpxImageSurvey = (function() {
                 console.error(e);
     
                 this.options.imgFormat = prevImageFmt;
-                this.fits = (this.options.imgFormat === 'FITS');
+                this.fits = (this.options.imgFormat === 'fits');
             }
         }
     };

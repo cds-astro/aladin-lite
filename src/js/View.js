@@ -430,7 +430,6 @@ export let View = (function () {
                             cutMinInit = survey.properties.minCutout || survey.options.minCut;
                             cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
                         } else {
-                            console.log(cutMinInit, cutMaxInit)
                             cutMinInit = survey.options.minCut;
                             cutMaxInit = survey.options.maxCut;
                         }
@@ -1563,7 +1562,7 @@ export let View = (function () {
                     properties: s.properties,
                     meta: s.meta,
                     // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
-                    imgFormat: s.options.imgFormat.toUpperCase(),
+                    imgFormat: s.options.imgFormat,
                 };
             });
         this.aladin.empty = false;
@@ -1852,7 +1851,6 @@ export let View = (function () {
             indexToDelete = this.mocs.indexOf(layer);
 
             let moc = this.mocs.splice(indexToDelete, 1);
-            console.log(moc);
             // remove from aladin lite backend
             moc[0].delete();
         }

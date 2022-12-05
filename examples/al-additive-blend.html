@@ -14,10 +14,10 @@ A.init.then(() => {
     
     let HSCGreenSurvey = aladin.getBaseImageLayer();
     HSCGreenSurvey.changeImageFormat("fits");
-    HSCGreenSurvey.setColor([0, 1.0, 0, 1.0], { stretch: "Asinh" });
+    HSCGreenSurvey.setColor([0, 1.0, 0, 1.0], { stretch: "asinh" });
 
-    const HSCRedSurvey = aladin.createImageSurvey('HSC-r', "HSC red", "CDS/P/HSC/DR2/deep/r", null, null, {imgFormat: 'fits', color: [1.0, 0.0, 0.0, 1.0], additive: true, stretch: "Asinh"});
-    const HSCBlueSurvey = aladin.createImageSurvey('HSC-b', "HSC blue", "CDS/P/HSC/DR2/deep/z", null, null, {imgFormat: 'fits', color: [0.0, 0.0, 1.0, 1.0], additive: true, stretch: "Asinh"});
+    const HSCRedSurvey = aladin.createImageSurvey('HSC-r', "HSC red", "CDS/P/HSC/DR2/deep/r", null, null, {imgFormat: 'fits', color: [1.0, 0.0, 0.0, 1.0], additive: true, stretch: "asinh"});
+    const HSCBlueSurvey = aladin.createImageSurvey('HSC-b', "HSC blue", "CDS/P/HSC/DR2/deep/z", null, null, {imgFormat: 'fits', color: [0.0, 0.0, 1.0, 1.0], additive: true, stretch: "asinh"});
 
     aladin.setOverlayImageLayer('HSC-r', 'hsc red layer');
     aladin.setOverlayImageLayer('HSC-b', 'hsc blue layer');

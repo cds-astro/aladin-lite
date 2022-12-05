@@ -191,7 +191,7 @@ export let HpxImageSurvey = (function() {
             surveyDef.options = this.options;
         }
 
-        //this.updateMeta();
+        this.updateMeta();
         let self = this;
         (async () => {
             try {
@@ -396,6 +396,7 @@ export let HpxImageSurvey = (function() {
                 }
 
                 self.updateMeta();
+                self.updateColor();
                 self.ready = true;
 
                 ////// Update SURVEYS
@@ -551,9 +552,7 @@ export let HpxImageSurvey = (function() {
         }
 
         // reset the whole meta object
-        this.meta = {};
-        // populate him with the updated fields
-        this.updateColor();
+        this.meta = this.meta || {};
         this.meta.blendCfg = blend;
         this.meta.opacity = this.options.opacity;
         this.meta.longitudeReversed = this.options.longitudeReversed;
@@ -800,6 +799,7 @@ export let HpxImageSurvey = (function() {
 
         this.options = {...this.options, ...options};
         this.updateMeta();
+        this.updateColor();
 
         // Tell the view its meta have changed
         if( this.ready && this.added ) {
@@ -813,6 +813,7 @@ export let HpxImageSurvey = (function() {
                 // Restore the past survey config
                 this.options = oldOptions;
                 this.updateMeta();
+                this.updateColor();
             }
         }
     };

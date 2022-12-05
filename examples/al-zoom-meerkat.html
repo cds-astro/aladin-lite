@@ -18,8 +18,8 @@
     let aladin;
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {survey: ["P/Mellinger"], cooFrame: 'galactic', fov: 1000, fullScreen: true, showCooGrid: true});
-        const meerkat = aladin.createImageSurvey('P/MeerKAT/Galactic-Centre-1284MHz-StokesI', "Galactic-Centre-1284MHz-StokesI", null, null, null, {imgFormat: 'fits'});
-        meerkat.setColormap('magma', {stretch: "Asinh"})
+        const meerkat = aladin.newImageSurvey('P/MeerKAT/Galactic-Centre-1284MHz-StokesI', {imgFormat: 'fits'});
+        meerkat.setColormap('magma', {stretch: "asinh"})
         aladin.setOverlayImageLayer(meerkat)
         aladin.setProjection("MOL")
 

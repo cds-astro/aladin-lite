@@ -1,1 +1,8 @@
 node_modules
+
+dist
+examples/.DS_Store
+.DS_Store
+package-lock.json
+src/core/target/
+src/core/Cargo.lock

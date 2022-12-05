@@ -834,7 +834,6 @@ export let HpxImageSurvey = (function() {
         // If the properties have not been retrieved yet, it will be tested afterwards
         if (this.properties) {
             const availableFormats = this.properties.formats;
-            console.log(availableFormats)
             const idSurvey = this.properties.id;
             // user wants a fits but the metadata tells this format is not available
             if (imgFormat === "fits" && availableFormats.indexOf('fits') < 0) {

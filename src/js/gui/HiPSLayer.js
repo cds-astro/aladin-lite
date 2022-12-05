@@ -76,11 +76,15 @@ export class HiPSLayer {
         // - for JPG/PNG hipses, we do not use any colormap in the backend
         this.nameRadioColorChoice = encodeURIComponent(Utils.uuidv4());
         cmListStr += '<option selected>native</option>';
+
+        this.cmap = "native";
+        this.color = "#ff0000";
+
         this.mainDiv = $('<div class="aladin-frame" style="display: none;">' +
             '<table class="aladin-options"><tbody>' +
-            '  <tr><td></td><td><div><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" id="colormap-radio" checked>Color map</label> <label><input type="radio" name="'+ this.nameRadioColorChoice + '" value="color">Color</label></div></td></tr>' +
+            '  <tr><td></td><td><div><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" value="colormap" id="colormap-radio" checked>Color map</label> <label><input class="color-color-selector" type="radio" name="'+ this.nameRadioColorChoice + '" value="color">Color</label></div></td></tr>' +
             '  <tr><td></td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
-            '  <tr><td></td><td><input type="color" id="color-radio" name="color-radio" value="#ff0000" class="color-selector"></td></tr>' +
+            '  <tr><td></td><td><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></td></tr>' +
             '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +
             '  <tr><td>Stretch</td><td><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></td></tr>' +
             '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
@@ -294,44 +298,45 @@ export class HiPSLayer {
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
         const colorSelect4ImgLayer = self.mainDiv.find('.color-selector').eq(0);
+        const colorMode = this.mainDiv[0].getElementsByClassName('colormap-color-selector');
 
         reverseCmCb.unbind("change");
         colorMapSelect4ImgLayer.unbind("change");
+        colorSelect4ImgLayer.unbind("change");
         stretchSelect4ImgLayer.unbind("change");
-        const colorMode = this.mainDiv[0].getElementsByClassName('colormap-color-selector');
-        colorMapSelect4ImgLayer.add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
+        colorMapSelect4ImgLayer.add(colorSelect4ImgLayer).add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
             const stretch = stretchSelect4ImgLayer.val();
+            const reverse = reverseCmCb[0].checked;
+
             if (colorMode[0].checked) {
                 // Color map case
                 const cmap = colorMapSelect4ImgLayer.val();
-                const reverse = reverseCmCb[0].checked;
                 self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
 
                 // Save the colormap change
-                self.cmap = cmap;
+                //self.cmap = cmap;
             } else {
                 // Single color case
                 const colorHex = colorSelect4ImgLayer.val();
                 let colorRgb = Color.hexToRgb(colorHex);
-                self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], { stretch: stretch });
+                self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], { reversed: reverse, stretch: stretch });
+                
+                // Save the color change
+                //self.color = colorHex;
             }
-
-            // update HpxImageSurvey.SURVEYS definition
-            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-            let options = surveyDef.options || {};
-            options.colormap = cmap;
-            options.stretch = stretch;
-            options.reversed = reverse;
-            surveyDef.options = options;*/
         });
 
-        // Redefine the event for the newly added DOM
         colorSelect4ImgLayer.unbind("input");
         colorSelect4ImgLayer.on('input', function () {
+            const stretch = stretchSelect4ImgLayer.val();
+            const reverse = reverseCmCb[0].checked;
+
             const colorHex = colorSelect4ImgLayer.val();
             let colorRgb = Color.hexToRgb(colorHex);
-            self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0]);
+            self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], {stretch: stretch, reversed: reverse});
+
+            // Save the color change
+            //self.color = colorHex;
         });
 
         // colormap/color radio
@@ -344,11 +349,9 @@ export class HiPSLayer {
             self.survey.setColormap(cmap);
         });
         $(colorChoiceRadioBtn).on("click", function (e) {
-            // save the colormap before switching to color mode
-            self.cmap = colorMapSelect4ImgLayer.val();
-
             // set the color
-            const colorHex = colorSelect4ImgLayer.val();
+            const colorHex = self.color;
+
             let colorRgb = Color.hexToRgb(colorHex);
             self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0]);
         });
@@ -379,7 +382,10 @@ export class HiPSLayer {
         const minCutTr = this.mainDiv.find('tr').eq(6);
         const maxCutTr = this.mainDiv.find('tr').eq(7);
 
-        const colorMode = this.mainDiv.find('.colormap-color-selector').eq(0);
+        const colormapMode = this.mainDiv.find('.colormap-color-selector').eq(0);
+        const colorMode = this.mainDiv.find('.color-color-selector').eq(0);
+        const colorVal = this.mainDiv.find('.color-selector').eq(0);
+
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
         const colorMapSelect4ImgLayer = this.mainDiv.find('.colormap-selector').eq(0);
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
@@ -397,6 +403,19 @@ export class HiPSLayer {
         });
 
         const options = this.survey.options;
+        const cmap = options.colormap;
+        const reverse = options.reversed;
+        const stretch = options.stretch;
+
+        // Update radio color/colormap selection
+        if (cmap) {
+            colormapMode[0].checked = true;
+            colorMode[0].checked = false;
+        } else {
+            colormapMode[0].checked = false;
+            colorMode[0].checked = true;
+        }
+
         const colored = this.survey.colored;
 
         const imgFormat = options.imgFormat;
@@ -417,7 +436,7 @@ export class HiPSLayer {
         }
         else {
             colorModeTr.show();
-            if (!colorMode[0].checked) {
+            if (!colormapMode[0].checked) {
                 colorTr.show();
                 stretchTr.show();
 
@@ -459,12 +478,21 @@ export class HiPSLayer {
         if (this.survey.colored) {
             return;
         }
-        const cmap = options.colormap;
-        const reverse = options.reversed;
-        const stretch = options.stretch;
+        
+        if (options.color) {
+            const [r, g, b, _] = options.color;
+            const hexColor = Color.rgbToHex(r*255, g*255, b*255);
+            colorVal[0].value = hexColor;
 
+            // save color
+            this.color = hexColor;
+        } else {
+            colorMapSelect4ImgLayer.val(cmap);
+
+            // save cmap
+            this.cmap = cmap;
+        }
         reverseCmCb.prop('checked', reverse);
-        colorMapSelect4ImgLayer.val(cmap);
         stretchSelect4ImgLayer.val(stretch);
     }
 

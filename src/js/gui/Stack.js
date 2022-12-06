@@ -265,12 +265,12 @@ export class Stack {
             if (self.selectedLayer) {
                 const headerClassName = "aladin-layer-header-" + self.selectedLayer;
                 let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-                headerLayerElement.style.backgroundColor = "#eee";
+                headerLayerElement.style.backgroundColor = "gainsboro";
             }
 
             const headerClassName = "aladin-layer-header-" + layerName;
             let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-            headerLayerElement.style.backgroundColor = "#aaa";
+            headerLayerElement.style.backgroundColor = "darkgray";
 
             self.aladin.setActiveHiPSLayer(layerName);
 
@@ -304,7 +304,7 @@ export class Stack {
     }
 
     show() {
-        this.mainDiv.style.display = 'block';
+        this.mainDiv.style.display = 'initial';
     }
 
     hide() {

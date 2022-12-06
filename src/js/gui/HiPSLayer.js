@@ -47,7 +47,7 @@ export class HiPSLayer {
         // HiPS header div
         if (this.survey.layer === "base") {
             this.headerDiv = $(
-                '<div class="aladin-layer-header-' + survey.layer + '">' +
+                '<div class="aladin-layer-header-' + survey.layer + ' aladin-hips-layer">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
                 '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
@@ -56,7 +56,7 @@ export class HiPSLayer {
             );
         } else {
             this.headerDiv = $(
-                '<div class="aladin-layer-header-' + survey.layer + '">' +
+                '<div class="aladin-layer-header-' + survey.layer + '  aladin-hips-layer">' +
                 '<span class="indicator right-triangle">&nbsp;</span>' +
                 '<select class="aladin-surveySelection"></select>' +
                 '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
@@ -80,19 +80,22 @@ export class HiPSLayer {
         this.cmap = "native";
         this.color = "#ff0000";
 
-        this.mainDiv = $('<div class="aladin-frame" style="display: none;">' +
-            '<table class="aladin-options"><tbody>' +
-            '  <tr><td></td><td><div><label><input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" value="colormap" id="colormap-radio" checked>Color map</label> <label><input class="color-color-selector" type="radio" name="'+ this.nameRadioColorChoice + '" value="color">Color</label></div></td></tr>' +
-            '  <tr><td></td><td><select class="colormap-selector">' + cmListStr + '</select></td></tr>' +
-            '  <tr><td></td><td><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></td></tr>' +
-            '  <tr><td></td><td><label><input type="checkbox" class="reversed"> Reverse</label></td></tr>' +
-            '  <tr><td>Stretch</td><td><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></td></tr>' +
-            '  <tr><td>Format</td><td><select class="format"></select></td></tr>' +
-            '  <tr><td>Min cut</td><td><input type="number" class="min-cut"></td></tr>' +
-            '  <tr><td>Max cut</td><td><input type="number" class="max-cut"></td></tr>' +
-            '  <tr title="Add the color of different bandwidth HiPSes thanks to the additive mode"><td>Blending mode</td><td><select class="blending"><option>Additive</option><option selected>Default</option></select></td></tr>' +
-            '  <tr><td>Opacity</td><td><input class="opacity" type="range" min="0" max="1" step="0.01"></td></tr>' +
-            '</table> ' +
+        this.mainDiv = $('<div class="aladin-frame" style="display:none">' +
+            '<div class="aladin-options">' +
+            '  <div class="row2">' +
+            '    <div style="width: 50%"><label>Color map<input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" value="colormap" id="colormap-radio" checked></label></div>' +
+            '    <div style="width: 50%"><label>Color<input class="color-color-selector" type="radio" name="'+ this.nameRadioColorChoice + '" value="color"></label></div>' +
+            '  </div>' +
+            '  <div class="row2"><select class="colormap-selector">' + cmListStr + '</select></div>' +
+            '  <div class="row2"><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></div>' +
+            '  <div class="row2"><div class="col-25"><label>Reverse</label></div><div class="col-75"><input type="checkbox" class="reversed"></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Stretch</label></div><div class="col-75"><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Format</label></div><div class="col-75"><select class="format"></select></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Min cut</label></div><div class="col-75"><input type="number" class="min-cut"></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Max cut</label></div><div class="col-75"><input type="number" class="max-cut"></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Blending mode</label></div><div class="col-75"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
+            '  <div class="row2"><div class="col-25"><label>Opacity</label></div><div class="col-75"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
+            '</div> ' +
             '</div>');
 
         this._addListeners();
@@ -185,6 +188,7 @@ export class HiPSLayer {
                     self.aladin.setOverlayImageLayer(IDOrURL, layerName);
                 }, self.aladin);
             }
+
             self.hipsSelector.show();
         });
 
@@ -230,13 +234,13 @@ export class HiPSLayer {
         // MAIN DIV listeners
         // blending method
         if (self.survey.layer === "base") {
-            this.mainDiv.find('tr').eq(8).hide();
+            this.mainDiv.find('.row2').eq(8)[0].style.display = "none";
         } else {
             const blendingSelector = this.mainDiv.find('.blending').eq(0);
             blendingSelector.unbind("change");
             blendingSelector.change(function () {
                 let mode = blendingSelector.val()
-                self.survey.setBlendingConfig( mode === "Additive" );
+                self.survey.setBlendingConfig( mode === "additive" );
             });
         }
 
@@ -373,14 +377,14 @@ export class HiPSLayer {
     }
 
     _updateHiPSLayerOptions() {
-        const colorModeTr = this.mainDiv.find('tr').eq(0);
-        const colorMapTr = this.mainDiv.find('tr').eq(1);
-        const colorTr = this.mainDiv.find('tr').eq(2);
-        const reverseTr = this.mainDiv.find('tr').eq(3);
-        const stretchTr = this.mainDiv.find('tr').eq(4);
-        const formatTr = this.mainDiv.find('tr').eq(5);
-        const minCutTr = this.mainDiv.find('tr').eq(6);
-        const maxCutTr = this.mainDiv.find('tr').eq(7);
+        const colorModeTr = this.mainDiv.find('.row2').eq(0);
+        const colorMapTr = this.mainDiv.find('.row2').eq(1);
+        const colorTr = this.mainDiv.find('.row2').eq(2);
+        const reverseTr = this.mainDiv.find('.row2').eq(3);
+        const stretchTr = this.mainDiv.find('.row2').eq(4);
+        const formatTr = this.mainDiv.find('.row2').eq(5);
+        const minCutTr = this.mainDiv.find('.row2').eq(6);
+        const maxCutTr = this.mainDiv.find('.row2').eq(7);
 
         const colormapMode = this.mainDiv.find('.colormap-color-selector').eq(0);
         const colorMode = this.mainDiv.find('.color-color-selector').eq(0);
@@ -423,31 +427,32 @@ export class HiPSLayer {
 
         // cuts
         if (colored) {
-            colorModeTr.hide();
+            console.log(colorModeTr.style)
+            colorModeTr[0].style.display = "none";
 
-            colorTr.hide();
+            colorTr[0].style.display = "none";
 
-            colorMapTr.hide();
-            reverseTr.hide();
-            stretchTr.hide();
+            colorMapTr[0].style.display = "none";
+            reverseTr[0].style.display = "none";
+            stretchTr[0].style.display = "none";
 
-            minCutTr.hide();
-            maxCutTr.hide();
+            minCutTr[0].style.display = "none";
+            maxCutTr[0].style.display = "none";
         }
         else {
-            colorModeTr.show();
+            colorModeTr[0].style.display = "flex";
             if (!colormapMode[0].checked) {
-                colorTr.show();
-                stretchTr.show();
+                colorTr[0].style.display = "flex";
+                stretchTr[0].style.display = "flex";
 
-                colorMapTr.hide();
-                reverseTr.hide();
+                colorMapTr[0].style.display = "none";
+                reverseTr[0].style.display = "none";
             } else {
-                colorTr.hide();
+                colorTr[0].style.display = "none";
 
-                colorMapTr.show();
-                reverseTr.show();
-                stretchTr.show();
+                colorMapTr[0].style.display = "flex";
+                reverseTr[0].style.display = "flex";
+                stretchTr[0].style.display = "flex";
             }
 
             if (options.minCut) {
@@ -458,7 +463,10 @@ export class HiPSLayer {
             else {
                 minCut.val(0.0);
             }
-            minCutTr.show();
+
+            console.log("sdksdjf", minCutTr.style)
+
+            minCutTr[0].style.display = "flex";
 
             if (options.maxCut) {
                 if (parseFloat(maxCut.val()) != options.maxCut) {
@@ -468,7 +476,7 @@ export class HiPSLayer {
             else {
                 maxCut.val(0.0);
             }
-            maxCutTr.show();
+            maxCutTr[0].style.display = "flex";
         }
 
         const opacity = options.opacity;

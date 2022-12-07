@@ -1,0 +1,403 @@
+<!doctype html>
+<html>
+<head>
+
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px">
+    <div id="notifier" style="position: absolute; left: 0px; bottom: 30px; width: 900px; height: auto; z-index: 100; font-family: Futura,Trebuchet MS,Arial,sans-serif; color: #fdfdfd; background: rgb(69,69,69); background: linear-gradient(90deg, rgba(69,69,69,0.7) 0%, rgba(69,69,69,0.6) 74%, rgba(69,69,69,0) 100%); display: hidden;">
+        <div style="margin-left: 50px;">
+            <div id="mainTitle" style="font-size: 53pt;"></div>
+            <div id="subTitle" style="font-size: 34pt;"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+<!-- <script type="text/javascript" src="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script> -->
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 400, fullScreen: true, showCooGrid: false, showReticle: false})
+        aladin.gotoRaDec(79.9525321, -69.2742586)
+        const gaiaFlux = aladin.createImageSurvey('P/DM/flux-G/I/355/gaiadr3', "GaiaDR3GFlux", null, null, null)
+        aladin.setBaseImageLayer(gaiaFlux)
+        gaiaFlux.setOptions({'imgFormat': 'fits', 'stretch': 'log'})
+        gaiaFlux.setCuts([3e5, 1e8])
+            
+        aladin.setProjection('MOL')
+
+
+        
+        function notify(title, sub, delay) {
+            $('#mainTitle').html(title)
+            $('#subTitle').html(sub)
+            $('#notifier').fadeIn(600).delay(delay).fadeOut(600)
+        }
+
+        // show grid opacity
+        function delay(t) {
+            return new Promise(resolve => setTimeout(resolve, t))
+        }
+
+
+
+
+        async function *interval(t, nbIteration) {
+            let itNb = 0
+            while(itNb < nbIteration) {
+                let now = Date.now()
+                yield itNb
+                await delay(now - Date.now() + t)
+                itNb++;
+            }
+        }
+
+        aladin.view.setGridConfig({opacity: 0, color: {r: 51/255, g: 209/255, b: 1}})
+        aladin.view.setGridConfig({enabled: true})
+
+        async function s_1() {
+            return new Promise((resolve, reject) => {
+                aladin.animateToRaDec(266.4150089, -29.0061110, 5, () =>  resolve())
+            })
+        }
+
+        async function showcaseProjections() {
+            aladin.setProjection('SIN')
+            await delay(2000)
+
+            aladin.setProjection('MER')
+            aladin.setFoV(400)
+            await delay(2000)
+
+            aladin.setProjection('HPX')
+            aladin.setFoV(400)
+            await delay(2000)
+
+            aladin.setProjection('AIT')
+            aladin.setFoV(400)
+        }
+
+        let gaiaRadvel
+        async function s0() {
+            gaiaRadvel = aladin.createImageSurvey('CDS/P/DM/radial-velocity/I/355/gaiadr3', "Gaia radial velocity", null, null, null)
+            gaiaRadvel.setOpacity(0.0)
+            notify('New HiPS overlay', 'Gaia DR3 radial velocity map', 4000)
+        //galex.setColormap('magma', {stretch: "Asinh"})
+            aladin.setOverlayImageLayer(gaiaRadvel)
+            for await(const it of interval(50, 40)) {
+                gaiaRadvel.setOpacity((it+1) / 40)
+            }
+
+            await delay(3000)
+
+            for await(const it of interval(50, 40)) {
+                gaiaRadvel.setOpacity(1 - it / 40)
+            }
+            gaiaRadvel.setOpacity(0)
+        }
+
+        async function showGrid() {
+            for await(const it of interval(50, 40)) {
+                aladin.view.setGridConfig({opacity: it / 40})
+            }
+        }
+        
+        async function s2() {
+            return new Promise((resolve, reject) => {
+                aladin.animateToRaDec(339.2857279, 34.4199240, 5, () =>  resolve())
+            })
+        }
+
+        let galex
+        async function s3() {
+            galex = aladin.createImageSurvey('CDS/P/GALEXGR6_7/color', "GALEX", null, null, null)
+            galex.setOpacity(0.0)
+        //galex.setColormap('magma', {stretch: "Asinh"})
+            aladin.setOverlayImageLayer(galex)
+        }
+
+        async function s4() {
+            for await(const it of interval(50, 40)) {
+                galex.setOpacity((it+1) / 40)
+            }
+        }
+        
+        async function s5() {
+            let nbIt = 230
+            let fovStart = 400
+            let fovEnd = 0.5
+            const intervalMs = 25
+
+            let fov;
+            fov = fovStart
+            for await(const it of interval(intervalMs, nbIt+1)) {
+                fov = fovStart / Math.pow(fovEnd/fovStart, -it/nbIt)
+                //fov = fovStart - (fovStart - fovEnd) * ((it+1) / nbIt)
+                //aladin.setFoV(400 - (fovStart - fovEnd) * ((it+1) / nbIt))
+                //fov = fovFakeEnd + (fovFakeStart - fovFakeEnd) * (1 - Math.pow((it) / nbIt, 0.15))
+                aladin.setFoV(fov)
+            }
+
+            aladin.setFoV(fovEnd)
+        }
+
+        async function s5_() {
+                /*
+            for await(const it of interval(50, 180)) {
+                aladin.setFoV(400 - 399.5 * ((it+1) / 180))
+            }
+   */
+            return new Promise((resolve, reject) => {
+                aladin.zoomToFoV(5, 3, () =>  resolve());
+            })
+        }
+
+
+        async function hideGrid() {
+            for await(const it of interval(50, 40)) {
+                aladin.view.setGridConfig({opacity: 1 - it / 40})
+            }
+        }
+
+        async function s7() {
+            return new Promise((resolve, reject) => {
+                aladin.animateToRaDec(339.0146901, 33.9600401, 5, () =>  resolve())
+            })
+        }
+
+        let panstarrs
+        async function s77() {
+            panstarrs = aladin.createImageSurvey('CDS/P/PanSTARRS/DR1/g', "PanSTARRS g", null, null, null)
+            panstarrs.setOpacity(0.0)
+            panstarrs.setColormap('viridis', {stretch: "Asinh"})
+            aladin.setOverlayImageLayer(panstarrs, 'panstarrs')
+
+            for await(const it of interval(50, 40)) {
+                panstarrs.setOpacity((it+1) / 40)
+            }
+        }
+
+        let stephansMIRI
+        async function s8() {
+            stephansMIRI = aladin.createImageSurvey('CDS/P/JWST/Stephans-Quintet/MIRI', "stephansMIRI", null, null, null)
+            stephansMIRI.setOpacity(0.0)
+        //galex.setColormap('magma', {stretch: "Asinh"})
+            aladin.setOverlayImageLayer(stephansMIRI, 'stephansMIRI')
+
+            for await(const it of interval(25, 100)) {
+                stephansMIRI.setOpacity((it+1) / 100)
+            }
+        }
+
+        async function s9() {
+            return new Promise((resolve, reject) => {
+                aladin.zoomToFoV(0.125, 5, () =>  resolve())
+            })
+        }
+
+        async function s10() {
+            for await(const it of interval(50, 80)) {
+                aladin.setRotation(0.5 * it)
+            }
+        }
+
+        let stephansNIRCamMIRI
+        async function s11() {
+            stephansNIRCamMIRI = aladin.createImageSurvey('CDS/P/JWST/Stephans-Quintet/NIRCam+MIRI', "stephansMIRI", null, null, null)
+            stephansNIRCamMIRI.setOpacity(0.0)
+            aladin.setOverlayImageLayer(stephansNIRCamMIRI, 'stephansNIRCamMIRI')
+
+
+            for await(const it of interval(25, 180)) {
+                if (it==80) {
+                    aladin.animateToRaDec(339.0152849, 33.9755441, 25 * 260 / 1000)
+                    aladin.zoomToFoV(2 / 60, 25 * 260 / 1000)
+                }
+                stephansNIRCamMIRI.setOpacity((it+1) / 180)
+            }
+
+            await delay(180*25 + 500)
+        }
+
+        async function zoomoutAndgoToMeerkat() {
+            for await(const it of interval(25, 10)) {
+                panstarrs && panstarrs.setOpacity(1 - it / 10)
+            }
+            panstarrs && panstarrs.setOpacity(0)
+
+            let nbIt = 200
+            let fovStart = 2/60
+            let fovEnd = 360
+            let intervalMs = 25
+
+            let fov;
+            fov = fovStart
+            for await(const it of interval(intervalMs, nbIt+1)) {
+                fov = fovStart / Math.pow(fovEnd/fovStart, -it/nbIt)
+                aladin.setFoV(fov)
+                galex && galex.setOpacity(Math.max(0, 1 - it / 2*nbIt))
+            }
+
+            aladin.setFoV(fovEnd)
+            galex && galex.setOpacity(0)
+
+            await delay(300)
+
+
+            aladin.animateToRaDec(266.2800147, -29.2222859, 5)
+
+            await delay(5000)
+
+            notify('New HiPS overlay', 'MeerKAT 1284MHz', 6000)
+            const meerkat = aladin.createImageSurvey('P/MeerKAT/Galactic-Centre-1284MHz-StokesI', "Galactic-Centre-1284MHz-StokesI", null, null, null, {imgFormat: 'fits'});
+            meerkat.setColormap('magma', {stretch: "Asinh"})
+
+            meerkat.setOpacity(0.0)
+            aladin.setOverlayImageLayer(meerkat, 'meerkat')
+            for await(const it of interval(25, 40)) {
+                meerkat.setOpacity((it+1) / 40)
+            }
+
+            nbIt = 300
+            fovStart = 360
+            fovEnd = 5.4
+
+            fov = fovStart
+            for await(const it of interval(intervalMs, nbIt+1)) {
+                fov = fovStart / Math.pow(fovEnd/fovStart, -it/nbIt)
+                aladin.setFoV(fov)
+                aladin.setRotation(40 - 40 * it/nbIt)
+            }
+            aladin.setFoV(fovEnd)
+
+            await delay(500)
+
+
+            notify('', 'Color map changes and contrast adjustment from FITS tiles', 3000)
+            let cutMin = -0.0004
+            let cutMax = 0.01
+            intervalMs = 25
+            for await(const it of interval(intervalMs, 1000)) {
+                switch(it) {
+                    case 150:
+                        meerkat.setColormap('parula')
+                        break
+                    case 300:
+                        meerkat.setColormap('eosb')
+                        break
+                    case 450:
+                        meerkat.setColormap('spectral')
+                        break
+                    case 600:
+                        meerkat.setColormap('ylorbr')
+                        break
+                    case 750:
+                        meerkat.setColormap('ylorbr', {reversed: true})
+                        break
+                }
+                //const t = Date.now() / 1000;
+                const t = it / 25
+                let lambda = Math.sin(t) * 0.5 + 0.5
+
+                let cut0 = -0.0004 * lambda + (1 - lambda) * -0.00132
+                let cut1 = 0.005 * lambda + (1 - lambda) * 0.05759
+                meerkat.setCuts([cut0, cut1])
+            }
+
+        } 
+
+
+
+        async function animation() {
+            await delay(1000)
+
+            notify('Background HiPS:', 'Gaia DR3 G flux map', 3000)
+
+            await s_1()
+
+            notify('', 'Enable coordinates grid', 2500)
+
+            await delay(1000)
+
+
+            await showGrid()
+
+            await delay(1000)
+
+            notify('Projection support:', 'Orthographic, Mercator, HEALPix, Aitoff', 6500)
+
+            await delay(1000)
+
+            await showcaseProjections()
+
+
+            await delay(1000)
+
+
+            await s0()
+
+            await delay(1000)
+
+            await s2()
+
+            notify('New HiPS overlay', 'GALEX GR6/7', 4000)
+            await delay(500)
+
+            await s3()
+
+            await s4()
+
+            await s5()
+
+            await delay(800)
+
+            await hideGrid()
+
+            await delay(300)
+            notify('', 'Center view on Stephan\'s Quintet', 3800)
+
+            await s7()
+
+            await delay(300)
+
+            notify('New HiPS overlay', 'PanSTARRS g', 3000)
+            await s77()
+
+            await delay(300)
+
+            await s9()
+
+            await delay(300)
+
+            notify('New HiPS overlay', 'JWST MIRI', 3000)
+            await s8()
+
+            await delay(300)
+
+            await s10()
+
+            await delay(300)
+
+            notify('New HiPS overlay', 'JWST NIRCam + MIRI', 4000)
+
+            await s11()
+
+            await delay(300)
+
+            await zoomoutAndgoToMeerkat()
+
+
+        };
+
+        animation();
+
+    });
+</script>
+
+</body>
+</html>

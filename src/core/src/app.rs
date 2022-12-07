@@ -125,6 +125,8 @@ use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
 
+use al_core::image::format::ImageFormatType;
+
 impl App {
     pub fn new(
         gl: &WebGlContext,
@@ -238,7 +240,7 @@ impl App {
         })
     }
 
-    fn look_for_new_tiles(&mut self) {
+    fn look_for_new_tiles(&mut self) -> Result<(), JsValue> {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
@@ -254,8 +256,8 @@ impl App {
                     .get_cells()
                     //.flat_map(|texture_cell| texture_cell.get_tile_cells(survey.get_config()))
                     .flat_map(|cell| {
-                        let texture_cell = cell.get_texture_cell(survey.get_config());
-                        texture_cell.get_tile_cells(survey.get_config())
+                        let texture_cell = cell.get_texture_cell(&survey.get_config());
+                        texture_cell.get_tile_cells(&survey.get_config())
                     })
                     .collect::<HashSet<_>>();
 
@@ -269,9 +271,18 @@ impl App {
                     tile_cells.extend(tile_cells_ancestor);
                 }
 
-                // Do not request the cells where we know from its moc that there is no data
+                // Do not request the cells where no data is present (we know it from its moc)
+                /*let (tile_cells_in_moc, tile_cells_out_moc) = if let Some(moc) = survey.get_moc() {
+                    tile_cells.into_iter()
+                        .partition(|tile_cell| {
+                            moc.contains(tile_cell)
+                        })
+                } else {
+                    (tile_cells, HashSet::new())
+                };*/
+
                 if let Some(moc) = survey.get_moc() {
-                    tile_cells = tile_cells.drain()
+                    tile_cells = tile_cells.into_iter()
                         .filter(|tile_cell| {
                             moc.contains(tile_cell)
                         })
@@ -291,6 +302,8 @@ impl App {
                 }
             }
         }
+
+        Ok(())
     }
 
     // Run async tasks:
@@ -463,10 +476,12 @@ use crate::downloader::request::Resource;
 
 use crate::healpix::cell::HEALPixCell;
 use al_api::color::ColorRGB;
+use crate::downloader::request::tile::Tile;
+
 use al_core::{info, inforec, log};
 impl App {
-    pub(crate) fn set_font_color(&mut self, color: ColorRGB) {
-        self.surveys.set_font_color(color);
+    pub(crate) fn set_background_color(&mut self, color: ColorRGB) {
+        self.surveys.set_background_color(color);
         self.request_redraw = true;
     }
 
@@ -586,22 +601,55 @@ impl App {
                             tile_copied = true;
                             let is_tile_root = tile.is_root;
     
-                            if let Some(survey) = self.surveys.get_mut(tile.get_hips_url()) {
+                            if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
                                 if is_tile_root {
-                                    survey.add_tile(tile)?;
+                                    let is_missing = tile.missing();
+                                    let Tile {
+                                        cell,
+                                        image,
+                                        time_req,
+                                        ..
+                                    } = tile;
+        
+                                    let image = if is_missing {
+                                        // Otherwise we push nothing, it is probably the case where:
+                                        // - an request error occured on a valid tile
+                                        // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                        None
+                                    } else {
+                                        Some(image)
+                                    };
+                                    survey.add_tile(&cell, image, time_req)?;
 
                                     self.request_redraw = true;
                                 } else {
                                     let cfg = survey.get_config();
-                                    let coverage = survey.get_view().get_coverage();
+                                    let fov_coverage = survey.get_view().get_coverage();
                                     let texture_cell = tile.cell.get_texture_cell(cfg);
                                     let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
                                         .any(|neighbor_tile_cell| {
-                                            coverage.contains(&neighbor_tile_cell)
+                                            fov_coverage.contains(&neighbor_tile_cell)
                                         });
 
                                     if included_or_near_coverage {
-                                        survey.add_tile(tile)?;
+                                        let is_missing = tile.missing();
+                                        let Tile {
+                                            cell,
+                                            image,
+                                            time_req,
+                                            ..
+                                        } = tile;
+            
+                                        let image = if is_missing {
+                                            // Otherwise we push nothing, it is probably the case where:
+                                            // - an request error occured on a valid tile
+                                            // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                            None
+                                        } else {
+                                            Some(image)
+                                        };
+
+                                        survey.add_tile(&cell, image, time_req)?;
         
                                         self.request_redraw = true;
                                     } else {
@@ -689,7 +737,7 @@ impl App {
         }
 
         if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500_f32) {
-            self.look_for_new_tiles();
+            self.look_for_new_tiles()?;
 
             self.request_for_new_tiles = false;
             self.last_time_request_for_new_tiles = Time::now();

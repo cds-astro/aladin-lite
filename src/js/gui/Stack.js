@@ -95,19 +95,19 @@ export class Stack {
 
         layerBox.append('<div class="aladin-label">Background color</div>');
 
-        let fontColorInput = $('<input type="color">');
-        layerBox.append(fontColorInput);
+        let backgroundColorInput = $('<input type="color">');
+        layerBox.append(backgroundColorInput);
 
         // Set a default background color
-        const defaultBackgroundClr = '#6699ff';
-        fontColorInput.val(defaultBackgroundClr);
-        self.view.aladin.webglAPI.setFontColor(Color.hexToRgb(defaultBackgroundClr));
+        const defaultBackgroundColor = '#6699ff';
+        backgroundColorInput.val(defaultBackgroundColor);
+        self.view.aladin.setBackgroundColor(Color.hexToRgb(defaultBackgroundColor));
 
-        let updateFontColor = function () {
-            let rgb = Color.hexToRgb(fontColorInput.val());
-            self.view.aladin.webglAPI.setFontColor(rgb);
+        let updateBackgroundColor = function () {
+            const backgroundColor = backgroundColorInput.val();
+            self.view.aladin.setBackgroundColor(Color.hexToRgb(backgroundColor));
         };
-        fontColorInput.on('input', updateFontColor);
+        backgroundColorInput.on('input', updateBackgroundColor);
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');

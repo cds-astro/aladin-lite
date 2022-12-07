@@ -1021,7 +1021,7 @@ export let Aladin = (function () {
     // @param imageSurvey : HpxImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setFontColor = function(rgb) {
+    Aladin.prototype.setBackgroundColor = function(rgb) {
         let color;
         if (typeof rgb === "string") {
             var rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
@@ -1031,9 +1031,10 @@ export let Aladin = (function () {
             var b = parseInt(rgb[3]);
 
             color = { r: r, g: g, b: b };
+        } else {
+            color = rgb;
         }
-        console.log(color)
-        this.webglAPI.setFontColor(color);
+        this.webglAPI.setBackgroundColor(color);
     };
 
     // @api

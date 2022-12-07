@@ -236,17 +236,8 @@ impl RayTracer {
         }
     }
 
-    pub fn draw_font_color<'a>(&self, shader: &ShaderBound<'a>, color: &ColorRGB, opacity: f32) {
-        shader
-            .attach_uniform("font_color", color)
-            .attach_uniform("opacity", &opacity)
-            .bind_vertex_array_object_ref(&self.vao)
-            .draw_elements_with_i32(
-                WebGl2RenderingContext::TRIANGLES,
-                None,
-                WebGl2RenderingContext::UNSIGNED_SHORT,
-                0,
-            );
+    pub fn get_vao(&self) -> &VertexArrayObject {
+        &self.vao
     }
 
     pub fn draw<'a>(&self, shader: &ShaderBound<'a>) {
@@ -273,8 +264,8 @@ impl RayTracer {
             )
     }
 
-    pub fn is_rendering(&self, camera: &CameraViewPort, depth: u8) -> bool {
+    pub fn is_rendering(&self, camera: &CameraViewPort/* , depth: u8*/) -> bool {
         //camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE
-        camera.get_field_of_view().is_allsky() || depth == 0
+        camera.get_field_of_view().is_allsky() /*|| depth == 0*/
     }
 }

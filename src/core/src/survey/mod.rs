@@ -8,9 +8,7 @@ pub mod view;
 use texture::Texture;
 
 
-use al_core::{
-    VecData,
-};
+use al_core::{VecData, SliceData};
 
 const M: f64 = 280.0*280.0;
 const N: f64 = 150.0*150.0;
@@ -383,10 +381,12 @@ use crate::{
     math::lonlat::LonLatT,
     utils,
 };
+use al_core::image::Image;
 
 use web_sys::{WebGl2RenderingContext};
 use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
+use std::fmt::Debug;
 impl ImageSurvey {
     fn new(
         config: HiPSConfig,
@@ -630,10 +630,9 @@ impl ImageSurvey {
         self.idx_vertices.clear();
 
         let cfg = self.textures.config();
-
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
-        let hips_frame = self.textures.config().get_frame();
+        let hips_frame = cfg.get_frame();
         let c = selected_frame.to(&hips_frame);
 
         // Retrieve the model and inverse model matrix
@@ -647,7 +646,15 @@ impl ImageSurvey {
                 if moc.contains(cell) {
                     Some(cell)
                 } else {
-                    None
+                    if cfg.get_format() == ImageFormatType::RGB8U {
+                        // Rasterizer does not render tiles that are not in the MOC
+                        // This is not a problem for transparency rendered HiPses (FITS or PNG)
+                        // but JPEG tiles do have black when no pixels data is found
+                        // We therefore must draw in black for the tiles outside the HiPS MOC
+                        Some(cell)
+                    } else {
+                        None
+                    }
                 }
             } else {
                 Some(cell)
@@ -693,20 +700,21 @@ impl ImageSurvey {
                     let uv_0 = TileUVW::new(cell, starting_texture, cfg);
                     let uv_1 = TileUVW::new(cell, ending_texture, cfg);
                     let start_time = ending_texture.start_time().as_millis();
-        
+
                     let miss_0 = (starting_texture.is_missing()) as i32 as f32;
                     let miss_1 = (ending_texture.is_missing()) as i32 as f32;
-                    
+
                     let num_subdivision = num_subdivision(cell, camera, projection);
-        
+
                     let n_segments_by_side: usize = 1 << (num_subdivision as usize);
                     let n_vertices_per_segment = n_segments_by_side + 1;
-        
+
                     // Indices overwritten
                     let off_idx_vertices = (self.position.len() / 2) as u16;
-        
+
                     let ll = crate::healpix::utils::grid_lonlat::<f64>(cell, n_segments_by_side as u16);
                     let n_segments_by_side_f32 = n_segments_by_side as f32;
+
                     for i in 0..n_vertices_per_segment {
                         for j in 0..n_vertices_per_segment {
                             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
@@ -851,28 +859,13 @@ impl ImageSurvey {
         }
     }
 
-    pub fn add_tile(
+    pub fn add_tile<I: Image + Debug>(
         &mut self,
-        tile: Tile,
+        cell: &HEALPixCell,
+        image: Option<I>,
+        time_request: Time,
     ) -> Result<(), JsValue> {
-        let is_missing = tile.missing();
-        let Tile {
-            cell,
-            image,
-            time_req,
-            ..
-        } = tile;
-
-        let image = if !is_missing {
-            Some(image)
-        } else {
-            // Otherwise we push nothing, it is probably the case where:
-            // - an request error occured on a valid tile
-            // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-            None
-        };
-
-        self.textures.push(&cell, image, time_req)
+        self.textures.push(&cell, image, time_request)
     }
 
     pub fn add_allsky(
@@ -921,6 +914,7 @@ impl ImageSurvey {
     fn draw(
         &self,
         raytracer: &RayTracer,
+        screen_vao: &VertexArrayObject,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
@@ -930,11 +924,12 @@ impl ImageSurvey {
     ) {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
-        let hips_frame = self.textures.config().get_frame();
+        let hips_cfg = self.textures.config();
+        let hips_frame = hips_cfg.get_frame();
         let c = selected_frame.to(&hips_frame);
 
         // Get whether the camera mode is longitude reversed
-        //let longitude_reversed = self.textures.config().longitude_reversed;
+        //let longitude_reversed = hips_cfg.longitude_reversed;
         let rl = if camera.get_longitude_reversed() { ID_R } else { ID };
 
         // Add starting fading
@@ -945,12 +940,12 @@ impl ImageSurvey {
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        let depth_texture = if self.view.get_depth() > self.get_config().delta_depth() {
+        /*let depth_texture = if self.view.get_depth() > self.get_config().delta_depth() {
             self.view.get_depth() - self.get_config().delta_depth()
         } else {
             0
-        };
-        let raytracing = raytracer.is_rendering(camera, depth_texture);
+        };*/
+        let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
         let longitude_reversed = camera.get_longitude_reversed();
 
         if raytracing {
@@ -1077,17 +1072,18 @@ pub struct ImageSurveys {
     most_precise_survey: Url,
 
     raytracer: RayTracer,
+    // A vao that takes all the screen
+    screen_vao: VertexArrayObject,
 
-    font_color: ColorRGB,
-
-    //past_rendering_mode: RenderingMode,
-    //current_rendering_mode: RenderingMode,
+    background_color: ColorRGB,
 
     depth: u8,
 
     gl: WebGlContext,
 }
 
+//const BLACK_COLOR: ColorRGB = ColorRGB { r: 0.0, g: 0.0, b: 0.0 };
+const DEFAULT_BACKGROUND_COLOR: ColorRGB = ColorRGB { r: 0.05, g: 0.05, b: 0.05 };
 /*#[derive(PartialEq, Eq, Clone, Copy)]
 enum RenderingMode {
     Raytrace,
@@ -1132,11 +1128,45 @@ impl ImageSurveys {
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
-        //let past_rendering_mode = RenderingMode::Raytrace;
-        //let current_rendering_mode = RenderingMode::Raytrace;
+        let mut screen_vao = VertexArrayObject::new(&gl);
+        #[cfg(feature = "webgl2")]
+        screen_vao.bind_for_update()
+            .add_array_buffer_single(
+                2,
+                "pos_clip_space",
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData::<f32>(&[
+                    -1.0, -1.0,
+                    1.0, -1.0,
+                    1.0, 1.0,
+                    -1.0, 1.0,
+                ]),
+            )
+            // Set the element buffer
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData::<u16>(&[0, 1, 2, 0, 2, 3]))
+            // Unbind the buffer
+            .unbind();
+
+        #[cfg(feature = "webgl1")]
+        screen_vao.bind_for_update()
+            .add_array_buffer(
+                2,
+                "pos_clip_space",
+                WebGl2RenderingContext::STATIC_DRAW,
+                SliceData::<f32>(&[
+                    -1.0, -1.0,
+                    1.0, -1.0,
+                    1.0, 1.0,
+                    -1.0, 1.0,
+                ]),
+            )
+            // Set the element buffer
+            .add_element_buffer(WebGl2RenderingContext::STATIC_DRAW, SliceData::<u16>(&[0, 1, 2, 0, 2, 3]))
+            // Unbind the buffer
+            .unbind();
 
         let depth = 0;
-        let font_color = ColorRGB { r: 0.05, g: 0.05, b: 0.05 };
+        let background_color = DEFAULT_BACKGROUND_COLOR;
         ImageSurveys {
             surveys,
             meta,
@@ -1148,10 +1178,8 @@ impl ImageSurveys {
             raytracer,
             depth,
 
-            font_color,
-
-            //past_rendering_mode,
-            //current_rendering_mode,
+            background_color,
+            screen_vao,
 
             gl,
         }
@@ -1193,8 +1221,8 @@ impl ImageSurveys {
         self.raytracer = RayTracer::new(&self.gl, projection);
     }
 
-    pub fn set_font_color(&mut self, color: ColorRGB) {
-        self.font_color = color;
+    pub fn set_background_color(&mut self, color: ColorRGB) {
+        self.background_color = color;
     }
 
     pub fn draw(
@@ -1204,17 +1232,8 @@ impl ImageSurveys {
         colormaps: &Colormaps,
         projection: ProjectionType
     ) {
-        /*let mut switch_from_raytrace_to_raster = false;
-        if raytracing {
-            self.current_rendering_mode = RenderingMode::Raytrace;
-        } else {
-            self.current_rendering_mode = RenderingMode::Rasterize;
-            if self.past_rendering_mode == RenderingMode::Raytrace {
-                switch_from_raytrace_to_raster = true;
-            }
-        }*/
-
         let raytracer = &self.raytracer;
+        let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
@@ -1227,20 +1246,36 @@ impl ImageSurveys {
                     let meta = self.meta.get(layer).unwrap_abort();
                     let url = self.urls.get(layer).unwrap_abort();
                     let survey = self.surveys.get(url).unwrap_abort();
+                    let hips_cfg = survey.get_config();
 
-                    (survey.is_allsky() || survey.get_config().get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
+                    (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
                 });
 
+            // Need to render transparency font
             if !not_render_transparency_font {
-                let shader_font = get_fontcolor_shader(&self.gl, shaders).bind(&self.gl);
-                shader_font
-                    .attach_uniforms_from(camera);
                 let opacity = self.surveys.values()
                     .fold(std::f32::MAX, |mut a, s| {
                         a = a.min(s.get_fading_factor()); a
                     });
-                let color = &self.font_color * opacity;
-                raytracer.draw_font_color(&shader_font, &color, opacity);
+                let background_color = &self.background_color * opacity;
+
+                let vao = if raytracing {
+                    raytracer.get_vao()
+                } else {
+                    // define a vao that consists of 2 triangles for the screen
+                    &self.screen_vao
+                };
+
+                get_fontcolor_shader(&self.gl, shaders).bind(&self.gl).attach_uniforms_from(camera)
+                    .attach_uniform("color", &background_color)
+                    .attach_uniform("opacity", &opacity)
+                    .bind_vertex_array_object_ref(vao)
+                        .draw_elements_with_i32(
+                            WebGl2RenderingContext::TRIANGLES,
+                            None,
+                            WebGl2RenderingContext::UNSIGNED_SHORT,
+                            0,
+                        );
             }
         }
 
@@ -1259,11 +1294,13 @@ impl ImageSurveys {
                     ..
                 } = meta;
 
+                let screen_vao = &self.screen_vao;
+
                 // 2. Draw it if its opacity is not null
                 blend_cfg.enable(&self.gl, || {
                     survey.draw(
                         raytracer,
-                        //switch_from_raytrace_to_raster,
+                        screen_vao,
                         shaders,
                         camera,
                         color,

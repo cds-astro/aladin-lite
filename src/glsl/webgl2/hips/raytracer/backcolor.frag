@@ -7,9 +7,9 @@ precision highp int;
 
 out vec4 out_frag_color;
 
-uniform vec3 font_color;
+uniform vec3 color;
 uniform float opacity;
 
 void main() {
-    out_frag_color = vec4(font_color, opacity);
+    out_frag_color = vec4(color, opacity);
 }

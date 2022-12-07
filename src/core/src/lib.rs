@@ -328,10 +328,10 @@ impl WebClient {
         self.app.set_survey_url(past_url, new_url)
     }
 
-    #[wasm_bindgen(js_name = setFontColor)]
-    pub fn set_font_color(&mut self, color: JsValue) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = setBackgroundColor)]
+    pub fn set_background_color(&mut self, color: JsValue) -> Result<(), JsValue> {
         let color = color.try_into()?;
-        self.app.set_font_color(color);
+        self.app.set_background_color(color);
 
         Ok(())
     }

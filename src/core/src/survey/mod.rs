@@ -1295,6 +1295,8 @@ impl ImageSurveys {
             }
         }
 
+        al_core::log(&format!("{:?}", idx_start_layer));
+
         let rendered_layers = &self.layers[idx_start_layer..];
         for layer in rendered_layers {
             let meta = self.meta.get(layer).expect("Meta should be found");

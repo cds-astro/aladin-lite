@@ -56,6 +56,8 @@ import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 
+import $ from 'jquery';
+
 // Import aladin css inside the project
 import './../css/aladin.css';
 

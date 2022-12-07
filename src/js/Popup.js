@@ -27,9 +27,9 @@
  * Author: Thomas Boch [CDS]
  * 
  *****************************************************************************/
+import $ from 'jquery';
 
 export let Popup = (function() {
-    
     
     // constructor
     function Popup(parentDiv, view) {

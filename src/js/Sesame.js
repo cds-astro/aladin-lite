@@ -30,6 +30,8 @@
 
 import { Utils } from "./Utils.js";
 
+import $ from 'jquery';
+
 export let Sesame = (function() {
     let Sesame = {};
     

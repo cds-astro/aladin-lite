@@ -31,6 +31,8 @@
  import { Color } from "../Color.js";
  import { ALEvent } from "../events/ALEvent.js";
  
+ import $ from 'jquery';
+ 
  export class CooGrid {
  
     // Constructor

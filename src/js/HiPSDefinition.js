@@ -29,6 +29,7 @@
  *****************************************************************************/
 
 import { Utils } from "./Utils.js";
+import $ from 'jquery';
 
 export let HiPSDefinition = (function() {
 

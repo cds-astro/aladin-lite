@@ -17,7 +17,7 @@
 //    along with Aladin Lite.
 //
 
-
+import $ from 'jquery';
 
 // log 
 export let Logger = {};

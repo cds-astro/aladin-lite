@@ -34,6 +34,8 @@ import { HiPSSelector } from "./HiPSSelector.js";
 import { Color } from "./../Color.js";
 import { Utils } from './../Utils.js';
 
+import $ from 'jquery';
+
 export class HiPSLayer {
 
     // Constructor

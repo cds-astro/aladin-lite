@@ -30,8 +30,9 @@
  * 
  *****************************************************************************/
 
-export let MeasurementTable = (function() {
+import $ from 'jquery';
 
+export let MeasurementTable = (function() {
 
     // constructor
     function MeasurementTable(aladinLiteDiv) {

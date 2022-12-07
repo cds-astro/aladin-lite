@@ -32,6 +32,8 @@
 import { Coo }            from "./libs/astro/coo.js";
 import { CooFrameEnum }   from "./CooFrameEnum.js";
 
+import $ from 'jquery';
+
 export let Location = (function () {
     // constructor
     function Location(locationDiv) {

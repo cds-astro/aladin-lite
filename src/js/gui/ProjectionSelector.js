@@ -30,6 +30,8 @@
 
  import { ALEvent } from "../events/ALEvent.js";
  
+ import $ from 'jquery';
+
  export class ProjectionSelector {
  
      // Constructor

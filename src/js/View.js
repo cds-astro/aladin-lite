@@ -47,6 +47,8 @@ import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { HpxImageSurvey } from "./HpxImageSurvey.js";
 
+import $ from 'jquery';
+
 export let View = (function () {
 
     /** Constructor */

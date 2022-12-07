@@ -27,13 +27,14 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
+import { Catalog } from "./Catalog.js";
+import { Source } from "./Source.js";
+import { Color } from "./Color.js";
+import { Coo } from "./libs/astro/coo.js";
+import { Utils } from "./Utils.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
 
- import { Catalog } from "./Catalog.js";
- import { Source } from "./Source.js";
- import { Color } from "./Color.js";
- import { Coo } from "./libs/astro/coo.js";
- import { Utils } from "./Utils.js";
- import { CooFrameEnum } from "./CooFrameEnum.js";
+import $ from 'jquery';
 
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog

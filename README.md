@@ -28,7 +28,6 @@ If you want to embed it into your webpage, please include [the javascript script
 </head>
 <body>
 
-<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
 

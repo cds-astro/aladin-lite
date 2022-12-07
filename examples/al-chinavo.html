@@ -6,8 +6,6 @@
 </head>
 <body>
 
-<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
-
 <div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
 
 <div id='aladin-statsDiv'></div>
@@ -18,7 +16,9 @@
   A.init.then(() => {
       // Start up Aladin Lite
       aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 360, showCooGrid: true});
-      aladin.setImageSurvey(aladin.createImageSurvey('Panstarrs', 'Panstarrs', 'http://hips.china-vo.org/change2-moon-7m-dom', 'equatorial', 9, {imgFormat: 'fits', colormap: "redtemperature"}));
+      aladin.setImageSurvey(
+        aladin.newImageSurvey('https://hips.china-vo.org/change2-moon-7m-dom', {imgFormat: 'fits', colormap: "redtemperature"})
+      );
   });
 </script>
 

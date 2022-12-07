@@ -30,6 +30,8 @@
  * Author: Thomas Boch [CDS]
  * 
  *****************************************************************************/
+import $ from 'jquery';
+
 Box = (function() {
 
     // constructor

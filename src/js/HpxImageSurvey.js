@@ -265,7 +265,7 @@ export let HpxImageSurvey = (function() {
                 }
 
                 // HiPS coverage sky fraction
-                const skyFraction = +metadata.moc_sky_fraction || 1.0;
+                const skyFraction = +metadata.moc_sky_fraction || 0.0;
                 
                 let removeAllChildNodes = function removeAllChildNodes(parent) {
                     while (parent.firstChild) {

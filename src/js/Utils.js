@@ -30,6 +30,7 @@
  *****************************************************************************/
 
 import { Aladin } from "./Aladin.js";
+import $ from 'jquery';
 
 export let Utils = {};
 

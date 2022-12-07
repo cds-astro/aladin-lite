@@ -45,25 +45,18 @@ export class HiPSLayer {
         this.lastOpacity = 1.0;
 
         // HiPS header div
+        this.headerDiv = $(
+            '<div class="aladin-layer-header-' + survey.layer + ' aladin-hips-layer">' +
+            '<span class="indicator right-triangle">&nbsp;</span>' +
+            '<select class="aladin-surveySelection"></select>' +
+            '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
+            '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
+            '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
+            '</div>'
+        );
+
         if (this.survey.layer === "base") {
-            this.headerDiv = $(
-                '<div class="aladin-layer-header-' + survey.layer + ' aladin-hips-layer">' +
-                '<span class="indicator right-triangle">&nbsp;</span>' +
-                '<select class="aladin-surveySelection"></select>' +
-                '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
-                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
-                '</div>'
-            );
-        } else {
-            this.headerDiv = $(
-                '<div class="aladin-layer-header-' + survey.layer + '  aladin-hips-layer">' +
-                '<span class="indicator right-triangle">&nbsp;</span>' +
-                '<select class="aladin-surveySelection"></select>' +
-                '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
-                '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search a specific HiPS">🔍</button>' +
-                '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
-                '</div>'
-            );
+            this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0].style.visibility = "hidden";
         }
 
         // HiPS main options div

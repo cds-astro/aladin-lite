@@ -1279,7 +1279,24 @@ impl ImageSurveys {
             }
         }
 
-        for layer in self.layers.iter() {
+        // Pre loop over the layers to see if a HiPS is entirely covering those behind
+        // so that we do not have to render those
+        let mut idx_start_layer = 0;
+        for (idx_layer, layer) in self.layers.iter().enumerate().skip(1) {
+            let meta = self.meta.get(layer).expect("Meta should be found");
+
+            let url = self.urls.get(layer).expect("Url should be found");
+            let survey = self.surveys.get_mut(url).unwrap_abort();
+            let hips_cfg = survey.get_config();
+
+            let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0;
+            if fully_covering_survey {
+                idx_start_layer = idx_layer;
+            }
+        }
+
+        let rendered_layers = &self.layers[idx_start_layer..];
+        for layer in rendered_layers {
             let meta = self.meta.get(layer).expect("Meta should be found");
             if meta.visible() {
                 // 1. Update the survey if necessary

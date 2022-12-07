@@ -615,30 +615,30 @@ input[type=number], input[type=text], input[type=range] {
     margin-top: 4px;
 }
 
-.aladin-options .row2 {
+.aladin-options .row {
     display: flex;
     align-items: center;
     margin-top: 5px;
 }
 
-.aladin-options .row2 label {
+.aladin-options .row label {
     text-align: center;
 }
 
-.aladin-options .row2 .col-25 {
+.aladin-options .row .col-label {
     flex: 0.3;
 }
 
-.aladin-options .row2 .col-75 {
+.aladin-options .row .col-input {
     flex: 0.70;
 }
 
-.aladin-options .row2 .col-75 select {
+.aladin-options .row .col-input select {
     width: 100%;
 }
 
-.aladin-options .row2 .col-75 input[type="checkbox"] {
-    margin: 0;
+.aladin-options .row .col-input input[type="checkbox"] {
+    margin: 3px 0px;
 }
 
 .aladin-layer-label {

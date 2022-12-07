@@ -82,19 +82,19 @@ export class HiPSLayer {
 
         this.mainDiv = $('<div class="aladin-frame" style="display:none">' +
             '<div class="aladin-options">' +
-            '  <div class="row2">' +
+            '  <div class="row">' +
             '    <div style="width: 50%"><label>Color map<input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" value="colormap" id="colormap-radio" checked></label></div>' +
             '    <div style="width: 50%"><label>Color<input class="color-color-selector" type="radio" name="'+ this.nameRadioColorChoice + '" value="color"></label></div>' +
             '  </div>' +
-            '  <div class="row2"><select class="colormap-selector">' + cmListStr + '</select></div>' +
-            '  <div class="row2"><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></div>' +
-            '  <div class="row2"><div class="col-25"><label>Reverse</label></div><div class="col-75"><input type="checkbox" class="reversed"></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Stretch</label></div><div class="col-75"><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Format</label></div><div class="col-75"><select class="format"></select></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Min cut</label></div><div class="col-75"><input type="number" class="min-cut"></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Max cut</label></div><div class="col-75"><input type="number" class="max-cut"></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Blending mode</label></div><div class="col-75"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
-            '  <div class="row2"><div class="col-25"><label>Opacity</label></div><div class="col-75"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"></div><div class="col-input"><select class="colormap-selector">' + cmListStr + '</select></div></div>' +
+            '  <div class="row"><div class="col-label"></div><div class="col-input"><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></div></div>' +
+            '  <label><div class="row"><div class="col-label">Reverse</div><div class="col-input"><input type="checkbox" class="reversed"></div></div></label>' +
+            '  <div class="row"><div class="col-label"><label>Stretch</label></div><div class="col-input"><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Format</label></div><div class="col-input"><select class="format"></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Min cut</label></div><div class="col-input"><input type="number" class="min-cut"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="max-cut"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
             '</div> ' +
             '</div>');
 
@@ -234,7 +234,7 @@ export class HiPSLayer {
         // MAIN DIV listeners
         // blending method
         if (self.survey.layer === "base") {
-            this.mainDiv.find('.row2').eq(8)[0].style.display = "none";
+            this.mainDiv.find('.row').eq(8)[0].style.display = "none";
         } else {
             const blendingSelector = this.mainDiv.find('.blending').eq(0);
             blendingSelector.unbind("change");
@@ -377,14 +377,14 @@ export class HiPSLayer {
     }
 
     _updateHiPSLayerOptions() {
-        const colorModeTr = this.mainDiv.find('.row2').eq(0);
-        const colorMapTr = this.mainDiv.find('.row2').eq(1);
-        const colorTr = this.mainDiv.find('.row2').eq(2);
-        const reverseTr = this.mainDiv.find('.row2').eq(3);
-        const stretchTr = this.mainDiv.find('.row2').eq(4);
-        const formatTr = this.mainDiv.find('.row2').eq(5);
-        const minCutTr = this.mainDiv.find('.row2').eq(6);
-        const maxCutTr = this.mainDiv.find('.row2').eq(7);
+        const colorModeTr = this.mainDiv.find('.row').eq(0);
+        const colorMapTr = this.mainDiv.find('.row').eq(1);
+        const colorTr = this.mainDiv.find('.row').eq(2);
+        const reverseTr = this.mainDiv.find('.row').eq(3);
+        const stretchTr = this.mainDiv.find('.row').eq(4);
+        const formatTr = this.mainDiv.find('.row').eq(5);
+        const minCutTr = this.mainDiv.find('.row').eq(6);
+        const maxCutTr = this.mainDiv.find('.row').eq(7);
 
         const colormapMode = this.mainDiv.find('.colormap-color-selector').eq(0);
         const colorMode = this.mainDiv.find('.color-color-selector').eq(0);
@@ -427,7 +427,6 @@ export class HiPSLayer {
 
         // cuts
         if (colored) {
-            console.log(colorModeTr.style)
             colorModeTr[0].style.display = "none";
 
             colorTr[0].style.display = "none";
@@ -463,8 +462,6 @@ export class HiPSLayer {
             else {
                 minCut.val(0.0);
             }
-
-            console.log("sdksdjf", minCutTr.style)
 
             minCutTr[0].style.display = "flex";
 

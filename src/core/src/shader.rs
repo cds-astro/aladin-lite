@@ -18,6 +18,7 @@ pub struct ShaderManager {
 pub enum Error {
     ShaderAlreadyInserted { message: &'static str },
     ShaderNotFound { message: &'static str },
+    ShaderCompilingLinking { message: JsValue },
     FileNotFound { message: &'static str },
 }
 
@@ -34,6 +35,7 @@ impl From<Error> for JsValue {
             Error::FileNotFound { message } => {
                 JsValue::from_str(&format!("Shader not found: {:?}", message))
             }
+            Error::ShaderCompilingLinking { message } => message
         }
     }
 }
@@ -75,7 +77,9 @@ impl ShaderManager {
                     message: "Frag not found",
                 })?;
 
-                let shader = Shader::new(gl, vert_src, frag_src).unwrap_abort();
+                let shader = Shader::new(gl, vert_src, frag_src).map_err(|err| Error::ShaderCompilingLinking {
+                    message: err,
+                })?;
                 v.insert(shader)
             }
         };
@@ -135,9 +139,9 @@ define_shader_getter!(catalog, hpx, "CatalogHEALPixVS", "CatalogFS");
 define_shader_getter!(catalog, mer, "CatalogMercatVS", "CatalogFS");
 define_shader_getter!(catalog, ort, "CatalogOrthoVS", "CatalogOrthoFS");
 define_shader_getter!(catalog, tan, "CatalogTanVS", "CatalogFS");*/
-pub(crate) fn get_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager, vert: &'static str, frag: &'static str) -> &'a Shader {
+pub(crate) fn get_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager, vert: &'static str, frag: &'static str) -> Result<&'a Shader, JsValue> {
     shaders.get(
         gl,
         &ShaderId(Cow::Borrowed(vert), Cow::Borrowed(frag)),
-    ).unwrap_abort()
+    ).map_err(|err| err.into())
 }

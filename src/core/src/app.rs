@@ -889,7 +889,7 @@ impl App {
             // Clear all the screen first (only the region set by the scissor)
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw(camera, shaders, colormaps, self.projection);
+            surveys.draw(camera, shaders, colormaps, self.projection)?;
             self.moc.draw(shaders, camera);
 
             // Draw the catalog

@@ -49,14 +49,14 @@ impl RenderPass {
         })
     }
 
-    pub fn draw_on_screen(&self, fbo: &FrameBufferObject, shaders: &mut ShaderManager) {
+    pub fn draw_on_screen(&self, fbo: &FrameBufferObject, shaders: &mut ShaderManager) -> Result<(), JsValue> {
         self.gl.enable(WebGl2RenderingContext::BLEND);
         self.gl.blend_func(
             WebGl2RenderingContext::ONE,
             WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
         ); // premultiplied alpha
 
-        let shader = crate::shader::get_shader(&self.gl, shaders, "PostVS", "PostFS");
+        let shader = crate::shader::get_shader(&self.gl, shaders, "PostVS", "PostFS")?;
 
         shader
             .bind(&self.gl)
@@ -70,5 +70,7 @@ impl RenderPass {
             );
 
         self.gl.disable(WebGl2RenderingContext::BLEND);
+
+        Ok(())
     }
 }

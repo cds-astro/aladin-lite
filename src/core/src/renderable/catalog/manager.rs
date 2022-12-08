@@ -464,7 +464,7 @@ impl Catalog {
                         ProjectionType::AzimuthalEquidistant(_) => crate::shader::get_shader(gl, shaders, "CatalogArcVS", "CatalogFS"),
                         ProjectionType::Gnomonic(_) => crate::shader::get_shader(gl, shaders, "CatalogTanVS", "CatalogFS"),
                         ProjectionType::HEALPix(_) => crate::shader::get_shader(gl, shaders, "CatalogHpxVS", "CatalogFS"),
-                    };
+                    }?;
                     let shader_bound = shader.bind(gl);
 
                     shader_bound
@@ -491,7 +491,7 @@ impl Catalog {
                 let size = camera.get_screen_size();
                 gl.viewport(0, 0, size.x as i32, size.y as i32);
 
-                let shader = crate::shader::get_shader(gl, shaders, "ColormapCatalogVS", "ColormapCatalogFS");
+                let shader = crate::shader::get_shader(gl, shaders, "ColormapCatalogVS", "ColormapCatalogFS")?;
                 //self.colormap.get_shader(gl, shaders);
                 let shaderbound = shader.bind(gl);
                 shaderbound

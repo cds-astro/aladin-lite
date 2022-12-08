@@ -268,7 +268,7 @@ pub fn get_raster_shader<'a>(
     shaders: &'a mut ShaderManager,
     integer_tex: bool,
     unsigned_tex: bool,
-) -> &'a Shader {
+) -> Result<&'a Shader, JsValue> {
     match color {
         HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS"),
         HiPSColor::Grayscale { color, .. } => match color {
@@ -300,7 +300,7 @@ pub fn get_raytracer_shader<'a>(
     shaders: &'a mut ShaderManager,
     integer_tex: bool,
     unsigned_tex: bool,
-) -> &'a Shader {
+) -> Result<&'a Shader, JsValue> {
     match color {
         HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS"),
         HiPSColor::Grayscale { color, .. } => match color {
@@ -921,7 +921,7 @@ impl ImageSurvey {
         color: &HiPSColor,
         mut opacity: f32,
         colormaps: &Colormaps,
-    ) {
+    ) -> Result<(), JsValue> {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
         let hips_cfg = self.textures.config();
@@ -958,7 +958,7 @@ impl ImageSurvey {
                 shaders,
                 self.textures.config.tex_storing_integers,
                 self.textures.config.tex_storing_unsigned_int,
-            );
+            )?;
 
             let shader = shader.bind(&self.gl);
             shader
@@ -1002,7 +1002,7 @@ impl ImageSurvey {
                 shaders,
                 config.tex_storing_integers,
                 config.tex_storing_unsigned_int,
-            )
+            )?
             .bind(&self.gl);
 
             shader
@@ -1032,6 +1032,7 @@ impl ImageSurvey {
         } else {
             self.gl.cull_face(WebGl2RenderingContext::BACK);
         }
+        Ok(())
 
         //self.gl.cull_face(WebGl2RenderingContext::BACK);
     }
@@ -1231,7 +1232,7 @@ impl ImageSurveys {
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
         projection: ProjectionType
-    ) {
+    ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
         let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
 
@@ -1295,8 +1296,6 @@ impl ImageSurveys {
             }
         }
 
-        al_core::log(&format!("{:?}", idx_start_layer));
-
         let rendered_layers = &self.layers[idx_start_layer..];
         for layer in rendered_layers {
             let meta = self.meta.get(layer).expect("Meta should be found");
@@ -1325,8 +1324,10 @@ impl ImageSurveys {
                         color,
                         *opacity,
                         colormaps,
-                    );
-                });
+                    )?;
+
+                    Ok(())
+                })?;
             }
         }
 
@@ -1338,7 +1339,7 @@ impl ImageSurveys {
         );
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
-        //self.past_rendering_mode = self.current_rendering_mode;
+        Ok(())
     }
 
     pub fn set_image_surveys(

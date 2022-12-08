@@ -108,12 +108,12 @@ impl Deref for WebGlContext {
 }
 
 pub trait GlWrapper {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce());
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> Result<(), JsValue>) -> Result<(), JsValue>;
 }
 
 use al_api::blend::{BlendCfg, BlendFactor};
 impl GlWrapper for BlendCfg {
-    fn enable(&self, gl: &WebGlContext, f: impl FnOnce()) {
+    fn enable(&self, gl: &WebGlContext, f: impl FnOnce() -> Result<(), JsValue>) -> Result<(), JsValue> {
         let blend_factor_f = |f: &BlendFactor| -> u32 {
             match f {
                 BlendFactor::ConstantAlpha => WebGlRenderingCtx::CONSTANT_ALPHA,
@@ -149,8 +149,10 @@ impl GlWrapper for BlendCfg {
             WebGlRenderingCtx::ONE,
         );
 
-        f();
+        f()?;
 
         gl.blend_equation(blend_func_f(&BlendFunc::FuncAdd));
+
+        Ok(())
     }
 }

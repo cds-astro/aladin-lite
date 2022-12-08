@@ -1,15 +1,16 @@
 use al_api::hips::GrayscaleColor;
 use web_sys::{WebGlProgram, WebGlShader, WebGlUniformLocation};
+use wasm_bindgen::JsValue;
 
 use crate::webgl_ctx::WebGlRenderingCtx;
 fn compile_shader(
     gl: &WebGlContext,
     shader_type: u32,
     source: &str,
-) -> Result<WebGlShader, String> {
+) -> Result<WebGlShader, JsValue> {
     let shader = gl
         .create_shader(shader_type)
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
+        .ok_or_else(|| JsValue::from_str("Unable to create shader object"))?;
     gl.shader_source(&shader, source);
     gl.compile_shader(&shader);
 
@@ -20,19 +21,21 @@ fn compile_shader(
     {
         Ok(shader)
     } else {
-        Err(gl
+        let msg = gl
             .get_shader_info_log(&shader)
-            .unwrap_or_else(|| String::from("Unknown error creating shader")))
+            .unwrap_or_else(|| "Unknown error when creating the shader".to_string());
+
+        Err(JsValue::from_str(&msg))
     }
 }
 
 fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
     gl: &WebGlContext,
     shaders: T,
-) -> Result<WebGlProgram, String> {
+) -> Result<WebGlProgram, JsValue> {
     let program = gl
         .create_program()
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
+        .ok_or_else(|| JsValue::from_str("Unable to create shader object"))?;
 
     for shader in shaders {
         gl.attach_shader(&program, shader)
@@ -46,9 +49,11 @@ fn link_program<'a, T: IntoIterator<Item = &'a WebGlShader>>(
     {
         Ok(program)
     } else {
-        Err(gl
+        let msg = gl
             .get_program_info_log(&program)
-            .unwrap_or_else(|| String::from("Unknown error creating program object")))
+            .unwrap_or_else(|| "Unknown error when creating the program".to_string());
+
+        Err(JsValue::from_str(&msg))
     }
 }
 
@@ -78,7 +83,7 @@ pub struct Shader {
 
 use crate::webgl_ctx::WebGlContext;
 impl Shader {
-    pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, String> {
+    pub fn new(gl: &WebGlContext, vert_src: &str, frag_src: &str) -> Result<Shader, JsValue> {
         let vert_shader = compile_shader(gl, WebGlRenderingCtx::VERTEX_SHADER, vert_src)?;
         let frag_shader = compile_shader(gl, WebGlRenderingCtx::FRAGMENT_SHADER, frag_src)?;
 

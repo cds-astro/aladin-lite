@@ -273,8 +273,20 @@ impl CameraViewPort {
     }
 
     pub fn compute_ndc_to_clip_factor(&mut self, proj: &ProjectionType) {
+        self.ndc_to_clip = if self.height < self.width {
+            Vector2::new(
+                1.0,
+                (self.height as f64) / (self.width as f64)
+            )
+        } else {
+            Vector2::new(
+                (self.width as f64) / (self.height as f64),
+                1.0,
+            )
+        };
+
         let bounds_size_ratio = proj.bounds_size_ratio();
-        self.ndc_to_clip = Vector2::new(1.0, bounds_size_ratio * (self.height as f64) / (self.width as f64));
+        self.ndc_to_clip.y *= bounds_size_ratio;
     }
 
     pub fn set_projection(&mut self, proj: &ProjectionType) {

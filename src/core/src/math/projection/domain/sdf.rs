@@ -57,6 +57,8 @@ use super::{
     cod::Cod
 };
 
+// List of all the footprints
+// found in Aladin Lite
 #[enum_dispatch]
 pub enum ProjDefType {
     Disk,

@@ -12,8 +12,6 @@ pub trait RenderManager {
     fn draw(&mut self, camera: &CameraViewPort, color: &ColorRGB, opacity: f32, scale: f32) -> Result<(), JsValue>;
 }
 
-use cgmath::Matrix2;
-
 pub struct TextRenderManager {
     gl: WebGlContext,
     shader: Shader,

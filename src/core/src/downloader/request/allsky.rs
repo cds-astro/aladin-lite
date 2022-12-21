@@ -6,7 +6,7 @@ use al_core::image::ImageType;
 
 use fitsrs::{
     fits::Fits,
-    hdu::{HDU, header::Header}
+    hdu::HDU
 };
 
 use super::{Request, RequestType};
@@ -34,8 +34,7 @@ use al_core::{image::raw::ImageBuffer, texture::pixel::Pixel};
 use wasm_bindgen::JsCast;
 use crate::downloader::query::Query;
 use wasm_bindgen::JsValue;
-use al_core::image::format::R64F;
-use wasm_streams::ReadableStream;
+
 async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
     let image = web_sys::HtmlImageElement::new().unwrap_abort();
     let image_cloned = image.clone();
@@ -194,7 +193,6 @@ impl From<query::Allsky> for AllskyRequest {
                                 .map(|image| ImageType::RawR32f { image })
                                 .collect())
                         }
-                        _ => Err(js_sys::Error::new("Format not supported").into()),
                     }
                 }
             }
@@ -294,7 +292,7 @@ fn handle_allsky_fits<F: ImageFormat>(
     Ok(allsky_tiles)
 }
 
-use al_core::image::format::{R16I, R32F, R32I, R8UI, RGBA8U};
+use al_core::image::format::RGBA8U;
 
 use crate::time::Time;
 use std::sync::{Arc, Mutex};

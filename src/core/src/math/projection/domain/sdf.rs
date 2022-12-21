@@ -24,7 +24,6 @@ where
     P: ProjDef
 {
     // This is done so that we get further a little bit
-    const DELTA_OFF: f64 = 0.0;
     let in_clip_space = |p: &XYClip| -> bool {
         ((-1.0)..=1.0).contains(&p.x) && ((-1.0)..=1.0).contains(&p.y)
     };

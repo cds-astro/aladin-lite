@@ -8,6 +8,7 @@
 
 // World space
 use crate::camera::CameraViewPort;
+use coo_space::XYZWModel;
 use crate::domain::sdf::ProjDefType;
 use crate::LonLatT;
 //use crate::num_traits::FloatConst;
@@ -206,15 +207,23 @@ impl ProjectionType {
         pos_screen_space: &Vector2<f64>,
         camera: &CameraViewPort,
     ) -> Option<Vector4<f64>> {
-        let pos_world_space = self.screen_to_world_space(pos_screen_space, camera);
+        self.screen_to_world_space(pos_screen_space, camera)
+            .map(|world_pos| {
+                let r = camera.get_final_rotation();
+                r.rotate(&world_pos)
+            })
+    }
 
-        if let Some(pos_world_space) = pos_world_space {
-            let r = camera.get_final_rotation();
-            let pos_model_space = r.rotate(&pos_world_space);
-            Some(pos_model_space)
-        } else {
-            None
-        }
+    pub fn normalized_device_to_model_space(
+        &self,
+        ndc_pos: &XYNDC,
+        camera: &CameraViewPort,
+    ) -> Option<XYZWModel> {
+        self.normalized_device_to_world_space(ndc_pos, camera)
+            .map(|world_pos| {
+                let r = camera.get_final_rotation();
+                r.rotate(&world_pos)
+            })
     }
 
     pub fn model_to_screen_space(
@@ -266,9 +275,9 @@ impl ProjectionType {
 
     pub fn model_to_normalized_device_space(
         &self,
-        pos_model_space: &Vector4<f64>,
+        pos_model_space: &XYZWModel,
         camera: &CameraViewPort,
-    ) -> Option<Vector2<f64>> {
+    ) -> Option<XYNDC> {
         let m2w = camera.get_m2w();
         let pos_world_space = m2w * pos_model_space;
         self.world_to_normalized_device_space(&pos_world_space, camera)
@@ -300,6 +309,15 @@ impl ProjectionType {
                     pos_clip_space.y / (ndc_to_clip.y * clip_zoom_factor),
                 )
             })
+    }
+
+    pub fn normalized_device_to_world_space(
+        &self,
+        ndc_pos: &XYNDC,
+        camera: &CameraViewPort,
+    ) -> Option<XYZWWorld> {
+        let clip_pos = ndc_to_clip_space(ndc_pos, camera);
+        self.clip_to_world_space(&clip_pos)
     }
 
     /*pub fn world_to_normalized_device_space_unchecked(
@@ -523,7 +541,7 @@ impl ProjectionType {
 
             // Conic projections
             // COD,                                 */
-            ProjectionType::Cod(cod) => {
+            ProjectionType::Cod(_) => {
                 const CONIC: ProjDefType = ProjDefType::Cod(Cod::new());
                 &CONIC
             }
@@ -540,7 +558,7 @@ impl Projection for ProjectionType {
     /// Deprojection
     fn clip_to_world_space(&self, xy: &XYClip) -> Option<XYZWWorld> {
         match self {
-            /// Zenithal projections
+            // Zenithal projections
             /* TAN,      Gnomonic projection        */
             ProjectionType::Tan(tan) => tan.clip_to_world_space(xy),
             /* STG,	     Stereographic projection   */
@@ -560,7 +578,7 @@ impl Projection for ProjectionType {
             /* NCP,                                 */
             ProjectionType::Ncp(ncp) => ncp.clip_to_world_space(xy),
 
-            /// Pseudo-cylindrical projections
+            // Pseudo-cylindrical projections
             /* AIT,      Aitoff                     */                     
             ProjectionType::Ait(ait) => ait.clip_to_world_space(xy),
             // MOL,      Mollweide                  */
@@ -570,7 +588,7 @@ impl Projection for ProjectionType {
             // SFL,                                 */
             ProjectionType::Sfl(sfl) => sfl.clip_to_world_space(xy),
 
-            /// Cylindrical projections
+            // Cylindrical projections
             // MER,      Mercator                   */
             ProjectionType::Mer(mer) => mer.clip_to_world_space(xy),
             // CAR,                                 */
@@ -669,6 +687,8 @@ pub trait Projection {
 }
 
 use mapproj::ProjXY;
+
+use self::coo_space::XYNDC;
 impl<'a, P> Projection for &'a P
 where
     P: CanonicalProjection
@@ -763,40 +783,19 @@ where
                     ((( xy_clip_mapproj.x() - x_off ) / x_len ) - 0.5 ) * 2.0,
                     ((( xy_clip_mapproj.y() - y_off + y_mean ) / y_len ) - 0.5 ) * 2.0
                 )
-
-                /*let x_len = x_proj_bounds.end().abs().max(x_proj_bounds.start().abs());
-                let y_len = y_proj_bounds.end().abs().max(y_proj_bounds.start().abs());
-
-                XYClip::new(
-                    ( xy_clip_mapproj.x() ) / x_len,
-                    ( xy_clip_mapproj.y() ) / y_len
-                )*/
             })
     }
 }
-/*
-#[derive(Clone)]
-pub struct Ait(mapproj::pseudocyl::ait::Ait);
-#[derive(Clone)]
-pub struct Mol(mapproj::pseudocyl::mol::Mol);
-#[derive(Clone)]
-pub struct Sin(mapproj::zenithal::sin::Sin);
-#[derive(Clone)]
-pub struct Arc(mapproj::zenithal::arc::Arc);
-#[derive(Clone)]
-pub struct Tan(mapproj::zenithal::tan::Tan);
-#[derive(Clone)]
-pub struct Mer(mapproj::cylindrical::mer::Mer);
-#[derive(Clone)]
-pub struct Hpx(mapproj::hybrid::hpx::Hpx);
-*/
+
 mod tests {
-    use crate::Abort;
     #[test]
     fn generate_maps() {
         use super::*;
         use cgmath::Vector2;
         use image_decoder::{Rgb, RgbImage};
+
+        use crate::Abort;
+
         fn generate_projection_map(filename: &str, projection: ProjectionType) {
             let (w, h) = (1024.0, 1024.0);
             let mut img = RgbImage::new(w as u32, h as u32);

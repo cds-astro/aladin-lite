@@ -222,7 +222,7 @@ where
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         let image = &**self;
-        image.tex_sub_image_3d(textures, offset);
+        image.tex_sub_image_3d(textures, offset)?;
 
         Ok(())
     }
@@ -242,7 +242,7 @@ where
         offset: &Vector3<i32>,
     ) -> Result<(), JsValue> {
         if let Some(image) = &*self.lock().unwrap_abort() {
-            image.tex_sub_image_3d(textures, offset);
+            image.tex_sub_image_3d(textures, offset)?;
         }
 
         Ok(())

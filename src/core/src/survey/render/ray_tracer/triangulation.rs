@@ -1,10 +1,6 @@
 use crate::math::vector::NormedVector2;
 use cgmath::Vector2;
 
-fn lerp(a: f64, b: f64, t: f64) -> f64 {
-    a * (1.0 - t) + b * t
-}
-
 pub struct Triangulation {
     pub vertices: Vec<Vector2<f64>>,
     pub idx: Vec<u16>,

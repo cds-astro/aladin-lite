@@ -1,17 +1,14 @@
 use cgmath::{Vector2, Vector4, Matrix4};
 
+use crate::math::projection::coo_space::{XYNDC, XYZWWorld, XYZWModel};
 use crate::math::spherical::FieldOfViewType;
 
-pub type NormalizedDeviceCoord = Vector2<f64>;
-pub type WorldCoord = Vector4<f64>;
-pub type ModelCoord = Vector4<f64>;
-
 fn ndc_to_world(
-    ndc_coo: &[NormalizedDeviceCoord],
+    ndc_coo: &[XYNDC],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
     projection: &ProjectionType
-) -> Option<Vec<WorldCoord>> {
+) -> Option<Vec<XYZWWorld>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
 
@@ -31,7 +28,7 @@ fn ndc_to_world(
 
     Some(world_coo)
 }
-fn world_to_model(world_coo: &[WorldCoord], w2m: &Matrix4<f64>) -> Vec<ModelCoord> {
+fn world_to_model(world_coo: &[XYZWWorld], w2m: &Matrix4<f64>) -> Vec<XYZWModel> {
     let mut model_coo = Vec::with_capacity(world_coo.len());
 
     for w in world_coo.iter() {
@@ -56,9 +53,9 @@ const NUM_VERTICES_HEIGHT: usize = 4;
 const NUM_VERTICES: usize = 4 + 2 * NUM_VERTICES_WIDTH + 2 * NUM_VERTICES_HEIGHT;
 // This struct belongs to the CameraViewPort
 pub struct FieldOfViewVertices {
-    ndc_coo: Vec<NormalizedDeviceCoord>,
-    world_coo: Option<Vec<WorldCoord>>,
-    model_coo: Option<Vec<ModelCoord>>,
+    ndc_coo: Vec<XYNDC>,
+    world_coo: Option<Vec<XYZWWorld>>,
+    model_coo: Option<Vec<XYZWModel>>,
 
     // Meridians and parallels contained
     // in the field of view
@@ -153,7 +150,7 @@ impl FieldOfViewVertices {
         self.depth
     }*/
 
-    pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
         self.model_coo.as_ref()
     }
 

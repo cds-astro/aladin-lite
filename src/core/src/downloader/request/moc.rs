@@ -70,8 +70,6 @@ impl From<query::Moc> for MOCRequest {
             let resp: Response = resp_value.dyn_into()?;
             let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
 
-            let start_time = crate::utils::get_current_time();
-
             let bytes_buf = js_sys::Uint8Array::new(&array_buffer);
             let num_bytes = bytes_buf.length() as usize;
             let mut bytes = Vec::with_capacity(num_bytes);

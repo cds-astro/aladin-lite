@@ -56,9 +56,9 @@ export let ProjectionEnum = {
 
 export let projectionNames = [
    // Zenithal
+   "SIN",	  /* Orthographic		         */
    "TAN",	  /* Gnomonic projection      */
    "STG",	  /* Stereographic projection */
-   "SIN",	  /* Orthographic		         */
    "ZEA",	  /* Equal-area 		         */
    "FEYE",
    "AIR",
@@ -72,9 +72,9 @@ export let projectionNames = [
    "CYP",
    // Pseudo-cylindrical
    "AIT",
+   "MOL",
    "PAR",
    "SFL",
-   "MOL",
    // Conic
    "COD",
    // Hybrid

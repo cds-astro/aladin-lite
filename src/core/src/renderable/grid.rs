@@ -34,7 +34,6 @@ pub struct ProjetedGrid {
     text_renderer: TextRenderManager,
 }
 
-use crate::math::projection::Projection;
 use crate::shader::ShaderManager;
 use al_core::VecData;
 use al_core::WebGlContext;

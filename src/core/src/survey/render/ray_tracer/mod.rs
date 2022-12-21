@@ -196,7 +196,6 @@ fn create_f32_texture_from_raw(
 
     tex
 }
-use al_api::color::ColorRGB;
 use crate::ProjectionType;
 impl RayTracer {
     pub fn new(gl: &WebGlContext, proj: &ProjectionType) -> RayTracer {

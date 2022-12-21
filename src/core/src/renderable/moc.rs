@@ -1,7 +1,7 @@
 use crate::{healpix::{
     coverage::HEALPixCoverage,
     cell::HEALPixCell
-}, Projection, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
+}, shader::ShaderId, math::angle::Angle, CameraViewPort, ShaderManager};
 use al_core::{WebGlContext, VertexArrayObject, VecData};
 use moclib::{moc::{RangeMOCIterator, RangeMOCIntoIterator}, elem::cell::Cell};
 use std::{borrow::Cow, collections::HashMap};

@@ -208,17 +208,16 @@ pub fn radec_to_basis<S: BaseFloat>(theta: Angle<S>, delta: Angle<S>) -> Matrix3
 
 use crate::CameraViewPort;
 use crate::ProjectionType;
-use crate::math::projection::Projection;
-use cgmath::Vector2;
-#[inline]
-pub fn proj(lon: f64, lat: f64, projection: &ProjectionType, camera: &CameraViewPort) -> Option<Vector2<f64>> {
-    let xyz = crate::math::lonlat::radec_to_xyz(Angle(lon), Angle(lat));
-    let xyzw = xyz.extend(1.0);
 
+use super::projection::coo_space::XYNDC;
+#[inline]
+pub fn proj(lonlat: LonLatT<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<XYNDC> {
+    let xyzw = lonlat.vector();
     projection.model_to_normalized_device_space(&xyzw, camera)
 }
 
 #[inline]
-pub fn unproj(p: &Vector2<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<(f64, f64)> {
-    todo!();
+pub fn unproj(ndc_xy: &XYNDC, projection: &ProjectionType, camera: &CameraViewPort) -> Option<LonLatT<f64>> {
+    projection.normalized_device_to_model_space(&ndc_xy, camera)
+        .map(|model_pos| model_pos.lonlat())
 }

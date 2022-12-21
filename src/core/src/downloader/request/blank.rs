@@ -3,7 +3,7 @@ use al_core::image::format::ImageFormatType;
 use crate::downloader::{query};
 use fitsrs::{
     fits::Fits,
-    hdu::{HDU, header::Header}
+    hdu::HDU
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -42,10 +42,9 @@ impl From<PixelMetadataRequest> for RequestType {
 
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response};
 use crate::downloader::query::Query;
 use wasm_bindgen::JsCast;
-use wasm_streams::ReadableStream;
 use wasm_bindgen::JsValue;
 impl From<query::PixelMetadata> for PixelMetadataRequest {
     // Create a tile request associated to a HiPS

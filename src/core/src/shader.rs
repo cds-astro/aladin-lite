@@ -87,7 +87,6 @@ impl ShaderManager {
         Ok(shader)
     }
 }
-use crate::Abort;
 use std::borrow::Cow;
 /*use paste::paste;
 macro_rules! define_shader_getter {

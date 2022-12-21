@@ -7,7 +7,6 @@ use crate::{
         self,
         angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
-        projection::Projection,
     },
     renderable::{
         catalog::{Manager, Source},
@@ -124,8 +123,6 @@ use cgmath::InnerSpace;
 use al_api::resources::Resources;
 use crate::downloader::query;
 use crate::downloader::request;
-
-use al_core::image::format::ImageFormatType;
 
 impl App {
     pub fn new(
@@ -478,7 +475,6 @@ use crate::healpix::cell::HEALPixCell;
 use al_api::color::ColorRGB;
 use crate::downloader::request::tile::Tile;
 
-use al_core::{info, inforec, log};
 impl App {
     pub(crate) fn set_background_color(&mut self, color: ColorRGB) {
         self.surveys.set_background_color(color);
@@ -882,7 +878,7 @@ impl App {
 
             let grid = &mut self.grid;
             let surveys = &mut self.surveys;
-            let catalogs = &self.manager;
+            //let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             let camera = &self.camera;
             // Render the scene

@@ -109,7 +109,6 @@ use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
-use crate::mapproj::CustomFloat;
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -204,7 +203,7 @@ impl WebClient {
             "ZEA" => self.app.set_projection(ProjectionType::Zea(mapproj::zenithal::zea::Zea::new())),	  /* Equal-area 		         */
             "FEYE" => self.app.set_projection(ProjectionType::Feye(mapproj::zenithal::feye::Feye::new())),
             "AIR" => {
-                let mut air_proj = mapproj::zenithal::air::Air::new();
+                let air_proj = mapproj::zenithal::air::Air::new();
                 //air_proj.set_n_iter(10);
                 //air_proj.set_eps(1e-12);
                 self.app.set_projection(ProjectionType::Air(air_proj))

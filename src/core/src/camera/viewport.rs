@@ -6,8 +6,9 @@ pub enum UserAction {
     Starting = 4,
 }
 
-use super::fov::{FieldOfViewVertices, ModelCoord};
+use super::fov::FieldOfViewVertices;
 use crate::math::{
+    projection::coo_space::XYZWModel,
     spherical::BoundingBox,
     projection::domain::sdf::ProjDef
 };
@@ -176,7 +177,7 @@ impl CameraViewPort {
         camera
     }
 
-    fn recompute_scissor(&self, projection: &ProjectionType) {
+    fn recompute_scissor(&self) {
         // Clear all the screen before updating the scissor
         //self.gl.scissor(0, 0, self.width as i32, self.height as i32);
         //self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -268,7 +269,7 @@ impl CameraViewPort {
         // Update the size of the canvas
         self.set_canvas_size();
         // Once it is done, recompute the scissor
-        self.recompute_scissor(projection);
+        self.recompute_scissor();
     }
 
     pub fn compute_ndc_to_clip_factor(&mut self, proj: &ProjectionType) {
@@ -347,7 +348,7 @@ impl CameraViewPort {
         self.compute_tile_depth();
 
         // recompute the scissor with the new aperture
-        self.recompute_scissor(proj);
+        self.recompute_scissor();
     }
 
     fn compute_tile_depth(&mut self) {
@@ -475,7 +476,7 @@ impl CameraViewPort {
         self.clip_zoom_factor
     }
 
-    pub fn get_vertices(&self) -> Option<&Vec<ModelCoord>> {
+    pub fn get_vertices(&self) -> Option<&Vec<XYZWModel>> {
         self.vertices.get_vertices()
     }
 

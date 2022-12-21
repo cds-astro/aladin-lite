@@ -12,7 +12,6 @@ use crate::healpix::cell::HEALPixCell;
 pub struct HEALPixCoverage(pub Smoc);
 
 use moclib::elemset::range::MocRanges;
-use al_core::{log, info, inforec};
 impl HEALPixCoverage {
     pub fn new(
         // The depth of the smallest HEALPix cells contained in it

@@ -4,6 +4,8 @@ use crate::ProjectionType;
 use crate::CameraViewPort;
 use cgmath::Zero;
 use cgmath::InnerSpace;
+use crate::math::angle::ToAngle;
+
 pub fn project_along_longitudes_and_latitudes(
     mut start_lon: f64,
     mut start_lat: f64,
@@ -37,17 +39,16 @@ pub fn project_along_longitudes_and_latitudes(
     let mut s_vert: Vec<Vector2<f64>> = vec![];
 
     let mut start = true;
-    let mut cur = (0.0, 0.0, Vector2::zero());
     let mut prev = (0.0, 0.0, Vector2::zero());
     for i in 0..num_point_max {
         let (lon, lat) = (start_lon + (i as f64) * delta_lon, start_lat + (i as f64) * delta_lat);
 
-        if let Some(p) = crate::math::lonlat::proj(lon, lat, projection, camera) {            
+        if let Some(p) = crate::math::lonlat::proj(LonLatT::new(lon.to_angle(), lat.to_angle()), projection, camera) {            
             if start {
                 prev = (lon, lat, p);
                 start = false;
             } else {
-                cur = (lon, lat, p);
+                let cur = (lon, lat, p);
                 subdivide_along_longitude_and_latitudes(&mut s_vert, prev, cur, camera, projection, 0);
 
                 prev = cur;
@@ -59,6 +60,7 @@ pub fn project_along_longitudes_and_latitudes(
 
     s_vert
 }
+
 use crate::ArcDeg;
 use crate::LonLatT;
 const MAX_ANGLE_BEFORE_SUBDIVISION: Angle<f64> = Angle(0.10943951023); // 12 degrees
@@ -81,7 +83,7 @@ pub fn subdivide_along_longitude_and_latitudes(
     let lon_m = (lon_s + lon_e)*0.5;
     let lat_m = (lat_s + lat_e)*0.5;
 
-    if let Some(p_m) = crate::math::lonlat::proj(lon_m, lat_m, projection, camera) {
+    if let Some(p_m) = crate::math::lonlat::proj(LonLatT(lon_m.to_angle(), lat_m.to_angle()), projection, camera) {
         let ab = p_m - p_s;
         let bc = p_e - p_m;
         let ab_l = ab.magnitude2();

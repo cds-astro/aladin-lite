@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 
 use crate::math::angle::Angle;
-use crate::Projection;
 use crate::math::projection::*;
 use cgmath::Vector2;
 

@@ -5,7 +5,6 @@ use al_core::image::format::{ImageFormatType, RGB8U, RGBA8U};
 use crate::downloader::{query};
 use al_core::image::{
     //bitmap::Bitmap,
-    fits::Fits,
     //raw::ImageBuffer,
     ImageType
 };
@@ -34,9 +33,8 @@ use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsValue;
 use crate::survey::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, RequestInit, RequestMode, Response};
+use web_sys::{RequestInit, RequestMode, Response};
 use wasm_bindgen::JsCast;
-use wasm_streams::ReadableStream;
 impl From<query::Tile> for TileRequest {
     // Create a tile request associated to a HiPS
     fn from(query: query::Tile) -> Self {

@@ -255,8 +255,6 @@ impl RecomputeRasterizer for UnZoom {
 use crate::camera::CameraViewPort;
 use al_core::WebGlContext;
 
-use crate::math::projection::Projection;
-
 use buffer::ImageSurveyTextures;
 use render::ray_tracer::RayTracer;
 use al_api::hips::{GrayscaleColor, HiPSTileFormat};
@@ -920,7 +918,6 @@ impl ImageSurvey {
     fn draw(
         &self,
         raytracer: &RayTracer,
-        screen_vao: &VertexArrayObject,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
         camera: &CameraViewPort,
@@ -1114,7 +1111,6 @@ fn get_fontcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderManager) -
 use al_core::image::format::ImageFormatType;
 use al_api::color::ColorRGB;
 use al_core::webgl_ctx::GlWrapper;
-use crate::downloader::request::tile::Tile;
 
 impl ImageSurveys {
     pub fn new(
@@ -1318,13 +1314,10 @@ impl ImageSurveys {
                     ..
                 } = meta;
 
-                let screen_vao = &self.screen_vao;
-
                 // 2. Draw it if its opacity is not null
                 blend_cfg.enable(&self.gl, || {
                     survey.draw(
                         raytracer,
-                        screen_vao,
                         shaders,
                         camera,
                         color,

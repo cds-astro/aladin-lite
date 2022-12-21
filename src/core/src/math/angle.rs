@@ -342,6 +342,22 @@ where
     }
 }
 
+pub trait ToAngle<S>
+where
+    S: BaseFloat
+{
+    fn to_angle(self) -> Angle<S>;
+}
+
+impl<S> ToAngle<S> for S
+where
+    S: BaseFloat
+{
+    fn to_angle(self) -> Angle<S> {
+        Angle(self)
+    }
+}
+
 // Convert from and to Rad<S>
 impl<S> From<Rad<S>> for Angle<S>
 where

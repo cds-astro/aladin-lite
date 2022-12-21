@@ -49,7 +49,6 @@ where
 
     pub fn from_raw_bytes(mut raw_bytes: Vec<u8>, width: i32, height: i32) -> Self {
         let size_buf = width * height * (std::mem::size_of::<T::P>() as i32);
-        let len = raw_bytes.len();
         debug_assert!(size_buf == raw_bytes.len() as i32);
 
         let decoded_pixels = unsafe {

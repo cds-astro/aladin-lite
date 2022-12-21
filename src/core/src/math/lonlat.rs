@@ -211,7 +211,7 @@ use crate::ProjectionType;
 use crate::math::projection::Projection;
 use cgmath::Vector2;
 #[inline]
-pub fn proj(lon: f64, lat: f64, projection: ProjectionType, camera: &CameraViewPort) -> Option<Vector2<f64>> {
+pub fn proj(lon: f64, lat: f64, projection: &ProjectionType, camera: &CameraViewPort) -> Option<Vector2<f64>> {
     let xyz = crate::math::lonlat::radec_to_xyz(Angle(lon), Angle(lat));
     let xyzw = xyz.extend(1.0);
 
@@ -219,6 +219,6 @@ pub fn proj(lon: f64, lat: f64, projection: ProjectionType, camera: &CameraViewP
 }
 
 #[inline]
-pub fn unproj(p: &Vector2<f64>, projection: ProjectionType, camera: &CameraViewPort) -> Option<(f64, f64)> {
+pub fn unproj(p: &Vector2<f64>, projection: &ProjectionType, camera: &CameraViewPort) -> Option<(f64, f64)> {
     todo!();
 }

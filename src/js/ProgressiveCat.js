@@ -343,7 +343,7 @@ export let ProgressiveCat = (function() {
             this.loadNeededTiles();
         },
 
-        draw: function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        draw: function(ctx, frame, width, height, largestDim, zoomFactor) {
             if (! this.isShowing || ! this.isReady) {
                 return;
             }

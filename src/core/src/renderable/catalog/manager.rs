@@ -234,7 +234,7 @@ impl Manager {
         camera: &CameraViewPort,
         colormaps: &Colormaps,
         fbo: Option<&FrameBufferObject>,
-        projection: ProjectionType,
+        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         gl.enable(WebGl2RenderingContext::BLEND);
         for catalog in self.catalogs.values() {
@@ -445,7 +445,7 @@ impl Catalog {
         camera: &CameraViewPort,
         colormaps: &Colormaps,
         fbo: Option<&FrameBufferObject>,
-        projection: ProjectionType,
+        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         // If the catalog is transparent, simply discard the draw
         if self.alpha > 0_f32 {
@@ -457,13 +457,14 @@ impl Catalog {
                     gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
                     let shader = match projection {
-                        ProjectionType::Orthographic(_) => crate::shader::get_shader(gl, shaders, "CatalogOrtVS", "CatalogOrtFS"),
-                        ProjectionType::Aitoff(_) => crate::shader::get_shader(gl, shaders, "CatalogAitVS", "CatalogFS"),
-                        ProjectionType::Mercator(_) => crate::shader::get_shader(gl, shaders, "CatalogMerVS", "CatalogFS"),
-                        ProjectionType::Mollweide(_) => crate::shader::get_shader(gl, shaders, "CatalogMolVS", "CatalogFS"),
-                        ProjectionType::AzimuthalEquidistant(_) => crate::shader::get_shader(gl, shaders, "CatalogArcVS", "CatalogFS"),
-                        ProjectionType::Gnomonic(_) => crate::shader::get_shader(gl, shaders, "CatalogTanVS", "CatalogFS"),
-                        ProjectionType::HEALPix(_) => crate::shader::get_shader(gl, shaders, "CatalogHpxVS", "CatalogFS"),
+                        ProjectionType::Sin(_) => crate::shader::get_shader(gl, shaders, "CatalogOrtVS", "CatalogOrtFS"),
+                        ProjectionType::Ait(_) => crate::shader::get_shader(gl, shaders, "CatalogAitVS", "CatalogFS"),
+                        ProjectionType::Mer(_) => crate::shader::get_shader(gl, shaders, "CatalogMerVS", "CatalogFS"),
+                        ProjectionType::Mol(_) => crate::shader::get_shader(gl, shaders, "CatalogMolVS", "CatalogFS"),
+                        ProjectionType::Arc(_) => crate::shader::get_shader(gl, shaders, "CatalogArcVS", "CatalogFS"),
+                        ProjectionType::Tan(_) => crate::shader::get_shader(gl, shaders, "CatalogTanVS", "CatalogFS"),
+                        ProjectionType::Hpx(_) => crate::shader::get_shader(gl, shaders, "CatalogHpxVS", "CatalogFS"),
+                        _ => todo!()
                     }?;
                     let shader_bound = shader.bind(gl);
 

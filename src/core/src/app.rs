@@ -7,7 +7,7 @@ use crate::{
         self,
         angle::{Angle, ArcDeg},
         lonlat::{LonLat, LonLatT},
-        projection::{Orthographic, Projection},
+        projection::Projection,
     },
     renderable::{
         catalog::{Manager, Source},
@@ -136,7 +136,7 @@ impl App {
         let gl = gl.clone();
         let exec = Rc::new(RefCell::new(TaskExecutor::new()));
 
-        let projection = ProjectionType::Orthographic(Orthographic);
+        let projection = ProjectionType::Sin(mapproj::zenithal::sin::Sin);
         gl.blend_func_separate(
             WebGl2RenderingContext::SRC_ALPHA,
             WebGl2RenderingContext::ONE,
@@ -155,14 +155,14 @@ impl App {
         // The tile buffer responsible for the tile requests
         let downloader = Downloader::new();
 
-        let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, projection);
+        let camera = CameraViewPort::new(&gl, CooSystem::ICRSJ2000, &projection);
         let screen_size = &camera.get_screen_size();
 
         let _fbo_view = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
         let _fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new(&gl, projection);
+        let surveys = ImageSurveys::new(&gl, &projection);
 
         let time_start_blending = Time::now();
 
@@ -170,7 +170,7 @@ impl App {
         let manager = Manager::new(&gl, &mut shaders, &camera, &resources)?;
 
         // Grid definition
-        let grid = ProjetedGrid::new(&gl, &camera, &resources, projection)?;
+        let grid = ProjetedGrid::new(&gl, &camera, &resources, &projection)?;
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
@@ -490,7 +490,7 @@ impl App {
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
                 let cell = HEALPixCell(depth, ipix);
-                if let Ok(v) = crate::survey::view::vertices(&cell, &self.camera, self.projection) {
+                if let Ok(v) = crate::survey::view::vertices(&cell, &self.camera, &self.projection) {
                     let vx = [v[0].x, v[1].x, v[2].x, v[3].x];
                     let vy = [v[0].y, v[1].y, v[2].y, v[3].y];
     
@@ -499,7 +499,7 @@ impl App {
                         vx,
                         vy
                     };
-                    crate::survey::view::project(projeted_cell, &self.camera, self.projection)
+                    crate::survey::view::project(projeted_cell, &self.camera, &self.projection)
                 } else {
                     None
                 }
@@ -524,7 +524,7 @@ impl App {
     }
 
     pub(crate) fn add_moc(&mut self, params: al_api::moc::MOC, moc: HEALPixCoverage) -> Result<(), JsValue> {
-        self.moc.insert(moc, params, &self.camera, self.projection);
+        self.moc.insert(moc, params, &self.camera, &self.projection);
 
         Ok(())
     }
@@ -537,7 +537,7 @@ impl App {
     }
 
     pub(crate) fn set_moc_params(&mut self, params: al_api::moc::MOC) -> Result<(), JsValue> {
-        self.moc.set_params(params, &self.camera, self.projection)
+        self.moc.set_params(params, &self.camera, &self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
 
@@ -567,7 +567,7 @@ impl App {
             /*let alpha = 1_f32 + (0_f32 - 1_f32) * (10_f32 * t + 1_f32) * (-10_f32 * t).exp();
             let alpha = alpha * alpha;
             let fov = start_fov * (1_f32 - alpha) + goal_fov * alpha;*/
-            self.camera.rotate(&axis, d, self.projection);
+            self.camera.rotate(&axis, d, &self.projection);
             // The threshold stopping criteria must be dependant
             // of the zoom level, in this case the initial angular distance
             // speed
@@ -767,9 +767,9 @@ impl App {
             /*if let Some(view) = self.surveys.get_view() {
                 self.manager.update(&self.camera, view);
             }*/
-            self.grid.update(&self.camera, self.projection);
+            self.grid.update(&self.camera, &self.projection);
             // MOCs update
-            self.moc.update(&self.camera, self.projection);
+            self.moc.update(&self.camera, &self.projection);
         }
 
         /*{
@@ -792,7 +792,7 @@ impl App {
 
     pub(crate) fn reset_north_orientation(&mut self) {
         // Reset the rotation around the center if there is one
-        self.camera.set_rotation_around_center(Angle(0.0), self.projection);
+        self.camera.set_rotation_around_center(Angle(0.0), &self.projection);
         // Reset the camera position to its current position
         // this will keep the current position but reset the orientation
         // so that the north pole is at the top of the center.
@@ -889,7 +889,7 @@ impl App {
             // Clear all the screen first (only the region set by the scissor)
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw(camera, shaders, colormaps, self.projection)?;
+            surveys.draw(camera, shaders, colormaps, &self.projection)?;
             self.moc.draw(shaders, camera);
 
             // Draw the catalog
@@ -914,7 +914,7 @@ impl App {
     }
 
     pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera, self.projection)?;
+        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
 
         for survey in self.surveys.surveys.values_mut() {
             let cfg = survey.get_config();
@@ -943,7 +943,7 @@ impl App {
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-        self.grid.update(&self.camera, self.projection);
+        self.grid.update(&self.camera, &self.projection);
 
         Ok(())
     }
@@ -959,7 +959,7 @@ impl App {
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        self.surveys.set_image_survey_color_cfg(layer, meta, &self.camera, self.projection)
+        self.surveys.set_image_survey_color_cfg(layer, meta, &self.camera, &self.projection)
     }
 
     pub(crate) fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
@@ -1005,9 +1005,9 @@ impl App {
         self.projection = projection;
 
         // Recompute the ndc_to_clip
-        self.camera.set_projection(projection);
+        self.camera.set_projection(&self.projection);
         // Recompute clip zoom factor
-        self.surveys.set_projection(projection);
+        self.surveys.set_projection(&self.projection);
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;
@@ -1048,8 +1048,8 @@ impl App {
     }
 
     pub(crate) fn resize(&mut self, width: f32, height: f32) {
-        self.camera.set_screen_size(width, height, self.projection);
-        self.camera.set_aperture(self.camera.get_aperture(), self.projection);
+        self.camera.set_screen_size(width, height, &self.projection);
+        self.camera.set_aperture(self.camera.get_aperture(), &self.projection);
         // resize the view fbo
         //self.fbo_view.resize(w as usize, h as usize);
         // resize the ui fbo
@@ -1105,14 +1105,14 @@ impl App {
     }
 
     pub(crate) fn set_grid_cfg(&mut self, cfg: GridCfg) -> Result<(), JsValue> {
-        self.grid.set_cfg(cfg, &self.camera, self.projection)?;
+        self.grid.set_cfg(cfg, &self.camera, &self.projection)?;
         self.request_redraw = true;
 
         Ok(())
     }
 
     pub(crate) fn set_coo_system(&mut self, coo_system: CooSystem) {
-        self.camera.set_coo_system(coo_system, self.projection);
+        self.camera.set_coo_system(coo_system, &self.projection);
         self.request_for_new_tiles = true;
 
         self.request_redraw = true;
@@ -1156,7 +1156,7 @@ impl App {
 
     pub(crate) fn set_center(&mut self, lonlat: &LonLatT<f64>) {
         self.prev_cam_position = self.camera.get_center().truncate();
-        self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, self.projection);
+        self.camera.set_center(lonlat, &CooSystem::ICRSJ2000, &self.projection);
         self.request_for_new_tiles = true;
 
         // And stop the current inertia as well if there is one
@@ -1227,7 +1227,7 @@ impl App {
     }*/
 
     pub(crate) fn rotate_around_center(&mut self, theta: ArcDeg<f64>) {
-        self.camera.set_rotation_around_center(theta.into(), self.projection);
+        self.camera.set_rotation_around_center(theta.into(), &self.projection);
         // New tiles can be needed and some tiles can be removed
         self.request_for_new_tiles = true;
 
@@ -1241,7 +1241,7 @@ impl App {
     pub(crate) fn set_fov(&mut self, fov: Angle<f64>) {
         // For the moment, no animation is triggered.
         // The fov is directly set
-        self.camera.set_aperture(fov, self.projection);
+        self.camera.set_aperture(fov, &self.projection);
         self.request_for_new_tiles = true;
         self.request_redraw = true;
     }
@@ -1269,7 +1269,7 @@ impl App {
 
                     // Apply the rotation to the camera to
                     // go from the current pos to the next position
-                    self.camera.rotate(&(-axis), d, self.projection);
+                    self.camera.rotate(&(-axis), d, &self.projection);
                     self.request_for_new_tiles = true;
                 }
                 return;

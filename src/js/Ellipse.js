@@ -151,7 +151,7 @@ export let Ellipse = (function() {
     };
 
     // TODO
-    Ellipse.prototype.draw = function(ctx, view, projection, frame, width, height, largestDim, zoomFactor, noStroke) {
+    Ellipse.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor, noStroke) {
         if (! this.isShowing) {
             return;
         }

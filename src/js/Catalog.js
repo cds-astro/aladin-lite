@@ -492,7 +492,7 @@ export let Catalog = (function() {
         this.sources = [];
     };
     
-    Catalog.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Catalog.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }
@@ -506,7 +506,7 @@ export let Catalog = (function() {
         }
         /*var sourcesInView = [];
  	    for (var k=0, len = this.sources.length; k<len; k++) {
-		    var inView = Catalog.drawSource(this, this.sources[k], ctx, projection, frame, width, height, largestDim, zoomFactor);
+		    var inView = Catalog.drawSource(this, this.sources[k], ctx, frame, width, height, largestDim, zoomFactor);
             if (inView) {
                 sourcesInView.push(this.sources[k]);
             }
@@ -551,17 +551,7 @@ export let Catalog = (function() {
         //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
         //console.log(sources)
         let sourcesInView = [];
-        /*
-        // TODO : we could factorize this code with Aladin.world2pix
-        var xy;
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([s.ra, s.dec]);
-            xy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            xy = projection.project(s.ra, s.dec);
-        }
-        */
+
         var s;
         for(var i = 0; i < sources.length; i++) {
             s = sources[i];
@@ -612,18 +602,6 @@ export let Catalog = (function() {
         var sourceSize = catalogInstance.sourceSize;
         //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
         var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
-
-        /*
-        // TODO : we could factorize this code with Aladin.world2pix
-        var xy;
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([s.ra, s.dec]);
-            xy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            xy = projection.project(s.ra, s.dec);
-        }
-        */
 
         if (xy) {
             //var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, true);

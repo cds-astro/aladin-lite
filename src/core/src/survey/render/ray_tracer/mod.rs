@@ -10,8 +10,9 @@ pub trait RayTracingProjection {
 }
 pub use triangulation::Triangulation;
 
-fn create_vertices_array(projection: ProjectionType) -> (Vec<f32>, Vec<u16>) {
-    let Triangulation { vertices, idx } = Triangulation::build(projection);
+use crate::domain::sdf::ProjDefType;
+fn create_vertices_array(proj_area: &ProjDefType) -> (Vec<f32>, Vec<u16>) {
+    let Triangulation { vertices, idx } = Triangulation::build(proj_area);
 
     let vertices = vertices
         .into_iter().flat_map(|pos_clip_space| {
@@ -36,11 +37,22 @@ pub struct RayTracer {
 use cgmath::{InnerSpace, Vector2};
 
 const SIZE_POSITION_TEX: usize = 2048;
-fn generate_xyz_position(projection: ProjectionType) -> Vec<f32> {
-    let (w, h) = (SIZE_POSITION_TEX as f64, SIZE_POSITION_TEX as f64);
-    let mut data = vec![];
-    for y in 0..(h as u32) {
-        for x in 0..(w as u32) {
+fn generate_xyz_position(projection: &ProjectionType) -> Vec<f32> {
+    let (w, h) = (SIZE_POSITION_TEX, SIZE_POSITION_TEX);
+    let mut data = Vec::with_capacity(SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3);
+    unsafe { data.set_len(SIZE_POSITION_TEX * SIZE_POSITION_TEX * 3); }
+
+    let mut set_pixel = |r: f32, g: f32, b: f32, x: usize, y: usize| {
+        data[3*(y*w + x)] = r;
+        data[3*(y*w + x) + 1] = g;
+        data[3*(y*w + x) + 2] = b;
+    };
+
+    let mut t1 = 1.0;
+    let mut t2 = 0.0;
+    let mut t3 = 0.0;
+    for y in 0..h {
+        for x in 0..w {
             let xy = Vector2::new(x, y);
             let clip_xy = Vector2::new(
                 2.0 * ((xy.x as f64) / (w as f64)) - 1.0,
@@ -55,9 +67,28 @@ fn generate_xyz_position(projection: ProjectionType) -> Vec<f32> {
                 d |= ((pos.x * 0.5 + 0.5) * (1024.0 as f64)) as u32;
 
                 data.push(d);*/
-                data.extend(&[pos.x as f32, pos.y as f32, pos.z as f32]);
+                
+                t1 = pos.x as f32;
+                t2 = pos.y as f32;
+                t3 = pos.z as f32;
+                set_pixel(t1, t2, t3, x, y);
+                if x > 0 {
+                    set_pixel(t1, t2, t3, x-1, y);
+                }
+
+                if y > 0 {
+                    set_pixel(t1, t2, t3, x, y-1);
+                }
+
+                if x < w - 1 {
+                    set_pixel(t1, t2, t3, x+1, y);
+                }
+
+                if y < h - 1 {
+                    set_pixel(t1, t2, t3, x, y+1);
+                }
             } else {
-                data.extend(&[1.0, 1.0, 1.0]);
+                set_pixel(t1, t2, t3, x, y);
             }
         }
     }
@@ -168,8 +199,9 @@ fn create_f32_texture_from_raw(
 use al_api::color::ColorRGB;
 use crate::ProjectionType;
 impl RayTracer {
-    pub fn new(gl: &WebGlContext, projection: ProjectionType) -> RayTracer {
-        let (vertices, idx) = create_vertices_array(projection);
+    pub fn new(gl: &WebGlContext, proj: &ProjectionType) -> RayTracer {
+        let proj_area = proj.get_area();
+        let (vertices, idx) = create_vertices_array(proj_area);
 
         let mut vao = VertexArrayObject::new(gl);
         // layout (location = 0) in vec2 pos_clip_space;
@@ -207,7 +239,7 @@ impl RayTracer {
             // Unbind the buffer
             .unbind();
         // create position data
-        let data = generate_xyz_position(projection);
+        let data = generate_xyz_position(proj);
         let position_tex = create_f32_texture_from_raw(
             gl,
             SIZE_POSITION_TEX as i32,
@@ -218,7 +250,7 @@ impl RayTracer {
         // create ang2pix texture for webgl1 app
         #[cfg(feature = "webgl1")]
         let ang2pix_tex = {
-            let data = generate_hash_dxdy(0, projection);
+            let data = generate_hash_dxdy(0, proj);
             create_f32_texture_from_raw(
                 &gl,
                 SIZE_POSITION_TEX as i32,
@@ -264,8 +296,10 @@ impl RayTracer {
             )
     }
 
-    pub fn is_rendering(&self, camera: &CameraViewPort/* , depth: u8*/) -> bool {
-        //camera.get_aperture() > P::RASTER_THRESHOLD_ANGLE
-        camera.get_field_of_view().is_allsky() /*|| depth == 0*/
+    pub fn is_rendering(&self, camera: &CameraViewPort) -> bool {
+        // Check whether the tile depth is 0 for square projection
+        // definition domains i.e. Mercator
+        let depth = camera.get_tile_depth();
+        camera.is_allsky() || depth == 0
     }
 }

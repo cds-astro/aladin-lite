@@ -38,3 +38,38 @@ pub fn det<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>) -> S {
 pub fn dot<S: BaseFloat>(a: &Vector2<S>, b: &Vector2<S>) -> S {
     a.x * b.x + a.y * b.y
 }
+
+pub struct NormedVector2(Vector2<f64>);
+
+impl NormedVector2 {
+    pub fn new(x: f64, y: f64) -> Self {
+        let v = Vector2::new(x, y);
+        let normed_v = v.normalize();
+
+        Self(normed_v)
+    }
+
+    pub const unsafe fn new_unsafe(x: f64, y: f64) -> Self {
+        let v = Vector2::new(x, y);
+        Self(v)
+    }
+}
+
+use std::ops::Deref;
+impl Deref for NormedVector2 {
+    type Target = Vector2<f64>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+use std::ops::Mul;
+impl<'a> Mul<f64> for &'a NormedVector2 {
+    // The multiplication of rational numbers is a closed operation.
+    type Output = Vector2<f64>;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        self.0 * rhs
+    }
+}

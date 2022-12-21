@@ -7,7 +7,7 @@ use crate::Projection;
 use crate::math::projection::*;
 use cgmath::Vector2;
 
-pub fn vertices(cell: &HEALPixCell, camera: &CameraViewPort, projection: ProjectionType) -> Result<[Vector2<f64>; 4], &'static str> {
+pub fn vertices(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> Result<[Vector2<f64>; 4], &'static str> {
     let project_vertex = |(lon, lat): (f64, f64)| -> Result<Vector2<f64>, &'static str> {
         let vertex = crate::math::lonlat::radec_to_xyzw(Angle(lon), Angle(lat));
         projection.view_to_screen_space(&vertex, camera).ok_or("Cannot project")
@@ -41,9 +41,9 @@ pub fn vertices(cell: &HEALPixCell, camera: &CameraViewPort, projection: Project
 
 use al_api::cell::HEALPixCellProjeted;
 
-pub fn project(cell: HEALPixCellProjeted, camera: &CameraViewPort, projection: ProjectionType) -> Option<HEALPixCellProjeted> {
+pub fn project(cell: HEALPixCellProjeted, camera: &CameraViewPort, projection: &ProjectionType) -> Option<HEALPixCellProjeted> {
     match projection {
-        ProjectionType::HEALPix(_) => {
+        ProjectionType::Hpx(_) => {
             let tri_idx_in_collignon_zone = |x: f64, y: f64| -> u8 {
                 let zoom_factor = camera.get_clip_zoom_factor() as f32;
                 let x = (((x as f32) / camera.get_width()) - 0.5) * zoom_factor;

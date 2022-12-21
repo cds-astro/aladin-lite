@@ -10,7 +10,7 @@ fn ndc_to_world(
     ndc_coo: &[NormalizedDeviceCoord],
     ndc_to_clip: &Vector2<f64>,
     clip_zoom_factor: f64,
-    projection: ProjectionType
+    projection: &ProjectionType
 ) -> Option<Vec<WorldCoord>> {
     // Deproject the FOV from ndc to the world space
     let mut world_coo = Vec::with_capacity(ndc_coo.len());
@@ -74,7 +74,7 @@ impl FieldOfViewVertices {
         clip_zoom_factor: f64,
         mat: &Matrix4<f64>,
         center: &Vector4<f64>,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Self {
         let mut x_ndc = linspace(-1., 1., NUM_VERTICES_WIDTH + 2);
 
@@ -121,7 +121,7 @@ impl FieldOfViewVertices {
         clip_zoom_factor: f64,
         w2m: &Matrix4<f64>,
         center: &Vector4<f64>,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) {
         self.world_coo = ndc_to_world(&self.ndc_coo, ndc_to_clip, clip_zoom_factor, projection);
         self.set_rotation(w2m, center);

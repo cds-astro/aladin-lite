@@ -18,7 +18,7 @@ use crate::Abort;
 use crate::ProjectionType;
 
 use crate::math::{vector::dist2, angle::Angle};
-fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: ProjectionType) -> bool {
+fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> bool {
     let vertices = cell.vertices()
         .iter()
         .filter_map(|(lon, lat)| {
@@ -48,7 +48,7 @@ fn is_too_large(cell: &HEALPixCell, camera: &CameraViewPort, projection: Project
     }
 }
 
-fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: ProjectionType) -> u8 {
+fn num_subdivision(cell: &HEALPixCell, camera: &CameraViewPort, projection: &ProjectionType) -> u8 {
     let d = cell.depth();
     let mut num_sub = 0;
     if d < 3 {
@@ -545,7 +545,7 @@ impl ImageSurvey {
         })
     }
 
-    fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         let vertices_recomputation_needed = self.textures.reset_available_tiles() | camera.has_moved();
         if vertices_recomputation_needed {
             self.recompute_vertices(camera, projection);
@@ -620,7 +620,7 @@ impl ImageSurvey {
         }
     }
 
-    pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    pub fn recompute_vertices(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         self.position.clear();
         self.uv_start.clear();
         self.uv_end.clear();
@@ -719,63 +719,69 @@ impl ImageSurvey {
                         for j in 0..n_vertices_per_segment {
                             let id_vertex_0 = (j + i * n_vertices_per_segment) as usize;
                             let world_pos: Vector4<f64> = v2w * ll[id_vertex_0].vector::<Vector4<f64>>();
-        
-                            let ndc_pos = projection.world_to_normalized_device_space_unchecked(&world_pos, camera);
-                            self.position.push(ndc_pos.x as f32);
-                            self.position.push(ndc_pos.y as f32);
-        
-                            let hj0 = (j as f32) / n_segments_by_side_f32;
-                            let hi0 = (i as f32) / n_segments_by_side_f32;
-        
-                            let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
-                            let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
-                            let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
-                            let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
-        
-                            self.uv_start.push(uv_0[TileCorner::BottomLeft].x + hj0 * d01s);
-                            self.uv_start.push(uv_0[TileCorner::BottomLeft].y + hi0 * d02s);
-                            self.uv_start.push(uv_0[TileCorner::BottomLeft].z);
 
-                            self.uv_end.push(uv_1[TileCorner::BottomLeft].x + hj0 * d01e);
-                            self.uv_end.push(uv_1[TileCorner::BottomLeft].y + hi0 * d02e);
-                            self.uv_end.push(uv_1[TileCorner::BottomLeft].z);
+                            let ndc_pos = if let Some(ndc_pos) = projection.world_to_normalized_device_space(&world_pos, camera) {
+                                ndc_pos
+                            } else {
+                                Vector2::new(0.0, 0.0)
+                            };
 
-                            self.time_tile_received.push(start_time);
-                            self.m0.push(miss_0);
-                            self.m1.push(miss_1);
-
-                            // push to idx_vertices
-                            if i > 0 && j > 0 {
-                                let idx_0 = (j - 1 + (i - 1) * n_vertices_per_segment) as u16;
-                                let idx_1 = (j + (i - 1) * n_vertices_per_segment) as u16;
-                                let idx_2 = (j - 1 + i * n_vertices_per_segment) as u16;
-                                let idx_3 = (j + i * n_vertices_per_segment) as u16;
+                                self.position.push(ndc_pos.x as f32);
+                                self.position.push(ndc_pos.y as f32);
             
-                                let i0 = 2*(idx_0 + off_idx_vertices) as usize;
-                                let i1 = 2*(idx_1 + off_idx_vertices) as usize;
-                                let i2 = 2*(idx_2 + off_idx_vertices) as usize;
-                                let i3 = 2*(idx_3 + off_idx_vertices) as usize;
+                                let hj0 = (j as f32) / n_segments_by_side_f32;
+                                let hi0 = (i as f32) / n_segments_by_side_f32;
             
-                                let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
-                                let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
-                                let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
-                                let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
-                        
-                                let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
-                                let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+                                let d01s = uv_0[TileCorner::BottomRight].x - uv_0[TileCorner::BottomLeft].x;
+                                let d02s = uv_0[TileCorner::TopLeft].y - uv_0[TileCorner::BottomLeft].y;
+                                let d01e = uv_1[TileCorner::BottomRight].x - uv_1[TileCorner::BottomLeft].x;
+                                let d02e = uv_1[TileCorner::TopLeft].y - uv_1[TileCorner::BottomLeft].y;
             
-                                if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
-                                    self.idx_vertices.push(off_idx_vertices + idx_0);
-                                    self.idx_vertices.push(off_idx_vertices + idx_1);
-                                    self.idx_vertices.push(off_idx_vertices + idx_2);
+                                self.uv_start.push(uv_0[TileCorner::BottomLeft].x + hj0 * d01s);
+                                self.uv_start.push(uv_0[TileCorner::BottomLeft].y + hi0 * d02s);
+                                self.uv_start.push(uv_0[TileCorner::BottomLeft].z);
+    
+                                self.uv_end.push(uv_1[TileCorner::BottomLeft].x + hj0 * d01e);
+                                self.uv_end.push(uv_1[TileCorner::BottomLeft].y + hi0 * d02e);
+                                self.uv_end.push(uv_1[TileCorner::BottomLeft].z);
+    
+                                self.time_tile_received.push(start_time);
+                                self.m0.push(miss_0);
+                                self.m1.push(miss_1);
+    
+                                // push to idx_vertices
+                                if i > 0 && j > 0 {
+                                    let idx_0 = (j - 1 + (i - 1) * n_vertices_per_segment) as u16;
+                                    let idx_1 = (j + (i - 1) * n_vertices_per_segment) as u16;
+                                    let idx_2 = (j - 1 + i * n_vertices_per_segment) as u16;
+                                    let idx_3 = (j + i * n_vertices_per_segment) as u16;
+                
+                                    let i0 = 2*(idx_0 + off_idx_vertices) as usize;
+                                    let i1 = 2*(idx_1 + off_idx_vertices) as usize;
+                                    let i2 = 2*(idx_2 + off_idx_vertices) as usize;
+                                    let i3 = 2*(idx_3 + off_idx_vertices) as usize;
+                
+                                    let c0 = Vector2::new(self.position[i0], self.position[i0 + 1]);
+                                    let c1 = Vector2::new(self.position[i1], self.position[i1 + 1]);
+                                    let c2 = Vector2::new(self.position[i2], self.position[i2 + 1]);
+                                    let c3 = Vector2::new(self.position[i3], self.position[i3 + 1]);
+                            
+                                    let first_tri_ccw = crate::math::vector::ccw_tri(&c0, &c1, &c2);
+                                    let second_tri_ccw = crate::math::vector::ccw_tri(&c1, &c3, &c2);
+                
+                                    if (!longitude_reversed && first_tri_ccw) || (longitude_reversed && !first_tri_ccw) {
+                                        self.idx_vertices.push(off_idx_vertices + idx_0);
+                                        self.idx_vertices.push(off_idx_vertices + idx_1);
+                                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                                    }
+                
+                                    if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
+                                        self.idx_vertices.push(off_idx_vertices + idx_1);
+                                        self.idx_vertices.push(off_idx_vertices + idx_3);
+                                        self.idx_vertices.push(off_idx_vertices + idx_2);
+                                    }
                                 }
-            
-                                if (!longitude_reversed && second_tri_ccw) || (longitude_reversed && !second_tri_ccw) {
-                                    self.idx_vertices.push(off_idx_vertices + idx_1);
-                                    self.idx_vertices.push(off_idx_vertices + idx_3);
-                                    self.idx_vertices.push(off_idx_vertices + idx_2);
-                                }
-                            }
+                            
                         }
                     }
                 }
@@ -1113,7 +1119,7 @@ use crate::downloader::request::tile::Tile;
 impl ImageSurveys {
     pub fn new(
         gl: &WebGlContext,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Self {
         let surveys = HashMap::new();
         let meta = HashMap::new();
@@ -1125,7 +1131,7 @@ impl ImageSurveys {
         //   the HEALPix cell in which it is located.
         //   We get the texture from this cell and draw the pixel
         //   This mode of rendering is used for big FoVs
-        let raytracer = RayTracer::new(gl, projection);
+        let raytracer = RayTracer::new(gl, &projection);
         let gl = gl.clone();
         let most_precise_survey = String::new();
 
@@ -1217,9 +1223,9 @@ impl ImageSurveys {
         }
     }
 
-    pub fn set_projection(&mut self, projection: ProjectionType) {
+    pub fn set_projection(&mut self, projection: &ProjectionType) {
         // Recompute the raytracer
-        self.raytracer = RayTracer::new(&self.gl, projection);
+        self.raytracer = RayTracer::new(&self.gl, &projection);
     }
 
     pub fn set_background_color(&mut self, color: ColorRGB) {
@@ -1231,7 +1237,7 @@ impl ImageSurveys {
         camera: &CameraViewPort,
         shaders: &mut ShaderManager,
         colormaps: &Colormaps,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Result<(), JsValue> {
         let raytracer = &self.raytracer;
         let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
@@ -1347,7 +1353,7 @@ impl ImageSurveys {
         hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
         camera: &mut CameraViewPort,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Result<(), JsValue> {
         // 1. Check if layer duplicated have been given
         for i in 0..hipses.len() {
@@ -1430,7 +1436,7 @@ impl ImageSurveys {
             self.layers.push(layer);
         }
 
-        camera.set_longitude_reversed(longitude_reversed, projection);
+        camera.set_longitude_reversed(longitude_reversed, &projection);
 
         Ok(())
     }
@@ -1447,7 +1453,7 @@ impl ImageSurveys {
         layer: String,
         meta: ImageSurveyMeta,
         camera: &CameraViewPort,
-        projection: ProjectionType,
+        projection: &ProjectionType,
     ) -> Result<(), JsValue> {
         if let Some(meta_old) = self.meta.get(&layer) {
             if !meta_old.visible() && meta.visible() {

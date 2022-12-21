@@ -37,6 +37,7 @@ al-core = { path = "./al-core" }
 #al-ui = { path = "./al-ui" }
 al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
+mapproj = "0.3.0"
 
 [features]
 webgl1 = [
@@ -98,6 +99,7 @@ features = [
 
 [dev-dependencies]
 image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
+rand = "0.8"
 
 [profile.dev]
 opt-level = 3

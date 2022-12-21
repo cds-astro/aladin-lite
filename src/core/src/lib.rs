@@ -18,6 +18,7 @@
 //extern crate num_traits;
 extern crate wasm_streams;
 extern crate console_error_panic_hook;
+extern crate mapproj;
 use std::panic;
 
 pub trait Abort {
@@ -108,6 +109,7 @@ use cgmath::{Vector2};
 
 use math::angle::ArcDeg;
 use moclib::{qty::Hpx, moc::{CellMOCIterator, CellMOCIntoIterator, RangeMOCIterator}};
+use crate::mapproj::CustomFloat;
 
 #[wasm_bindgen]
 pub struct WebClient {
@@ -195,27 +197,40 @@ impl WebClient {
     #[wasm_bindgen(js_name = setProjection)]
     pub fn set_projection(&mut self, projection: &str) -> Result<(), JsValue> {
         match projection {
-            "AIT" => {
-                self.app.set_projection(ProjectionType::Aitoff(Aitoff));
+            // Zenithal
+            "TAN" => self.app.set_projection(ProjectionType::Tan(mapproj::zenithal::tan::Tan::new())),	  /* Gnomonic projection      */
+            "STG" => self.app.set_projection(ProjectionType::Stg(mapproj::zenithal::stg::Stg::new())),	  /* Stereographic projection */
+            "SIN" => self.app.set_projection(ProjectionType::Sin(mapproj::zenithal::sin::Sin::new())),	  /* Orthographic		         */
+            "ZEA" => self.app.set_projection(ProjectionType::Zea(mapproj::zenithal::zea::Zea::new())),	  /* Equal-area 		         */
+            "FEYE" => self.app.set_projection(ProjectionType::Feye(mapproj::zenithal::feye::Feye::new())),
+            "AIR" => {
+                let mut air_proj = mapproj::zenithal::air::Air::new();
+                //air_proj.set_n_iter(10);
+                //air_proj.set_eps(1e-12);
+                self.app.set_projection(ProjectionType::Air(air_proj))
             },
-            "SIN" => {
-                self.app.set_projection(ProjectionType::Orthographic(Orthographic));
-            },
+            //"AZP",
+            "ARC" => self.app.set_projection(ProjectionType::Arc(mapproj::zenithal::arc::Arc::new())),
+            "NCP" => self.app.set_projection(ProjectionType::Ncp(mapproj::zenithal::ncp::Ncp::new())),
+            // Cylindrical
+            "MER" => self.app.set_projection(ProjectionType::Mer(mapproj::cylindrical::mer::Mer::new())),
+            "CAR" => self.app.set_projection(ProjectionType::Car(mapproj::cylindrical::car::Car::new())),
+            "CEA" => self.app.set_projection(ProjectionType::Cea(mapproj::cylindrical::cea::Cea::new())),
+            "CYP" => self.app.set_projection(ProjectionType::Cyp(mapproj::cylindrical::cyp::Cyp::new())),
+            // Pseudo-cylindrical
+            "AIT" => self.app.set_projection(ProjectionType::Ait(mapproj::pseudocyl::ait::Ait::new())),
+            "PAR" => self.app.set_projection(ProjectionType::Par(mapproj::pseudocyl::par::Par::new())),
+            "SFL" => self.app.set_projection(ProjectionType::Sfl(mapproj::pseudocyl::sfl::Sfl::new())),
             "MOL" => {
-                self.app.set_projection(ProjectionType::Mollweide(Mollweide));
+                let mut mol_proj = mapproj::pseudocyl::mol::Mol::new();
+                mol_proj.set_n_iter(10);
+                mol_proj.set_epsilon(1e-12);
+                self.app.set_projection(ProjectionType::Mol(mol_proj));
             },
-            "ARC" => {
-                self.app.set_projection(ProjectionType::AzimuthalEquidistant(AzimuthalEquidistant));
-            },
-            "TAN" => {
-                self.app.set_projection(ProjectionType::Gnomonic(Gnomonic));
-            },
-            "MER" => {
-                self.app.set_projection(ProjectionType::Mercator(Mercator));
-            },
-            "HPX" => {
-                self.app.set_projection(ProjectionType::HEALPix(HEALPix));
-            },
+            // Conic
+            "COD" => self.app.set_projection(ProjectionType::Cod(mapproj::conic::cod::Cod::new())),
+            // Hybrid
+            "HPX" => self.app.set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),
             _ => {
                 return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));
             },

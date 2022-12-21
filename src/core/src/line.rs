@@ -10,7 +10,7 @@ pub fn project_along_longitudes_and_latitudes(
     mut end_lon: f64,
     mut end_lat: f64, 
     camera: &CameraViewPort,
-    projection: ProjectionType
+    projection: &ProjectionType
 ) -> Vec<Vector2<f64>> {
     if start_lat >= end_lat {
         std::mem::swap(&mut start_lat, &mut end_lat);
@@ -68,7 +68,7 @@ pub fn subdivide_along_longitude_and_latitudes(
     (lon_s, lat_s, p_s): (f64, f64, Vector2<f64>),
     (lon_e, lat_e, p_e): (f64, f64, Vector2<f64>),
     camera: &CameraViewPort,
-    projection: ProjectionType,
+    projection: &ProjectionType,
     iter: usize,
 ) {
     if iter > MAX_ITERATION {

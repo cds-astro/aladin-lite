@@ -135,24 +135,12 @@ export let Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, view, projection, frame, width, height, largestDim, zoomFactor, noStroke) {
+    Circle.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor, noStroke) {
         if (! this.isShowing) {
             return;
         }
         noStroke = noStroke===true || false;
 
-        /*var centerXy;
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([this.centerRaDec[0], this.centerRaDec[1]]);
-            centerXy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            centerXy = projection.project(this.centerRaDec[0], this.centerRaDec[1]);
-        }
-        if (!centerXy) {
-            return;
-        }
-        var centerXyview = AladinUtils.xyToView(centerXy.X, centerXy.Y, width, height, largestDim, zoomFactor, false);*/
         var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
         if (!centerXyview) {
             // the center goes out of the projection
@@ -162,20 +150,7 @@ export let Circle = (function() {
         // compute value of radius in pixels in current projection
         var ra = this.centerRaDec[0];
         var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
-        /*
-        var circlePtXy;
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-            circlePtXy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            circlePtXy = projection.project(ra, dec);
-        }
-        if (!circlePtXy) {
-            return;
-        }
-        var circlePtXyView = AladinUtils.xyToView(circlePtXy.X, circlePtXy.Y, width, height, largestDim, zoomFactor, false);
-        */
+
         let circlePtXyView = AladinUtils.radecToViewXy(ra, dec, view);
         if (!circlePtXyView) {
             // the circle border goes out of the projection

@@ -90,9 +90,8 @@ export let View = (function () {
 
         var lon, lat;
         lon = lat = 0;
+        this.projection = ProjectionEnum.SIN;
 
-        this.projection = new Projection(lon, lat);
-        this.projection.setProjection(ProjectionEnum.SIN);
         //this.zoomLevel = 0;
         // Prev time of the last frame
         this.prev = 0;
@@ -895,10 +894,6 @@ export let View = (function () {
     };
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
-        if (!this.projection) {
-            return;
-        }
-
         if (isViewCenterPosition) {
             //const [ra, dec] = this.aladin.webglAPI.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
@@ -1025,7 +1020,7 @@ export let View = (function () {
 
             for (var i = 0; i < this.catalogs.length; i++) {
                 var cat = this.catalogs[i];
-                cat.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                cat.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
         // draw popup catalog
@@ -1035,7 +1030,7 @@ export let View = (function () {
                 catalogCanvasCleared = true;
             }
 
-            this.catalogForPopup.draw(catalogCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+            this.catalogForPopup.draw(catalogCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
         }
 
         ////// 3. Draw overlays////////
@@ -1047,7 +1042,7 @@ export let View = (function () {
             }
 
             for (var i = 0; i < this.overlays.length; i++) {
-                this.overlays[i].draw(overlayCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
+                this.overlays[i].draw(overlayCtx, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor);
             }
         }
 
@@ -1076,20 +1071,6 @@ export let View = (function () {
                 this.healpixGrid.redraw(healpixGridCtx, cornersXYViewMapAllsky, this.fov, 3);
             }
         }
-
-
-        // draw MOCs
-        /*var mocCtx = catalogCtx;
-        if (this.mocs && this.mocs.length>0 && (! this.dragging  || View.DRAW_MOCS_WHILE_DRAGGING)) {
-            if (!catalogCanvasCleared) {
-                catalogCtx.clearRect(0, 0, this.width, this.height);
-                catalogCanvasCleared = true;
-            }
-
-            for (var i=0; i<this.mocs.length; i++) {
-                this.mocs[i].draw(mocCtx, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, this.fov);
-            }
-        }*/
 
         ////// 4. Draw reticle ///////
         // TODO: reticle should be placed in a static DIV, no need to waste a canvas
@@ -1146,7 +1127,7 @@ export let View = (function () {
         }
 
         ////// 5. Draw all-sky ring /////
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
+        if (this.projection == ProjectionEnum.SIN && this.fov >= 60 && this.aladin.options['showAllskyRing'] === true) {
             if (!catalogCanvasCleared) {
                 reticleCtx.clearRect(0, 0, this.width, this.height);
                 catalogCanvasCleared = true;
@@ -1254,7 +1235,7 @@ export let View = (function () {
                 continue;
             }
             
-            if (this.projection.PROJECTION == ProjectionEnum.HPX) {
+            if (this.projection == ProjectionEnum.HPX) {
                 const triIdxInCollignonZone = ((p) => {
                     const x = ((p.vx / this.catalogCanvas.clientWidth) - 0.5) * this.zoomFactor;
                     const y = ((p.vy / this.catalogCanvas.clientHeight) - 0.5) * this.zoomFactor;
@@ -1285,23 +1266,6 @@ export let View = (function () {
 
         return this.aladin.webglAPI.getVisibleCells(norder);
     };
-
-    /*View.prototype.computeZoomFactor = function(level) {
-        if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(180.0/Math.pow(1.35, level), this.projectionMethod);
-        }
-        else {
-            return 1 + 0.1*level;
-        }
-    };*/
-    /*View.prototype.computeZoomLevelFromFOV = function() {
-        if (level>0) {
-            return AladinUtils.getZoomFactorForAngle(180/Math.pow(1.15, level), this.projectionMethod);
-        }
-        else {
-            return 1 + 0.1*level;
-        }
-    };*/
 
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
@@ -1392,10 +1356,13 @@ export let View = (function () {
             return;
         }
         var fovStr;
-        if (this.projection.PROJECTION == ProjectionEnum.SIN && fov >= 180.0) {
+        /*if (this.projection == ProjectionEnum.SIN && fov >= 180.0) {
             fov = 180.0;
         } else if (fov >= 360.0) {
             fov = 360.0;
+        }*/
+        if (this.projection.fov <= fov) {
+            fov = this.projection.fov;
         }
 
         if (fov > 1) {
@@ -1684,35 +1651,100 @@ export let View = (function () {
     };
 
     View.prototype.setProjection = function (projectionName) {
+        this.fovLimit = 1000.0;
+        /*
+            TAN: {id: 1, fov: 180},	  
+            STG: {id: 2, fov: 360},	  
+            SIN: {id: 3, fov: 180},	  
+            ZEA: {id: 4, fov: 360},	 
+            FEYE: {id: 5, fov: 190},
+            AIR: {id: 6, fov: 360},
+            //AZP: {fov: 180},
+            ARC: {id: 7, fov: 360},
+            NCP: {id: 8, fov: 180},
+            // Cylindrical
+            MER: {id: 9, fov: 360},
+            CAR: {id: 10, fov: 360},
+            CEA: {id: 11, fov: 360},
+            CYP: {id: 12, fov: 360},
+            // Pseudo-cylindrical
+            AIT: {id: 13, fov: 360},
+            PAR: {id: 14, fov: 360},
+            SFL: {id: 15, fov: 360},
+            MOL: {id: 16, fov: 360},
+            // Conic
+            COD: {id: 17, fov: 360},
+            // Hybrid
+            HPX: {id: 19, fov: 360},
+        */
         switch (projectionName) {
-            case "AIT":
-                this.projection.setProjection(ProjectionEnum.AITOFF);
-                this.fovLimit = 1000.0;
-                break;
-            case "HPX":
-                this.projection.setProjection(ProjectionEnum.HPX);
-                this.fovLimit = 360.0;
-                break;
+            // Zenithal (TAN, STG, SIN, ZEA, FEYE, AIR, AZP, ARC, NCP)
             case "TAN":
-                this.projection.setProjection(ProjectionEnum.TAN);
-                this.fovLimit = 90.0;
+                this.projection = ProjectionEnum.TAN;
+                this.fovLimit = 180.0;
                 break;
-            case "ARC":
-                this.projection.setProjection(ProjectionEnum.ARC);
-                this.fovLimit = 1000.0;
-                break;
-            case "MER":
-                this.projection.setProjection(ProjectionEnum.MERCATOR);
-                this.fovLimit = 360.0;
-                break;
-            case "MOL":
-                this.projection.setProjection(ProjectionEnum.MOL);
-                this.fovLimit = 1000.0;
+            case "STG":
+                this.projection = ProjectionEnum.STG;
                 break;
             case "SIN":
+                this.projection = ProjectionEnum.SIN;
+                break;
+            case "ZEA":
+                this.projection = ProjectionEnum.ZEA;
+                break;
+            case "FEYE":
+                this.projection = ProjectionEnum.FEYE;
+                break;
+            case "AIR":
+                this.projection = ProjectionEnum.AIR;
+                break;
+            case "ARC":
+                this.projection = ProjectionEnum.ARC;
+                break;
+            case "NCP":
+                this.projection = ProjectionEnum.NCP;
+                break;
+            case "ARC":
+                this.projection = ProjectionEnum.ARC;
+                break;
+            case "ZEA":
+                this.projection = ProjectionEnum.ZEA;
+                break;
+            // Pseudo-cylindrical (AIT, MOL, PAR, SFL)
+            case "MOL":
+                this.projection = ProjectionEnum.MOL;
+                break;
+            case "AIT":
+                this.projection = ProjectionEnum.AIT;
+                break;
+            // Cylindrical (MER, CAR, CEA, CYP)
+            case "MER":
+                this.projection = ProjectionEnum.MER;
+                this.fovLimit = 360.0;
+                break;
+            case "CAR":
+                this.projection = ProjectionEnum.CAR;
+                this.fovLimit = 360.0;
+                break;
+            case "CEA":
+                this.projection = ProjectionEnum.CEA;
+                this.fovLimit = 360.0;
+                break;
+            case "CYP":
+                this.projection = ProjectionEnum.CYP;
+                this.fovLimit = 360.0;
+                break;
+            // Conic
+            case "COD":
+                this.projection = ProjectionEnum.COD;
+                break;
+            // Hybrid
+            case "HPX":
+                this.projection = ProjectionEnum.HPX;
+                this.fovLimit = 360.0;
+                break;
             default:
-                this.projection.setProjection(ProjectionEnum.SIN);
-                this.fovLimit = 1000.0;
+                break;  
         }
         // Change the projection here
         this.aladin.webglAPI.setProjection(projectionName);
@@ -1804,7 +1836,6 @@ export let View = (function () {
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation
-        //this.projection.setCenter(this.viewCenter.lon, this.viewCenter.lat);
         this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
 
         this.requestRedraw();
@@ -1974,13 +2005,6 @@ export let View = (function () {
                     var footprint = overlay.overlays[i];
                     var pointXY = [];
                     for (var j = 0; j < footprint.polygons.length; j++) {
-
-                        /*var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1],
-                                this.projection,
-                                this.cooFrame,
-                                this.width, this.height,
-                                this.largestDim,
-                                this.zoomFactor);*/
                         var xy = AladinUtils.radecToViewXy(footprint.polygons[j][0], footprint.polygons[j][1], this);
                         if (!xy) {
                             continue;
@@ -2005,7 +2029,7 @@ export let View = (function () {
                 // test Circles
                 for (var i = 0; i < overlay.overlay_items.length; i++) {
                     if (overlay.overlay_items[i] instanceof Circle) {
-                        overlay.overlay_items[i].draw(ctx, this, this.projection, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
+                        overlay.overlay_items[i].draw(ctx, this, this.cooFrame, this.width, this.height, this.largestDim, this.zoomFactor, true);
 
                         if (ctx.isPointInStroke(x, y)) {
                             closest = overlay.overlay_items[i];

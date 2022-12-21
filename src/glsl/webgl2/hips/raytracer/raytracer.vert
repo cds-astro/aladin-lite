@@ -1,6 +1,6 @@
 #version 300 es
 precision highp float;
-precision highp int;
+precision mediump int;
 
 layout (location = 0) in vec2 pos_clip_space;
 out vec2 out_clip_pos;

@@ -170,7 +170,7 @@ export let Overlay = (function() {
         this.overlay_items = [];
     };
     
-    Overlay.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Overlay.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (!this.isShowing) {
             return;
         }
@@ -186,7 +186,7 @@ export let Overlay = (function() {
     	var xyviews = [];
 
     	for (var k=0, len = this.overlays.length; k<len; k++) {
-    		xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
+    	    xyviews.push(this.drawFootprint(this.overlays[k], ctx, frame, width, height, largestDim, zoomFactor));
     	}
         ctx.stroke();
 
@@ -204,7 +204,7 @@ export let Overlay = (function() {
     	
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
-    	    this.overlay_items[k].draw(ctx, this.view, projection, frame, width, height, largestDim, zoomFactor);
+    	    this.overlay_items[k].draw(ctx, this.view, frame, width, height, largestDim, zoomFactor);
     	}
     };
 
@@ -228,7 +228,7 @@ export let Overlay = (function() {
     };
     
     
-    Overlay.prototype.drawFootprint = function(f, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Overlay.prototype.drawFootprint = function(f, ctx, frame, width, height, largestDim, zoomFactor) {
         if (! f.isShowing) {
             return null;
         }

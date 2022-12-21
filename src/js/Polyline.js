@@ -93,7 +93,7 @@ export let Polyline= (function() {
         }
     };
     
-    Polyline.prototype.draw = function(ctx, view, projection, frame, width, height, largestDim, zoomFactor) {
+    Polyline.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }

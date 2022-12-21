@@ -3,7 +3,7 @@ precision highp float;
 precision highp sampler2D;
 precision highp usampler2D;
 precision highp isampler2D;
-precision highp int;
+precision mediump int;
 
 in vec3 frag_pos;
 in vec2 out_clip_pos;

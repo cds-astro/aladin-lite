@@ -1,13 +1,8 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "src/core"
 		}
 	],
-	"settings": {
-		"rust-analyzer.cargo.target": null
-	},
-	"extensions": {
-		"recommendations": []
-	}
+	"settings": {}
 }

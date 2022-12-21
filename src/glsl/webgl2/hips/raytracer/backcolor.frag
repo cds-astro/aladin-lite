@@ -3,7 +3,7 @@ precision highp float;
 precision highp sampler2D;
 precision highp usampler2D;
 precision highp isampler2D;
-precision highp int;
+precision mediump int;
 
 out vec4 out_frag_color;
 

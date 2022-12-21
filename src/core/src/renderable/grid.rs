@@ -50,7 +50,7 @@ impl ProjetedGrid {
         gl: &WebGlContext,
         camera: &CameraViewPort,
         resources: &Resources,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Result<ProjetedGrid, JsValue> {
         let vao = {
             let mut vao = VertexArrayObject::new(gl);
@@ -117,7 +117,7 @@ impl ProjetedGrid {
         Ok(grid)
     }
 
-    pub fn set_cfg(&mut self, new_cfg: GridCfg, camera: &CameraViewPort, projection: ProjectionType) -> Result<(), JsValue> {
+    pub fn set_cfg(&mut self, new_cfg: GridCfg, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
         let GridCfg {
             color,
             opacity,
@@ -164,7 +164,7 @@ impl ProjetedGrid {
         Ok(())
     }
 
-    fn force_update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    fn force_update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         self.text_renderer.begin_frame();
         //let text_height = text_renderer.text_size();
         let lines = lines(camera, &self.text_renderer, projection);
@@ -231,7 +231,7 @@ impl ProjetedGrid {
     }
 
     // Update the grid whenever the camera moved
-    pub fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         if !self.enabled {
             return;
         }
@@ -314,7 +314,7 @@ impl Label {
         camera: &CameraViewPort,
         sp: Option<&Vector2<f64>>,
         text_renderer: &TextRenderManager,
-        projection: ProjectionType,
+        projection: &ProjectionType,
     ) -> Option<Self> {
         let LonLatT(.., lat) = camera.get_center().lonlat();
         // Do not plot meridian labels when the center of fov
@@ -415,7 +415,7 @@ impl Label {
         camera: &CameraViewPort,
         // in pixels
         text_renderer: &TextRenderManager,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Option<Self> {
         let mut d = Vector3::new(-m1.z, 0.0, m1.x).normalize();
         let _system = camera.get_system();
@@ -513,7 +513,7 @@ impl GridLine {
         camera: &CameraViewPort,
         //text_height: f64,
         text_renderer: &TextRenderManager,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
         if let Some(p) = fov.intersect_meridian(Rad(lon), camera) {
@@ -537,7 +537,7 @@ impl GridLine {
         lat: f64,
         camera: &CameraViewPort,
         text_renderer: &TextRenderManager,
-        projection: ProjectionType
+        projection: &ProjectionType
     ) -> Option<Self> {
         let fov = camera.get_field_of_view();
 
@@ -600,7 +600,7 @@ fn lines(
     camera: &CameraViewPort,
     //text_height: f64,
     text_renderer: &TextRenderManager,
-    projection: ProjectionType
+    projection: &ProjectionType
 ) -> Vec<GridLine> {
     // Get the screen position of the nearest pole
     let _system = camera.get_system();

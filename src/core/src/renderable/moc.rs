@@ -32,7 +32,7 @@ pub struct MOC {
 use crate::survey::view::HEALPixCellsInView;
 use cgmath::Vector2;
 
-fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
+fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: &ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
     let vertices = cell
         .path_along_cell_edge(n_segment_by_side as u32)
         .iter()
@@ -97,7 +97,7 @@ fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Camera
     }
 }
 use al_api::cell::HEALPixCellProjeted;
-fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
+fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: &ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
     let n_vertices_per_segment = n_segment_by_side + 1;
 
     let vertices = cell
@@ -304,7 +304,7 @@ impl MOC {
         
     }
 
-    pub fn insert(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort, projection: ProjectionType) {
+    pub fn insert(&mut self, moc: HEALPixCoverage, params: al_api::moc::MOC, camera: &CameraViewPort, projection: &ProjectionType) {
         let key = params.get_uuid().clone();
 
         self.mocs.insert(key.clone(), HierarchicalHpxCoverage::new(moc));
@@ -334,7 +334,7 @@ impl MOC {
         }
     }
 
-    pub fn set_params(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort, projection: ProjectionType) -> Option<al_api::moc::MOC> {
+    pub fn set_params(&mut self, params: al_api::moc::MOC, camera: &CameraViewPort, projection: &ProjectionType) -> Option<al_api::moc::MOC> {
         let key = params.get_uuid().clone();
         let old_params = self.params.insert(key, params);
 
@@ -349,7 +349,7 @@ impl MOC {
         self.mocs.get(key).map(|coverage| coverage.get_full_moc())
     }
 
-    fn update_buffers(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    fn update_buffers(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         self.indices.clear();
         self.position.clear();
         self.num_indices.clear();
@@ -487,7 +487,7 @@ impl MOC {
             );
     }
 
-    pub fn update(&mut self, camera: &CameraViewPort, projection: ProjectionType) {
+    pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) {
         if self.is_empty() {
             return;
         }

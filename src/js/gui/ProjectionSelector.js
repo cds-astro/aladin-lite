@@ -29,7 +29,7 @@
  *****************************************************************************/
 
  import { ALEvent } from "../events/ALEvent.js";
- 
+ import { projectionNames } from "../ProjectionEnum.js";
  import $ from 'jquery';
 
  export class ProjectionSelector {
@@ -54,7 +54,7 @@
 
         this.selectProjection.empty();
         
-        ["SIN", "AIT", "MOL", "MER", "ARC", "TAN", "HPX"].forEach(p => {
+        projectionNames.forEach(p => {
             this.selectProjection.append($("<option />").val(p).text(p));
         });
         let self = this;

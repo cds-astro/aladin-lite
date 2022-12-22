@@ -235,42 +235,63 @@ Utils.LRUCache.prototype = {
 ////////////////////////////////////////////////////////////////////////////:
 
 /**
-  Make an AJAX call, given a list of potential mirrors
-  First successful call will result in options.onSuccess being called back
-  If all calls fail, onFailure is called back at the end
-
+  Fetch an url with the method GET, given a list of potential mirrors
+  An optional object can be given with the following keywords accepted:
+  * data: an object storing the params associated to the URL
+  * contentType: specify the content type returned from the url (no verification is done, it is not mandatory to put it)
+  * timeout: A maximum request time. If exceeded, the request is aborted and the next url will be fetched
   This method assumes the URL are CORS-compatible, no proxy will be used
+
+  A promise is returned. When all the urls fail, a rejected Promise is returned so that it can be catched afterwards
  */
 Utils.loadFromMirrors = function(urls, options) {
-    var data    = options && options.data || null;
-    var method = options && options.method || 'GET';
-    var dataType = options && options.dataType || null;
-    var timeout = options && options.timeout || 20;
+    const contentType = options && options.contentType || "application/json";
+    const data = options && options.data || undefined;
+    const timeout = options && options.timeout || 5000;
 
-    var onSuccess = options && options.onSuccess || null;
-    var onFailure = options && options.onFailure || null;
-
+    // Base case, when all urls have been fetched and failed
     if (urls.length === 0) {
-        (typeof onFailure === 'function') && onFailure();
+        return Promise.reject("None of the urls given can be fetched!");
     }
-    else {
-        var ajaxOptions = {
-            url: urls[0],
-            data: data
-        }
-        if (dataType) {
-            ajaxOptions.dataType = dataType;
-        }
 
-        $.ajax(ajaxOptions)
-        .done(function(data) {
-            (typeof onSuccess === 'function') && onSuccess(data);
+    // A controller that can abort the query when a timeout is reached
+    const controller = new AbortController();
+
+    // Launch a timemout that will interrupt the fetch if it has not yet succeded:
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const init = {
+        // *GET, POST, PUT, DELETE, etc.
+        method: "GET",
+        headers: {
+            "Content-Type": contentType
+        },
+        // no-cors, *cors, same-origin
+        mode: 'cors',
+        // *default, no-cache, reload, force-cache, only-if-cached
+        cache: 'default',
+        // manual, *follow, error
+        redirect: 'follow',
+        // Abort the request when a timeout exceeded
+        signal: controller.signal,
+    };
+
+    const url = urls[0] + '?' + new URLSearchParams(data);
+    return fetch(url, init)
+        .then((response) => {
+            // completed request before timeout fired
+            clearTimeout(timeoutId)
+
+            if (!response.ok) {
+                return Promise.reject("Url: ", urls[0], " cannot be reached in some way.");
+            } else {
+                return response;
+            }
         })
-        .fail(function() {
-             Utils.loadFromMirrors(urls.slice(1), options);
+        .catch((e) => {
+            // The request aborted because it was to slow, fetch the next url given recursively
+            return Utils.loadFromMirrors(urls.slice(1), options);
         });
-    }
-} 
+}
 
 // return the jquery ajax object configured with the requested parameters
 // by default, we use the proxy (safer, as we don't know if the remote server supports CORS)

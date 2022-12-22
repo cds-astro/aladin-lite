@@ -32,6 +32,7 @@ import { HiPSDefinition} from "./HiPSDefinition.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
 import { Aladin } from "./Aladin.js";
+import { MocServer } from "./MocServer.js";
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -56,9 +57,15 @@ export async function fetchSurveyProperties(rootURLOrId) {
         // Use the MOCServer to retrieve the
         // properties
         const id = rootURLOrId;
-        const MOCServerUrl = 'https://alasky.cds.unistra.fr/MocServer/query?ID=*' + encodeURIComponent(id) + '*&get=record&fmt=json';
+        const params = {
+            get: "record",
+            fmt: "json",
+            ID: "*" + id + "*",
+        };
 
-        metadata = await request(MOCServerUrl);
+        metadata = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
+            data: params,
+        }).then(response => response.json());
 
         // We get the property here
         // 1. Ensure there is exactly one survey matching
@@ -462,7 +469,6 @@ export let HpxImageSurvey = (function() {
                     errorMsg = hipsServiceUrl + " responding very slowly.";
                 }
 
-                console.warn(errorMsg)
                 return { duration: maxTime, baseUrl: hipsServiceUrl, validRequest: false };
             });
 

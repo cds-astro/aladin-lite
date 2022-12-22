@@ -17,6 +17,8 @@
 //    along with Aladin Lite.
 //
 
+import { Utils } from "./Utils";
+
 
 /******************************************************************************
  * Aladin Lite project
@@ -28,15 +30,33 @@
  * 
  *****************************************************************************/
 
+
 export class MocServer {
+    static MIRRORS_HTTP = [
+        'http://alaskybis.unistra.fr/MocServer/query',
+        'http://alasky.unistra.fr/MocServer/query'
+    ]; // list of base URL for MocServer mirrors, available in HTTP
+    static MIRRORS_HTTPS = [
+        'https://alaskybis.unistra.fr/MocServer/query',
+        'https://alasky.unistra.fr/MocServer/query'
+    ]; // list of base URL for MocServer mirrors, available in HTTPS
+
     static _allHiPSes = undefined;
     static _allCatalogHiPSes = undefined;
 
     static getAllHiPSes() {
         if (this._allHiPSes === undefined) {
             (async () => {
-                this._allHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dimage+%7C%7C%A0dataproduct_type%3Dcube&get=record&fmt=json&fields=ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url')
-                                         .then(response => {return response.json();});
+                const params = {
+                    expr: "dataproduct_type=image||dataproduct_type=cube",
+                    get: "record",
+                    fmt: "json",
+                    fields: "ID,hips_initial_fov,hips_initial_ra,hips_initial_dec,hips_pixel_bitpix,hips_creator,hips_copyright,hips_frame,hips_order,hips_order_min,hips_tile_width,hips_tile_format,hips_pixel_cut,obs_title,obs_description,obs_copyright,obs_regime,hips_data_range,hips_service_url",
+                };
+
+                this._allHiPSes = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
+                    data: params,
+                }).then(response => response.json());
             })();
         }
 
@@ -46,8 +66,14 @@ export class MocServer {
     static getAllCatalogHiPSes() {
         if (this._allCatalogHiPSes === undefined) {
             (async () => {
-                this._allCatalogHiPSes = await fetch('https://alasky.cds.unistra.fr/MocServer/query?expr=dataproduct_type%3Dcatalog&get=record&fmt=json&fields=ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url')
-                                         .then(response => {return response.json();});
+                const params = {
+                    expr: "dataproduct_type=catalog",
+                    get: "record",
+                    fmt: "json",
+                    fields: "ID,hips_copyright,hips_order,hips_order_min,obs_title,obs_description,obs_copyright,obs_regime,cs_service_url,hips_service_url",
+                };
+                this._allCatalogHiPSes = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {data: params})
+                    .then(response => response.json());
             })();
         }
 

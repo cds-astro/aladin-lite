@@ -41,37 +41,38 @@ export let SimbadPointer = (function() {
     
     SimbadPointer.query = function(ra, dec, radiusDegrees, aladinInstance) {
         var coo = new Coo(ra, dec, 7);
-        var params = {Ident: coo.format('s/'), SR: radiusDegrees}
-        var successCallback = function(result) {
-            aladinInstance.view.setCursor('pointer');
+        var params = {"Ident": coo.format('s/'), "SR": radiusDegrees}
 
-            var regexp = /(.*?)\/(.*?)\((.*?),(.*?)\)/g;
-            var match = regexp.exec(result);
-            if (match) {
-                var objCoo = new Coo();
-                objCoo.parse(match[1]);
-                var objName = match[2];
-                var title = '<div class="aladin-sp-title"><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
-                var content = '<div class="aladin-sp-content">';
-                content += '<em>Type: </em>' + match[4] + '<br>';
-                var magnitude = match[3];
-                if (Utils.isNumber(magnitude)) {
-                    content += '<em>Mag: </em>' + magnitude + '<br>';
+        Utils.loadFromMirrors(SimbadPointer.MIRRORS, {contentType: "text/plain", data: params})
+            .then((response) => response.text())
+            .then((result) => {
+                aladinInstance.view.setCursor('pointer');
+    
+                var regexp = /(.*?)\/(.*?)\((.*?),(.*?)\)/g;
+                var match = regexp.exec(result);
+                if (match) {
+                    var objCoo = new Coo();
+                    objCoo.parse(match[1]);
+                    var objName = match[2];
+                    var title = '<div class="aladin-sp-title"><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
+                    var content = '<div class="aladin-sp-content">';
+                    content += '<em>Type: </em>' + match[4] + '<br>';
+                    var magnitude = match[3];
+                    if (Utils.isNumber(magnitude)) {
+                        content += '<em>Mag: </em>' + magnitude + '<br>';
+                    }
+                    content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName) + '">Query in CDS portal</a>';
+                    content += '</div>';
+                    aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
                 }
-                content += '<br><a target="_blank" href="http://cdsportal.u-strasbg.fr/?target=' + encodeURIComponent(objName) + '">Query in CDS portal</a>';
-                content += '</div>';
-                aladinInstance.showPopup(objCoo.lon, objCoo.lat, title, content);
-            }
-            else {
+                else {
+                    aladinInstance.hidePopup();
+                }
+            })
+            .catch((e) => {
+                aladinInstance.view.setCursor('pointer');
                 aladinInstance.hidePopup();
-            }
-        };
-        var failureCallback = function() {
-            aladinInstance.view.setCursor('pointer');
-            aladinInstance.hidePopup();
-        };
-        Utils.loadFromMirrors(SimbadPointer.MIRRORS, {data: params, onSuccess: successCallback, onFailure: failureCallback, timeout: 5});
-
+            })
     };
 
     return SimbadPointer;

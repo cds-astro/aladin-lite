@@ -30,7 +30,6 @@
 
 import { Utils } from "./Utils.js";
 import $ from 'jquery';
-import { MocServer } from "./MocServer.js";
 
 export let HiPSDefinition = (function() {
 

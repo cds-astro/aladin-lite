@@ -451,13 +451,12 @@ export let HpxImageSurvey = (function() {
         const pingHipsServiceUrl = (hipsServiceUrl) => {
             const controller = new AbortController()
 
-            const startRequestTime = Date.now();
+            let startRequestTime = Date.now();
             const maxTime = 2000;
             // 5 second timeout:
             const timeoutId = setTimeout(() => controller.abort(), maxTime)
-            const promise = fetch(hipsServiceUrl + '/properties', { signal: controller.signal, mode: "cors"}).then(response => {
-                const endRequestTime = Date.now();
-                const duration = endRequestTime - startRequestTime;//the time needed to do the request
+            const promise = fetch(hipsServiceUrl + '/properties', { cache: 'no-store', signal: controller.signal, mode: "cors"}).then(response => {
+                const duration = Date.now() - startRequestTime;//the time needed to do the request
                 // completed request before timeout fired
                 clearTimeout(timeoutId)
                 // Resolve with the time duration of the request

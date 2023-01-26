@@ -36,7 +36,7 @@ al-core = { path = "./al-core" }
 al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
 mapproj = "0.3.0"
-wcs = { path = "./../../../wcs" }
+wcs = "0.1.1"
 
 [features]
 webgl1 = [

@@ -28,7 +28,7 @@ impl Texture2DArray {
     ) -> Result<Texture2DArray, JsValue> {
         let textures: Result<Vec<_>, _> = (0..num_slices)
             .map(|_| {
-                Texture2D::create_from_raw_pixels::<F>(gl, width, height, tex_params, None)
+                Texture2D::create_empty_with_format::<F>(gl, width, height, tex_params)
             })
             .collect();
 

@@ -20,7 +20,7 @@ impl Default for BlendCfg {
     fn default() -> Self {
         Self {
             src_color_factor: BlendFactor::SrcAlpha,
-            dst_color_factor: BlendFactor::OneMinusConstantAlpha,
+            dst_color_factor: BlendFactor::OneMinusSrcAlpha,
             func: BlendFunc::FuncAdd,
         }
     }

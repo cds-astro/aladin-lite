@@ -18,7 +18,7 @@ impl From<MOCRequest> for RequestType {
         RequestType::Moc(request)
     }
 }
-use crate::survey::Url;
+use crate::renderable::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 use wasm_bindgen::JsCast;

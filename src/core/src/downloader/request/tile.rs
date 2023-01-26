@@ -31,7 +31,7 @@ impl From<TileRequest> for RequestType {
 }
 use al_core::image::html::HTMLImage;
 use wasm_bindgen::JsValue;
-use crate::survey::Url;
+use crate::renderable::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 use wasm_bindgen::JsCast;

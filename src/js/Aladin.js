@@ -1570,13 +1570,42 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
     }
     let self = this;
 
-    /*fetch(url)
+    fetch(url)
         .then((resp) => resp.arrayBuffer())
         .then((arrayBuffer) => {
             console.log('received fits', arrayBuffer)
             self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
             console.log("parsed")
-        });*/
+        });
+};
+
+// @API
+/*
+ * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
+ * and display it
+ */
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
+    options = options || {};
+    options.color = true;
+    options.label = "JPG/PNG image";
+    options.outputFormat = 'png';
+
+    options = options || {};
+
+    var data = { url: url };
+    if (options.color) {
+        data.color = true;
+    }
+    if (options.outputFormat) {
+        data.format = options.outputFormat;
+    }
+    if (options.order) {
+        data.order = options.order;
+    }
+    if (options.nocache) {
+        data.nocache = options.nocache;
+    }
+    let self = this;
 
     const request = ( url, params = {}, method = 'GET' ) => {
         let options = {
@@ -1624,19 +1653,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // This has to be fixed in the backend but a fast fix is just to wait
             // before setting a new image survey
         });
-};
 
-// @API
-/*
- * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
- * and display it
- */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
-    options = options || {};
-    options.color = true;
-    options.label = "JPG/PNG image";
-    options.outputFormat = 'png';
-    this.displayFITS(url, options, successCallback, errorCallback);
 };
 
 Aladin.prototype.setReduceDeformations = function (reduce) {

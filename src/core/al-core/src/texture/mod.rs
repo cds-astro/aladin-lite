@@ -130,45 +130,28 @@ impl Texture2D {
         width: i32,
         height: i32,
         tex_params: &'static [(u32, u32)],
-        pixels: Option<&[u8]>,
+        data: Option<&[<F::P as Pixel>::Item]>,
     ) -> Result<Texture2D, JsValue> {
-        let texture = gl.create_texture();
-
-        gl.bind_texture(WebGlRenderingCtx::TEXTURE_2D, texture.as_ref());
-
-        for (pname, param) in tex_params.iter() {
-            gl.tex_parameteri(WebGlRenderingCtx::TEXTURE_2D, *pname, *param as i32);
-        }
-
-        gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-            WebGlRenderingCtx::TEXTURE_2D,
-            0,
-            F::INTERNAL_FORMAT,
+        let texture = Texture2D::create_empty_with_format::<F>(
+            gl,
             width,
             height,
-            0,
-            F::FORMAT,
-            F::TYPE,
-            pixels,
-        )
-        .expect("Texture 2D");
+            tex_params
+        )?;
 
-        let gl = gl.clone();
-        let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {
-            width: width as u32,
-            height: height as u32,
-            internal_format: F::INTERNAL_FORMAT,
-            format: F::FORMAT,
-            type_: F::TYPE,
-        })));
+        if let Some(data) = data {
+            let buf_data = unsafe { F::view(data) };
+            texture.bind()
+                .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                    0,
+                    0,
+                    width,
+                    height,
+                    Some(buf_data.as_ref()),
+                );
+        }
 
-        Ok(Texture2D {
-            texture,
-
-            gl,
-
-            metadata,
-        })
+        Ok(texture)
     }
 
     pub fn create_empty_unsized(

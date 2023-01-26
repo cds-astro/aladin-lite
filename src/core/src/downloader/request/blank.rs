@@ -40,7 +40,7 @@ impl From<PixelMetadataRequest> for RequestType {
 }
 
 
-use crate::survey::Url;
+use crate::renderable::Url;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, RequestMode, Response};
 use crate::downloader::query::Query;

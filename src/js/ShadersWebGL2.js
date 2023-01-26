@@ -45,6 +45,10 @@ import RasterizerGrayscale2ColormapUnsignedFS from '../glsl/webgl2/hips/rasteriz
 import PostVS from '../glsl/webgl2/passes/post_vertex_100es.glsl'
 import PostFS from '../glsl/webgl2/passes/post_fragment_100es.glsl'
 
+// Shader fits image
+import FitsVS from '../glsl/webgl2/fits/vert.glsl'
+import FitsFS from '../glsl/webgl2/fits/frag.glsl'
+
 let shaders = [
     // Catalog shaders
     {
@@ -184,6 +188,15 @@ let shaders = [
     {
         id: "PostFS",
         content: PostFS,
+    },
+    // Fits
+    {
+        id: "FitsVS",
+        content: FitsVS,
+    },
+    {
+        id: "FitsFS",
+        content: FitsFS,
     },
 ];
 

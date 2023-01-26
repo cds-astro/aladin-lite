@@ -12,10 +12,11 @@ use crate::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         moc::MOC,
+        image::FitsImage,
     },
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
-    survey::ImageSurveys,
+    renderable::Layers,
     tile_fetcher::TileFetcherQueue,
     time::DeltaTime,
 };
@@ -51,7 +52,7 @@ pub struct App {
 
     downloader: Downloader,
     tile_fetcher: TileFetcherQueue,
-    surveys: ImageSurveys,
+    layers: Layers,
 
     time_start_blending: Time,
     request_redraw: bool,
@@ -86,6 +87,8 @@ pub struct App {
     colormaps: Colormaps,
 
     projection: ProjectionType,
+
+    images: Vec<FitsImage>,
 }
 
 use cgmath::{Vector2, Vector3};
@@ -159,7 +162,7 @@ impl App {
         let _fbo_ui = FrameBufferObject::new(&gl, screen_size.x as usize, screen_size.y as usize)?;
 
         // The surveys storing the textures of the resolved tiles
-        let surveys = ImageSurveys::new(&gl, &projection);
+        let layers = Layers::new(&gl, &projection)?;
 
         let time_start_blending = Time::now();
 
@@ -194,6 +197,7 @@ impl App {
 
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
+        let images = vec![];
         Ok(App {
             gl,
             start_time_frame,
@@ -205,7 +209,7 @@ impl App {
             last_time_request_for_new_tiles,
             request_for_new_tiles,
             downloader,
-            surveys,
+            layers,
 
             time_start_blending,
             rendering,
@@ -233,7 +237,8 @@ impl App {
             tile_fetcher,
 
             colormaps,
-            projection
+            projection,
+            images,
         })
     }
 
@@ -241,7 +246,7 @@ impl App {
         // Move the views of the different active surveys
         self.tile_fetcher.clear();
         // Loop over the surveys
-        for (_, survey) in self.surveys.iter_mut() {
+        for survey in self.layers.values_mut_hips() {
             // do not add tiles if the view is already at depth 0
             let view = survey.get_view();
             let depth_tile = view.get_depth();
@@ -477,7 +482,7 @@ use crate::downloader::request::tile::Tile;
 
 impl App {
     pub(crate) fn set_background_color(&mut self, color: ColorRGB) {
-        self.surveys.set_background_color(color);
+        self.layers.set_background_color(color);
         self.request_redraw = true;
     }
 
@@ -510,7 +515,7 @@ impl App {
     }
 
     pub(crate) fn is_ready(&self) -> Result<bool, JsValue> {
-        let res = self.surveys.is_ready();
+        let res = self.layers.is_ready();
 
         Ok(res)
     }
@@ -536,6 +541,12 @@ impl App {
         self.moc.set_params(params, &self.camera, &self.projection)
             .ok_or_else(|| JsValue::from_str("MOC not found"))?;
         self.request_redraw = true;
+
+        Ok(())
+    }
+
+    pub(crate) fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
+        self.images.push(FitsImage::new(&self.gl, raw_bytes)?);
 
         Ok(())
     }
@@ -597,7 +608,7 @@ impl App {
                             tile_copied = true;
                             let is_tile_root = tile.is_root;
     
-                            if let Some(survey) = self.surveys.get_mut(&tile.get_hips_url()) {
+                            if let Some(survey) = self.layers.get_mut_hips(&tile.get_hips_url()) {
                                 if is_tile_root {
                                     let is_missing = tile.missing();
                                     let Tile {
@@ -661,7 +672,7 @@ impl App {
                         Resource::Allsky(allsky) => {
                             let hips_url = allsky.get_hips_url();
     
-                            if let Some(survey) = self.surveys.get_mut(hips_url) {
+                            if let Some(survey) = self.layers.get_mut_hips(hips_url) {
                                 let is_missing = allsky.missing();
                                 if is_missing {
                                     // The allsky image is missing so we donwload all the tiles contained into
@@ -684,8 +695,8 @@ impl App {
                             }
                         },
                         Resource::PixelMetadata(metadata) => {
-                            if let Some(survey) = self.surveys.get_mut(&metadata.hips_url) {
-                                let mut cfg = survey.get_config_mut();
+                            if let Some(hips) = self.layers.get_mut_hips(&metadata.hips_url) {
+                                let mut cfg = hips.get_config_mut();
 
                                 if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
                                     cfg.blank = metadata.blank;
@@ -697,14 +708,14 @@ impl App {
                         Resource::Moc(moc) => {
                             let moc_url = moc.get_url();
                             let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                            if let Some(survey) = self.surveys.get_mut(url) {
+                            if let Some(hips) = self.layers.get_mut_hips(url) {
                                 let request::moc::Moc {
                                     moc,
                                     ..
                                 } = moc;
     
                                 if let Some(moc) = &*moc.lock().unwrap_abort() {
-                                    survey.set_moc(moc.clone());
+                                    hips.set_moc(moc.clone());
 
                                     self.request_for_new_tiles = true;
                                     self.request_redraw = true;
@@ -722,14 +733,14 @@ impl App {
                     .notify(num_tile_received, &mut self.downloader);
                 self.time_start_blending = Time::now();
             }
-            //self.surveys.add_resolved_tiles(resolved_tiles);
+            //self.layers.add_resolved_tiles(resolved_tiles);
             // 3. Try sending new tile requests after
             //self.downloader.try_sending_tile_requests()?;
         }
 
         // Then, check for new tiles
         if has_camera_moved {
-            self.surveys.refresh_views(&mut self.camera);
+            self.layers.refresh_views(&mut self.camera);
         }
 
         if self.request_for_new_tiles && Time::now() - self.last_time_request_for_new_tiles > DeltaTime::from(500_f32) {
@@ -744,8 +755,8 @@ impl App {
             (Time::now().0 - self.time_start_blending.0) < BLENDING_ANIM_DURATION;
 
         let mut start_fading = false;
-        for survey in self.surveys.values() {
-            if let Some(start_time) = survey.get_ready_time() {
+        for hips in self.layers.values_hips() {
+            if let Some(start_time) = hips.get_ready_time() {
                 start_fading |= Time::now().0 - start_time.0 < BLENDING_ANIM_DURATION;
                 if start_fading {
                     break;
@@ -760,10 +771,14 @@ impl App {
         // Finally update the camera that reset the flag camera changed
         if has_camera_moved {
             // Catalogues update
-            /*if let Some(view) = self.surveys.get_view() {
+            /*if let Some(view) = self.layers.get_view() {
                 self.manager.update(&self.camera, view);
             }*/
             self.grid.update(&self.camera, &self.projection);
+            // Update the fits images buffers
+            for image in &mut self.images {
+                image.update_buffers(&self.camera, &self.projection)?;
+            }
             // MOCs update
             self.moc.update(&self.camera, &self.projection);
         }
@@ -797,9 +812,8 @@ impl App {
 
     pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
-            let survey = self
-                .surveys
-                .get_from_layer(layer_id)
+            let survey = self.layers
+                .get_hips_from_layer(layer_id)
                 .ok_or_else(|| JsValue::from_str("Survey not found"))?;
 
             survey.read_pixel(&lonlat, &self.camera)
@@ -820,7 +834,7 @@ impl App {
             let camera = &self.camera;
 
             let grid = &mut self.grid;
-            let surveys = &mut self.surveys;
+            let layers = &mut self.layers;
             let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             let fbo_view = &self.fbo_view;
@@ -831,7 +845,7 @@ impl App {
                     gl.clear_color(0.00, 0.00, 0.00, 1.0);
                     gl.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-                    surveys.draw(camera, shaders, colormaps);
+                    layers.draw(camera, shaders, colormaps);
 
                     // Draw the catalog
                     catalogs.draw(&gl, shaders, camera, colormaps, fbo_view)?;
@@ -867,7 +881,7 @@ impl App {
             self.final_rendering_pass.draw_on_screen(&self.fbo_ui);
         }
 
-        self.surveys.reset_frame();*/
+        self.layers.reset_frame();*/
 
         let scene_redraw = self.rendering | force_render;
         //let mut ui = self.ui.lock();
@@ -877,7 +891,7 @@ impl App {
             let shaders = &mut self.shaders;
 
             let grid = &mut self.grid;
-            let surveys = &mut self.surveys;
+            let layers = &mut self.layers;
             //let catalogs = &self.manager;
             let colormaps = &self.colormaps;
             let camera = &self.camera;
@@ -885,8 +899,12 @@ impl App {
             // Clear all the screen first (only the region set by the scissor)
             self.gl.clear(web_sys::WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-            surveys.draw(camera, shaders, colormaps, &self.projection)?;
+            layers.draw(camera, shaders, colormaps, &self.projection)?;
             self.moc.draw(shaders, camera);
+
+            for image in &self.images {
+                image.draw(shaders, colormaps)?;
+            }
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;
@@ -901,7 +919,7 @@ impl App {
             self.camera.reset();
 
             if self.rendering {
-                self.surveys.reset_frame();
+                self.layers.reset_frame();
                 self.moc.reset_frame();
             }
         }
@@ -910,10 +928,10 @@ impl App {
     }
 
     pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.surveys.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
+        self.layers.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
 
-        for survey in self.surveys.surveys.values_mut() {
-            let cfg = survey.get_config();
+        for hips in self.layers.values_hips() {
+            let cfg = hips.get_config();
             // Request for the allsky first
             // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
             self.downloader.fetch(query::PixelMetadata::new(cfg));
@@ -944,8 +962,8 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn get_image_survey_color_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
-        self.surveys.get_image_survey_color_cfg(layer)
+    pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
+        self.layers.get_layer_cfg(layer)
     }
 
     pub(crate) fn set_image_survey_color_cfg(
@@ -955,11 +973,11 @@ impl App {
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        self.surveys.set_image_survey_color_cfg(layer, meta, &self.camera, &self.projection)
+        self.layers.set_layer_cfg(layer, meta, &self.camera, &self.projection)
     }
 
     pub(crate) fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
-        let survey = self.surveys.get_mut_from_layer(&layer)
+        let survey = self.layers.get_mut_hips_from_layer(&layer)
             .ok_or_else(|| JsValue::from_str("Layer not found"))?;
         survey.set_img_format(format)?;
         // Request for the allsky first
@@ -997,16 +1015,18 @@ impl App {
     }
 
     // Width and height given are in pixels
-    pub(crate) fn set_projection(&mut self, projection: ProjectionType) {
+    pub(crate) fn set_projection(&mut self, projection: ProjectionType) -> Result<(), JsValue> {
         self.projection = projection;
 
         // Recompute the ndc_to_clip
         self.camera.set_projection(&self.projection);
         // Recompute clip zoom factor
-        self.surveys.set_projection(&self.projection);
+        self.layers.set_projection(&self.projection)?;
 
         self.request_for_new_tiles = true;
         self.request_redraw = true;
+
+        Ok(())
     }
 
     pub(crate) fn get_max_fov(&self) -> f64 {
@@ -1059,22 +1079,8 @@ impl App {
     }
 
     pub(crate) fn set_survey_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
-        self.surveys.set_survey_url(past_url, new_url)
+        self.layers.set_survey_url(past_url, new_url)
     }
-
-    /*pub(crate) fn set_catalog_colormap(&mut self, name: String, colormap: String) -> Result<(), JsValue> {
-        let colormap = self.colormaps.get(&colormap);
-
-        let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
-            let err: JsValue = e.into();
-            err
-        })?;
-        catalog.set_colormap(colormap);
-
-        self.request_redraw = true;
-
-        Ok(())
-    }*/
 
     pub(crate) fn set_catalog_opacity(&mut self, name: String, opacity: f32) -> Result<(), JsValue> {
         let catalog = self.manager.get_mut_catalog(&name).map_err(|e| {
@@ -1281,7 +1287,7 @@ impl App {
     }
 
     pub(crate) fn get_norder(&self) -> i32 {
-        self.surveys.get_depth() as i32
+        self.layers.get_depth() as i32
     }
 
     pub(crate) fn get_clip_zoom_factor(&self) -> f64 {

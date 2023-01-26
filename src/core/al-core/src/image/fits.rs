@@ -34,7 +34,7 @@ impl<'a> Fits<'a> {
 
         let height = header.get_axis_size(2)
             .ok_or_else(|| JsValue::from_str("NAXIS2 not found in the fits"))?;
-
+            
         let data = match data {
             fitsrs::hdu::data::DataBorrowed::U8(slice) => {
                 Data::U8(Cow::Borrowed(slice))
@@ -234,40 +234,16 @@ impl Image for Fits<'_> {
     }
 }
 
-
-
-
 use wasm_bindgen::JsValue;
-
 use crate::image::format::ImageFormat;
 
 pub trait FitsImageFormat: ImageFormat {
-    type Type: Clone;
-    type ArrayBufferView: AsRef<js_sys::Object>;
-
     const BITPIX: i8;
-    /// Creates a JS typed array which is a view into wasm's linear memory at the slice specified.
-    /// This function returns a new typed array which is a view into wasm's memory. This view does not copy the underlying data.
-    ///
-    /// # Safety
-    ///
-    /// Views into WebAssembly memory are only valid so long as the backing buffer isn't resized in JS. Once this function is called any future calls to Box::new (or malloc of any form) may cause the returned value here to be invalidated. Use with caution!
-    ///
-    /// Additionally the returned object can be safely mutated but the input slice isn't guaranteed to be mutable.
-    ///
-    /// Finally, the returned object is disconnected from the input slice's lifetime, so there's no guarantee that the data is read at the right time.
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView;
 }
 
 use crate::image::R32F;
 impl FitsImageFormat for R32F {
     const BITPIX: i8 = -32;
-    type Type = f32;
-    type ArrayBufferView = js_sys::Float32Array;
-
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
-        Self::ArrayBufferView::view(s)
-    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -275,45 +251,17 @@ use crate::image::{R16I, R32I, R8UI, R64F};
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R64F {
     const BITPIX: i8 = -64;
-    type Type = f64;
-
-    type ArrayBufferView = js_sys::Float64Array;
-
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
-        Self::ArrayBufferView::view(s)
-    }
 }
 
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R32I {
     const BITPIX: i8 = 32;
-    type Type = i32;
-
-    type ArrayBufferView = js_sys::Int32Array;
-
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
-        Self::ArrayBufferView::view(s)
-    }
 }
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R16I {
     const BITPIX: i8 = 16;
-    type Type = i16;
-
-    type ArrayBufferView = js_sys::Int16Array;
-
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
-        Self::ArrayBufferView::view(s)
-    }
 }
 #[cfg(feature = "webgl2")]
 impl FitsImageFormat for R8UI {
     const BITPIX: i8 = 8;
-    type Type = u8;
-
-    type ArrayBufferView = js_sys::Uint8Array;
-
-    unsafe fn view(s: &[Self::Type]) -> Self::ArrayBufferView {
-        Self::ArrayBufferView::view(s)
-    }
 }

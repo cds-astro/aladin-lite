@@ -638,7 +638,8 @@ impl App {
                                             fov_coverage.contains(&neighbor_tile_cell)
                                         });
 
-                                    if included_or_near_coverage {
+                                    // do not perform tex_sub costly GPU calls while the camera is moving
+                                    if included_or_near_coverage && !has_camera_moved {
                                         let is_missing = tile.missing();
                                         let Tile {
                                             cell,
@@ -1168,6 +1169,7 @@ impl App {
     pub(crate) fn press_left_button_mouse(&mut self, _sx: f32, _sy: f32) {
         self.prev_center = self.camera.get_center().truncate();
         self.inertial_move_animation = None;
+        self.request_for_new_tiles = true;
         self.out_of_fov = false;
     }
 

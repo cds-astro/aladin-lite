@@ -302,6 +302,18 @@ impl SendUniforms for GrayscaleParameter {
 }*/
 use al_api::colormap::Colormap;
 use al_api::hips::HiPSColor;
+use al_api::hips::ImageSurveyMeta;
+
+impl SendUniforms for ImageSurveyMeta {
+    fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
+        shader
+            .attach_uniforms_from(&self.color)
+            .attach_uniform("opacity", &self.opacity);
+
+        shader
+    }
+}
+
 impl SendUniforms for HiPSColor {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         match self {

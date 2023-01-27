@@ -340,6 +340,10 @@ where
     pub fn max_value() -> Self {
         Angle(S::max_value())
     }
+
+    pub fn to_radians(&self) -> S {
+        self.0
+    }
 }
 
 pub trait ToAngle<S>

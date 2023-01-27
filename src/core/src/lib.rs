@@ -19,6 +19,7 @@
 extern crate wasm_streams;
 extern crate console_error_panic_hook;
 extern crate mapproj;
+extern crate wcs;
 use std::panic;
 
 pub trait Abort {
@@ -86,7 +87,6 @@ mod survey;
 mod tile_fetcher;
 mod time;
 mod fifo_cache;
-mod wcs;
 
 use crate::{
     camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
@@ -224,18 +224,17 @@ impl WebClient {
                 let mut mol_proj = mapproj::pseudocyl::mol::Mol::new();
                 mol_proj.set_n_iter(10);
                 mol_proj.set_epsilon(1e-12);
-                self.app.set_projection(ProjectionType::Mol(mol_proj));
+
+                self.app.set_projection(ProjectionType::Mol(mol_proj))
             },
             // Conic
             "COD" => self.app.set_projection(ProjectionType::Cod(mapproj::conic::cod::Cod::new())),
             // Hybrid
             "HPX" => self.app.set_projection(ProjectionType::Hpx(mapproj::hybrid::hpx::Hpx::new())),
             _ => {
-                return Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"));
-            },
+                Err(JsValue::from_str("Not a valid projection name. AIT, ARC, SIN, TAN, MOL, HPX and MER are accepted"))
+            }
         }
-
-        Ok(())
     }
 
     /// Check whether the app is ready
@@ -318,8 +317,8 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = getImageSurveyMeta)]
-    pub fn get_survey_color_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
-        self.app.get_image_survey_color_cfg(&layer)
+    pub fn get_layer_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
+        self.app.get_layer_cfg(&layer)
     }
 
     // Set a new color associated with a layer
@@ -780,22 +779,12 @@ impl WebClient {
         Ok(())
     }
 
-    /*#[wasm_bindgen(js_name = addFITSImage)]
+    #[wasm_bindgen(js_name = addFITSImage)]
     pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        use al_core::image::fits::Fits;
-        let fits = Fits::new(raw_bytes)?;
+        self.app.add_fits_image(raw_bytes)?;
 
-        use crate::wcs::WCS2;
-        let wcs = WCS2::new(&fits).map_err(|e| JsValue::from_str(e))?;
-        use crate::math::lonlat::LonLat;
-        use crate::math::angle::Angle;
-        let xyz = LonLatT::new(Angle(0.19283736400376558), Angle(0.726503953787)).vector();
-
-        let p = wcs.proj(&xyz)?
-            .unwrap();
-        al_core::info!(wcs, p);
         Ok(())
-    }*/
+    }
 
     #[wasm_bindgen(js_name = removeMoc)]
     pub fn remove_moc(&mut self, params: &al_api::moc::MOC) -> Result<(), JsValue> {

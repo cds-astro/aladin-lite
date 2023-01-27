@@ -1570,13 +1570,90 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
     }
     let self = this;
 
+    const request = ( url, params = {}, method = 'GET' ) => {
+        let options = {
+            method
+        };
+        if ( 'GET' === method ) {
+            url += '?' + ( new URLSearchParams( params ) ).toString();
+        } else {
+            options.body = JSON.stringify( params );
+        }
+        
+        return fetch( url, options ).then( response => response.json() );
+    };
+    const get = ( url, params ) => request( url, params, 'GET' );
+
+    get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
+        .then(async (response) => {
+            if (response.status != 'success') {
+                console.error('An error occured: ' + response.message);
+                if (errorCallback) {
+                    errorCallback(response.message);
+                }
+                return;
+            }
+            var label = options.label || "FITS image";
+            var meta = response.data.meta;
+
+            const survey = self.createImageSurvey(response.data.url, label);
+            self.setOverlayImageLayer(survey, "overlay");
+
+            var transparency = (options && options.transparency) || 1.0;
+
+            var executeDefaultSuccessAction = true;
+            if (successCallback) {
+                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+            }
+            if (executeDefaultSuccessAction === true) {
+                self.webglAPI.setCenter(meta.ra, meta.dec);
+                self.setFoV(meta.fov);
+            }
+
+            // TODO! set an image survey once the already loaded surveys
+            // are READY! Otherwise it can lead to some congestion and avoid
+            // downloading the base tiles of the other surveys loading!
+            // This has to be fixed in the backend but a fast fix is just to wait
+            // before setting a new image survey
+        });
+
     /*fetch(url)
         .then((resp) => resp.arrayBuffer())
         .then((arrayBuffer) => {
             console.log('received fits', arrayBuffer)
             self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
             console.log("parsed")
-        });*/
+        });
+    */
+};
+
+// @API
+/*
+ * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
+ * and display it
+ */
+Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
+    options = options || {};
+    options.color = true;
+    options.label = "JPG/PNG image";
+    options.outputFormat = 'png';
+
+    options = options || {};
+
+    var data = { url: url };
+    if (options.color) {
+        data.color = true;
+    }
+    if (options.outputFormat) {
+        data.format = options.outputFormat;
+    }
+    if (options.order) {
+        data.order = options.order;
+    }
+    if (options.nocache) {
+        data.nocache = options.nocache;
+    }
+    let self = this;
 
     const request = ( url, params = {}, method = 'GET' ) => {
         let options = {
@@ -1624,19 +1701,6 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // This has to be fixed in the backend but a fast fix is just to wait
             // before setting a new image survey
         });
-};
-
-// @API
-/*
- * Creates remotely a HiPS from a JPEG or PNG image with astrometry info
- * and display it
- */
-Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, options, successCallback, errorCallback) {
-    options = options || {};
-    options.color = true;
-    options.label = "JPG/PNG image";
-    options.outputFormat = 'png';
-    this.displayFITS(url, options, successCallback, errorCallback);
 };
 
 Aladin.prototype.setReduceDeformations = function (reduce) {

@@ -7,6 +7,7 @@ pub enum Bytes<'a> {
 
 pub trait ImageFormat {
     type P: Pixel;
+    type ArrayBufferView: AsRef<js_sys::Object>;
 
     const NUM_CHANNELS: usize;
     const EXT: &'static str;
@@ -14,6 +15,18 @@ pub trait ImageFormat {
     const FORMAT: u32;
     const INTERNAL_FORMAT: i32;
     const TYPE: u32;
+
+    /// Creates a JS typed array which is a view into wasm's linear memory at the slice specified.
+    /// This function returns a new typed array which is a view into wasm's memory. This view does not copy the underlying data.
+    ///
+    /// # Safety
+    ///
+    /// Views into WebAssembly memory are only valid so long as the backing buffer isn't resized in JS. Once this function is called any future calls to Box::new (or malloc of any form) may cause the returned value here to be invalidated. Use with caution!
+    ///
+    /// Additionally the returned object can be safely mutated but the input slice isn't guaranteed to be mutable.
+    ///
+    /// Finally, the returned object is disconnected from the input slice's lifetime, so there's no guarantee that the data is read at the right time.
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView;
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str>;
 }
@@ -36,6 +49,12 @@ impl ImageFormat for RGB8U {
 
         Ok(Bytes::Owned(bytes))
     }
+
+    type ArrayBufferView = js_sys::Uint8Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -57,6 +76,12 @@ impl ImageFormat for RGBA8U {
 
         Ok(Bytes::Owned(bytes))
     }
+
+    type ArrayBufferView = js_sys::Uint8Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
 }
 #[cfg(feature = "webgl1")]
 impl ImageFormat for RGBA8U {
@@ -74,6 +99,12 @@ impl ImageFormat for RGBA8U {
         let bytes = decoder.decode().map_err(|_| "Cannot decoder png. This image may not be compressed.")?;
 
         Ok(Bytes::Owned(bytes))
+    }
+
+    type ArrayBufferView = js_sys::Uint8Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
     }
 }
 
@@ -97,6 +128,12 @@ impl ImageFormat for RGBA32F {
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
     }
+
+    type ArrayBufferView = js_sys::Float32Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -117,6 +154,12 @@ impl ImageFormat for RGB32F {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
+    }
+
+    type ArrayBufferView = js_sys::Float32Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
     }
 }
 
@@ -142,6 +185,12 @@ impl ImageFormat for R32F {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
+    }
+
+    type ArrayBufferView = js_sys::Float32Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
     }
 }
 
@@ -171,6 +220,12 @@ impl ImageFormat for R64F {
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
     }
+
+    type ArrayBufferView = js_sys::Float32Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -189,6 +244,12 @@ impl ImageFormat for R8UI {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
+    }
+
+    type ArrayBufferView = js_sys::Uint8Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
     }
 }
 
@@ -209,6 +270,12 @@ impl ImageFormat for R16I {
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
     }
+
+    type ArrayBufferView = js_sys::Int16Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
+    }
 }
 
 #[cfg(feature = "webgl2")]
@@ -227,6 +294,12 @@ impl ImageFormat for R32I {
 
     fn decode(raw_bytes: &[u8]) -> Result<Bytes<'_>, &'static str> {
         Ok(Bytes::Borrowed(raw_bytes))
+    }
+
+    type ArrayBufferView = js_sys::Int32Array;
+
+    unsafe fn view(s: &[<Self::P as Pixel>::Item]) -> Self::ArrayBufferView {
+        Self::ArrayBufferView::view(s)
     }
 }
 

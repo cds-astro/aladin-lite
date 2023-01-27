@@ -97,7 +97,7 @@ fn path_along_edge(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Camera
     }
 }
 use al_api::cell::HEALPixCellProjeted;
-fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: &ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
+pub fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &CameraViewPort, idx_off: &mut u32, projection: &ProjectionType) -> Option<(Vec<f32>, Vec<u32>)> {
     let n_vertices_per_segment = n_segment_by_side + 1;
 
     let vertices = cell
@@ -108,7 +108,9 @@ fn rasterize_hpx_cell(cell: &HEALPixCell, n_segment_by_side: usize, camera: &Cam
             let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
 
             projection.model_to_normalized_device_space(&xyzw, camera)
-                .map(|v| [v.x as f32, v.y as f32])
+                .map(|v| {
+                    [v.x as f32, v.y as f32]
+                })
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -462,7 +464,7 @@ impl MOC {
                         })
                         .flatten()
                         .collect::<Vec<_>>();
-    
+
                     self.first_idx.push(self.indices.len());
                     self.num_indices.push(indices_moc.len());
     

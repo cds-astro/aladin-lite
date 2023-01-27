@@ -516,7 +516,7 @@ export let HpxImageSurvey = (function() {
         });
 
         if (Utils.isHttpsContext()) {
-            const switchToHttps = Utils.HTTPS_WHITELIIST.some(element => {
+            const switchToHttps = Utils.HTTPS_WHITELIST.some(element => {
                 return url.includes(element);
             });
             if (switchToHttps) {

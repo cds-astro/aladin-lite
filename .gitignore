@@ -7,3 +7,5 @@ examples/fits
 package-lock.json
 src/core/target/
 src/core/Cargo.lock
+
+aladin-lite-v3.tar.gz

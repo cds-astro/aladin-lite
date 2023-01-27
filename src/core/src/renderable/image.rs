@@ -171,8 +171,6 @@ impl FitsImage {
             num_moc_cells = (&moc).into_range_moc_iter().cells().count();
         }
         
-        al_core::info!(depth);
-
         let pos = vec![];
         let uv = vec![];
         let indices = vec![];
@@ -230,14 +228,12 @@ impl FitsImage {
             .filter(|x| !x.is_nan() && *x != blank)
             .collect::<Vec<_>>();
         
-        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let n = values.len();
+        let first_pct_idx = (0.05 * (n as f32)) as usize;
+        let last_pct_idx = (0.95 * (n as f32)) as usize;
 
-        let idx_1_percent = ((values.len() as f32) * 0.01) as usize;
-        let idx_99_percent = ((values.len() as f32) * 0.99) as usize;
-        let min_val = values[idx_1_percent];
-        let max_val = values[idx_99_percent];
-        //let min_val = 0.0;
-        //let max_val = 1.0;
+        let min_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, first_pct_idx);
+        let max_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, last_pct_idx);
 
         let cfg = ImageSurveyMeta {
             /// Color config

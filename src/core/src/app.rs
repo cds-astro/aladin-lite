@@ -605,9 +605,8 @@ impl App {
                 if !has_camera_moved || (Time::now() - self.start_time_frame < DeltaTime::from(24.0)) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
-                            tile_copied = true;
                             let is_tile_root = tile.is_root;
-    
+
                             if let Some(survey) = self.layers.get_mut_hips(&tile.get_hips_url()) {
                                 if is_tile_root {
                                     let is_missing = tile.missing();
@@ -627,6 +626,7 @@ impl App {
                                         Some(image)
                                     };
                                     survey.add_tile(&cell, image, time_req)?;
+                                    tile_copied = true;
 
                                     self.request_redraw = true;
                                 } else {
@@ -658,14 +658,13 @@ impl App {
                                         };
 
                                         survey.add_tile(&cell, image, time_req)?;
-        
+                                        tile_copied = true;
+
                                         self.request_redraw = true;
                                     } else {
                                         self.downloader.cache_rsc(Resource::Tile(tile));
                                     }
                                 }
-                            } else {
-                                self.downloader.cache_rsc(Resource::Tile(tile));
                             }
     
                             num_tile_received += 1;

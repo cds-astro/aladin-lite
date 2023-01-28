@@ -546,7 +546,7 @@ impl CameraViewPort {
     }
 
     pub fn set_rotation_around_center(&mut self, theta: Angle<f64>, projection: &ProjectionType) {
-        self.rotation_center_angle = if self.reversed_longitude { -theta } else { theta };
+        self.rotation_center_angle = theta;
         self.update_rot_matrices(projection);
     }
 

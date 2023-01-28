@@ -10,9 +10,6 @@ use web_sys::WebGl2RenderingContext;
 
 use al_api::cell::HEALPixCellProjeted;
 use al_api::coo_system::CooSystem;
-use al_api::blend::BlendCfg;
-use al_api::colormap::Colormap;
-use al_api::hips::{TransferFunction, GrayscaleColor, HiPSColor};
 
 use al_core::{VertexArrayObject, Texture2D};
 use al_core::WebGlContext;
@@ -51,14 +48,12 @@ pub struct FitsImage {
     gl: WebGlContext,
 
     texture: Texture2D,
-    cfg: ImageSurveyMeta,
 
     blank: f32,
     scale: f32,
     offset: f32,
 }
 
-use al_core::{inforec, log};
 impl FitsImage {
     pub fn new<'a>(
         gl: &WebGlContext,
@@ -235,22 +230,6 @@ impl FitsImage {
         let min_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, first_pct_idx);
         let max_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, last_pct_idx);
 
-        let cfg = ImageSurveyMeta {
-            /// Color config
-            color: HiPSColor::Grayscale {
-                tf: TransferFunction::Asinh,
-                min_cut: Some(min_val),
-                max_cut: Some(max_val),
-                color: GrayscaleColor::Colormap {
-                    name: Colormap::Spectral,
-                    reversed: false,
-                },
-            },
-            blend_cfg: BlendCfg::default(),
-            opacity: 0.8,
-            longitude_reversed: false,
-        };
-
         let gl = gl.clone();
         let image = FitsImage {
             vao,
@@ -263,7 +242,6 @@ impl FitsImage {
             indices,
 
             texture,
-            cfg,
             scale,
             offset,
             blank,
@@ -272,7 +250,10 @@ impl FitsImage {
         Ok(image)
     }
 
-    pub fn update_buffers(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
+    pub fn update(&mut self, camera: &CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
+        if !camera.has_moved() {
+            return Ok(());
+        }
         self.indices.clear();
         self.uv.clear();
         self.pos.clear();
@@ -347,8 +328,8 @@ impl FitsImage {
         Ok(())
     }
 
-    pub fn draw(&self, shaders: &mut ShaderManager, colormaps: &Colormaps) -> Result<(), JsValue> {
-        if self.cfg.visible() {
+    pub fn draw(&self, shaders: &mut ShaderManager, colormaps: &Colormaps, cfg: &ImageSurveyMeta) -> Result<(), JsValue> {
+        if cfg.visible() {
             self.gl.enable(WebGl2RenderingContext::BLEND);
 
             let ImageSurveyMeta {
@@ -356,7 +337,7 @@ impl FitsImage {
                 opacity,
                 blend_cfg,
                 ..
-            } = self.cfg;
+            } = cfg;
 
             // 2. Draw it if its opacity is not null
             blend_cfg.enable(&self.gl, || {
@@ -365,8 +346,8 @@ impl FitsImage {
                 shader
                     .bind(&self.gl)
                     .attach_uniforms_from(colormaps)
-                    .attach_uniforms_from(&color)
-                    .attach_uniform("opacity", &opacity)
+                    .attach_uniforms_from(color)
+                    .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", &self.texture)
                     .attach_uniform("scale", &self.scale)
                     .attach_uniform("offset", &self.offset)

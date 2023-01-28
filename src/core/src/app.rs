@@ -686,10 +686,6 @@ impl App {
                 self.manager.update(&self.camera, view);
             }*/
             self.grid.update(&self.camera, &self.projection);
-            // Update the fits images buffers
-            for image in &mut self.images {
-                image.update_buffers(&self.camera, &self.projection)?;
-            }
             // MOCs update
             self.moc.update(&self.camera, &self.projection);
         }
@@ -812,10 +808,6 @@ impl App {
 
             layers.draw(camera, shaders, colormaps, &self.projection)?;
             self.moc.draw(shaders, camera);
-
-            for image in &self.images {
-                image.draw(shaders, colormaps)?;
-            }
 
             // Draw the catalog
             //let fbo_view = &self.fbo_view;

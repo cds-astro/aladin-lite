@@ -272,33 +272,43 @@ impl Layers {
 
         let rendered_layers = &self.ids[idx_start_layer..];
         for layer in rendered_layers {
-            let meta = self.meta.get(layer).expect("Meta should be found");
-            if meta.visible() {
+            let draw_opt = self.meta.get(layer).expect("Meta should be found");
+            if draw_opt.visible() {
                 // 1. Update the survey if necessary
                 let url = self.urls.get(layer).expect("Url should be found");
-                let survey = self.surveys.get_mut(url).unwrap_abort();
-                survey.update(camera, projection);
-
-                let ImageSurveyMeta {
-                    color,
-                    opacity,
-                    blend_cfg,
-                    ..
-                } = meta;
-
-                // 2. Draw it if its opacity is not null
-                blend_cfg.enable(&self.gl, || {
-                    survey.draw(
-                        raytracer,
-                        shaders,
-                        camera,
+                if let Some(survey) = self.surveys.get_mut(url) {
+                    let ImageSurveyMeta {
                         color,
-                        *opacity,
-                        colormaps,
-                    )?;
+                        opacity,
+                        blend_cfg,
+                        ..
+                    } = draw_opt;
 
-                    Ok(())
-                })?;
+                    survey.update(camera, projection);
+
+                    // 2. Draw it if its opacity is not null
+                    blend_cfg.enable(&self.gl, || {
+                        survey.draw(
+                            raytracer,
+                            shaders,
+                            camera,
+                            color,
+                            *opacity,
+                            colormaps,
+                        )?;
+    
+                        Ok(())
+                    })?;
+                } else if let Some(image) = self.images.get_mut(url) {
+                    image.update(camera, projection)?;
+
+                    // 2. Draw it if its opacity is not null
+                    image.draw(
+                        shaders,
+                        colormaps,
+                        &draw_opt,
+                    )?;
+                }
             }
         }
 
@@ -406,6 +416,10 @@ impl Layers {
         Ok(())
     }
 
+    pub fn add_fits_image(&mut self) {
+
+    }
+
     pub fn get_layer_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
         self.meta
             .get(layer)
@@ -427,7 +441,7 @@ impl Layers {
                 }
 
                 if let Some(image) = self.get_mut_image_from_layer(&layer) {
-                    image.update_buffers(camera, projection)?;
+                    image.update(camera, projection)?;
                 }
             }
         }

@@ -1034,6 +1034,10 @@ impl App {
         self.projection.aperture_start()
     }
 
+    pub(crate) fn get_longitude_reversed(&self) -> bool {
+        self.camera.get_longitude_reversed()
+    }
+
     pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;

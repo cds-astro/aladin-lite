@@ -667,8 +667,17 @@ export let View = (function () {
                     view.fingersRotationParameters.initialFingerAngle = currentFingerAngle;
                     fingerAngleDiff = 0;
                 }
+
                 if (view.fingersRotationParameters.rotationInitiated) {
-                    view.aladin.webglAPI.setRotationAroundCenter(fingerAngleDiff + view.fingersRotationParameters.initialViewAngleFromCenter);
+                    let rotation = view.fingersRotationParameters.initialViewAngleFromCenter;
+                    if (!view.aladin.webglAPI.getLongitudeReversed()) {
+                        // spatial survey case
+                        rotation += fingerAngleDiff;
+                    } else {
+                        // planetary survey case
+                        rotation -= fingerAngleDiff;
+                    }
+                    view.aladin.webglAPI.setRotationAroundCenter(rotation);
                 }
 
                 // zoom

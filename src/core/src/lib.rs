@@ -420,6 +420,12 @@ impl WebClient {
         Ok(theta.0 * 360.0 / (2.0 * std::f64::consts::PI))
     }
 
+    /// Get if the longitude axis is reversed
+    #[wasm_bindgen(js_name = getLongitudeReversed)]
+    pub fn get_longitude_reversed(&mut self) -> bool {
+        self.app.get_longitude_reversed()
+    }
+
     /// Get the field of view angle value when the view is zoomed out to its maximum
     ///
     /// This method is dependent of the projection currently set.

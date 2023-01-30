@@ -1146,6 +1146,10 @@ export let Aladin = (function () {
         this.callbacksByEventName[what] = myFunction;
     };
 
+    Aladin.prototype.addListener = function(alEventName, customFn) {
+        new ALEvent(alEventName).listenedBy(this.aladinDiv, customFn);
+    };
+
     Aladin.prototype.select = function () {
         this.fire('selectstart');
     };

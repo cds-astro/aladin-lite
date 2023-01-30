@@ -1545,14 +1545,14 @@ Aladin.prototype.getEmbedCode = function () {
 
     var survey = this.getBaseImageLayer().id;
     var fov = this.getFov()[0];
-    var s = '';
-    s += '<link rel="stylesheet" href="https://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.css" />\n';
-    s += '<script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js" charset="utf-8"></script>\n';
-    s += '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>\n';
-    s += '<script type="text/javascript" src="https://aladin.unistra.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>\n';
-    s += '<script type="text/javascript">\n';
-    s += 'var aladin = A.aladin("#aladin-lite-div", {survey: "' + survey + 'P/DSS2/color", fov: ' + fov.toFixed(2) + ', target: "' + coo.format('s') + '"});\n';
+    let s = '';
+    const NL = "\n";
+    s += '<div id="aladin-lite-div" style="width:400px;height:400px;"></div>' + NL;
+    s += '<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>' + NL;
+    s += '<script>' + NL;
+    s += "let aladin;" + NL + "A.init.then(() => {" + NL + "   aladin = A.aladin('#aladin-lite-div', {survey: 'P/DSS2/color', fov: " + fov.toFixed(2) + ', target: "' + coo.format('s') + '"});' + NL + '});' + NL;
     s += '</script>';
+
     return s;
 };
 

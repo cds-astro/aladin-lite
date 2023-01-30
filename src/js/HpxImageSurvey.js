@@ -515,19 +515,24 @@ export let HpxImageSurvey = (function() {
             }
         });
 
-        if (Utils.isHttpsContext()) {
-            const switchToHttps = Utils.HTTPS_WHITELIST.some(element => {
-                return url.includes(element);
-            });
-            if (switchToHttps) {
-                url = url.replace('http://', 'https://');
+        let castToHTTPSUrl = ((url) => {
+            if (Utils.isHttpsContext()) {
+                const switchToHttps = Utils.HTTPS_WHITELIST.some(element => {
+                    return url.includes(element);
+                });
+                if (switchToHttps) {
+                    url = url.replace('http://', 'https://');
+                }
             }
-        }
 
+            return url;
+        });
+        url = castToHTTPSUrl(url);
+        const pastUrl = castToHTTPSUrl(metadata.hips_service_url);
         // Change the backend survey url
-        if (metadata.hips_service_url !== url) {
-            console.info("Change url of ", self.id, " from ", metadata.hips_service_url, " to ", url)
-            //self.backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
+        if (pastUrl !== url) {
+            console.info("Change url of ", self.id, " from ", pastUrl, " to ", url)
+
             if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
                 return;
             }
@@ -535,7 +540,7 @@ export let HpxImageSurvey = (function() {
             self.properties.url = url;
 
             if (self.added) {
-                self.backend.commitSurveysToBackend(self, self.layer);
+                self.backend.setHiPSUrl(pastUrl, url);
             }
         }
     }

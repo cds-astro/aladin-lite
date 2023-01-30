@@ -65,7 +65,6 @@ export let Aladin = (function () {
 
 
 
-
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise

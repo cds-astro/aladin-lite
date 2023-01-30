@@ -1610,6 +1610,14 @@ export let View = (function () {
         }
     }
 
+    View.prototype.setHiPSUrl = function (pastUrl, newUrl) {
+        try {
+            this.aladin.webglAPI.setHiPSUrl(pastUrl, newUrl);
+        } catch(e) {
+            console.error(e)
+        }
+    }
+
     View.prototype.getImageSurvey = function (layer = "base") {
         const survey = this.imageSurveys.get(layer);
         return survey;

@@ -14,8 +14,7 @@ This repo contains the Aladin Lite v3 source code and specifically the code of i
 
 # How to test it ?
 
-Aladin Lite v3 beta is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).
-The code source is currently under the `develop` branch of this repository.
+Aladin Lite v3 is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).
 
 If you want to embed it into your webpage, please include [the javascript script of Aladin Lite v3](https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js) into your project. API differences from the v2 are minimal, here is a snippet of code you can use to embed it into your webpages:
 

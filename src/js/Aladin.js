@@ -64,6 +64,8 @@ import './../css/aladin.css';
 export let Aladin = (function () {
 
 
+
+
     // Constructor
     var Aladin = function (aladinDiv, requestedOptions) {
         // check that aladinDiv exists, stop immediately otherwise
@@ -443,8 +445,10 @@ export let Aladin = (function () {
     /**** CONSTANTS ****/
     Aladin.VERSION = "3.0-beta0";
 
-    Aladin.JSONP_PROXY = "https://alasky.unistra.fr/cgi/JSONProxy";
+    Aladin.JSONP_PROXY = "https://alasky.cds.unistra.fr/cgi/JSONProxy";
     //Aladin.JSONP_PROXY = "https://alaskybis.unistra.fr/cgi/JSONProxy";
+
+    Aladin.URL_PREVIEWER = 'https://aladin.cds.unistra.fr/AladinLite/';
 
     // access to WASM libraries
     Aladin.wasmLibs = {};
@@ -1524,7 +1528,7 @@ Aladin.prototype.getShareURL = function () {
     coo.lon = radec[0];
     coo.lat = radec[1];
 
-    return 'https://aladin.unistra.fr/AladinLite/?target=' + encodeURIComponent(coo.format('s')) +
+    return Aladin.URL_PREVIEWER + encodeURIComponent(coo.format('s')) +
         '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
 };
 

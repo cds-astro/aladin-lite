@@ -28,11 +28,13 @@
  * 
  *****************************************************************************/
 
-ColorMap = (function() {
+import { AladinUtils } from "./AladinUtils.js";
+
+export let ColorMap = (function() {
     
     
     // constructor
-    ColorMap = function(view) {
+    let ColorMap = function(view) {
         this.view = view;
         this.reversed = false;
         this.mapName = 'native';
@@ -255,7 +257,7 @@ ColorMap.MAPS = {};
             pixelData[i + 2] = c;
             
         }
-        imageData.data = pixelData;
+        //imageData.data = pixelData;  // not needed, and create an error in strict mode !
         ctx.putImageData(imageData, 0, 0);
         
         // cache image with color map applied

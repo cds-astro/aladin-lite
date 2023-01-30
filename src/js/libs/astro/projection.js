@@ -1,4 +1,7 @@
-function Projection(lon0, lat0) {
+
+import { AstroMath } from "./astroMath.js";
+
+export let Projection = function(lon0, lat0) {
 	this.PROJECTION = Projection.PROJ_TAN;
 	this.ROT = this.tr_oR(lon0, lat0);
 
@@ -26,7 +29,8 @@ Projection.PROJ_LAM = 9;	/* Lambert Projection	*/
 Projection.PROJ_LAMBERT = 9;	
 Projection.PROJ_TSC = 10;	/* Tangent Sph. Cube	*/
 Projection.PROJ_QSC = 11;	/* QuadCube Sph. Cube	*/
-
+Projection.PROJ_MOLLWEIDE = 12;
+Projection.PROJ_HEALPIX = 13; /* HEALPix, not implemented */
 Projection.PROJ_LIST = [
 	"Mercator",Projection.PROJ_MERCATOR,
 	"Gnomonic",Projection.PROJ_TAN,

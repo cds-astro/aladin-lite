@@ -33,9 +33,12 @@
  * 
  *****************************************************************************/
 
-Polyline= (function() {
+import { AladinUtils } from './AladinUtils.js';
+import { Line } from './Line.js';
+
+export let Polyline= (function() {
     // constructor
-    Polyline = function(radecArray, options) {
+    let Polyline = function(radecArray, options) {
         options = options || {};
         this.color = options['color'] || "white";
         this.lineWidth = options["lineWidth"] || 2;
@@ -107,7 +110,7 @@ Polyline= (function() {
         this.overlay.reportChange();
     };
     
-    Polyline.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Polyline.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor) {
         if (! this.isShowing) {
             return;
         }
@@ -115,51 +118,34 @@ Polyline= (function() {
         if (! this.radecArray || this.radecArray.length<2) {
             return;
         }
-        
+
         if (this.color) {
             ctx.strokeStyle= this.color;
         }
-        var start = AladinUtils.radecToViewXy(this.radecArray[0][0], this.radecArray[0][1], projection, frame, width, height, largestDim, zoomFactor);
 
-        for (var k = 0; k < this.radecArray.length; k++) {
-            start = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
-            if (start) {
-                break;
+        var xyviewArray = [];
+        for (var k=0, len=this.radecArray.length; k<len; k++) {
+            var xyview = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], view);
+            if (!xyview) {
+                return;
             }
+
+            xyviewArray.push(xyview);
         }
-        if (!start) {
-            return;
-        }
-      
-        ctx.moveTo(start.vx, start.vy);
-        var pt;
-        var newSeg = false;
-        var drawingNewSeg = true;
-        for (var k = 1; k < this.radecArray.length; k++) {
-            pt = AladinUtils.radecToViewXy(this.radecArray[k][0], this.radecArray[k][1], projection, frame, width, height, largestDim, zoomFactor);
-            if (!pt) {
-                if (drawingNewSeg) {
-                    //console.log("closing segment");
-                    ctx.stroke();
-                }
-                drawingNewSeg = false;
-                newSeg = true;
+        
+        ctx.lineWidth = this.lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             } else {
-                if (newSeg) {
-                    //console.log ("starting newSeg at "+pt.vx+" "+pt.vy);
-                    drawingNewSeg = true;
-                    ctx.beginPath();
-                    ctx.lineWidth = this.lineWidth;
-                    ctx.moveTo(pt.vx, pt.vy);
-                    newSeg = false;
-                } else {
-                    ctx.lineTo(pt.vx, pt.vy);
-                }
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             }
-
         }
         ctx.stroke();
     };
-    
+
     return Polyline;
 })();

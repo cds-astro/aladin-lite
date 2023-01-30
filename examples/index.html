@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+</head>
+<body>
+<div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    var aladin;
+    A.init.then(() => {
+        /*aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        aladin.setProjection('MOL');
+
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {
+            imgFormat: 'fits',
+            colormap: 'redtemperature',
+            stretch: 'Asinh'
+        });*/
+
+        /*aladin = A.aladin('#aladin-lite-div', {fov: 360, fullScreen: true, cooFrame: 'galactic'});
+        aladin.setProjection('AIT');
+
+        aladin.setBaseImageLayer("P/PanSTARRS/DR1/g", {imgFormat: "fits"});
+        aladin.getBaseImageLayer().setColormap('redtemperature', {stretch: "Asinh"});*/
+
+        aladin = A.aladin('#aladin-lite-div', {fov: 360, projection: "AIT", fullScreen: true, expandLayersControl: true, cooFrame: 'equatorial', showProjectionControl: true, showCooGridControl: true, showSimbadPointerControl: true, showCooGrid: false});
+        //aladin.setProjection('AIT');
+
+        //let survey = aladin.createImageSurvey("P/PanSTARRS/DR1/g", null, null, null, null, );
+        /*aladin.setBaseImageLayer("P/PanSTARRS/DR1/g");
+        aladin.getBaseImageLayer().setColormap('viridis', {stretch: "Asinh"});*/
+
+        // manage URL parameters
+        const searchParams = new URL(document.location).searchParams;
+        if (searchParams.has('baseImageLayer')) {
+            aladin.setBaseImageLayer(searchParams.get('baseImageLayer'));
+        }
+        if (searchParams.has('overlayImageLayer')) {
+            aladin.setOverlayImageLayer(searchParams.get('overlayImageLayer'));
+        }
+        if (searchParams.has('cooFrame')) {
+            aladin.setFrame(searchParams.get('cooFrame'));
+        }
+        if (searchParams.has('fov')) {
+            aladin.setFoV(parseFloat(searchParams.get('fov')));
+        }
+        if (searchParams.has('ra') && searchParams.has('dec')) {
+            aladin.gotoRaDec(parseFloat(searchParams.get('ra')), parseFloat(searchParams.get('dec')));
+        }
+        if (searchParams.has('showReticle')) {
+            aladin.showReticle(searchParams.get('showReticle')==='true');
+        }
+        if (searchParams.has('projection')) {
+            aladin.setProjection(searchParams.get('projection'));
+        }
+        if (searchParams.has('showCooGrid')) {
+            const b = searchParams.get('showCooGrid') === 'true';
+            aladin.view.setGridConfig({
+                enabled: b
+            });
+
+            aladin.view.showCooGrid = b;
+        }
+
+
+    });
+</script>
+
+</body>
+</html>

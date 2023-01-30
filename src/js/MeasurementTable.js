@@ -30,11 +30,12 @@
  * 
  *****************************************************************************/
 
-MeasurementTable = (function() {
+import $ from 'jquery';
 
+export let MeasurementTable = (function() {
 
     // constructor
-    MeasurementTable = function(aladinLiteDiv) {
+    function MeasurementTable(aladinLiteDiv) {
         this.isShowing = false;
 
         this.divEl = $('<div class="aladin-measurement-div"></div>');
@@ -47,7 +48,7 @@ MeasurementTable = (function() {
         this.divEl.empty();
         var header = '<thead><tr>';
         var content = '<tr>';
-        for (key in source.data) {
+        for (let key in source.data) {
             header += '<th>' + key + '</th>';
             content += '<td>' + source.data[key] + '</td>';
         }

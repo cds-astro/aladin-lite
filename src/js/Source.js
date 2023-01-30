@@ -28,9 +28,9 @@
  * 
  *****************************************************************************/
 
-cds.Source = (function() {
+export let Source = (function() {
     // constructor
-    cds.Source = function(ra, dec, data, options) {
+    let Source = function(ra, dec, data, options) {
     	this.ra = ra;
     	this.dec = dec;
     	this.data = data;
@@ -47,11 +47,11 @@ cds.Source = (function() {
     	this.isSelected = false;
     };
     
-    cds.Source.prototype.setCatalog = function(catalog) {
+    Source.prototype.setCatalog = function(catalog) {
         this.catalog = catalog;
     };
     
-    cds.Source.prototype.show = function() {
+    Source.prototype.show = function() {
         if (this.isShowing) {
             return;
         }
@@ -61,7 +61,7 @@ cds.Source = (function() {
         }
     };
     
-    cds.Source.prototype.hide = function() {
+    Source.prototype.hide = function() {
         if (! this.isShowing) {
             return;
         }
@@ -71,7 +71,7 @@ cds.Source = (function() {
         }
     };
     
-    cds.Source.prototype.select = function() {
+    Source.prototype.select = function() {
         if (this.isSelected) {
             return;
         }
@@ -81,7 +81,7 @@ cds.Source = (function() {
         }
     };
     
-    cds.Source.prototype.deselect = function() {
+    Source.prototype.deselect = function() {
         if (! this.isSelected) {
             return;
         }
@@ -92,7 +92,7 @@ cds.Source = (function() {
     };
 
     // function called when a source is clicked. Called by the View object
-    cds.Source.prototype.actionClicked = function() {
+    Source.prototype.actionClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             var view = this.catalog.view;
             if (this.catalog.onClick=='showTable') {
@@ -121,11 +121,11 @@ cds.Source = (function() {
     };
 
     
-    cds.Source.prototype.actionOtherObjectClicked = function() {
+    Source.prototype.actionOtherObjectClicked = function() {
         if (this.catalog && this.catalog.onClick) {
             this.deselect();
         }
     };
     
-    return cds.Source;
+    return Source;
 })();

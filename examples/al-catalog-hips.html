@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {target: 'LMC', fov: 55});
+        var hips = A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', {onClick: 'showTable', name: 'Simbad'});
+        aladin.addCatalog(hips);
+    });
+</script>
+
+</body>
+</html>
+
+

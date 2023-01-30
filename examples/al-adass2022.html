@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: ["P/PanSTARRS/DR1/color-i-r-g"], showReticle: false, gridOptions: {opacity: 0.5}, projection: "AIT", cooFrame: 'galactic', target: "93.2721132 -20.9942421", fov: 1000, showGotoControl: false, showFrame: false, fullScreen: true, showLayersControl: false, showCooGrid: false, showCooGridControl: false});
+
+        const chft = aladin.createImageSurvey('CFHT', "CFHT deep view of NGC7331 and Stephan's quintet u+g+r", "https://cds.unistra.fr/~derriere/PR_HiPS/2022_Duc/", null, null, {imgFormat: 'png'});
+        const nircamJWST = aladin.createImageSurvey('Nircam', "Stephans Quintet NIRCam+MIRI", "http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI/", null, null, {imgFormat: 'png'});
+        
+        aladin.setOverlayImageLayer("CFHT", "CFHT");
+        aladin.setOverlayImageLayer("Nircam", "Nircam");
+
+        aladin.getOverlayImageLayer("CFHT").toggle();
+        aladin.getOverlayImageLayer("Nircam").toggle();
+
+        let fov = 1000;
+        let rotation = 0;
+
+        setInterval(function zoom() {
+            if (fov > 0.07) {
+                fov *= 0.997;
+                rotation += 0.07;
+
+                aladin.setRotation(rotation)
+                aladin.setFov(fov);
+
+                if (fov < 3 && fov > 0.5) {
+                    let opacity = 1.0 - (fov - 0.5)/(3 - 0.5); 
+                    aladin.getOverlayImageLayer("CFHT").setOpacity(opacity);
+                }
+
+                if (fov < 0.5 && fov > 0.1) {
+                    let opacity = 1.0 - (fov - 0.1)/(0.5 - 0.1); 
+                    aladin.getOverlayImageLayer("Nircam").setOpacity(opacity);
+                }
+            }
+        }, 10);
+
+        setInterval(function () {
+            const t = Date.now() / 1000;
+            let lambda = Math.sin(t) * 0.5 + 0.5;
+        })
+    });
+</script>
+
+</body>
+</html>

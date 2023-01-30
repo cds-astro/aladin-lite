@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+    <!-- Recommendation for users smartphone/tablets users -->
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>Explore Gaia DR3 in Aladin Lite</title>
+  </head>
+
+  <body>
+    <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
+    <form class="pure-form pure-form-stacked">
+        <fieldset>
+          <label for="option-gdr3-flux-color-map" class="pure-radio">
+            <input id="option-gdr3-flux-color-map" type="radio" name="img-hips" value="CDS/P/DM/flux-color-Rp-G-Bp/I/350/gaiaedr3" checked>
+            Gaia DR3 flux map
+          </label>
+          <label for="option-gdr3-density-map" class="pure-radio">
+            <input id="option-gdr3-density-map" type="radio" name="img-hips" value="CDS/P/DM/I/350/gaiaedr3">
+            Gaia DR3 density map
+          </label>
+          <label for="option-DSS-map" class="pure-radio">
+            <input id="option-DSS-map" type="radio" name="img-hips" value="P/DSS2/color">
+            DSS Color
+          </label>
+          <label for="option-PS1-map" class="pure-radio">
+            <input id="option-PS1-map" type="radio" name="img-hips" value="P/PanSTARRS/DR1/color-z-zg-g">
+            Pan-STARRS
+          </label>
+
+        </fieldset>
+      </form>
+
+  </body>
+
+  <script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+  <script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+  <script type="text/javascript">
+    $('#layersControl').show();
+
+    var curSelectedSource = null;
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', { fov: 100, cooFrame: 'galactic', fullscreen: true, showSimbadPointerControl: true });
+        aladin.gotoRaDec(297.87, 25.96);
+        aladin.setProjection('MOL');
+
+        const fluxMap = aladin.createImageSurvey('gdr3-color-flux-map', 'Gaia DR3 flux map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/color-Rp-G-Bp-flux-map', 'equatorial', 7);
+        const densityMap = aladin.createImageSurvey('gdr3-density-map', 'Gaia DR3 density map', 'https://alasky.u-strasbg.fr/ancillary/GaiaEDR3/density-map', 'equatorial', 7, {imgFormat: 'fits'});
+
+        aladin.setImageSurvey(fluxMap);
+
+        var hipsCats = {
+            //'gdr3': A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/I/355/gaiadr3', { name: 'Gaia DR3 sources', shape: 'circle', sourceSize: 8, color: '#d66bae' }),
+            'simbad': A.catalogHiPS('https://axel.u-strasbg.fr/HiPSCatService/Simbad', { name: 'Simbad', color: '#6dbdce' })
+        };
+
+        hipsCats['simbad'].hide();
+
+        aladin.addCatalog(hipsCats['simbad']);
+        //aladin.addCatalog(hipsCats['gdr3']);
+
+        cmDensMapChanged = false;
+        // listen changes on HiPS image background selection
+        $('input[type=radio][name=img-hips]').change(function () {
+            if (this.value == 'CDS/P/DM/I/350/gaiaedr3') {
+                aladin.setBaseImageLayer(densityMap);
+            }
+            else if (this.value == "CDS/P/DM/flux-color-Rp-G-Bp/I/350/gaiaedr3") {
+                aladin.setBaseImageLayer(fluxMap);
+            } else {
+                aladin.setBaseImageLayer(this.value)
+            }
+        });
+
+
+        // listen changes on HiPS catalogues selection
+        $('#overlay-form :checkbox').change(function () {
+            var cat = hipsCats[this.value];
+
+            if (this.checked) {
+                cat.show();
+            }
+            else {
+                cat.hide();
+            }
+        });
+
+        // listen to click on objects
+        aladin.on('objectClicked', function (source) {
+            var html = '<table class="pure-table">';
+
+            if (curSelectedSource != null) {
+                curSelectedSource.deselect();
+            }
+            if (source == null) {
+                $('#explain').html('');
+                $('#explain').hide();
+                return;
+            }
+
+            source.select();
+            curSelectedSource = source;
+            html += '<tbody>';
+            if (source.catalog.name !== 'Simbad') {
+                html += '<h3>Gaia DR3 <em>' + source.data.Source + '</em></h3>';
+                html += '<tr class="pure-table-odd"><td><b>ra</b></td><td>' + source.data.RAdeg + '</td><td><em>deg</em></td></tr>';
+                html += '<tr><td><b>dec</b></td><td>' + source.data.dec + '</td><td><em>deg</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>parallax</b></td><td>' + source.data['parallax'] + '</td><td><em>mas</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>pmra</b></td><td>' + source.data['pmra'] + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>pmdec</b></td><td>' + source.data['pmdec'] + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>Gmag</b></td><td>' + source.data['phot_g_mean_mag'] + '</td><td><em>mag</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>Bpmag</b></td><td>' + source.data['phot_bp_mean_mag'] + '</td><td><em>mag</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>Rpmag</b></td><td>' + source.data['phot_rp_mean_mag'] + '</td><td><em>mag</em></td></tr>';
+                html += '</tbody>';
+                html += '</table>';
+
+                html += '<br/><a target="_blank" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-out.form=%2bH&-source=I/350/gaiaedr3&Source=' + source.data.source_id + '">More details</a>';
+            }
+            else {
+                console.log(source.data);
+                html += '<h3>Simbad object <em>' + source.data.main_id + '</em></h3>';
+                html += '<tr class="pure-table-odd"><td><b>ra</b></td><td>' + source.data.ra + '</td><td><em>deg</em></td></tr>';
+                html += '<tr><td><b>dec</b></td><td>' + source.data.dec + '</td><td><em>deg</em></td></tr>';
+                html += '<tr><td><b>main_type</b></td><td>' + source.data.main_type + '</td><td><em>deg</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>pmra</b></td><td>' + source.data.pmra + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr><td><b>pmdec</b></td><td>' + source.data.pmdec + '</td><td><em>mas/yr</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>parallax</b></td><td>' + source.data.plx + '</td><td><em>mas</em></td></tr>';
+                html += '<tr><td><b>B mag.</b></td><td>' + source.data.B + '</td><td><em>mag</em></td></tr>';
+                html += '<tr class="pure-table-odd"><td><b>V mag.</b></td><td>' + source.data.V + '</td><td><em>mag</em></td></tr>';
+                html += '</tbody>';
+                html += '</table>';
+
+                html += '<br/><a target="_blank" href="https://simbad.u-strasbg.fr/simbad/sim-id?Ident=' + encodeURIComponent(source.data.main_id) + '">More details</a>';
+            }
+
+
+            $('#explain').html(html);
+            $('#explain').show();
+
+        });
+    });
+</script>
+</html>

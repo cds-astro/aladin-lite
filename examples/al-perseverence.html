@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  let aladin;
+  A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {
+            fov: 360,
+            target: '0 0',
+            fullScreen: true,
+            survey: "CDS/P/Mars/Pan-Perseverance-PIA24422",
+            showCooGrid: true,
+            showCooGridControl: true,
+        });
+        aladin.setProjection('MER');
+  });
+</script>
+
+</body>
+</html>

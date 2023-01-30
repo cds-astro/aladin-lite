@@ -1,0 +1,128 @@
+[package]
+name = "aladin-lite"
+description = "Aladin Lite v3 introduces a new graphical engine written in Rust with the use of WebGL"
+license = "BSD-3-Clause"
+repository = "https://github.com/cds-astro/aladin-lite"
+version = "0.1.0"
+authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
+edition = "2018"
+
+[workspace]
+members = [
+    "al-core",
+    "al-api",
+    "al-task-exec",
+]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+getrandom = {version="0.2", features = ["js"]}
+rand = {version = "0.8.5", features = ["getrandom"]}
+futures = "0.3.12"
+js-sys = "0.3.47"
+wasm-bindgen-futures = "0.4.20"
+cgmath = "*"
+cdshealpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-healpix-rust', branch = 'master' }
+moclib = { package = "moc", git = 'https://github.com/cds-astro/cds-moc-rust', branch = 'main' }
+serde = { version = "^1.0.59", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.4"
+console_error_panic_hook = "0.1.7"
+fitsrs = "0.1.1"
+enum_dispatch = "0.3.8"
+wasm-bindgen = "0.2.79"
+wasm-streams = "0.3.0"
+al-core = { path = "./al-core" }
+al-task-exec = { path = "./al-task-exec" }
+al-api = { path = "./al-api" }
+mapproj = "0.3.0"
+wcs = "0.1.1"
+
+[features]
+webgl1 = [
+  "al-core/webgl1",
+  #"al-ui/webgl1",
+  "al-api/webgl1",
+  "web-sys/WebGlRenderingContext",
+  "web-sys/AngleInstancedArrays",   # Enabling instancing features
+  "web-sys/ExtSRgb",                # Enabling SRGB8_ALPHA8 internal format
+  "web-sys/OesTextureFloat"
+]
+webgl2 = [
+  "al-core/webgl2",
+  #"al-ui/webgl2",
+  "al-api/webgl2",
+  "web-sys/WebGl2RenderingContext",
+  "web-sys/WebGlVertexArrayObject",
+  "web-sys/ExtColorBufferFloat",
+]
+
+[dependencies.web-sys]
+version = "0.3.56"
+features = [
+  'console',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'HtmlCollection',
+  'HtmlElement',
+  'HtmlImageElement',
+  'HtmlCanvasElement',
+  'Blob',
+  'ImageBitmap',
+  'ImageData',
+
+  'CanvasRenderingContext2d',
+
+  'WebGlBuffer',
+  'WebGlContextAttributes',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlShader',
+  'WebGlUniformLocation',
+  'WebGlTexture',
+  'WebGlActiveInfo',
+
+  'Window',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'XmlHttpRequest',
+  'XmlHttpRequestResponseType',
+  'PerformanceTiming',
+  'Performance',
+  'Url',
+  'ReadableStream',
+]
+
+[dev-dependencies]
+image-decoder = { package = "image", version = "0.24.2", default-features = false, features = ["jpeg", "png"] }
+rand = "0.8"
+
+[profile.dev]
+opt-level = 3
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = true
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true

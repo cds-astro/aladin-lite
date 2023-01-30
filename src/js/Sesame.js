@@ -28,8 +28,12 @@
  * 
  *****************************************************************************/
 
-Sesame = (function() {
-    Sesame = {};
+import { Utils } from "./Utils.js";
+
+import $ from 'jquery';
+
+export let Sesame = (function() {
+    let Sesame = {};
     
     Sesame.cache = {};
 

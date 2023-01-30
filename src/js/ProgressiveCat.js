@@ -27,18 +27,27 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
+import { Catalog } from "./Catalog.js";
+import { Source } from "./Source.js";
+import { Color } from "./Color.js";
+import { Coo } from "./libs/astro/coo.js";
+import { Utils } from "./Utils.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+
+import $ from 'jquery';
 
 // TODO: index sources according to their HEALPix ipix
 // TODO : merge parsing with class Catalog
-ProgressiveCat = (function() {
+export let ProgressiveCat = (function() {
     
     // TODO : test if CORS support. If no, need to pass through a proxy
     // currently, we suppose CORS is supported
     
     // constructor
-    ProgressiveCat = function(rootUrl, frameStr, maxOrder, options) {
+    let ProgressiveCat = function(rootUrl, frameStr, maxOrder, options) {
         options = options || {};
 
+        this.uuid = Utils.uuidv4();
         this.type = 'progressivecat';
         
         this.rootUrl = rootUrl; // TODO: method to sanitize rootURL (absolute, no duplicate slashes, remove end slash if existing)
@@ -68,7 +77,7 @@ ProgressiveCat = (function() {
         
 
         // we cache the list of sources in each healpix tile. Key of the cache is norder+'-'+npix
-        this.sourcesCache = new Utils.LRUCache(100);
+        this.sourcesCache = new Utils.LRUCache(256);
 
         this.updateShape(options);
 
@@ -164,7 +173,7 @@ ProgressiveCat = (function() {
         if (!instance.keyRa || ! instance.keyDec) {
             return [];
         }
-        lines = csv.split('\n');
+        var lines = csv.split('\n');
         var mesureKeys = [];
         for (var k=0; k<fields.length; k++) {
             if (fields[k].name) {
@@ -199,14 +208,14 @@ ProgressiveCat = (function() {
                 ra = coo.lon;
                 dec = coo.lat;
             }
-            newSource = new cds.Source(ra, dec, mesures);
+            newSource = new Source(ra, dec, mesures);
             sources.push(newSource);
             newSource.setCatalog(instance);
         }
         return sources;
     };
 
-    //ProgressiveCat.prototype.updateShape = cds.Catalog.prototype.updateShape;
+    //ProgressiveCat.prototype.updateShape = Catalog.prototype.updateShape;
 
     ProgressiveCat.prototype = {
 
@@ -233,7 +242,7 @@ ProgressiveCat = (function() {
             }
         },
 
-        updateShape: cds.Catalog.prototype.updateShape,
+        updateShape: Catalog.prototype.updateShape,
 
         _loadMetadata: function() {
             var self = this;
@@ -334,31 +343,30 @@ ProgressiveCat = (function() {
             this.loadNeededTiles();
         },
 
-        draw: function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        draw: function(ctx, frame, width, height, largestDim, zoomFactor) {
             if (! this.isShowing || ! this.isReady) {
                 return;
             }
-            this.drawSources(this.order1Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
-            this.drawSources(this.order2Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
-            this.drawSources(this.order3Sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+
+            this.drawSources(this.order1Sources, ctx, width, height);
+            this.drawSources(this.order2Sources, ctx, width, height);
+            this.drawSources(this.order3Sources, ctx, width, height);
             
             if (!this.tilesInView) {
                 return;
             }
+
             var sources, key, t;
             for (var k=0; k<this.tilesInView.length; k++) {
                 t = this.tilesInView[k];
                 key = t[0] + '-' + t[1];
                 sources = this.sourcesCache.get(key);
                 if (sources) {
-                    this.drawSources(sources, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                    this.drawSources(sources, ctx, width, height);
                 }
             }
-            
-            
-            
         },
-        drawSources: function(sources, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+        drawSources: function(sources, ctx, width, height) {
             if (! sources) {
                 return;
             }
@@ -366,16 +374,17 @@ ProgressiveCat = (function() {
             for (var k=0, len = sources.length; k<len; k++) {
                 s = sources[k];
                 if (!this.filterFn || this.filterFn(s)) {
-                    cds.Catalog.drawSource(this, s, ctx, projection, frame, width, height, largestDim, zoomFactor);
+                    Catalog.drawSource(this, s, ctx, width, height);
                 }
             }
+            var s;
             for (var k=0, len = sources.length; k<len; k++) {
                 s = sources[k];
                 if (! s.isSelected) {
                     continue;
                 }
                 if (!this.filterFn || this.filterFn(s)) {
-                    cds.Catalog.drawSourceSelection(this, s, ctx);
+                    Catalog.drawSourceSelection(this, s, ctx);
                 }
             }
         },
@@ -475,7 +484,8 @@ ProgressiveCat = (function() {
             if (norder<=this.maxOrderAllsky) {
                 return; // nothing to do, hurrayh !
             }
-            var cells = this.view.getVisibleCells(norder, this.frame);
+            var cells = this.view.getVisibleCells(norder);
+
             var ipixList, ipix;
             for (var curOrder=3; curOrder<=norder; curOrder++) {
                 ipixList = [];

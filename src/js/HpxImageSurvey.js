@@ -24,979 +24,1068 @@
  * 
  * File HpxImageSurvey
  * 
- * Author: Thomas Boch [CDS]
+ * Authors: Thomas Boch & Matthieu Baumann [CDS]
  * 
  *****************************************************************************/
+import { Utils } from "./Utils.js";
+import { HiPSDefinition} from "./HiPSDefinition.js";
+import { ALEvent } from "./events/ALEvent.js";
+import { CooFrameEnum } from "./CooFrameEnum.js"
+import { Aladin } from "./Aladin.js";
+import { MocServer } from "./MocServer.js";
 
-HpxImageSurvey = (function() {
+export async function fetchSurveyProperties(rootURLOrId) {
+    if (!rootURLOrId) {
+        throw 'An hosting survey URL or an ID (i.e. DSS2/red) must be given';
+    }
 
+    let isUrl = false;
+    if (rootURLOrId.includes("http")) {
+        isUrl = true;
+    }
 
+    const request = async (url) => {
+        const response = await fetch(url);
+        const json = await response.json();
+
+        return json;
+    };
+
+    let metadata = {};
+    // If an HiPS id has been given
+    if (!isUrl) {
+        // Use the MOCServer to retrieve the
+        // properties
+        const id = rootURLOrId;
+        const params = {
+            get: "record",
+            fmt: "json",
+            ID: "*" + id + "*",
+        };
+
+        metadata = await Utils.loadFromMirrors(MocServer.MIRRORS_HTTPS, {
+            data: params,
+        }).then(response => response.json());
+
+        // We get the property here
+        // 1. Ensure there is exactly one survey matching
+        if (!metadata || metadata.length == 0) {
+            throw 'No surveys matching have been found for the id: ' + id;
+        } else {
+            if (metadata.length > 1) {
+                let ids = [];
+                let surveyFound = false;
+                for (let i = 0; i < metadata.length; i++) {
+                    ids.push(metadata[i].ID)
+                    if (metadata[i].ID === id) {
+                        metadata = metadata[i];
+                        surveyFound = true;
+                        break;
+                    }
+                }
+
+                if (!surveyFound) {
+                    metadata = metadata[0];
+                    console.warn(ids + ' surveys are matching. Please use one from this list. The chosen one is: ' + metadata);
+                }
+            } else {
+                // Exactly one matching
+                metadata = metadata[0];
+            }
+        }
+    } else {
+        // Fetch the properties of the survey
+        let rootURL = rootURLOrId;
+        // Use the url for retrieving the HiPS properties
+        // remove final slash
+        if (rootURL.slice(-1) === '/') {
+            rootURL = rootURL.substr(0, rootURL.length-1);
+        }
+
+        // make URL absolute
+        rootURL = Utils.getAbsoluteURL(rootURL);
+
+        // fix for HTTPS support --> will work for all HiPS served by CDS
+        rootURL = Utils.fixURLForHTTPS(rootURL)
+
+        const url = rootURL + '/properties';
+        metadata = await fetch(url)
+            .then((response) => response.text());
+        // We get the property here
+        metadata = HiPSDefinition.parseHiPSProperties(metadata);
+
+        // 1. Ensure there is exactly one survey matching
+        if (!metadata) {
+            throw 'No surveys matching at this url: ' + rootURL;
+        }
+        // Set the service url if not found
+        metadata.hips_service_url = rootURLOrId;
+    }
+
+    return metadata;
+}
+
+export let HpxImageSurvey = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
      * They will be determined by reading the properties file
      *  
      */
-    var HpxImageSurvey = function(idOrHiPSDefinition, name, rootUrl, cooFrame, maxOrder, options) {
-        // new way
-        if (idOrHiPSDefinition instanceof HiPSDefinition) {
-            this.hipsDefinition = idOrHiPSDefinition;
-
-        }
-
-        else {
-// REPRENDRE LA,  EN CREANT l'OBJET HiPSDefinition ou FAIRE dans l'autre sens
-            // old way, we retrofit parameters into a HiPSDefinition object
-            var hipsDefProps = {};
-
-            this.id = idOrHiPSDefinition;
-            hipsDefProps['ID'] = this.id;
-
-    	    this.name = name;
-            hipsDefProps['obs_title'] = this.name;
-
-            // remove final slash
-    	    if (rootUrl.slice(-1) === '/') {
-    	        this.rootUrl = rootUrl.substr(0, rootUrl.length-1);
-    	    }
-    	    else {
-    	        this.rootUrl = rootUrl;
-    	    }
-            this.additionalParams = (options && options.additionalParams) || null; // parameters for cut, stretch, etc
-
-            // make URL absolute
-            this.rootUrl = Utils.getAbsoluteURL(this.rootUrl);
-
-            // fast fix for HTTPS support --> will work for all HiPS served by CDS
-            if (Utils.isHttpsContext() && ( /u-strasbg.fr/i.test(this.rootUrl) || /unistra.fr/i.test(this.rootUrl)  ) ) {
-                this.rootUrl = this.rootUrl.replace('http://', 'https://');
-            }
-
-            // temporary fix when alasky is under maintenance
-            //this.rootUrl = this.rootUrl.replace('alasky.', 'alaskybis.');
-    	
-    	    options = options || {};
-    	    // TODO : support PNG
-    	    this.imgFormat = options.imgFormat || 'jpg';
-
-            // permet de forcer l'affichage d'un certain niveau
-            this.minOrder = options.minOrder || null;
-
-
-            // TODO : lire depuis fichier properties
-            this.cooFrame = CooFrameEnum.fromString(cooFrame, CooFrameEnum.J2000);
-
-            this.longitudeReversed = options.longitudeReversed || false;
+    function HpxImageSurvey(id, name, rootURL, view, options) {
+        // A reference to the view
+        this.backend = view;
+        // A number used to ensure the correct layer ordering in the aladin lite view
+        this.orderIdx = null;
+        // Set to true once its metadata has been received
+        this.ready = false;
+        // Name of the layer
+        this.layer = null;
+        this.added = false;
+        this.id = id;
+        this.name = name;
+        // Default options
+        this.options = options || {};
         
-            // force coo frame for Glimpse 360
-            if (this.rootUrl.indexOf('/glimpse360/aladin/data')>=0) {
-                this.cooFrame = CooFrameEnum.J2000;
-            }
-            // TODO : lire depuis fichier properties
-            this.maxOrder = maxOrder;
+        if (this.options.imgFormat) {
+            // Img format preprocessing
+            // transform to upper case
+            this.options.imgFormat = this.options.imgFormat.toLowerCase();
 
-            this.hipsDefinition = HiPSDefinition.fromProperties(hipsDefProps);
-        }
-
-        this.ascendingLongitude = false;
-    	
-        this.tileSize = undefined;
-    	this.allskyTexture = null;
-    	this.alpha = 0.0; // opacity value between 0 and 1 (if this layer is an opacity layer)
-    	this.allskyTextureSize = 0;
-        this.lastUpdateDateNeededTiles = 0;
-
-        var found = false;
-        for (var k=0; k<HpxImageSurvey.SURVEYS.length; k++) {
-            if (HpxImageSurvey.SURVEYS[k].id==this.id) {
-                found = true;
+            // convert JPG -> JPEG
+            if (this.options.imgFormat === "jpg") {
+                this.options.imgFormat = "jpeg";
             }
         }
-        if (! found) {
+
+        if (this.options.imgFormat === 'fits') {
+            //tileFormat = "FITS";
+            this.fits = true;
+        } else if (this.options.imgFormat === "png") {
+            //tileFormat = "PNG";
+            this.fits = false;
+        } else {
+            // jpeg default case
+            //tileFormat = "JPG";
+            this.fits = false;
+        }
+
+        if (this.options.longitudeReversed === undefined) {
+            this.options.longitudeReversed = false;
+        }
+
+        if (this.options.opacity === undefined) {
+            this.options.opacity = 1.0;
+        }
+
+        let idxSelectedHiPS = 0;
+        const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
+            let res = this.id.endsWith(s.id);
+            if (!res) {
+                idxSelectedHiPS += 1;
+            }
+
+            return res;
+        });
+        // The survey has not been found among the ones cached
+        if (!surveyFound) {
             HpxImageSurvey.SURVEYS.push({
-                 "id": this.id,
-                 "url": this.rootUrl,
-                 "name": this.name,
-                 "maxOrder": this.maxOrder,
-                 "frame": this.cooFrame
+                id: this.id,
+                name: this.name,
+                options: this.options
             });
+        } else {
+            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+            surveyDef.options = this.options;
         }
-        HpxImageSurvey.SURVEYS_OBJECTS[this.id] = this;
-    };
 
+        this.updateMeta();
+        let self = this;
+        (async () => {
+            try {
+                const metadata = await fetchSurveyProperties(rootURL || id);
+                // HiPS url
+                self.name = self.name || metadata.obs_title;
+                // Run this async, when it completes, reset the properties url
+                self.searchForValidSurveyUrl(metadata);
+                let url = metadata.hips_service_url;
 
+                if (!url) {
+                    throw 'no valid service URL for retrieving the tiles'
+                }
 
-    HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY = 1000; // in milliseconds
-    
-    HpxImageSurvey.prototype.init = function(view, callback) {
-    	this.view = view;
-    	
-        if (!this.cm) {
-            this.cm = new ColorMap(this.view);
-        }
-    	
-    	// tileBuffer is now shared across different image surveys
-    	//this.tileBuffer = new TileBuffer();
-    	this.tileBuffer = this.view.tileBuffer;
-    	
-    	this.useCors = false;
-    	var self = this;
-        if ($.support.cors) {
-            // testing if server supports CORS ( http://www.html5rocks.com/en/tutorials/cors/ )
-            $.ajax({
-                type: 'GET',
-                url: this.rootUrl + '/properties'  + (this.additionalParams ? ('?' + this.additionalParams) : ''),
-                dataType: 'text',
-                xhrFields: {
-                },
-                headers: {
-                },
-                success: function() {
-                    // CORS is supported
-                    self.useCors = true;
+                url = Utils.fixURLForHTTPS(url);
+
+                // HiPS order
+                const order = (+metadata.hips_order);
+
+                // HiPS tile format
+                const formats = metadata.hips_tile_format || "jpeg";
+                const tileFormats = formats.split(' ').map((fmt) => fmt.toLowerCase());
+                if (self.options.imgFormat) {
+                    // user wants a fits but the metadata tells this format is not available
+                    if (self.options.imgFormat === "fits" && tileFormats.indexOf('fits') < 0) {
+                        throw self.name + " does not provide fits tiles";
+                    }
                     
-                    self.retrieveAllskyTextures();
-                    if (callback) {
-                        callback();
+                    if (self.options.imgFormat === "png" && tileFormats.indexOf('png') < 0) {
+                        throw self.name + " does not provide png tiles";
                     }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    // CORS is not supported
-                    self.retrieveAllskyTextures();
-                    if (callback) {
-                        callback();
+                    
+                    if (self.options.imgFormat === "jpeg" && tileFormats.indexOf('jpeg') < 0) {
+                        throw self.name + " does not provide jpeg tiles";
                     }
-                }
-              });
-        }
-        else {
-            this.retrieveAllskyTextures();
-            callback();
-        }
-    	
-    };
-    
-    HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
-    
-    HpxImageSurvey.SURVEYS_OBJECTS = {};
-    HpxImageSurvey.SURVEYS = [
-     {
-        "id": "P/2MASS/color",
-        "url": "http://alasky.u-strasbg.fr/2MASS/Color",
-        "name": "2MASS colored",
-        "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/DSS2/color",
-        "url": "http://alasky.u-strasbg.fr/DSS/DSSColor",
-        "name": "DSS colored",
-        "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/DSS2/red",
-        "url": "http://alasky.u-strasbg.fr/DSS/DSS2Merged",
-        "name": "DSS2 Red (F+R)",
-        "maxOrder": 9,
-        "frame": "equatorial",
-        "format": "jpeg fits"
-     },
-     {
-        "id": "P/PanSTARRS/DR1/g",
-        "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/g",
-        "name": "PanSTARRS DR1 g",
-        "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg fits"
-     },
-     {
-        "id": "P/PanSTARRS/DR1/color-z-zg-g",
-        "url": "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/color-z-zg-g",
-        "name": "PanSTARRS DR1 color",
-        "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/DECaPS/DR1/color",
-        "url": "http://alasky.u-strasbg.fr/DECaPS/DR1/color",
-        "name": "DECaPS DR1 color",
-        "maxOrder": 11,
-        "frame": "equatorial",
-        "format": "jpeg png"
-     },
-     {
-        "id": "P/Fermi/color",
-        "url": "http://alasky.u-strasbg.fr/Fermi/Color",
-        "name": "Fermi color",
-        "maxOrder": 3,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/Finkbeiner",
-        "url": "http://alasky.u-strasbg.fr/FinkbeinerHalpha",
-        "maxOrder": 3,
-        "frame": "galactic",
-        "format": "jpeg fits",
-        "name": "Halpha"
-     },
-     {
-        "id": "P/GALEXGR6/AIS/color",
-        "url": "http://alasky.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
-        "name": "GALEX Allsky Imaging Survey colored",
-        "maxOrder": 8,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/IRIS/color",
-        "url": "http://alasky.u-strasbg.fr/IRISColor",
-        "name": "IRIS colored",
-        "maxOrder": 3,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/Mellinger/color",
-        "url": "http://alasky.u-strasbg.fr/MellingerRGB",
-        "name": "Mellinger colored",
-        "maxOrder": 4,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/SDSS9/color",
-        "url": "http://alasky.u-strasbg.fr/SDSS/DR9/color",
-        "name": "SDSS9 colored",
-        "maxOrder": 10,
-        "frame": "equatorial",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/SPITZER/color",
-        "url": "http://alasky.u-strasbg.fr/SpitzerI1I2I4color",
-        "name": "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
-        "maxOrder": 9,
-        "frame": "galactic",
-        "format": "jpeg"
-     },
-     {
-        "id": "P/VTSS/Ha",
-        "url": "http://alasky.u-strasbg.fr/VTSS/Ha",
-        "maxOrder": 3,
-        "frame": "galactic",
-        "format": "png jpeg fits",
-        "name": "VTSS-Ha"
-     },
-     {
-        "id": "P/XMM/EPIC",
-        "url": "http://saada.u-strasbg.fr/xmmallsky",
-        "name": "XMM-Newton stacked EPIC images (no phot. normalization)",
-        "maxOrder": 7,
-        "frame": "equatorial",
-        "format": "png fits"
-     },
-     {
-         "id": "P/XMM/PN/color",
-          "url": "http://saada.unistra.fr/PNColor",
-          "name": "XMM PN colored",
-          "maxOrder": 7,
-          "frame": "equatorial",
-          "format": "png jpeg"
-     },
-     {
-         "id": "P/allWISE/color",
-         "url": "http://alasky.u-strasbg.fr/AllWISE/RGB-W4-W2-W1/",
-         "name": "AllWISE color",
-         "maxOrder": 8,
-         "frame": "equatorial",
-         "format": "jpeg"
-     },
-     {
-         "id": "P/GLIMPSE360",
-         "url": "http://www.spitzer.caltech.edu/glimpse360/aladin/data",
-         "name": "GLIMPSE360",
-         "maxOrder": 9,
-         "frame": "equatorial",
-         "format": "jpeg"
-     }
-  ];
-
-
-    
-    HpxImageSurvey.getAvailableSurveys = function() {
-    	return HpxImageSurvey.SURVEYS;
-    };
-    
-    HpxImageSurvey.getSurveyInfoFromId = function(id) {
-        var surveys = HpxImageSurvey.getAvailableSurveys();
-        for (var i=0; i<surveys.length; i++) {
-            if (surveys[i].id==id) {
-                return surveys[i];
-            }
-        }
-        return null;
-    };
-
-    HpxImageSurvey.getSurveyFromId = function(id) {
-        if (HpxImageSurvey.SURVEYS_OBJECTS[id]) {
-            return HpxImageSurvey.SURVEYS_OBJECTS[id];
-        }
-        var surveyInfo = HpxImageSurvey.getSurveyInfoFromId(id);
-        if (surveyInfo) {
-            var options = {};
-            if ( surveyInfo.format && surveyInfo.format.indexOf('jpeg')<0 && surveyInfo.format.indexOf('png')>=0 ) {
-                options.imgFormat = 'png';
-            }
-            return new HpxImageSurvey(surveyInfo.id, surveyInfo.name, surveyInfo.url, surveyInfo.frame, surveyInfo.maxOrder, options);
-        }
-
-        return null;
-    }
-   
-    
-    HpxImageSurvey.prototype.getTileURL = function(norder, npix) {
-    	var dirIdx = Math.floor(npix/10000)*10000;
-    	return this.rootUrl + "/" + "Norder" + norder + "/Dir" + dirIdx + "/Npix" + npix + "." + this.imgFormat  + (this.additionalParams ? ('?' + this.additionalParams) : '');;
-    };
-    
-    HpxImageSurvey.prototype.retrieveAllskyTextures = function() {
-    	// start loading of allsky
-    	var img = new Image();
-    	if (this.useCors) {
-            img.crossOrigin = 'anonymous';
-        }
-    	var self = this;
-    	img.onload = function() {
-    		// sur ipad, le fichier qu'on récupère est 2 fois plus petit. Il faut donc déterminer la taille de la texture dynamiquement
-    	    self.allskyTextureSize = img.width/27;
-            self.allskyTexture = img;
-   
-            /* 
-    		// récupération des 768 textures (NSIDE=4)
-    		for (var j=0; j<29; j++) {
-    			for (var i=0; i<27; i++) {
-    				var c = document.createElement('canvas');
-    				c.width = c.height = self.allskyTextureSize;
-    				c.allSkyTexture = true;
-    				var context = c.getContext('2d');
-    				context.drawImage(img, i*self.allskyTextureSize, j*self.allskyTextureSize, self.allskyTextureSize, self.allskyTextureSize, 0, 0, c.width, c.height);
-    				self.allskyTextures.push(c);
-    			}
-    		}
-            */
-    		self.view.requestRedraw();
-    	};
-    	img.src = this.rootUrl + '/Norder3/Allsky.' + this.imgFormat + (this.additionalParams ? ('?' + this.additionalParams) : '');
-    
-    };
-
-    // Nouvelle méthode pour traitement des DEFORMATIONS
-    /**
-     * Draw the image survey according 
-     *
-     * @param ctx: canvas context where to draw
-     * @param view
-     * @param subdivide: should
-     *
-     */
-    HpxImageSurvey.prototype.draw = function(ctx, view, subdivide, curOverlayNorder) {
-        subdivide = (subdivide===undefined) ? false: subdivide;
-
-        var cornersXYViewMapAllsky = view.getVisibleCells(3, this.cooFrame);
-        var cornersXYViewMapHighres = null;
-
-
-
-        var norder4Display = Math.min(curOverlayNorder, this.maxOrder);
-        if (curOverlayNorder>=3) {
-            if (curOverlayNorder==3) {
-                cornersXYViewMapHighres = cornersXYViewMapAllsky;
-            }
-            else {
-                cornersXYViewMapHighres = view.getVisibleCells(norder4Display, this.cooFrame);
-            }
-        }
-
-        // new way of drawing
-        if (subdivide) {
-
-            if (curOverlayNorder<=4) {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
-            }
-
-            if (curOverlayNorder>=3) {
-                this.drawHighres(ctx, cornersXYViewMapHighres, norder4Display, view);
-            }
-/*
-            else {
-                this.drawAllsky(ctx, cornersXYViewMapAllsky, norder4Display, view);
-            }
-*/
-
-            return;
-        }
-
-        // regular way of drawing
-        // TODO : a t on besoin de dessiner le allsky si norder>=3 ?
-        // TODO refactoring : devrait être une méthode de HpxImageSurvey
-        if (view.curNorder>=3) {
-            this.redrawHighres(ctx, cornersXYViewMapHighres, view.curNorder);
-        }
-        else {
-            this.redrawAllsky(ctx, cornersXYViewMapAllsky, view.fov, view.curNorder);
-        }
-
-    };
-
-    HpxImageSurvey.prototype.drawHighres = function(ctx, cornersXYViewMap, norder, view) {
-//////////////////////////////
-        var parentTilesToDraw = [];
-        var parentTilesToDrawIndex = {};
-        var parentTilesMissingIndex = {};
-        for (var k=0; k<cornersXYViewMap.length; k++) {
-            var ipix = cornersXYViewMap[k].ipix
-            var tileURL = this.getTileURL(norder, ipix);
-            var tile = this.tileBuffer.getTile(tileURL);
-            var tileAvailable = tile && Tile.isImageOk(tile.img);
-            if (! tileAvailable) { // if tile is not available, search if upper level tiles can be drawn
-                var MAX_UPPER_LEVELS = 4; // we search parent tiles up to 4 levels
-                for (var parentOrder = norder -1 ; parentOrder>=3 && parentOrder >= norder-MAX_UPPER_LEVELS ; parentOrder--) {
-                    var parentIpix = ~~(ipix / Math.pow(4, norder - parentOrder));
-                    var key = parentOrder + '-' + parentIpix;
-                    if (parentTilesToDrawIndex[key]===true || parentTilesMissingIndex===true) {
-                        break;
-                    }
-                    var parentTileURL = this.getTileURL(parentOrder, parentIpix);
-                    var parentTile = this.tileBuffer.getTile(parentTileURL);
-                    var parentTileAvailable = parentTile && Tile.isImageOk(parentTile.img);
-                    if (parentTileAvailable) {
-                        parentTilesToDraw.push({ipix: parentIpix, order: parentOrder});
-                        parentTilesToDrawIndex[key] = true;
-
-                        break;
-                    }
-                    else {
-                        parentTilesMissingIndex[key] = true;
+                } else {
+                    // user wants nothing then we choose one from the metadata
+                    if (tileFormats.indexOf('png') >= 0) {
+                        self.options.imgFormat = "png";
+                        self.fits = false;
+                    } else if (tileFormats.indexOf('jpeg') >= 0) {
+                        self.options.imgFormat = "jpeg";
+                        self.fits = false;
+                    } else if (tileFormats.indexOf('fits') >= 0) {
+                        self.options.imgFormat = "fits";
+                        self.fits = true;
+                    } else {
+                        throw "Unsupported format(s) found in the metadata: " + tileFormats;
                     }
                 }
+
+                // HiPS order min
+                let hipsOrderMin = metadata.hips_order_min;
+                if (hipsOrderMin === undefined) {
+                    hipsOrderMin = 3;
+                } else {
+                    hipsOrderMin = +hipsOrderMin;
+                }
+
+                // HiPS tile size
+                let tileSize = null;
+                if (metadata.hips_tile_width === undefined) {
+                    tileSize = 512;
+                } else {
+                    tileSize = +metadata.hips_tile_width;
+                }
+
+                // Check if the tile width size is a power of 2
+                if (tileSize & (tileSize - 1) !== 0) {
+                    tileSize = 512;
+                }
+
+                // HiPS coverage sky fraction
+                const skyFraction = +metadata.moc_sky_fraction || 0.0;
+                
+                let removeAllChildNodes = function removeAllChildNodes(parent) {
+                    while (parent.firstChild) {
+                        parent.removeChild(parent.firstChild);
+                    }
+                };
+                // HiPS planet/planetoïde
+                let planetoide = false;
+                if (metadata.hips_body !== undefined) {
+                    planetoide = true;
+                    self.options.cooFrame = "ICRSd";
+                    self.options.longitudeReversed = true;
+                }
+
+                // HiPS frame
+                self.options.cooFrame = self.options.cooFrame || metadata.hips_frame;
+                let frame = null;
+
+                if (self.options.cooFrame == "ICRS" || self.options.cooFrame == "ICRSd" || self.options.cooFrame == "equatorial" || self.options.cooFrame == "j2000") {
+                    frame = "ICRSJ2000";
+                } else if (self.options.cooFrame == "galactic") {
+                    frame = "GAL";
+                } else if (self.options.cooFrame === undefined) {
+                    //self.options.cooFrame = "ICRS";
+                    frame = "ICRSJ2000";
+                    console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
+                } else {
+                    frame = "ICRSd";
+                    console.warn('Invalid cooframe given: ' + self.options.cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
+                }
+
+                // HiPS grayscale
+                self.colored = false;
+                if (metadata.dataproduct_subtype && (metadata.dataproduct_subtype.includes("color") || metadata.dataproduct_subtype[0].includes("color") )) {
+                    self.colored = true;
+                }
+
+                // HiPS initial fov/ra/dec
+                let initialFov = +metadata.hips_initial_fov;
+                const initialRa = +metadata.hips_initial_ra;
+                const initialDec = +metadata.hips_initial_dec;
+
+                if (initialFov < 0.00002777777) {
+                    initialFov = 360;
+                    //this.pinchZoomParameters.initialAccDelta = Math.pow(si / new_fov, 1.0/alpha);
+                }
+
+                if (!self.colored) {
+                    // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
+                    // For colored HiPS, no fits tiles provided
+
+                    // HiPS cutouts
+                    let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
+                    let propertiesDefaultMinCut = undefined;
+                    let propertiesDefaultMaxCut = undefined;
+                    if ( cuts ) {
+                        propertiesDefaultMinCut = parseFloat(cuts[0]);
+                        propertiesDefaultMaxCut = parseFloat(cuts[1]);
+                    }
+
+                    // HiPS bitpix
+                    const bitpix = +metadata.hips_pixel_bitpix;
+
+                    self.properties = {
+                        url: url,
+                        maxOrder: order,
+                        frame: frame,
+                        tileSize: tileSize,
+                        formats: tileFormats,
+                        minCutout: propertiesDefaultMinCut,
+                        maxCutout: propertiesDefaultMaxCut,
+                        bitpix: bitpix,
+                        skyFraction: skyFraction,
+                        minOrder: hipsOrderMin,
+                        hipsInitialFov: initialFov,
+                        hipsInitialRa: initialRa,
+                        hipsInitialDec: initialDec,
+                    };
+                } else {
+                    self.properties = {
+                        url: url,
+                        maxOrder: order,
+                        frame: frame,
+                        tileSize: tileSize,
+                        formats: tileFormats,
+                        skyFraction: skyFraction,
+                        minOrder: hipsOrderMin,
+                        hipsInitialFov: initialFov,
+                        hipsInitialRa: initialRa,
+                        hipsInitialDec: initialDec,
+                    };
+                }
+
+                self.options.stretch = self.options.stretch || "linear";
+
+                // For grayscale JPG/PNG hipses
+                if (!self.fits) {
+                    // Erase the cuts with the default one for image tiles
+                    self.options.minCut = self.options.minCut || 0.0;
+                    self.options.maxCut = self.options.maxCut || 1.0;
+                // For FITS hipses
+                } else {
+                    self.options.minCut = self.options.minCut || self.properties.minCutout;
+                    self.options.maxCut = self.options.maxCut || self.properties.maxCutout;
+                }
+
+                // Discard further processing if the layer has been associated to another hips
+                // before the request has been resolved
+                if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
+                    return;
+                }
+
+                if (metadata.hips_body !== undefined) {
+                    if (self.backend.options.showFrame) {
+                        self.backend.aladin.setFrame('J2000d');
+                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
+                    }
+                } else {
+                    if (self.backend.options.showFrame) {
+                        const cooFrame = CooFrameEnum.fromString(self.backend.options.cooFrame, CooFrameEnum.J2000);
+                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000.label + '" '
+                        + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
+                        + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
+                        + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
+                    }
+                }
+
+                self.updateMeta();
+                self.updateColor();
+                self.ready = true;
+
+                ////// Update SURVEYS
+                let idxSelectedHiPS = 0;
+                const surveyFound = HpxImageSurvey.SURVEYS.some(s => {
+                    let res = self.id.endsWith(s.id);
+                    if (!res) {
+                        idxSelectedHiPS += 1;
+                    }
+
+                    return res;
+                });
+                // The survey has not been found among the ones cached
+                if (!surveyFound) {
+                    throw 'Should have been found!'
+                } else {
+                    // Update the HpxImageSurvey
+                    let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
+                    surveyDef.options = self.options;
+                    surveyDef.maxOrder = self.properties.maxOrder;
+                    surveyDef.url = self.properties.url;
+                }
+                /////
+
+                // If the layer has been set then it is linked to the aladin lite view
+                // so we add it
+                if (self.added) {
+                    self.backend.commitSurveysToBackend(self, self.layer);
+                }
+            } catch(e) {
+                // Check if no surveys have been added
+                if (view.aladin.empty && self.layer === "base") {
+                    console.error(e)
+                    console.warn("DSS2/color is chosen by default.");
+                    view.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey)
+                } else {
+                    throw e;
+                }
             }
+        })();
+    };
+
+    HpxImageSurvey.prototype.searchForValidSurveyUrl = async function(metadata) {
+        let self = this;
+        const pingHipsServiceUrl = (hipsServiceUrl) => {
+            const controller = new AbortController()
+
+            let startRequestTime = Date.now();
+            const maxTime = 2000;
+            // 5 second timeout:
+            const timeoutId = setTimeout(() => controller.abort(), maxTime)
+            const promise = fetch(hipsServiceUrl + '/properties', { cache: 'no-store', signal: controller.signal, mode: "cors"}).then(response => {
+                const duration = Date.now() - startRequestTime;//the time needed to do the request
+                // completed request before timeout fired
+                clearTimeout(timeoutId)
+                // Resolve with the time duration of the request
+                return { duration: duration, baseUrl: hipsServiceUrl, validRequest: true };
+            }).catch((e) => {
+                // The request aborted because it was to slow
+                let errorMsg = e;
+                if (timeoutId >= maxTime) {
+                    errorMsg = hipsServiceUrl + " responding very slowly.";
+                }
+
+                return { duration: maxTime, baseUrl: hipsServiceUrl, validRequest: false };
+            });
+
+            return promise;
+        };
+
+        // Get all the possible hips_service_url urls
+        let promises = new Array();
+        promises.push(pingHipsServiceUrl(metadata.hips_service_url));
+
+        let numHiPSServiceURL = 1;
+        while (metadata.hasOwnProperty("hips_service_url_" + numHiPSServiceURL.toString())) {
+            const key = "hips_service_url_" + numHiPSServiceURL.toString();
+
+            let curUrl = metadata[key];
+            promises.push(pingHipsServiceUrl(curUrl))
+            numHiPSServiceURL += 1;
         }
-        // sort to draw lower norder first
-        parentTilesToDraw = parentTilesToDraw.sort(function(itemA, itemB) {
-            return itemA.order - itemB.order;
+
+        let url = await Promise.all(promises).then((responses) => {
+            // filter the ones that failed to not choose them
+            // it may be a cors issue at this point
+            let validResponses = responses.filter((resp) => { return resp.validRequest === true; });
+
+            const getRandomIntInclusive = function(min, max) {
+                min = Math.ceil(min);
+                max = Math.floor(max);
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            };
+
+            validResponses.sort((r1, r2) => {
+                return r1.duration - r2.duration;
+            });
+
+            if (validResponses.length >= 2) {
+                const isSecondUrlOk = ((validResponses[1].duration - validResponses[0].duration) / validResponses[0].duration) < 0.20;
+
+                if (isSecondUrlOk) {
+                    return validResponses[getRandomIntInclusive(0, 1)].baseUrl;
+                } else {
+                    return validResponses[0].baseUrl;
+                }
+            } else {
+                return validResponses[0].baseUrl;
+            }
         });
 
-//////////////////////////////
-
-        var tSize = this.tileSize || 512;
-        // draw parent tiles
-        for (var k=0; k<parentTilesToDraw.length; k++) {
-            var t = parentTilesToDraw[k];
-            new HpxKey(t.order, t.ipix, this, tSize, tSize).draw(ctx, view);
-        }
-
-        // TODO : we could have a pool of HpxKey to prevent object re-creation at each frame
-        // draw tiles
-        for (var k=0; k<cornersXYViewMap.length; k++) {
-            new HpxKey(norder, cornersXYViewMap[k].ipix, this, tSize, tSize).draw(ctx, view);
-        }
-    };
-
-    HpxImageSurvey.prototype.drawAllsky = function(ctx, cornersXYViewMap, norder, view) {
-        // for norder deeper than 6, we think it brings nothing to draw the all-sky
-        if (this.view.curNorder>6) {
-            return;
-        }
-
-        if ( ! this.allskyTexture || !Tile.isImageOk(this.allskyTexture) ) {
-            return;
-        }
-
-        var hpxKeys = [];
-    	var cornersXYView;
-        var ipix;
-        var dx, dy;
-        for (var k=0; k<cornersXYViewMap.length; k++) {
-    		cornersXYView = cornersXYViewMap[k];
-    		ipix = cornersXYView.ipix;
-            dy = this.allskyTextureSize * Math.floor(ipix/27);
-            dx = this.allskyTextureSize * (ipix - 27*Math.floor(ipix/27));
-            hpxKeys.push(new HpxKey(3, cornersXYViewMap[k].ipix, this, this.allskyTextureSize, this.allskyTextureSize, dx, dy, this.allskyTexture, this.allskyTextureSize));
-        }
-
-        for (var k=0; k<hpxKeys.length; k++) {
-            hpxKeys[k].draw(ctx, view);
-        }
-    };
-
-    
-    HpxImageSurvey.prototype.redrawAllsky = function(ctx, cornersXYViewMap, fov, norder) {
-    	// for norder deeper than 6, we think it brings nothing to draw the all-sky
-    	if (this.view.curNorder>6) {
-    		return;
-    	}
-    	
-    	if ( ! this.allskyTexture ) {
-    		return;
-    	}
-    	
-
-    	var cornersXYView;
-        var coeff = 0;
-        var center;
-        var ipix;
-    	for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
-    		cornersXYView = cornersXYViewMap[k];
-    		ipix = cornersXYView.ipix;
-
-
-    		
-            if ( ! this.allskyTexture || !Tile.isImageOk(this.allskyTexture) ) {
-                continue;
-            }
-
-            var dy = this.allskyTextureSize * Math.floor(ipix/27);
-            var dx = this.allskyTextureSize * (ipix - 27*Math.floor(ipix/27));
-
-    		
-    
-    		// TODO : plutot agrandir le clip ?
-    	    // grow cornersXYView
-    	    if (fov>40) {
-    			coeff = 0.02;
-                coeff = 0.0;
-    	        center = {x: (cornersXYView[0].vx+cornersXYView[2].vx)/2, y: (cornersXYView[0].vy+cornersXYView[2].vy)/2};
-    	        for (var i=0; i<4; i++) {
-    	            var diff = {x: cornersXYView[i].vx-center.x, y: cornersXYView[i].vy-center.y};
-    	            cornersXYView[i].vx += coeff*diff.x;
-    	            cornersXYView[i].vy += coeff*diff.y;
-    	        }
-    	    }
-    			
-    	    this.drawOneTile(ctx, this.allskyTexture, cornersXYView, this.allskyTextureSize, null, dx, dy, true);
-    	}
-    };
-    
-    HpxImageSurvey.prototype.getColorMap = function() {
-        return this.cm;
-    };
-    
-    var drawEven = true;
-    // TODO: avoir un mode où on ne cherche pas à dessiner d'abord les tuiles parentes (pour génération vignettes côté serveur)
-    HpxImageSurvey.prototype.redrawHighres = function(ctx, cornersXYViewMap, norder) {
-        
-        // DOES THAT FIX THE PROBLEM ???
-        if (cornersXYViewMap.length==0) {
-            return;
-        }
-        
-        drawEven = ! drawEven;
-        var now = new Date().getTime();
-        var updateNeededTiles = (now-this.lastUpdateDateNeededTiles) > HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY;
-        var tile, url, parentTile, parentUrl;
-        var parentNorder = norder - 1;
-        var cornersXYView, parentCornersXYView;
-        var tilesToDraw = [];
-        var parentTilesToDraw = [];
-        var parentTilesToDrawIpix = {};
-        var missingTiles = false;
-        
-        var tilesToDownload = [];
-        var parentTilesToDownload = [];
-        
-        var parentIpix;
-        var ipix;
-        
-        // tri des tuiles selon la distance
-        if (updateNeededTiles) {
-            var center = [(cornersXYViewMap[0][0].vx+cornersXYViewMap[0][1].vx)/2, (cornersXYViewMap[0][0].vy+cornersXYViewMap[0][1].vy)/2];
-            var newCornersXYViewMap = cornersXYViewMap.sort(function(a, b) {
-                var cA = [(a[0].vx+a[2].vx)/2, (a[0].vy+a[2].vy)/2];
-                var cB = [(b[0].vx+b[2].vx)/2, (b[0].vy+b[2].vy)/2]; 
-
-                var distA = (cA[0]-center[0])*(cA[0]-center[0]) + (cA[1]-center[1])*(cA[1]-center[1]);
-                var distB = (cB[0]-center[0])*(cB[0]-center[0]) + (cB[1]-center[1])*(cB[1]-center[1]);
-                
-                return distA-distB;
-                    
+        if (Utils.isHttpsContext()) {
+            const switchToHttps = Utils.HTTPS_WHITELIST.some(element => {
+                return url.includes(element);
             });
-            cornersXYViewMap = newCornersXYViewMap;
+            if (switchToHttps) {
+                url = url.replace('http://', 'https://');
+            }
         }
 
-        
-    	for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
-    		cornersXYView = cornersXYViewMap[k];
-    		ipix = cornersXYView.ipix;
-            
-            // on demande à charger le parent (cas d'un zoomOut)
-            // TODO : mettre priorité plus basse
-            parentIpix = ~~(ipix/4);
-        	parentUrl = this.getTileURL(parentNorder, parentIpix);
-            if (updateNeededTiles && parentNorder>=3) {
-            	parentTile = this.tileBuffer.addTile(parentUrl);
-                if (parentTile) {
-                    parentTilesToDownload.push({img: parentTile.img, url: parentUrl});
-                }
+        // Change the backend survey url
+        if (metadata.hips_service_url !== url) {
+            console.info("Change url of ", self.id, " from ", metadata.hips_service_url, " to ", url)
+            //self.backend.aladin.webglAPI.setImageSurveyUrl(metadata.hips_service_url, url);
+            if (self.orderIdx < self.backend.imageSurveysIdx.get(self.layer)) {
+                return;
             }
-            
-            url = this.getTileURL(norder, ipix);
-            tile = this.tileBuffer.getTile(url);
-            
-            if ( ! tile ) {
-                missingTiles = true;
-                
-                if (updateNeededTiles) {
-                    var tile = this.tileBuffer.addTile(url);
-                    if (tile) {
-                        tilesToDownload.push({img: tile.img, url: url});
+
+            self.properties.url = url;
+
+            if (self.added) {
+                self.backend.commitSurveysToBackend(self, self.layer);
+            }
+        }
+    }
+
+    HpxImageSurvey.prototype.updateMeta = function() {
+        let blend = {
+            srcColorFactor: 'SrcAlpha',
+            dstColorFactor: 'OneMinusSrcAlpha',
+            func: 'FuncAdd' 
+        };
+
+        const additiveBlending = this.options.additive;
+        if (additiveBlending) {
+            blend = {
+                srcColorFactor: 'SrcAlpha',
+                dstColorFactor: 'One',
+                func: 'FuncAdd' 
+            }
+        }
+
+        // reset the whole meta object
+        this.meta = this.meta || {};
+        this.meta.blendCfg = blend;
+        this.meta.opacity = this.options.opacity;
+        this.meta.longitudeReversed = this.options.longitudeReversed;
+    }
+
+    HpxImageSurvey.prototype.updateColor = function() {
+        let minCut = this.options.minCut;
+        let maxCut = this.options.maxCut;
+
+        // Make the stretch case insensitive
+        let stretch = this.options.stretch;
+        if (stretch) {
+            stretch = stretch.toLowerCase();
+        }
+
+        let color = this.options.color;
+        let colormap = this.options.colormap;
+
+        if (color) {
+            this.meta.color = {
+                grayscale: {
+                    stretch: stretch,
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    color: {
+                        color: color,
                     }
                 }
-                
-                // is the parent tile available ?
-                if (parentNorder>=3 && ! parentTilesToDrawIpix[parentIpix]) {
-                	parentTile = this.tileBuffer.getTile(parentUrl);
-                	if (parentTile && Tile.isImageOk(parentTile.img)) {
-                		parentCornersXYView = this.view.getPositionsInView(parentIpix, parentNorder);
-                		if (parentCornersXYView) {
-                			parentTilesToDraw.push({img: parentTile.img, corners: parentCornersXYView, ipix: parentIpix});
-                		}
-                	}
-                	parentTilesToDrawIpix[parentIpix] = 1;
-                }
-    
-                continue;
-            }
-            else if ( ! Tile.isImageOk(tile.img)) {
-                missingTiles = true;
-                if (updateNeededTiles && ! tile.img.dlError) {
-                    tilesToDownload.push({img: tile.img, url: url});
-                }
-                
-                // is the parent tile available ?
-                if (parentNorder>=3 && ! parentTilesToDrawIpix[parentIpix]) {
-                	parentTile = this.tileBuffer.getTile(parentUrl);
-                	if (parentTile && Tile.isImageOk(parentTile.img)) {
-                		parentCornersXYView = this.view.getPositionsInView(parentIpix, parentNorder);
-                		if (parentCornersXYView) {
-                			parentTilesToDraw.push({img: parentTile.img, corners: parentCornersXYView, ipix: parentIpix});
-                		}
-                	}
-                	parentTilesToDrawIpix[parentIpix] = 1;
-                }
-                
-                continue;
-            }
-            tilesToDraw.push({img: tile.img, corners: cornersXYView});
-        }
-    	
-    
-    
-        // draw parent tiles
-        for (var k=0, len = parentTilesToDraw.length; k<len; k++) {
-        	this.drawOneTile(ctx, parentTilesToDraw[k].img, parentTilesToDraw[k].corners, parentTilesToDraw[k].img.width);
-        }
-        
-        // draw tiles
-        ///*
-        for (var k=0, len = tilesToDraw.length; k<len; k++) {
-        	var alpha = null;
-        	var img = tilesToDraw[k].img;
-        	if (img.fadingStart) {
-        		if (img.fadingEnd && now<img.fadingEnd) {
-        			alpha = 0.2 + (now - img.fadingStart)/(img.fadingEnd - img.fadingStart)*0.8;
-                    this.requestRedraw();
-        		}
-        	}
-        	this.drawOneTile(ctx, img, tilesToDraw[k].corners, img.width, alpha);
-        }
-        //*/
-    
+            };
 
-        // demande de chargement des tuiles manquantes et mise à jour lastUpdateDateNeededTiles
-        if (updateNeededTiles) {
-            // demande de chargement des tuiles
-            for (var k=0, len = tilesToDownload.length; k<len; k++) {
-                this.view.downloader.requestDownload(tilesToDownload[k].img, tilesToDownload[k].url, this.useCors);
+            this.options.minCut = minCut;
+            this.options.maxCut = maxCut;
+            this.options.stretch = stretch;
+            this.options.color = color;
+        } else if(colormap || !this.colored) {
+            // If not defined we set the colormap to grayscale
+            if (!colormap) {
+                colormap = "grayscale";
             }
-            //demande de chargement des tuiles parentes
-            for (var k=0, len = parentTilesToDownload.length; k<len; k++) {
-                this.view.downloader.requestDownload(parentTilesToDownload[k].img, parentTilesToDownload[k].url, this.useCors);
+
+            if (colormap === "native") {
+                if(this.colored) {
+                    // Go back to native pixels
+                    this.meta.color = "color";
+                    return;
+                }
+
+                colormap = "grayscale";
             }
-            this.lastUpdateDateNeededTiles = now;
-        }
-        if (missingTiles) {
-            // callback pour redemander un display dans 1000ms
-            this.view.requestRedrawAtDate(now+HpxImageSurvey.UPDATE_NEEDED_TILES_DELAY+10);
+
+            // Make it case insensitive
+            colormap = colormap.toLowerCase();
+
+            if (!HpxImageSurvey.COLORMAPS.includes(colormap)) {
+                console.warn("The colormap \'" + colormap + "\' does not exist. You should use one of the following: " + HpxImageSurvey.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
+
+                colormap = "grayscale";
+            }
+
+            let reversed = this.options.reversed;
+            if (reversed === undefined) {
+                reversed = false;
+            }
+
+            this.meta.color = {
+                grayscale: {
+                    stretch: stretch,
+                    minCut: minCut,
+                    maxCut: maxCut,
+                    color: {
+                        colormap: {
+                            reversed: reversed,
+                            name: colormap,
+                        }
+                    }
+                }
+            };
+
+            this.options.minCut = minCut;
+            this.options.maxCut = maxCut;
+            this.options.stretch = stretch;
+            this.options.reversed = reversed;
+            this.options.colormap = colormap;
+        } else if(this.colored) {
+            // neither colormap or color defined by the user
+            // so we keep the original pixels
+            this.meta.color = "color";
         }
     };
-    
-    function dist2(x1,y1,x2,y2) {
-    	return Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2);
-    }
-    
-    HpxImageSurvey.prototype.drawOneTile = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection) {
-        
-        // apply CM
-        var newImg = this.useCors ? this.cm.apply(img) : img;
-        
-        
-    	// is the tile a diamond ?
-    //	var round = AladinUtils.myRound;
-    //	var b = cornersXYView;
-    //	var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
-    //    				&& round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
-    	
-    	drawTexturedTriangle(ctx, newImg,
-                cornersXYView[0].vx, cornersXYView[0].vy,
-                cornersXYView[1].vx, cornersXYView[1].vy,
-    	        cornersXYView[3].vx, cornersXYView[3].vy,
-    	        textureSize-1, textureSize-1,
-    	        textureSize-1, 0,
-    	        0, textureSize-1,
-    	        alpha,
-                dx, dy, applyCorrection);
-        drawTexturedTriangle(ctx, newImg,
-        		cornersXYView[1].vx, cornersXYView[1].vy,
-        		cornersXYView[3].vx, cornersXYView[3].vy,
-        		cornersXYView[2].vx, cornersXYView[2].vy,
-        		textureSize-1, 0,
-        		0, textureSize-1,
-        		0, 0,
-        		alpha,
-                dx, dy, applyCorrection);
-    };
-    
-       HpxImageSurvey.prototype.drawOneTile2 = function(ctx, img, cornersXYView, textureSize, alpha, dx, dy, applyCorrection, norder) {
 
-        // apply CM
-        var newImg = this.useCors ? this.cm.apply(img) : img;
-
-
-        // is the tile a diamond ?
-    //  var round = AladinUtils.myRound;
-    //  var b = cornersXYView;
-    //  var flagDiamond =  round(b[0].vx - b[2].vx) == round(b[1].vx - b[3].vx)
-    //                  && round(b[0].vy - b[2].vy) == round(b[1].vy - b[3].vy); 
-
-        var delta = norder<=3 ? (textureSize<100 ? 0.5 : 0.2) : 0;
-        drawTexturedTriangle2(ctx, newImg,
-                cornersXYView[0].vx, cornersXYView[0].vy,
-                cornersXYView[1].vx, cornersXYView[1].vy,
-                cornersXYView[3].vx, cornersXYView[3].vy,
-                textureSize-delta, textureSize-delta,
-                textureSize-delta, 0+delta,
-                0+delta, textureSize-delta,
-                alpha,
-                dx, dy, applyCorrection, norder);
-        drawTexturedTriangle2(ctx, newImg,
-                cornersXYView[1].vx, cornersXYView[1].vy,
-                cornersXYView[3].vx, cornersXYView[3].vy,
-                cornersXYView[2].vx, cornersXYView[2].vy,
-                textureSize-delta, 0+delta,
-                0+delta, textureSize-delta,
-                0+delta, 0+delta,
-                alpha,
-                dx, dy, applyCorrection, norder);
-    };
- 
-    function drawTexturedTriangle2(ctx, img, x0, y0, x1, y1, x2, y2,
-                                        u0, v0, u1, v1, u2, v2, alpha,
-                                        dx, dy, applyCorrection, norder) {
-
-        dx = dx || 0;
-        dy = dy || 0;
-
-        if (!applyCorrection) {
-            applyCorrection = false;
-        }
-
-        u0 += dx;
-        u1 += dx;
-        u2 += dx;
-        v0 += dy;
-        v1 += dy;
-        v2 += dy;
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
-
-
-        // ---- centroid ----
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
-        ctx.save();
-        if (alpha) {
-            ctx.globalAlpha = alpha;
-        }
-
-/*
-        var coeff = 0.01; // default value
-        if (applyCorrection) {
-            coeff = 0.01;
-        }
-        if (norder<3) {
-            coeff = 0.02; // TODO ???? 
-        }
-*/
-coeff = 0.02;
-
-        // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
-        ctx.beginPath();
-        ctx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
-        ctx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
-        ctx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
-        ctx.closePath();
-        ctx.clip();
-
-        // this is needed to prevent to see some lines between triangles
-        if (applyCorrection) {
-            coeff = 0.01;
-            x0 = ((1+coeff) * x0 - xc * coeff), y0 = ((1+coeff) * y0 - yc * coeff);
-            x1 = ((1+coeff) * x1 - xc * coeff), y1 = ((1+coeff) * y1 - yc * coeff);
-            x2 = ((1+coeff) * x2 - xc * coeff), y2 = ((1+coeff) * y2 - yc * coeff);
-        }
-
-        // ---- transform texture ----
-        var d_inv = 1/ (u0 * (v2 - v1) - u1 * v2 + u2 * v1 + (u1 - u2) * v0);
-        ctx.transform(
-            -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
-             (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
-             (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
-            -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
-             (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
-             (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
-        );
-        ctx.drawImage(img, 0, 0);
-        //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
-
-    //    ctx.globalAlpha = 1.0;
-
-        ctx.restore();
-    }
-
- 
-    // uses affine texture mapping to draw a textured triangle
-    // at screen coordinates [x0, y0], [x1, y1], [x2, y2] from
-    // img *pixel* coordinates [u0, v0], [u1, v1], [u2, v2]
-    // code from http://www.dhteumeuleu.com/lab/image3D.html
-    function drawTexturedTriangle(ctx, img, x0, y0, x1, y1, x2, y2,
-                                        u0, v0, u1, v1, u2, v2, alpha,
-                                        dx, dy, applyCorrection) {
-
-        dx = dx || 0;
-        dy = dy || 0;
-
-        if (!applyCorrection) {
-            applyCorrection = false;
-        }
-
-        u0 += dx;
-        u1 += dx;
-        u2 += dx;
-        v0 += dy;
-        v1 += dy;
-        v2 += dy;
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
-
-
-        // ---- centroid ----
-        var xc = (x0 + x1 + x2) / 3;
-        var yc = (y0 + y1 + y2) / 3;
-        ctx.save();
-        if (alpha) {
-        	ctx.globalAlpha = alpha;
-        }
-    
-        var coeff = 0.01; // default value
-        if (applyCorrection) {
-            coeff = 0.01;
-        }
-        // ---- scale triangle by (1 + coeff) to remove anti-aliasing and draw ----
-        ctx.beginPath();
-        ctx.moveTo(((1+coeff) * x0 - xc * coeff), ((1+coeff) * y0 - yc * coeff));
-        ctx.lineTo(((1+coeff) * x1 - xc * coeff), ((1+coeff) * y1 - yc * coeff));
-        ctx.lineTo(((1+coeff) * x2 - xc * coeff), ((1+coeff) * y2 - yc * coeff));
-        ctx.closePath();
-        ctx.clip();
-
-
-        // this is needed to prevent to see some lines between triangles
-        if (applyCorrection) {
-            coeff = 0.03;
-            x0 = ((1+coeff) * x0 - xc * coeff), y0 = ((1+coeff) * y0 - yc * coeff);
-            x1 = ((1+coeff) * x1 - xc * coeff), y1 = ((1+coeff) * y1 - yc * coeff);
-            x2 = ((1+coeff) * x2 - xc * coeff), y2 = ((1+coeff) * y2 - yc * coeff);
-        }
-
-        // ---- transform texture ----
-        var d_inv = 1/ (u0 * (v2 - v1) - u1 * v2 + u2 * v1 + (u1 - u2) * v0);
-        ctx.transform(
-            -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
-             (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
-             (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
-            -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
-             (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
-             (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
-        );
-        ctx.drawImage(img, 0, 0);
-        //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); 
-        
-    //    ctx.globalAlpha = 1.0;
-    
-        ctx.restore();
-    }
-    
-    /*
-    function drawTexturedTriangle4Points(ctx, img, x0, y0, x1, y1, x2, y2,
-            u0, v0, u1, v1, u2, v2) {
-    
-    	var x3 = x1+x2-x0;
-    	var y3 = y1+y2-y0;
-    // ---- centroid ----
-    var xc = (x0 + x1 + x2 + x3) / 4;
-    var yc = (y0 + y1 + y2 + y3) / 4;
-    ctx.save();
-    ctx.beginPath();
-    // ---- scale triagle by 1.05 to remove anti-aliasing and draw ----
-    ctx.moveTo((1.05 * x0 - xc * 0.05), (1.05 * y0 - yc * 0.05));
-    ctx.lineTo((1.05 * x1 - xc * 0.05), (1.05 * y1 - yc * 0.05));
-    ctx.lineTo((1.05 * x3 - xc * 0.05), (1.05 * y3 - yc * 0.05));
-    ctx.lineTo((1.05 * x2 - xc * 0.05), (1.05 * y2 - yc * 0.05));
-    ctx.closePath();
-    ctx.clip();
-    // ---- transform texture ----
-    var d_inv = 1/ (u0 * (v2 - v1) - u1 * v2 + u2 * v1 + (u1 - u2) * v0);
-    ctx.transform(
-    -(v0 * (x2 - x1) -  v1 * x2  + v2 *  x1 + (v1 - v2) * x0) * d_inv, // m11
-    (v1 *  y2 + v0  * (y1 - y2) - v2 *  y1 + (v2 - v1) * y0) * d_inv, // m12
-    (u0 * (x2 - x1) -  u1 * x2  + u2 *  x1 + (u1 - u2) * x0) * d_inv, // m21
-    -(u1 *  y2 + u0  * (y1 - y2) - u2 *  y1 + (u2 - u1) * y0) * d_inv, // m22
-    (u0 * (v2 * x1  -  v1 * x2) + v0 * (u1 *  x2 - u2  * x1) + (u2 * v1 - u1 * v2) * x0) * d_inv, // dx
-    (u0 * (v2 * y1  -  v1 * y2) + v0 * (u1 *  y2 - u2  * y1) + (u2 * v1 - u1 * v2) * y0) * d_inv  // dy
-    );
-    //ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height); // faster ??
-    ctx.drawImage(img, 0, 0); // slower ??
-    
-    ctx.restore();
-    }
-    */
-    
-    
     // @api
-    HpxImageSurvey.prototype.setAlpha = function(alpha) {
-        alpha = +alpha; // coerce to number
-        this.alpha = Math.max(0, Math.min(alpha, 1));
-        this.view.requestRedraw();
+    HpxImageSurvey.prototype.setOpacity = function(opacity) {
+        const oldOptions = this.options;
+
+        this.prevOpacity = this.options.opacity;
+
+        opacity = +opacity; // coerce to number
+        this.options.opacity = Math.max(0, Math.min(opacity, 1));
+
+        this.updateMeta();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+            }
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.toggle = function() {
+        if (this.options.opacity != 0.0) {
+            this.setOpacity(0.0);
+        } else {
+            this.setOpacity(this.prevOpacity);
+        }
+    };
+
+    // @oldapi
+    HpxImageSurvey.prototype.setAlpha = HpxImageSurvey.prototype.setOpacity;
+
+    // @api
+    HpxImageSurvey.prototype.getOpacity = function() {
+        return this.options.opacity;
+    };
+
+    // @api
+    HpxImageSurvey.prototype.setBlendingConfig = function(additive = false) {
+        const oldOptions = this.options;
+
+        this.options.additive = additive;
+
+        this.updateMeta();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+            }
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.setColor = function(color, options) {
+        const oldOptions = this.options;
+
+        this.options = {...this.options, ...options};
+        // Erase the colormap given first
+        if (this.options.colormap) {
+            delete this.options.colormap;
+        }
+        this.options.color = color;
+
+        this.updateColor();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.setColormap = function(colormap, options) {
+        const oldOptions = this.options;
+
+        this.options = {...this.options, ...options};
+        // Erase the color given first
+        if (this.options.color) {
+            delete this.options.color;
+        }
+        this.options.colormap = colormap;
+
+        this.updateColor();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
+        }
+    }
+
+    // @api
+    HpxImageSurvey.prototype.setCuts = function(cuts) {
+        const oldOptions = this.options;
+
+        this.options.minCut = cuts[0];
+        this.options.maxCut = cuts[1];
+
+        this.updateColor();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateColor();
+            }
+        }
+    };
+
+    HpxImageSurvey.prototype.setOptions = function(options) {
+        const oldOptions = this.options;
+
+        this.options = {...this.options, ...options};
+        this.updateMeta();
+        this.updateColor();
+
+        // Tell the view its meta have changed
+        if( this.ready && this.added ) {
+            try {
+                this.backend.aladin.webglAPI.setImageSurveyMeta(this.layer, this.meta);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                // Display the error message
+                console.error(e);
+
+                // Restore the past survey config
+                this.options = oldOptions;
+                this.updateMeta();
+                this.updateColor();
+            }
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.changeImageFormat = function(format) {
+        const prevImageFmt = this.options.imgFormat;
+        let imgFormat = format.toLowerCase();
+        if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg") {
+            throw 'Formats must lie in ["fits", "png", "jpg"]';
+        }
+
+        if (imgFormat === "jpg") {
+            imgFormat = "jpeg";
+        }
+
+        // Check the properties to see if the given format is available among the list
+        // If the properties have not been retrieved yet, it will be tested afterwards
+        if (this.properties) {
+            const availableFormats = this.properties.formats;
+            const idSurvey = this.properties.id;
+            // user wants a fits but the metadata tells this format is not available
+            if (imgFormat === "fits" && availableFormats.indexOf('fits') < 0) {
+                throw idSurvey + " does not provide fits tiles";
+            }
+            
+            if (imgFormat === "png" && availableFormats.indexOf('png') < 0) {
+                throw idSurvey + " does not provide png tiles";
+            }
+            
+            if (imgFormat === "jpeg" && availableFormats.indexOf('jpeg') < 0) {
+                throw idSurvey + " does not provide jpeg tiles";
+            }
+        }
+
+        // Passed the check, we erase the image format with the new one
+        // We do nothing if the imgFormat is the same
+        if (this.options.imgFormat === imgFormat) {
+            return;
+        }
+
+        this.options.imgFormat = imgFormat;
+        // Check if it is a fits
+        this.fits = (this.options.imgFormat === 'fits');
+
+        // Tell the view its meta have changed
+        if ( this.ready && this.added ) {
+            try {
+
+                this.backend.aladin.webglAPI.setImageSurveyImageFormat(this.layer, imgFormat);
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.backend.aladinDiv, {survey: this});
+            } catch(e) {
+                console.error(e);
+    
+                this.options.imgFormat = prevImageFmt;
+                this.fits = (this.options.imgFormat === 'fits');
+            }
+        }
+    };
+
+    // @api
+    HpxImageSurvey.prototype.getMeta = function() {
+        return this.meta;
     };
     
     // @api
     HpxImageSurvey.prototype.getAlpha = function() {
-        return this.alpha;
-    }
+        return this.meta.opacity;
+    };
+
+    // @api
+    HpxImageSurvey.prototype.readPixel = function(x, y) {
+        return this.backend.aladin.webglAPI.readPixel(x, y, this.layer);
+    };
+
+    /* Some constants */
+    HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
+    
+    HpxImageSurvey.COLORMAPS = [];
+
+    HpxImageSurvey.SURVEYS_OBJECTS = {};
+    HpxImageSurvey.SURVEYS = [
+        {
+            id: "P/2MASS/color",
+            name: "2MASS colored",
+            url: "https://alasky.cds.unistra.fr/2MASS/Color",
+            maxOrder: 9,
+        },
+        {
+            id: "P/DSS2/color",
+            name: "DSS colored",
+            url: "https://alasky.cds.unistra.fr/DSS/DSSColor",
+            maxOrder: 9,
+        },
+        {
+            id: "P/DSS2/red",
+            name: "DSS2 Red (F+R)",
+            url: "https://alasky.cds.unistra.fr/DSS/DSS2Merged",
+            maxOrder: 9,
+            // options
+            options: {
+                minCut: 1000.0,
+                maxCut: 10000.0,
+                imgFormat: "fits",
+                colormap: "magma",
+                stretch: 'Linear'
+            }
+        },
+        /*{
+            id: "P/MeerKAT/Galactic-Centre-1284MHz-StokesI",
+            name: "MeerKAT Galactic Centre 1284MHz StokesI",
+            url: "https://alasky.cds.unistra.fr/MeerKAT/CDS_P_MeerKAT_Galactic-Centre-1284MHz-StokesI",
+            maxOrder: 9,
+            // options
+            options: {
+                minCut: -4e-4,
+                maxCut: 0.01,
+                imgFormat: "fits",
+                colormap: "rainbow",
+                stretch: 'Linear'
+            }
+        },*/
+        {
+            id: "P/DM/I/350/gaiaedr3",
+            name: "Density map for Gaia EDR3 (I/350/gaiaedr3)",
+            url: "https://alasky.cds.unistra.fr/ancillary/GaiaEDR3/density-map",
+            maxOrder: 7,
+            // options
+            options: {
+                minCut: 0,
+                maxCut: 12000,
+                stretch: 'asinh',
+                colormap: "rdyibu",
+                imgFormat: "fits",
+            }
+        },
+        {
+            id: "P/PanSTARRS/DR1/g",
+            name: "PanSTARRS DR1 g",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/g",
+            maxOrder: 11,
+            // options
+            options: {
+                minCut: -34,
+                maxCut: 7000,
+                stretch: 'asinh',
+                colormap: "redtemperature",
+                imgFormat: "fits",
+            }
+        },
+        {
+            id: "P/PanSTARRS/DR1/color-z-zg-g",
+            name: "PanSTARRS DR1 color",
+            url: "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
+            maxOrder: 11,    
+        },
+        {
+            id: "P/DECaPS/DR1/color",
+            name: "DECaPS DR1 color",
+            url: "https://alasky.cds.unistra.fr/DECaPS/DR1/color",
+            maxOrder: 11,
+        },
+        {
+            id: "P/Fermi/color",
+            name: "Fermi color",
+            url: "https://alasky.cds.unistra.fr/Fermi/Color",
+            maxOrder: 3,
+        },
+        {
+            id: "P/Finkbeiner",
+            name: "Halpha",
+            url: "https://alasky.cds.unistra.fr/FinkbeinerHalpha",
+            maxOrder: 3,
+            // options
+            options: {
+                minCut: -10,
+                maxCut: 800,
+                colormap: "rdbu",
+                imgFormat: "fits",
+            }
+        },
+        {
+            id: "P/GALEXGR6_7/NUV",
+            name: "GALEXGR6_7 NUV",
+            url: "http://alasky.cds.unistra.fr/GALEX/GALEXGR6_7_NUV/",
+            maxOrder: 8,
+        },
+        {
+            id: "P/IRIS/color",
+            name: "IRIS colored",
+            url: "https://alasky.cds.unistra.fr/IRISColor",
+            maxOrder: 3,
+        },
+        {
+            id: "P/Mellinger/color",
+            name: "Mellinger colored",
+            url: "https://alasky.cds.unistra.fr/MellingerRGB",
+            maxOrder: 4,
+        },
+        {
+            id: "P/SDSS9/color",
+            name: "SDSS9 colored",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/color",
+            maxOrder: 10,
+        },
+        {
+            id: "P/SDSS9/g",
+            name: "SDSS9 band-g",
+            url: "https://alasky.cds.unistra.fr/SDSS/DR9/band-g",
+            maxOrder: 10,
+            options: {
+                stretch: 'asinh',
+                colormap: "redtemperature",
+                imgFormat: "fits",
+            }
+        },
+        {
+            id: "P/SPITZER/color",
+            name: "IRAC color I1,I2,I4 - (GLIMPSE, SAGE, SAGE-SMC, SINGS)",
+            url: "https://alasky.cds.unistra.fr/SpitzerI1I2I4color",
+            maxOrder: 9,
+        },
+        {
+            id: "P/VTSS/Ha",
+            name: "VTSS-Ha",
+            url: "https://alasky.cds.unistra.fr/VTSS/Ha",
+            maxOrder: 3,
+            options: {
+                minCut: -10.0,
+                maxCut: 100.0,
+                colormap: "grayscale",
+                imgFormat: "fits"
+            }
+        },
+        /*
+        // Seems to be not hosted on saada anymore
+        {
+            id: "P/XMM/EPIC",
+            name: "XMM-Newton stacked EPIC images (no phot. normalization)",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.cds.unistra.fr/xmmallsky",
+            maxOrder: 7,
+        },*/
+        {
+            id: "xcatdb/P/XMM/PN/color",
+            name: "XMM PN colored",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=https://saada.unistra.fr/PNColor",
+            maxOrder: 7,
+        },
+        {
+            id: "P/allWISE/color",
+            name: "AllWISE color",
+            url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
+            maxOrder: 8,
+        },
+        /*//The page is down
+        {
+            id: "P/GLIMPSE360",
+            name: "GLIMPSE360",
+            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            maxOrder: 9,
+        },*/
+    ];
+
+    HpxImageSurvey.getAvailableSurveys = function() {
+        return HpxImageSurvey.SURVEYS;
+    };
 
     return HpxImageSurvey;
 })();
+

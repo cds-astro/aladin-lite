@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  let aladin;
+  A.init.then(() => {
+      // Start up Aladin Lite
+      var aladin = A.aladin('#aladin-lite-div', {target: 'M 82', fov: 0.25});
+
+      aladin.addCatalog(A.catalogFromSimbad('M 82', 0.1, {onClick: 'showTable'}));
+      aladin.addCatalog(A.catalogFromNED('09 55 52.4 +69 40 47', 0.1, {onClick: 'showPopup', shape: 'plus'}));
+  });
+</script>
+
+</body>
+</html>

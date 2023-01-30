@@ -27,16 +27,15 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
+export let Color = (function() {
 
-Color = (function() {
 
-
-    Color = {};
+    let Color = {};
     
     Color.curIdx = 0;
     Color.colors = ['#ff0000', '#0000ff', '#99cc00', '#ffff00','#000066', '#00ffff', '#9900cc', '#0099cc', '#cc9900', '#cc0099', '#00cc99', '#663333', '#ffcc9a', '#ff9acc', '#ccff33', '#660000', '#ffcc33', '#ff00ff', '#00ff00', '#ffffff'];
+    Color.standardizedColors = {};
 
-    
     Color.getNextColor = function() {
         var c = Color.colors[Color.curIdx % (Color.colors.length)];
         Color.curIdx++;
@@ -52,14 +51,14 @@ Color = (function() {
     Color.getLabelColorForBackground = function(rgbBkgdColor) {
         var lightLabel = '#eee' 
         var darkLabel = '#111' 
-        rgb = rgbBkgdColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+        var rgb = rgbBkgdColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
         if (rgb==null) {
             // we return the dark label color if we can't parse the color
             return darkLabel
         }
-        r = parseInt(rgb[1]);
-        g = parseInt(rgb[2]);
-        b = parseInt(rgb[3]);
+        var r = parseInt(rgb[1]);
+        var g = parseInt(rgb[2]);
+        var b = parseInt(rgb[3]);
         
         var d = 0;
         // Counting the perceptive luminance - human eye favors green color... 
@@ -72,7 +71,43 @@ Color = (function() {
             return lightLabel; // dark color --> light font
         }
     };
-    
+
+    // convert hexadecimal string to r, g, b components
+    Color.hexToRgb = function(hex) {
+        // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+          return r + r + g + g + b + b;
+        });
+      
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : null;
+    };
+
+    Color.rgbToHex = function (r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    Color.standardizeColor = function(label) {
+        if (label.match(/^#?[0-9A-Fa-f]{6}$/) || label.match(/^#?[0-9A-Fa-f]{3}$/)) {
+            // if it is hexadecimal already, return it in its actual form
+            return label;
+        } else {
+            if (!Color.standardizedColors[label]) {
+                var ctx = document.createElement('canvas').getContext('2d');
+                ctx.fillStyle = label;
+                const colorHexa = ctx.fillStyle;
+        
+                Color.standardizedColors[label] = colorHexa;
+            }
+            return Color.standardizedColors[label];
+        }
+    }
+
     return Color;
 })();
 

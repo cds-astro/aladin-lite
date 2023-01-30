@@ -28,7 +28,9 @@
  * 
  *****************************************************************************/
 
-TileBuffer = (function() {
+ import { Tile } from "./Tile.js";
+
+export let TileBuffer = (function() {
 	var NB_MAX_TILES = 800; // buffer size
 	
 	// constructor

@@ -27,8 +27,10 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
- 
-CooFrameEnum = (function() {
+
+import $ from 'jquery';
+
+export let CooFrameEnum = (function() {
 
     var systems = {J2000: 'J2000', GAL: 'Galactic'};
     return {
@@ -36,31 +38,33 @@ CooFrameEnum = (function() {
 
         J2000: {label: "J2000", system: systems.J2000},
         J2000d: {label: "J2000d", system: systems.J2000},
-        GAL:  {label: "Galactic", system: systems.GAL}
+        GAL:  {label: "Galactic", system: systems.GAL},
+
+        fromString: function(str, defaultValue) {
+            if (! str) {
+                return defaultValue ? defaultValue : null;
+            }
+            
+            str = str.toLowerCase().replace(/^\s+|\s+$/g, ''); // convert to lowercase and trim
+            
+            if (str.indexOf('j2000d')==0 || str.indexOf('icrsd')==0) {
+                return CooFrameEnum.J2000d;
+            }
+            else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
+                return CooFrameEnum.J2000;
+            }
+            else if (str.indexOf('gal')==0) {
+                return CooFrameEnum.GAL;
+            }
+            else {
+                return defaultValue ? defaultValue : null;
+            }
+        }
     };
  
 })();
 
 
 
-CooFrameEnum.fromString = function(str, defaultValue) {
-    if (! str) {
-        return defaultValue ? defaultValue : null;
-    }
-    
-    str = str.toLowerCase().replace(/^\s+|\s+$/g, ''); // convert to lowercase and trim
-    
-    if (str.indexOf('j2000d')==0 || str.indexOf('icrsd')==0) {
-        return CooFrameEnum.J2000d;
-    }
-    else if (str.indexOf('j2000')==0 || str.indexOf('icrs')==0) {
-        return CooFrameEnum.J2000;
-    }
-    else if (str.indexOf('gal')==0) {
-        return CooFrameEnum.GAL;
-    }
-    else {
-        return defaultValue ? defaultValue : null;
-    }
-};
+
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {survey: "P/SPITZER/color", cooFrame: 'galactic', fov: 5});
+        aladin.gotoRaDec(266.41683, -29.00781);
+        // Parameters are:
+        //    <right ascension of final position>,
+        //    <declination of final position>,
+        //    <animation duration in seconds>
+        aladin.animateToRaDec(305.5, 38.5, 70);
+    });
+</script>
+
+</body>
+</html>

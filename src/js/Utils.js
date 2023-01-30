@@ -29,7 +29,15 @@
  * 
  *****************************************************************************/
 
-Utils = Utils || {};
+import { Aladin } from "./Aladin.js";
+import $ from 'jquery';
+
+export let Utils = {};
+
+// list of URL domains that can be safely switched from HTTP to HTTPS
+Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alasky.unistra.fr', 'alaskybis.unistra.fr',
+                          'alasky.cds.unistra.fr', 'alaskybis.cds.unistra.fr', 'hips.astron.nl', 'jvo.nao.ac.jp',
+                          'archive.cefca.es', 'cade.irap.omp.eu', 'skies.esac.esa.int'];
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
@@ -41,7 +49,7 @@ function relMouseCoords(event) {
     var currentElement = this;
    
     if (event.offsetX) {
-        return {x: event.offsetX, y:event.offsetY};
+        return {x: event.offsetX, y: event.offsetY};
     } 
     else {
         if (!Utils.cssScale) {
@@ -71,7 +79,7 @@ function relMouseCoords(event) {
 
         var clientX = e.clientX;
         var clientY = e.clientY;
-        if (e.clientX == undefined) {
+        if (e.originalEvent.changedTouches) {
             clientX = e.originalEvent.changedTouches[0].clientX;
             clientY = e.originalEvent.changedTouches[0].clientY;
         }
@@ -117,7 +125,7 @@ if (!Function.prototype.bind) {
 
 
 
-$ = $ || jQuery;
+//$ = $ || jQuery;
 
 /* source : http://stackoverflow.com/a/8764051 */
 $.urlParam = function(name, queryString){
@@ -184,114 +192,145 @@ Utils.LRUCache = function (maxsize) {
 };
    
 Utils.LRUCache.prototype = {
-        set: function (key, value) {
-            var keys = this._keys,
-                items = this._items,
-                expires = this._expires,
-                size = this._size,
-                maxsize = this._maxsize;
+    set: function (key, value) {
+        var keys = this._keys,
+            items = this._items,
+            expires = this._expires,
+            size = this._size,
+            maxsize = this._maxsize;
 
-            if (size >= maxsize) { // remove oldest element when no more room
-                keys.sort(function (a, b) {
-                    if (expires[a] > expires[b]) return -1;
-                    if (expires[a] < expires[b]) return 1;
-                    return 0;
-                });
+        if (size >= maxsize) { // remove oldest element when no more room
+            keys.sort(function (a, b) {
+                if (expires[a] > expires[b]) return -1;
+                if (expires[a] < expires[b]) return 1;
+                return 0;
+            });
 
-                size--;
-                delete expires[keys[size]];
-                delete items[keys[size]];
-            }
-
-            keys[size] = key;
-            items[key] = value;
-            expires[key] = Date.now();
-            size++;
-
-            this._keys = keys;
-            this._items = items;
-            this._expires = expires;
-            this._size = size;
-        },
-
-        get: function (key) {
-            var item = this._items[key];
-            if (item) this._expires[key] = Date.now();
-            return item;
-        },
-        
-        keys: function() {
-            return this._keys;
+            size--;
         }
+
+        keys[size] = key;
+        items[key] = value;
+        expires[key] = Date.now();
+        size++;
+
+        this._keys = keys;
+        this._items = items;
+        this._expires = expires;
+        this._size = size;
+    },
+
+    get: function (key) {
+        var item = this._items[key];
+        if (item) { this._expires[key] = Date.now(); }
+        return item;
+    },
+    
+    keys: function() {
+        return this._keys;
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////:
 
 /**
-  Make an AJAX call, given a list of potential mirrors
-  First successful call will result in options.onSuccess being called back
-  If all calls fail, onFailure is called back at the end
-
+  Fetch an url with the method GET, given a list of potential mirrors
+  An optional object can be given with the following keywords accepted:
+  * data: an object storing the params associated to the URL
+  * contentType: specify the content type returned from the url (no verification is done, it is not mandatory to put it)
+  * timeout: A maximum request time. If exceeded, the request is aborted and the next url will be fetched
   This method assumes the URL are CORS-compatible, no proxy will be used
+
+  A promise is returned. When all the urls fail, a rejected Promise is returned so that it can be catched afterwards
  */
 Utils.loadFromMirrors = function(urls, options) {
-    var data    = options && options.data || null;
-    var method = options && options.method || 'GET';
-    var dataType = options && options.dataType || null;
-    var timeout = options && options.timeout || 20;
+    const contentType = options && options.contentType || "application/json";
+    const data = options && options.data || undefined;
+    const timeout = options && options.timeout || 5000;
 
-    var onSuccess = options && options.onSuccess || null;
-    var onFailure = options && options.onFailure || null;
-
+    // Base case, when all urls have been fetched and failed
     if (urls.length === 0) {
-        (typeof onFailure === 'function') && onFailure();
+        return Promise.reject("None of the urls given can be fetched!");
     }
-    else {
-        var ajaxOptions = {
-            url: urls[0],
-            data: data
-        }
-        if (dataType) {
-            ajaxOptions.dataType = dataType;
-        }
 
-        $.ajax(ajaxOptions)
-        .done(function(data) {
-            (typeof onSuccess === 'function') && onSuccess(data);
+    // A controller that can abort the query when a timeout is reached
+    const controller = new AbortController();
+
+    // Launch a timemout that will interrupt the fetch if it has not yet succeded:
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const init = {
+        // *GET, POST, PUT, DELETE, etc.
+        method: "GET",
+        headers: {
+            "Content-Type": contentType
+        },
+        // no-cors, *cors, same-origin
+        mode: 'cors',
+        // *default, no-cache, reload, force-cache, only-if-cached
+        cache: 'default',
+        // manual, *follow, error
+        redirect: 'follow',
+        // Abort the request when a timeout exceeded
+        signal: controller.signal,
+    };
+
+    const url = urls[0] + '?' + new URLSearchParams(data);
+    return fetch(url, init)
+        .then((response) => {
+            // completed request before timeout fired
+            clearTimeout(timeoutId)
+
+            if (!response.ok) {
+                return Promise.reject("Url: ", urls[0], " cannot be reached in some way.");
+            } else {
+                return response;
+            }
         })
-        .fail(function() {
-             Utils.loadFromMirrors(urls.slice(1), options);
+        .catch((e) => {
+            // The request aborted because it was to slow, fetch the next url given recursively
+            return Utils.loadFromMirrors(urls.slice(1), options);
         });
-    }
-} 
+}
 
 // return the jquery ajax object configured with the requested parameters
 // by default, we use the proxy (safer, as we don't know if the remote server supports CORS)
 Utils.getAjaxObject = function(url, method, dataType, useProxy) {
-        if (useProxy!==false) {
-            useProxy = true;
-        }
+    if (useProxy!==false) {
+        useProxy = true;
+    }
 
-        if (useProxy===true) {
-            var urlToRequest = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(url);
-        }
-        else {
-            urlToRequest = url;
-        }
-        method = method || 'GET';
-        dataType = dataType || null;
+    if (useProxy===true) {
+        var urlToRequest = Aladin.JSONP_PROXY + '?url=' + encodeURIComponent(url);
+    }
+    else {
+        urlToRequest = url;
+    }
+    method = method || 'GET';
+    dataType = dataType || null;
 
-        return $.ajax({
-            url: urlToRequest,
-            method: method,
-            dataType: dataType
-        }); 
+    return $.ajax({
+        url: urlToRequest,
+        method: method,
+        dataType: dataType
+    });
 };
 
 // return true if script is executed in a HTTPS context
 // return false otherwise
 Utils.isHttpsContext = function() {
     return ( window.location.protocol === 'https:' );
+};
+
+Utils.fixURLForHTTPS = function(url) {
+    const switchToHttps = Utils.isHttpsContext() && Utils.HTTPS_WHITELIST.some(element => {
+        return url.includes(element);
+    });
+
+    if (switchToHttps) {
+        return url.replace('http://', 'https://');
+    }
+
+    return url;
 };
 
 // generate an absolute URL from a relative URL
@@ -309,5 +348,23 @@ Utils.uuidv4 = function() {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+/**
+ * @function
+ * @description Deep clone a class instance.
+ * @param {object} instance The class instance you want to clone.
+ * @returns {object} A new cloned instance.
+ */
+Utils.clone = function(instance) {
+    return Object.assign(
+        Object.create(
+            // Set the prototype of the new object to the prototype of the instance.
+            // Used to allow new object behave like class instance.
+            Object.getPrototypeOf(instance),
+        ),
+        // Prevent shallow copies of nested structures like arrays, etc
+        JSON.parse(JSON.stringify(instance)),
+    );
 }
 

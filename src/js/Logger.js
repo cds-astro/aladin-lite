@@ -17,10 +17,10 @@
 //    along with Aladin Lite.
 //
 
-
+import $ from 'jquery';
 
 // log 
-Logger = {};
+export let Logger = {};
 
 Logger.log = function(action, params) {
     try {

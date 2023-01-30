@@ -1,4 +1,5 @@
-# Aladin Lite
+# Aladin Lite v3
+
 **An astronomical HiPS visualizer in the browser** <img src="aladin-logo.png" alt="Aladin Lite logo" width="220">
 
 Aladin Lite is a Web application which enables HiPS visualization from the browser. It is developed at [CDS, Strasbourg astronomical data center](http://cds.unistra.fr/).
@@ -9,8 +10,7 @@ Aladin Lite is built to be easily embeddable in any web page. It powers astronom
 
 More details on [Aladin Lite documentation page](http://aladin.u-strasbg.fr/AladinLite/doc/).
 
-
-# How to test the V3 ?
+# How to test it ?
 
 Aladin Lite v3 beta is out! Please play with [Aladin Lite v3 at this link](https://aladin.u-strasbg.fr/AladinLite).
 The code source is currently under the `develop` branch of this repository.
@@ -26,7 +26,6 @@ If you want to embed it into your webpage, please include [the javascript script
 </head>
 <body>
 
-<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
 <div id="aladin-lite-div" style="width: 500px; height: 400px"></div>
 <script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
 
@@ -41,24 +40,36 @@ If you want to embed it into your webpage, please include [the javascript script
 </html>
 ```
 
+## Goals of v3
+
+- Rust/WebGL new core integration
+
+- Remove jQuery dep
+
+- UI dev, better support for smartphones
+
+- FITS images support
+
+- easy sharing of current « view »
+
+- support of all VOTable serializations (using votable.js?)
+
+- support of FITS tables?
+
+- creating HiPS instance from an URL
+
+- multiple mirrors handling for HiPS tile retrival
+
 ## Source code
 
 Source code is available in the ``src`` directory.
+Precisely, the core is implemented in Rust and can be found in ``src/core``.
 
 ## Licence
 
 Aladin Lite is currently licensed under GPL v3.0
 
 If you think this license might prevent you from using Aladin Lite in your pages/application/portal, please open an issue or [contact us](mailto:cds-question@unistra.fr)
-
-## Building the application
-
-1. Clone the repository
-2. Go to the ``scripts``directory
-3. Open the `build.sh` file and adapt paths to ``uglifyjs`` and ``lessc``
-4. Launch ``./build.sh``
-5. Go to directory ``../distrib/latest/`` , type ``python3 -m http.server 42195`` and open your browser at [http://0.0.0.0:42195/](http://0.0.0.0:42195/) to launch the built application
-
 
 ## Contributing
 
@@ -70,3 +81,48 @@ There are several ways to contribute to Aladin Lite:
 
 - **develop new features/provide code fixing bugs**. As open development is a new thing for us, we will in a first time only take into consideration code contribution (_i.e._ Pull Requests) from our close partners.
 In any case, please get in touch before starting a major update or rewrite.
+
+### Building the application steps
+
+First you need to install the dependencies from the package.json
+Please run:
+
+```bash
+npm install
+```
+
+After that you are supposed to have the Rust toolchain installed
+to compile the core project into WebAssembly.
+Follow the steps from the Rust official website [here](https://www.rust-lang.org/learn/get-started)
+
+
+Once it's installed you can only build the project:
+```bash
+npm run build
+```
+
+Or build it and launch a localhost server (usually starting on port 8080 but it can be another one if 8080 is occupied):
+```bash
+npm run serve
+```
+
+For just compiling the rust core from the root location (it is faster to do so)
+
+```bash
+cd src/core
+cargo check --features webgl2
+```
+
+and run the tests
+
+```bash
+cd src/core
+cargo test
+```
+
+To generate the Rust backend API documentation
+
+```bash
+cd src/core
+cargo doc --no-deps --open
+```

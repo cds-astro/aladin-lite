@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+
+<!-- <link rel="stylesheet" href="../distrib/latest/aladin.min.css" /> -->
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+
+
+</head>
+<body>
+    <div id="aladin-lite-div" style="width: 1024px; height: 768px">
+      <div id="ui" class="ui">
+      </div>
+    </div>
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        aladin = A.aladin('#aladin-lite-div', {target: '00 00 00 +07 00 00', fov: 130, survey: 'P/Mellinger/color'});
+        var moc11 = A.MOCFromURL('http://skies.esac.esa.int/HST/NICMOS/Moc.fits', {color: '#84f', lineWidth: 1, opacity: 1.0}, (moc) => {
+            // moc is ready
+            console.log(moc.contains(205.9019247, +2.4492764));
+            console.log(moc.contains(-205.9019247, +2.4492764));
+
+        });
+        var moc10 = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=11&fmt=fits', {color: '#aabbcc', opacity: 0.1, lineWidth: 1});
+        var moc9 = A.MOCFromURL('https://alasky.unistra.fr/MocServer/query?ivorn=ivo%3A%2F%2FCDS%2FV%2F139%2Fsdss9&get=moc&order=4&fmt=fits', {color: '#00ff00', opacity: 0.5, lineWidth: 1});
+
+        aladin.addMOC(moc11);
+        aladin.addMOC(moc10);
+        aladin.addMOC(moc9);
+    });
+</script>
+</body>
+</html>

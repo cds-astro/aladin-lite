@@ -28,10 +28,13 @@
  * 
  *****************************************************************************/
 
-Footprint = (function() {
+import { Utils } from "./Utils.js";
+
+export let Footprint = (function() {
     // constructor
-    Footprint = function(polygons) {
+    let Footprint = function(polygons) {
         this.polygons = polygons;
+        // TODO: compute a bounding box here
     	this.overlay = null;
 
         // TODO : all graphic overlays should have an id

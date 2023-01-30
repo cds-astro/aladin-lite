@@ -1,0 +1,149 @@
+
+<HTML>
+<HEAD>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+
+
+   <script type="text/javascript">
+var hipsDir=null;</script>
+</HEAD>
+<H1>"HST outreach" progressive survey</H1>
+This Web resource contains HiPS(*) components for <B>HST EPO</B> progressive survey.
+<TABLE>
+<TR>
+<TD>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+<div id="aladin-lite-div" style="width:70vw;height:70vh;">
+        <div style="max-width: 30%; background-color: rgba(255, 255, 255, 0.6); z-index: 20; position: absolute; left: 40%;top: 2%;"><span id="previousField" style="cursor: pointer;">&#x2190;</span><select name="fields" id="field-select"><option value="">--Choose a field</option></select><span id="nextField" style="cursor: pointer;">&#x2192;</span></div>
+        <div style="background-color: rgba(255, 255, 255, 0.6); z-index: 20; position: absolute; left: 10px;bottom: 30%;">&nbsp;&nbsp;Overlay opacity:<br><input id="opacity" type="range" min="0" max="1" step="0.05" value="1"></div>
+</div>
+<script type="text/javascript">
+
+
+// fields selection
+const fields = ['NGC 406', 'IC 4870', 'Jonckheere 900', 'NGC 1309', "Hoag's Object", 'Abell S1063', 'NGC 2440', 'NGC 4605', 'ESO 286-19', 'IRAS 22179-2455', 'IRAS 11484+5521', 'Arp 116', 'NGC 2403', 'NGC 6611', 'NGC 3201', 'Alpha Centauri', 'HD 7113', 'Palomar 12', 'NGC 6397', 'IRAS Z12295+2025', '2MASS J04542829-6625280', 'Terzan 2', 'NGC 4650A', 'LHA 120-N 11A', 'UGC 477', 'M87', 'NGC 7764A', 'Abell 901', 'COSMOS 2607238', 'NGC 4183', 'NGC 3738', 'NGC 5921', 'Mrk 1498', 'NGC 3344', 'SN 1997CK', 'NGC 5548', 'NGC 2865', 'HH 502S1', 'ESO 184-82', 'IC 2006', 'UGC 11411', 'Fornax 3', 'NGC 4424', '[SBD2020] SDSS J1152+3313 A.6', 'CW Leonis', '2MASX J17222717+3207571', 'NGC 6717', 'Messier 9', 'NGC 362', 'Abell 1689', 'NGC 3370', 'NGC 4660', 'Egg Nebula', 'Abell S1077', 'NGC 3982', 'Lagoon Nebula', 'NGC 4522', 'Arp 55', 'NGC 1433', 'RMC 136', 'RX J1347.5-1145', '2MASX J16270254+4328340', 'NGC 2174', "Barnard's Galaxy", 'NGC 1448', 'Abell 2667', 'NGC 4068', 'ESO461-36', '30 Doradus Nebula', 'NGC 2008', 'SN 1997CJ', 'NGC 6388', 'NGC 2217', 'IRAS 17262-2343', 'Abell 3627', 'HDF-N', 'SDSS J232120.93-093910.2', 'NGC 2985', '[CNG2015] PLCK G045.1+61.1', 'IRAS 05437+2502', 'PGC 83677', 'NGC 7814', 'NGC 2392', 'NGC 6569', 'NGC 299', 'Little Gem Nebula', 'IRAS 14260-6227', 'IRAS 19475+3119', 'NGC 6326', 'SN 1997FF', 'Abell 665', 'SAO 244567', 'Leo IV dwarf galaxy', 'NGC 4102', 'ESO 121-6', 'NGC 5331', 'NGC 2808', 'WR 31a', 'NGC 6535', 'NGC 265', 'IRAS 22491-1808', 'NGC 4194', '3C 356', 'Westerlund 1', 'IC 391', 'HAT-P-11', 'IRAS 23166+1655', 'Arp 195', 'ACT-CL J0102-4915', '[HGO2008]SDSS J1531+3414', 'NGC 1300', 'Messier 77', 'Fornax A', '2MASS J03285694+3116222', 'IRAS 14085-5112', "Cat's Eye Nebula", 'NGC 1365', 'HUDF', 'NGC 3749', 'Arp 282', 'NGC 6537', 'PSZ1 G155.25-68.42', 'NGC 2441', 'NGC 4402', 'IRAS 12317+8250', 'HE 1104-1805', 'HH 34', 'NGC 3568', 'Cotton Candy Nebula', 'NGC 5252', 'Arp 256', 'Crab Nebula', '2MASX J14302986+1339117', 'Pistol Star', 'IC 3506', 'NGC 253', 'NGC 288', 'M 107', 'IC 4710', 'NGC 2758', 'Messier 87', 'IC 5298', 'V* U Cam', 'RCW 11', 'NGC 4571', 'Cl Djorgovski 1', "Gyulbudaghian's Nebula", 'NGC 3259', 'IRAS 22036+5306', 'NGC 4237', 'NGC 604', 'NGC 4651', 'UGC 6093', 'DEM L 249', 'NGC 428', 'NGC 3597', 'IRAS 19204+0124', 'IRAS 14280+3126', 'Messier 12', '2XMM J143450.5+033843', '2MASS J16344654+4619467', 'NGC 5024', 'IC 418', 'UGC 8201', 'Markarian 817', '[SBW2007] 1', 'NGC 5917', 'AM 0500-620', 'PSZ1 G155.25-68.42', 'PN K 4-55', 'LMC SN', 'NGC 7329', '2MASX J16133219+5103436', 'IRAS 20351+2521', '3C 454.1', 'Abell 1351', 'I Zw 18', 'ClG 1054-03', '4C 73.08', 'NGC 5806', 'NGC 1222', 'SNR B0519-69.0', 'IRAS 20324+4057', 'NGC 4789A', 'Orion Nebula', 'NGC 5972', 'Arp 293', 'NGC 7479', 'SDSS J110437.46+594639.6', 'NGC 602', 'NGC 1748', 'H-ATLAS J142935.3-002836', 'UGCA 193', 'LHA 120-N 11B', 'Honeycomb Nebula', '[VV2003c] J150603.7+613148', 'IRAS 19092+1646', 'NGC 2336', 'IC 4687', 'ESO 510-G13', '2MASX J09442693+0429569', 'NGC 1313', 'NGC 4762', 'IRAS 00044+6521', 'IXO 5', 'MACS J0138.0 -2155', 'IRAS F05212-3630', 'SDSS J1138+2754', '[RRS2008] 181-825', 'Haro 6-5B', 'NGC 3603', '[RRS2008] 203-506', 'LEDA 17588', 'Abell S0740', 'NGC 17', 'IRAS 06076-2139', 'IRAS F23251+2318', 'PLCK G004.5-19.5', 'NGC 2442', 'NGC 3384', 'MRK 231', '2MASX J11315154-1231587', 'Messier 54', 'NGC 6052', 'Abell 2744', 'MACSJ1423.8+2404 ', 'IRAS 12282+1240', 'RCS2 032727-132623', 'Messier 82', 'M 4', 'Arp 283', 'Abell 1758', 'Abell 1656', 'Palomar 1', 'LRG-4-606', 'IRAS 12204+1605', 'NGC 1022', 'IRAS 09293+2143', 'LEDA 36252', 'Messier 92', 'NGC 6782', 'Cygnus Loop', 'IRAS 13277+4727', 'NGC 339', 'Messier 90', 'NGC 1705', 'SDSS J100434.05+4112', 'UGC 5101', 'NGC 5307', 'IRAS 18132-2028', 'Messier 66', 'Mrk 509', 'Hen 2-437', 'UGC 3855', 'J0826+4305', 'Trapezium Cluster', 'ESO0418-008', 'IRAS 10566+2448', 'IC 10', 'NGC 4861', 'NGC 691', 'NGC 2273', 'HST 12531-2914', 'Ursa Major', 'HST 01247+0352', 'IC 1590', 'SDSS J095629.77+510006.6', 'NGC 4707', 'NGC 4261', 'IRAS 19000+4040', 'NGC 4689', 'AFGL 4104', 'NGC 3921', 'SCP 06F6', 'M 33', 'IC 2184', 'NGC 5584', 'Centaurus A', 'PGC 29388', 'Abell 1413', 'DDO 82', 'Arp 194', 'Arp 147', 'LH 72', 'SDSS J1156+1911', 'Arp 299', 'iPTF16geu', 'NGC 4485', 'Io', 'NGC 6881', 'IRAS 05059-3734', 'UGC 9128', 'NGC 6861', 'NGC 4248', 'Messier 49', '3C 273', 'HH 47', 'IC 335', 'IC 4997', '[CGW2003] J031905.2+4134', 'NGC 1805', 'Extended Groth Strip', "Bode's Galaxy", '2MASX J01493473+3234464', 'NGC 7793', 'NGC 613', 'NGC 2164', 'PK 329-02.2', 'NGC 4889', 'HH 24', 'HD 94910', 'Leo A', 'Melnick 34', 'IC 2163', 'NGC 4163', 'NGC 3318', '47 Tucanae', 'PGC 10922', 'NGC 2363', 'PK 166-06 1', 'NGC 3447', 'LDN 43', 'Messier 86', 'SDSS J1110+6459', '[OBI2014] GN-z10-2', 'NGC 1566', 'Holmberg IX', 'ESO 520-21', 'ESO 593-8', 'DEM L71', 'IC 5063', "Stephan's Quintet", 'IRAS 21101+5810', 'IRAS 00450-2533', 'Necklace Nebula', 'NGC 5315', 'NGC 5189', '2MASX J03193743+4137580', 'IC 559', 'UGC 5497', 'NGC 986', 'N81', 'Messier 85', '[RRS2008] 294-606', 'PGC 6240', 'NGC 4458', 'NGC 4845', 'Abell 2125', 'IC 2233', 'Tr16-244', 'Hubble Ultra Deep Field', 'NGC 2022', 'PG 0052+251', '[RRS2008] 154-240', 'IC 1954', 'SDSS J140228.21+632133.5', 'UGC 2885', 'SDSS J090122.37+181432.3', 'Arp 298', 'IRAS 14337+4857', 'Messier 2', ' [RRS2008] 321-602', 'IRAS 23234+4215', 'NGC 4603', 'VY Canis Majoris', 'IRAS 11559+4413', 'NGC 4100', 'Messier 106', 'NGC 346', 'Pluto', '[CGW2003] J031910.4+4129', '[OBI2014] GN-z10-1', 'IRAS 05393+0903', 'IRAS 03164+4119', 'Mayall II', 'IC 4653', 'HCG 16', 'Abell 1185', 'Abell 1300', 'NGC 1466', 'IRAS 20550+1656', 'Sagittarius Dwarf Galaxy', 'NGC 4656', 'Westerlund 2', 'NGC 2768', 'UGC 8335', 'COSMOS 1161898', 'NGC 105', 'ACO S 295', 'IRAS F01310+3024', 'IC 755', 'HE 0437-5439', 'N 66', 'NGC 1850', 'RXC J0232.2-4420', 'J1558+3957', 'NGC 5011B', 'NGC 4548', '[RRS2008] 205-421', 'NGC 5364', 'Arp 182', 'Antlia Dwarf', 'Markarian 231', 'IC 289', 'IRAS 20068+4051', 'NGC 5477', 'UGC 4459', 'MACS J0454.1-0300', 'PGC 54493', 'HCG 90', 'J2140+1209', 'NGC 6384', 'M 84', 'Abell 2390', 'LMC N44C', 'NGC 4526', 'IRC 0218', 'LHA 120-N 44F', 'NGC 6496', 'Stein 2051', 'IC 1727', 'PG 1012+008', 'ClG 1358+62', 'IRAS 04505-2958', 'NGC 2976', 'NGC 1792', 'NGC 1084', 'SN UDS10Wil', '30 Doradus', 'GOODS South Field', 'NGC 7640', 'NGC 2080', 'HD 141569', 'NGC 6210', 'Blinking Planetary', 'Sculptor Dwarf Galaxy', 'UGC 12812', 'MACS J0416.1-2403', 'Messier 3', 'IRAS 11119+1305', '[RRS2008] 061-401', 'PGC 18431', '2MASX J22014163+1151237', 'NGC 3862', 'IRAS 10356+5345', 'Arp 157', 'Cartwheel Galaxy', '3C 368.0', 'NGC 4848', 'Ring Nebula', 'NGC 3147', 'IRAS 20088+4618', 'Arp 87', 'NGC 695', 'HCG 40', 'MOA 2003-BLG-53', 'XCLASS 377', 'SN 1572A', 'IRAS 03386-0127', 'NGC 6753', 'NGC 6139', 'S106 IR', 'Messier 13', 'NGC 5793', 'NGC 972', 'ESO 255-7', 'Messier 110', '3C 321', 'MCG+01-38-004', 'HD 61005', 'IRAS 14348-1447', 'Lynx Arc', 'NGC 3081', 'Butterfly Nebula', 'NGC 6558', 'Abell 851', 'IC 4662', 'IC 4499', 'Messier 11', 'M74', 'ESO 499-G37', 'Cigar Galaxy', 'Calabash Nebula', 'NGC 2906', 'NGC 1854', 'ESO 498-G5', 'NGC 454', 'Messier 95', 'UGC 7342', 'Pisces B', 'Radio Galaxy 0313-192', 'Messier 32', 'NGC 4244', 'DDO 6', 'IC 2051', 'NGC 4993', '[RRS2008] 177-541', 'NGC 2787', 'PSR B 1620+26', 'Messier 79', 'IC 5052', 'UGC 2369', 'IRAS 11478-5654', 'NGC 6744', 'HST 14164+5215', 'ClG J1449+0856', 'NGC 7049', 'UGC 685', 'SDSSCGB 8842.3', 'NGC 3583', 'Markarian 848', 'SDSSJ0150+2725', 'NGC 5728', 'CAL 35', 'SDSS J082354.96+280621.6', 'Fornax 5', 'Mars', 'IRAS 12080+3941', 'PSZ1 G308.33-20.21', 'NGC 1803', '[RRS2008] 141-520', 'NGC 1614', '3C186', 'Messier 51', 'OBJ29323', 'NGC 2770', 'LCDCS 0829', 'IC 348', 'SDSS J162702.56+432833.9 ', 'LEDA 3183', 'NGC 2452', 'HCG 7', 'SDSS J163028.15+452036.2', 'Abell 3827', 'LEDA 71392', 'MACS J1149+2223', 'M 100', 'Abell 2218', 'IRAS 04361+2547', 'HH 31-D', 'IRAS 15134-4527', 'M15', 'MACS1149-JD', 'RDCS1252.9-2927', 'IRAS 18090+0130', 'NGC 6565', '[CGW2003] J031900.4+4129', 'Arp 302', 'V1331 Cyg', 'CDF-S', 'NGC 1706', 'NGC 6670', 'M 99', 'Cl Pismis 24', 'NGC 2818', 'NGC 1132', 'NGC 5907', 'MS 1054-03', 'Beta Pictoris', 'ESO 137-001', 'NGC 6217', 'NGC 5861', 'SPT0615-JD', 'IC 63', 'NGC 4452', 'UGC 9391', 'Messier 17', 'Gum 29', 'ClG 1358+62', 'Dumbbell Nebula', 'NGC 4036', '[RRS2008] 132-1832', 'M 106', 'M60-UCD1', 'NGC 4214', 'Abell 68', 'IC 2431', 'PKS 2349', 'Carina Nebula', 'NGC 6984', 'HH 151', 'HH 1', 'IRAS 07015-0346', 'NGC 2500', '2MASX J00482185-2507365', 'Black Eye Galaxy', 'NGC 5468', 'Eagle Nebula', 'Hen 2-90', 'APMBGC 252+125-117', 'Liller 1', 'PN G054.2-03.4', 'Messier 43', 'NGC 1333', 'COSMOS 1705033', 'Messier 15', 'NGC 6642', 'Sh 2-106', 'NGC 3125', 'NGC 6741', 'SDSSJ0952+3434', 'NGC 6240', 'NGC 3923', 'Frosty Leo Nebula', 'ESO 455-10', 'NGC 3256', 'HDF', 'NGC 2082', 'Hen 3-1357', 'M81', 'NGC 4907', 'NGC 4858', 'ESO 338-4', 'NGC 1818', 'IRAS 02168-0312', 'M 5', 'COSMOS FIELD', 'IRAS 21014-1133', 'IC 3583', 'NGC 4833', 'MACSJ1720+35', 'ESO 318-13', 'NGC 1559', 'SDSSJ0146-0929', '[RRS2008] 109-327', 'NGC 6751', 'Vermin Galaxy', 'NGC 3254', 'PSZ1 G311.65-18.48', 'Fornax 2', 'ESO 553-46', 'NGC 4980', 'NGC 5023', 'IRAS 12196-6300', '3C 324', 'NGC 6362', 'NGC 6886', 'NGC 4450', 'TNJ1338-1942', 'N159', 'PGC 39058', 'ESO 306-17', 'NGC 3810', 'IC 142', 'Hubble 5', 'R Sculptoris', 'Fornax 1', 'IRAS 23436+5257', 'Sagittarius A*', 'HCG 87', 'NGC 6380', 'IRAS 12239+3129', 'Sirius A', 'AM1316-241', 'DEM L 106', 'NGC 2313', 'NGC 4394', 'NGC 4536', 'He 2-47', 'IRAS 04531-5326', 'M 68', 'NGC 4111', '[RRS2008] 106-417', 'MACS J0717.5+3745', ' [RRS2008] 473-245', 'IRAS 18517+3257', 'M 57', 'V838 Mon', 'NGC 1385', '[BBF2008] A1689-zD1', 'Vesta', 'SDSS J162746.44-005357.5', 'Messier 101', 'NGC 5253', 'IRAS 15029+0217', 'NGC 5474', 'NGC 2023', 'NGC 2903', 'ESO 486-21', 'NGC 3918', 'NGC 595', 'HST 14176+5226', 'IC 4406', 'IC 39', 'NGC 2261', 'NGC 4380', 'NGC 7537', 'Crescent Nebula', 'ESO 373-8', 'NGC 5010', 'IC 2574', 'NGC 634', 'NGC 4631', 'J025027.7+600849', 'Pistol Nebula', 'J025157.5+600606', '[RRS2008] 231-838', 'Andromeda Galaxy', 'NGC 2188', 'ESO 507-70', 'II Zw 28', 'NGC 4755', 'NGC 1866', 'SNR B0509-67.5', 'ESO 162-17', 'NGC 4535', 'NGC 6752', 'Messier 75', 'ZwCl0024+1652', 'NGC 6441', 'NGC 2736', 'NGC 5643', 'LEDA 2826829', 'IC 2560', '[RRS2008] 206-446', 'LDN 1551', '2MASS J03032308-1539079', 'Mrk205', 'DDO 68', 'Crab Pulsar', '[B77] 63', 'Helix Nebula', 'NGC 4051', 'Large Magellanic Cloud', 'Mayall II', 'NGC 1783', 'Himiko', 'IRAS 13208-6020', 'NGC 4618', 'IRAS 19343+2926', 'MC2 1635+119', 'IC 1623', 'IRAS 17441-2411', 'NGC 4874', "Hubble's Cepheid", 'Messier 100', 'RXC J0032.1+1808', 'ESO 576-69', 'Messier 16', 'NGC 5398', 'MCG+07-33-027', 'NGC 3501', 'NGC 6791', 'ESO 239-2', 'HCG 59', 'IRAS 12252+1317', 'Markarian 273', 'SNR 0509-68.7', 'IRAS 07396-1805', 'NGC 1483', '2MASX J05210136-2521450', 'HST 12368+6212', 'Hen 3-1475', 'NGC 3455', 'M1-63', 'Boomerang Nebula', 'Messier 5', 'NGC 4621', 'NGC 5775', 'NGC 4826', 'NGC 4206', 'Eta Carinae', 'NGC 2444', 'Palomar 2', 'XZ Tau', 'MCG-03-04-014', 'IRAS 01173+1405', 'IRAS 10099-8036', 'UGC 4879', 'SagDIG', 'NGC 3621', 'IRAS 12200+3010', 'HD 44179', 'Shoemaker-Levy 9', 'Bug Nebula', 'NGC 1052-DF2', 'SWEEPS', 'IRAS 00399+4035', 'Messier 98', 'MCG+01-02-015', 'NGC 1806', 'M 105', 'Stingray Nebula', 'M 77', 'NGC 5256', 'MC2 1635+11.9', 'NGC 6153', 'SDSS J0915+3826', 'NGC 4639', 'NGC 6251', 'Mrk 209', 'HST 16302+8230', 'Messier 33', 'Hen 1357', 'M 15', 'NGC 1345', 'NGC 1277', 'NGC 1501', 'IRAS 15328+5651', 'ESO 540-030', 'HBC 672', 'J1/J2', '1ES 0657-55.8', 'IRAS 05240-6948', 'NGC 330', 'NGC 7172', 'M 51', 'M 69', 'Abell 370', 'QSO B0316-3437', 'NGC 4150', 'Messier 71', 'NGC 2419', 'SDSS J120540.43+491029.3', 'NGC 5139', '2MASX J06094582-2140234', 'NGC 1487', "Barnard's Merope Nebula", 'Mice Galaxies', 'NGC 7513', 'Holmberg II', 'M2-9', 'NGC 5866', 'HD 58061', 'NGC 7090', 'PKS 2349-014', 'Messier 42', 'Sagittarius', 'J0944+0930', 'NGC 3887', 'UGC 5797', 'Nova Cygni 1992', 'Phoenix dwarf galaxy', 'NGC 4680', 'CLASS B1608+656', 'Hen 3-401', 'NGC 6946', 'IRAS 10223-1823', 'NGC 4365', 'LH 117', 'NGC 524', 'NGC 3717', 'Abell 2537', 'T Pyxidis', 'IC 342', 'IRAS 13218+0552', 'IRAS 13501-6616', 'MACSJ1206.2-0847', 'Abell 1835', 'IRAS 07068-0043', 'NGC 3432', 'NGC 4298', 'LH 95', 'NGC 7354', 'NGC 5264', 'NGC 4490', 'IC 2944', 'Arp 240', 'Messier 63', 'NGC 2841', 'UGC 12158', 'RX J1140.1+0307', 'NGC 3314', 'NGC 4666', '6dFGS gJ133600.1-033130', 'N66', 'NGC 5882', 'AG Carinae', 'CRL 2688', 'IRAS 16423+2353', 'Pismis 24', 'NGC 1317', 'NGC 7742', 'LEDA 213994', 'Messier 80', 'DEM L 190', 'NGC 4622', 'NGC 3021', 'NGC 4496A', 'LHA 120-N 11', 'Messier 20', 'M 61', 'SDSS J0928+2031', 'J125013.50+073441.5', '1E 0102.2-7219', 'DDO 190', 'IRAS 0958+559P15', 'Bubble Nebula', 'NGC 6572', 'Markarian 315', 'NGC 5408', 'NGC 891', 'UGCA 281', 'NGC 6934', 'IC 2545', 'Haro 6-12', 'HST 01248+0351', 'Abell 2163', 'ESO 376-16', 'J1506+5402', 'IRAS 03317-3618', 'NGC 4242', 'Arp 230', 'Messier 28', 'Arp 148', 'HR 8799', 'Arp 284', 'IRAS 07224+2935', 'NGC 4696', 'WR 25', 'NGC 4565', 'MS1054-03', 'NGC 660', 'NGC 2337', 'Messier 4', 'NGC 1097', 'NGC 278', 'NGC 1427A', 'NGC 1569', 'NGC 6090', 'NGC 2040', 'IRAS 14156+2522', 'Proxima Centauri', 'NGC 6786', 'NGC 290', 'J0025.4-1222', 'NGC 1032', 'NGC 2683', 'NGC 3274', 'HH 46', 'M83', 'SDSS J125028.25+052349.0', 'M 94', 'SDSS J210415.89-062024.7', 'IRAS 04016+2610', 'NGC 772', 'NGC 1999', 'NGC 3185', 'IRAS 19024+0044 ', 'ESO 99-4', 'RCS2 J2327', 'GOODS J123627.71+620712.7', 'NGC 4449', 'NGC 5949', 'NGC 7006', 'IRAS 10444+1732', 'M 42', 'ESO 69-6', 'IC 4970', 'Messier 89', 'SN 1993J', 'NGC 6369', 'NGC 7496', 'Circinus galaxy', 'MACHO 96-BLG-05', 'Abell 520', 'HH 110', 'IC 5201', 'SDSS J073728.45+321618.5', 'NGC 3169', 'RXC J0142.9+4438', 'ESO 489-56', 'IRAS 10082-5647', 'Pisces A', 'LHA 120-N 159', 'Abell 78', 'UGC 11185', 'NGC 2014', 'NGC 300', 'IRAS 12224+1309', 'UGC 12682', 'M 20', 'UGC 695', 'WFI2033-4723', 'SDSS J1354+1327', 'PHL 909', 'PSZ2 G138.61-10.84', 'AM 0702-601', 'Mrk 820', 'NGC 4911', 'Hodge 301', 'NGC 6401', 'NGC 5559', 'Stellar Bow Shocks', 'M 10', 'RX J185635-3754', 'NGC 3895', 'NGC 7678', 'NGC 2608', 'Arp 86', '2MASX J15100402+0740370', 'Barnard 33', 'Terzan 5', 'HH 164', 'NGC 3972', 'IRAS 06176-1036', 'SDSSJ225506.80+005839.9', 'NGC 2346', 'NGC 2467', 'NGC 7252', 'IC 2810', '[RRS2008] 142-301', 'NGC 4388', 'NGC 7257', 'NGC 4700', 'Messier 22', 'NGC 7541', 'Messier 72', 'NGC 4625', 'PKS 0218-387', 'MACSJ0717.5+3745', 'J1359+5137', 'HDF-S', 'GRB 110328A', 'NGC 6814', 'PGC 046982', 'VV689', 'NGC 949', 'COSMOS 3127341', '[RRS2008] 124-132', 'NGC 7773', 'Arches Cluster', 'IRAS F11510+4808', 'VCC 1993', 'ESO 580-49', 'Abell 1703', 'MRK 1034', 'NGC 411', 'NGC 2203', 'Veil Nebula', 'ESO 021-G004', 'ClG J1050+0017', 'IRAS F02194+4207', 'ESO 148-2', 'NGC 4634', 'LL Orionis', 'Arp 81', 'RXC J0949.8+1707', 'NGC 1672', 'NGC 922', 'NGC 121', 'IRAS 12131+3636', 'MACS J1206.2-0847', 'NGC 1589', 'Hourglass Nebula', 'Arp 188', 'UGC 06471', 'SN 1997CE', 'NGC 2835', '2MASX J09133888-1019196', 'IRAS 19297-0406', 'NGC 2074', "Merril's Star", 'IC 4593', 'Trumpler 14', 'SNR 0454-67.2', 'NGC 1015', 'EM* LkHA 101', 'NGC 2146', 'Betelgeuse', 'NGC 2397', 'Antennae', '[RRS2008] 180-331', 'Bedin I', 'MACS J0152.5-2852', 'NGC 2276', 'NGC 248', 'ESO 285-19', 'Messier 65', 'DEM L 243', 'J1613+2834', 'Arp 220', 'PN G111.8-02.8', 'SpARCS1049+56', 'J1000+0221', 'Mrk 60', '[RRS2008] 159-338', 'RXC J2211.7-0350', 'NGC 3077', 'NGC 976', 'ESO 350-38', 'SN 1987A', 'HH 111', 'RS Puppis', 'LEDA 677373', 'Arp 272', 'ESO 456-67', 'NGC 7052', "Seyfert's Sextet", 'ESO 77-14', 'Abell 383', 'SDSSJ0946+1006', 'NGC 3521', 'ZwCl 1358+62', 'AM 0644-741', 'Hen 2-104', 'Arp 243', 'NGC 4866', 'Tadpole Galaxy', "Campbell's star", '[OBI2014] GN-z10-3', 'PGC 17532', 'Messier 81', 'NGC 4217', 'IRAS 20338+5959', 'IDCS J1426.5+3508', 'Messier 61', 'ESO 243-49', 'Cassiopeia A', 'NGC 4710', 'NGC 5308', 'MCG+01-33-036', 'Hanny\'s Voorwerp', 'IRAS 07399-1435', 'DEM L316A', 'HH 32', 'Ant Nebula', 'NGC 1275', 'NGC 5714', 'SBS1415+437', 'Messier 62', 'SDSS J0333+0651', 'DI Cha', 'NGC 4314', 'NGC 1156', 'NGC 1510', 'Tarantula Nebula', 'IRAS 13478-5057', 'AFGL 5180', 'UGC 12588', 'NGC 1140', 'HH 2', 'Messier 96', 'ESO 550-IG025', 'GOODS field', 'IRAS 09200-5805', 'HST 16309+8230', 'Arp 274', 'NGC 1947', 'GOODS North Field', 'HD 200775', 'NGC 4517', 'TMR 1C', 'MCS J0647.7+7015', 'CoKu Tau 1', 'Coma Cluster', 'HH 30', 'NGC 3175', 'NGC 24', 'NGC 1376', '[RRS2008] 109-246', 'NGC 1533', 'Arp 273', '[LO95] 0313-192', '3XMM J215022.4-055108', 'IRAS 19411-1416', '[CSR2018] Cosmic Snake', 'NGC 1755', 'NGC 2108', 'NGC 7250', 'NGC 2525', 'NGC 2623', 'LRG 3-757', 'PGC 51017', 'MS 0735.6+742', 'NGC 2775', 'Alpha Ursae Minoris', 'GRB 190114C', 'NGC 4147', 'NGC 7331', 'NGC 7027', 'M 70', 'NGC 6503', 'M 56', "Kepler's SN", 'NGC 247', 'NGC 5033', 'IRAS 04022-4329', 'NGC 2371', 'J1713+2817', 'IRAS 12403+1331', 'ACO 2813', 'GN-z9-1', 'NGC 4921', 'Hubble Legacy Field', 'IRAS 00525-3757', 'HE0435-1223', 'Messier 30', 'Galactic Centre', 'Phoenix Cluster', 'NGC 5037', 'NGC 5754', 'ESO 149-003', 'GOODS-MUSIC 15423', 'IRAS 18021-1950', '[CGW2003] J031931.7+4131', 'CRL 618', 'IC 4634', 'Hen 3-1333', 'Arp 193', 'Arp 142', 'NGC 2292', 'MACS2129-1', 'UGC 11537', 'Arp 91', 'M 104', 'J2118+0017', 'QSO B0957+0561', 'WR 124', 'HCG 31'];
+fields.sort();
+console.log(fields.length  + ' objects in list');
+const fieldSelect = document.getElementById('field-select');
+for (var k=0; k<fields.length; k++) {
+    var opt = document.createElement('option');
+    opt.value = fields[k];
+    opt.innerHTML = fields[k];
+    fieldSelect.appendChild(opt);
+}
+fieldSelect.addEventListener("change", function() {
+    if (this.value.length>0) {
+        aladin.gotoObject(this.value);
+    }
+});
+
+const previousFieldFn = function() {
+    const idxSelected = fields.indexOf(fieldSelect.value);
+    if (idxSelected>0) {
+        fieldSelect.value = fields[idxSelected - 1];
+        fieldSelect.dispatchEvent(new Event('change'));
+    }
+};
+
+const nextFieldFn = function() {
+    const idxSelected = fields.indexOf(fieldSelect.value);
+    if (idxSelected<fields.length - 1) {
+        fieldSelect.value = fields[idxSelected + 1];
+        fieldSelect.dispatchEvent(new Event('change'));
+    }
+};
+
+
+
+document.getElementById('previousField').addEventListener('click', previousFieldFn);
+document.addEventListener('keydown', (event) => {if (event.keyCode==37) previousFieldFn();})
+
+document.getElementById('nextField').addEventListener('click', nextFieldFn);
+document.addEventListener('keydown', (event) => {if (event.keyCode==39) nextFieldFn();})
+
+const slider = document.getElementById('opacity');
+slider.oninput = function() {
+    aladin.getOverlayImageLayer().setAlpha(slider.value);
+};
+
+// listener to toggle on/off overlay layer
+let toggleOn = true;
+document.addEventListener('keydown', (event) => {if (event.keyCode==84) {
+    toggleOn = ! toggleOn;
+    if (toggleOn) {
+        slider.value = 1.0;
+    }
+    else {
+        slider.value = 0.0;
+    }
+
+    aladin.getOverlayImageLayer().setAlpha(slider.value);
+}
+});
+
+// listener for zoom in / zoom out
+document.addEventListener('keydown', function(e) {
+    if (e.keyCode==73) {
+        aladin.increaseZoom();
+    }
+    if (e.keyCode==79) {
+        aladin.decreaseZoom();
+    }
+});
+
+fieldSelect.addEventListener('change', function() {
+    fieldSelect.blur();
+});
+
+var target = 'NGC 2014';
+fieldSelect.value = target;
+var fov = 0.1;
+const params = new URLSearchParams(location.search);
+if (params.has('target')) {
+    target = params.get('target');
+}
+if (params.has('fov')) {
+    fov = parseFloat(params.get('fov'));
+}
+
+    let aladin;
+    A.init.then(() => {
+aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, target: target, fov: fov });
+aladin.setOverlayImageLayer('https://alasky.cds.unistra.fr/HST-outreach/CDS_P_HST_EPO');
+aladin.getOverlayImageLayer().setAlpha(1.0);
+aladin.toggleFullscreen();
+    });
+
+</script>    
+</TD>
+<TD>
+<UL>
+   <LI> <B>Label:</B> HST outreach
+   <LI> <B>Type:</B> colored HiPS image
+   <LI> <B>Best pixel angular resolution:</B> 25.16mas
+   <LI> <B>Max tile order:</B> 14 (NSIDE=16384)
+   <LI> <B>Available encoding tiles:</B> png
+   <LI> <B>Tile size:</B> 512x512
+   <LI> <B>Processing date:</B> 2022-08-03T14:51Z
+   <LI> <B>HiPS builder:</B> Aladin/HipsGen v11.071
+   <LI> <B>Coordinate frame:</B> equatorial
+   <LI> <B>Sky area:</B> 0.081% of sky => 33.48Â°^2
+   <LI> <B>Associated coverage map:</B> <A HREF="Moc.fits">MOC</A>
+   <LI> <B>Original data access template:</B> <A HREF="HpxFinder/metadata.xml">metadata.xml</A>
+   <LI> <B>Property file:</B> <A HREF="properties">properties</A>
+   <LI> <B>Base URL:<p id="hipsBase"></p></B> 
+</UL>
+</TD>
+</TR>
+</TABLE>
+This survey can be displayed by <A HREF="https://aladin.u-strasbg.fr/AladinLite">Aladin Lite</A> (see above), 
+by <A HREF="https://aladin.u-strasbg.fr/java/nph-aladin.pl?frame=downloading">Aladin Desktop</A> client
+(just open the base URL)<BR>or any other HiPS aware clients.
+<HR>
+<I>(*) HiPS is a recommended <A HREF="www.ivoa.net">International Virtual Observatory Alliance</A> standard:<A HREF="www.ivoa.net/documents/HiPS">HiPS REC</A>. 
+The HiPS technology allows a dedicated client to access an astronomical survey at any location and at any scale. 
+HiPS has been invented by <A HREF="https://aladin.u-strasbg.fr/hips">CDS-Universit&eacute; de Strasbourg/CNRS</A> (<A HREF="http://cdsads.u-strasbg.fr/abs/2015A%26A...578A.114F">2015A&amp;A...578A.114F</A>). It is based on HEALPix sky tessellation and it is designed for astronomical scientifical usages (low distorsion, true pixel values...).</I><script type="text/javascript">
+document.getElementById("hipsBase").innerHTML=hipsDir;
+</script>
+</HTML>
+

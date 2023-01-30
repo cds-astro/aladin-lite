@@ -27,7 +27,11 @@
  * Author: Thomas Boch[CDS]
  * 
  *****************************************************************************/
-AladinUtils = (function() {
+
+import { Projection } from "./libs/astro/projection.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+
+export let AladinUtils = (function() {
 
     return {
     	/**
@@ -73,7 +77,7 @@ AladinUtils = (function() {
     	 * convert a 
     	 * @returns position x,y in the view. Null if projection is impossible
     	 */
-        radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
+        /*radecToViewXy: function(ra, dec, currentProjection, currentFrame, width, height, largestDim, zoomFactor) {
             var xy;
             if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
                 var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
@@ -85,10 +89,25 @@ AladinUtils = (function() {
             if (!xy) {
                 return null;
             }
-            
-            return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
-        },
 
+            return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
+        },*/
+        radecToViewXy: function(ra, dec, view) {
+            //var xy;
+            //if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
+            //    var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
+            //    xy = view.aladin.webglAPI.worldToScreen(lonlat[0], lonlat[1]);
+            //}
+            //else {
+            //var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
+            let xy = view.aladin.webglAPI.worldToScreen(ra, dec);
+            //}
+            //if (!xy) {
+            //    return null;
+            //}
+
+            return xy;
+        },
     	
     	myRound: function(a) {
     		if (a<0) {
@@ -99,7 +118,17 @@ AladinUtils = (function() {
     		}
     	},
     	
-    	
+    	/**
+    	 * Test whether a xy position is the view
+    	 * @param vx
+    	 * @param vy
+    	 * @param width
+    	 * @param height
+    	 * @returns a boolean whether (vx, vy) is in the screen
+    	 */
+    	isInsideViewXy: function(vx, vy, width, height) {
+    		return vx >= 0 && vx < width && vy >= 0 && vy < height
+    	},
     	
     	/**
     	 * tests whether a healpix pixel is visible or not
@@ -121,8 +150,8 @@ AladinUtils = (function() {
     		if (norderIn>=norderOut) {
     		}
     	},
-        
-        getZoomFactorForAngle: function(angleInDegrees, projectionMethod) {
+        // Zoom is handled in the backend
+        /*getZoomFactorForAngle: function(angleInDegrees, projectionMethod) {
             var p1 = {ra: 0, dec: 0};
             var p2 = {ra: angleInDegrees, dec: 0};
             var projection = new Projection(angleInDegrees/2, 0);
@@ -133,6 +162,15 @@ AladinUtils = (function() {
             var zoomFactor = 1/Math.abs(p1Projected.X - p2Projected.Y);
 
             return zoomFactor;
+        },*/
+
+        counterClockwiseTriangle: function(x1, y1, x2, y2, x3, y3) {
+            // From: https://math.stackexchange.com/questions/1324179/how-to-tell-if-3-connected-points-are-connected-clockwise-or-counter-clockwise
+            // | x1, y1, 1 |
+            // | x2, y2, 1 | > 0 => the triangle is given in anticlockwise order
+            // | x3, y3, 1 |
+    
+            return x1*y2 + y1*x3 + x2*y3 - x3*y2 - y3*x1 - x2*y1 >= 0;
         },
 
         // grow array b of vx,vy view positions by *val* pixels

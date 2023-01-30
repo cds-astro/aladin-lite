@@ -29,14 +29,15 @@
  * 
  *****************************************************************************/
 
-Downloader = (function() {
+export let Downloader = (function() {
+
 	var NB_MAX_SIMULTANEOUS_DL = 4;
 	// TODO : le fading ne marche pas bien actuellement
 	var FADING_ENABLED = false;
 	var FADING_DURATION = 700; // in milliseconds
 	
 	
-	var Downloader = function(view) {
+	let Downloader = function(view) {
 		this.view = view; // reference to the view to be able to request redraw
 		this.nbDownloads = 0; // number of current downloads
 		this.dlQueue = []; // queue of items being downloaded

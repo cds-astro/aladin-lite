@@ -28,12 +28,17 @@
  * 
  *****************************************************************************/
 
+import { Utils } from "./Utils.js";
+import { AladinUtils } from "./AladinUtils.js";
+import { CooFrameEnum } from "./CooFrameEnum.js";
+import { Aladin } from "./Aladin.js";
+
 // TODO : Circle and Footprint should inherit from the same root object
-Circle = (function() {
+export let Circle = (function() {
     // constructor
-    Circle = function(centerRaDec, radiusDegrees, options) {
+    let Circle = function(centerRaDec, radiusDegrees, options) {
         options = options || {};
-        
+
         this.color = options['color'] || undefined;
 
         // TODO : all graphic overlays should have an id
@@ -130,44 +135,30 @@ Circle = (function() {
     };
 
     // TODO
-    Circle.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor, noStroke) {
+    Circle.prototype.draw = function(ctx, view, frame, width, height, largestDim, zoomFactor, noStroke) {
         if (! this.isShowing) {
             return;
         }
-
-
         noStroke = noStroke===true || false;
 
-        var centerXy;
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([this.centerRaDec[0], this.centerRaDec[1]]);
-            centerXy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            centerXy = projection.project(this.centerRaDec[0], this.centerRaDec[1]);
-        }
-        if (!centerXy) {
+        var centerXyview = AladinUtils.radecToViewXy(this.centerRaDec[0], this.centerRaDec[1], view);
+        if (!centerXyview) {
+            // the center goes out of the projection
+            // we do not draw it
             return;
         }
-        var centerXyview = AladinUtils.xyToView(centerXy.X, centerXy.Y, width, height, largestDim, zoomFactor, false);
-
         // compute value of radius in pixels in current projection
-        var circlePtXy;
         var ra = this.centerRaDec[0];
         var dec = this.centerRaDec[1] + (ra>0 ? - this.radiusDegrees : this.radiusDegrees);
-        if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-            var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-            circlePtXy = projection.project(lonlat[0], lonlat[1]);
-        }
-        else {
-            circlePtXy = projection.project(ra, dec);
-        }
-        if (!circlePtXy) {
+
+        let circlePtXyView = AladinUtils.radecToViewXy(ra, dec, view);
+        if (!circlePtXyView) {
+            // the circle border goes out of the projection
+            // we do not draw it
             return;
         }
-        var circlePtXyView = AladinUtils.xyToView(circlePtXy.X, circlePtXy.Y, width, height, largestDim, zoomFactor, false);
-        var dx = circlePtXyView.vx - centerXyview.vx;
-        var dy = circlePtXyView.vy - centerXyview.vy;
+        var dx = circlePtXyView[0] - centerXyview[0];
+        var dy = circlePtXyView[1] - centerXyview[1];
         var radiusInPix = Math.sqrt(dx*dx + dy*dy);
 
         // TODO : check each 4 point until show
@@ -187,7 +178,7 @@ Circle = (function() {
         }
 
         ctx.beginPath();
-        ctx.arc(centerXyview.vx, centerXyview.vy, radiusInPix, 0, 2*Math.PI, false);
+        ctx.arc(centerXyview[0], centerXyview[1], radiusInPix, 0, 2*Math.PI, false);
         if (!noStroke) {
             ctx.stroke();
         }

@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+<!--<link rel="stylesheet" href="./layers.css" />-->
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+Show sources with proper motion greater than:
+<input id='slider' style='vertical-align:middle;width:60vw;' step='1' min='0' max='500' type='range' value='0'>
+<span id='pmVal'  >0 mas/yr</span><br><br><div id='aladin-lite-div' style='width: 500px;height: 500px;'></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        var pmThreshold = 0;
+
+        var slider = document.getElementById('slider');
+        slider.oninput = function() {
+            pmThreshold = this.value;
+            $('#pmVal').html(pmThreshold + ' mas/yr');
+            hips.reportChange();
+        }
+        
+        var myFilterFunction = function(source) {
+            var pmra  = parseFloat(source.data['pmra']);
+            var pmdec = parseFloat(source.data['pmdec']);
+            if (isNaN(pmra) || isNaN(pmdec)) {
+                return false;
+            }
+            var totalPm = Math.sqrt(pmra*pmra+pmdec*pmdec);
+            return totalPm>pmThreshold;
+        }
+        
+        aladin = A.aladin('#aladin-lite-div', {target: 'gal center',fov: 150});
+        var hips = A.catalogHiPS('http://axel.u-strasbg.fr/HiPSCatService/I/345/gaia2', {onClick: 'showTable', color: 'orange', name: 'Gaia', filter: myFilterFunction});
+         aladin.addCatalog(hips);
+        
+        $('input[type=radio][name=otype]').change(function() {
+            requestedOtype = this.value;
+            hips.reportChange();
+        });
+    });
+</script>
+
+</body>
+</html>
+
+

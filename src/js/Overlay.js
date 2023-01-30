@@ -30,10 +30,16 @@
  * 
  *****************************************************************************/
 
-Overlay = (function() {
-   Overlay = function(options) {
+import { AladinUtils } from "./AladinUtils.js";
+import { Footprint } from "./Footprint.js";
+import { Line } from './Line.js';
+import { Utils } from './Utils.js';
+
+export let Overlay = (function() {
+   let Overlay = function(options) {
         options = options || {};
 
+        this.uuid = Utils.uuidv4();
         this.type = 'overlay';
 
     	this.name = options.name || "overlay";
@@ -164,7 +170,7 @@ Overlay = (function() {
         this.overlay_items = [];
     };
     
-    Overlay.prototype.draw = function(ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Overlay.prototype.draw = function(ctx, frame, width, height, largestDim, zoomFactor) {
         if (!this.isShowing) {
             return;
         }
@@ -177,9 +183,10 @@ Overlay = (function() {
         // TODO: les overlay polygons devrait se tracer lui meme (methode draw)
         ctx.lineWidth = this.lineWidth;
     	ctx.beginPath();
-    	xyviews = [];
+    	var xyviews = [];
+
     	for (var k=0, len = this.overlays.length; k<len; k++) {
-    		xyviews.push(this.drawFootprint(this.overlays[k], ctx, projection, frame, width, height, largestDim, zoomFactor));
+    	    xyviews.push(this.drawFootprint(this.overlays[k], ctx, frame, width, height, largestDim, zoomFactor));
     	}
         ctx.stroke();
 
@@ -197,7 +204,7 @@ Overlay = (function() {
     	
         // 2. Circle and polylines drawing
     	for (var k=0; k<this.overlay_items.length; k++) {
-    	    this.overlay_items[k].draw(ctx, projection, frame, width, height, largestDim, zoomFactor);
+    	    this.overlay_items[k].draw(ctx, this.view, frame, width, height, largestDim, zoomFactor);
     	}
     };
 
@@ -221,48 +228,48 @@ Overlay = (function() {
     };
     
     
-    Overlay.prototype.drawFootprint = function(f, ctx, projection, frame, width, height, largestDim, zoomFactor) {
+    Overlay.prototype.drawFootprint = function(f, ctx, frame, width, height, largestDim, zoomFactor) {
         if (! f.isShowing) {
             return null;
         }
         var xyviewArray = [];
-        var show = false;
         var radecArray = f.polygons;
-        // for
-            for (var k=0, len=radecArray.length; k<len; k++) {
-                var xy;
-                if (frame.system != CooFrameEnum.SYSTEMS.J2000) {
-                    var lonlat = CooConversion.J2000ToGalactic([radecArray[k][0], radecArray[k][1]]);
-                    xy = projection.project(lonlat[0], lonlat[1]);
-                }
-                else {
-                    xy = projection.project(radecArray[k][0], radecArray[k][1]);
-                }
-                if (!xy) {
-                    return null;
-                }
-                var xyview = AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor);
-                xyviewArray.push(xyview);
-                if (!show && xyview.vx<width  && xyview.vx>=0 && xyview.vy<=height && xyview.vy>=0) {
-                    show = true;
-                }
+        var firstVertex = true;
+
+        for (var k=0, len=radecArray.length; k<len; k++) {
+            var xyview = AladinUtils.radecToViewXy(radecArray[k][0], radecArray[k][1], this.view);
+            if (!xyview) {
+                return null;
             }
 
-            if (show) {
-                ctx.moveTo(xyviewArray[0].vx, xyviewArray[0].vy);
-                for (var k=1, len=xyviewArray.length; k<len; k++) {
-                    ctx.lineTo(xyviewArray[k].vx, xyviewArray[k].vy);
+            xyviewArray.push(xyview);
+
+            if(xyviewArray.length >= 2) {
+                const line = new Line(xyviewArray[k-1][0], xyviewArray[k-1][1], xyviewArray[k][0], xyviewArray[k][1]);
+                if (line.isInsideView(width, height)) {
+                    if (firstVertex) {
+                        firstVertex = false;
+                        ctx.moveTo(xyviewArray[k-1][0], xyviewArray[k-1][1]);
+                    }
+                    ctx.lineTo(xyviewArray[k][0], xyviewArray[k][1]);
+                } else {
+                    firstVertex = false;
+                    ctx.moveTo(xyviewArray[k][0], xyviewArray[k][1]);
                 }
             }
-            else {
-                //return null;
+        }
+
+        /*ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            } else {
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
             }
-        // end for
+        }*/
 
         return xyviewArray;
-
-
-
     };
 
     Overlay.prototype.drawFootprintSelected = function(ctx, xyview) {
@@ -271,9 +278,14 @@ Overlay = (function() {
         }
 
         var xyviewArray = xyview;
-        ctx.moveTo(xyviewArray[0].vx, xyviewArray[0].vy);
-        for (var k=1, len=xyviewArray.length; k<len; k++) {
-            ctx.lineTo(xyviewArray[k].vx, xyviewArray[k].vy);
+        ctx.moveTo(xyviewArray[0][0], xyviewArray[0][1]);
+        for (var k=0, len=xyviewArray.length-1; k<len; k++) {
+            const line = new Line(xyviewArray[k][0], xyviewArray[k][1], xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            if (line.isInsideView(width, height)) {
+                ctx.lineTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            } else {
+                ctx.moveTo(xyviewArray[k+1][0], xyviewArray[k+1][1]);
+            }
         }
     };
 

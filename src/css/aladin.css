@@ -5,6 +5,7 @@
     /*overflow: hidden;*/
 }
 
+
 .aladin-imageCanvas {
 	position: absolute;
     z-index: 1;
@@ -15,13 +16,6 @@
 .aladin-catalogCanvas {
     position: absolute;
     z-index: 2;
-    left: 0;
-    top: 0;
-}
-
-.aladin-reticleCanvas {
-    position: absolute;
-    z-index: 3;
     left: 0;
     top: 0;
 }
@@ -52,6 +46,17 @@
     padding-top: 58.45%; /* aspect ratio of the background image */
 }
 
+.aladin-col {
+    float: left;
+    width: 45.00%;
+    margin-right: 5.0%;
+}
+  /* Clear floats after the columns */
+.aladin-row:after {
+    content: "";
+    display: table;
+    clear: both;
+ }
 
 .aladin-location {
 	z-index: 20;
@@ -62,18 +67,31 @@
 	font-size: 11px;
 }
 
-.aladin-location select {
+.aladin-projSelection {
+	z-index: 20;
+	position:absolute;
+    top: 0px;
+    right: 48px;
+	padding: 2px 4px 2px 4px;
+	background-color: rgba(255, 255, 255, 0.5);
+	font-size: 11px;
 }
 
 .aladin-location-text {
+    font-family: monospace, monospace;
 	font-size: 13px;
     margin-left: 4px;
+}
+
+.aladin-clipboard::before {
+    content: ' 📋';
+    cursor:pointer;
 }
 
 .aladin-measurement-div {
 	z-index: 77;
 	position:absolute;
-    bottom: 0px;
+    bottom: 20px;
 	background-color: rgba(255, 255, 255, 0.8);
     font-family: monospace;
 	font-size: 12px;
@@ -163,7 +181,7 @@ word-wrap:break-word;
     border-radius: 4px;
 }
 
-.aladin-layersControl-container:hover {
+.aladin-layersControl-container:hover  {
 	background: rgba(220, 220, 220, 0.8);
 }
 
@@ -175,45 +193,113 @@ word-wrap:break-word;
     background-position:center center;
 }
 
+.aladin-cooGridControl-container {
+    position: absolute;
+    left: 4px;
+    cursor:pointer;
+    z-index: 20;
+    background: rgba(250, 250, 250, 0.8);
+    border-radius: 4px;
+}
+
+.aladin-cooGridControl-container:hover  {
+	background: rgba(220, 220, 220, 0.8);
+}
+
+.aladin-cooGridControl {
+	width: 32px;
+    height: 34px;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAQAAADYBBcfAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAAkV8AAJFfAZ/wQlIAAAAHdElNRQfmBwYSADnbJS7lAAADc0lEQVQ4y23Ve0wWZBTH8c/LJUVJ9GUvhM0SDUtxplmRSmXmrcx1cfAyzC7TOV3TLHPaZc5c5ZzOVa6y2cywWqnV/KMsm2aWIBEkCBIm5i10oESSKaS+/QEiYue/85zz3fPbOec5T0BHCxlpggw9xQs45agSX9qm7vK06Mu8Hh633BMSHRQUUCnRVhFhk3RS7Yz/tQxb1MozUU9z7ZUtZK1Ngq4zW4kthl0JRcl2yFmTwSCVckEvheaA3tY7LFugBQi0YlO94G8JVuohxQD97VTvuAq3GGGqG91vsET/mmf9JTBslRinRan0h2PGOWKrHlL0li6oVrNNtqmywmBZ8ltuHahKkcWKvaazANZYDhIsUOOocw56Vnes02izIFFizdEs20L7NDsrgl/cKkG6PDmeN9NBHwj73IP6WCYoB0aotQAsk9cqPVWR1Yrk6YtkxSZKtkKdA9LM8qOkKI8IaQS7DJQCDtlpmgbzVeOkwwapVeqcOLm+FW9UtCVS/OZr1AtrUoRcU23U1zhdRYuT4Q5jZVsmz1wxLkjlhFLbJYAZygwwwX4zREnzsh+UK3fMn94yVBTGqvCrMho9p8w4EC9PoQrz20bxan2le0aB7i52fomIBk4ZbaXPdAG3qVPjzg5zNUaJZBAjxx4/a6ZJlv4qTENnq2z3vkovuv7icCFTmV6iDPSOKtON1RCj2VAbvGGe/foYaYpSD3tKjgI7VDnprJB4j+lvqEpPyveAJioUCYr1qiq/m972wB7yrnzlypWqdsYuK9wjDjxtD2s0y21t8z9mtYZaypAgze2GmalSv7bzFJutJcsZhVJMscdCZTbKdFWH4tynRBLoapJdGmWRJF/Ep4rNwQCrVdkgV6pObeCjdkrSz3RblKtWICmAGd4Uo9J4RxBriLC7xKlxQI1TIu4x3F4hf/lKoaXe83YAQZ8Y6bgvvNK6kgISpbtZmmt0ETHYUXl22+u0FW4SVt8iZbh9PrbDVveK7bBSYnT1jbmt3mxVhrdPCNtniddVWmeMbpfB19ptPG6wyH7h9juHgGyLbPOd0TI1+EmxA+o1ici01Ed6udt586wXaQ+2CF4swYcq9JEhTTcBF9BTSMB533tJwaUmt7egHJN1UWK3E6IlSJZqjG5KrbXhYkmuBCFklAmGCIkR0axOic22d/wC/gNPgB2kPbE+ygAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMi0wNy0wNlQxODowMTowNSswMjowMOuc89QAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjItMDctMDZUMTg6MDA6NTcrMDI6MDCqfD8bAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAABJRU5ErkJggg==');
+    background-repeat:  no-repeat;
+    background-position:center center;
+}
+
 .aladin-layerBox {
     top: 30px;
-    padding: 4px 4px 10px 10px;
+    padding: 4px 4px;
+    max-height: 90%;
+    overflow-y: auto;
 }
 
 .aladin-box {
 	display: none;
     z-index: 30;
     position: absolute;
-    background: #eee;
-    left: 4px;
-    border-radius: 4px;
+    background: whitesmoke;
+    border-radius: 1px;
     font-size: 14px;
     font-family: Verdana, Lucida, Arial;
     line-height: 1.3;
     color: #222;
+    padding: 0.8em;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0; 
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.aladin-dialog {
+	display: none;
+    z-index: 30;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #eee;
+    border-radius: 4px;
+    font-family: Verdana, Lucida, Arial;
+    line-height: 1.3;
+    color: #222;
+    max-width: 500px;
+    padding: 0.8em;
+}
+
+select, input[type=number], input[type=text] {
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+input[type=checkbox] {
+    margin: 0;
+}
+
+input[type=number], input[type=text], input[type=range] {
+    width: 100%;
+}
+
+.aladin-surveySelection {
+    max-width: 150px;
 }
 
 .aladin-box-title {
-  background-color: #ccc;
-  padding: 4px;
+  font-size: 16px;
+  font-family: Verdana, Lucida, Arial;
+  line-height: 2.0;
   font-weight: bold;
   cursor: pointer;
   border-radius: 4px;
 }
 
-.aladin-box-title:hover {
-  background-color: #bbb;
+.aladin-box-content {
+  padding: 10px;
 }
 
-
-
-.aladin-box-content {
-    padding: 4px;
+.aladin-text {
+  background-color: #bbb;
 }
 
 .aladin-gotoControl-container {
 	position: absolute;
-    top: 68px;
     left: 4px;
     cursor:pointer;
     z-index: 20;
@@ -245,7 +331,6 @@ word-wrap:break-word;
 
 .aladin-simbadPointerControl-container {
     position: absolute;
-    top: 106px;
     left: 4px;
     cursor:pointer;
     z-index: 20;
@@ -302,9 +387,6 @@ word-wrap:break-word;
 	width: 140px;
 	margin-left: 5px;
 }
-	
-
-
 
 .aladin-cb-list ul {
     margin: 0;
@@ -375,7 +457,7 @@ word-wrap:break-word;
 	width: 100% !important;
 	border: 0 !important;
     max-width: none !important;
-    background: #fff; /* allows to hide all HTML elements in the background */
+    background: #fff;
 }
 
 .aladin-zoomControl {
@@ -410,10 +492,6 @@ word-wrap:break-word;
 	background-color: rgba(220, 220, 220, 0.8);
 }
 
-.aladin-surveySelection {
-	width: 200px;
-}
-
 .aladin-cmSelection {
     width: 60px;
     margin-right: 10px;
@@ -434,10 +512,39 @@ word-wrap:break-word;
     color: #ffffff;
     background-color: #428bca;
     border-color: #357ebd;
+    margin-right: 4px;
+}
+
+.aladin-hips-layer {
+    padding: 0px 4px;
+    margin-bottom: 4px;
+    background-color: lightgray;
+}
+
+.aladin-cancelBtn {
+    background-color: #ca4242;
+    border-color: #bd3935;
+}
+
+.aladin-box-content > div {
+    margin: 10px 0px 0px 0px;
 }
 
 .aladin-btn-small {
-	font-size: 10px;
+	display: inline-block;
+    border-radius: 3px;
+    margin-bottom: 0;
+    padding: 0;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    color: #ffffff;
+    font-size: 14px;
+    background-color: #428bca;
+    border-color: #357ebd;
+    margin-left: 2px;
+    min-width: 1.5em;
+    min-height: 1.5em;
 }
 
 .aladin-button:hover {
@@ -503,6 +610,37 @@ word-wrap:break-word;
 .aladin-popupText {
 }
 
+
+.aladin-options {
+    margin-top: 4px;
+}
+
+.aladin-options .row {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.aladin-options .row label {
+    text-align: center;
+}
+
+.aladin-options .row .col-label {
+    flex: 0.3;
+}
+
+.aladin-options .row .col-input {
+    flex: 0.70;
+}
+
+.aladin-options .row .col-input select {
+    width: 100%;
+}
+
+.aladin-options .row .col-input input[type="checkbox"] {
+    margin: 3px 0px;
+}
+
 .aladin-layer-label {
 	padding: 0 4px 0 4px;
 	color: #ddd;
@@ -527,6 +665,14 @@ word-wrap:break-word;
     text-decoration: none;
     color: #478ade;
     font-size: 11px;
+}
+
+.aladin-cuts {
+    width: 8em;
+}
+
+.add-layer-hips {
+    margin-top: 0.2em;
 }
 
 
@@ -563,6 +709,19 @@ word-wrap:break-word;
   transform: rotate(270deg);
 }
 
+.indicator {
+    font-family: monospace;
+    cursor: pointer;
+}
+
+.right-triangle:before {
+    content: '\25b6';
+}
+
+.down-triangle:before {
+    content: '\25bc';
+}
+
 
 /* *********************************************** */
 
@@ -572,4 +731,34 @@ word-wrap:break-word;
 .aladin-sp-cursor {
     cursor: auto;
     cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4gEIEwUMBS20MQAAApRJREFUWEfdV7GO2zAMfXY7x1luzOFwDeB/KHCAB87eumvqmI/JWhTwF3TIrMFAv8JbgWyHG3IpOjbpcKJC02KipECHclIU+j2KfKRlAABRUyFYak3UgKiZiXUJAIt1d1ysu2PYn53DsPCucpbkRE3JAdxKTtQgWo6zJAfGGbAwLuEV7OB9/yrXIbqZ9/0+rMuhdb+RYfWmm+fged8fihzyoXXxlNcYB2KRxwwA6SzI9Crgd973B/5/u3IF8FYSw98M5D2QR86kRE3pfX+AMqKm8iEQoqYaWrfj/4bW7QgokMhCeSs5KeVrDM4K29C6Y6oE0YGEUlndocVGyg/rGZDXBQpr0kmjLiAlOOvk3vf7RJZM5Q+te2W/7coVEq+wnC1yCZYyS3B8MMYF3vBKK9Jz5PWmm8sab1eu4N9D63aaHEAsH88SzmQpnSHsHDmnWvlXIoiJ4JTviY8FRUJ8ZAiOEiJbLpcjARM1M0twpmjZOeGQrXYm1/7yMLz/eH8fnyus6XXOtmLgWBrKtdMguNKYPPystIausn9egsVDfI674KxS6003F/sX357AdOBwcADwWD9EjBKJubxYd0cml4RhP5IPrduFk04GjiZXMyZiRHKdAU3OWeB2lLNAk+tpl9IHY0zSlBo4OgsaTJpFzs+F0pxKYEXK73Nd8+3KFfWmG71qGfgSeQqPN0fvdlZrSvmUoXaJJ7EiocArZaS6tgzA+5RQe3gumUl5gPLXzy+6pEQNzDuhvFKx1ZuuEuTxliwmY/KuoHxGhzGv5QDw9PTx7senz88aLHUpJeOu8OHb17u+//4CTMm97/eFVQK5vqR8y6xOyipByjn3+0C3moUH4O++D1UX3PR9eJWzJCf6Tz5O/wDUeIfTLPlbywAAAABJRU5ErkJggg==') 15 15, auto;
+}
+
+/* *********************************************** */
+
+/* Autocomplete styles (adapted from https://github.com/kraaden/autocomplete ) */
+.autocomplete {
+    background: white;
+    z-index: 20000;
+    font: 14px/22px "-apple-system", BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: auto;
+    box-sizing: border-box;
+    border: 1px solid rgba(50, 50, 50, 0.6);
+}
+
+.autocomplete * {
+    font: inherit;
+}
+
+.autocomplete > div {
+    padding: 0 4px;
+}
+
+.autocomplete .group {
+    background: #eee;
+}
+
+.autocomplete > div:hover:not(.group),
+.autocomplete > div.selected {
+    background: #81ca91;
+    cursor: pointer;
 }

@@ -28,9 +28,9 @@
  * 
  *****************************************************************************/
 
-HealpixGrid = (function() {
-	var HealpixGrid = function() {
-	};
+export let HealpixGrid = (function() {
+	function HealpixGrid() {
+	}
 	
 	HealpixGrid.prototype.redraw = function(ctx, cornersXYViewMap, fov, norder) {
 		// on dessine les lignes
@@ -38,17 +38,16 @@ HealpixGrid = (function() {
 		ctx.strokeStyle = "rgb(150,150,220)";
 		ctx.beginPath();
 		var cornersXYView;
+		var ipix;
 		for (var k=0, len=cornersXYViewMap.length; k<len; k++) {
 			cornersXYView = cornersXYViewMap[k];
 			ipix = cornersXYView.ipix;
-			
-			// draw pixel
-			ctx.moveTo(cornersXYView[0].vx, cornersXYView[0].vy);
-			ctx.lineTo(cornersXYView[1].vx, cornersXYView[1].vy);
-			ctx.lineTo(cornersXYView[2].vx, cornersXYView[2].vy);
-			//ctx.lineTo(cornersXYView[3].vx, cornersXYView[3].vy);
-			
 
+			// draw pixel
+			ctx.moveTo(cornersXYView.vx[0], cornersXYView.vy[0]);
+			ctx.lineTo(cornersXYView.vx[1], cornersXYView.vy[1]);
+			ctx.lineTo(cornersXYView.vx[2], cornersXYView.vy[2]);
+            //ctx.lineTo(cornersXYView[3].vx, cornersXYView[3].vy);
             //ctx.strokeText(ipix, (cornersXYView[0].vx + cornersXYView[2].vx)/2, (cornersXYView[0].vy + cornersXYView[2].vy)/2);
 		}
 		ctx.stroke();
@@ -60,12 +59,10 @@ HealpixGrid = (function() {
 			cornersXYView = cornersXYViewMap[k];
 			ipix = cornersXYView.ipix;
 
-            ctx.strokeText(norder + '/' + ipix, (cornersXYView[0].vx + cornersXYView[2].vx)/2, (cornersXYView[0].vy + cornersXYView[2].vy)/2);
+            ctx.strokeText(norder + '/' + ipix, (cornersXYView.vx[0] + cornersXYView.vx[2])/2, (cornersXYView.vy[0] + cornersXYView.vy[2])/2);
 		}
 		ctx.stroke();
 	};
 
-	
-	
 	return HealpixGrid;
 })();

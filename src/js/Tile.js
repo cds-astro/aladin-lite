@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-Tile = (function() {
+export let Tile = (function() {
     // constructor
 	function Tile(img, url) {
 		this.img = img;
@@ -61,6 +61,9 @@ Tile = (function() {
 	    if (typeof img.naturalWidth != "undefined" && img.naturalWidth == 0) {
 	        return false;
 	    }
+
+        // TODO: Add a method checking if the tile has been copied to the GPU texture
+        
 
 	    // No other way of checking: assume it’s ok.
 	    return true;

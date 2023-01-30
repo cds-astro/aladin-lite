@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  let aladin;
+  A.init.then(() => {
+      // Start up Aladin Lite
+      aladin = A.aladin('#aladin-lite-div', {target: 'M81', fov: 360, showCooGrid: true});
+      aladin.setImageSurvey(
+        aladin.newImageSurvey('https://hips.china-vo.org/change2-moon-7m-dom', {imgFormat: 'fits', colormap: "redtemperature"})
+      );
+  });
+</script>
+
+</body>
+</html>

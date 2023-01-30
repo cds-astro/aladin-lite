@@ -137,9 +137,12 @@ import $ from 'jquery';
                 self.fnIdSelected && self.fnIdSelected(item.ID);
                 input.blur();
             },
-            // attach container to AL div (to prevent it from being hidden in full screen mode)
+            // attach container to AL div if needed (to prevent it from being hidden in full screen mode)
             customize: function(input, inputRect, container, maxHeight) {
-                self.parentDiv.appendChild(container);
+                // this tests if we are in full screen mode
+                if (self.fullScreenBtn.hasClass('aladin-restore')) {
+                    self.parentDiv.appendChild(container);
+                }
             },
             render: function(item, currentValue) {
                 const itemElement = document.createElement("div");

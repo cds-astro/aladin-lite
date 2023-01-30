@@ -869,6 +869,36 @@ impl App {
         self.layers.get_layer_cfg(layer)
     }
 
+    pub(crate) fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        self.layers.set_survey_url(past_url, new_url.clone())?;
+
+        let hips = self.layers.get_mut_hips(&new_url).unwrap();
+        // Relaunch the base tiles for the survey to be ready with the new url
+        let cfg = hips.get_config();
+        // Request for the allsky first
+        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
+        self.downloader.fetch(query::PixelMetadata::new(cfg));
+        // Try to fetch the MOC
+        self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
+
+        let tile_size = cfg.get_tile_size();
+        //Request the allsky for the small tile size or if base tiles are not available
+        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
+            // Request the allsky
+            self.downloader.fetch(query::Allsky::new(cfg));
+        } else {
+            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
+                for cell in texture_cell.get_tile_cells(cfg) {
+                    let query = query::Tile::new(&cell, cfg);
+                    self.tile_fetcher
+                        .append_base_tile(query, &mut self.downloader);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn set_image_survey_color_cfg(
         &mut self,
         layer: String,

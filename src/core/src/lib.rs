@@ -316,6 +316,11 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = setHiPSUrl)]
+    pub fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
+        self.app.set_hips_url(past_url, new_url)
+    }
+
     #[wasm_bindgen(js_name = getImageSurveyMeta)]
     pub fn get_layer_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
         self.app.get_layer_cfg(&layer)

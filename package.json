@@ -3,8 +3,8 @@
   "name": "hips_webgl_renderer",
   "scripts": {
     "predeploy": "npm run build",
-    "package-tar": "npm run predeploy && tar -zcvf aladin-lite-v3.tar.gz dist/*",
-    "deploy": "./deploy-dbg.sh",
+    "package-tar": "npm run predeploy && tar -zcvf AladinLiteSrc.tar.gz dist/*",
+    "deploy": "npm run package-tar && ./deploy-dbg.sh",
     "build": "webpack && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
     "serve": "webpack-dev-server"
   },

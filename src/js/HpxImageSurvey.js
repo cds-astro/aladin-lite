@@ -901,8 +901,6 @@ export let HpxImageSurvey = (function() {
 
     /* Some constants */
     HpxImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";
-    
-    HpxImageSurvey.COLORMAPS = [];
 
     HpxImageSurvey.SURVEYS_OBJECTS = {};
     HpxImageSurvey.SURVEYS = [

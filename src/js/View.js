@@ -45,7 +45,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { ImageColorCfg } from "./ImageColorCfg.js";
 
 import $ from 'jquery';
 
@@ -68,7 +68,7 @@ export let View = (function () {
             this.aladin.webglAPI = webglCtx.webclient;
 
             // Retrieve all the possible colormaps
-            HpxImageSurvey.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
+            ImageColorCfg.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console

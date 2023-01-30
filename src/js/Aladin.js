@@ -1822,6 +1822,10 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
     HiPSDefinition.fromURL(url, successCallback);
 };
 
+A.getAvailableListOfColormaps = function() {
+    return HpxImageSurvey.COLORMAPS;
+};
+
 A.init = (async () => {
     const isWebGL2Supported = document
         .createElement('canvas')

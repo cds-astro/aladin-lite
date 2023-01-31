@@ -1527,7 +1527,7 @@ Aladin.prototype.getShareURL = function () {
     coo.lon = radec[0];
     coo.lat = radec[1];
 
-    return Aladin.URL_PREVIEWER + encodeURIComponent(coo.format('s')) +
+    return Aladin.URL_PREVIEWER + '?target=' + encodeURIComponent(coo.format('s')) +
         '&fov=' + this.getFov()[0].toFixed(2) + '&survey=' + encodeURIComponent(this.getBaseImageLayer().id || this.getBaseImageLayer().rootUrl);
 };
 

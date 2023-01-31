@@ -1610,7 +1610,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
 
             var executeDefaultSuccessAction = true;
             if (successCallback) {
-                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
+                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov, survey);
             }
             if (executeDefaultSuccessAction === true) {
                 self.webglAPI.setCenter(meta.ra, meta.dec);

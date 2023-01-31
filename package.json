@@ -2,9 +2,9 @@
   "homepage": "https://bmatthieu3.github.io/hips_webgl_renderer/",
   "name": "hips_webgl_renderer",
   "scripts": {
-    "predeploy": "npm run build",
-    "package-tar": "npm run predeploy && tar -zcvf AladinLiteSrc.tar.gz dist/*",
-    "deploy": "npm run package-tar && ./deploy-dbg.sh",
+    "package-tar": "tar -zcvf AladinLiteAssets.tar.gz dist/*",
+    "predeploy": "npm run build && npm run package-tar",
+    "deploy": "./deploy-dbg.sh",
     "build": "webpack && sed \"s/\\\\.\\\\/\\\\.\\\\.\\\\/aladin\\\\.js/https:\\\\/\\\\/aladin.cds.unistra.fr\\\\/AladinLite\\\\/api\\\\/v3\\\\/latest\\\\/aladin.js/g\" examples/index.html > dist/index.html",
     "serve": "webpack-dev-server"
   },

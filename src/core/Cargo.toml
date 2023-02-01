@@ -3,7 +3,7 @@ name = "aladin-lite"
 description = "Aladin Lite v3 introduces a new graphical engine written in Rust with the use of WebGL"
 license = "BSD-3-Clause"
 repository = "https://github.com/cds-astro/aladin-lite"
-version = "0.1.0"
+version = "3.0.0"
 authors = ["baumannmatthieu0@gmail.com", "matthieu.baumann@astro.unistra.fr"]
 edition = "2018"
 
@@ -24,7 +24,7 @@ futures = "0.3.12"
 js-sys = "0.3.47"
 wasm-bindgen-futures = "0.4.20"
 cgmath = "*"
-cdshealpix = { package = "cdshealpix", git = 'https://github.com/cds-astro/cds-healpix-rust', branch = 'master' }
+cdshealpix = "0.6.4"
 moclib = { package = "moc", git = 'https://github.com/cds-astro/cds-moc-rust', branch = 'main' }
 serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"

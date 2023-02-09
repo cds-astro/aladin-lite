@@ -140,7 +140,7 @@ import $ from 'jquery';
             // attach container to AL div if needed (to prevent it from being hidden in full screen mode)
             customize: function(input, inputRect, container, maxHeight) {
                 // this tests if we are in full screen mode
-                if (self.fullScreenBtn.hasClass('aladin-restore')) {
+                if (self.aladin.fullScreenBtn.hasClass('aladin-restore')) {
                     self.parentDiv.appendChild(container);
                 }
             },

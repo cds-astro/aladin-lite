@@ -28,13 +28,12 @@
  * 
  *****************************************************************************/
 
-import { HpxImageSurvey } from "../HpxImageSurvey.js";
+import { ImageSurvey } from "../ImageSurvey.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
-import { Color } from "./../Color.js";
-import { Utils } from './../Utils.js';
 
 import $ from 'jquery';
+import { ColorCfg } from "../ImageColorCfg.js";
 
 export class HiPSLayer {
 
@@ -58,7 +57,15 @@ export class HiPSLayer {
         );
 
         if (this.survey.layer === "base") {
-            this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0].style.visibility = "hidden";
+            let deleteLayerBtn = this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0];
+            deleteLayerBtn.disabled = true;
+            deleteLayerBtn.style.backgroundColor = 'lightgray';
+            deleteLayerBtn.style.borderColor = 'gray';
+
+            // This is how to color emojis:
+            // see: https://stackoverflow.com/questions/32413731/color-for-unicode-emoji
+            deleteLayerBtn.style.color = 'transparent';
+            deleteLayerBtn.style.textShadow = '0 0 0 gray';
         }
 
         // HiPS main options div
@@ -66,29 +73,27 @@ export class HiPSLayer {
         for (const cm of this.aladin.webglAPI.getAvailableColormapList()) {
             cmListStr += '<option>' + cm + '</option>';
         }
-        // Add the native which is special:
-        // - for FITS hipses, it is changed to grayscale
-        // - for JPG/PNG hipses, we do not use any colormap in the backend
-        this.nameRadioColorChoice = encodeURIComponent(Utils.uuidv4());
-        cmListStr += '<option selected>native</option>';
 
         this.cmap = "native";
         this.color = "#ff0000";
 
         this.mainDiv = $('<div class="aladin-frame" style="display:none">' +
             '<div class="aladin-options">' +
-            '  <div class="row">' +
-            '    <div style="width: 50%"><label>Color map<input type="radio" class="colormap-color-selector" name="' + this.nameRadioColorChoice + '" value="colormap" id="colormap-radio" checked></label></div>' +
-            '    <div style="width: 50%"><label>Color<input class="color-color-selector" type="radio" name="'+ this.nameRadioColorChoice + '" value="color"></label></div>' +
-            '  </div>' +
-            '  <div class="row"><div class="col-label"></div><div class="col-input"><select class="colormap-selector">' + cmListStr + '</select></div></div>' +
-            '  <div class="row"><div class="col-label"></div><div class="col-input"><input type="color" name="color-radio" value="' + this.color + '" class="color-selector"></div></div>' +
+            // colormap
+            '  <div class="row"><div class="col-label">Colormap</div><div class="col-input"><select class="colormap-selector">' + cmListStr + '</select></div></div>' +
             '  <label><div class="row"><div class="col-label">Reverse</div><div class="col-input"><input type="checkbox" class="reversed"></div></div></label>' +
             '  <div class="row"><div class="col-label"><label>Stretch</label></div><div class="col-input"><select class="stretch"><option>pow2</option><option selected>linear</option><option>sqrt</option><option>asinh</option><option>log</option></select></div></div>' +
             '  <div class="row"><div class="col-label"><label>Format</label></div><div class="col-input"><select class="format"></select></div></div>' +
             '  <div class="row"><div class="col-label"><label>Min cut</label></div><div class="col-input"><input type="number" class="min-cut"></div></div>' +
             '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="max-cut"></div></div>' +
+            // tonal corrections
+            '  <div class="row"><div class="col-label"><label>Gamma</label></div><div class="col-input"><input class="gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="saturation" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="contrast" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="brightness" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            // blending mode
             '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
+            // opacity
             '  <div class="row"><div class="col-label"><label>Opacity</label></div><div class="col-input"><input class="opacity" type="range" min="0" max="1" step="0.01"></div></div>' +
             '</div> ' +
             '</div>');
@@ -99,7 +104,6 @@ export class HiPSLayer {
         let self = this;
         this.layerChangedListener = function(e) {
             const survey = e.detail.survey;
-
 
             if (survey.layer === self.survey.layer) {
                 // Update the survey to the new one
@@ -153,7 +157,7 @@ export class HiPSLayer {
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
         surveySelector.unbind("change");
         surveySelector.change(function () {
-            let cfg = HpxImageSurvey.SURVEYS[$(this)[0].selectedIndex];
+            let cfg = ImageSurvey.SURVEYS[$(this)[0].selectedIndex];
             if (self.hidden) {
                 cfg.options.opacity = 0.0;
             }
@@ -217,21 +221,16 @@ export class HiPSLayer {
             opacitySlider.get(0).disabled = self.hidden;
 
             self.survey.setOpacity(newOpacity);
-
-            // Update HpxImageSurvey.SURVEYS definition
-            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-            let options = surveyDef.options || {};
-            options.opacity = newOpacity;
-            surveyDef.options = options;*/
         });
 
         // MAIN DIV listeners
         // blending method
         if (self.survey.layer === "base") {
-            this.mainDiv.find('.row').eq(8)[0].style.display = "none";
+            const blendingRow = this.mainDiv.find('.row').eq(10)[0];
+            blendingRow.style.display = "none";
         } else {
             const blendingSelector = this.mainDiv.find('.blending').eq(0);
+
             blendingSelector.unbind("change");
             blendingSelector.change(function () {
                 let mode = blendingSelector.val()
@@ -247,7 +246,7 @@ export class HiPSLayer {
         format4ImgLayer.change(function () {
             const imgFormat = format4ImgLayer.val();
 
-            self.survey.changeImageFormat(imgFormat);
+            self.survey.setImageFormat(imgFormat);
 
             let minCut = 0;
             let maxCut = 1;
@@ -256,103 +255,40 @@ export class HiPSLayer {
                 minCut = self.survey.properties.minCutout;
                 maxCut = self.survey.properties.maxCutout;
             }
-            self.survey.setCuts([minCut, maxCut]);
+            self.survey.setCuts(minCut, maxCut);
 
             // update the cuts only
             minCut4ImgLayer.val(parseFloat(minCut.toFixed(5)));
             maxCut4ImgLayer.val(parseFloat(maxCut.toFixed(5)));
-
-            // update HpxImageSurvey.SURVEYS definition
-            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-            let options = surveyDef.options || {};
-            options.minCut = minCut;
-            options.maxCut = maxCut;
-            options.imgFormat = imgFormat;
-            surveyDef.options = options;*/
         });
         // min/max cut
-        minCut4ImgLayer.unbind("input blur");
-        maxCut4ImgLayer.unbind("input blur");
-        minCut4ImgLayer.add(maxCut4ImgLayer).on('input blur', function (e) {
+        minCut4ImgLayer.unbind("change blur");
+        maxCut4ImgLayer.unbind("change blur");
+        minCut4ImgLayer.add(maxCut4ImgLayer).on('change blur', function (e) {
             let minCutValue = parseFloat(minCut4ImgLayer.val());
             let maxCutValue = parseFloat(maxCut4ImgLayer.val());
 
             if (isNaN(minCutValue) || isNaN(maxCutValue)) {
                 return;
             }
-            self.survey.setCuts([minCutValue, maxCutValue]);
-
-            // update HpxImageSurvey.SURVEYS definition
-            /*const idxSelectedHiPS = self.surveySelectionDiv[0].selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-            let options = surveyDef.options || {};
-            options.minCut = minCutValue;
-            options.maxCut = maxCutValue;
-            surveyDef.options = options;*/
+            self.survey.setCuts(minCutValue, maxCutValue);
         });
 
         // colormap
         const colorMapSelect4ImgLayer = this.mainDiv.find('.colormap-selector').eq(0);
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
-        const colorSelect4ImgLayer = self.mainDiv.find('.color-selector').eq(0);
-        const colorMode = this.mainDiv[0].getElementsByClassName('colormap-color-selector');
 
         reverseCmCb.unbind("change");
         colorMapSelect4ImgLayer.unbind("change");
-        colorSelect4ImgLayer.unbind("change");
         stretchSelect4ImgLayer.unbind("change");
-        colorMapSelect4ImgLayer.add(colorSelect4ImgLayer).add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
+        colorMapSelect4ImgLayer.add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
             const stretch = stretchSelect4ImgLayer.val();
             const reverse = reverseCmCb[0].checked;
 
-            if (colorMode[0].checked) {
-                // Color map case
-                const cmap = colorMapSelect4ImgLayer.val();
-                self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
-
-                // Save the colormap change
-                //self.cmap = cmap;
-            } else {
-                // Single color case
-                const colorHex = colorSelect4ImgLayer.val();
-                let colorRgb = Color.hexToRgb(colorHex);
-                self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], { reversed: reverse, stretch: stretch });
-                
-                // Save the color change
-                //self.color = colorHex;
-            }
-        });
-
-        colorSelect4ImgLayer.unbind("input");
-        colorSelect4ImgLayer.on('input', function () {
-            const stretch = stretchSelect4ImgLayer.val();
-            const reverse = reverseCmCb[0].checked;
-
-            const colorHex = colorSelect4ImgLayer.val();
-            let colorRgb = Color.hexToRgb(colorHex);
-            self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0], {stretch: stretch, reversed: reverse});
-
-            // Save the color change
-            //self.color = colorHex;
-        });
-
-        // colormap/color radio
-        const [colormapChoiceRadioBtn, colorChoiceRadioBtn] = document.querySelectorAll('input[name="' + this.nameRadioColorChoice + '"]');
-        $(colormapChoiceRadioBtn).on("click", function (e) {
-            // restore the colormap
-            const cmap = self.cmap;
-
-            // set the colormap
-            self.survey.setColormap(cmap);
-        });
-        $(colorChoiceRadioBtn).on("click", function (e) {
-            // set the color
-            const colorHex = self.color;
-
-            let colorRgb = Color.hexToRgb(colorHex);
-            self.survey.setColor([colorRgb.r / 255.0, colorRgb.g / 255.0, colorRgb.b / 255.0, 1.0]);
+            // Color map case
+            const cmap = colorMapSelect4ImgLayer.val();
+            self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
         });
 
         // opacity
@@ -361,35 +297,84 @@ export class HiPSLayer {
         opacity4ImgLayer.on('input', function () {
             const opacity = +opacity4ImgLayer.val();
             self.survey.setOpacity(opacity);
+        });
 
-            // update HpxImageSurvey.SURVEYS definition
-            /*const idxSelectedHiPS = self.headerDiv.find('.aladin-surveySelection')[0].selectedIndex;
-            let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-            let options = surveyDef.options || {};
-            options.opacity = opacity;
-            surveyDef.options = options;*/
+        // gamma
+        const gamma4ImgLayer = self.mainDiv.find('.gamma').eq(0);
+        gamma4ImgLayer.unbind("change blur");
+        gamma4ImgLayer.on('change blur', function () {
+            const gamma = parseFloat(gamma4ImgLayer.val()) || 1.0;
+
+            self.survey.setGamma(gamma);
+
+            const trueGamma = self.survey.getColorCfg().getGamma();
+            if (gamma !== trueGamma) {
+                gamma4ImgLayer.val(trueGamma);
+            }
+        });
+
+        // saturation
+        const sat4ImgLayer = self.mainDiv.find('.saturation').eq(0);
+        sat4ImgLayer.unbind("change blur");
+        sat4ImgLayer.on('change blur', function (e) {
+            const saturation = parseFloat(sat4ImgLayer.val()) || 0.0;
+
+            self.survey.setSaturation(saturation);
+
+            const trueSaturation = self.survey.getColorCfg().getSaturation();
+            if (saturation !== trueSaturation) {
+                sat4ImgLayer.val(trueSaturation);
+            }
+        });
+
+        // contrast
+        const contrast4ImgLayer = self.mainDiv.find('.contrast').eq(0);
+        contrast4ImgLayer.unbind("change blur");
+        contrast4ImgLayer.on('change blur', function (e) {
+            const contrast = parseFloat(contrast4ImgLayer.val()) || 0.0;
+
+            self.survey.setContrast(contrast);
+
+            const trueContrast = self.survey.getColorCfg().getContrast();
+            if (contrast !== trueContrast) {
+                contrast4ImgLayer.val(trueContrast);
+            }
+        });
+
+        // brightness
+        const brightness4ImgLayer = self.mainDiv.find('.brightness').eq(0);
+        brightness4ImgLayer.unbind("change blur");
+        brightness4ImgLayer.on('change blur', function (e) {
+            const brightness = parseFloat(brightness4ImgLayer.val()) || 0.0;
+
+            self.survey.setBrightness(brightness);
+
+            const trueBrightness = self.survey.getColorCfg().getBrightness();
+            if (brightness !== trueBrightness) {
+                brightness4ImgLayer.val(trueBrightness);
+            }
         });
     }
 
     _updateHiPSLayerOptions() {
-        const colorModeTr = this.mainDiv.find('.row').eq(0);
-        const colorMapTr = this.mainDiv.find('.row').eq(1);
-        const colorTr = this.mainDiv.find('.row').eq(2);
-        const reverseTr = this.mainDiv.find('.row').eq(3);
-        const stretchTr = this.mainDiv.find('.row').eq(4);
-        const formatTr = this.mainDiv.find('.row').eq(5);
-        const minCutTr = this.mainDiv.find('.row').eq(6);
-        const maxCutTr = this.mainDiv.find('.row').eq(7);
-
-        const colormapMode = this.mainDiv.find('.colormap-color-selector').eq(0);
-        const colorMode = this.mainDiv.find('.color-color-selector').eq(0);
-        const colorVal = this.mainDiv.find('.color-selector').eq(0);
+        const colorMapTr = this.mainDiv.find('.row').eq(0);
+        const reverseTr = this.mainDiv.find('.row').eq(1);
+        const stretchTr = this.mainDiv.find('.row').eq(2);
+        const formatTr = this.mainDiv.find('.row').eq(3);
+        const minCutTr = this.mainDiv.find('.row').eq(4);
+        const maxCutTr = this.mainDiv.find('.row').eq(5);
 
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
         const colorMapSelect4ImgLayer = this.mainDiv.find('.colormap-selector').eq(0);
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
         const formatSelect4ImgLayer = this.mainDiv.find('.format').eq(0);
         const opacity4ImgLayer = this.mainDiv.find('.opacity').eq(0);
+        const gamma4ImgLayer = this.mainDiv.find('.gamma').eq(0);
+        const contrast4ImgLayer = this.mainDiv.find('.contrast').eq(0);
+        const brightness4ImgLayer = this.mainDiv.find('.brightness').eq(0);
+        const sat4ImgLayer = this.mainDiv.find('.saturation').eq(0);
+        const blendingSelect4ImgLayer = this.mainDiv.find('.blending').eq(0);
+
         const minCut = this.mainDiv.find('.min-cut').eq(0);
         const maxCut = this.mainDiv.find('.max-cut').eq(0);
 
@@ -401,105 +386,72 @@ export class HiPSLayer {
             }));
         });
 
-        const options = this.survey.options;
-        const cmap = options.colormap;
-        const reverse = options.reversed;
-        const stretch = options.stretch;
+        const colorCfg = this.survey.getColorCfg();
+        const cmap = colorCfg.colormap;
+        const reverse = colorCfg.reversed;
+        const stretch = colorCfg.stretch;
 
         // Update radio color/colormap selection
-        if (cmap) {
-            colormapMode[0].checked = true;
-            colorMode[0].checked = false;
-        } else {
-            colormapMode[0].checked = false;
-            colorMode[0].checked = true;
-        }
-
-        const colored = this.survey.colored;
-
-        const imgFormat = options.imgFormat;
+        const imgFormat = this.survey.imgFormat;
         formatSelect4ImgLayer.val(imgFormat);
 
+        // Update radio color/colormap selection
+        const additive = colorCfg.getBlendingConfig();
+        blendingSelect4ImgLayer.val(additive ? "additive" : "default");
+
         // cuts
-        if (colored) {
-            colorModeTr[0].style.display = "none";
+        colorMapTr[0].style.display = "flex";
+        reverseTr[0].style.display = "flex";
+        stretchTr[0].style.display = "flex";
 
-            colorTr[0].style.display = "none";
-
-            colorMapTr[0].style.display = "none";
-            reverseTr[0].style.display = "none";
-            stretchTr[0].style.display = "none";
-
-            minCutTr[0].style.display = "none";
-            maxCutTr[0].style.display = "none";
+        if (colorCfg.minCut) {
+            if (parseFloat(minCut.val()) != colorCfg.minCut) {
+                minCut.val(parseFloat(colorCfg.minCut.toFixed(5)));
+            }
         }
         else {
-            colorModeTr[0].style.display = "flex";
-            if (!colormapMode[0].checked) {
-                colorTr[0].style.display = "flex";
-                stretchTr[0].style.display = "flex";
-
-                colorMapTr[0].style.display = "none";
-                reverseTr[0].style.display = "none";
-            } else {
-                colorTr[0].style.display = "none";
-
-                colorMapTr[0].style.display = "flex";
-                reverseTr[0].style.display = "flex";
-                stretchTr[0].style.display = "flex";
-            }
-
-            if (options.minCut) {
-                if (parseFloat(minCut.val()) != options.minCut) {
-                    minCut.val(parseFloat(options.minCut.toFixed(5)));
-                }
-            }
-            else {
-                minCut.val(0.0);
-            }
-
-            minCutTr[0].style.display = "flex";
-
-            if (options.maxCut) {
-                if (parseFloat(maxCut.val()) != options.maxCut) {
-                    maxCut.val(parseFloat(options.maxCut.toFixed(5)));
-                }
-            }
-            else {
-                maxCut.val(0.0);
-            }
-            maxCutTr[0].style.display = "flex";
+            minCut.val(0.0);
         }
 
-        const opacity = options.opacity;
+        minCutTr[0].style.display = "flex";
+
+        if (colorCfg.maxCut) {
+            if (parseFloat(maxCut.val()) != colorCfg.maxCut) {
+                maxCut.val(parseFloat(colorCfg.maxCut.toFixed(5)));
+            }
+        }
+        else {
+            maxCut.val(0.0);
+        }
+        maxCutTr[0].style.display = "flex";
+        // save opacity
+        const opacity = colorCfg.getOpacity();
         opacity4ImgLayer.val(opacity);
-
-        // TODO: traiter ce cas
-        if (this.survey.colored) {
-            return;
-        }
-        
-        if (options.color) {
-            const [r, g, b, _] = options.color;
-            const hexColor = Color.rgbToHex(r*255, g*255, b*255);
-            colorVal[0].value = hexColor;
-
-            // save color
-            this.color = hexColor;
-        } else {
-            colorMapSelect4ImgLayer.val(cmap);
-
-            // save cmap
-            this.cmap = cmap;
-        }
+        // save gamma
+        const gamma = colorCfg.getGamma();
+        gamma4ImgLayer.val(gamma);
+        // save saturation
+        const saturation = colorCfg.getSaturation();
+        sat4ImgLayer.val(saturation);
+        // save brightness
+        const brightness = colorCfg.getBrightness();
+        brightness4ImgLayer.val(brightness);
+        // save contrast
+        const contrast = colorCfg.getContrast();
+        contrast4ImgLayer.val(contrast);
+        // save cmap
+        colorMapSelect4ImgLayer.val(cmap);
+        this.cmap = cmap;
+        // save reverse
         reverseCmCb.prop('checked', reverse);
+        // save stretch
         stretchSelect4ImgLayer.val(stretch);
     }
 
     _updateSurveysDropdownList() {
         let surveySelectionDiv = this.headerDiv.find('.aladin-surveySelection');
 
-        let surveys = HpxImageSurvey.SURVEYS.sort(function (a, b) {
+        let surveys = ImageSurvey.SURVEYS.sort(function (a, b) {
             if (!a.order) {
                 return a.name > b.name ? 1 : -1;
             }
@@ -518,21 +470,12 @@ export class HiPSLayer {
             // The survey has not been found among the ones cached
             if (!surveyFound) {
                 // Cache it
-                /*HpxImageSurvey.SURVEYS.push({
-                    id: this.survey.properties.id,
-                    name: this.survey.properties.name,
-                    maxOrder: this.survey.properties.maxOrder,
-                    url: this.survey.properties.url,
-                    options: this.survey.options
-                });
-                surveySelectionDiv.append($("<option />").attr("selected", true).val(this.survey.properties.id).text(this.survey.properties.name));*/
-
                 console.warn(this.survey, " has not been found in SURVEYS!")
             } else {
-                // Update the HpxImageSurvey
+                // Update the ImageSurvey
                 const idxSelectedHiPS = surveySelectionDiv[0].selectedIndex;
-                let surveyDef = HpxImageSurvey.SURVEYS[idxSelectedHiPS];
-                surveyDef.options = this.survey.options;
+                let surveyDef = ImageSurvey.SURVEYS[idxSelectedHiPS];
+                surveyDef.options = this.survey.metadata;
             }
         }
     }

@@ -2,7 +2,6 @@
 import { loadShadersWebGL2 } from "./ShadersWebGL2";
 // Import resources images
 import kernel from '../img/kernel.png';
-import colormaps from '../img/colormaps/colormaps.png';
 import letters from '../img/letters.png';
 import lettersMetadata from '../img/letters.json';
 
@@ -17,7 +16,6 @@ export let WebGLCtx = (function() {
             shaders,
             {
                 'kernel': kernel,
-                'colormaps': colormaps,
                 'letters': letters,
                 'letters_metadata': lettersMeta,
             }

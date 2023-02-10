@@ -346,7 +346,7 @@ impl FitsImage {
                 shader
                     .bind(&self.gl)
                     .attach_uniforms_from(colormaps)
-                    .attach_uniforms_from(color)
+                    .attach_uniforms_with_params_from(color, colormaps)
                     .attach_uniform("opacity", opacity)
                     .attach_uniform("tex", &self.texture)
                     .attach_uniform("scale", &self.scale)

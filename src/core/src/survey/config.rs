@@ -171,6 +171,7 @@ pub struct HiPSConfig {
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
     format: ImageFormatType,
+    colored: bool,
 }
 
 use crate::math;
@@ -316,6 +317,7 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
+            colored: properties.is_colored()
         };
 
         Ok(hips_config)
@@ -478,6 +480,11 @@ impl HiPSConfig {
     #[inline]
     pub fn get_format(&self) -> ImageFormatType {
         self.format
+    }
+
+    #[inline]
+    pub fn is_colored(&self) -> bool {
+        self.colored
     }
 
     #[inline]

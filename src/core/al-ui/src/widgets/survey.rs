@@ -108,7 +108,7 @@ impl PropertiesParsed {
 use egui::{Color32, InnerResponse, Response};
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/js/hpxImageSurvey.js")]
+#[wasm_bindgen(module = "/js/ImageSurvey.js")]
 extern "C" {
     #[wasm_bindgen(catch, js_name = fetchSurveyMetadata)]
     async fn fetch_survey_metadata(url: String) -> Result<JsValue, JsValue>;
@@ -535,7 +535,7 @@ impl SurveyWidget {
                                 .selectable_value(&mut self.colormap, Colormap::Plasma, "plasma")
                                 .clicked();
                             *ui_changed |= ui
-                                .selectable_value(&mut self.colormap, Colormap::Rainbow, "rainbow")
+                                .selectable_value(&mut self.colormap, Colormap::Rainbow, "sinebow")
                                 .clicked();
                             *ui_changed |= ui
                                 .selectable_value(&mut self.colormap, Colormap::Rdbu, "rdbu")

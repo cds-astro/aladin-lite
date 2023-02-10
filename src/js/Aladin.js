@@ -44,7 +44,7 @@ import { CooFrameEnum } from "./CooFrameEnum.js";
 import { MeasurementTable } from "./MeasurementTable.js";
 import { Location } from "./Location.js";
 import { Source } from "./Source.js";
-import { HpxImageSurvey } from "./HpxImageSurvey.js";
+import { ImageSurvey } from "./ImageSurvey.js";
 import { Coo } from "./libs/astro/coo.js";
 import { CooConversion } from "./CooConversion.js";
 import { URLBuilder } from "./URLBuilder.js";
@@ -366,7 +366,7 @@ export let Aladin = (function () {
             }
         }
 
-        
+
         // Add the image layers
         // For that we check the survey key of options
         // It can be given as a single string or an array of strings
@@ -392,7 +392,7 @@ export let Aladin = (function () {
 
             this.setBaseImageLayer(dssUrl);
         }
-        
+
         this.view.showCatalog(options.showCatalog);
 
         var aladin = this;
@@ -558,7 +558,7 @@ export let Aladin = (function () {
             options.frame = requestedFrame;
         }
         var requestedSurveyId = $.urlParam('survey');
-        if (requestedSurveyId && HpxImageSurvey.getSurveyInfoFromId(requestedSurveyId)) {
+        if (requestedSurveyId && ImageSurvey.getSurveyInfoFromId(requestedSurveyId)) {
             options.survey = requestedSurveyId;
         }
         var requestedZoom = $.urlParam('zoom');
@@ -988,17 +988,17 @@ export let Aladin = (function () {
             }
     
             this.cacheSurveys.set(id, {id, name, rootUrl, options});
-            return new HpxImageSurvey(id, name, rootUrl, this.view, options);
+            return new ImageSurvey(id, name, rootUrl, this.view, options);
         } else {
             cfg = Utils.clone(cfg)
-            return new HpxImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
+            return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
         }
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
         const idOrUrl = rootUrlOrId;
         // Check if the survey has already been added
-        // Create a new HpxImageSurvey
+        // Create a new ImageSurvey
         let isUrl = false;
         if (idOrUrl.includes("http")) {
             isUrl = true;
@@ -1016,14 +1016,14 @@ export let Aladin = (function () {
         }
     }
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
     Aladin.prototype.setImageSurvey = function(imageSurvey) {
         this.setBaseImageLayer(imageSurvey);
     };
 
-    // @param imageSurvey : HpxImageSurvey object or image survey identifier
+    // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
     Aladin.prototype.setBackgroundColor = function(rgb) {
@@ -1069,7 +1069,7 @@ export let Aladin = (function () {
         if (typeof idOrUrlOrSurvey === "string") {
             const idOrUrl = idOrUrlOrSurvey;
             // Check if the survey has already been added
-            // Create a new HpxImageSurvey
+            // Create a new ImageSurvey
             let isUrl = false;
             if (idOrUrl.includes("http")) {
                 isUrl = true;
@@ -1821,7 +1821,7 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 A.getAvailableListOfColormaps = function() {
-    return HpxImageSurvey.COLORMAPS;
+    return ImageSurvey.COLORMAPS;
 };
 
 A.init = (async () => {

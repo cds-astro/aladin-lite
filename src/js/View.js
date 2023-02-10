@@ -45,7 +45,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { ImageColorCfg } from "./ImageColorCfg.js";
+import { ColorCfg } from "./ImageColorCfg.js";
 
 import $ from 'jquery';
 
@@ -68,7 +68,7 @@ export let View = (function () {
             this.aladin.webglAPI = webglCtx.webclient;
 
             // Retrieve all the possible colormaps
-            ImageColorCfg.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
+            ColorCfg.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -153,8 +153,6 @@ export let View = (function () {
         this.mocs = [];
         // reference to all overlay layers (= catalogs + overlays + mocs)
         this.allOverlayLayers = []
-        //console.log("alv3 starting...")
-
 
         //this.fixLayoutDimensions();
 
@@ -428,11 +426,11 @@ export let View = (function () {
                     //if (!survey.colored) {
                         if (survey.fits) {
                             // properties default cuts always refers to fits tiles
-                            cutMinInit = survey.properties.minCutout || survey.options.minCut;
-                            cutMaxInit = survey.properties.maxCutout || survey.options.maxCut;
+                            cutMinInit = survey.properties.minCutout || survey.getColorCfg().minCut;
+                            cutMaxInit = survey.properties.maxCutout || survey.getColorCfg().maxCut;
                         } else {
-                            cutMinInit = survey.options.minCut;
-                            cutMaxInit = survey.options.maxCut;
+                            cutMinInit = survey.getColorCfg().minCut;
+                            cutMaxInit = survey.getColorCfg().maxCut;
                         }
                     //} else {
                         // todo: contrast
@@ -650,7 +648,7 @@ export let View = (function () {
                     const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
 
                     if (lr <= rr) {
-                        selectedSurvey.setCuts([lr, rr])
+                        selectedSurvey.setCuts(lr, rr)
                     }
 
                     return;
@@ -861,16 +859,20 @@ export let View = (function () {
         view.executeCallbacksThrottled = Utils.throttle(
             function () {
                 var pos = view.aladin.pix2world(view.width / 2, view.height / 2);
+
                 var fov = view.fov;
+
                 if (pos === undefined || fov === undefined) {
                     return;
                 }
 
                 var ra = pos[0];
                 var dec = pos[1];
+
                 // trigger callback only if position has changed !
                 if (ra !== this.ra || dec !== this.dec) {
                     var posChangedFn = view.aladin.callbacksByEventName['positionChanged'];
+
                     (typeof posChangedFn === 'function') && posChangedFn({ ra: ra, dec: dec, dragging: true });
 
                     // finally, save ra and dec value
@@ -1391,7 +1393,7 @@ export let View = (function () {
      */
     View.prototype.computeNorder = function () {
         /*var resolution = this.fov / this.largestDim; // in degree/pixel
-        var tileSize = 512; // TODO : read info from HpxImageSurvey.tileSize
+        var tileSize = 512; // TODO : read info from ImageSurvey.tileSize
         const calculateNSide = (pixsize) => {
             const NS_MAX = 536870912;
             const ORDER_MAX = 29;
@@ -1538,9 +1540,7 @@ export let View = (function () {
                 return {
                     layer: s.layer,
                     properties: s.properties,
-                    meta: s.meta,
-                    // rust accepts it in upper case whereas the js API handles 'jpeg', 'png' or 'fits' in lower case
-                    imgFormat: s.options.imgFormat,
+                    meta: s.metadata(),
                 };
             });
         this.aladin.empty = false;

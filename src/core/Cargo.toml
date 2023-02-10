@@ -39,6 +39,7 @@ al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
 mapproj = "0.3.0"
 wcs = "0.1.1"
+colorgrad = "0.6.2"
 
 [features]
 webgl1 = [

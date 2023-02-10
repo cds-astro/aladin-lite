@@ -1,12 +1,14 @@
 use super::source::Source;
 use crate::ShaderManager;
-use al_api::colormap::Colormap;
+
 use al_api::resources::Resources;
 
 use al_core::FrameBufferObject;
 use al_core::{
     Texture2D, VecData, VertexArrayObject, WebGlContext,
 };
+use al_core::Colormaps;
+use al_core::colormap::Colormap;
 
 use std::collections::HashMap;
 use std::iter::FromIterator;
@@ -265,7 +267,6 @@ use cgmath::Vector2;
 use std::collections::HashSet;
 const MAX_SOURCES_PER_CATALOG: f32 = 50000.0;
 
-use crate::colormap::Colormaps;
 use crate::survey::view::HEALPixCellsInView;
 use crate::Abort;
 impl Catalog {
@@ -498,7 +499,7 @@ impl Catalog {
                 shaderbound
                     .attach_uniform("texture_fbo", &manager.fbo.texture) // FBO density texture computed just above
                     .attach_uniform("alpha", &self.alpha) // Alpha channel
-                    .attach_uniforms_from(&self.colormap)
+                    .attach_uniforms_with_params_from(&self.colormap, colormaps)
                     .attach_uniforms_from(colormaps)
                     .attach_uniform("reversed", &0.0_f32)
                     .bind_vertex_array_object_ref(&manager.vertex_array_object_screen)

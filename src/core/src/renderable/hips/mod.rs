@@ -2,19 +2,20 @@ mod triangulation;
 pub mod uv;
 pub mod raytracing;
 
-use al_api::hips::{GrayscaleColor, HiPSTileFormat};
+use al_api::hips::HiPSTileFormat;
 
+use al_core::colormap::Colormap;
 use al_core::VertexArrayObject;
 use al_core::VecData;
 use al_core::shader::Shader;
 use al_core::WebGlContext;
 use al_core::image::Image;
 use al_core::image::format::ImageFormatType;
+use al_core::colormap::Colormaps;
 
 use crate::ProjectionType;
 use crate::math::{vector::dist2, angle::Angle};
 use crate::camera::CameraViewPort;
-use crate::colormap::Colormaps;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 use crate::{
     math::lonlat::LonLatT,
@@ -281,66 +282,43 @@ impl RecomputeRasterizer for UnZoom {
 }
 
 pub fn get_raster_shader<'a>(
-    color: &HiPSColor,
+    cmap: &Colormap,
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
-    integer_tex: bool,
-    unsigned_tex: bool,
+    config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    match color {
-        HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS"),
-        HiPSColor::Grayscale { color, .. } => match color {
-            GrayscaleColor::Color(..) => {
-                if unsigned_tex {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorUnsignedFS")
-                } else if integer_tex {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorIntegerFS")
-                } else {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColorFS")
-                }
-            }
-            GrayscaleColor::Colormap { .. } => {
-                if unsigned_tex {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS")
-                } else if integer_tex {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS")
-                } else {
-                    crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapFS")
-                }
-            }
-        },
+    let colored_hips = config.is_colored();
+
+    if colored_hips && cmap.label() == "native" {
+        crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerColorFS")
+    } else {
+        if config.tex_storing_unsigned_int {
+            crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapUnsignedFS")
+        } else if config.tex_storing_integers {
+            crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapIntegerFS")
+        } else {
+            crate::shader::get_shader(gl, shaders, "RasterizerVS", "RasterizerGrayscale2ColormapFS")
+        }
     }
 }
 
 pub fn get_raytracer_shader<'a>(
-    color: &HiPSColor,
+    cmap: &Colormap,
     gl: &WebGlContext,
     shaders: &'a mut ShaderManager,
-    integer_tex: bool,
-    unsigned_tex: bool,
+    config: &HiPSConfig,
 ) -> Result<&'a Shader, JsValue> {
-    match color {
-        HiPSColor::Color => crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS"),
-        HiPSColor::Grayscale { color, .. } => match color {
-            GrayscaleColor::Color(..) => {
-                if unsigned_tex {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorUnsignedFS")
-                } else if integer_tex {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorIntegerFS")
-                } else {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColorFS")
-                }
-            }
-            GrayscaleColor::Colormap { .. } => {
-                if unsigned_tex {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS")
-                } else if integer_tex {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapIntegerFS")
-                } else {
-                    crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapFS")
-                }
-            }
-        },
+    let colored_hips = config.is_colored();
+    if colored_hips && cmap.label() == "native" {
+        crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerColorFS")
+    } else {
+        if config.tex_storing_unsigned_int {
+            crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapUnsignedFS")
+        } else if config.tex_storing_integers {
+            crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapIntegerFS")
+        } else {
+            crate::shader::get_shader(gl, shaders, "RayTracerVS", "RayTracerGrayscale2ColormapFS")
+        }
     }
 }
 
@@ -953,23 +931,26 @@ impl HiPS {
         };*/
         let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
         let longitude_reversed = camera.get_longitude_reversed();
+        let config = self.get_config();
 
+        let cmap = colormaps.get(color.cmap_name.as_ref());
         if raytracing {
             // Triangle are defined in CCW
             self.gl.cull_face(WebGl2RenderingContext::BACK);
 
             let shader = get_raytracer_shader(
-                color,
+                cmap,
                 &self.gl,
                 shaders,
-                self.textures.config.tex_storing_integers,
-                self.textures.config.tex_storing_unsigned_int,
+                &config,
             )?;
 
             let shader = shader.bind(&self.gl);
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                // send the cmap appart from the color config
+                .attach_uniforms_with_params_from(cmap, colormaps)
                 .attach_uniforms_from(color)
                 .attach_uniform("model", &w2v)
                 .attach_uniform("inv_model", &v2w)
@@ -1001,19 +982,19 @@ impl HiPS {
             // - The UVs are changed if:
             //     * new cells are added/removed (because new cells are added)
             //     * there are new available tiles for the GPU
-            let config = self.get_config();
             let shader = get_raster_shader(
-                color,
+                cmap,
                 &self.gl,
                 shaders,
-                config.tex_storing_integers,
-                config.tex_storing_unsigned_int,
+                &config,
             )?
             .bind(&self.gl);
 
             shader
                 .attach_uniforms_from(camera)
                 .attach_uniforms_from(&self.textures)
+                // send the cmap appart from the color config
+                .attach_uniforms_with_params_from(cmap, colormaps)
                 .attach_uniforms_from(color)
                 .attach_uniform("model", &w2v)
                 .attach_uniform("inv_model", &v2w)

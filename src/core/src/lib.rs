@@ -16,10 +16,6 @@
 //extern crate itertools_num;
 //extern crate num;
 //extern crate num_traits;
-extern crate wasm_streams;
-extern crate console_error_panic_hook;
-extern crate mapproj;
-extern crate wcs;
 use std::panic;
 
 pub trait Abort {
@@ -68,6 +64,7 @@ pub fn unwrap_abort<T>(o: Option<T>) -> T {
 #[macro_use]
 mod utils;
 
+use al_api::color::{Color, ColorRGBA};
 use math::projection::*;
 use wasm_bindgen::prelude::*;
 
@@ -75,7 +72,6 @@ mod app;
 pub mod async_task;
 mod camera;
 
-mod colormap;
 mod coosys;
 mod downloader;
 mod healpix;
@@ -89,7 +85,7 @@ mod time;
 mod fifo_cache;
 
 use crate::{
-    camera::CameraViewPort, colormap::Colormaps, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
+    camera::CameraViewPort, math::lonlat::LonLatT, shader::ShaderManager, time::DeltaTime,
     healpix::coverage::HEALPixCoverage,
 };
 use crate::downloader::request::moc::from_fits_hpx;
@@ -100,7 +96,10 @@ use moclib::deser::fits;
 use std::io::Cursor;
 
 use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
+
+use al_core::Colormap;
 use al_core::{WebGlContext};
+use al_core::colormap::Colormaps;
 
 use al_api::coo_system::CooSystem;
 
@@ -304,12 +303,9 @@ impl WebClient {
         // Deserialize the survey objects that compose the survey
         let surveys: Result<Vec<SimpleHiPS>, serde_wasm_bindgen::Error> = surveys
             .into_iter()
-            .map(|h| {
-                serde_wasm_bindgen::from_value(h)
-            })
+            .map(|hips| serde_wasm_bindgen::from_value(hips))
             .collect::<Result<Vec<_>, _>>();
 
-        //let surveys: Vec<SimpleHiPS> = surveys.iter().map(SimpleHiPS::from).collect::<Vec<_>>();
         let surveys = surveys?;
         self.app.set_image_surveys(surveys)?;
 
@@ -332,13 +328,6 @@ impl WebClient {
         let meta = serde_wasm_bindgen::from_value(meta)?;
 
         self.app.set_image_survey_color_cfg(layer, meta)
-    }
-
-    #[wasm_bindgen(js_name = setImageSurveyImageFormat)]
-    pub fn set_image_survey_img_format(&mut self, layer: String, format: JsValue) -> Result<(), JsValue> {
-        let format = serde_wasm_bindgen::from_value(format)?;
-
-        self.app.set_image_survey_img_format(layer, format)
     }
 
     #[wasm_bindgen(js_name = setImageSurveyUrl)]
@@ -712,12 +701,41 @@ impl WebClient {
     /// in core/img/colormaps/colormaps.png
     #[wasm_bindgen(js_name = getAvailableColormapList)]
     pub fn get_available_colormap_list(&self) -> Result<Vec<JsValue>, JsValue> {
-        let colormaps = Colormaps::get_list_available_colormaps()
+        let colormaps = self.app.get_colormaps()
+            .get_list_available_colormaps()
             .iter()
-            .map(|&s| JsValue::from_str(s))
+            .map(|s| JsValue::from_str(s))
             .collect::<Vec<_>>();
 
         Ok(colormaps)
+    }
+
+    #[wasm_bindgen(js_name = createCustomColormap)]
+    pub fn add_custom_colormap(&mut self, label: String, hex_colors: Vec<JsValue>) -> Result<(), JsValue> {
+        let rgba_colors: Result<Vec<_>, JsValue> = hex_colors
+            .into_iter()
+            .map(|hex_color| {
+                let hex_color = serde_wasm_bindgen::from_value(hex_color)?;
+                let color = Color::hexToRgba(hex_color);
+                let color_rgba: ColorRGBA = color.try_into()?;
+            
+                Ok(colorgrad::Color::new(
+                    color_rgba.r as f64,
+                    color_rgba.g as f64,
+                    color_rgba.b as f64,
+                    color_rgba.a as f64)
+                )
+            })
+            .collect();
+
+        let grad = colorgrad::CustomGradient::new()
+            .colors(&rgba_colors?)
+            .build()
+            .map_err(|err| JsValue::from_str(&format!("{:?}", err)))?;
+
+        let cmap = Colormap::new(&label, grad);
+        self.app.add_cmap(label, cmap)?;
+        Ok(())
     }
 
     /// Get the image canvas where the webgl rendering is done

@@ -25,24 +25,9 @@ pub struct SimpleHiPS {
 
     /// The HiPS metadata
     pub properties: HiPSProperties,
-
+    /// Its color
     pub meta: ImageSurveyMeta,
-
-    pub img_format: HiPSTileFormat,
 }
-
-/*#[wasm_bindgen]
-impl SimpleHiPS {
-    #[wasm_bindgen(constructor)]
-    pub fn new(layer: String, properties: HiPSProperties, meta: ImageSurveyMeta) -> Self {
-        Self {
-            layer,
-            properties,
-            meta,
-            backend: None
-        }
-    }
-}*/
 
 impl SimpleHiPS {
     pub fn get_layer(&self) -> String {
@@ -68,6 +53,7 @@ pub struct HiPSProperties {
     formats: Vec<HiPSTileFormat>,
     sky_fraction: f32,
     min_order: u8,
+    colored: bool,
 
     hips_initial_fov: Option<f64>,
     hips_initial_ra: Option<f64>,
@@ -79,38 +65,6 @@ pub struct HiPSProperties {
 }
 
 impl HiPSProperties {
-    /*pub fn new(
-        url: String,
-        max_order: u8,
-        frame: CooSystem,
-        tile_size: i32,
-        min_cutout: Option<f32>,
-        max_cutout: Option<f32>,
-        bitpix: Option<i32>,
-        formats: Vec<HiPSTileFormat>,
-        sky_fraction: f32,
-        min_order: u8,
-        hips_initial_fov: Option<f64>,
-        hips_initial_ra: Option<f64>,
-        hips_initial_dec: Option<f64>,
-    ) -> Self {
-        Self {
-            url,
-            max_order,
-            min_order,
-            frame,
-            tile_size,
-            formats,
-            bitpix,
-            min_cutout,
-            max_cutout,
-            sky_fraction,
-            hips_initial_fov,
-            hips_initial_dec,
-            hips_initial_ra,
-        }
-    }*/
-
     #[inline]
     pub fn get_url(&self) -> String {
         self.url.clone()
@@ -165,6 +119,11 @@ impl HiPSProperties {
     pub fn get_initial_dec(&self) -> Option<f64> {
         self.hips_initial_dec
     }
+
+    #[inline]
+    pub fn is_colored(&self) -> bool {
+        self.colored
+    }
 }
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -177,26 +136,6 @@ pub enum HiPSTileFormat {
 }
 
 use serde::Serialize;
-/*#[wasm_bindgen]
-#[derive(Deserialize, Serialize, Debug)]
-#[derive(Clone, Copy)]
-#[serde(rename_all = "camelCase")]
-pub struct GrayscaleParameter {
-    pub h: TransferFunction,
-    pub min_value: f32,
-    pub max_value: f32,
-}
-
-impl Default for GrayscaleParameter {
-    fn default() -> Self {
-        Self {
-            h: TransferFunction::Asinh,
-            min_value: 0.0,
-            max_value: 1.0
-        }
-    }
-}*/
-
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Clone, Copy, PartialEq, Debug, Deserialize, Serialize)]
@@ -237,46 +176,26 @@ impl From<String> for TransferFunction {
     }
 }
 
-use crate::colormap::Colormap;
-#[derive(Deserialize, Debug, Clone, Copy)]
+use crate::colormap::CmapLabel;
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum HiPSColor {
-    // FITS tile
-    Grayscale {
-        #[serde(rename = "stretch")]
-        tf: TransferFunction,
-        #[serde(rename = "minCut")]
-        min_cut: Option<f32>,
-        #[serde(rename = "maxCut")]
-        max_cut: Option<f32>,
-
-        color: GrayscaleColor,
-    },
-    // JPG/PNG tile
-    Color,
+pub struct HiPSColor {
+    // transfer function called before evaluating the colormap
+    pub stretch: TransferFunction,
+    // low cut 
+    pub min_cut: Option<f32>,
+    // high cut
+    pub max_cut: Option<f32>,
+    // flag to tell the colormap is queried reversed
+    pub reversed: bool,
+    // the colormap
+    pub cmap_name: CmapLabel,
+    /// tonal color tuning factors
+    pub k_gamma: f32,
+    pub k_saturation: f32,
+    pub k_contrast: f32,
+    pub k_brightness: f32,
 }
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone, Copy)]
-pub enum GrayscaleColor {
-    Colormap { reversed: bool, name: Colormap },
-    Color([f32; 4]),
-}
-/*
-impl Default for HiPSColor {
-    fn default() -> Self {
-        HiPSColor::Grayscale2Color {
-            color: [1.0, 0.0, 0.0],
-            param: GrayscaleParameter {
-                h: TransferFunction::Asinh,
-                min_value: 0.0,
-                max_value: 1.0,
-            },
-            k: 1.0
-        }
-    }
-}*/
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -293,6 +212,8 @@ pub struct ImageSurveyMeta {
     #[serde(default = "default_opacity")]
     pub opacity: f32,
     pub longitude_reversed: bool,
+    /// the current format chosen
+    pub img_format: HiPSTileFormat,
 }
 
 fn default_opacity() -> f32 {
@@ -313,71 +234,72 @@ impl ImageSurveyMeta {
     pub fn color(&self) -> JsValue {
         let js_color_obj = js_sys::Object::new();
 
-        let color = match &self.color {
-            HiPSColor::Color => JsValue::from_str("Colored"),
-            HiPSColor::Grayscale {
-                tf,
-                min_cut,
-                max_cut,
-                color,
-            } => {
-                let js_grayscale = js_sys::Object::new();
+        let HiPSColor {
+            stretch,
+            min_cut,
+            max_cut,
+            reversed,
+            cmap_name,
+            k_gamma,
+            k_saturation,
+            k_brightness,
+            k_contrast,
+        } = &self.color;
 
-                js_sys::Reflect::set(
-                    &js_grayscale,
-                    &"stretch".into(),
-                    &serde_wasm_bindgen::to_value(&tf).unwrap_abort(),
-                )
-                .unwrap_abort();
-                js_sys::Reflect::set(
-                    &js_grayscale,
-                    &"minCut".into(),
-                    &serde_wasm_bindgen::to_value(&min_cut).unwrap_abort(),
-                )
-                .unwrap_abort();
-                js_sys::Reflect::set(
-                    &js_grayscale,
-                    &"maxCut".into(),
-                    &serde_wasm_bindgen::to_value(&max_cut).unwrap_abort(),
-                )
-                .unwrap_abort();
-
-                let js_color = match color {
-                    GrayscaleColor::Color(color) => {
-                        let js_color = js_sys::Object::new();
-                        js_sys::Reflect::set(
-                            &js_color,
-                            &"color".into(),
-                            &serde_wasm_bindgen::to_value(&color).unwrap_abort(),
-                        )
-                        .unwrap_abort();
-
-                        js_color
-                    }
-                    GrayscaleColor::Colormap { reversed, name } => {
-                        let js_colormap = js_sys::Object::new();
-                        js_sys::Reflect::set(
-                            &js_colormap,
-                            &"reversed".into(),
-                            &JsValue::from_bool(*reversed),
-                        )
-                        .unwrap_abort();
-                        js_sys::Reflect::set(
-                            &js_colormap,
-                            &"colormap".into(),
-                            &serde_wasm_bindgen::to_value(&name).unwrap_abort(),
-                        )
-                        .unwrap_abort();
-
-                        js_colormap
-                    }
-                };
-                js_sys::Reflect::set(&js_grayscale, &"color".into(), &js_color).unwrap_abort();
-
-                js_grayscale.into()
-            }
-        };
-        js_sys::Reflect::set(&js_color_obj, &"color".into(), &color).unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"stretch".into(),
+            &serde_wasm_bindgen::to_value(&stretch).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"minCut".into(),
+            &serde_wasm_bindgen::to_value(&min_cut).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"maxCut".into(),
+            &serde_wasm_bindgen::to_value(&max_cut).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"kGamma".into(),
+            &serde_wasm_bindgen::to_value(&k_gamma).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"kSaturation".into(),
+            &serde_wasm_bindgen::to_value(&k_saturation).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"kBrightness".into(),
+            &serde_wasm_bindgen::to_value(&k_brightness).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"kContrast".into(),
+            &serde_wasm_bindgen::to_value(&k_contrast).unwrap_abort(),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"reversed".into(),
+            &JsValue::from_bool(*reversed),
+        )
+        .unwrap_abort();
+        js_sys::Reflect::set(
+            &js_color_obj,
+            &"colormap".into(),
+            &serde_wasm_bindgen::to_value(&cmap_name).unwrap_abort(),
+        )
+        .unwrap_abort();
 
         js_color_obj.into()
     }

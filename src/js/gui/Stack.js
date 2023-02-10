@@ -54,6 +54,8 @@ export class Stack {
         this.imgLayers = new Map();
         this.selectedLayer = undefined;
 
+        this.backgroundColor = '#6699ff';
+
         this._createComponent();
         this._addListeners();
     }
@@ -101,15 +103,13 @@ export class Stack {
         layerBox.append(backgroundColorInput);
 
         // Set a default background color
-        const defaultBackgroundColor = '#6699ff';
-        backgroundColorInput.val(defaultBackgroundColor);
-        self.view.aladin.setBackgroundColor(Color.hexToRgb(defaultBackgroundColor));
+        backgroundColorInput.val(this.backgroundColor);
+        self.view.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
 
-        let updateBackgroundColor = function () {
-            const backgroundColor = backgroundColorInput.val();
-            self.view.aladin.setBackgroundColor(Color.hexToRgb(backgroundColor));
-        };
-        backgroundColorInput.on('input', updateBackgroundColor);
+        backgroundColorInput.on('input', () => {
+            self.backgroundColor = backgroundColorInput.val();
+            self.view.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
+        });
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');

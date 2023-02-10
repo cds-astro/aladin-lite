@@ -21,12 +21,12 @@ use al_core::shader::Shader;
 use al_core::WebGlContext;
 use al_core::image::format::ImageFormatType;
 use al_core::webgl_ctx::GlWrapper;
+use al_core::colormap::Colormaps;
 
 use crate::Abort;
 use crate::ProjectionType;
 use crate::renderable::image::FitsImage;
 use crate::camera::CameraViewPort;
-use crate::colormap::Colormaps;
 use crate::shader::ShaderId;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
 use crate::SimpleHiPS;
@@ -369,11 +369,10 @@ impl Layers {
             layer,
             properties,
             meta,
-            img_format,
             ..
         } in hipses.into_iter()
         {
-            let config = HiPSConfig::new(&properties, img_format)?;
+            let config = HiPSConfig::new(&properties, meta.img_format)?;
             //camera.set_longitude_reversed(meta.longitude_reversed);
 
             // Get the most precise survey from all the ones given
@@ -495,6 +494,10 @@ impl Layers {
 
     pub fn get_mut_hips(&mut self, root_url: &str) -> Option<&mut HiPS> {
         self.surveys.get_mut(root_url)
+    }
+
+    pub fn get_hips(&mut self, root_url: &str) -> Option<&HiPS> {
+        self.surveys.get(root_url)
     }
 
     pub fn values_hips(&self) -> impl Iterator<Item = &HiPS> {

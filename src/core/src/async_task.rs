@@ -7,12 +7,10 @@ use al_task_exec::Executor;
 pub type TaskExecutor = Executor<TaskType, TaskResult>;
 
 pub use crate::renderable::catalog::Source;
-pub use al_api::colormap::Colormap;
 pub enum TaskResult {
     TableParsed {
         name: String,
         sources: Box<[Source]>,
-        colormap: Colormap,
     },
     /*TileSentToGPU {
         tile: Tile,

@@ -337,4 +337,11 @@ impl ImageFormatType {
             ImageFormatType::R32I => R32I::EXT,
         }
     }
+
+    pub fn is_colored(&self) -> bool {
+        match self {
+            ImageFormatType::RGBA32F | ImageFormatType::RGB32F | ImageFormatType::RGBA8U | ImageFormatType::RGB8U => true,
+            _ => false
+        }
+    }
 }

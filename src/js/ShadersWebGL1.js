@@ -21,12 +21,10 @@ import GridFS_CPU from '../glsl/webgl1/grid/grid_cpu.frag'
 // Raytracer
 import RayTracerVS from '../glsl/webgl1/hips/raytracer/raytracer.vert'
 import RayTracerColorFS from '../glsl/webgl1/hips/raytracer/color.frag'
-import RayTracerGrayscale2ColorFS from '../glsl/webgl1/hips/raytracer/grayscale_to_color.frag'
 import RayTracerGrayscale2ColormapFS from '../glsl/webgl1/hips/raytracer/grayscale_to_colormap.frag'
 // Rasterizer
 import RasterizerVS from '../glsl/webgl1/hips/rasterizer/raster.vert'
 import RasterizerColorFS from '../glsl/webgl1/hips/rasterizer/color.frag'
-import RasterizerGrayscale2ColorFS from '../glsl/webgl1/hips/rasterizer/grayscale_to_color.frag'
 import RasterizerGrayscale2ColormapFS from '../glsl/webgl1/hips/rasterizer/grayscale_to_colormap.frag'
 
 // Post
@@ -96,10 +94,6 @@ let shaders = [
         content: RayTracerColorFS,
     },
     {
-        id: "RayTracerGrayscale2ColorFS",
-        content: RayTracerGrayscale2ColorFS,
-    },
-    {
         id: "RayTracerGrayscale2ColormapFS",
         content: RayTracerGrayscale2ColormapFS,
     },
@@ -111,10 +105,6 @@ let shaders = [
     {
         id: "RasterizerColorFS",
         content: RasterizerColorFS,
-    },
-    {
-        id: "RasterizerGrayscale2ColorFS",
-        content: RasterizerGrayscale2ColorFS,
     },
     {
         id: "RasterizerGrayscale2ColormapFS",

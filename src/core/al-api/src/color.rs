@@ -6,6 +6,8 @@ extern "C" {
 
     #[wasm_bindgen(static_method_of = Color)]
     pub fn hexToRgb(hex: String) -> JsValue;
+    #[wasm_bindgen(static_method_of = Color)]
+    pub fn hexToRgba(hex: String) -> JsValue;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -77,6 +79,20 @@ impl TryFrom<JsValue> for ColorRGB {
         c.r /= 255.0;
         c.g /= 255.0;
         c.b /= 255.0;
+
+        Ok(c)
+    }
+}
+
+impl TryFrom<JsValue> for ColorRGBA {
+    type Error = JsValue;
+
+    fn try_from(rgb: JsValue) -> Result<Self, JsValue> {
+        let mut c: ColorRGBA = serde_wasm_bindgen::from_value(rgb)?;
+        c.r /= 255.0;
+        c.g /= 255.0;
+        c.b /= 255.0;
+        c.a /= 255.0;
 
         Ok(c)
     }

@@ -17,45 +17,52 @@
 //    along with Aladin Lite.
 //
 
-
-
 /******************************************************************************
  * Aladin Lite project
  * 
- * File HpxImageSurvey
+ * File ColorCfg
  * 
  * Authors: Thomas Boch & Matthieu Baumann [CDS]
  * 
  *****************************************************************************/
- export let ImageColorCfg = (function() {
+ export let ColorCfg = (function() {
     /** Constructor
      * cooFrame and maxOrder can be set to null
      * They will be determined by reading the properties file
      */
-    function ImageColorCfg(options) {
-        // Name of the layer
-        this.layer = null;
-
+    function ColorCfg(options) {
         // Opacity of the survey/image
         this.opacity = (options && options.opacity) || 1.0;
 
         // Colormap config options
+        this.colormap = (options && options.colormap) || "native";
+        this.colormap = formatColormap(this.colormap);
+
         this.stretch = (options && options.stretch) || "linear";
         this.stretch = this.stretch.toLowerCase();
+        this.reversed = false;
 
-        this.minCut = (options && options.minCut) || 0.0;
-        this.maxCut = (options && options.maxCut) || 1.0;
-        this.colormap = (options && options.colormap) || "grayscale";
+        if (options && options.reversed === true) {
+            this.reversed = true;
+        }
+
+        this.minCut = options && options.minCut;
+        this.maxCut = options && options.maxCut;
         
-        this.reversed = options && options.reversed;
         if (this.reversed === undefined) {
             this.reversed = false;
         }
 
         this.additiveBlending = options.additive;
+
+        // A default value for gamma correction
+        this.kGamma = (options && options.gamma) || 1.0;
+        this.kSaturation = (options && options.saturation) || 0.0;
+        this.kBrightness = (options && options.brightness) || 0.0;
+        this.kContrast = (options && options.contrast) || 0.0;
     };
 
-    HpxImageSurvey.prototype.computeColorCfg = function() {
+    ColorCfg.prototype.get = function() {
         let blend = {
             srcColorFactor: 'SrcAlpha',
             dstColorFactor: 'OneMinusSrcAlpha',
@@ -70,96 +77,142 @@
             }
         }
 
-        // reset the whole meta object
+        // Reset the whole meta object
         return {
             blendCfg: blend,
             opacity: this.opacity,
             color: {
-                grayscale: {
-                    stretch: stretch,
-                    minCut: minCut,
-                    maxCut: maxCut,
-                    color: {
-                        colormap: {
-                            reversed: reversed,
-                            name: colormap,
-                        }
-                    }
-                }
+                // Tonal corrections constants
+                kGamma: this.kGamma,
+                kSaturation: this.kSaturation,
+                kBrightness: this.kBrightness,
+                kContrast: this.kContrast,
+
+                stretch: this.stretch,
+                minCut: this.minCut,
+                maxCut: this.maxCut,
+                reversed: this.reversed,
+                cmapName: this.colormap,
             }
         };
     }
 
     // @api
-    HpxImageSurvey.prototype.setOpacity = function(opacity) {
+    ColorCfg.prototype.setBrightness = function(kBrightness) {
+        kBrightness = +kBrightness || 0.0; // coerce to number
+        this.kBrightness = Math.max(-1, Math.min(kBrightness, 1));
+    };
+
+    // @api
+    ColorCfg.prototype.getBrightness = function() {
+        return this.kBrightness;
+    };
+
+    // @api
+    ColorCfg.prototype.setContrast = function(kContrast) {
+        kContrast = +kContrast || 0.0; // coerce to number
+        this.kContrast = Math.max(-1, Math.min(kContrast, 1));
+    };
+
+    // @api
+    ColorCfg.prototype.getContrast = function() {
+        return this.kContrast;
+    };
+
+    // @api
+    ColorCfg.prototype.setSaturation = function(kSaturation) {
+        kSaturation = +kSaturation || 0.0; // coerce to number
+
+        this.kSaturation = Math.max(-1, Math.min(kSaturation, 1));
+    };
+
+    // @api
+    ColorCfg.prototype.getSaturation = function() {
+        return this.kSaturation;
+    };
+
+    // @api
+    ColorCfg.prototype.setGamma = function(gamma) {
+        gamma = +gamma; // coerce to number
+        this.kGamma = Math.max(0.1, Math.min(gamma, 10));
+    };
+
+    // @api
+    ColorCfg.prototype.getGamma = function() {
+        return this.kGamma;
+    };
+
+    // @api
+    ColorCfg.prototype.setOpacity = function(opacity) {
         opacity = +opacity; // coerce to number
         this.opacity = Math.max(0, Math.min(opacity, 1));
     };
 
     // @oldapi
-    HpxImageSurvey.prototype.setAlpha = HpxImageSurvey.prototype.setOpacity;
+    ColorCfg.prototype.setAlpha = ColorCfg.prototype.setOpacity;
 
     // @api
-    HpxImageSurvey.prototype.getOpacity = function() {
+    ColorCfg.prototype.getOpacity = function() {
         return this.opacity;
     };
 
     // @api
-    HpxImageSurvey.prototype.setBlendingConfig = function(additive = false) {
+    ColorCfg.prototype.setBlendingConfig = function(additive = false) {
         this.additiveBlending = additive;
     };
 
-    // @api
-    // Optional arguments, 
-    HpxImageSurvey.prototype.setColormap = function(colormap, stretch = undefined, reversed = undefined) {
+    ColorCfg.prototype.getBlendingConfig = function() {
+        return this.additiveBlending;
+    };
+
+    var formatColormap = function(colormap) {
         /// colormap
-        // If not defined we set the colormap to grayscale
-        if (!colormap) {
-            colormap = "grayscale";
-        }
-
-        if (colormap === "native") {
-            colormap = "grayscale";
-        }
-
         // Make it case insensitive
         colormap = colormap.toLowerCase();
-
-        if (!ImageColorCfg.COLORMAPS.includes(colormap)) {
-            console.warn("The colormap \'" + colormap + "\' does not exist. You should use one of the following: " + ImageColorCfg.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
-
+        if (!ColorCfg.COLORMAPS.includes(colormap)) {
+            console.warn("The colormap \'" + colormap + "\' is not supported. You should use one of the following: " + ColorCfg.COLORMAPS + "\n\'grayscale\' has been chosen by default.")
+            // If the user specify a colormap that is not supported,
+            // then set it to grayscale
             colormap = "grayscale";
         }
 
+        return colormap;
+    }
+
+    // @api
+    // Optional arguments, 
+    ColorCfg.prototype.setColormap = function(colormap = "native", options = {}) {
+        /// colormap
+        // Make it case insensitive
+        let cmap = formatColormap(colormap);
+
         /// stretch
-        if (stretch) {
-            stretch = stretch.toLowerCase();
+        let stretch = (options && options.stretch) || this.stretch || "linear";
+        stretch = stretch.toLowerCase();
+
+        /// reversed
+        let reversed = false;
+        if (options && options.reversed === true) {
+            reversed = true;
         }
 
-        /// reversed 
-        if (reversed === undefined) {
-            reversed = false;
-        }
-
-        this.colormap = colormap;
+        this.colormap = cmap;
         this.stretch = stretch;
         this.reversed = reversed;
     }
 
     // @api
-    HpxImageSurvey.prototype.setCuts = function(lowCut, highCut) {
+    ColorCfg.prototype.setCuts = function(lowCut, highCut) {
         this.minCut = lowCut;
         this.maxCut = highCut;
     };
 
     // @api
-    ImageColorCfg.prototype.getAlpha = function() {
+    ColorCfg.prototype.getAlpha = function() {
         return this.opacity;
     };
 
-    ImageColorCfg.COLORMAPS = [];
-    
-    return ImageColorCfg;
+    ColorCfg.COLORMAPS = [];
+
+    return ColorCfg;
  })();
- 
- 

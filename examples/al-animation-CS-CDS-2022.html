@@ -24,11 +24,10 @@
     A.init.then(() => {
         aladin = A.aladin('#aladin-lite-div', {cooFrame: 'galactic', fov: 400, fullScreen: true, showCooGrid: false, showReticle: false})
         aladin.gotoRaDec(79.9525321, -69.2742586)
-        const gaiaFlux = aladin.createImageSurvey('P/DM/flux-G/I/355/gaiadr3', "GaiaDR3GFlux", null, null, null)
+        const gaiaFlux = aladin.createImageSurvey('P/DM/flux-G/I/355/gaiadr3', "GaiaDR3GFlux", null, null, null, {imgFormat: 'fits', stretch: 'log'})
         aladin.setBaseImageLayer(gaiaFlux)
-        gaiaFlux.setOptions({'imgFormat': 'fits', 'stretch': 'log'})
-        gaiaFlux.setCuts([3e5, 1e8])
-            
+        gaiaFlux.setCuts(3e5, 1e8)
+
         aladin.setProjection('MOL')
 
 
@@ -306,7 +305,7 @@
 
                 let cut0 = -0.0004 * lambda + (1 - lambda) * -0.00132
                 let cut1 = 0.005 * lambda + (1 - lambda) * 0.05759
-                meerkat.setCuts([cut0, cut1])
+                meerkat.setCuts(cut0, cut1)
             }
 
         } 

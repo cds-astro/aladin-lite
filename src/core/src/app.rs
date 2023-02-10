@@ -1,7 +1,6 @@
 use crate::{
     async_task::{BuildCatalogIndex, ParseTableTask, TaskExecutor, TaskResult, TaskType},
     camera::CameraViewPort,
-    colormap::Colormaps,
     downloader::Downloader,
     math::{
         self,
@@ -22,6 +21,7 @@ use crate::{
 };
 
 use al_core::WebGlContext;
+use al_core::colormap::{Colormap, Colormaps};
 
 use al_api::{
     coo_system::CooSystem,
@@ -182,7 +182,7 @@ impl App {
         let out_of_fov = false;
         let catalog_loaded = false;
 
-        let colormaps = Colormaps::new(&gl, &resources)?;
+        let colormaps = Colormaps::new(&gl)?;
 
         let _final_rendering_pass = RenderPass::new(&gl)?;
         let tile_fetcher = TileFetcherQueue::new();
@@ -383,7 +383,6 @@ impl App {
     }*/
 }
 
-use al_api::hips::HiPSTileFormat;
 use al_api::cell::HEALPixCellProjeted;
 use crate::downloader::request::Resource;
 
@@ -834,27 +833,7 @@ impl App {
         self.layers.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
 
         for hips in self.layers.values_hips() {
-            let cfg = hips.get_config();
-            // Request for the allsky first
-            // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-            self.downloader.fetch(query::PixelMetadata::new(cfg));
-            // Try to fetch the MOC
-            self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
-
-            let tile_size = cfg.get_tile_size();
-            //Request the allsky for the small tile size or if base tiles are not available
-            if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-                // Request the allsky
-                self.downloader.fetch(query::Allsky::new(cfg));
-            } else {
-                for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                    for cell in texture_cell.get_tile_cells(cfg) {
-                        let query = query::Tile::new(&cell, cfg);
-                        self.tile_fetcher
-                            .append_base_tile(query, &mut self.downloader);
-                    }
-                }
-            }
+            self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
         }
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
@@ -872,29 +851,9 @@ impl App {
     pub(crate) fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.layers.set_survey_url(past_url, new_url.clone())?;
 
-        let hips = self.layers.get_mut_hips(&new_url).unwrap();
+        let hips = self.layers.get_hips(&new_url).unwrap();
         // Relaunch the base tiles for the survey to be ready with the new url
-        let cfg = hips.get_config();
-        // Request for the allsky first
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        self.downloader.fetch(query::PixelMetadata::new(cfg));
-        // Try to fetch the MOC
-        self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
-
-        let tile_size = cfg.get_tile_size();
-        //Request the allsky for the small tile size or if base tiles are not available
-        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-            // Request the allsky
-            self.downloader.fetch(query::Allsky::new(cfg));
-        } else {
-            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg) {
-                    let query = query::Tile::new(&cell, cfg);
-                    self.tile_fetcher
-                        .append_base_tile(query, &mut self.downloader);
-                }
-            }
-        }
+        self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
 
         Ok(())
     }
@@ -906,45 +865,23 @@ impl App {
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 
-        self.layers.set_layer_cfg(layer, meta, &self.camera, &self.projection)
-    }
+        let old_meta = self.layers.get_layer_cfg(&layer)?;
+        if old_meta.img_format != meta.img_format {
+            // the image format has been changed
+            let hips = self.layers
+                .get_mut_hips_from_layer(&layer)
+                .ok_or_else(|| JsValue::from_str("Layer not found"))?;
+            hips.set_img_format(meta.img_format)?;
+            // Relaunch the base tiles for the survey to be ready with the new url
+            self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);     
 
-    pub(crate) fn set_image_survey_img_format(&mut self, layer: String, format: HiPSTileFormat) -> Result<(), JsValue> {
-        let survey = self.layers.get_mut_hips_from_layer(&layer)
-            .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-        survey.set_img_format(format)?;
-        // Request for the allsky first
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        let cfg = survey.get_config();
-
-        //Request the allsky for the small tile size
-        let tile_size = cfg.get_tile_size();
-
-        // The allsky is not mandatory present in a HiPS service but it is better to first try to search for it
-        self.downloader.fetch(query::PixelMetadata::new(cfg));
-        // Try to fetch the MOC
-        self.downloader.fetch(query::Moc::new(format!("{}/Moc.fits", cfg.get_root_url()), al_api::moc::MOC::default()));
-        //Request the allsky for the small tile size
-        if tile_size <= 128 || cfg.get_min_depth_tile() > 0 {
-            // Request the allsky
-            self.downloader.fetch(query::Allsky::new(cfg));
-        } else {
-            for texture_cell in crate::healpix::cell::ALLSKY_HPX_CELLS_D0 {
-                for cell in texture_cell.get_tile_cells(cfg) {
-                    let query = query::Tile::new(&cell, cfg);
-                    self.tile_fetcher
-                        .append_base_tile(query, &mut self.downloader);
-                }
-            }
+            // Once its added, request the tiles in the view (unless the viewer is at depth 0)
+            self.request_for_new_tiles = true;
+            self.request_redraw = true;
         }
-        
 
-        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.request_for_new_tiles = true;
-
-        self.request_redraw = true;
-
-        Ok(())
+        // Set the new meta
+        self.layers.set_layer_cfg(layer, meta, &self.camera, &self.projection)
     }
 
     // Width and height given are in pixels
@@ -970,10 +907,9 @@ impl App {
         self.camera.get_longitude_reversed()
     }
 
-    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, colormap: String) {
+    pub(crate) fn add_catalog(&mut self, name: String, table: JsValue, _colormap: String) {
         let mut exec_ref = self.exec.borrow_mut();
         let table = table;
-        let c = self.colormaps.get(&colormap);
 
         exec_ref
             .spawner()
@@ -995,7 +931,6 @@ impl App {
                 TaskResult::TableParsed {
                     name,
                     sources: results.into_boxed_slice(),
-                    colormap: c,
                 }
             });
     }
@@ -1219,6 +1154,10 @@ impl App {
         self.out_of_fov = true;
     }
 
+    pub(crate) fn add_cmap(&mut self, label: String, cmap: Colormap) -> Result<(), JsValue> {
+        self.colormaps.add_cmap(label, cmap)
+    }
+
     // Accessors
     pub(crate) fn get_center(&self) -> LonLatT<f64> {
         self.camera.get_center().lonlat()
@@ -1235,6 +1174,10 @@ impl App {
     pub(crate) fn get_fov(&self) -> f64 {
         let deg: ArcDeg<f64> = self.camera.get_aperture().into();
         deg.0
+    }
+
+    pub(crate) fn get_colormaps(&self) -> &Colormaps {
+        &self.colormaps
     }
 
     pub(crate) fn get_gl_canvas(&self) -> Option<js_sys::Object> {

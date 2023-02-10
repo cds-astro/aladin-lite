@@ -633,15 +633,19 @@ export let View = (function () {
 
             if (view.rightClick && view.selectedSurveyLayer) {
                 let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
-                //if (!selectedSurvey.colored) {
-                    // we try to match DS9 contrast adjustment behaviour with right click
-                    const cs = {
-                        x: view.catalogCanvas.clientWidth * 0.5,
-                        y: view.catalogCanvas.clientHeight * 0.5,
-                    };
-                    const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
-                    const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
+                // We try to match DS9 contrast adjustment behaviour with right click
+                const cs = {
+                    x: view.catalogCanvas.clientWidth * 0.5,
+                    y: view.catalogCanvas.clientHeight * 0.5,
+                };
+                const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
+                const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
+
+                if (selectedSurvey.colored && selectedSurvey.getColorCfg().getColormap() === "native") {
+                    selectedSurvey.setSaturation(2*cx);
+                    selectedSurvey.setBrightness(2*cy);
+                } else {
                     const offset = (cutMaxInit - cutMinInit) * cx;
 
                     const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
@@ -650,9 +654,9 @@ export let View = (function () {
                     if (lr <= rr) {
                         selectedSurvey.setCuts(lr, rr)
                     }
+                }
 
-                    return;
-                //}
+                return;
             }
 
             if (e.type === 'touchmove' && view.pinchZoomParameters.isPinching && e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length == 2) {

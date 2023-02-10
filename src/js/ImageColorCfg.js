@@ -48,12 +48,11 @@
 
         this.minCut = options && options.minCut;
         this.maxCut = options && options.maxCut;
-        
-        if (this.reversed === undefined) {
-            this.reversed = false;
-        }
 
-        this.additiveBlending = options.additive;
+        this.additiveBlending = options && options.additive;
+        if (this.additiveBlending === undefined)  {
+            this.additiveBlending = false;
+        }
 
         // A default value for gamma correction
         this.kGamma = (options && options.gamma) || 1.0;
@@ -157,6 +156,9 @@
     };
 
     // @api
+    ColorCfg.prototype.getAlpha = ColorCfg.prototype.getOpacity;
+
+    // @api
     ColorCfg.prototype.setBlendingConfig = function(additive = false) {
         this.additiveBlending = additive;
     };
@@ -202,14 +204,14 @@
     }
 
     // @api
-    ColorCfg.prototype.setCuts = function(lowCut, highCut) {
-        this.minCut = lowCut;
-        this.maxCut = highCut;
+    ColorCfg.prototype.getColormap = function() {
+        return this.colormap;
     };
 
     // @api
-    ColorCfg.prototype.getAlpha = function() {
-        return this.opacity;
+    ColorCfg.prototype.setCuts = function(lowCut, highCut) {
+        this.minCut = lowCut;
+        this.maxCut = highCut;
     };
 
     ColorCfg.COLORMAPS = [];

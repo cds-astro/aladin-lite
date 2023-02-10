@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use al_api::resources::Resources;
 use colorgrad::Color;
 
 use crate::Texture2D;

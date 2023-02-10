@@ -11,6 +11,7 @@ uniform float blank;
 uniform float min_value;
 uniform float max_value;
 uniform int H;
+uniform float reversed;
 
 uniform float size_tile_uv;
 
@@ -45,6 +46,9 @@ vec4 get_colormap_from_grayscale_texture(vec3 UV) {
     float x = float(get_pixels(uv).r);
     float alpha = x * scale + offset;
     alpha = transfer_func(H, alpha, min_value, max_value);
+
+    // apply reversed
+    alpha = mix(alpha, 1.0 - alpha, reversed);
 
     vec4 new_color = mix(colormap_f(alpha), vec4(0.0), float(x == blank));
     return apply_tonal(new_color);

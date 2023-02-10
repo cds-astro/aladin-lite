@@ -40,8 +40,18 @@ vec3 reverse_uv(vec3 uv) {
     return uv;
 }
 
+uniform float reversed;
+
 vec4 get_color_from_texture(vec3 UV) {
     vec4 color = get_pixels(UV);
+    
+    color.r = transfer_func(H, color.r, min_value, max_value);
+    color.g = transfer_func(H, color.g, min_value, max_value);
+    color.b = transfer_func(H, color.b, min_value, max_value);
+
+    // apply reversed
+    color.rgb = mix(color.rgb, 1.0 - color.rgb, reversed);
+
     return apply_tonal(color);
 }
 
@@ -53,6 +63,9 @@ vec4 get_colormap_from_grayscale_texture(vec3 UV) {
     float x = color.r;
     float alpha = x * scale + offset;
     alpha = transfer_func(H, alpha, min_value, max_value);
+
+    // apply reversed
+    alpha = mix(alpha, 1.0 - alpha, reversed);
 
     vec4 new_color = mix(colormap_f(alpha) * color.a, vec4(0.0), float(x == blank || isnan(x)));
     return apply_tonal(new_color);

@@ -642,10 +642,10 @@ export let View = (function () {
                 const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
                 const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
-                if (selectedSurvey.colored && selectedSurvey.getColorCfg().getColormap() === "native") {
-                    selectedSurvey.setSaturation(2*cx);
-                    selectedSurvey.setBrightness(2*cy);
-                } else {
+                //if (selectedSurvey.colored && selectedSurvey.getColorCfg().getColormap() === "native") {
+                //    selectedSurvey.setSaturation(2*cx);
+                //    selectedSurvey.setBrightness(2*cy);
+                //} else {
                     const offset = (cutMaxInit - cutMinInit) * cx;
 
                     const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
@@ -654,7 +654,7 @@ export let View = (function () {
                     if (lr <= rr) {
                         selectedSurvey.setCuts(lr, rr)
                     }
-                }
+                //}
 
                 return;
             }

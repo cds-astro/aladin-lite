@@ -16,6 +16,7 @@
     "funding": "ESCAPE 824064",
     "referencePublication": "http://aspbooks.org/publications/532/007.pdf",
     "readme": "https://aladin.cds.unistra.fr/AladinLite/doc/",
+    "releaseNotes": "https://aladin.cds.unistra.fr/AladinLite/doc/#release-notes",
     "funder": {
         "@type": "Organization",
         "name": "European Commission Framework Programme Horizon 2020 Research and Innovation action"

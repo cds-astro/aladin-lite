@@ -1539,8 +1539,6 @@ export let View = (function () {
         let surveys = this.buildSortedImageSurveys()
             .filter(s => s !== undefined && s.properties)
             .map(s => {
-                //let {backend, ...survey} = s;
-                //return survey;
                 return {
                     layer: s.layer,
                     properties: s.properties,
@@ -1551,7 +1549,7 @@ export let View = (function () {
         this.aladin.webglAPI.setImageSurveys(surveys);
 
         //const fov = this.aladin.webglAPI.getCenter();
-        this.setZoom(this.aladin.webglAPI.getFieldOfView());
+        //this.setZoom(this.aladin.webglAPI.getFieldOfView());
     };
 
     View.prototype.removeImageSurvey = function (layer) {

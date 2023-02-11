@@ -88,9 +88,9 @@ export class HiPSLayer {
             '  <div class="row"><div class="col-label"><label>Max cut</label></div><div class="col-input"><input type="number" class="max-cut"></div></div>' +
             // tonal corrections
             '  <div class="row"><div class="col-label"><label>Gamma</label></div><div class="col-input"><input class="gamma" type="number" value="1.0" min="0.1" max="10.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="saturation" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="contrast" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
-            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="brightness" type="number" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Color Sat.</label></div><div class="col-input"><input class="saturation" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Contrast</label></div><div class="col-input"><input class="contrast" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
+            '  <div class="row"><div class="col-label"><label>Brightness</label></div><div class="col-input"><input class="brightness" type="range" value="0.0" min="-1.0" max="1.0" step="0.01"></div></div>' +
             // blending mode
             '  <div class="row"><div class="col-label"><label>Blending mode</label></div><div class="col-input"><select class="blending"><option>additive</option><option selected>default</option></select></div></div>' +
             // opacity
@@ -315,8 +315,8 @@ export class HiPSLayer {
 
         // saturation
         const sat4ImgLayer = self.mainDiv.find('.saturation').eq(0);
-        sat4ImgLayer.unbind("change blur");
-        sat4ImgLayer.on('change blur', function (e) {
+        sat4ImgLayer.unbind("input");
+        sat4ImgLayer.on('input', function (e) {
             const saturation = parseFloat(sat4ImgLayer.val()) || 0.0;
 
             self.survey.setSaturation(saturation);
@@ -329,8 +329,8 @@ export class HiPSLayer {
 
         // contrast
         const contrast4ImgLayer = self.mainDiv.find('.contrast').eq(0);
-        contrast4ImgLayer.unbind("change blur");
-        contrast4ImgLayer.on('change blur', function (e) {
+        contrast4ImgLayer.unbind("input");
+        contrast4ImgLayer.on('input', function (e) {
             const contrast = parseFloat(contrast4ImgLayer.val()) || 0.0;
 
             self.survey.setContrast(contrast);
@@ -343,8 +343,8 @@ export class HiPSLayer {
 
         // brightness
         const brightness4ImgLayer = self.mainDiv.find('.brightness').eq(0);
-        brightness4ImgLayer.unbind("change blur");
-        brightness4ImgLayer.on('change blur', function (e) {
+        brightness4ImgLayer.unbind("input");
+        brightness4ImgLayer.on('input', function (e) {
             const brightness = parseFloat(brightness4ImgLayer.val()) || 0.0;
 
             self.survey.setBrightness(brightness);

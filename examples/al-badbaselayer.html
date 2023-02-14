@@ -9,7 +9,7 @@
 
 <script type="text/javascript">
 A.init.then(() => {
-    let aladin = A.aladin('#aladin-lite-div', {projection: "AIT"});
+    let aladin = A.aladin('#aladin-lite-div', {fov: 70,projection: "AIT"});
     let hsc = aladin.newImageSurvey("P/HSC/DR2/deep/g", {colormap:"Purples", imgFormat: "fits"});
     aladin.setBaseImageLayer(hsc);
 

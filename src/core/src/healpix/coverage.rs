@@ -8,7 +8,7 @@ use cgmath::{Vector3, Vector4};
 pub type Smoc = RangeMOC<u64, Hpx<u64>>;
 
 use crate::healpix::cell::HEALPixCell;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HEALPixCoverage(pub Smoc);
 
 use moclib::elemset::range::MocRanges;
@@ -22,7 +22,6 @@ impl HEALPixCoverage {
         // typically the center of projection
         inside: &Vector3<f64>,
     ) -> Self {
-
         let lonlat = vertices
             .iter()
             .map(|vertex| {
@@ -31,7 +30,7 @@ impl HEALPixCoverage {
             })
             .collect::<Vec<_>>();
         let (inside_lon, inside_lat) = math::lonlat::xyz_to_radec(inside);
-        
+
         let moc = RangeMOC::from_polygon_with_control_point(&lonlat[..], (inside_lon.0, inside_lat.0), depth);
         HEALPixCoverage(moc)
     }

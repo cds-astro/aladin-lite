@@ -26,7 +26,7 @@ use al_core::colormap::{Colormap, Colormaps};
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageSurveyMeta, SimpleHiPS},
+    hips::{ImageSurveyMeta, HiPSCfg},
 };
 use crate::Abort;
 use super::coosys;
@@ -398,9 +398,11 @@ impl App {
 
     pub(crate) fn get_visible_cells(&self, depth: u8) -> Box<[HEALPixCellProjeted]> {
         let coverage = crate::survey::view::compute_view_coverage(&self.camera, depth, &CooSystem::ICRSJ2000);
+
         let cells: Vec<_> = coverage.flatten_to_fixed_depth_cells()
             .filter_map(|ipix| {
                 let cell = HEALPixCell(depth, ipix);
+
                 if let Ok(v) = crate::survey::view::vertices(&cell, &self.camera, &self.projection) {
                     let vx = [v[0].x, v[1].x, v[2].x, v[3].x];
                     let vy = [v[0].y, v[1].y, v[2].y, v[3].y];
@@ -829,17 +831,22 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn set_image_surveys(&mut self, hipses: Vec<SimpleHiPS>) -> Result<(), JsValue> {
-        self.layers.set_image_surveys(hipses, &self.gl, &mut self.camera, &self.projection)?;
+    pub(crate) fn remove_layer(&mut self, layer: &str) -> Result<(), JsValue> {
+        self.layers.remove_layer(layer, &mut self.camera, &self.projection)?;
 
-        for hips in self.layers.values_hips() {
-            self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
-        }
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
+    pub(crate) fn add_image_survey(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
+        let hips = self.layers.add_image_survey(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
+        self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
 
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_for_new_tiles = true;
         self.request_redraw = true;
-        self.grid.update(&self.camera, &self.projection);
+        //self.grid.update(&self.camera, &self.projection);
 
         Ok(())
     }
@@ -1164,7 +1171,7 @@ impl App {
     }
 
     pub(crate) fn get_norder(&self) -> i32 {
-        self.layers.get_depth() as i32
+        self.camera.get_tile_depth() as i32
     }
 
     pub(crate) fn get_clip_zoom_factor(&self) -> f64 {

@@ -45,7 +45,7 @@ import { requestAnimFrame } from "./libs/RequestAnimationFrame.js";
 import { WebGLCtx } from "./WebGL.js";
 import { Logger } from "./Logger.js";
 import { ALEvent } from "./events/ALEvent.js";
-import { ColorCfg } from "./ImageColorCfg.js";
+import { ColorCfg } from "./ColorCfg.js";
 
 import $ from 'jquery';
 
@@ -289,7 +289,6 @@ export let View = (function () {
         }
 
         this.computeNorder();
-
         this.redraw();
     };
 
@@ -642,20 +641,14 @@ export let View = (function () {
                 const cx = (xymouse.x - cs.x) / view.catalogCanvas.clientWidth;
                 const cy = -(xymouse.y - cs.y) / view.catalogCanvas.clientHeight;
 
-                //if (selectedSurvey.colored && selectedSurvey.getColorCfg().getColormap() === "native") {
-                //    selectedSurvey.setSaturation(2*cx);
-                //    selectedSurvey.setBrightness(2*cy);
-                //} else {
-                    const offset = (cutMaxInit - cutMinInit) * cx;
+                const offset = (cutMaxInit - cutMinInit) * cx;
 
-                    const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
-                    const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
+                const lr = offset + (1.0 - 2.0 * cy) * cutMinInit;
+                const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
 
-                    if (lr <= rr) {
-                        selectedSurvey.setCuts(lr, rr)
-                    }
-                //}
-
+                if (lr <= rr) {
+                    selectedSurvey.setCuts(lr, rr)
+                }
                 return;
             }
 
@@ -1278,7 +1271,6 @@ export let View = (function () {
         }
         
         return cells;*/
-
         return this.aladin.webglAPI.getVisibleCells(norder);
     };
 
@@ -1509,47 +1501,14 @@ export let View = (function () {
 
         survey.added = true;
         survey.layer = layer;
-        survey.existedBefore = false;
-
-        const pastSurvey = this.imageSurveys.get(layer);
-        if (pastSurvey && pastSurvey.ready && pastSurvey.added) {
-            survey.existedBefore = true;
-        }
+        // This layer is the toppest one
+        this.selectedSurveyLayer = layer;
 
         this.imageSurveys.set(layer, survey);
 
         if (survey.ready) {
-            this.commitSurveysToBackend(survey, layer);
+            this.addImageSurvey(survey, layer);
         }
-    };
-
-    View.prototype.buildSortedImageSurveys = function () {
-        let sortedImageSurveys = [];
-
-        this.overlayLayers.forEach((overlaidLayer) => {
-            sortedImageSurveys.push(
-                this.imageSurveys.get(overlaidLayer)
-            );
-        });
-
-        return sortedImageSurveys;
-    }
-
-    View.prototype.updateImageLayerStack = function () {
-        let surveys = this.buildSortedImageSurveys()
-            .filter(s => s !== undefined && s.properties)
-            .map(s => {
-                return {
-                    layer: s.layer,
-                    properties: s.properties,
-                    meta: s.metadata(),
-                };
-            });
-        this.aladin.empty = false;
-        this.aladin.webglAPI.setImageSurveys(surveys);
-
-        //const fov = this.aladin.webglAPI.getCenter();
-        //this.setZoom(this.aladin.webglAPI.getFieldOfView());
     };
 
     View.prototype.removeImageSurvey = function (layer) {
@@ -1565,25 +1524,30 @@ export let View = (function () {
         this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
 
         // Update the backend
-        this.updateImageLayerStack();
+        this.aladin.webglAPI.removeLayer(layer);
 
+        // find the toppest layer
         if (this.selectedSurveyLayer === layer) {
-            this.selectedSurveyLayer = null;
+            let toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+            this.selectedSurveyLayer = toppestLayer;
         }
 
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
     };
 
-    View.prototype.commitSurveysToBackend = function (survey, layer = "base") {
-        try {
-            this.updateImageLayerStack();
 
-            if (survey.existedBefore) {
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(this.aladinDiv, { survey: survey });
-            } else {
-                survey.existedBefore = true;
-                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
-            }
+    View.prototype.addImageSurvey = function (survey, layer = "base") {
+        try {
+            this.aladin.empty = false;
+            const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+            this.aladin.webglAPI.addImageSurvey({
+                layer: survey.layer,
+                idx: idxOverlaySurveyFound,
+                properties: survey.properties,
+                meta: survey.metadata(),
+            });
+
+            ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
         } catch (e) {
             // En error occured while loading the HiPS
             // Remove it from the View

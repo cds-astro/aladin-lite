@@ -288,7 +288,6 @@ input[type=number], input[type=text], input[type=range] {
   line-height: 2.0;
   font-weight: bold;
   cursor: pointer;
-  border-radius: 4px;
 }
 
 .aladin-box-content {

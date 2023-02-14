@@ -95,7 +95,7 @@ use moclib::deser::fits;
 
 use std::io::Cursor;
 
-use al_api::hips::{HiPSColor, HiPSProperties, SimpleHiPS};
+use al_api::hips::{HiPSColor, HiPSProperties, HiPSCfg};
 
 use al_core::Colormap;
 use al_core::{WebGlContext};
@@ -298,16 +298,19 @@ impl WebClient {
     /// * If the number of surveys is greater than 4. For the moment, due to the limitations
     ///   of WebGL2 texture units on some architectures, the total number of surveys rendered is
     ///   limited to 4.
-    #[wasm_bindgen(js_name = setImageSurveys)]
-    pub fn set_image_surveys(&mut self, surveys: Vec<JsValue>) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = addImageSurvey)]
+    pub fn add_image_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
-        let surveys: Result<Vec<SimpleHiPS>, serde_wasm_bindgen::Error> = surveys
-            .into_iter()
-            .map(|hips| serde_wasm_bindgen::from_value(hips))
-            .collect::<Result<Vec<_>, _>>();
+        let hips: HiPSCfg = serde_wasm_bindgen::from_value(hips)?;
+        self.app.add_image_survey(hips)?;
 
-        let surveys = surveys?;
-        self.app.set_image_surveys(surveys)?;
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = removeLayer)]
+    pub fn remove_layer(&mut self, layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.remove_layer(&layer)?;
 
         Ok(())
     }

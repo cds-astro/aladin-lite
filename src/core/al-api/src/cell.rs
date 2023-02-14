@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[derive(Deserialize, Serialize)]
 pub struct HEALPixCellProjeted {
     pub ipix: u64,

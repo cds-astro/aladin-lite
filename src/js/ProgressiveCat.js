@@ -58,7 +58,7 @@ export let ProgressiveCat = (function() {
 
         this.frameStr = frameStr;
         this.frame = CooFrameEnum.fromString(frameStr) || CooFrameEnum.J2000;
-        this.maxOrder = maxOrder;
+        this.maxOrder = parseInt(maxOrder);
         this.isShowing = true; // TODO : inherit from catalogue
 
         this.name = options.name || "progressive-cat";
@@ -231,7 +231,7 @@ export let ProgressiveCat = (function() {
                 ProgressiveCat.readProperties(self.rootUrl,
                     function (properties) {
                         self.properties = properties;
-                        self.maxOrder = self.properties['hips_order'];
+                        self.maxOrder = parseInt(self.properties['hips_order']);
                         self.frame = CooFrameEnum.fromString(self.properties['hips_frame']);
 
                         self._loadMetadata();
@@ -478,12 +478,13 @@ export let ProgressiveCat = (function() {
             this.tilesInView = [];
             
             var norder = this.view.realNorder;
-            if (norder>this.maxOrder) {
+            if (norder > this.maxOrder) {
                 norder = this.maxOrder;
             }
             if (norder<=this.maxOrderAllsky) {
                 return; // nothing to do, hurrayh !
             }
+
             var cells = this.view.getVisibleCells(norder);
 
             var ipixList, ipix;

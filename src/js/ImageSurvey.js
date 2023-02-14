@@ -33,7 +33,7 @@ import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
 import { Aladin } from "./Aladin.js";
 import { MocServer } from "./MocServer.js";
-import { ColorCfg } from "./ImageColorCfg.js";
+import { ColorCfg } from "./ColorCfg.js";
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -44,13 +44,6 @@ export async function fetchSurveyProperties(rootURLOrId) {
     if (rootURLOrId.includes("http")) {
         isUrl = true;
     }
-
-    const request = async (url) => {
-        const response = await fetch(url);
-        const json = await response.json();
-
-        return json;
-    };
 
     let metadata = {};
     // If an HiPS id has been given
@@ -421,17 +414,24 @@ export let ImageSurvey = (function() {
                 // If the layer has been set then it is linked to the aladin lite view
                 // so we add it
                 if (self.added) {
-                    self.backend.commitSurveysToBackend(self, self.layer);
+                    self.backend.addImageSurvey(self, self.layer);
                 }
             } catch(e) {
                 // Check if no surveys have been added
-                if (view.aladin.empty && self.layer === "base") {
+                /*if (view.aladin.empty && self.layer === "base") {
                     console.error(e)
                     console.warn("DSS2/color is chosen by default.");
                     view.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey)
-                } else {
-                    throw e;
-                }
+                } else {*/
+                    console.error(e)
+                    if (view.aladin.empty && self.layer == "base") {
+                        console.warn("DSS2/color is chosen by default.");
+                        view.aladin.setBaseImageLayer(Aladin.DEFAULT_OPTIONS.survey)
+                    }
+
+                    //view.aladin.setOverlayImageLayer(Aladin.DEFAULT_OPTIONS.survey, self.layer);
+                    //throw e;
+                //}
             }
         })();
     };

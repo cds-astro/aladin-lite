@@ -33,7 +33,6 @@ import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
 
 import $ from 'jquery';
-import { ColorCfg } from "../ImageColorCfg.js";
 
 export class HiPSLayer {
 

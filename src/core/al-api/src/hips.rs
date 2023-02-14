@@ -2,26 +2,14 @@ use wasm_bindgen::JsValue;
 
 use super::blend::BlendCfg;
 use serde::Deserialize;
-#[derive(Deserialize, Debug)]
-pub struct CompositeHiPS {
-    hipses: Vec<SimpleHiPS>,
-}
-
-use std::iter::IntoIterator;
-impl IntoIterator for CompositeHiPS {
-    type Item = SimpleHiPS;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.hipses.into_iter()
-    }
-}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SimpleHiPS {
+pub struct HiPSCfg {
     /// Layer name
     pub layer: String,
+    // Index order of the layer
+    pub idx: usize,
 
     /// The HiPS metadata
     pub properties: HiPSProperties,
@@ -29,9 +17,9 @@ pub struct SimpleHiPS {
     pub meta: ImageSurveyMeta,
 }
 
-impl SimpleHiPS {
-    pub fn get_layer(&self) -> String {
-        self.layer.clone()
+impl HiPSCfg {
+    pub fn get_layer(&self) -> &str {
+        &self.layer
     }
 
     pub fn get_properties(&self) -> &HiPSProperties {
@@ -66,8 +54,8 @@ pub struct HiPSProperties {
 
 impl HiPSProperties {
     #[inline]
-    pub fn get_url(&self) -> String {
-        self.url.clone()
+    pub fn get_url(&self) -> &str {
+        &self.url
     }
 
     #[inline]

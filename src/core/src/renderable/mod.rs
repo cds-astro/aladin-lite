@@ -14,6 +14,7 @@ pub use grid::ProjetedGrid;
 
 use al_api::hips::ImageSurveyMeta;
 use al_api::color::ColorRGB;
+use al_api::hips::HiPSCfg;
 
 use al_core::VertexArrayObject;
 use al_core::SliceData;
@@ -29,7 +30,6 @@ use crate::renderable::image::FitsImage;
 use crate::camera::CameraViewPort;
 use crate::shader::ShaderId;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};
-use crate::SimpleHiPS;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -39,7 +39,7 @@ use hips::raytracing::RayTracer;
 use web_sys::{WebGl2RenderingContext};
 use wasm_bindgen::JsValue;
 use std::borrow::Cow;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashMap;
 
 pub(crate) type Url = String;
 type LayerId = String;
@@ -52,17 +52,13 @@ pub struct Layers {
     // Hashmap between urls and layers
     urls: HashMap<LayerId, Url>,
     // Layers given in a specific order to draw
-    ids: Vec<LayerId>,
-
-    most_precise_survey: Url,
+    layers: Vec<LayerId>,
 
     raytracer: RayTracer,
     // A vao that takes all the screen
     screen_vao: VertexArrayObject,
 
     background_color: ColorRGB,
-
-    depth: u8,
 
     gl: WebGlContext,
 }
@@ -89,7 +85,7 @@ impl Layers {
         let images = HashMap::new();
         let meta = HashMap::new();
         let urls = HashMap::new();
-        let ids = Vec::new();
+        let layers = Vec::new();
 
         // - The raytracer is a mesh covering the view. Each pixel of this mesh
         //   is unprojected to get its (ra, dec). Then we query ang2pix to get
@@ -98,7 +94,6 @@ impl Layers {
         //   This mode of rendering is used for big FoVs
         let raytracer = RayTracer::new(gl, &projection)?;
         let gl = gl.clone();
-        let most_precise_survey = String::new();
 
         let mut screen_vao = VertexArrayObject::new(&gl);
         #[cfg(feature = "webgl2")]
@@ -137,7 +132,6 @@ impl Layers {
             // Unbind the buffer
             .unbind();
 
-        let depth = 0;
         let background_color = DEFAULT_BACKGROUND_COLOR;
         Ok(Layers {
             surveys,
@@ -145,12 +139,9 @@ impl Layers {
 
             meta,
             urls,
-            ids,
-
-            most_precise_survey,
+            layers,
 
             raytracer,
-            depth,
 
             background_color,
             screen_vao,
@@ -172,10 +163,6 @@ impl Layers {
                 if *url == past_url {
                     *url = new_url.clone(); 
                 }
-            }
-
-            if self.most_precise_survey == past_url {
-                self.most_precise_survey = new_url.clone();
             }
 
             Ok(())
@@ -216,7 +203,7 @@ impl Layers {
         // if neither are, we draw a font
         // if there are, we do not draw nothing
         if !self.surveys.is_empty() {
-            let not_render_transparency_font = self.ids.iter()
+            let not_render_transparency_font = self.layers.iter()
                 .any(|layer| {
                     let meta = self.meta.get(layer).unwrap_abort();
                     let url = self.urls.get(layer).unwrap_abort();
@@ -257,7 +244,7 @@ impl Layers {
         // Pre loop over the layers to see if a HiPS is entirely covering those behind
         // so that we do not have to render those
         let mut idx_start_layer = 0;
-        for (idx_layer, layer) in self.ids.iter().enumerate().skip(1) {
+        for (idx_layer, layer) in self.layers.iter().enumerate().skip(1) {
             let meta = self.meta.get(layer).expect("Meta should be found");
 
             let url = self.urls.get(layer).expect("Url should be found");
@@ -270,7 +257,7 @@ impl Layers {
             }
         }
 
-        let rendered_layers = &self.ids[idx_start_layer..];
+        let rendered_layers = &self.layers[idx_start_layer..];
         for layer in rendered_layers {
             let draw_opt = self.meta.get(layer).expect("Meta should be found");
             if draw_opt.visible() {
@@ -323,96 +310,121 @@ impl Layers {
         Ok(())
     }
 
-    pub fn set_image_surveys(
+    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
+        let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
+        // Color configs, and urls are indexed by layer
+        self.meta.remove(layer)
+            .ok_or(err_layer_not_found.clone())?;
+        let url = self.urls.remove(layer).ok_or(err_layer_not_found.clone())?;
+        // layer from layers does also need to be removed
+        let id_layer = self.layers.iter()
+            .position(|l| layer == l)
+            .ok_or(err_layer_not_found)?;
+        self.layers.remove(id_layer);
+
+        // Loop over all the meta for its longitude reversed property
+        // and set the camera to it if there is at least one
+        let longitude_reversed = self.meta.values()
+            .any(|meta| {
+                meta.longitude_reversed
+            });
+
+        camera.set_longitude_reversed(longitude_reversed, projection);
+
+        // Check if the url is still used
+        let url_still_used = self.urls.values().any(|rem_url| rem_url == &url);
+        if url_still_used {
+            // Keep the resource whether it is a HiPS or a FITS
+            Ok(())
+        } else {
+            // Resource not needed anymore
+            if let Some(_) = self.surveys.remove(&url) {
+                // A HiPS has been found and removed
+                Ok(())
+            } else if let Some(_) = self.images.remove(&url) {
+                // A FITS image has been found and removed
+                Ok(())
+            } else {
+                Err(JsValue::from_str(&format!("Url found {:?} is associated to no surveys.", url)))
+            }
+        }
+    }
+
+    pub fn add_image_survey(
         &mut self,
-        hipses: Vec<SimpleHiPS>,
         gl: &WebGlContext,
+        hips: HiPSCfg,
         camera: &mut CameraViewPort,
         projection: &ProjectionType
-    ) -> Result<(), JsValue> {
+    ) -> Result<&HiPS, JsValue> {
         // 1. Check if layer duplicated have been given
-        for i in 0..hipses.len() {
-            for j in 0..i {
-                if hipses[i].get_layer() == hipses[j].get_layer() {
-                    let layer = &hipses[i].get_layer();
-                    return Err(JsValue::from_str(&format!(
-                        "{:?} layer name are duplicates",
-                        layer
-                    )));
-                }
-            }
-        }
-
-        let mut current_needed_surveys = HashSet::new();
-        for hips in hipses.iter() {
-            let url = hips.get_properties().get_url();
-            current_needed_surveys.insert(url);
-        }
-
-        // Remove surveys that are not needed anymore
-        self.surveys = self
-            .surveys
-            .drain()
-            .filter(|(_, m)| current_needed_surveys.contains(&m.get_config().root_url))
-            .collect();
-
-        // Create the new surveys
-        let mut max_depth_among_surveys = 0;
-
-        self.meta.clear();
-        self.ids.clear();
-        self.urls.clear();
-
-        let _num_surveys = hipses.len();
-        let mut longitude_reversed = false;
-        for SimpleHiPS {
+        let HiPSCfg {
             layer,
+            idx,
             properties,
             meta,
-            ..
-        } in hipses.into_iter()
-        {
-            let config = HiPSConfig::new(&properties, meta.img_format)?;
-            //camera.set_longitude_reversed(meta.longitude_reversed);
+        } = hips;
 
-            // Get the most precise survey from all the ones given
-            let url = properties.get_url();
-            let max_order = properties.get_max_order();
-            if max_order > max_depth_among_surveys {
-                max_depth_among_surveys = max_order;
-                self.most_precise_survey = url.clone();
-            }
+        let layer_already_found = self.layers.iter()
+            .any(|s| {
+                s == &layer
+            });
 
-            // Add the new surveys
-            if !self.surveys.contains_key(&url) {
-                let survey = HiPS::new(config, gl, camera)?;
-                self.surveys.insert(url.clone(), survey);
-
-                // A new survey has been added and it is lonely
-                /*if num_surveys == 1 {
-                    if let Some(initial_ra) = properties.get_initial_ra() {
-                        if let Some(initial_dec) = properties.get_initial_dec() {
-                            camera.set_center::<P>(&LonLatT(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
-                        }
-                    }
-
-                    if let Some(initial_fov) = properties.get_initial_fov() {
-                        camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
-                    }
-                }*/
-            }
-
-            longitude_reversed |= meta.longitude_reversed;
-
-            self.meta.insert(layer.clone(), meta);
-            self.urls.insert(layer.clone(), url);
-
-            self.ids.push(layer);
+        if layer_already_found {
+            self.remove_layer(&layer, camera, projection)?;
         }
 
-        camera.set_longitude_reversed(longitude_reversed, &projection);
+        let url = String::from(properties.get_url());
+        // The layer does not already exist
+        // Let's check if no other hipses points to the
+        // same url than `hips`
+        let url_already_found = self.surveys.keys()
+            .any(|hips_url| {
+                hips_url == &url
+            });
 
-        Ok(())
+        if !url_already_found {
+            // The url is not processed yet
+            let cfg = HiPSConfig::new(&properties, meta.img_format)?;
+
+            /*if let Some(initial_ra) = properties.get_initial_ra() {
+                if let Some(initial_dec) = properties.get_initial_dec() {
+                    camera.set_center::<P>(&LonLatT(Angle((initial_ra).to_radians()), Angle((initial_dec).to_radians())), &properties.get_frame());
+                }
+            }
+
+            if let Some(initial_fov) = properties.get_initial_fov() {
+                camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
+            }*/
+
+            let hips = HiPS::new(cfg, gl, camera)?;
+
+            self.surveys.insert(url.clone(), hips);
+        }
+
+        self.urls.insert(layer.clone(), url.clone());
+
+        self.meta.insert(layer.clone(), meta);
+        if self.layers.len() <= idx {
+            self.layers.resize(idx + 1, layer.to_string());
+        }
+        self.layers[idx] = layer;
+
+        // Refresh the views of all the surveys
+        // this is necessary to compute the max depth between the surveys
+        self.refresh_views(camera);
+
+        // Loop over all the meta for its longitude reversed property
+        // and set the camera to it if there is at least one
+        let longitude_reversed = self.meta.values()
+            .any(|meta| {
+                meta.longitude_reversed
+            });
+
+        camera.set_longitude_reversed(longitude_reversed, projection);
+
+        let hips = self.surveys.get(&url).ok_or(JsValue::from_str("HiPS not found"))?;
+        Ok(hips)
     }
 
     pub fn add_fits_image(&mut self) {
@@ -464,27 +476,19 @@ impl Layers {
     }
 
     pub fn refresh_views(&mut self, camera: &mut CameraViewPort) {
-        self.depth = 0;
-
         for survey in self.surveys.values_mut() {
             survey.refresh_view(camera);
-            
-            self.depth = self.depth.max(survey.get_depth());
         }
     }
 
     // Accessors
-    pub fn get_depth(&self) -> u8 {
-        self.depth
-    }
-
     // HiPSes getters
-    pub fn get_hips_from_layer(&self, id: &str) -> Option<&HiPS> {
-        self.urls.get(id).map(|url| self.surveys.get(url).unwrap_abort())
+    pub fn get_hips_from_layer(&self, layer: &str) -> Option<&HiPS> {
+        self.urls.get(layer).map(|url| self.surveys.get(url).unwrap_abort())
     }
 
-    pub fn get_mut_hips_from_layer(&mut self, id: &str) -> Option<&mut HiPS> {
-        let url = self.urls.get_mut(id);
+    pub fn get_mut_hips_from_layer(&mut self, layer: &str) -> Option<&mut HiPS> {
+        let url = self.urls.get_mut(layer);
         if let Some(url) = url {
             self.surveys.get_mut(url)
         } else {

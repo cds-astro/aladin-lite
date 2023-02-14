@@ -113,11 +113,13 @@ pub fn compute_view_coverage(camera: &CameraViewPort, depth: u8, dst_frame: &Coo
                 let inside_vertex = coosys::apply_coo_system(camera_frame, dst_frame, inside_vertex);
 
                 // Prefer to query from_polygon with depth >= 2
-                HEALPixCoverage::new(
+                let moc = HEALPixCoverage::new(
                     depth,
                     &vertices[..],
                     &inside_vertex.truncate(),
-                )
+                );
+
+                moc
             }
         } else {
             HEALPixCoverage::allsky(depth)

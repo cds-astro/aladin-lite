@@ -283,7 +283,7 @@ impl HiPSConfig {
         let min_depth_tile = min_depth_texture;
         let hips_config = HiPSConfig {
             // HiPS name
-            root_url,
+            root_url: root_url.to_string(),
             // Tile size & blank tile data
             empty_image,
             // Texture config

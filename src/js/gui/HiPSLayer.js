@@ -170,10 +170,6 @@ export class HiPSLayer {
                 cfg.options
             );
             self.aladin.setOverlayImageLayer(survey, self.survey.layer);
-
-            self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
-                detail: self.survey.layer
-            }));
         });
 
         // Search HiPS button

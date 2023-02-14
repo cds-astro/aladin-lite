@@ -376,7 +376,6 @@
             curSelectedSource = source;
             html += '<tbody>';
             if (source.catalog.name == 'Simbad') {
-                console.log(source.data);
                 html += '<h3>Simbad object <em>' + source.data.main_id + '</em></h3>';
                 html += '<tr class="pure-table-odd"><td><b>ra</b></td><td>' + source.data.ra + '</td><td><em>deg</em></td></tr>';
                 html += '<tr><td><b>dec</b></td><td>' + source.data.dec + '</td><td><em>deg</em></td></tr>';

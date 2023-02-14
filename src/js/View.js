@@ -370,7 +370,6 @@ export let View = (function () {
         if (!this.imageSurveys.has(layer)) {
             throw layer + ' does not exists. So cannot be selected';
         }
-
         this.selectedSurveyLayer = layer;
     };
 
@@ -632,7 +631,6 @@ export let View = (function () {
 
             if (view.rightClick && view.selectedSurveyLayer) {
                 let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
-
                 // We try to match DS9 contrast adjustment behaviour with right click
                 const cs = {
                     x: view.catalogCanvas.clientWidth * 0.5,
@@ -1501,8 +1499,9 @@ export let View = (function () {
 
         survey.added = true;
         survey.layer = layer;
-        // This layer is the toppest one
-        this.selectedSurveyLayer = layer;
+        // Find the toppest layer
+        const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+        this.selectedSurveyLayer = toppestLayer;
 
         this.imageSurveys.set(layer, survey);
 
@@ -1528,7 +1527,7 @@ export let View = (function () {
 
         // find the toppest layer
         if (this.selectedSurveyLayer === layer) {
-            let toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+            const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
             this.selectedSurveyLayer = toppestLayer;
         }
 

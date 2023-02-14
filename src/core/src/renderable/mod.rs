@@ -310,7 +310,7 @@ impl Layers {
         Ok(())
     }
 
-    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort, projection: &ProjectionType) -> Result<(), JsValue> {
+    pub fn remove_layer(&mut self, layer: &str, camera: &mut CameraViewPort, projection: &ProjectionType) -> Result<usize, JsValue> {
         let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
         // Color configs, and urls are indexed by layer
         self.meta.remove(layer)
@@ -335,15 +335,15 @@ impl Layers {
         let url_still_used = self.urls.values().any(|rem_url| rem_url == &url);
         if url_still_used {
             // Keep the resource whether it is a HiPS or a FITS
-            Ok(())
+            Ok(id_layer)
         } else {
             // Resource not needed anymore
             if let Some(_) = self.surveys.remove(&url) {
                 // A HiPS has been found and removed
-                Ok(())
+                Ok(id_layer)
             } else if let Some(_) = self.images.remove(&url) {
                 // A FITS image has been found and removed
-                Ok(())
+                Ok(id_layer)
             } else {
                 Err(JsValue::from_str(&format!("Url found {:?} is associated to no surveys.", url)))
             }
@@ -370,9 +370,17 @@ impl Layers {
                 s == &layer
             });
 
-        if layer_already_found {
-            self.remove_layer(&layer, camera, projection)?;
-        }
+        let idx = if layer_already_found {
+            let idx = self.remove_layer(&layer, camera, projection)?;
+            idx
+        } else {
+            //if self.layers.len() < idx {
+            //    self.layers.resize(idx, layer.to_string());
+            //}
+            idx.min(self.layers.len())
+        };
+
+        self.layers.insert(idx, layer.to_string());
 
         let url = String::from(properties.get_url());
         // The layer does not already exist
@@ -398,17 +406,14 @@ impl Layers {
             }*/
 
             let hips = HiPS::new(cfg, gl, camera)?;
-
             self.surveys.insert(url.clone(), hips);
         }
 
         self.urls.insert(layer.clone(), url.clone());
-
         self.meta.insert(layer.clone(), meta);
-        if self.layers.len() <= idx {
-            self.layers.resize(idx + 1, layer.to_string());
-        }
-        self.layers[idx] = layer;
+        
+        /*
+        self.layers[idx] = layer;*/
 
         // Refresh the views of all the surveys
         // this is necessary to compute the max depth between the surveys

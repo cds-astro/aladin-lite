@@ -11,7 +11,7 @@
     "version": "3.0.0",
     "softwareVersion": "3.0.0",
     "description": "An astronomical HiPS visualizer in the browser.",
-    "identifier": "add-zenodo-doi-here",
+    "identifier": "10.5281/zenodo.7638833",
     "applicationCategory": "Astronomy, Visualization",
     "funding": "ESCAPE 824064",
     "referencePublication": "http://aspbooks.org/publications/532/007.pdf",

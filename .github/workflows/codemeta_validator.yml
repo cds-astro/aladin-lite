@@ -1,0 +1,16 @@
+name: test_codemeta
+
+on:
+  release:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: gitlab-registry.in2p3.fr/escape2020/wp3/eossr:v1.0
+    steps:
+      - uses: actions/checkout@v3
+      - name: validate codemeta
+        run: eossr-metadata-validator codemeta.json

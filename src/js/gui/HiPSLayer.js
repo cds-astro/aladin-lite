@@ -220,19 +220,14 @@ export class HiPSLayer {
 
         // MAIN DIV listeners
         // blending method
-        if (self.survey.layer === "base") {
-            const blendingRow = this.mainDiv.find('.row').eq(10)[0];
-            blendingRow.style.display = "none";
-        } else {
-            const blendingSelector = this.mainDiv.find('.blending').eq(0);
+        const blendingSelector = this.mainDiv.find('.blending').eq(0);
 
-            blendingSelector.unbind("change");
-            blendingSelector.change(function () {
-                let mode = blendingSelector.val()
-                self.survey.setBlendingConfig( mode === "additive" );
-            });
-        }
-
+        blendingSelector.unbind("change");
+        blendingSelector.change(function () {
+            let mode = blendingSelector.val()
+            self.survey.setBlendingConfig( mode === "additive" );
+        });
+        
         // image format
         const format4ImgLayer = this.mainDiv.find('.format').eq(0);
         const minCut4ImgLayer = this.mainDiv.find('.min-cut').eq(0);

@@ -288,8 +288,8 @@
         if (!$(this).hasClass("selected")) {
             $('.img-hips').removeClass("selected pure-button-active");
             $(this).addClass("selected pure-button-active");
-            aladin.setOverlayImageLayer(this.id);
-            aladin.getOverlayImageLayer().setAlpha(0.75);
+            let survey = aladin.setOverlayImageLayer(this.id);
+            survey.setAlpha(0.75);
             $('#opacity-slider').val(0.75);
         }
         else {

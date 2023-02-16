@@ -839,6 +839,18 @@ impl App {
         Ok(())
     }
 
+    pub(crate) fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
+        self.layers.rename_layer(&self.gl, &layer, &new_layer)
+    }
+
+    pub(crate) fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
+        self.layers.swap_layers(&self.gl, first_layer, second_layer)?;
+
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
     pub(crate) fn add_image_survey(&mut self, hips_cfg: HiPSCfg) -> Result<(), JsValue> {
         let hips = self.layers.add_image_survey(&self.gl, hips_cfg, &mut self.camera, &self.projection)?;
         self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
@@ -858,7 +870,7 @@ impl App {
     pub(crate) fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.layers.set_survey_url(past_url, new_url.clone())?;
 
-        let hips = self.layers.get_hips(&new_url).unwrap();
+        let hips = self.layers.get_hips(&new_url).unwrap_abort();
         // Relaunch the base tiles for the survey to be ready with the new url
         self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
 

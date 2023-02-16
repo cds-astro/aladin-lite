@@ -103,8 +103,6 @@ export let Aladin = (function () {
             }
         }
 
-        this.empty = true;
-
         this.options = options;
 
         $("<style type='text/css'> .aladin-reticleColor { color: " + this.options.reticleColor + "; font-weight:bold;} </style>").appendTo(aladinDiv);
@@ -371,9 +369,9 @@ export let Aladin = (function () {
         // For that we check the survey key of options
         // It can be given as a single string or an array of strings
         // for multiple blending surveys
+
         if (options.survey) {
             if (Array.isArray(options.survey)) {
-
                 let i = 0;
                 options.survey.forEach((rootURLOrId) => {
                     if (i == 0) {
@@ -388,7 +386,7 @@ export let Aladin = (function () {
             }
         } else {
             const idxServiceUrl = Math.round(Math.random());
-            const dssUrl = DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
 
             this.setBaseImageLayer(dssUrl);
         }
@@ -1044,16 +1042,12 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.removeImageSurvey = function(layer) {
-        if (layer === "base") {
-            throw 'Cannot remove base survey layer.';
-        }
-
         this.view.removeImageSurvey(layer);
     };
 
     // @api
     Aladin.prototype.setBaseImageLayer = function(idOrSurvey) {
-        this.setOverlayImageLayer(idOrSurvey, "base");
+        return this.setOverlayImageLayer(idOrSurvey, "base");
     };
 
     // @api
@@ -1091,22 +1085,13 @@ export let Aladin = (function () {
             survey = idOrUrlOrSurvey;
         }
 
-        this.view.setOverlayImageSurvey(survey, layer);
+        return this.view.setOverlayImageSurvey(survey, layer);
     };
 
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
         const survey = this.view.getImageSurvey(layer);
         return survey;
-    };
-
-    // new!
-    Aladin.prototype.getImageSurveyMeta = function(layer = "base") {
-        return this.view.getImageSurveyMeta(layer);
-    };
-
-    Aladin.prototype.setImageSurveyMeta = function(meta, layer = "base") {
-        return this.view.setImageSurveyMeta(layer, meta);
     };
 
     // @api
@@ -1801,7 +1786,6 @@ A.catalogFromVizieR = function (vizCatId, target, radius, options, successCallba
         options['name'] = 'VizieR:' + vizCatId;
     }
     var url = URLBuilder.buildVizieRCSURL(vizCatId, target, radius, options);
-    console.log(url);
     return A.catalogFromURL(url, options, successCallback, false);
 };
 

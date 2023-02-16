@@ -315,6 +315,18 @@ impl WebClient {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = renameLayer)]
+    pub fn rename_layer(&mut self, layer: String, new_layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.rename_layer(&layer, &new_layer)
+    }
+
+    #[wasm_bindgen(js_name = swapLayers)]
+    pub fn swap_layers(&mut self, first_layer: String, second_layer: String) -> Result<(), JsValue> {
+        // Deserialize the survey objects that compose the survey
+        self.app.swap_layers(&first_layer, &second_layer)
+    }
+
     #[wasm_bindgen(js_name = setHiPSUrl)]
     pub fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.app.set_hips_url(past_url, new_url)

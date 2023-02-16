@@ -80,7 +80,6 @@ export let View = (function () {
         this.location = location;
         this.fovDiv = fovDiv;
         this.mustClearCatalog = true;
-        //this.imageSurveysToSet = [];
         this.mode = View.PAN;
 
         this.minFOV = this.maxFOV = null; // by default, no restriction
@@ -123,8 +122,6 @@ export let View = (function () {
         this.setZoom(initialFov);
         // current reference image survey displayed
         this.imageSurveys = new Map();
-        this.imageSurveysWaitingList = new Map();
-        this.imageSurveysIdx = new Map();
 
         this.overlayLayers = [];
         // current catalogs displayed
@@ -154,11 +151,14 @@ export let View = (function () {
         // reference to all overlay layers (= catalogs + overlays + mocs)
         this.allOverlayLayers = []
 
-        //this.fixLayoutDimensions();
+        this.empty = true;
 
+        //this.fixLayoutDimensions();
+        this.promises = [];
         this.firstHiPS = true;
         this.curNorder = 1;
         this.realNorder = 1;
+        this.surveysBeingQueried = new Map();
 
         // some variables for mouse handling
         this.dragging = false;
@@ -1173,10 +1173,6 @@ export let View = (function () {
         return pixList;
     };
 
-    View.prototype.setAngleRotation = function (theta) {
-
-    }
-
     // TODO: optimize this method !!
     View.prototype.getVisibleCells = function (norder) {
         /*var cells = []; // array to be returned
@@ -1427,7 +1423,6 @@ export let View = (function () {
                     console.log("nside cannot be bigger than " + NS_MAX);
                     return NS_MAX;
                 }
-    
             }
             return res;
         };*/
@@ -1467,51 +1462,122 @@ export let View = (function () {
         this.fixLayoutDimensions();
     };
 
-    View.prototype.setBaseImageLayer = function (baseSurveyPromise) {
-        this.setOverlayImageSurvey(baseSurveyPromise, "base");
-    };
-
     View.prototype.setOverlayImageSurvey = function (survey, layer = "overlay") {
-        const surveyIdx = this.imageSurveysIdx.get(layer) || 0;
-        const newSurveyIdx = surveyIdx + 1;
-        this.imageSurveysIdx.set(layer, newSurveyIdx);
-        survey.orderIdx = newSurveyIdx;
+        // register its promise
+        this.surveysBeingQueried.set(layer, survey);
 
-        // Check whether this layer already exist
-        const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        this.addImageSurvey(survey, layer);
 
-        if (idxOverlaySurveyFound == -1) {
-            if (layer === "base") {
-                // insert at the beginning
-                this.overlayLayers.splice(0, 0, layer);
-            } else {
-                this.overlayLayers.push(layer);
-            }
-        } else {
-            // find the survey by layer and erase it by the new value
-            this.overlayLayers[idxOverlaySurveyFound] = layer;
-        }
-
-        /// async part
-        if (this.options.log && survey.properties) {
-            Logger.log("setImageLayer", survey.properties.url);
-        }
-
-        survey.added = true;
-        survey.layer = layer;
-        // Find the toppest layer
-        const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-        this.selectedSurveyLayer = toppestLayer;
-
-        this.imageSurveys.set(layer, survey);
-
-        if (survey.ready) {
-            this.addImageSurvey(survey, layer);
-        }
+        return survey;
     };
+
+    View.prototype.addImageSurvey = function (survey, layer) {
+        let self = this;
+        this.promises.push(survey.queryPromise);
+
+        Promise.allSettled(this.promises)
+            // All info of survey have been successly retrieved
+            // We now ensure all the past surveys have been settled (i.e. either fulfilled or rejected)
+            .then(() => survey.queryPromise)
+            .then(() => {
+                survey.layer = layer;
+                self.aladin.webglAPI.addImageSurvey({
+                    layer: survey.layer,
+                    properties: survey.properties,
+                    meta: survey.metadata(),
+                });
+
+                survey.added = true;
+                this.empty = false;
+
+                // Check whether this layer already exist
+                const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+                if (idxOverlaySurveyFound == -1) {
+                    this.overlayLayers.push(layer);
+                }
+
+                if (this.options.log && survey.properties) {
+                    Logger.log("setImageLayer", survey.properties.url);
+                }
+
+                // Find the toppest layer
+                const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+                this.selectedSurveyLayer = toppestLayer;
+
+                this.imageSurveys.set(layer, survey);
+
+                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { survey: survey });
+            })
+            .catch((e) => {
+                console.error(e)
+            })
+            .finally(() => {
+                self.surveysBeingQueried.delete(layer);
+
+                // Remove the settled promise
+                let idx = this.promises.findIndex(p => p == survey.queryPromise);
+                this.promises.splice(idx, 1);
+
+                const noMoreSurveysToWaitFor = this.promises.length === 0;
+                if (noMoreSurveysToWaitFor) {
+                    if (this.empty) {
+                        // no promises to launch!
+                        const idxServiceUrl = Math.round(Math.random());
+                        const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+                
+                        this.setBaseImageLayer(dssUrl);
+                    } else {
+                        // there is surveys that have been queried
+                        // rename the first overlay layer to "base"
+                        this.renameLayer(this.overlayLayers[0], "base");
+                    }
+                }
+            })
+    }
+
+    // The survey at layer must have been added to the view!
+    View.prototype.renameLayer = function(layer, newLayer) {
+        let survey = this.imageSurveys.get(layer);
+        if (!survey) {
+            throw 'survey ' + layer + 'not found';
+        }
+
+        // Rename
+        this.aladin.webglAPI.renameLayer(layer, newLayer);
+
+        survey.layer = newLayer;
+
+        // Change in overlaylayers
+        const idx = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+        this.overlayLayers[idx] = newLayer;
+        // Change in imageSurveys
+        this.imageSurveys.delete(layer);
+        this.imageSurveys.set(newLayer, survey);
+
+        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
+    }
+
+    View.prototype.swapLayers = function(firstLayer, secondLayer) {
+        this.aladin.webglAPI.swapLayers(firstLayer, secondLayer);
+    
+        // Swap in overlaylayers
+        const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
+        const idxSecondLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == secondLayer);
+
+        const tmp = this.overlayLayers[idxFirstLayer];
+        this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
+        this.overlayLayers[idxSecondLayer] = tmp;
+
+        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
+    }
 
     View.prototype.removeImageSurvey = function (layer) {
-        this.imageSurveys.delete(layer);
+        if (layer === "base") {
+            throw 'The base layer cannot be removed';
+        }
+
+        // Update the backend
+        this.aladin.webglAPI.removeLayer(layer);
 
         const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
         if (idxOverlaidSurveyFound == -1) {
@@ -1519,11 +1585,19 @@ export let View = (function () {
             return;
         }
 
+        // Get the survey to remove to dissociate it from the view
+        let survey = this.imageSurveys.get(layer);
+        survey.added = false;
+
+        // Delete it
+        this.imageSurveys.delete(layer);
+
         // Remove it from the layer stack
         this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
 
-        // Update the backend
-        this.aladin.webglAPI.removeLayer(layer);
+        if (this.overlayLayers.length === 0) {
+            this.empty = true;
+        }
 
         // find the toppest layer
         if (this.selectedSurveyLayer === layer) {
@@ -1534,47 +1608,6 @@ export let View = (function () {
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
     };
 
-
-    View.prototype.addImageSurvey = function (survey, layer = "base") {
-        try {
-            this.aladin.empty = false;
-            const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-            this.aladin.webglAPI.addImageSurvey({
-                layer: survey.layer,
-                idx: idxOverlaySurveyFound,
-                properties: survey.properties,
-                meta: survey.metadata(),
-            });
-
-            ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
-        } catch (e) {
-            // En error occured while loading the HiPS
-            // Remove it from the View
-            // - First, from the image dict
-            this.imageSurveys.delete(layer);
-
-            // Tell the survey object that it is not linked to the view anymore
-            survey.added = false;
-
-            // Finally delete the layer
-            const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-            if (idxOverlaidSurveyFound >= 0) {
-                // Remove it from the layer stack
-                this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
-            }
-
-            // Check if it concerns the base layer
-            if (layer === "base") {
-                // If so, tell that the aladin lite view is empty
-                // It will be set to display the default DSS color survey
-                this.aladin.empty = true;
-            }
-
-            // Throw the full error message for the user
-            throw 'Error loading the HiPS ' + survey.id + ':\n' + e;
-        }
-    }
-
     View.prototype.setHiPSUrl = function (pastUrl, newUrl) {
         try {
             this.aladin.webglAPI.setHiPSUrl(pastUrl, newUrl);
@@ -1584,24 +1617,10 @@ export let View = (function () {
     }
 
     View.prototype.getImageSurvey = function (layer = "base") {
-        const survey = this.imageSurveys.get(layer);
-        return survey;
-    };
+        let surveyQueriedFound = this.surveysBeingQueried.get(layer);
+        let surveyFound = this.imageSurveys.get(layer);
 
-    View.prototype.getImageSurveyMeta = function (layer = "base") {
-        try {
-            return this.aladin.webglAPI.getImageSurveyMeta(layer);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    View.prototype.setImageSurveyMeta = function (layer = "base", meta) {
-        try {
-            this.aladin.webglAPI.setImageSurveyMeta(layer, meta);
-        } catch (e) {
-            console.error(e);
-        }
+        return surveyQueriedFound || surveyFound;
     };
 
     /*View.prototype.setImageSurveysLayer = function(surveys, layer) {

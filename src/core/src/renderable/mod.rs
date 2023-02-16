@@ -350,6 +350,50 @@ impl Layers {
         }
     }
 
+    pub fn rename_layer(
+        &mut self,
+        gl: &WebGlContext,
+        layer: &str,
+        new_layer: &str,
+    ) -> Result<(), JsValue> {
+        let err_layer_not_found = JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", layer));
+
+        // layer from layers does also need to be removed
+        let id_layer = self.layers.iter()
+            .position(|l| layer == l)
+            .ok_or(err_layer_not_found.clone())?;
+    
+        self.layers[id_layer] = new_layer.to_string();
+
+        let meta = self.meta.remove(layer)
+            .ok_or(err_layer_not_found.clone())?;
+        let url = self.urls.remove(layer).ok_or(err_layer_not_found)?;
+
+        // Add the new
+        self.meta.insert(new_layer.to_string(), meta);
+        self.urls.insert(new_layer.to_string(), url);
+
+        Ok(())
+    }
+
+    pub fn swap_layers(
+        &mut self,
+        gl: &WebGlContext,
+        first_layer: &str,
+        second_layer: &str,
+    ) -> Result<(), JsValue> {
+        let id_first_layer = self.layers.iter()
+            .position(|l| l == first_layer)
+            .ok_or(JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", first_layer)))?;
+        let id_second_layer = self.layers.iter()
+            .position(|l| l == second_layer)
+            .ok_or(JsValue::from_str(&format!("Layer {:?} not found, so cannot be removed.", second_layer)))?;
+
+        self.layers.swap(id_first_layer, id_second_layer);
+
+        Ok(())
+    }
+
     pub fn add_image_survey(
         &mut self,
         gl: &WebGlContext,
@@ -360,7 +404,6 @@ impl Layers {
         // 1. Check if layer duplicated have been given
         let HiPSCfg {
             layer,
-            idx,
             properties,
             meta,
         } = hips;
@@ -374,10 +417,7 @@ impl Layers {
             let idx = self.remove_layer(&layer, camera, projection)?;
             idx
         } else {
-            //if self.layers.len() < idx {
-            //    self.layers.resize(idx, layer.to_string());
-            //}
-            idx.min(self.layers.len())
+            self.layers.len()
         };
 
         self.layers.insert(idx, layer.to_string());

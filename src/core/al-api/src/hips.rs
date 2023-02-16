@@ -8,8 +8,6 @@ use serde::Deserialize;
 pub struct HiPSCfg {
     /// Layer name
     pub layer: String,
-    // Index order of the layer
-    pub idx: usize,
 
     /// The HiPS metadata
     pub properties: HiPSProperties,

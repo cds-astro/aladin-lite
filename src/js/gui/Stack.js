@@ -52,9 +52,41 @@ export class Stack {
         parentDiv.appendChild(this.mainDiv);
 
         this.imgLayers = new Map();
-        this.selectedLayer = undefined;
 
         this.backgroundColor = '#6699ff';
+        let self = this;
+
+        this.unselectAllLayers = () => {
+            self.aladin.getImageOverlays()
+                .forEach((layer) => {
+                    let selectedHipsLayer = self.imgLayers.get(layer);
+
+                    let headerSelectedLayerElement = selectedHipsLayer.headerDiv[0];
+                    headerSelectedLayerElement.style.backgroundColor = "gainsboro";
+                })
+        };
+
+        this.selectLayer = (hipsLayer) => {
+            // Change the color currently selected layer
+            const layer = hipsLayer.survey.layer;
+
+            let headerLayerElement = hipsLayer.headerDiv[0];
+            headerLayerElement.style.backgroundColor = "darkgray";
+
+            // Set the active hips layer
+            self.aladin.setActiveHiPSLayer(layer);
+        };
+
+        this.updateSelectedLayer = () => {
+            self.unselectAllLayers();
+
+            const selectedLayer = self.aladin.getActiveHiPSLayer();
+            let selectedHipsLayer = self.imgLayers.get(selectedLayer);
+
+            self.selectLayer(selectedHipsLayer);
+        }
+
+
 
         this._createComponent();
         this._addListeners();
@@ -83,7 +115,7 @@ export class Stack {
 
         if (this.imgLayers.size > 1) {
             layerBox.append('<div class="aladin-label">Overlay layers</div>')
-            Array.from(self.aladin.view.overlayLayers).reverse().forEach((layer) => {
+            Array.from(self.aladin.getImageOverlays()).reverse().forEach((layer) => {
                 let imgLayer = self.imgLayers.get(layer);
 
                 if (imgLayer && imgLayer.survey.layer !== "base") {
@@ -104,18 +136,18 @@ export class Stack {
 
         // Set a default background color
         backgroundColorInput.val(this.backgroundColor);
-        self.view.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
+        self.aladin.setBackgroundColor(Color.hexToRgb(this.backgroundColor));
 
         backgroundColorInput.on('input', () => {
             self.backgroundColor = backgroundColorInput.val();
-            self.view.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
+            self.aladin.setBackgroundColor(Color.hexToRgb(self.backgroundColor));
         });
 
         layerBox.append('<div class="aladin-box-separator"></div>' +
             '<div class="aladin-label">Overlay layers</div>');
 
         // loop over all overlay layers
-        var layers = this.view.allOverlayLayers;
+        var layers = this.aladin.getOverlays();
         var str = '<ul>';
         for (var k = layers.length - 1; k >= 0; k--) {
             var layer = layers[k];
@@ -162,9 +194,8 @@ export class Stack {
             self.aladin.removeLayer(layerToDelete);
         });
 
-
         let searchCatalogBtn = layerBox.find('.catalogue-selector');
-        searchCatalogBtn.click(function () {
+        searchCatalogBtn.on("click", function () {
             if (!self.catalogSelector) {
                 let fnIdSelected = function(type, params) {
                     if (type=='coneSearch') {
@@ -203,7 +234,7 @@ export class Stack {
 
         // gestion du réticule
         var checked = '';
-        if (this.view.displayReticle) {
+        if (self.aladin.isReticleDisplayed()) {
             checked = 'checked="checked"';
         }
         var reticleCb = $('<input type="checkbox" ' + checked + ' id="displayReticle" />');
@@ -214,7 +245,7 @@ export class Stack {
 
         // Gestion grille Healpix
         checked = '';
-        if (this.view.displayHpxGrid) {
+        if (self.aladin.isHpxGridDisplayed()) {
             checked = 'checked="checked"';
         }
         var hpxGridCb = $('<input type="checkbox" ' + checked + ' id="displayHpxGrid"/>');
@@ -250,41 +281,60 @@ export class Stack {
 
     _addListeners() {
         let self = this;
+
         this.aladin.aladinDiv.addEventListener('remove-layer', e => {
             const layerName = e.detail;
             // Just call remove as it will send a HIPS_LAYER_REMOVED after
             self.aladin.removeImageSurvey(layerName);
-
-            if (self.selectedLayer === layerName) {
-                self.selectedLayer = null;
-            }
         });
 
-        this.aladin.aladinDiv.addEventListener('select-layer', e => {
-            const layerName = e.detail;
-            
-            // Update the color of the selected element
-            if (self.selectedLayer) {
-                const headerClassName = "aladin-layer-header-" + self.selectedLayer;
-                let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-                headerLayerElement.style.backgroundColor = "gainsboro";
-            }
+        this.aladin.aladinDiv.addEventListener('select-layer', (e) => {
+            let selectedHipsLayer = e.detail;
 
-            const headerClassName = "aladin-layer-header-" + layerName;
-            let headerLayerElement = document.getElementsByClassName(headerClassName)[0];
-            headerLayerElement.style.backgroundColor = "darkgray";
-
-            self.aladin.setActiveHiPSLayer(layerName);
-
-            self.selectedLayer = layerName;
+            self.unselectAllLayers();
+            self.selectLayer(selectedHipsLayer);
         });
 
         // Events coming from the AL core
         ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
             const survey = e.detail.survey;
-            self.imgLayers.set(survey.layer, new HiPSLayer(self.aladin, self.view, survey));
+            
+            const hipsLayer = new HiPSLayer(self.aladin, survey);
+            self.imgLayers.set(survey.layer, hipsLayer);
 
             self._createComponent();
+
+            self.updateSelectedLayer();
+        });
+
+        ALEvent.HIPS_LAYER_RENAMED.listenedBy(this.aladin.aladinDiv, function (e) {
+            const layer = e.detail.layer;
+            const newLayer = e.detail.newLayer;
+
+            const hipsLayer = self.imgLayers.get(layer);
+            const survey = hipsLayer.survey;
+            self.imgLayers.delete(layer);
+
+            self.imgLayers.set(newLayer, new HiPSLayer(self.aladin, survey));
+
+            self._createComponent();
+
+            self.updateSelectedLayer();
+        });
+
+        ALEvent.HIPS_LAYER_SWAP.listenedBy(this.aladin.aladinDiv, function (e) {
+            const firstLayer = e.detail.firstLayer;
+            const secondLayer = e.detail.secondLayer;
+
+            const firstHiPSLayer = self.imgLayers.get(firstLayer);
+            const secondHiPSLayer = self.imgLayers.get(secondLayer);
+
+            self.imgLayers.set(secondLayer, firstHiPSLayer);
+            self.imgLayers.set(firstLayer, secondHiPSLayer);
+
+            self._createComponent();
+
+            self.updateSelectedLayer();
         });
 
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
@@ -295,6 +345,8 @@ export class Stack {
             self.imgLayers.delete(layer);
     
             self._createComponent();
+
+            self.updateSelectedLayer();
         });
 
         ALEvent.GRAPHIC_OVERLAY_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {

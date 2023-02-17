@@ -31,7 +31,6 @@ import { Utils } from "./Utils.js";
 import { HiPSDefinition} from "./HiPSDefinition.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
-import { Aladin } from "./Aladin.js";
 import { MocServer } from "./MocServer.js";
 import { ColorCfg } from "./ColorCfg.js";
 
@@ -41,7 +40,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
     }
 
     let isUrl = false;
-    if (rootURLOrId.includes("http")) {
+    if ((Utils.isHttpContext() && rootURLOrId.includes("http")) || rootURLOrId.includes("file://")) {
         isUrl = true;
     }
 

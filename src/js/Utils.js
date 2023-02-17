@@ -322,6 +322,10 @@ Utils.isHttpsContext = function() {
     return ( window.location.protocol === 'https:' );
 };
 
+Utils.isHttpContext = function() {
+    return ( window.location.protocol === 'http:' ) || Utils.isHttpsContext();
+};
+
 Utils.fixURLForHTTPS = function(url) {
     const switchToHttps = Utils.isHttpsContext() && Utils.HTTPS_WHITELIST.some(element => {
         return url.includes(element);

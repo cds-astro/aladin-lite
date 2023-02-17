@@ -1114,6 +1114,33 @@ export let Aladin = (function () {
         this.view.setActiveHiPSLayer(layer);
     }
 
+    Aladin.prototype.getActiveHiPSLayer = function () {
+        return this.view.selectedSurveyLayer;
+    }
+
+    // Get the list of image layer overlays
+    Aladin.prototype.getImageOverlays = function () {
+        return this.view.overlayLayers;
+    }
+
+    // Get the list of overlays
+    Aladin.prototype.getOverlays = function () {
+        return this.view.allOverlayLayers;
+    }
+
+    // Get the list of overlays
+    Aladin.prototype.getImageOverlays = function () {
+        return this.view.overlayLayers;
+    }
+
+    Aladin.prototype.isHpxGridDisplayed = function () {
+        return this.view.displayHpxGrid;
+    }
+
+    Aladin.prototype.isReticleDisplayed = function () {
+        return this.view.displayReticle;
+    }
+
     Aladin.prototype.createProgressiveCatalog = function (url, frame, maxOrder, options) {
         return new ProgressiveCat(url, frame, maxOrder, options);
     };

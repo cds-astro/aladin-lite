@@ -1520,16 +1520,16 @@ export let View = (function () {
 
                 const noMoreSurveysToWaitFor = this.promises.length === 0;
                 if (noMoreSurveysToWaitFor) {
-                    if (this.empty) {
+                    if (self.empty) {
                         // no promises to launch!
                         const idxServiceUrl = Math.round(Math.random());
                         const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
                 
-                        this.setBaseImageLayer(dssUrl);
+                        self.aladin.setBaseImageLayer(dssUrl);
                     } else {
                         // there is surveys that have been queried
                         // rename the first overlay layer to "base"
-                        this.renameLayer(this.overlayLayers[0], "base");
+                        self.renameLayer(this.overlayLayers[0], "base");
                     }
                 }
             })
@@ -1554,7 +1554,13 @@ export let View = (function () {
         this.imageSurveys.delete(layer);
         this.imageSurveys.set(newLayer, survey);
 
-        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
+        // Change the selected layer if this is the one renamed
+        if (this.selectedSurveyLayer === layer) {
+            this.selectedSurveyLayer = newLayer;
+        }
+
+        // Tell the layer hierarchy has changed
+        ALEvent.HIPS_LAYER_RENAMED.dispatchedTo(this.aladinDiv, { layer: layer, newLayer: newLayer });
     }
 
     View.prototype.swapLayers = function(firstLayer, secondLayer) {
@@ -1568,6 +1574,7 @@ export let View = (function () {
         this.overlayLayers[idxFirstLayer] = this.overlayLayers[idxSecondLayer];
         this.overlayLayers[idxSecondLayer] = tmp;
 
+        // Tell the layer hierarchy has changed
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
     }
 

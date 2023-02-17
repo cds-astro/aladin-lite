@@ -37,8 +37,10 @@
 
     static PROJECTION_CHANGED  = new ALEvent("AL:projection.changed");
 
-    static HIPS_LAYER_ADDED  = new ALEvent("AL:HiPSLayer.added");
-    static HIPS_LAYER_REMOVED  = new ALEvent("AL:HiPSLayer.removed");
+    static HIPS_LAYER_ADDED   = new ALEvent("AL:HiPSLayer.added");
+    static HIPS_LAYER_REMOVED = new ALEvent("AL:HiPSLayer.removed");
+    static HIPS_LAYER_RENAMED = new ALEvent("AL:HiPSLayer.renamed");
+    static HIPS_LAYER_SWAP = new ALEvent("AL:HiPSLayer.swap");
 
     static HIPS_LAYER_CHANGED  = new ALEvent("AL:HiPSLayer.changed");
 

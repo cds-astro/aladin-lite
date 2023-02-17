@@ -37,16 +37,15 @@ import $ from 'jquery';
 export class HiPSLayer {
 
     // Constructor
-    constructor(aladin, view, survey) {
+    constructor(aladin, survey) {
         this.aladin = aladin;
-        this.view = view;
         this.survey = survey;
         this.hidden = false;
         this.lastOpacity = 1.0;
 
         // HiPS header div
         this.headerDiv = $(
-            '<div class="aladin-layer-header-' + survey.layer + ' aladin-hips-layer">' +
+            '<div class="aladin-layer-header aladin-hips-layer">' +
             '<span class="indicator right-triangle">&nbsp;</span>' +
             '<select class="aladin-surveySelection"></select>' +
             '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
@@ -116,7 +115,6 @@ export class HiPSLayer {
 
     destroy() {
         ALEvent.HIPS_LAYER_CHANGED.remove(this.aladin.aladinDiv, this.layerChangedListener);
-        this.mainDiv[0].removeEventListener("click", this.clickOnAladinFrameListener);
     }
 
     _addListeners() {
@@ -124,16 +122,12 @@ export class HiPSLayer {
         // HEADER DIV listeners
         // Click opener
         const clickOpener = this.headerDiv.find('.indicator');
-        clickOpener.unbind("click");
-        clickOpener.click(function () {
+        clickOpener.off("click");
+        clickOpener.on("click", function () {
             if (clickOpener.hasClass('right-triangle')) {
                 clickOpener.removeClass('right-triangle');
                 clickOpener.addClass('down-triangle');
                 self.mainDiv.slideDown(300);
-
-                self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
-                    detail: self.survey.layer
-                }));
             }
             else {
                 clickOpener.removeClass('down-triangle');
@@ -142,19 +136,18 @@ export class HiPSLayer {
             }
         });
 
-        // Click on aladin options should select the layer clicked
-        let aladinOptionsFrame = self.mainDiv[0];
-        this.clickOnAladinFrameListener = function(e) {
+        this.headerDiv.off("click");
+        this.headerDiv.on("click", () => {
             self.aladin.aladinDiv.dispatchEvent(new CustomEvent('select-layer', {
-                detail: self.survey.layer
+                detail: self
             }));
-        };
-        aladinOptionsFrame.addEventListener("click", this.clickOnAladinFrameListener);
+        })
 
+        // Click on aladin options should select the layer clicked
         // Update list of surveys
         self._updateSurveysDropdownList();
         const surveySelector = this.headerDiv.find('.aladin-surveySelection');
-        surveySelector.unbind("change");
+        surveySelector.off("change");
         surveySelector.change(function () {
             let cfg = ImageSurvey.SURVEYS[$(this)[0].selectedIndex];
             if (self.hidden) {
@@ -174,8 +167,8 @@ export class HiPSLayer {
 
         // Search HiPS button
         const hipsSelector = this.headerDiv.find('.aladin-HiPSSelector');
-        hipsSelector.unbind("click");
-        hipsSelector.click(function () {
+        hipsSelector.off("click");
+        hipsSelector.on("click", function () {
             if (!self.hipsSelector) {
                 self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
                     const layerName = self.survey.layer;
@@ -188,8 +181,8 @@ export class HiPSLayer {
 
         // Delete HiPS button
         const deleteLayer = this.headerDiv.find('.aladin-delete-layer');
-        deleteLayer.unbind('click');
-        deleteLayer.click(function () {
+        deleteLayer.off("click");
+        deleteLayer.on("click", function () {
             const removeLayerEvent = new CustomEvent('remove-layer', {
                 detail: self.survey.layer
             });
@@ -198,8 +191,8 @@ export class HiPSLayer {
 
         // Hide HiPS button
         const hideLayer = this.headerDiv.find('.aladin-layer-hide');
-        hideLayer.unbind("click");
-        hideLayer.click(function () {
+        hideLayer.off("click");
+        hideLayer.on("click", function () {
             self.hidden = !self.hidden;
             let opacitySlider = self.mainDiv.find('.opacity').eq(0);
 
@@ -222,7 +215,7 @@ export class HiPSLayer {
         // blending method
         const blendingSelector = this.mainDiv.find('.blending').eq(0);
 
-        blendingSelector.unbind("change");
+        blendingSelector.off("change");
         blendingSelector.change(function () {
             let mode = blendingSelector.val()
             self.survey.setBlendingConfig( mode === "additive" );
@@ -232,8 +225,8 @@ export class HiPSLayer {
         const format4ImgLayer = this.mainDiv.find('.format').eq(0);
         const minCut4ImgLayer = this.mainDiv.find('.min-cut').eq(0);
         const maxCut4ImgLayer = this.mainDiv.find('.max-cut').eq(0);
-        format4ImgLayer.unbind("change");
-        format4ImgLayer.change(function () {
+        format4ImgLayer.off("change");
+        format4ImgLayer.on("change", function () {
             const imgFormat = format4ImgLayer.val();
 
             self.survey.setImageFormat(imgFormat);
@@ -252,8 +245,8 @@ export class HiPSLayer {
             maxCut4ImgLayer.val(parseFloat(maxCut.toFixed(5)));
         });
         // min/max cut
-        minCut4ImgLayer.unbind("change blur");
-        maxCut4ImgLayer.unbind("change blur");
+        minCut4ImgLayer.off("change blur");
+        maxCut4ImgLayer.off("change blur");
         minCut4ImgLayer.add(maxCut4ImgLayer).on('change blur', function (e) {
             let minCutValue = parseFloat(minCut4ImgLayer.val());
             let maxCutValue = parseFloat(maxCut4ImgLayer.val());
@@ -269,9 +262,9 @@ export class HiPSLayer {
         const stretchSelect4ImgLayer = this.mainDiv.find('.stretch').eq(0);
         const reverseCmCb = this.mainDiv.find('.reversed').eq(0);
 
-        reverseCmCb.unbind("change");
-        colorMapSelect4ImgLayer.unbind("change");
-        stretchSelect4ImgLayer.unbind("change");
+        reverseCmCb.off("change");
+        colorMapSelect4ImgLayer.off("change");
+        stretchSelect4ImgLayer.off("change");
         colorMapSelect4ImgLayer.add(reverseCmCb).add(stretchSelect4ImgLayer).change(function () {
             const stretch = stretchSelect4ImgLayer.val();
             const reverse = reverseCmCb[0].checked;
@@ -283,7 +276,7 @@ export class HiPSLayer {
 
         // opacity
         const opacity4ImgLayer = self.mainDiv.find('.opacity').eq(0);
-        opacity4ImgLayer.unbind("input");
+        opacity4ImgLayer.off("input");
         opacity4ImgLayer.on('input', function () {
             const opacity = +opacity4ImgLayer.val();
             self.survey.setOpacity(opacity);
@@ -291,7 +284,7 @@ export class HiPSLayer {
 
         // gamma
         const gamma4ImgLayer = self.mainDiv.find('.gamma').eq(0);
-        gamma4ImgLayer.unbind("change blur");
+        gamma4ImgLayer.off("change blur");
         gamma4ImgLayer.on('change blur', function () {
             const gamma = parseFloat(gamma4ImgLayer.val()) || 1.0;
 
@@ -305,7 +298,7 @@ export class HiPSLayer {
 
         // saturation
         const sat4ImgLayer = self.mainDiv.find('.saturation').eq(0);
-        sat4ImgLayer.unbind("input");
+        sat4ImgLayer.off("input");
         sat4ImgLayer.on('input', function (e) {
             const saturation = parseFloat(sat4ImgLayer.val()) || 0.0;
 
@@ -319,7 +312,7 @@ export class HiPSLayer {
 
         // contrast
         const contrast4ImgLayer = self.mainDiv.find('.contrast').eq(0);
-        contrast4ImgLayer.unbind("input");
+        contrast4ImgLayer.off("input");
         contrast4ImgLayer.on('input', function (e) {
             const contrast = parseFloat(contrast4ImgLayer.val()) || 0.0;
 
@@ -333,7 +326,7 @@ export class HiPSLayer {
 
         // brightness
         const brightness4ImgLayer = self.mainDiv.find('.brightness').eq(0);
-        brightness4ImgLayer.unbind("input");
+        brightness4ImgLayer.off("input");
         brightness4ImgLayer.on('input', function (e) {
             const brightness = parseFloat(brightness4ImgLayer.val()) || 0.0;
 

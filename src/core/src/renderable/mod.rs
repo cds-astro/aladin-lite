@@ -352,7 +352,6 @@ impl Layers {
 
     pub fn rename_layer(
         &mut self,
-        gl: &WebGlContext,
         layer: &str,
         new_layer: &str,
     ) -> Result<(), JsValue> {
@@ -378,7 +377,6 @@ impl Layers {
 
     pub fn swap_layers(
         &mut self,
-        gl: &WebGlContext,
         first_layer: &str,
         second_layer: &str,
     ) -> Result<(), JsValue> {

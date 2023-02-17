@@ -1636,13 +1636,13 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // before setting a new image survey
         });
 
-    fetch(url)
+    /*fetch(url)
         .then((resp) => resp.arrayBuffer())
         .then((arrayBuffer) => {
             console.log('received fits', arrayBuffer)
             self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
             console.log("parsed")
-        });
+        });*/
 };
 
 // @API

@@ -840,11 +840,11 @@ impl App {
     }
 
     pub(crate) fn rename_layer(&mut self, layer: &str, new_layer: &str) -> Result<(), JsValue> {
-        self.layers.rename_layer(&self.gl, &layer, &new_layer)
+        self.layers.rename_layer(&layer, &new_layer)
     }
 
     pub(crate) fn swap_layers(&mut self, first_layer: &str, second_layer: &str) -> Result<(), JsValue> {
-        self.layers.swap_layers(&self.gl, first_layer, second_layer)?;
+        self.layers.swap_layers(first_layer, second_layer)?;
 
         self.request_redraw = true;
 

@@ -206,7 +206,7 @@ export let ImageSurvey = (function() {
             // Set it to a default value
             self.url = metadata.hips_service_url;
             // Request all the properties to see which mirror is the fastest
-            await self.getFastestHiPSMirror(metadata);
+            self.getFastestHiPSMirror(metadata);
 
             if (!self.url) {
                 throw 'no valid service URL for retrieving the tiles'
@@ -398,12 +398,6 @@ export let ImageSurvey = (function() {
                 surveyDef.maxOrder = self.properties.maxOrder;
                 surveyDef.url = self.properties.url;
             }
-
-            // If the layer has been set then it is linked to the aladin lite view
-            // so we add it
-            //if (self.added) {
-            //    self.backend.addImageSurvey(self, self.layer);
-            //}
         })();
     };
 
@@ -483,11 +477,17 @@ export let ImageSurvey = (function() {
 
             return url;
         });
+
         url = castToHTTPSUrl(url);
         const pastUrl = castToHTTPSUrl(metadata.hips_service_url);
         // Change the backend survey url
         if (pastUrl !== url) {
             console.info("Change url of ", self.id, " from ", pastUrl, " to ", url)
+
+            // If added to the backend, then we need to tell it the url has changed
+            if (self.added) {
+                self.backend.aladin.webglAPI.setHiPSUrl(pastUrl, url);
+            }
         }
 
         self.url = url;

@@ -301,9 +301,9 @@ impl SendUniforms for GrayscaleParameter {
     }
 }*/
 use al_api::hips::HiPSColor;
-use al_api::hips::ImageSurveyMeta;
+use al_api::hips::ImageMetadata;
 
-impl SendUniforms for ImageSurveyMeta {
+impl SendUniforms for ImageMetadata {
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {
         shader
             .attach_uniforms_from(&self.color)

@@ -95,7 +95,7 @@ use moclib::deser::fits;
 
 use std::io::Cursor;
 
-use al_api::hips::{HiPSColor, HiPSProperties, HiPSCfg};
+use al_api::hips::{HiPSColor, HiPSProperties};
 
 use al_core::Colormap;
 use al_core::{WebGlContext};
@@ -119,7 +119,7 @@ pub struct WebClient {
     dt: DeltaTime,
 }
 
-use al_api::hips::ImageSurveyMeta;
+use al_api::hips::ImageMetadata;
 use std::convert::TryInto;
 
 #[wasm_bindgen]
@@ -301,8 +301,15 @@ impl WebClient {
     #[wasm_bindgen(js_name = addImageSurvey)]
     pub fn add_image_survey(&mut self, hips: JsValue) -> Result<(), JsValue> {
         // Deserialize the survey objects that compose the survey
-        let hips: HiPSCfg = serde_wasm_bindgen::from_value(hips)?;
+        let hips = serde_wasm_bindgen::from_value(hips)?;
         self.app.add_image_survey(hips)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = addImageFITS)]
+    pub fn add_image_fits(&mut self, layer: String, url: String, raw_bytes: &[u8], meta: ImageMetadata) -> Result<(), JsValue> {
+        self.app.add_image_fits(layer, url, raw_bytes, meta)?;
 
         Ok(())
     }
@@ -332,13 +339,13 @@ impl WebClient {
         self.app.set_hips_url(past_url, new_url)
     }
 
-    #[wasm_bindgen(js_name = getImageSurveyMeta)]
-    pub fn get_layer_cfg(&self, layer: String) -> Result<ImageSurveyMeta, JsValue> {
+    #[wasm_bindgen(js_name = getImageMetadata)]
+    pub fn get_layer_cfg(&self, layer: String) -> Result<ImageMetadata, JsValue> {
         self.app.get_layer_cfg(&layer)
     }
 
     // Set a new color associated with a layer
-    #[wasm_bindgen(js_name = setImageSurveyMeta)]
+    #[wasm_bindgen(js_name = setImageMetadata)]
     pub fn set_survey_color_cfg(&mut self, layer: String, meta: JsValue) -> Result<(), JsValue> {
         let meta = serde_wasm_bindgen::from_value(meta)?;
 
@@ -819,13 +826,6 @@ impl WebClient {
         }?;
 
         self.app.add_moc(params.clone(), HEALPixCoverage(moc))?;
-
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = addFITSImage)]
-    pub fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        self.app.add_fits_image(raw_bytes)?;
 
         Ok(())
     }

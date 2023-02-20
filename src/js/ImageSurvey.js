@@ -127,8 +127,6 @@ export let ImageSurvey = (function() {
     function ImageSurvey(id, name, rootURL, view, options) {
         // A reference to the view
         this.backend = view;
-        // A number used to ensure the correct layer ordering in the aladin lite view
-        this.orderIdx = null;
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -613,7 +611,7 @@ export let ImageSurvey = (function() {
         try {
             if( self.added ) {
                 const metadata = self.metadata();
-                self.backend.aladin.webglAPI.setImageSurveyMeta(self.layer, metadata);
+                self.backend.aladin.webglAPI.setImageMetadata(self.layer, metadata);
                 // once the meta have been well parsed, we can set the meta 
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.backend.aladinDiv, {survey: self});
             }

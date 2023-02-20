@@ -11,7 +11,7 @@ use crate::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         moc::MOC,
-        image::FitsImage,
+        image::FitsImage, FitsCfg,
     },
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
@@ -26,7 +26,7 @@ use al_core::colormap::{Colormap, Colormaps};
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageSurveyMeta, HiPSCfg},
+    hips::{ImageMetadata, HiPSCfg},
 };
 use crate::Abort;
 use super::coosys;
@@ -87,18 +87,10 @@ pub struct App {
     colormaps: Colormaps,
 
     projection: ProjectionType,
-
-    images: Vec<FitsImage>,
 }
 
 use cgmath::{Vector2, Vector3};
 use futures::stream::StreamExt; // for `next`
-
-/*struct MoveAnimation {
-    start_anim_rot: Rotation<f64>,
-    goal_anim_rot: Rotation<f64>,
-    time_start_anim: Time,
-}*/
 
 /// State for inertia
 struct InertiaAnimation {
@@ -197,7 +189,6 @@ impl App {
 
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
-        let images = vec![];
         Ok(App {
             gl,
             start_time_frame,
@@ -238,7 +229,6 @@ impl App {
 
             colormaps,
             projection,
-            images,
         })
     }
 
@@ -457,12 +447,6 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_fits_image(&mut self, raw_bytes: &[u8]) -> Result<(), JsValue> {
-        self.images.push(FitsImage::new(&self.gl, raw_bytes)?);
-
-        Ok(())
-    }
-
     pub(crate) fn update(&mut self, _dt: DeltaTime) -> Result<(), JsValue> {
         //let available_tiles = self.run_tasks(dt)?;
         if let Some(InertiaAnimation {
@@ -519,7 +503,7 @@ impl App {
                         Resource::Tile(tile) => {
                             let is_tile_root = tile.is_root;
 
-                            if let Some(survey) = self.layers.get_mut_hips(&tile.get_hips_url()) {
+                            if let Some(survey) = self.layers.get_mut_hips_from_url(&tile.get_hips_url()) {
                                 if is_tile_root {
                                     let is_missing = tile.missing();
                                     let Tile {
@@ -584,7 +568,7 @@ impl App {
                         Resource::Allsky(allsky) => {
                             let hips_url = allsky.get_hips_url();
     
-                            if let Some(survey) = self.layers.get_mut_hips(hips_url) {
+                            if let Some(survey) = self.layers.get_mut_hips_from_url(hips_url) {
                                 let is_missing = allsky.missing();
                                 if is_missing {
                                     // The allsky image is missing so we donwload all the tiles contained into
@@ -607,7 +591,7 @@ impl App {
                             }
                         },
                         Resource::PixelMetadata(metadata) => {
-                            if let Some(hips) = self.layers.get_mut_hips(&metadata.hips_url) {
+                            if let Some(hips) = self.layers.get_mut_hips_from_url(&metadata.hips_url) {
                                 let mut cfg = hips.get_config_mut();
 
                                 if let Some(metadata) = *metadata.value.lock().unwrap_abort() {
@@ -620,7 +604,7 @@ impl App {
                         Resource::Moc(moc) => {
                             let moc_url = moc.get_url();
                             let url = &moc_url[..moc_url.find("/Moc.fits").unwrap_abort()];
-                            if let Some(hips) = self.layers.get_mut_hips(url) {
+                            if let Some(hips) = self.layers.get_mut_hips_from_url(url) {
                                 let request::moc::Moc {
                                     moc,
                                     ..
@@ -718,13 +702,15 @@ impl App {
         self.set_center(&self.get_center());
     }
 
-    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer_id: &str) -> Result<JsValue, JsValue> {
+    pub(crate) fn read_pixel(&self, pos: &Vector2<f64>, layer: &str) -> Result<JsValue, JsValue> {
         if let Some(lonlat) = self.screen_to_world(pos) {
-            let survey = self.layers
-                .get_hips_from_layer(layer_id)
-                .ok_or_else(|| JsValue::from_str("Survey not found"))?;
-
-            survey.read_pixel(&lonlat, &self.camera)
+            if let Some(survey) = self.layers.get_hips_from_layer(layer) {
+                survey.read_pixel(&lonlat, &self.camera)
+            } else if let Some(_image) = self.layers.get_image_from_layer(layer) {
+                Err(JsValue::from_str("TODO: read pixel value"))
+            } else {
+                Err(JsValue::from_str("Survey not found"))
+            }
         } else {
             Err(JsValue::from_str(&"position is out of projection"))
         }
@@ -863,14 +849,31 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageSurveyMeta, JsValue> {
+    pub(crate) fn add_image_fits(&mut self, layer: String, url: String, raw_bytes: &[u8], meta: ImageMetadata) -> Result<(), JsValue> {
+        let fits = FitsImage::new(&self.gl, raw_bytes)?;
+
+        let cfg = FitsCfg {
+            layer,
+            url,
+            fits,
+            meta,
+        };
+        self.layers.add_image_fits(cfg, &mut self.camera, &self.projection)?;
+
+        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
+        self.request_redraw = true;
+
+        Ok(())
+    }
+
+    pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {
         self.layers.get_layer_cfg(layer)
     }
 
     pub(crate) fn set_hips_url(&mut self, past_url: String, new_url: String) -> Result<(), JsValue> {
         self.layers.set_survey_url(past_url, new_url.clone())?;
 
-        let hips = self.layers.get_hips(&new_url).unwrap_abort();
+        let hips = self.layers.get_hips_from_url(&new_url).unwrap_abort();
         // Relaunch the base tiles for the survey to be ready with the new url
         self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);
 
@@ -880,7 +883,7 @@ impl App {
     pub(crate) fn set_image_survey_color_cfg(
         &mut self,
         layer: String,
-        meta: ImageSurveyMeta,
+        meta: ImageMetadata,
     ) -> Result<(), JsValue> {
         self.request_redraw = true;
 

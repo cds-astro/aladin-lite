@@ -883,7 +883,6 @@ export let View = (function () {
                     // finally, save fov value
                     this.old_fov = fov;
                 }
-
             },
             View.CALLBACKS_THROTTLE_TIME_MS);
 
@@ -1537,14 +1536,10 @@ export let View = (function () {
 
     // The survey at layer must have been added to the view!
     View.prototype.renameLayer = function(layer, newLayer) {
-        let survey = this.imageSurveys.get(layer);
-        if (!survey) {
-            throw 'survey ' + layer + 'not found';
-        }
-
-        // Rename
+        // Throw an exception if either the first or the second layers are not in the stack
         this.aladin.webglAPI.renameLayer(layer, newLayer);
 
+        let survey = this.imageSurveys.get(layer);
         survey.layer = newLayer;
 
         // Change in overlaylayers
@@ -1564,6 +1559,7 @@ export let View = (function () {
     }
 
     View.prototype.swapLayers = function(firstLayer, secondLayer) {
+        // Throw an exception if either the first or the second layers are not in the stack
         this.aladin.webglAPI.swapLayers(firstLayer, secondLayer);
     
         // Swap in overlaylayers
@@ -1629,30 +1625,6 @@ export let View = (function () {
 
         return surveyQueriedFound || surveyFound;
     };
-
-    /*View.prototype.setImageSurveysLayer = function(surveys, layer) {
-        this.imageSurveys.set(layer, new Map());
-
-        surveys.forEach(survey => {
-            const url = survey.properties.url;
-            survey.layer = layer;
-            
-            this.imageSurveys.get(layer).set(url, survey);
-        });
-
-        // Then we send the current surveys to the backend
-        this.setHiPS();
-    };*/
-
-    /*View.prototype.removeImageSurveysLayer = function (layer) {
-        this.imageSurveys.delete(layer);
-
-        this.setHiPS();
-    };*/
-
-    /*View.prototype.moveImageSurveysLayerForward = function(layer) {
-        this.aladin.webglAPI.moveImageSurveysLayerForward(layer);
-    }*/
 
     View.prototype.requestRedraw = function () {
         this.needRedraw = true;

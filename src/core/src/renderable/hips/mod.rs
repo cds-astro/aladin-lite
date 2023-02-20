@@ -3,6 +3,7 @@ pub mod uv;
 pub mod raytracing;
 
 use al_api::hips::HiPSTileFormat;
+use al_api::hips::ImageMetadata;
 
 use al_core::colormap::Colormap;
 use al_core::VertexArrayObject;
@@ -12,6 +13,7 @@ use al_core::WebGlContext;
 use al_core::image::Image;
 use al_core::image::format::ImageFormatType;
 use al_core::colormap::Colormaps;
+use al_core::webgl_ctx::GlWrapper;
 
 use crate::ProjectionType;
 use crate::math::{vector::dist2, angle::Angle};
@@ -26,7 +28,6 @@ use crate::math::lonlat::LonLat;
 use crate::downloader::request::allsky::Allsky;
 use crate::healpix::{cell::HEALPixCell, coverage::HEALPixCoverage};
 use crate::time::Time;
-use crate::HiPSColor;
 
 // Recursively compute the number of subdivision needed for a cell
 // to not be too much skewed
@@ -898,13 +899,12 @@ impl HiPS {
 
     pub fn draw(
         &self,
-        raytracer: &RayTracer,
         //switch_from_raytrace_to_raster: bool,
         shaders: &mut ShaderManager,
-        camera: &CameraViewPort,
-        color: &HiPSColor,
-        mut opacity: f32,
         colormaps: &Colormaps,
+        camera: &CameraViewPort,
+        raytracer: &RayTracer,
+        cfg: &ImageMetadata,
     ) -> Result<(), JsValue> {
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
@@ -916,50 +916,106 @@ impl HiPS {
         //let longitude_reversed = hips_cfg.longitude_reversed;
         let rl = if camera.get_longitude_reversed() { ID_R } else { ID };
 
-        // Add starting fading
-        let fading = self.get_fading_factor();
-        opacity *= fading;
-
         // Retrieve the model and inverse model matrix
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        /*let depth_texture = if self.view.get_depth() > self.get_config().delta_depth() {
-            self.view.get_depth() - self.get_config().delta_depth()
-        } else {
-            0
-        };*/
         let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
         let longitude_reversed = camera.get_longitude_reversed();
         let config = self.get_config();
 
+        self.gl.enable(WebGl2RenderingContext::BLEND);
+
+        let ImageMetadata {
+            color,
+            opacity,
+            blend_cfg,
+            ..
+        } = cfg;
+
+        // Add starting fading
+        let fading = self.get_fading_factor();
+        let opacity = opacity * fading;
+        // Get the colormap from the color
         let cmap = colormaps.get(color.cmap_name.as_ref());
-        if raytracing {
-            // Triangle are defined in CCW
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
 
-            let shader = get_raytracer_shader(
-                cmap,
-                &self.gl,
-                shaders,
-                &config,
-            )?;
-
-            let shader = shader.bind(&self.gl);
-            shader
-                .attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.textures)
-                // send the cmap appart from the color config
-                .attach_uniforms_with_params_from(cmap, colormaps)
-                .attach_uniforms_from(color)
-                .attach_uniform("model", &w2v)
-                .attach_uniform("inv_model", &v2w)
-                .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniforms_from(colormaps);
-
-            raytracer.draw(&shader);
-        } else {
+        blend_cfg.enable(&self.gl, || {
+            if raytracing {
+                // Triangle are defined in CCW
+                self.gl.cull_face(WebGl2RenderingContext::BACK);
+    
+                let shader = get_raytracer_shader(
+                    cmap,
+                    &self.gl,
+                    shaders,
+                    &config,
+                )?;
+    
+                let shader = shader.bind(&self.gl);
+                shader
+                    .attach_uniforms_from(camera)
+                    .attach_uniforms_from(&self.textures)
+                    // send the cmap appart from the color config
+                    .attach_uniforms_with_params_from(cmap, colormaps)
+                    .attach_uniforms_from(color)
+                    .attach_uniform("model", &w2v)
+                    .attach_uniform("inv_model", &v2w)
+                    .attach_uniform("current_time", &utils::get_current_time())
+                    .attach_uniform("opacity", &opacity)
+                    .attach_uniforms_from(colormaps);
+    
+                raytracer.draw(&shader);
+            } else {
+                // Depending on if the longitude is reversed, triangles are either defined in:
+                // - CCW for longitude_reversed = false
+                // - CW for longitude_reversed = true
+                // Get the reverse longitude flag
+                if longitude_reversed {
+                    self.gl.cull_face(WebGl2RenderingContext::FRONT);
+                } else {
+                    self.gl.cull_face(WebGl2RenderingContext::BACK);
+                }
+    
+                // The rasterizer has a buffer containing:
+                // - The vertices of the HEALPix cells for the most refined survey
+                // - The starting and ending uv for the blending animation
+                // - The time for each HEALPix cell at which the animation begins
+                //
+                // Each of these data can be changed at different circumstances:
+                // - The vertices are changed if:
+                //     * new cells are added/removed (because new cells are added)
+                //       to the previous frame.
+                // - The UVs are changed if:
+                //     * new cells are added/removed (because new cells are added)
+                //     * there are new available tiles for the GPU
+                let shader = get_raster_shader(
+                    cmap,
+                    &self.gl,
+                    shaders,
+                    &config,
+                )?
+                .bind(&self.gl);
+    
+                shader
+                    .attach_uniforms_from(camera)
+                    .attach_uniforms_from(&self.textures)
+                    // send the cmap appart from the color config
+                    .attach_uniforms_with_params_from(cmap, colormaps)
+                    .attach_uniforms_from(color)
+                    .attach_uniform("model", &w2v)
+                    .attach_uniform("inv_model", &v2w)
+                    .attach_uniform("current_time", &utils::get_current_time())
+                    .attach_uniform("opacity", &opacity)
+                    .attach_uniforms_from(colormaps)
+                    .bind_vertex_array_object_ref(&self.vao)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        Some(self.num_idx as i32),
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                        0,
+                    );
+            }
+    
             // Depending on if the longitude is reversed, triangles are either defined in:
             // - CCW for longitude_reversed = false
             // - CW for longitude_reversed = true
@@ -970,57 +1026,11 @@ impl HiPS {
                 self.gl.cull_face(WebGl2RenderingContext::BACK);
             }
 
-            // The rasterizer has a buffer containing:
-            // - The vertices of the HEALPix cells for the most refined survey
-            // - The starting and ending uv for the blending animation
-            // - The time for each HEALPix cell at which the animation begins
-            //
-            // Each of these data can be changed at different circumstances:
-            // - The vertices are changed if:
-            //     * new cells are added/removed (because new cells are added)
-            //       to the previous frame.
-            // - The UVs are changed if:
-            //     * new cells are added/removed (because new cells are added)
-            //     * there are new available tiles for the GPU
-            let shader = get_raster_shader(
-                cmap,
-                &self.gl,
-                shaders,
-                &config,
-            )?
-            .bind(&self.gl);
+            Ok(())
+        })?;
 
-            shader
-                .attach_uniforms_from(camera)
-                .attach_uniforms_from(&self.textures)
-                // send the cmap appart from the color config
-                .attach_uniforms_with_params_from(cmap, colormaps)
-                .attach_uniforms_from(color)
-                .attach_uniform("model", &w2v)
-                .attach_uniform("inv_model", &v2w)
-                .attach_uniform("current_time", &utils::get_current_time())
-                .attach_uniform("opacity", &opacity)
-                .attach_uniforms_from(colormaps)
-                .bind_vertex_array_object_ref(&self.vao)
-                .draw_elements_with_i32(
-                    WebGl2RenderingContext::TRIANGLES,
-                    Some(self.num_idx as i32),
-                    WebGl2RenderingContext::UNSIGNED_SHORT,
-                    0,
-                );
-        }
+        self.gl.disable(WebGl2RenderingContext::BLEND);
 
-        // Depending on if the longitude is reversed, triangles are either defined in:
-        // - CCW for longitude_reversed = false
-        // - CW for longitude_reversed = true
-        // Get the reverse longitude flag
-        if longitude_reversed {
-            self.gl.cull_face(WebGl2RenderingContext::FRONT);
-        } else {
-            self.gl.cull_face(WebGl2RenderingContext::BACK);
-        }
         Ok(())
-
-        //self.gl.cull_face(WebGl2RenderingContext::BACK);
     }
 }

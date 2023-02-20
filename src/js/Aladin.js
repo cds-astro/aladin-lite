@@ -60,6 +60,7 @@ import $ from 'jquery';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
+import { ImageFITS } from "./ImageFITS.js";
 
 export let Aladin = (function () {
 
@@ -993,23 +994,32 @@ export let Aladin = (function () {
         }
     };
 
+    Aladin.prototype.createImageFITS = function(rootUrl, options = {}) {
+        let cfg = this.cacheSurveys.get(rootUrl);
+        if (!cfg) {
+            this.cacheSurveys.set(rootUrl, {rootUrl, options});
+            return new ImageFITS(rootUrl, this.view, options);
+        } else {
+            cfg = Utils.clone(cfg)
+            return new ImageFITS(cfg.rootURL, this.view, cfg.options);
+        }
+    };
+
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
         const idOrUrl = rootUrlOrId;
         // Check if the survey has already been added
         // Create a new ImageSurvey
-        let isUrl = false;
-        if (idOrUrl.includes("http")) {
-            isUrl = true;
-        }
         const name = idOrUrl;
-        if (isUrl) {
-            const url = idOrUrl;
+
+        try {
+            const url = new URL(rootUrlOrId).toString()    
+            
+            // Valid URL case
             const id = url;
-            // Url
             return this.createImageSurvey(id, name, url, null, null, options);
-        } else {
+        } catch (e) {
+            // Valid ID case
             const id = idOrUrl;
-            // ID
             return this.createImageSurvey(id, name, undefined, null, null, options);
         }
     }
@@ -1057,8 +1067,7 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrSurvey, layer = "overlay") {
-        let survey = null;
-
+        let survey;
         // 1. User gives an ID
         if (typeof idOrUrlOrSurvey === "string") {
             const idOrUrl = idOrUrlOrSurvey;
@@ -1636,13 +1645,13 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // before setting a new image survey
         });
 
-    /*fetch(url)
+    fetch(url)
         .then((resp) => resp.arrayBuffer())
         .then((arrayBuffer) => {
             console.log('received fits', arrayBuffer)
             self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
             console.log("parsed")
-        });*/
+        });
 };
 
 // @API

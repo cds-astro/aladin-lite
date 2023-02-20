@@ -1,6 +1,6 @@
 use std::vec;
 
-use al_api::hips::ImageSurveyMeta;
+use al_api::hips::ImageMetadata;
 use moclib::moc::range::RangeMOC;
 use moclib::qty::Hpx;
 use moclib::elem::cell::Cell;
@@ -328,43 +328,42 @@ impl FitsImage {
         Ok(())
     }
 
-    pub fn draw(&self, shaders: &mut ShaderManager, colormaps: &Colormaps, cfg: &ImageSurveyMeta) -> Result<(), JsValue> {
-        if cfg.visible() {
-            self.gl.enable(WebGl2RenderingContext::BLEND);
+    // Draw the image
+    pub fn draw(&self, shaders: &mut ShaderManager, colormaps: &Colormaps, cfg: &ImageMetadata) -> Result<(), JsValue> {
+        self.gl.enable(WebGl2RenderingContext::BLEND);
 
-            let ImageSurveyMeta {
-                color,
-                opacity,
-                blend_cfg,
-                ..
-            } = cfg;
+        let ImageMetadata {
+            color,
+            opacity,
+            blend_cfg,
+            ..
+        } = cfg;
 
-            // 2. Draw it if its opacity is not null
-            blend_cfg.enable(&self.gl, || {
-                let shader = crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?;
+        // 2. Draw it if its opacity is not null
+        blend_cfg.enable(&self.gl, || {
+            let shader = crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?;
 
-                shader
-                    .bind(&self.gl)
-                    .attach_uniforms_from(colormaps)
-                    .attach_uniforms_with_params_from(color, colormaps)
-                    .attach_uniform("opacity", opacity)
-                    .attach_uniform("tex", &self.texture)
-                    .attach_uniform("scale", &self.scale)
-                    .attach_uniform("offset", &self.offset)
-                    .attach_uniform("blank", &self.blank)
-                    .bind_vertex_array_object_ref(&self.vao)
-                    .draw_elements_with_i32(
-                        WebGl2RenderingContext::TRIANGLES,
-                        Some(self.indices.len() as i32),
-                        WebGl2RenderingContext::UNSIGNED_INT,
-                        0,
-                    );
+            shader
+                .bind(&self.gl)
+                .attach_uniforms_from(colormaps)
+                .attach_uniforms_with_params_from(color, colormaps)
+                .attach_uniform("opacity", opacity)
+                .attach_uniform("tex", &self.texture)
+                .attach_uniform("scale", &self.scale)
+                .attach_uniform("offset", &self.offset)
+                .attach_uniform("blank", &self.blank)
+                .bind_vertex_array_object_ref(&self.vao)
+                .draw_elements_with_i32(
+                    WebGl2RenderingContext::TRIANGLES,
+                    Some(self.indices.len() as i32),
+                    WebGl2RenderingContext::UNSIGNED_INT,
+                    0,
+                );
 
-              Ok(())
-            })?;
+            Ok(())
+        })?;
 
-            self.gl.disable(WebGl2RenderingContext::BLEND);
-        }
+        self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
     }

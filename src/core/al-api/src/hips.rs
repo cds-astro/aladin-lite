@@ -12,7 +12,7 @@ pub struct HiPSCfg {
     /// The HiPS metadata
     pub properties: HiPSProperties,
     /// Its color
-    pub meta: ImageSurveyMeta,
+    pub meta: ImageMetadata,
 }
 
 impl HiPSCfg {
@@ -187,7 +187,7 @@ pub struct HiPSColor {
 #[serde(rename_all = "camelCase")]
 #[derive(Clone)]
 #[wasm_bindgen]
-pub struct ImageSurveyMeta {
+pub struct ImageMetadata {
     /// Color config
     #[wasm_bindgen(skip)]
     pub color: HiPSColor,
@@ -208,7 +208,7 @@ fn default_opacity() -> f32 {
 use crate::Abort;
 
 #[wasm_bindgen]
-impl ImageSurveyMeta {
+impl ImageMetadata {
     #[wasm_bindgen(setter = color)]
     pub fn set_color(&mut self, color: JsValue) -> std::result::Result<(), JsValue> {
         self.color = serde_wasm_bindgen::from_value(color)?;
@@ -291,7 +291,7 @@ impl ImageSurveyMeta {
     }
 }
 
-impl ImageSurveyMeta {
+impl ImageMetadata {
     pub fn visible(&self) -> bool {
         self.opacity > 0.0
     }

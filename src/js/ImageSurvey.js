@@ -40,7 +40,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
     }
 
     let isUrl = false;
-    if ((Utils.isHttpContext() && rootURLOrId.includes("http")) || rootURLOrId.includes("file://")) {
+    if (((Utils.isHttpContext() || Utils.isHttpsContext()) && rootURLOrId.includes("http")) || rootURLOrId.includes("file://")) {
         isUrl = true;
     }
 

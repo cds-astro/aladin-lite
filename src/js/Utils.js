@@ -41,13 +41,7 @@ Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alask
 
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
-function relMouseCoords(event) {
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    var currentElement = this;
-   
+function relMouseCoords(event) {   
     if (event.offsetX) {
         return {x: event.offsetX, y: event.offsetY};
     } 
@@ -317,12 +311,16 @@ Utils.getAjaxObject = function(url, method, dataType, useProxy) {
 
 // return true if script is executed in a HTTPS context
 // return false otherwise
+Utils.isFileContext = function() {
+    return ( window.location.protocol === 'file:' );
+};
+
 Utils.isHttpsContext = function() {
     return ( window.location.protocol === 'https:' );
 };
 
 Utils.isHttpContext = function() {
-    return ( window.location.protocol === 'http:' ) || Utils.isHttpsContext();
+    return ( window.location.protocol === 'http:' );
 };
 
 Utils.fixURLForHTTPS = function(url) {

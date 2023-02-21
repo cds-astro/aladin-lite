@@ -196,8 +196,6 @@
             this.dec = dec;
             this.fov = fov;
 
-            console.log(ra, dec, fov)
-
             this.added = true;
 
             // execute the callback if there are

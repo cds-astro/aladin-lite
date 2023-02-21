@@ -33,7 +33,6 @@ import { Aladin } from "./Aladin.js";
 import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
-import { Projection } from "./libs/astro/projection.js";
 import { AladinUtils } from "./AladinUtils.js";
 import { Utils } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
@@ -121,7 +120,7 @@ export let View = (function () {
         };
         this.setZoom(initialFov);
         // current reference image survey displayed
-        this.imageSurveys = new Map();
+        this.imageLayers = new Map();
 
         this.overlayLayers = [];
         // current catalogs displayed
@@ -158,7 +157,7 @@ export let View = (function () {
         this.firstHiPS = true;
         this.curNorder = 1;
         this.realNorder = 1;
-        this.surveysBeingQueried = new Map();
+        this.imageLayersBeingQueried = new Map();
 
         // some variables for mouse handling
         this.dragging = false;
@@ -166,7 +165,7 @@ export let View = (function () {
         this.dragy = null;
         this.rightclickx = null;
         this.rightclicky = null;
-        this.selectedSurveyLayer = 'base';
+        this.selectedLayer = 'base';
 
         this.needRedraw = true;
 
@@ -367,10 +366,10 @@ export let View = (function () {
 
 
     View.prototype.setActiveHiPSLayer = function (layer) {
-        if (!this.imageSurveys.has(layer)) {
+        if (!this.imageLayers.has(layer)) {
             throw layer + ' does not exists. So cannot be selected';
         }
-        this.selectedSurveyLayer = layer;
+        this.selectedLayer = layer;
     };
 
     var createListeners = function (view) {
@@ -416,23 +415,19 @@ export let View = (function () {
                 view.rightclickx = xymouse.x;
                 view.rightclicky = xymouse.y;
 
-                const survey = view.imageSurveys.get(view.selectedSurveyLayer);
-                if (survey) {
+                const imageLayer = view.imageLayers.get(view.selectedLayer);
+                if (imageLayer) {
                     // Take as start cut values what is inside the properties
                     // If the cuts are not defined in the metadata of the survey
                     // then we take what has been defined by the user
-                    //if (!survey.colored) {
-                        if (survey.fits) {
-                            // properties default cuts always refers to fits tiles
-                            cutMinInit = survey.properties.minCutout || survey.getColorCfg().minCut;
-                            cutMaxInit = survey.properties.maxCutout || survey.getColorCfg().maxCut;
-                        } else {
-                            cutMinInit = survey.getColorCfg().minCut;
-                            cutMaxInit = survey.getColorCfg().maxCut;
-                        }
-                    //} else {
-                        // todo: contrast
-                    //}
+                    if (imageLayer.fits) {
+                        // properties default cuts always refers to fits tiles
+                        cutMinInit = imageLayer.properties.minCutout || imageLayer.getColorCfg().minCut;
+                        cutMaxInit = imageLayer.properties.maxCutout || imageLayer.getColorCfg().maxCut;
+                    } else {
+                        cutMinInit = imageLayer.getColorCfg().minCut;
+                        cutMaxInit = imageLayer.getColorCfg().maxCut;
+                    }
                 }
 
                 return;
@@ -629,8 +624,8 @@ export let View = (function () {
             e.preventDefault();
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
-            if (view.rightClick && view.selectedSurveyLayer) {
-                let selectedSurvey = view.imageSurveys.get(view.selectedSurveyLayer);
+            if (view.rightClick && view.selectedLayer) {
+                let selectedLayer = view.imageLayers.get(view.selectedLayer);
                 // We try to match DS9 contrast adjustment behaviour with right click
                 const cs = {
                     x: view.catalogCanvas.clientWidth * 0.5,
@@ -645,7 +640,7 @@ export let View = (function () {
                 const rr = offset + (1.0 + 2.0 * cy) * cutMaxInit;
 
                 if (lr <= rr) {
-                    selectedSurvey.setCuts(lr, rr)
+                    selectedLayer.setCuts(lr, rr)
                 }
                 return;
             }
@@ -888,7 +883,6 @@ export let View = (function () {
 
 
         view.displayHpxGrid = false;
-        view.displaySurvey = true;
         view.displayCatalog = false;
         view.displayReticle = true;
 
@@ -917,34 +911,6 @@ export let View = (function () {
     View.prototype.requestRedrawAtDate = function (date) {
         this.dateRequestDraw = date;
     };
-
-    /**
-     * Return the color of the lowest intensity pixel 
-     * in teh current color map of the current background image HiPS
-     */
-    /*View.prototype.getBackgroundColor = function () {
-        var white = 'rgb(255, 255, 255)';
-        var black = 'rgb(0, 0, 0)';
-
-        if (!this.imageSurvey) {
-            return black;
-        }
-
-        var cm = this.imageSurvey.getColorMap();
-        if (!cm) {
-            return black;
-        }
-        if (cm.mapName == 'native' || cm.mapName == 'grayscale') {
-            return cm.reversed ? white : black;
-        }
-
-        var idx = cm.reversed ? 255 : 0;
-        var r = ColorMap.MAPS[cm.mapName].r[idx];
-        var g = ColorMap.MAPS[cm.mapName].g[idx];
-        var b = ColorMap.MAPS[cm.mapName].b[idx];
-
-        return 'rgb(' + r + ',' + g + ',' + b + ')';
-    };*/
 
     View.prototype.getViewParams = function () {
         var resolution = this.width > this.height ? this.fov / this.width : this.fov / this.height;
@@ -1381,75 +1347,12 @@ export let View = (function () {
      * compute and set the norder corresponding to the current view resolution
      */
     View.prototype.computeNorder = function () {
-        /*var resolution = this.fov / this.largestDim; // in degree/pixel
-        var tileSize = 512; // TODO : read info from ImageSurvey.tileSize
-        const calculateNSide = (pixsize) => {
-            const NS_MAX = 536870912;
-            const ORDER_MAX = 29;
-        
-            // Available nsides ..always power of 2 ..
-            const NSIDELIST = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
-                4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
-                                       1048576, 2097152, 4194304, 8388608, 16777216, 33554432,
-                                       67108864, 134217728,  268435456, 536870912];
-
-            let res = 0;
-            const pixelArea = pixsize * pixsize;
-            const degrad = 180. / Math.PI;
-            const skyArea = 4. * Math.PI * degrad * degrad * 3600. * 3600.;
-            const castToInt = function (x) {
-                if (x > 0) {
-                    return Math.floor(x);
-                }
-                else {
-                    return Math.ceil(x);
-                }
-            };
-            const npixels = castToInt(skyArea / pixelArea);
-            const nsidesq = npixels / 12;
-            const nside_req = Math.sqrt(nsidesq);
-            var mindiff = NS_MAX;
-            var indmin = 0;
-            for (var i = 0; i < NSIDELIST.length; i++) {
-                if (Math.abs(nside_req - NSIDELIST[i]) <= mindiff) {
-                    mindiff = Math.abs(nside_req - NSIDELIST[i]);
-                    res = NSIDELIST[i];
-                    indmin = i;
-                }
-                if ((nside_req > res) && (nside_req < NS_MAX))
-                    res = NSIDELIST[indmin + 1];
-                if (nside_req > NS_MAX) {
-                    console.log("nside cannot be bigger than " + NS_MAX);
-                    return NS_MAX;
-                }
-            }
-            return res;
-        };*/
-
-        //var nside = calculateNSide(3600*tileSize*resolution); // 512 = size of a "tile" image
-        //var norder = Math.log(nside)/Math.log(2);
-        //norder = Math.max(norder, 1);
-
         var norder = this.aladin.webglAPI.getNOrder();
 
         this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
         if (this.fov <= 50 && norder <= 2) {
             norder = 3;
-        }
-
-        // that happens if we do not wish to display tiles coming from Allsky.[jpg|png]
-        if (this.imageSurvey && norder <= 2 && this.imageSurvey.minOrder > 2) {
-            norder = this.imageSurvey.minOrder;
-        }
-
-        if (this.imageSurvey && norder > this.imageSurvey.maxOrder) {
-            norder = this.imageSurvey.maxOrder;
-        }
-
-        // should never happen, as calculateNSide will return something <=HealpixIndex.ORDER_MAX
-        if (norder > 29) {
-            norder = 29;
         }
 
         this.curNorder = norder;
@@ -1463,7 +1366,7 @@ export let View = (function () {
 
     View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
         // register its promise
-        this.surveysBeingQueried.set(layer, imageLayer);
+        this.imageLayersBeingQueried.set(layer, imageLayer);
 
         this.addImageLayer(imageLayer, layer);
 
@@ -1489,8 +1392,8 @@ export let View = (function () {
                 this.empty = false;
 
                 // Check whether this layer already exist
-                const idxOverlaySurveyFound = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
-                if (idxOverlaySurveyFound == -1) {
+                const idxOverlayLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
+                if (idxOverlayLayer == -1) {
                     this.overlayLayers.push(layer);
                 }
 
@@ -1500,9 +1403,9 @@ export let View = (function () {
 
                 // Find the toppest layer
                 const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-                this.selectedSurveyLayer = toppestLayer;
+                this.selectedLayer = toppestLayer;
 
-                this.imageSurveys.set(layer, imageLayer);
+                this.imageLayers.set(layer, imageLayer);
 
                 ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { survey: imageLayer });
             })
@@ -1510,14 +1413,14 @@ export let View = (function () {
                 console.error(e)
             })
             .finally(() => {
-                self.surveysBeingQueried.delete(layer);
+                self.imageLayersBeingQueried.delete(layer);
 
                 // Remove the settled promise
                 let idx = this.promises.findIndex(p => p == imageLayerPromise);
                 this.promises.splice(idx, 1);
 
-                const noMoreSurveysToWaitFor = this.promises.length === 0;
-                if (noMoreSurveysToWaitFor) {
+                const noMoreLayersToWaitFor = this.promises.length === 0;
+                if (noMoreLayersToWaitFor) {
                     if (self.empty) {
                         // no promises to launch!
                         const idxServiceUrl = Math.round(Math.random());
@@ -1538,19 +1441,19 @@ export let View = (function () {
         // Throw an exception if either the first or the second layers are not in the stack
         this.aladin.webglAPI.renameLayer(layer, newLayer);
 
-        let survey = this.imageSurveys.get(layer);
-        survey.layer = newLayer;
+        let imageLayer = this.imageLayers.get(layer);
+        imageLayer.layer = newLayer;
 
         // Change in overlaylayers
         const idx = this.overlayLayers.findIndex(overlayLayer => overlayLayer == layer);
         this.overlayLayers[idx] = newLayer;
-        // Change in imageSurveys
-        this.imageSurveys.delete(layer);
-        this.imageSurveys.set(newLayer, survey);
+        // Change in imageLayers
+        this.imageLayers.delete(layer);
+        this.imageLayers.set(newLayer, imageLayer);
 
         // Change the selected layer if this is the one renamed
-        if (this.selectedSurveyLayer === layer) {
-            this.selectedSurveyLayer = newLayer;
+        if (this.selectedLayer === layer) {
+            this.selectedLayer = newLayer;
         }
 
         // Tell the layer hierarchy has changed
@@ -1570,7 +1473,7 @@ export let View = (function () {
         this.overlayLayers[idxSecondLayer] = tmp;
 
         // Tell the layer hierarchy has changed
-        ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
+        ALEvent.HIPS_LAYER_SWAP.dispatchedTo(this.aladinDiv, { firstLayer: firstLayer, secondLayer: secondLayer });
     }
 
     View.prototype.removeImageLayer = function (layer) {
@@ -1581,30 +1484,30 @@ export let View = (function () {
         // Update the backend
         this.aladin.webglAPI.removeLayer(layer);
 
-        const idxOverlaidSurveyFound = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
-        if (idxOverlaidSurveyFound == -1) {
+        const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
+        if (idxOverlaidLayer == -1) {
             // layer not found
             return;
         }
 
         // Get the survey to remove to dissociate it from the view
-        let survey = this.imageSurveys.get(layer);
-        survey.added = false;
+        let imageLayer = this.imageLayers.get(layer);
+        imageLayer.added = false;
 
         // Delete it
-        this.imageSurveys.delete(layer);
+        this.imageLayers.delete(layer);
 
         // Remove it from the layer stack
-        this.overlayLayers.splice(idxOverlaidSurveyFound, 1);
+        this.overlayLayers.splice(idxOverlaidLayer, 1);
 
         if (this.overlayLayers.length === 0) {
             this.empty = true;
         }
 
         // find the toppest layer
-        if (this.selectedSurveyLayer === layer) {
+        if (this.selectedLayer === layer) {
             const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-            this.selectedSurveyLayer = toppestLayer;
+            this.selectedLayer = toppestLayer;
         }
 
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
@@ -1619,10 +1522,10 @@ export let View = (function () {
     }
 
     View.prototype.getImageLayer = function (layer = "base") {
-        let surveyQueriedFound = this.surveysBeingQueried.get(layer);
-        let surveyFound = this.imageSurveys.get(layer);
+        let imageLayerQueried = this.imageLayersBeingQueried.get(layer);
+        let imageLayer = this.imageLayers.get(layer);
 
-        return surveyQueriedFound || surveyFound;
+        return imageLayerQueried || imageLayer;
     };
 
     View.prototype.requestRedraw = function () {
@@ -1766,7 +1669,7 @@ export let View = (function () {
     };
 
     View.prototype.showSurvey = function (show) {
-        this.displaySurvey = show;
+        this.getImageLayer().setAlpha(show ? 1.0 : 0.0);
 
         this.requestRedraw();
     };

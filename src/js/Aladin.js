@@ -1130,7 +1130,7 @@ export let Aladin = (function () {
     }
 
     Aladin.prototype.getActiveHiPSLayer = function () {
-        return this.view.selectedSurveyLayer;
+        return this.view.selectedLayer;
     }
 
     // Get the list of image layer overlays

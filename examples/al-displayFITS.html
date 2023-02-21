@@ -33,26 +33,6 @@
                 aladin.setFoV(fov);
             }
         );
-
-        aladin.displayFITS(
-            //'http://data.astropy.org/tutorials/FITS-images/HorseHead.fits', // url of the fits file
-            //'fits/HorseHead.fits',
-            'fits/neowise.fits',
-            //'fits/irac.fits',
-            //'fits/FOCx38i0101t_c0f.fits',
-            {
-                minCut: 0,
-                maxCut: 100,
-            }, // no optional params
-            (ra, dec, fov, image) => { // ra, dec and fov are centered around the fits image 
-                image.setColormap("parula", {stretch: "asinh"});                
-                
-                aladin.gotoRaDec(ra, dec);
-                aladin.setFoV(fov);
-            },
-            undefined,
-            'overlay2'
-        );
     });
 </script>
 </body>

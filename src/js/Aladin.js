@@ -55,6 +55,7 @@ import { Stack } from "./gui/Stack.js";
 import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
+import { ColorCfg } from './ColorCfg.js';
 
 import $ from 'jquery';
 
@@ -986,23 +987,25 @@ export let Aladin = (function () {
                 options.cooFrame = cooFrame;
             }
     
-            this.cacheSurveys.set(id, {id, name, rootUrl, options});
-            return new ImageSurvey(id, name, rootUrl, this.view, options);
+            cfg = {id, name, rootUrl, options};
+            this.cacheSurveys.set(id, cfg);
         } else {
             cfg = Utils.clone(cfg)
-            return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
         }
+
+        return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
     };
 
-    Aladin.prototype.createImageFITS = function(rootUrl, options = {}) {
+    Aladin.prototype.createImageFITS = function(rootUrl, options = {}, successCallback = undefined, errorCallback = undefined) {
         let cfg = this.cacheSurveys.get(rootUrl);
         if (!cfg) {
-            this.cacheSurveys.set(rootUrl, {rootUrl, options});
-            return new ImageFITS(rootUrl, this.view, options);
+            cfg = {rootUrl, options, successCallback, errorCallback}
+            this.cacheSurveys.set(rootUrl, cfg);
         } else {
             cfg = Utils.clone(cfg)
-            return new ImageFITS(cfg.rootURL, this.view, cfg.options);
         }
+
+        return new ImageFITS(cfg.rootUrl, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
@@ -1027,9 +1030,12 @@ export let Aladin = (function () {
     // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
     // @old
-    Aladin.prototype.setImageSurvey = function(imageSurvey) {
-        this.setBaseImageLayer(imageSurvey);
+
+    Aladin.prototype.setImageLayer = function(imageLayer) {
+        this.setBaseImageLayer(imageLayer);
     };
+
+    Aladin.prototype.setImageSurvey = Aladin.prototype.setImageLayer;
 
     // @param imageSurvey : ImageSurvey object or image survey identifier
     // @api
@@ -1051,8 +1057,8 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.removeImageSurvey = function(layer) {
-        this.view.removeImageSurvey(layer);
+    Aladin.prototype.removeImageLayer = function(layer) {
+        this.view.removeImageLayer(layer);
     };
 
     // @api
@@ -1062,7 +1068,7 @@ export let Aladin = (function () {
 
     // @api
     Aladin.prototype.getBaseImageLayer = function () {
-        return this.view.getImageSurvey("base");
+        return this.view.getImageLayer("base");
     };
 
     // @api
@@ -1094,12 +1100,12 @@ export let Aladin = (function () {
             survey = idOrUrlOrSurvey;
         }
 
-        return this.view.setOverlayImageSurvey(survey, layer);
+        return this.view.setOverlayImageLayer(survey, layer);
     };
 
     // @api
     Aladin.prototype.getOverlayImageLayer = function(layer = "overlay") {
-        const survey = this.view.getImageSurvey(layer);
+        const survey = this.view.getImageLayer(layer);
         return survey;
     };
 
@@ -1580,7 +1586,7 @@ Aladin.prototype.getEmbedCode = function () {
 /*
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
-Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback) {
+Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
     options = options || {};
 
     var data = { url: url };
@@ -1612,7 +1618,7 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
     };
     const get = ( url, params ) => request( url, params, 'GET' );
 
-    get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
+    /*get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
         .then(async (response) => {
             if (response.status != 'success') {
                 console.error('An error occured: ' + response.message);
@@ -1644,14 +1650,9 @@ Aladin.prototype.displayFITS = function (url, options, successCallback, errorCal
             // This has to be fixed in the backend but a fast fix is just to wait
             // before setting a new image survey
         });
-
-    fetch(url)
-        .then((resp) => resp.arrayBuffer())
-        .then((arrayBuffer) => {
-            console.log('received fits', arrayBuffer)
-            self.view.aladin.webglAPI.addFITSImage(new Uint8Array(arrayBuffer));
-            console.log("parsed")
-        });
+    */
+    const imageFits = self.createImageFITS(url, options, successCallback, errorCallback);
+    self.setOverlayImageLayer(imageFits, layer)
 };
 
 // @API
@@ -1841,7 +1842,7 @@ A.hipsDefinitionFromURL = function(url, successCallback) {
 };
 
 A.getAvailableListOfColormaps = function() {
-    return ImageSurvey.COLORMAPS;
+    return ColorCfg.COLORMAPS;
 };
 
 A.init = (async () => {

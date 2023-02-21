@@ -64,7 +64,6 @@ pub fn unwrap_abort<T>(o: Option<T>) -> T {
 #[macro_use]
 mod utils;
 
-use al_api::color::{Color, ColorRGBA};
 use math::projection::*;
 use wasm_bindgen::prelude::*;
 
@@ -96,12 +95,14 @@ use moclib::deser::fits;
 use std::io::Cursor;
 
 use al_api::hips::{HiPSColor, HiPSProperties};
+use al_api::coo_system::CooSystem;
+use al_api::color::{Color, ColorRGBA};
+use al_api::fov::FoV;
 
 use al_core::Colormap;
 use al_core::{WebGlContext};
 use al_core::colormap::Colormaps;
 
-use al_api::coo_system::CooSystem;
 
 use app::App;
 use cgmath::{Vector2};
@@ -308,10 +309,10 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addImageFITS)]
-    pub fn add_image_fits(&mut self, layer: String, url: String, raw_bytes: &[u8], meta: ImageMetadata) -> Result<(), JsValue> {
-        self.app.add_image_fits(layer, url, raw_bytes, meta)?;
+    pub fn add_image_fits(&mut self, fits_cfg: JsValue, bytes: &[u8]) -> Result<FoV, JsValue> {
+        let fits_cfg = serde_wasm_bindgen::from_value(fits_cfg)?;
 
-        Ok(())
+        self.app.add_image_fits(fits_cfg, bytes)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]

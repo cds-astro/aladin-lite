@@ -1461,32 +1461,31 @@ export let View = (function () {
         this.fixLayoutDimensions();
     };
 
-    View.prototype.setOverlayImageSurvey = function (survey, layer = "overlay") {
+    View.prototype.setOverlayImageLayer = function (imageLayer, layer = "overlay") {
         // register its promise
-        this.surveysBeingQueried.set(layer, survey);
+        this.surveysBeingQueried.set(layer, imageLayer);
 
-        this.addImageSurvey(survey, layer);
+        this.addImageLayer(imageLayer, layer);
 
-        return survey;
+        return imageLayer;
     };
 
-    View.prototype.addImageSurvey = function (survey, layer) {
+    View.prototype.addImageLayer = function (imageLayer, layer) {
         let self = this;
-        this.promises.push(survey.queryPromise);
+        // start the query
+        const imageLayerPromise = imageLayer.query();
 
+        this.promises.push(imageLayerPromise);
+
+        // All image layer promises must be completed (fullfilled or rejected)
         Promise.allSettled(this.promises)
-            // All info of survey have been successly retrieved
-            // We now ensure all the past surveys have been settled (i.e. either fulfilled or rejected)
-            .then(() => survey.queryPromise)
-            .then(() => {
-                survey.layer = layer;
-                self.aladin.webglAPI.addImageSurvey({
-                    layer: survey.layer,
-                    properties: survey.properties,
-                    meta: survey.metadata(),
-                });
+            .then(() => imageLayerPromise)
+            // The promise is resolved and we now have access
+            // to the image layer objet (whether it is an ImageSurvey or an ImageFITS)
+            .then((imageLayer) => {
+                // Add to the backend
+                imageLayer.add(layer);
 
-                survey.added = true;
                 this.empty = false;
 
                 // Check whether this layer already exist
@@ -1495,17 +1494,17 @@ export let View = (function () {
                     this.overlayLayers.push(layer);
                 }
 
-                if (this.options.log && survey.properties) {
-                    Logger.log("setImageLayer", survey.properties.url);
+                if (this.options.log) {
+                    Logger.log("setImageLayer", imageLayer.url);
                 }
 
                 // Find the toppest layer
                 const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
                 this.selectedSurveyLayer = toppestLayer;
 
-                this.imageSurveys.set(layer, survey);
+                this.imageSurveys.set(layer, imageLayer);
 
-                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { survey: survey });
+                ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { survey: imageLayer });
             })
             .catch((e) => {
                 console.error(e)
@@ -1514,7 +1513,7 @@ export let View = (function () {
                 self.surveysBeingQueried.delete(layer);
 
                 // Remove the settled promise
-                let idx = this.promises.findIndex(p => p == survey.queryPromise);
+                let idx = this.promises.findIndex(p => p == imageLayerPromise);
                 this.promises.splice(idx, 1);
 
                 const noMoreSurveysToWaitFor = this.promises.length === 0;
@@ -1574,7 +1573,7 @@ export let View = (function () {
         ALEvent.HIPS_LAYER_ADDED.dispatchedTo(this.aladinDiv, { survey: survey });
     }
 
-    View.prototype.removeImageSurvey = function (layer) {
+    View.prototype.removeImageLayer = function (layer) {
         if (layer === "base") {
             throw 'The base layer cannot be removed';
         }
@@ -1619,7 +1618,7 @@ export let View = (function () {
         }
     }
 
-    View.prototype.getImageSurvey = function (layer = "base") {
+    View.prototype.getImageLayer = function (layer = "base") {
         let surveyQueriedFound = this.surveysBeingQueried.get(layer);
         let surveyFound = this.imageSurveys.get(layer);
 

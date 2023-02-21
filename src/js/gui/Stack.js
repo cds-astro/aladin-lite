@@ -285,7 +285,7 @@ export class Stack {
         this.aladin.aladinDiv.addEventListener('remove-layer', e => {
             const layerName = e.detail;
             // Just call remove as it will send a HIPS_LAYER_REMOVED after
-            self.aladin.removeImageSurvey(layerName);
+            self.aladin.removeImageLayer(layerName);
         });
 
         this.aladin.aladinDiv.addEventListener('select-layer', (e) => {

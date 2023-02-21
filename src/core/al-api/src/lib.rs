@@ -11,6 +11,7 @@ pub mod hips;
 pub mod moc;
 pub mod resources;
 pub mod cell;
+pub mod fov;
 
 pub trait Abort {
     type Item;

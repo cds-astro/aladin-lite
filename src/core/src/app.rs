@@ -26,7 +26,7 @@ use al_core::colormap::{Colormap, Colormaps};
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageMetadata, HiPSCfg},
+    hips::{ImageMetadata, HiPSCfg, FITSCfg}, fov::FoV,
 };
 use crate::Abort;
 use super::coosys;
@@ -849,8 +849,16 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_fits(&mut self, layer: String, url: String, raw_bytes: &[u8], meta: ImageMetadata) -> Result<(), JsValue> {
-        let fits = FitsImage::new(&self.gl, raw_bytes)?;
+    pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg, bytes: &[u8]) -> Result<FoV, JsValue> {
+        let FITSCfg { layer, url, meta } = cfg;
+        
+        let fits = FitsImage::new(&self.gl, bytes)?;
+        let center = fits.get_center();
+        let fov = FoV {
+            ra: center.lon().to_degrees(),
+            dec: center.lat().to_degrees(),
+            fov: 1.0
+        };
 
         let cfg = FitsCfg {
             layer,
@@ -863,7 +871,7 @@ impl App {
         // Once its added, request the tiles in the view (unless the viewer is at depth 0)
         self.request_redraw = true;
 
-        Ok(())
+        Ok(fov)
     }
 
     pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {

@@ -362,10 +362,11 @@ export class HiPSLayer {
         const maxCut = this.mainDiv.find('.max-cut').eq(0);
 
         formatSelect4ImgLayer.empty();
-        this.survey.properties.formats.forEach(format => {
+        
+        this.survey.formats.forEach(fmt => {
             formatSelect4ImgLayer.append($('<option>', {
-                value: format,
-                text: format
+                value: fmt,
+                text: fmt
             }));
         });
 

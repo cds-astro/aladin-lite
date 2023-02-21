@@ -30,35 +30,71 @@
  import { Utils } from "./Utils.js";
  import { ALEvent } from "./events/ALEvent.js";
  import { ColorCfg } from "./ColorCfg.js";
- 
+ import { ImageSurvey } from "./ImageSurvey.js";
  export let ImageFITS = (function() {
      /** Constructor
       * cooFrame and maxOrder can be set to null
       * They will be determined by reading the properties file
       *  
       */
-     function ImageFITS(url, view, options) {
+     function ImageFITS(url, view, options, successCallback = undefined, errorCallback = undefined) {
         // A reference to the view
+        console.log(url, view)
         this.backend = view;
         // Name of the layer
         this.layer = null;
         this.added = false;
         // Set it to a default value
+        this.id = url;
+        this.name = url;
         this.url = url;
+        this.imgFormat = "fits";
+        this.formats = ["fits"];
+        // callbacks
+        this.successCallback = successCallback;
+        this.errorCallback = errorCallback;
         // initialize the color meta data here
         this.colorCfg = new ColorCfg(options);
         updateMetadata(this);
  
+        let idxSelectedHiPS = 0;
+        const surveyFound = ImageSurvey.SURVEYS.some(s => {
+            let res = this.id.endsWith(s.id);
+            if (!res) {
+                idxSelectedHiPS += 1;
+            }
+
+            return res;
+        });
+        const opt = {
+            ...this.colorCfg.get(),
+            imgFormat: this.imgFormat,
+            longitudeReversed: this.longitudeReversed,
+        };
+        // The survey has not been found among the ones cached
+        if (!surveyFound) {
+            ImageSurvey.SURVEYS.push({
+                id: this.id,
+                name: this.name,
+                options: opt,
+            });
+        } else {
+            let surveyDef = ImageSurvey.SURVEYS[idxSelectedHiPS];
+            surveyDef.options = opt;
+        }
+
         let self = this;
-        this.queryPromise = (async () => {
-            // Set the cuts at this point, if the user gave one, keep it
-            // otherwise, set it to default values found in the HiPS properties
-            // For FITS hipses
-            let minCut = self.colorCfg.minCut || 0.0;
-            let maxCut = self.colorCfg.maxCut || 1.0;
-            self.setCuts(minCut, maxCut);
-         })();
-     };
+        // Return a promise that take the layer name as parameter
+        // and when resolved, will return the ImageFITS object
+        self.query = (async () => {
+            return fetch(url, { mode: "no-cors" })
+                .then((resp) => resp.arrayBuffer())
+                .then((arrayBuffer) => {
+                    self.arrayBuffer = new Uint8Array(arrayBuffer);
+                    return self;
+                });
+        });
+    }
  
      // @api
      ImageFITS.prototype.setOpacity = function(opacity) {
@@ -109,19 +145,19 @@
          });
      };
  
-     ImageFITS.prototype.setContrast = function(contrast) {
-         updateMetadata(this, () => {
-             this.colorCfg.setContrast(contrast);
-         });
-     };
+    ImageFITS.prototype.setContrast = function(contrast) {
+        updateMetadata(this, () => {
+            this.colorCfg.setContrast(contrast);
+        });
+    };
  
-     ImageFITS.prototype.metadata = function() {
-         return {
-             ...this.colorCfg.get(),
-             longitudeReversed: false,
-             imgFormat: 'fits'
-         };
-     }
+    ImageFITS.prototype.metadata = function() {
+        return {
+            ...this.colorCfg.get(),
+            longitudeReversed: false,
+            imgFormat: this.imgFormat
+        };
+    }
  
      // Private method for updating the backend with the new meta
      var updateMetadata = function(self, callback = undefined) {        
@@ -143,6 +179,41 @@
          }
      }
  
+    ImageFITS.prototype.add = function(layer) {
+        this.layer = layer;
+
+        let self = this;
+        try {
+            const {ra, dec, fov} = this.backend.aladin.webglAPI.addImageFITS({
+                    layer: self.layer,
+                    url: self.url,
+                    meta: self.metadata()
+                }, 
+                self.arrayBuffer,
+            );
+
+            this.ra = ra;
+            this.dec = dec;
+            this.fov = fov;
+
+            console.log(ra, dec, fov)
+
+            this.added = true;
+
+            // execute the callback if there are
+            if (this.successCallback) {
+                this.successCallback(self.ra, self.dec, self.fov, self);
+            }
+        } catch (e) {
+            if (this.errorCallback) {
+                this.errorCallback();
+            }
+
+            // Error propagation
+            throw e;
+        }
+    };
+
      // @api
      ImageFITS.prototype.toggle = function() {
          if (this.colorCfg.getOpacity() != 0.0) {

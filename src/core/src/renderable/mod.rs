@@ -208,48 +208,41 @@ impl Layers {
         // Check whether a survey to plot is allsky
         // if neither are, we draw a font
         // if there are, we do not draw nothing
-        if !self.surveys.is_empty() {
-            let render_background_color = !self.layers.iter()
-                .any(|layer| {
-                    let meta = self.meta.get(layer).unwrap_abort();
-                    let url = self.urls.get(layer).unwrap_abort();
-                    if let Some(survey) = self.surveys.get(url) {
-                        let hips_cfg = survey.get_config();
-                        (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
-                    } else {
-                        // image fits case
-                        false
-                    }
-                });
-
-            // Need to render transparency font
-            if render_background_color {
-                /*let opacity = self.surveys.values()
-                    .fold(std::f32::MAX, |mut a, s| {
-                        a = a.min(s.get_fading_factor()); a
-                    });
-                */
-                let background_color = &self.background_color;
-
-                let vao = if raytracing {
-                    raytracer.get_vao()
+        let render_background_color = !self.layers.iter()
+            .any(|layer| {
+                let meta = self.meta.get(layer).unwrap_abort();
+                let url = self.urls.get(layer).unwrap_abort();
+                if let Some(survey) = self.surveys.get(url) {
+                    let hips_cfg = survey.get_config();
+                    (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0
                 } else {
-                    // define a vao that consists of 2 triangles for the screen
-                    &self.screen_vao
-                };
+                    // image fits case
+                    false
+                }
+            });
 
-                get_backgroundcolor_shader(&self.gl, shaders).bind(&self.gl).attach_uniforms_from(camera)
-                    .attach_uniform("color", &background_color)
-                    .attach_uniform("opacity", &1.0)
-                    .bind_vertex_array_object_ref(vao)
-                        .draw_elements_with_i32(
-                            WebGl2RenderingContext::TRIANGLES,
-                            None,
-                            WebGl2RenderingContext::UNSIGNED_SHORT,
-                            0,
-                        );
-            }
+        // Need to render transparency font
+        if render_background_color {
+            let background_color = &self.background_color;
+
+            let vao = if raytracing {
+                raytracer.get_vao()
+            } else {
+                // define a vao that consists of 2 triangles for the screen
+                &self.screen_vao
+            };
+
+            get_backgroundcolor_shader(&self.gl, shaders).bind(&self.gl).attach_uniforms_from(camera)
+                .attach_uniform("color", &background_color)
+                .bind_vertex_array_object_ref(vao)
+                    .draw_elements_with_i32(
+                        WebGl2RenderingContext::TRIANGLES,
+                        None,
+                        WebGl2RenderingContext::UNSIGNED_SHORT,
+                        0,
+                    );
         }
+
 
         // The first layer must be paint independently of its alpha channel
         self.gl.enable(WebGl2RenderingContext::BLEND);
@@ -260,12 +253,13 @@ impl Layers {
             let meta = self.meta.get(layer).expect("Meta should be found");
 
             let url = self.urls.get(layer).expect("Url should be found");
-            let survey = self.surveys.get_mut(url).unwrap_abort();
-            let hips_cfg = survey.get_config();
+            if let Some(survey) = self.surveys.get_mut(url) {
+                let hips_cfg = survey.get_config();
 
-            let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0;
-            if fully_covering_survey {
-                idx_start_layer = idx_layer;
+                let fully_covering_survey = (survey.is_allsky() || hips_cfg.get_format() == ImageFormatType::RGB8U) && meta.opacity == 1.0;
+                if fully_covering_survey {
+                    idx_start_layer = idx_layer;
+                }
             }
         }
 

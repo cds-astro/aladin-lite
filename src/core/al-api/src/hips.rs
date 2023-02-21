@@ -1,4 +1,5 @@
 use wasm_bindgen::JsValue;
+use js_sys::Uint8Array;
 
 use super::blend::BlendCfg;
 use serde::Deserialize;
@@ -23,6 +24,16 @@ impl HiPSCfg {
     pub fn get_properties(&self) -> &HiPSProperties {
         &self.properties
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FITSCfg {
+    /// Layer name
+    pub layer: String,
+    pub url: String,
+    /// Its color
+    pub meta: ImageMetadata,
 }
 
 use crate::coo_system::CooSystem;

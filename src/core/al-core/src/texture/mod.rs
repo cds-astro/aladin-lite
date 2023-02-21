@@ -204,7 +204,7 @@ impl Texture2D {
             None,
         )
         .expect("Texture 2D");
-        //gl.generate_mipmap(WebGl2RenderingContext::TEXTURE_2D);
+        //gl.generate_mipmap(WebGlRenderingCtx::TEXTURE_2D);
 
         let gl = gl.clone();
         let metadata = Some(Rc::new(RefCell::new(Texture2DMeta {

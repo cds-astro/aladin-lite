@@ -127,8 +127,6 @@ export let ImageSurvey = (function() {
     function ImageSurvey(id, name, rootURL, view, options) {
         // A reference to the view
         this.backend = view;
-        // Name of the layer
-        this.layer = null;
         this.added = false;
         this.id = id;
         this.name = name;
@@ -165,6 +163,10 @@ export let ImageSurvey = (function() {
         }
         this.longitudeReversed = longitudeReversed;
 
+        // initialize the color meta data here
+        this.colorCfg = new ColorCfg(options);
+        updateMetadata(this);
+
         let idxSelectedHiPS = 0;
         const surveyFound = ImageSurvey.SURVEYS.some(s => {
             let res = this.id.endsWith(s.id);
@@ -174,11 +176,6 @@ export let ImageSurvey = (function() {
 
             return res;
         });
-
-        // initialize the color meta data here
-        this.colorCfg = new ColorCfg(options);
-        updateMetadata(this);
-
         const opt = {
             ...this.colorCfg.get(),
             imgFormat: this.imgFormat,
@@ -197,7 +194,7 @@ export let ImageSurvey = (function() {
         }
 
         let self = this;
-        this.queryPromise = (async () => {
+        self.query = (async () => {
             const metadata = await fetchSurveyProperties(rootURL || id);
             // HiPS url
             self.name = self.name || metadata.obs_title;
@@ -215,34 +212,34 @@ export let ImageSurvey = (function() {
             const order = (+metadata.hips_order);
 
             // HiPS tile format
-            const formats = metadata.hips_tile_format || "jpeg";
-            const tileFormats = formats.split(' ').map((fmt) => fmt.toLowerCase());
+            let formats = metadata.hips_tile_format || "jpeg";
+            formats = formats.split(' ').map((fmt) => fmt.toLowerCase());
             if (self.imgFormat) {
                 // user wants a fits but the metadata tells this format is not available
-                if (self.imgFormat === "fits" && tileFormats.indexOf('fits') < 0) {
+                if (self.imgFormat === "fits" && formats.indexOf('fits') < 0) {
                     throw self.name + " does not provide fits tiles";
                 }
                 
-                if (self.imgFormat === "png" && tileFormats.indexOf('png') < 0) {
+                if (self.imgFormat === "png" && formats.indexOf('png') < 0) {
                     throw self.name + " does not provide png tiles";
                 }
                 
-                if (self.imgFormat === "jpeg" && tileFormats.indexOf('jpeg') < 0) {
+                if (self.imgFormat === "jpeg" && formats.indexOf('jpeg') < 0) {
                     throw self.name + " does not provide jpeg tiles";
                 }
             } else {
                 // user wants nothing then we choose one from the metadata
-                if (tileFormats.indexOf('png') >= 0) {
+                if (formats.indexOf('png') >= 0) {
                     self.imgFormat = "png";
                     self.fits = false;
-                } else if (tileFormats.indexOf('jpeg') >= 0) {
+                } else if (formats.indexOf('jpeg') >= 0) {
                     self.imgFormat = "jpeg";
                     self.fits = false;
-                } else if (tileFormats.indexOf('fits') >= 0) {
+                } else if (formats.indexOf('fits') >= 0) {
                     self.imgFormat = "fits";
                     self.fits = true;
                 } else {
-                    throw "Unsupported format(s) found in the metadata: " + tileFormats;
+                    throw "Unsupported format(s) found in the metadata: " + formats;
                 }
             }
 
@@ -329,7 +326,7 @@ export let ImageSurvey = (function() {
                 maxOrder: order,
                 frame: frame,
                 tileSize: tileSize,
-                formats: tileFormats,
+                formats: formats,
                 minCutout: propertiesDefaultMinCut,
                 maxCutout: propertiesDefaultMaxCut,
                 bitpix: bitpix,
@@ -340,6 +337,7 @@ export let ImageSurvey = (function() {
                 hipsInitialDec: initialDec,
                 colored: self.colored,
             };
+            self.formats = formats;
 
             // Set the cuts at this point, if the user gave one, keep it
             // otherwise, set it to default values found in the HiPS properties
@@ -396,7 +394,9 @@ export let ImageSurvey = (function() {
                 surveyDef.maxOrder = self.properties.maxOrder;
                 surveyDef.url = self.properties.url;
             }
-        })();
+
+            return self;
+        });
     };
 
     ImageSurvey.prototype.getFastestHiPSMirror = async function(metadata) {
@@ -619,6 +619,18 @@ export let ImageSurvey = (function() {
             // Display the error message
             console.error(e);
         }
+    }
+
+    ImageSurvey.prototype.add = function(layer) {
+        this.layer = layer;
+
+        this.backend.aladin.webglAPI.addImageSurvey({
+            layer: this.layer,
+            properties: this.properties,
+            meta: this.metadata(),
+        });
+
+        this.added = true;
     }
 
     // @api

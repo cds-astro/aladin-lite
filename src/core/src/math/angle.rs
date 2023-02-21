@@ -344,6 +344,10 @@ where
     pub fn to_radians(&self) -> S {
         self.0
     }
+
+    pub fn to_degrees(&self) -> S {
+        self.0.to_degrees()
+    }
 }
 
 pub trait ToAngle<S>

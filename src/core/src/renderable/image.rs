@@ -6,6 +6,8 @@ use moclib::qty::Hpx;
 use moclib::elem::cell::Cell;
 use moclib::moc::{RangeMOCIterator, RangeMOCIntoIterator};
 
+use wcs::LonLat;
+
 use web_sys::WebGl2RenderingContext;
 
 use al_api::cell::HEALPixCellProjeted;
@@ -52,6 +54,8 @@ pub struct FitsImage {
     blank: f32,
     scale: f32,
     offset: f32,
+
+    center: LonLat,
 }
 
 impl FitsImage {
@@ -145,7 +149,7 @@ impl FitsImage {
         let tr = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, height - 1.0)).ok_or(JsValue::from_str("(w - 1, h - 1) px cannot be unprojected"))?;
         let tl = wcs.unproj_lonlat(&ImgXY::new(0.0, height - 1.0)).ok_or(JsValue::from_str("(0, h - 1) px cannot be unprojected"))?;
 
-        let control_point = wcs.unproj_lonlat(&ImgXY::new(width / 2.0, height / 2.0)).ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
+        let center = wcs.unproj_lonlat(&ImgXY::new(width / 2.0, height / 2.0)).ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
         
         let mut num_moc_cells = std::usize::MAX;
         let mut depth = 11;
@@ -159,7 +163,7 @@ impl FitsImage {
                     (tr.lon(), tr.lat()),
                     (tl.lon(), tl.lat()),
                 ],
-                (control_point.lon(), control_point.lat()),
+                (center.lon(), center.lat()),
                 depth
             );
 
@@ -245,6 +249,8 @@ impl FitsImage {
             scale,
             offset,
             blank,
+
+            center,
         };
 
         Ok(image)
@@ -366,6 +372,10 @@ impl FitsImage {
         self.gl.disable(WebGl2RenderingContext::BLEND);
 
         Ok(())
+    }
+
+    pub fn get_center(&self) -> &LonLat {
+        &self.center
     }
 }
 

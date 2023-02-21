@@ -55,18 +55,21 @@ vec4 get_color_from_texture(vec3 UV) {
     return apply_tonal(color);
 }
 
-vec4 get_colormap_from_grayscale_texture(vec3 UV) {
-    // FITS data pixels are reversed along the y axis
-    vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
-
-    vec4 color = get_pixels(uv);
-    float x = color.r;
+vec4 apply_colormap_to_grayscale(float x, float a) {
     float alpha = x * scale + offset;
     alpha = transfer_func(H, alpha, min_value, max_value);
 
     // apply reversed
     alpha = mix(alpha, 1.0 - alpha, reversed);
 
-    vec4 new_color = mix(colormap_f(alpha) * color.a, vec4(0.0), float(x == blank || isnan(x)));
+    vec4 new_color = mix(colormap_f(alpha) * a, vec4(0.0), float(x == blank || isnan(x)));
     return apply_tonal(new_color);
+}
+
+vec4 get_colormap_from_grayscale_texture(vec3 UV) {
+    // FITS data pixels are reversed along the y axis
+    vec3 uv = mix(UV, reverse_uv(UV), float(tex_storing_fits == 1));
+
+    vec4 color = get_pixels(uv);
+    return apply_colormap_to_grayscale(color.r, color.a);
 }

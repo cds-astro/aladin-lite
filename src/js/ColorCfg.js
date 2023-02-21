@@ -46,8 +46,8 @@
             this.reversed = true;
         }
 
-        this.minCut = options && options.minCut;
-        this.maxCut = options && options.maxCut;
+        this.minCut = (options && options.minCut) || 0.0;
+        this.maxCut = (options && options.maxCut) || 1.0;
 
         this.additiveBlending = options && options.additive;
         if (this.additiveBlending === undefined)  {

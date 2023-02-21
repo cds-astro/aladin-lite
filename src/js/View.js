@@ -34,7 +34,7 @@ import { Popup } from "./Popup.js";
 import { HealpixGrid } from "./HealpixGrid.js";
 import { ProjectionEnum } from "./ProjectionEnum.js";
 import { AladinUtils } from "./AladinUtils.js";
-import { Utils } from "./Utils.js";
+import { Utils, dropHandler } from "./Utils.js";
 import { SimbadPointer } from "./SimbadPointer.js";
 import { Stats } from "./libs/Stats.js";
 import { Footprint } from "./Footprint.js";
@@ -58,6 +58,7 @@ export let View = (function () {
         this.aladinDiv = this.aladin.aladinDiv;
         this.popup = new Popup(this.aladinDiv, this);
         this.createCanvases();
+        let self = this;
         // Init the WebGL context
         // At this point, the view has been created so the image canvas too
         try {
@@ -75,6 +76,29 @@ export let View = (function () {
             // 2. Add a more explicite message to the end user
             alert("Problem initializing Aladin Lite. Please contact the support by contacting Matthieu Baumann (baumannmatthieu0@gmail.com) or Thomas Boch (thomas.boch@astro.unistra.fr). You can also open an issue on the Aladin Lite github repository here: https://github.com/cds-astro/aladin-lite. Message error:" + e)
         }
+
+        // Attach the drag and drop events to the view
+        this.aladinDiv.ondrop = (event) => {
+            const files = Utils.getDroppedFilesHandler(event);
+
+            files.forEach((file) => {
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+
+                reader.addEventListener("load", () => {
+                    // The file has been loaded
+                    const url = URL.createObjectURL(file);
+                    try {
+                        self.aladin.displayFITS(url, undefined, undefined, undefined, Utils.uuidv4());
+                    } catch(e) {
+                        console.error("Only valid fits files supported (i.e. containig a WCS)")
+                        throw e;
+                    }
+                }, false);
+            })
+        };
+
+        this.aladinDiv.ondragover = Utils.dragOverHandler;
 
         this.location = location;
         this.fovDiv = fovDiv;
@@ -182,7 +206,6 @@ export let View = (function () {
         init(this);
         // listen to window resize and reshape canvases
         this.resizeTimer = null;
-        var self = this;
         let resizeObserver = new ResizeObserver(() => { 
             self.fixLayoutDimensions();
             self.requestRedraw();
@@ -1410,7 +1433,8 @@ export let View = (function () {
                 ALEvent.HIPS_LAYER_ADDED.dispatchedTo(self.aladinDiv, { survey: imageLayer });
             })
             .catch((e) => {
-                console.error(e)
+                console.log("jjfjj")
+                throw e;
             })
             .finally(() => {
                 self.imageLayersBeingQueried.delete(layer);

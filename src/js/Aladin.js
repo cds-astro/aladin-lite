@@ -997,15 +997,34 @@ export let Aladin = (function () {
     };
 
     Aladin.prototype.createImageFITS = function(rootUrl, options = {}, successCallback = undefined, errorCallback = undefined) {
-        let cfg = this.cacheSurveys.get(rootUrl);
+        let url;
+
+        try {
+            url = new URL(rootUrl);
+        } catch(e) {
+            // The url could be created
+            url = Utils.getAbsoluteURL(rootUrl)
+            url = new URL(url);
+        }
+
+        // Check the protocol, for http ones, use a CORS compatible proxy
+        if ((url.protocol === "http:" || url.protocol === "https:") && url.hostname !== "localhost") {
+            // http(s) protocols and not in localhost
+            let proxiedUrl = new URL(Aladin.JSONP_PROXY);
+            proxiedUrl.searchParams.append("url", url);
+
+            url = proxiedUrl;
+        }
+
+        let cfg = this.cacheSurveys.get(url);
         if (!cfg) {
-            cfg = {rootUrl, options, successCallback, errorCallback}
-            this.cacheSurveys.set(rootUrl, cfg);
+            cfg = {url, options, successCallback, errorCallback}
+            this.cacheSurveys.set(url, cfg);
         } else {
             cfg = Utils.clone(cfg)
         }
 
-        return new ImageFITS(cfg.rootUrl, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
+        return new ImageFITS(cfg.url, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
@@ -1072,11 +1091,11 @@ export let Aladin = (function () {
     };
 
     // @api
-    Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrSurvey, layer = "overlay") {
-        let survey;
+    Aladin.prototype.setOverlayImageLayer = function (idOrUrlOrImageLayer, layer = "overlay") {
+        let imageLayer;
         // 1. User gives an ID
-        if (typeof idOrUrlOrSurvey === "string") {
-            const idOrUrl = idOrUrlOrSurvey;
+        if (typeof idOrUrlOrImageLayer === "string") {
+            const idOrUrl = idOrUrlOrImageLayer;
             // Check if the survey has already been added
             // Create a new ImageSurvey
             let isUrl = false;
@@ -1089,18 +1108,18 @@ export let Aladin = (function () {
                 const url = idOrUrl;
                 const id = url;
                 // Url
-                survey = this.createImageSurvey(id, name, url, null, null);
+                imageLayer = this.createImageSurvey(id, name, url, null, null);
             } else {
                 const id = idOrUrl;
                 // ID
-                survey = this.createImageSurvey(id, name, undefined, null, null);
+                imageLayer = this.createImageSurvey(id, name, undefined, null, null);
             }
         // 2. User gives a non resolved promise
         } else {
-            survey = idOrUrlOrSurvey;
+            imageLayer = idOrUrlOrImageLayer;
         }
 
-        return this.view.setOverlayImageLayer(survey, layer);
+        return this.view.setOverlayImageLayer(imageLayer, layer);
     };
 
     // @api
@@ -1587,72 +1606,8 @@ Aladin.prototype.getEmbedCode = function () {
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
 Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
-    options = options || {};
-
-    var data = { url: url };
-    if (options.color) {
-        data.color = true;
-    }
-    if (options.outputFormat) {
-        data.format = options.outputFormat;
-    }
-    if (options.order) {
-        data.order = options.order;
-    }
-    if (options.nocache) {
-        data.nocache = options.nocache;
-    }
-    let self = this;
-
-    const request = ( url, params = {}, method = 'GET' ) => {
-        let options = {
-            method
-        };
-        if ( 'GET' === method ) {
-            url += '?' + ( new URLSearchParams( params ) ).toString();
-        } else {
-            options.body = JSON.stringify( params );
-        }
-        
-        return fetch( url, options ).then( response => response.json() );
-    };
-    const get = ( url, params ) => request( url, params, 'GET' );
-
-    /*get('https://alasky.unistra.fr/cgi/fits2HiPS', data)
-        .then(async (response) => {
-            if (response.status != 'success') {
-                console.error('An error occured: ' + response.message);
-                if (errorCallback) {
-                    errorCallback(response.message);
-                }
-                return;
-            }
-            var label = options.label || "FITS image";
-            var meta = response.data.meta;
-
-            const survey = self.createImageSurvey(response.data.url, label);
-            self.setOverlayImageLayer(survey, "overlay");
-
-            var transparency = (options && options.transparency) || 1.0;
-
-            var executeDefaultSuccessAction = true;
-            if (successCallback) {
-                executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov, survey);
-            }
-            if (executeDefaultSuccessAction === true) {
-                self.webglAPI.setCenter(meta.ra, meta.dec);
-                self.setFoV(meta.fov);
-            }
-
-            // TODO! set an image survey once the already loaded surveys
-            // are READY! Otherwise it can lead to some congestion and avoid
-            // downloading the base tiles of the other surveys loading!
-            // This has to be fixed in the backend but a fast fix is just to wait
-            // before setting a new image survey
-        });
-    */
-    const imageFits = self.createImageFITS(url, options, successCallback, errorCallback);
-    self.setOverlayImageLayer(imageFits, layer)
+    const imageFits = this.createImageFITS(url, options, successCallback, errorCallback);
+    this.setOverlayImageLayer(imageFits, layer)
 };
 
 // @API

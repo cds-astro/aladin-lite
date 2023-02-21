@@ -39,33 +39,13 @@
       * They will be determined by reading the properties file
       *  
       */
-     function ImageFITS(url, view, options, successCallback = undefined, errorCallback = undefined) {
+    function ImageFITS(url, view, options, successCallback = undefined, errorCallback = undefined) {
         this.view = view;
         // Name of the layer
         this.layer = null;
         this.added = false;
         // Set it to a default value
-        try {
-            this.url = new URL(url);
-        } catch(e) {
-            // The url could be created
-            url = Utils.getAbsoluteURL(url)
-            this.url = new URL(url);
-        }
-        let init = {};
-        console.log(this.url)
-        // Check the protocol, for http ones, use a CORS compatible proxy
-        if (this.url.protocol === "file:") {
-            init = { mode: 'no-cors'};
-        } else if ((Utils.isHttpContext() || Utils.isHttpsContext()) && this.url.hostname !== "localhost") {
-            // http(s) protocols and not in localhost
-            let url = new URL(Aladin.JSONP_PROXY);
-            url.searchParams.append("url", this.url);
-
-            this.url = url;
-        }
-
-        console.log(this.url)
+        this.url = url;
 
         this.id = this.url.toString();
         this.name = this.id;
@@ -109,15 +89,26 @@
         // Return a promise that take the layer name as parameter
         // and when resolved, will return the ImageFITS object
         self.query = (async () => {
+            const init = {
+                method: "GET",
+                headers: {
+                    Accept: 'application/fits'
+                }
+            };
+
             return fetch(this.url, init)
                 .then((resp) => resp.arrayBuffer())
                 .then((arrayBuffer) => {
-                    console.log(arrayBuffer)
                     self.arrayBuffer = new Uint8Array(arrayBuffer);
                     return self;
                 });
         });
     }
+
+    /*ImageFITS.createFromBlob = function(blob, view, options, successCallback = undefined, errorCallback = undefined) {
+        let image = new ImageFITS(new URL(), view, options, successCallback, errorCallback)
+
+    }*/
  
      // @api
      ImageFITS.prototype.setOpacity = function(opacity) {
@@ -231,6 +222,7 @@
             }
 
             // Error propagation
+            console.log("jkjkjkj")
             throw e;
         }
     };

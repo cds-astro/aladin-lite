@@ -370,3 +370,33 @@ Utils.clone = function(instance) {
     );
 }
 
+Utils.getDroppedFilesHandler = function(ev) {
+    console.log('File(s) dropped');
+
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+
+    let items;
+    if (ev.dataTransfer.items) {
+        // Use DataTransferItemList interface to access the file(s)
+        items = [...ev.dataTransfer.items];
+    } else {
+        // Use DataTransfer interface to access the file(s)
+        items = [...ev.dataTransfer.files];
+    }
+
+    const files = items.filter((item) => {
+        // If dropped items aren't files, reject them
+        return item.kind === 'file';
+    })
+    .map((item) => item.getAsFile());
+
+    console.log(files);
+    return files;
+}
+
+Utils.dragOverHandler = function(ev) {  
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+}
+

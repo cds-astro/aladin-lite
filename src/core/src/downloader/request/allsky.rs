@@ -41,7 +41,6 @@ async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
 
     let html_img_elt_promise = js_sys::Promise::new(
         &mut (Box::new(move |resolve, reject| {
-            // let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap_abort();
             image_cloned.set_cross_origin(Some(""));
             image_cloned.set_onload(
                 Some(&resolve)
@@ -49,7 +48,7 @@ async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
             image_cloned.set_onerror(
                 Some(&reject)
             );
-            image_cloned.set_src(url);
+            image_cloned.set_src(&url);
         }) as Box<dyn FnMut(js_sys::Function, js_sys::Function)>)
     );
 
@@ -67,9 +66,11 @@ async fn query_image(url: &str) -> Result<ImageBuffer<RGBA8U>, JsValue> {
         .unwrap_abort()
         .dyn_into::<web_sys::CanvasRenderingContext2d>()?;
     context.draw_image_with_html_image_element(&image, 0.0, 0.0)?;
+    
     let w = image.width();
     let h = image.height();
     let image_data = context.get_image_data(0.0, 0.0, w as f64, h as f64)?;
+
     let raw_bytes = image_data.data();
 
     Ok(ImageBuffer::from_raw_bytes(raw_bytes.0, w as i32, h as i32))

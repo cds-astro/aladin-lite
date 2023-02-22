@@ -33,6 +33,11 @@ import { ALEvent } from "./events/ALEvent.js";
 import { CooFrameEnum } from "./CooFrameEnum.js"
 import { MocServer } from "./MocServer.js";
 import { ColorCfg } from "./ColorCfg.js";
+import { Aladin } from "./Aladin.js";
+
+function LocalProtocolURLError () {}
+
+LocalProtocolURLError.prototype = new Error();
 
 export async function fetchSurveyProperties(rootURLOrId) {
     if (!rootURLOrId) {
@@ -40,13 +45,20 @@ export async function fetchSurveyProperties(rootURLOrId) {
     }
 
     let isUrl = false;
-    if (((Utils.isHttpContext() || Utils.isHttpsContext()) && rootURLOrId.includes("http")) || rootURLOrId.includes("file://")) {
+    try {
+        rootURLOrId = new URL(rootURLOrId);
         isUrl = true;
+    } catch(e) {}
+
+    if (rootURLOrId.protocol === "file:") {
+        throw new LocalProtocolURLError();
     }
 
     let metadata = {};
     // If an HiPS id has been given
     if (!isUrl) {
+        console.log("is not an url")
+
         // Use the MOCServer to retrieve the
         // properties
         const id = rootURLOrId;
@@ -88,7 +100,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
         }
     } else {
         // Fetch the properties of the survey
-        let rootURL = rootURLOrId;
+        let rootURL = rootURLOrId.toString();
         // Use the url for retrieving the HiPS properties
         // remove final slash
         if (rootURL.slice(-1) === '/') {
@@ -102,8 +114,14 @@ export async function fetchSurveyProperties(rootURLOrId) {
         rootURL = Utils.fixURLForHTTPS(rootURL)
 
         const url = rootURL + '/properties';
-        metadata = await fetch(url)
+
+        let init;
+        if(Utils.requestCORSIfNotSameOrigin(url)) {
+            init = {mode: 'cors'};
+        }
+        metadata = await fetch(url, init)
             .then((response) => response.text());
+
         // We get the property here
         metadata = HiPSDefinition.parseHiPSProperties(metadata);
 
@@ -112,7 +130,7 @@ export async function fetchSurveyProperties(rootURLOrId) {
             throw 'No surveys matching at this url: ' + rootURL;
         }
         // Set the service url if not found
-        metadata.hips_service_url = rootURLOrId;
+        metadata.hips_service_url = rootURLOrId.toString();
     }
 
     return metadata;
@@ -126,7 +144,7 @@ export let ImageSurvey = (function() {
      */
     function ImageSurvey(id, name, rootURL, view, options) {
         // A reference to the view
-        this.backend = view;
+        this.view = view;
         this.added = false;
         this.id = id;
         this.name = name;
@@ -195,149 +213,190 @@ export let ImageSurvey = (function() {
 
         let self = this;
         self.query = (async () => {
-            const metadata = await fetchSurveyProperties(rootURL || id);
-            // HiPS url
-            self.name = self.name || metadata.obs_title;
-            // Set it to a default value
-            self.url = metadata.hips_service_url;
-            // Request all the properties to see which mirror is the fastest
-            self.getFastestHiPSMirror(metadata);
-
-            if (!self.url) {
-                throw 'no valid service URL for retrieving the tiles'
-            }
-            self.url = Utils.fixURLForHTTPS(self.url);
-
-            // HiPS order
-            const order = (+metadata.hips_order);
-
-            // HiPS tile format
-            let formats = metadata.hips_tile_format || "jpeg";
-            formats = formats.split(' ').map((fmt) => fmt.toLowerCase());
-            if (self.imgFormat) {
-                // user wants a fits but the metadata tells this format is not available
-                if (self.imgFormat === "fits" && formats.indexOf('fits') < 0) {
-                    throw self.name + " does not provide fits tiles";
+            try {
+                const metadata = await fetchSurveyProperties(rootURL || id);
+                // HiPS url
+                self.name = self.name || metadata.obs_title;
+                // Set it to a default value
+                self.url = metadata.hips_service_url;
+                if (!self.url) {
+                    throw 'no valid service URL for retrieving the tiles'
                 }
-                
-                if (self.imgFormat === "png" && formats.indexOf('png') < 0) {
-                    throw self.name + " does not provide png tiles";
-                }
-                
-                if (self.imgFormat === "jpeg" && formats.indexOf('jpeg') < 0) {
-                    throw self.name + " does not provide jpeg tiles";
-                }
-            } else {
-                // user wants nothing then we choose one from the metadata
-                if (formats.indexOf('png') >= 0) {
-                    self.imgFormat = "png";
-                    self.fits = false;
-                } else if (formats.indexOf('jpeg') >= 0) {
-                    self.imgFormat = "jpeg";
-                    self.fits = false;
-                } else if (formats.indexOf('fits') >= 0) {
-                    self.imgFormat = "fits";
-                    self.fits = true;
+                self.url = Utils.fixURLForHTTPS(self.url);
+                self.url = Utils.fixURLForCORS(self.url);
+
+                // Request all the properties to see which mirror is the fastest
+                self.getFastestHiPSMirror(metadata);
+    
+                // HiPS order
+                const order = (+metadata.hips_order);
+    
+                // HiPS tile format
+                let formats = metadata.hips_tile_format || "jpeg";
+                formats = formats.split(' ').map((fmt) => fmt.toLowerCase());
+                if (self.imgFormat) {
+                    // user wants a fits but the metadata tells this format is not available
+                    if (self.imgFormat === "fits" && formats.indexOf('fits') < 0) {
+                        throw self.name + " does not provide fits tiles";
+                    }
+                    
+                    if (self.imgFormat === "png" && formats.indexOf('png') < 0) {
+                        throw self.name + " does not provide png tiles";
+                    }
+                    
+                    if (self.imgFormat === "jpeg" && formats.indexOf('jpeg') < 0) {
+                        throw self.name + " does not provide jpeg tiles";
+                    }
                 } else {
-                    throw "Unsupported format(s) found in the metadata: " + formats;
+                    // user wants nothing then we choose one from the metadata
+                    if (formats.indexOf('png') >= 0) {
+                        self.imgFormat = "png";
+                        self.fits = false;
+                    } else if (formats.indexOf('jpeg') >= 0) {
+                        self.imgFormat = "jpeg";
+                        self.fits = false;
+                    } else if (formats.indexOf('fits') >= 0) {
+                        self.imgFormat = "fits";
+                        self.fits = true;
+                    } else {
+                        throw "Unsupported format(s) found in the metadata: " + formats;
+                    }
+                }
+    
+                // HiPS order min
+                let hipsOrderMin = metadata.hips_order_min;
+                if (hipsOrderMin === undefined) {
+                    hipsOrderMin = 3;
+                } else {
+                    hipsOrderMin = +hipsOrderMin;
+                }
+    
+                // HiPS tile size
+                let tileSize = 512;
+                if (metadata.hips_tile_width) {
+                    tileSize = +metadata.hips_tile_width;
+                }
+    
+                // Check if the tile width size is a power of 2
+                if (tileSize & (tileSize - 1) !== 0) {
+                    tileSize = 512;
+                }
+    
+                // HiPS coverage sky fraction
+                const skyFraction = +metadata.moc_sky_fraction || 0.0;
+                // HiPS planet/planetoïde
+                let cooFrame = undefined;
+                if (metadata.hips_body !== undefined) {
+                    cooFrame = "ICRSd";
+                    self.longitudeReversed = true;
+                }
+    
+                // HiPS frame
+                cooFrame = cooFrame || metadata.hips_frame;
+                let frame = null;
+    
+                if (cooFrame == "ICRS" || cooFrame == "ICRSd" || cooFrame == "equatorial" || cooFrame == "j2000") {
+                    frame = "ICRSJ2000";
+                } else if (cooFrame == "galactic") {
+                    frame = "GAL";
+                } else if (cooFrame === undefined) {
+                    frame = "ICRSJ2000";
+                    console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
+                } else {
+                    frame = "ICRSd";
+                    console.warn('Invalid cooframe given: ' + cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
+                }
+    
+                // HiPS initial fov/ra/dec
+                let initialFov = +metadata.hips_initial_fov;
+                const initialRa = +metadata.hips_initial_ra;
+                const initialDec = +metadata.hips_initial_dec;
+    
+                if (initialFov < 0.00002777777) {
+                    initialFov = 360;
+                }
+    
+                // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
+                // For colored HiPS, no fits tiles provided
+    
+                // HiPS cutouts
+                let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
+                let propertiesDefaultMinCut = undefined;
+                let propertiesDefaultMaxCut = undefined;
+                if (cuts) {
+                    propertiesDefaultMinCut = parseFloat(cuts[0]);
+                    propertiesDefaultMaxCut = parseFloat(cuts[1]);
+                }
+    
+                // HiPS bitpix
+                let bitpix = undefined;
+                if (metadata.hips_pixel_bitpix) {
+                    bitpix = +metadata.hips_pixel_bitpix;
+                }
+    
+                self.colored = false;
+                if (metadata.dataproduct_subtype === 'color') {
+                    self.colored = true;
+                }
+    
+                if (metadata.hips_body !== undefined) {
+                    if (self.view.options.showFrame) {
+                        self.view.aladin.setFrame('J2000d');
+                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
+                    }
+                } else {
+                    if (self.view.options.showFrame) {
+                        const cooFrame = CooFrameEnum.fromString(self.view.options.cooFrame, CooFrameEnum.J2000);
+                        let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
+                        frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000.label + '" '
+                        + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
+                        + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
+                        + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
+                    }
+                }
+    
+                self.properties = {
+                    url: self.url,
+                    maxOrder: order,
+                    frame: frame,
+                    tileSize: tileSize,
+                    formats: formats,
+                    minCutout: propertiesDefaultMinCut,
+                    maxCutout: propertiesDefaultMaxCut,
+                    bitpix: bitpix,
+                    skyFraction: skyFraction,
+                    minOrder: hipsOrderMin,
+                    hipsInitialFov: initialFov,
+                    hipsInitialRa: initialRa,
+                    hipsInitialDec: initialDec,
+                    colored: self.colored,
+                };
+            } catch(error) {
+                // We are trying to find a properties using the file protocol
+                // It should not be possible because of CORS unsafety
+                if (error instanceof LocalProtocolURLError || error instanceof TypeError) {
+                    console.error("Cannot fetch properties: ", error)
+                    self.properties = {
+                        url: rootURL,
+                        maxOrder: options.maxOrder || 3,
+                        frame: options.cooFrame || "ICRSJ2000",
+                        tileSize: options.tileSize || 512,
+                        minOrder: options.minOrder || 0,
+                        formats: (self.imgFormat && [self.imgFormat]) || ["jpeg"],
+                    };
+
+                    console.log(self.properties)
+
+                    self.fits = self.imgFormat === "fits";
+                } else {
+                // The other exceptions cannot be handled and may concern an url not found
+                // or an id corresponding to anything
+                    throw error;
                 }
             }
 
-            // HiPS order min
-            let hipsOrderMin = metadata.hips_order_min;
-            if (hipsOrderMin === undefined) {
-                hipsOrderMin = 3;
-            } else {
-                hipsOrderMin = +hipsOrderMin;
-            }
-
-            // HiPS tile size
-            let tileSize = null;
-            if (metadata.hips_tile_width === undefined) {
-                tileSize = 512;
-            } else {
-                tileSize = +metadata.hips_tile_width;
-            }
-
-            // Check if the tile width size is a power of 2
-            if (tileSize & (tileSize - 1) !== 0) {
-                tileSize = 512;
-            }
-
-            // HiPS coverage sky fraction
-            const skyFraction = +metadata.moc_sky_fraction || 0.0;
-            // HiPS planet/planetoïde
-            let cooFrame = undefined;
-            if (metadata.hips_body !== undefined) {
-                cooFrame = "ICRSd";
-                self.longitudeReversed = true;
-            }
-
-            // HiPS frame
-            cooFrame = cooFrame || metadata.hips_frame;
-            let frame = null;
-
-            if (cooFrame == "ICRS" || cooFrame == "ICRSd" || cooFrame == "equatorial" || cooFrame == "j2000") {
-                frame = "ICRSJ2000";
-            } else if (cooFrame == "galactic") {
-                frame = "GAL";
-            } else if (cooFrame === undefined) {
-                frame = "ICRSJ2000";
-                console.warn('No cooframe given. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
-            } else {
-                frame = "ICRSd";
-                console.warn('Invalid cooframe given: ' + cooFrame + '. Coordinate systems supported: "ICRS", "ICRSd", "j2000" or "galactic". ICRS is chosen by default');
-            }
-
-            // HiPS initial fov/ra/dec
-            let initialFov = +metadata.hips_initial_fov;
-            const initialRa = +metadata.hips_initial_ra;
-            const initialDec = +metadata.hips_initial_dec;
-
-            if (initialFov < 0.00002777777) {
-                initialFov = 360;
-            }
-
-            // Grayscale hips, this is not mandatory that there are fits tiles associated with it unfortunately
-            // For colored HiPS, no fits tiles provided
-
-            // HiPS cutouts
-            let cuts = (metadata.hips_pixel_cut && metadata.hips_pixel_cut.split(" ")) || undefined;
-            let propertiesDefaultMinCut = undefined;
-            let propertiesDefaultMaxCut = undefined;
-            if ( cuts ) {
-                propertiesDefaultMinCut = parseFloat(cuts[0]);
-                propertiesDefaultMaxCut = parseFloat(cuts[1]);
-            }
-
-            // HiPS bitpix
-            let bitpix = undefined;
-            if (metadata.hips_pixel_bitpix) {
-                bitpix = +metadata.hips_pixel_bitpix;
-            }
-
-            self.colored = false;
-            if (metadata.dataproduct_subtype === 'color') {
-                self.colored = true;
-            }
-        
-            self.properties = {
-                url: self.url,
-                maxOrder: order,
-                frame: frame,
-                tileSize: tileSize,
-                formats: formats,
-                minCutout: propertiesDefaultMinCut,
-                maxCutout: propertiesDefaultMaxCut,
-                bitpix: bitpix,
-                skyFraction: skyFraction,
-                minOrder: hipsOrderMin,
-                hipsInitialFov: initialFov,
-                hipsInitialRa: initialRa,
-                hipsInitialDec: initialDec,
-                colored: self.colored,
-            };
-            self.formats = formats;
+            self.formats = self.properties.formats;
 
             // Set the cuts at this point, if the user gave one, keep it
             // otherwise, set it to default values found in the HiPS properties
@@ -352,23 +411,6 @@ export let ImageSurvey = (function() {
                 maxCut = self.colorCfg.maxCut || self.properties.maxCutout;
             }
             self.setCuts(minCut, maxCut);
-
-            if (metadata.hips_body !== undefined) {
-                if (self.backend.options.showFrame) {
-                    self.backend.aladin.setFrame('J2000d');
-                    let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
-                    frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000d.label + '" selected="selected">J2000d</option>';
-                }
-            } else {
-                if (self.backend.options.showFrame) {
-                    const cooFrame = CooFrameEnum.fromString(self.backend.options.cooFrame, CooFrameEnum.J2000);
-                    let frameChoiceElt = document.querySelectorAll('.aladin-location > .aladin-frameChoice')[0];
-                    frameChoiceElt.innerHTML = '<option value="' + CooFrameEnum.J2000.label + '" '
-                    + (cooFrame == CooFrameEnum.J2000 ? 'selected="selected"' : '') + '>J2000</option><option value="' + CooFrameEnum.J2000d.label + '" '
-                    + (cooFrame == CooFrameEnum.J2000d ? 'selected="selected"' : '') + '>J2000d</option><option value="' + CooFrameEnum.GAL.label + '" '
-                    + (cooFrame == CooFrameEnum.GAL ? 'selected="selected"' : '') + '>GAL</option>';
-                }
-            }
 
             ////// Update SURVEYS
             let idxSelectedHiPS = 0;
@@ -402,6 +444,10 @@ export let ImageSurvey = (function() {
     ImageSurvey.prototype.getFastestHiPSMirror = async function(metadata) {
         let self = this;
         const pingHipsServiceUrl = (hipsServiceUrl) => {
+            hipsServiceUrl = Utils.fixURLForHTTPS(hipsServiceUrl);
+            hipsServiceUrl = Utils.fixURLForCORS(hipsServiceUrl);
+            console.log("properties url", hipsServiceUrl)
+
             const controller = new AbortController()
 
             let startRequestTime = Date.now();
@@ -484,7 +530,7 @@ export let ImageSurvey = (function() {
 
             // If added to the backend, then we need to tell it the url has changed
             if (self.added) {
-                self.backend.aladin.webglAPI.setHiPSUrl(pastUrl, url);
+                self.view.aladin.webglAPI.setHiPSUrl(pastUrl, url);
             }
         }
 
@@ -611,9 +657,9 @@ export let ImageSurvey = (function() {
         try {
             if( self.added ) {
                 const metadata = self.metadata();
-                self.backend.aladin.webglAPI.setImageMetadata(self.layer, metadata);
+                self.view.aladin.webglAPI.setImageMetadata(self.layer, metadata);
                 // once the meta have been well parsed, we can set the meta 
-                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.backend.aladinDiv, {survey: self});
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, {survey: self});
             }
         } catch(e) {
             // Display the error message
@@ -623,8 +669,12 @@ export let ImageSurvey = (function() {
 
     ImageSurvey.prototype.add = function(layer) {
         this.layer = layer;
-
-        this.backend.aladin.webglAPI.addImageSurvey({
+        console.log({
+            layer: this.layer,
+            properties: this.properties,
+            meta: this.metadata(),
+        })
+        this.view.aladin.webglAPI.addImageSurvey({
             layer: this.layer,
             properties: this.properties,
             meta: this.metadata(),
@@ -665,7 +715,7 @@ export let ImageSurvey = (function() {
 
     // @api
     ImageSurvey.prototype.readPixel = function(x, y) {
-        return this.backend.aladin.webglAPI.readPixel(x, y, this.layer);
+        return this.view.aladin.webglAPI.readPixel(x, y, this.layer);
     };
 
     /* Some constants */
@@ -831,13 +881,17 @@ export let ImageSurvey = (function() {
             url: "https://alasky.cds.unistra.fr/AllWISE/RGB-W4-W2-W1/",
             maxOrder: 8,
         },
-        /*//The page is down
+        //The page is down
         {
             id: "P/GLIMPSE360",
             name: "GLIMPSE360",
-            url: "https://alasky.cds.unistra.fr/cgi/JSONProxy?url=http://www.spitzer.caltech.edu/glimpse360/aladin/data",
-            maxOrder: 9,
-        },*/
+            url: "https://www.spitzer.caltech.edu/glimpse360/aladin/data",
+            options: {
+                maxOrder: 9,
+                imgFormat: "jpg",
+                minOrder: 3,
+            }
+        },
     ];
 
     ImageSurvey.getAvailableSurveys = function() {

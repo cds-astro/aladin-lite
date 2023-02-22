@@ -94,7 +94,7 @@ use moclib::deser::fits;
 
 use std::io::Cursor;
 
-use al_api::hips::{HiPSColor, HiPSProperties};
+use al_api::hips::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use al_api::color::{Color, ColorRGBA};
 use al_api::fov::FoV;

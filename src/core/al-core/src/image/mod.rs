@@ -2,6 +2,7 @@ pub mod bitmap;
 pub mod fits;
 pub mod format;
 pub mod html;
+pub mod canvas;
 pub mod raw;
 
 pub trait ArrayBuffer: AsRef<js_sys::Object> + std::fmt::Debug {
@@ -179,6 +180,7 @@ impl ArrayBuffer for ArrayF64 {
 }
 
 use self::html::HTMLImage;
+use self::canvas::Canvas;
 use wasm_bindgen::JsValue;
 use super::Texture2DArray;
 pub trait Image {
@@ -260,6 +262,7 @@ use raw::ImageBuffer;
 #[cfg(feature = "webgl2")]
 pub enum ImageType {
     FitsImage { raw_bytes: js_sys::Uint8Array },
+    Canvas { canvas: Canvas<RGBA8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
     JpgImageRgb8u { image: Bitmap<RGB8U> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
@@ -275,6 +278,7 @@ pub enum ImageType {
 #[cfg(feature = "webgl1")]
 pub enum ImageType {
     FitsImage { raw_bytes: js_sys::Uint8Array },
+    Canvas { canvas: Canvas<RGBA8U> },
     PngHTMLImageRgba8u { image: HTMLImage<RGBA8U> },
     JpgHTMLImageRgb8u { image: HTMLImage<RGB8U> },
     PngImageRgba8u { image: Bitmap<RGBA8U> },
@@ -303,6 +307,7 @@ impl Image for ImageType {
                 let fits_img = Fits::from_byte_slice(raw_bytes.as_slice())?;
                 fits_img.tex_sub_image_3d(textures, offset)?
             },
+            ImageType::Canvas { canvas } => canvas.tex_sub_image_3d(textures, offset)?,
             ImageType::PngImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::JpgImageRgb8u { image } => image.tex_sub_image_3d(textures, offset)?,
             ImageType::PngHTMLImageRgba8u { image } => image.tex_sub_image_3d(textures, offset)?,

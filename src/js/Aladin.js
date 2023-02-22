@@ -384,6 +384,23 @@ export let Aladin = (function () {
                     i++;
                 });
             } else {
+                // Check if it is present in surveys
+                /*try {
+                    let url = new URL(options.survey);
+
+                } catch(e) {
+                    const survey = ImageSurvey.SURVEYS.some(s => {
+                        let res = options.survey.endsWith(s.id);
+                        return res;
+                    });
+    
+                    if (survey) {
+                        console.log()
+                        options.survey = this.createImageSurvey(survey.id, survey.id, survey.url, null, null, survey.options);
+                        
+                    }
+                }*/
+                
                 this.setBaseImageLayer(options.survey);
             }
         } else {
@@ -983,8 +1000,14 @@ export let Aladin = (function () {
     Aladin.prototype.createImageSurvey = function(id, name, rootUrl, cooFrame, maxOrder, options = {}) {
         let cfg = this.cacheSurveys.get(id);
         if (!cfg) {
+            // Add the cooFrame and maxOrder given by the user
+            // to the list of options passed to the ImageSurvey constructor
             if (cooFrame) {
                 options.cooFrame = cooFrame;
+            }
+
+            if (maxOrder) {
+                options.maxOrder = maxOrder;
             }
     
             cfg = {id, name, rootUrl, options};
@@ -1250,7 +1273,7 @@ export let Aladin = (function () {
     Aladin.prototype.exportAsPNG = function (imgFormat) {
         (async () => {
             var w = window.open();
-            w.document.write('<img src="' + await this.getViewDataURL() + '">');
+            w.document.write('<img src="' + await this.getViewDataURL() + '" width="' + this.view.width + 'px">');
             w.document.title = 'Aladin Lite snapshot';
         })();
     };

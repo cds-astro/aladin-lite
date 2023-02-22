@@ -3,6 +3,7 @@ pub use texture_array::Texture2DArray;
 
 pub mod pixel;
 pub use pixel::*;
+use web_sys::HtmlCanvasElement;
 
 use crate::webgl_ctx::WebGlContext;
 use crate::webgl_ctx::WebGlRenderingCtx;
@@ -384,14 +385,9 @@ use crate::Abort;
 
 pub struct Texture2DBound<'a> {
     texture_2d: &'a Texture2D,
-    //idx_tex_unit: u8
 }
 
 impl<'a> Texture2DBound<'a> {
-    /*pub fn get_idx_sampler(&self) -> i32 {
-        self.idx_tex_unit as i32
-    }*/
-
     pub fn tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         &self,
         dx: i32,
@@ -424,6 +420,43 @@ impl<'a> Texture2DBound<'a> {
                 metadata.format,
                 metadata.type_,
                 image,
+            )
+            .expect("Sub texture 2d");
+        //self.texture_2d.gl.flush();
+    }
+
+    pub fn tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
+        &self,
+        dx: i32,
+        dy: i32,
+        canvas: &HtmlCanvasElement,
+    ) {
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
+
+        #[cfg(feature = "webgl2")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_html_canvas_element(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                metadata.format,
+                metadata.type_,
+                canvas,
+            )
+            .expect("Sub texture 2d");
+        #[cfg(feature = "webgl1")]
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_u32_and_u32_and_canvas(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                metadata.format,
+                metadata.type_,
+                canvas,
             )
             .expect("Sub texture 2d");
         //self.texture_2d.gl.flush();

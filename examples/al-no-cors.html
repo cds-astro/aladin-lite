@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+    let aladin;
+    A.init.then(() => {
+        // Start up Aladin Lite
+        aladin = A.aladin('#aladin-lite-div', {
+            fov: 360,
+            target: '0 0',
+            fullScreen: true,
+            survey: "P/GLIMPSE360",
+            showCooGrid: true,
+        });
+    });
+</script>
+
+</body>
+</html>

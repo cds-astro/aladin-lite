@@ -264,6 +264,12 @@ impl HiPSConfig {
             HiPSTileFormat::Jpeg => Ok(ImageFormatType::RGB8U),
         }?;
 
+        let colored = properties.is_colored()
+            // Colored flag has not been specified, thus we need to deduce it
+            // FITS files always correspond to grayscale textures
+            .unwrap_or(!tex_storing_fits);
+
+
         let empty_image = EmptyTileImage::new(tile_size, format);
 
         let texture_size = std::cmp::min(512, tile_size << max_depth_tile);
@@ -277,10 +283,12 @@ impl HiPSConfig {
         let size_tile_uv = 1_f32 / ((8 << delta_depth) as f32);
 
         let frame = properties.get_frame();
-        let is_allsky = properties.get_sky_fraction() >= 1.0;
+        let sky_fraction = properties.get_sky_fraction().unwrap_or(1.0);
+
+        let is_allsky = sky_fraction >= 1.0;
 
         let min_depth_texture = properties.get_min_order();
-        let min_depth_tile = min_depth_texture;
+        let min_depth_tile = min_depth_texture.unwrap_or(0);
         let hips_config = HiPSConfig {
             // HiPS name
             root_url: root_url.to_string(),
@@ -317,7 +325,7 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
-            colored: properties.is_colored()
+            colored
         };
 
         Ok(hips_config)

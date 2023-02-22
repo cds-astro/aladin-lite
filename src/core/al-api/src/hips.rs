@@ -1,5 +1,4 @@
 use wasm_bindgen::JsValue;
-use js_sys::Uint8Array;
 
 use super::blend::BlendCfg;
 use serde::Deserialize;
@@ -46,11 +45,12 @@ pub struct HiPSProperties {
     max_order: u8,
     frame: CooSystem,
     tile_size: i32,
-    bitpix: Option<i32>,
     formats: Vec<HiPSTileFormat>,
-    sky_fraction: f32,
-    min_order: u8,
-    colored: bool,
+    colored: Option<bool>,
+
+    bitpix: Option<i32>,
+    sky_fraction: Option<f32>,
+    min_order: Option<u8>,
 
     hips_initial_fov: Option<f64>,
     hips_initial_ra: Option<f64>,
@@ -73,7 +73,7 @@ impl HiPSProperties {
     }
 
     #[inline]
-    pub fn get_min_order(&self) -> u8 {
+    pub fn get_min_order(&self) -> Option<u8> {
         self.min_order
     }
 
@@ -98,7 +98,7 @@ impl HiPSProperties {
     }
 
     #[inline]
-    pub fn get_sky_fraction(&self) -> f32 {
+    pub fn get_sky_fraction(&self) -> Option<f32> {
         self.sky_fraction
     }
 
@@ -118,7 +118,7 @@ impl HiPSProperties {
     }
 
     #[inline]
-    pub fn is_colored(&self) -> bool {
+    pub fn is_colored(&self) -> Option<bool> {
         self.colored
     }
 }

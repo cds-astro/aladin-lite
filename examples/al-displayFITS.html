@@ -17,14 +17,14 @@
         aladin = A.aladin('#aladin-lite-div', {cooFrame: "icrs", fullScreen: true});
 
         aladin.displayFITS(
-            //'http://data.astropy.org/tutorials/FITS-images/HorseHead.fits', // url of the fits file
+            'http://data.astropy.org/tutorials/FITS-images/HorseHead.fits', // url of the fits file
             //'fits/HorseHead.fits',
             //'fits/neowise.fits',
-            'fits/irac.fits',
+            //'fits/irac.fits',
             //'fits/FOCx38i0101t_c0f.fits',
             {
-                minCut: -0.2,
-                maxCut: 7,
+                minCut: 5000,
+                maxCut: 17000,
             }, // no optional params
             (ra, dec, fov, image) => { // ra, dec and fov are centered around the fits image 
                 image.setColormap("magma", {stretch: "asinh"});                

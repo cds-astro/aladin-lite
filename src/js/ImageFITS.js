@@ -27,19 +27,13 @@
  * Authors: Matthieu Baumann [CDS]
  * 
  *****************************************************************************/
- import { Utils } from "./Utils.js";
- import { ALEvent } from "./events/ALEvent.js";
- import { ColorCfg } from "./ColorCfg.js";
- import { ImageSurvey } from "./ImageSurvey.js";
- import { Aladin } from "./Aladin.js";
+import { ALEvent } from "./events/ALEvent.js";
+import { ColorCfg } from "./ColorCfg.js";
+import { ImageLayer } from "./ImageLayer.js";
 
- export let ImageFITS = (function() {
-     /** Constructor
-      * cooFrame and maxOrder can be set to null
-      * They will be determined by reading the properties file
-      *  
-      */
-    function ImageFITS(url, view, options, successCallback = undefined, errorCallback = undefined) {
+export let ImageFITS = (function () {
+
+    function ImageFITS(url, name, view, options, successCallback = undefined, errorCallback = undefined) {
         this.view = view;
         // Name of the layer
         this.layer = null;
@@ -48,44 +42,23 @@
         this.url = url;
 
         this.id = this.url.toString();
-        this.name = this.id;
+        this.name = "fits/" + name;
 
         this.imgFormat = "fits";
-        this.formats = ["fits"];
+        this.properties = {
+            formats: ["fits"]
+        }
         // callbacks
         this.successCallback = successCallback;
         this.errorCallback = errorCallback;
         // initialize the color meta data here
         this.colorCfg = new ColorCfg(options);
-        updateMetadata(this);
- 
-        let idxSelectedHiPS = 0;
-        const surveyFound = ImageSurvey.SURVEYS.some(s => {
-            let res = this.id.endsWith(s.id);
-            if (!res) {
-                idxSelectedHiPS += 1;
-            }
-
-            return res;
-        });
-        const opt = {
-            ...this.colorCfg.get(),
-            imgFormat: this.imgFormat,
-            longitudeReversed: this.longitudeReversed,
-        };
-        // The survey has not been found among the ones cached
-        if (!surveyFound) {
-            ImageSurvey.SURVEYS.push({
-                id: this.id,
-                name: this.name,
-                options: opt,
-            });
-        } else {
-            let surveyDef = ImageSurvey.SURVEYS[idxSelectedHiPS];
-            surveyDef.options = opt;
-        }
 
         let self = this;
+
+        updateMetadata(self);
+        ImageLayer.update(self);
+
         // Return a promise that take the layer name as parameter
         // and when resolved, will return the ImageFITS object
         self.query = (async () => {
@@ -102,107 +75,102 @@
                     self.arrayBuffer = new Uint8Array(arrayBuffer);
                     return self;
                 });
+        })();
+    }
+
+    // @api
+    ImageFITS.prototype.setOpacity = function (opacity) {
+        let self = this;
+        updateMetadata(self, () => {
+            self.colorCfg.setOpacity(opacity);
+        });
+    };
+
+    // @api
+    ImageFITS.prototype.setBlendingConfig = function (additive = false) {
+        updateMetadata(this, () => {
+            this.colorCfg.setBlendingConfig(additive);
+        });
+    };
+
+    // @api
+    ImageFITS.prototype.setColormap = function (colormap, options) {
+        updateMetadata(this, () => {
+            this.colorCfg.setColormap(colormap, options);
         });
     }
 
-    /*ImageFITS.createFromBlob = function(blob, view, options, successCallback = undefined, errorCallback = undefined) {
-        let image = new ImageFITS(new URL(), view, options, successCallback, errorCallback)
+    // @api
+    ImageFITS.prototype.setCuts = function (lowCut, highCut) {
+        updateMetadata(this, () => {
+            this.colorCfg.setCuts(lowCut, highCut);
+        });
+    };
 
-    }*/
- 
-     // @api
-     ImageFITS.prototype.setOpacity = function(opacity) {
-         let self = this;
-         updateMetadata(self, () => {
-             self.colorCfg.setOpacity(opacity);
-         });
-     };
- 
-     // @api
-     ImageFITS.prototype.setBlendingConfig = function(additive = false) {
-         updateMetadata(this, () => {
-             this.colorCfg.setBlendingConfig(additive);
-         });
-     };
- 
-     // @api
-     ImageFITS.prototype.setColormap = function(colormap, options) {
-         updateMetadata(this, () => {
-             this.colorCfg.setColormap(colormap, options);
-         });
-     }
- 
-     // @api
-     ImageFITS.prototype.setCuts = function(lowCut, highCut) {
-         updateMetadata(this, () => {
-             this.colorCfg.setCuts(lowCut, highCut);
-         });
-     };
- 
-     // @api
-     ImageFITS.prototype.setGamma = function(gamma) {
-         updateMetadata(this, () => {
-             this.colorCfg.setGamma(gamma);
-         });
-     };
- 
-     // @api
-     ImageFITS.prototype.setSaturation = function(saturation) {
-         updateMetadata(this, () => {
-             this.colorCfg.setSaturation(saturation);
-         });
-     };
- 
-     ImageFITS.prototype.setBrightness = function(brightness) {
-         updateMetadata(this, () => {
-             this.colorCfg.setBrightness(brightness);
-         });
-     };
- 
-    ImageFITS.prototype.setContrast = function(contrast) {
+    // @api
+    ImageFITS.prototype.setGamma = function (gamma) {
+        updateMetadata(this, () => {
+            this.colorCfg.setGamma(gamma);
+        });
+    };
+
+    // @api
+    ImageFITS.prototype.setSaturation = function (saturation) {
+        updateMetadata(this, () => {
+            this.colorCfg.setSaturation(saturation);
+        });
+    };
+
+    ImageFITS.prototype.setBrightness = function (brightness) {
+        updateMetadata(this, () => {
+            this.colorCfg.setBrightness(brightness);
+        });
+    };
+
+    ImageFITS.prototype.setContrast = function (contrast) {
         updateMetadata(this, () => {
             this.colorCfg.setContrast(contrast);
         });
     };
- 
-    ImageFITS.prototype.metadata = function() {
+
+    ImageFITS.prototype.metadata = function () {
         return {
             ...this.colorCfg.get(),
             longitudeReversed: false,
             imgFormat: this.imgFormat
         };
     }
- 
-     // Private method for updating the view with the new meta
-     var updateMetadata = function(self, callback = undefined) {        
-         if (callback) {
-             callback();
-         }
- 
-         // Tell the view its meta have changed
-         try {
-             if( self.added ) {
-                 const metadata = self.metadata();
-                 self.view.aladin.webglAPI.setImageMetadata(self.layer, metadata);
-                 // once the meta have been well parsed, we can set the meta 
-                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, {survey: self});
-             }
-         } catch(e) {
-             // Display the error message
-             console.error(e);
-         }
-     }
- 
-    ImageFITS.prototype.add = function(layer) {
+
+    // Private method for updating the view with the new meta
+    var updateMetadata = function (self, callback = undefined) {
+        if (callback) {
+            callback();
+        }
+
+        // Tell the view its meta have changed
+        try {
+            if (self.added) {
+                const metadata = self.metadata();
+                self.view.aladin.webglAPI.setImageMetadata(self.layer, metadata);
+                // once the meta have been well parsed, we can set the meta 
+                ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
+            }
+        } catch (e) {
+            // Display the error message
+            console.error(e);
+        }
+    }
+
+    ImageFITS.prototype.add = function (layer) {
         this.layer = layer;
 
         let self = this;
         try {
-            const {ra, dec, fov} = this.view.aladin.webglAPI.addImageFITS({
-                    layer: self.layer,
-                    url: self.url.toString(),
-                    meta: self.metadata()
-                }, 
+            const { ra, dec, fov } = this.view.aladin.webglAPI.addImageFITS({
+                layer: self.layer,
+                url: self.url.toString(),
+                meta: self.metadata()
+            },
                 self.arrayBuffer,
             );
 
@@ -221,48 +189,45 @@
                 this.errorCallback();
             }
 
-            // Error propagation
-            console.log("jkjkjkj")
             throw e;
         }
     };
 
-     // @api
-     ImageFITS.prototype.toggle = function() {
-         if (this.colorCfg.getOpacity() != 0.0) {
-             this.colorCfg.setOpacity(0.0);
-         } else {
-             this.colorCfg.setOpacity(this.prevOpacity);
-         }
-     };
- 
-     // @oldapi
-     ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;
- 
-     ImageFITS.prototype.setColorCfg = function(colorCfg) {
-         updateMetadata(this, () => {
-             this.colorCfg = colorCfg;
-         });
-     };
- 
-     // @api
-     ImageFITS.prototype.getColorCfg = function() {
-         return this.colorCfg;
-     };
-     
-     // @api
-     ImageFITS.prototype.getOpacity = function() {
-         return this.colorCfg.getOpacity();
-     };
- 
-     ImageFITS.prototype.getAlpha = ImageFITS.prototype.getOpacity;
- 
-     // @api
-     ImageFITS.prototype.readPixel = function(x, y) {
-         return this.view.aladin.webglAPI.readPixel(x, y, this.layer);
-     };
- 
-     return ImageFITS;
- })();
- 
- 
+    // @api
+    ImageFITS.prototype.toggle = function () {
+        if (this.colorCfg.getOpacity() != 0.0) {
+            this.colorCfg.setOpacity(0.0);
+        } else {
+            this.colorCfg.setOpacity(this.prevOpacity);
+        }
+    };
+
+    // @oldapi
+    ImageFITS.prototype.setAlpha = ImageFITS.prototype.setOpacity;
+
+    ImageFITS.prototype.setColorCfg = function (colorCfg) {
+        updateMetadata(this, () => {
+            this.colorCfg = colorCfg;
+        });
+    };
+
+    // @api
+    ImageFITS.prototype.getColorCfg = function () {
+        return this.colorCfg;
+    };
+
+    // @api
+    ImageFITS.prototype.getOpacity = function () {
+        return this.colorCfg.getOpacity();
+    };
+
+    ImageFITS.prototype.getAlpha = ImageFITS.prototype.getOpacity;
+
+    // @api
+    ImageFITS.prototype.readPixel = function (x, y) {
+        return this.view.aladin.webglAPI.readPixel(x, y, this.layer);
+    };
+
+    return ImageFITS;
+})();
+

@@ -1,5 +1,4 @@
 use crate::{healpix::cell::HEALPixCell};
-use al_api::coo_system::CooSystem;
 use al_core::image::format::{ImageFormatType, RGBA8U, RGB8U};
 
 use crate::downloader::query;
@@ -10,14 +9,14 @@ use crate::downloader::query::Query;
 use crate::downloader::QueryId;
 
 pub struct TileRequest {
-    pub cell: HEALPixCell,
-    pub hips_url: Url,
-    pub url: Url,
     pub id: QueryId,
-    pub system: CooSystem,
+
+    cell: HEALPixCell,
+    hips_url: Url,
+    url: Url,
+    format: ImageFormatType,
 
     request: Request<ImageType>,
-    pub is_root: bool,
 }
 
 impl From<TileRequest> for RequestType {
@@ -65,8 +64,6 @@ impl From<query::Tile> for TileRequest {
             cell,
             url,
             hips_url,
-            system,
-            is_root,
         } = query;
 
         let url_clone = url.clone();
@@ -173,12 +170,11 @@ impl From<query::Tile> for TileRequest {
 
         Self {
             cell,
+            format,
             id,
             hips_url,
             url,
             request,
-            system,
-            is_root
         }
     }
 }
@@ -189,10 +185,9 @@ pub struct Tile {
     pub image: Arc<Mutex<Option<ImageType>>>,
     pub time_req: Time,
     pub cell: HEALPixCell,
+    pub format: ImageFormatType,
     hips_url: Url,
     url: Url,
-    pub system: CooSystem,
-    pub is_root: bool,
 }
 
 use crate::Abort;
@@ -208,6 +203,10 @@ impl Tile {
     pub fn get_url(&self) -> &Url {
         &self.url
     }
+
+    pub fn cell(&self) -> &HEALPixCell {
+        &self.cell
+    }
 }
 
 impl<'a> From<&'a TileRequest> for Option<Tile> {
@@ -217,8 +216,7 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
             request,
             hips_url,
             url,
-            system,
-            is_root,
+            format,
             ..
         } = request;
         if request.is_resolved() {
@@ -226,14 +224,13 @@ impl<'a> From<&'a TileRequest> for Option<Tile> {
                 time_request, data, ..
             } = request;
             Some(Tile {
-                is_root: *is_root,
                 cell: *cell,
                 time_req: *time_request,
                 // This is a clone on a Arc, it is supposed to be fast
                 image: data.clone(),
                 hips_url: hips_url.clone(),
                 url: url.clone(),
-                system: *system,
+                format: *format,
             })
         } else {
             None

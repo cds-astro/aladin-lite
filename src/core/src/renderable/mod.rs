@@ -401,8 +401,8 @@ impl Layers {
 
         // 1. Add the layer name
         let layer_already_found = self.layers.iter()
-            .any(|s| {
-                s == &layer
+            .any(|l| {
+                l == &layer
             });
 
         let idx = if layer_already_found {

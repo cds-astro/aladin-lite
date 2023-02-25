@@ -46,7 +46,8 @@ pub struct HiPSProperties {
     frame: CooSystem,
     tile_size: i32,
     formats: Vec<HiPSTileFormat>,
-    colored: Option<bool>,
+    dataproduct_subtype: Option<Vec<String>>,
+    hips_body: Option<bool>,
 
     bitpix: Option<i32>,
     sky_fraction: Option<f32>,
@@ -57,8 +58,8 @@ pub struct HiPSProperties {
     hips_initial_dec: Option<f64>,
 
     // Parametrable by the user
-    pub min_cutout: Option<f32>,
-    pub max_cutout: Option<f32>,
+    min_cutout: Option<f32>,
+    max_cutout: Option<f32>,
 }
 
 impl HiPSProperties {
@@ -118,8 +119,8 @@ impl HiPSProperties {
     }
 
     #[inline]
-    pub fn is_colored(&self) -> Option<bool> {
-        self.colored
+    pub fn get_dataproduct_subtype(&self) -> &Option<Vec<String>> {
+        &self.dataproduct_subtype
     }
 }
 
@@ -127,6 +128,15 @@ impl HiPSProperties {
 #[wasm_bindgen]
 #[serde(rename_all = "camelCase")]
 pub enum HiPSTileFormat {
+    Fits,
+    Jpeg,
+    Png,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
+#[wasm_bindgen]
+#[serde(rename_all = "camelCase")]
+pub enum HiPSDataproductSubtype {
     Fits,
     Jpeg,
     Png,

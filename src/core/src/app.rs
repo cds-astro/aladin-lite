@@ -501,41 +501,14 @@ impl App {
                 if !has_camera_moved || (Time::now() - self.start_time_frame < DeltaTime::from(24.0)) || !tile_copied {
                     match rsc {
                         Resource::Tile(tile) => {
-                            let is_tile_root = tile.is_root;
+                            let is_tile_root = tile.cell().is_root();
 
                             if let Some(survey) = self.layers.get_mut_hips_from_url(&tile.get_hips_url()) {
-                                if is_tile_root {
-                                    let is_missing = tile.missing();
-                                    let Tile {
-                                        cell,
-                                        image,
-                                        time_req,
-                                        ..
-                                    } = tile;
-        
-                                    let image = if is_missing {
-                                        // Otherwise we push nothing, it is probably the case where:
-                                        // - an request error occured on a valid tile
-                                        // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
-                                        None
-                                    } else {
-                                        Some(image)
-                                    };
-                                    survey.add_tile(&cell, image, time_req)?;
-                                    tile_copied = true;
+                                let cfg = survey.get_config();
+                                if cfg.get_format() == tile.format {
+                                    // If the format of the survey has changed then we discard tiles of the previous format
 
-                                    self.request_redraw = true;
-                                } else {
-                                    let cfg = survey.get_config();
-                                    let fov_coverage = survey.get_view().get_coverage();
-                                    let texture_cell = tile.cell.get_texture_cell(cfg);
-                                    let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
-                                        .any(|neighbor_tile_cell| {
-                                            fov_coverage.contains(&neighbor_tile_cell)
-                                        });
-
-                                    // do not perform tex_sub costly GPU calls while the camera is moving
-                                    if included_or_near_coverage && !has_camera_moved {
+                                    if is_tile_root {
                                         let is_missing = tile.missing();
                                         let Tile {
                                             cell,
@@ -552,22 +525,53 @@ impl App {
                                         } else {
                                             Some(image)
                                         };
-
                                         survey.add_tile(&cell, image, time_req)?;
                                         tile_copied = true;
 
                                         self.request_redraw = true;
                                     } else {
-                                        self.downloader.cache_rsc(Resource::Tile(tile));
+                                        let fov_coverage = survey.get_view().get_coverage();
+                                        let texture_cell = tile.cell().get_texture_cell(cfg);
+                                        let included_or_near_coverage = texture_cell.get_tile_cells(cfg)
+                                            .any(|neighbor_tile_cell| {
+                                                fov_coverage.contains(&neighbor_tile_cell)
+                                            });
+
+                                        // do not perform tex_sub costly GPU calls while the camera is moving
+                                        if included_or_near_coverage && !has_camera_moved {
+                                            let is_missing = tile.missing();
+                                            let Tile {
+                                                cell,
+                                                image,
+                                                time_req,
+                                                ..
+                                            } = tile;
+
+                                            let image = if is_missing {
+                                                // Otherwise we push nothing, it is probably the case where:
+                                                // - an request error occured on a valid tile
+                                                // - the tile is not present, e.g. chandra HiPS have not the 0, 1 and 2 order tiles
+                                                None
+                                            } else {
+                                                Some(image)
+                                            };
+
+                                            survey.add_tile(&cell, image, time_req)?;
+                                            tile_copied = true;
+
+                                            self.request_redraw = true;
+                                        } else {
+                                            self.downloader.cache_rsc(Resource::Tile(tile));
+                                        }
                                     }
                                 }
                             }
-    
+
                             num_tile_received += 1;
                         }
                         Resource::Allsky(allsky) => {
                             let hips_url = allsky.get_hips_url();
-    
+
                             if let Some(survey) = self.layers.get_mut_hips_from_url(hips_url) {
                                 let is_missing = allsky.missing();
                                 if is_missing {
@@ -896,12 +900,17 @@ impl App {
         self.request_redraw = true;
 
         let old_meta = self.layers.get_layer_cfg(&layer)?;
-        if old_meta.img_format != meta.img_format {
-            // the image format has been changed
+        // Set the new meta
+        let new_img_fmt = meta.img_format;
+        self.layers.set_layer_cfg(layer.clone(), meta, &self.camera, &self.projection)?;
+
+        if old_meta.img_format != new_img_fmt {
+            // The image format has been changed
             let hips = self.layers
                 .get_mut_hips_from_layer(&layer)
                 .ok_or_else(|| JsValue::from_str("Layer not found"))?;
-            hips.set_img_format(meta.img_format)?;
+            hips.set_img_format(new_img_fmt)?;
+
             // Relaunch the base tiles for the survey to be ready with the new url
             self.tile_fetcher.launch_starting_hips_requests(hips, &mut self.downloader);     
 
@@ -910,8 +919,7 @@ impl App {
             self.request_redraw = true;
         }
 
-        // Set the new meta
-        self.layers.set_layer_cfg(layer, meta, &self.camera, &self.projection)
+        Ok(())
     }
 
     // Width and height given are in pixels

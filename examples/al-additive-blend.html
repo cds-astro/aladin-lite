@@ -10,11 +10,12 @@
 <script type="text/javascript">
 A.init.then(() => {
     let aladin = A.aladin('#aladin-lite-div', {projection: "TAN", survey: "P/HSC/DR2/deep/g", target: '02 21 36.529 -05 31 20.16', fov: 0.1});
-    
-    let HSCGreenSurvey = aladin.getBaseImageLayer();
-    HSCGreenSurvey.setImageFormat("fits");
-    HSCGreenSurvey.setColormap("green", { stretch: "asinh" });
-    HSCGreenSurvey.setCuts(-0.2186, 5.30322);
+
+    let hscGreenSurvey = aladin.getBaseImageLayer();
+    hscGreenSurvey.setImageFormat("fits");
+    console.log(hscGreenSurvey)
+    hscGreenSurvey.setColormap("green", { stretch: "asinh" });
+    hscGreenSurvey.setCuts(-0.2186, 5.30322);
 
     const HSCRedSurvey = aladin.createImageSurvey('HSC-r', "HSC red", "CDS/P/HSC/DR2/deep/r", null, null, {imgFormat: 'fits', colormap: "red", minCut: 0.34228, maxCut: 2.75785, additive: true, stretch: "asinh"});
     const HSCBlueSurvey = aladin.createImageSurvey('HSC-b', "HSC blue", "CDS/P/HSC/DR2/deep/z", null, null, {imgFormat: 'fits', colormap: "blue", minCut: -0.01218, maxCut: 2.27397, additive: true, stretch: "asinh"});

@@ -38,7 +38,7 @@ export let Utils = {};
 Utils.HTTPS_WHITELIST = ['alasky.u-strasbg.fr', 'alaskybis.u-strasbg.fr', 'alasky.unistra.fr', 'alaskybis.unistra.fr',
                           'alasky.cds.unistra.fr', 'alaskybis.cds.unistra.fr', 'hips.astron.nl', 'jvo.nao.ac.jp',
                           'archive.cefca.es', 'cade.irap.omp.eu', 'skies.esac.esa.int'];
-Utils.NO_CORS_HEADERS = ['www.spitzer.caltech.edu']
+
 Utils.cssScale = undefined;
 // adding relMouseCoords to HTMLCanvasElement prototype (see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element ) 
 function relMouseCoords(event) {   
@@ -334,22 +334,6 @@ Utils.fixURLForHTTPS = function(url) {
 
     return url;
 };
-
-Utils.fixURLForCORS = function(url) {
-    const needCORSProxy = Utils.NO_CORS_HEADERS.some(element => {
-        return url.includes(element);
-    });
-
-    if (needCORSProxy) {
-        let proxiedUrl = new URL(Aladin.JSONP_PROXY);
-
-        proxiedUrl.searchParams.append("url", url);
-        return proxiedUrl.toString();
-    } else {
-        return url;
-    }
-};
-
 
 // generate an absolute URL from a relative URL
 // example: getAbsoluteURL('foo/bar/toto') return http://cds.unistra.fr/AL/foo/bar/toto if executed from page http://cds.unistra.fr/AL/

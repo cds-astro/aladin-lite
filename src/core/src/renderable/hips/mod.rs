@@ -496,7 +496,6 @@ impl HiPS {
         let footprint_moc = None;
         // request the allsky texture
         Ok(HiPS {
-            //color,
             // The image survey texture buffer
             textures,
             // Keep track of the cells in the FOV

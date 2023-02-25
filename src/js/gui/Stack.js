@@ -68,7 +68,7 @@ export class Stack {
 
         this.selectLayer = (hipsLayer) => {
             // Change the color currently selected layer
-            const layer = hipsLayer.survey.layer;
+            const layer = hipsLayer.layer.layer;
 
             let headerLayerElement = hipsLayer.headerDiv[0];
             headerLayerElement.style.backgroundColor = "darkgray";
@@ -85,8 +85,6 @@ export class Stack {
 
             self.selectLayer(selectedHipsLayer);
         }
-
-
 
         this._createComponent();
         this._addListeners();
@@ -118,7 +116,7 @@ export class Stack {
             Array.from(self.aladin.getImageOverlays()).reverse().forEach((layer) => {
                 let imgLayer = self.imgLayers.get(layer);
 
-                if (imgLayer && imgLayer.survey.layer !== "base") {
+                if (imgLayer && imgLayer.layer.layer !== "base") {
                     imgLayer.attachTo(layerBox);
                 }
             });
@@ -297,10 +295,10 @@ export class Stack {
 
         // Events coming from the AL core
         ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
-            const survey = e.detail.survey;
+            const layer = e.detail.layer;
             
-            const hipsLayer = new HiPSLayer(self.aladin, survey);
-            self.imgLayers.set(survey.layer, hipsLayer);
+            const hipsLayer = new HiPSLayer(self.aladin, layer);
+            self.imgLayers.set(layer.layer, hipsLayer);
 
             self._createComponent();
 
@@ -312,10 +310,9 @@ export class Stack {
             const newLayer = e.detail.newLayer;
 
             const hipsLayer = self.imgLayers.get(layer);
-            const survey = hipsLayer.survey;
             self.imgLayers.delete(layer);
 
-            self.imgLayers.set(newLayer, new HiPSLayer(self.aladin, survey));
+            self.imgLayers.set(newLayer, new HiPSLayer(self.aladin, hipsLayer.layer));
 
             self._createComponent();
 

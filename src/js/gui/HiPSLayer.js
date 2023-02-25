@@ -28,7 +28,7 @@
  * 
  *****************************************************************************/
 
-import { ImageSurvey } from "../ImageSurvey.js";
+import { ImageLayer } from "../ImageLayer.js";
 import { ALEvent } from "../events/ALEvent.js";
 import { HiPSSelector } from "./HiPSSelector.js";
 
@@ -37,9 +37,9 @@ import $ from 'jquery';
 export class HiPSLayer {
 
     // Constructor
-    constructor(aladin, survey) {
+    constructor(aladin, layer) {
         this.aladin = aladin;
-        this.survey = survey;
+        this.layer = layer;
         this.hidden = false;
         this.lastOpacity = 1.0;
 
@@ -47,14 +47,14 @@ export class HiPSLayer {
         this.headerDiv = $(
             '<div class="aladin-layer-header aladin-hips-layer">' +
             '<span class="indicator right-triangle">&nbsp;</span>' +
-            '<select class="aladin-surveySelection"></select>' +
+            '<select class="aladin-layerSelection"></select>' +
             '<button class="aladin-btn-small aladin-layer-hide" type="button" title="Hide this layer">👁️</button>' +
             '<button class="aladin-btn-small aladin-HiPSSelector" type="button" title="Search for a specific HiPS">🔍</button>' +
             '<button class="aladin-btn-small aladin-delete-layer" type="button" title="Delete this layer">❌</button>' +
             '</div>'
         );
 
-        if (this.survey.layer === "base") {
+        if (this.layer.layer === "base") {
             let deleteLayerBtn = this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0];
             deleteLayerBtn.disabled = true;
             deleteLayerBtn.style.backgroundColor = 'lightgray';
@@ -101,14 +101,13 @@ export class HiPSLayer {
 
         let self = this;
         this.layerChangedListener = function(e) {
-            const survey = e.detail.survey;
-
-            if (survey.layer === self.survey.layer) {
+            const layer = e.detail.layer;
+            if (layer.layer === self.layer.layer) {
                 // Update the survey to the new one
-                self.survey = survey;
+                self.layer = layer;
                 self._updateHiPSLayerOptions();
             }
-            self._updateSurveysDropdownList();
+            self._updateLayersDropdownList();
         };
         ALEvent.HIPS_LAYER_CHANGED.listenedBy(this.aladin.aladinDiv, this.layerChangedListener);
     }
@@ -145,24 +144,41 @@ export class HiPSLayer {
 
         // Click on aladin options should select the layer clicked
         // Update list of surveys
-        self._updateSurveysDropdownList();
-        const surveySelector = this.headerDiv.find('.aladin-surveySelection');
-        surveySelector.off("change");
-        surveySelector.change(function () {
-            let cfg = ImageSurvey.SURVEYS[$(this)[0].selectedIndex];
-            if (self.hidden) {
-                cfg.options.opacity = 0.0;
+        self._updateLayersDropdownList();
+        const layerSelector = this.headerDiv.find('.aladin-layerSelection');
+        layerSelector.off("change");
+        layerSelector.on("change", (e) => {
+            let cfg = ImageLayer.LAYERS[layerSelector[0].selectedIndex];
+            let layer;
+            
+            console.log(cfg)
+            if (cfg.name.startsWith("fits")) {
+                // FITS
+
+                console.log("jkjksdf fits")
+
+                layer = self.aladin.createImageFITS(
+                    cfg.url,
+                    cfg.name,
+                    cfg.options,
+                );
+            } else {
+                // HiPS
+                layer = self.aladin.createImageSurvey(
+                    cfg.id,
+                    cfg.name,
+                    cfg.url,
+                    undefined,
+                    cfg.maxOrder,
+                    cfg.options
+                );
             }
 
-            const survey = self.aladin.createImageSurvey(
-                cfg.id,
-                cfg.name,
-                cfg.url,
-                undefined,
-                cfg.maxOrder,
-                cfg.options
-            );
-            self.aladin.setOverlayImageLayer(survey, self.survey.layer);
+            if (self.hidden) {
+                layer.setAlpha(0.0);
+            }
+
+            self.aladin.setOverlayImageLayer(layer, self.layer.layer);
         });
 
         // Search HiPS button
@@ -171,7 +187,7 @@ export class HiPSLayer {
         hipsSelector.on("click", function () {
             if (!self.hipsSelector) {
                 self.hipsSelector = new HiPSSelector(self.aladin.aladinDiv, (IDOrURL) => {
-                    const layerName = self.survey.layer;
+                    const layerName = self.layer.layer;
                     self.aladin.setOverlayImageLayer(IDOrURL, layerName);
                 }, self.aladin);
             }
@@ -184,7 +200,7 @@ export class HiPSLayer {
         deleteLayer.off("click");
         deleteLayer.on("click", function () {
             const removeLayerEvent = new CustomEvent('remove-layer', {
-                detail: self.survey.layer
+                detail: self.layer.layer
             });
             self.aladin.aladinDiv.dispatchEvent(removeLayerEvent);
         });
@@ -198,7 +214,7 @@ export class HiPSLayer {
 
             let newOpacity = 0.0;
             if (self.hidden) {
-                self.lastOpacity = self.survey.getOpacity();
+                self.lastOpacity = self.layer.getOpacity();
                 hideLayer.text('');
             } else {
                 newOpacity = self.lastOpacity;
@@ -208,7 +224,7 @@ export class HiPSLayer {
             opacitySlider.val(newOpacity);
             opacitySlider.get(0).disabled = self.hidden;
 
-            self.survey.setOpacity(newOpacity);
+            self.layer.setOpacity(newOpacity);
         });
 
         // MAIN DIV listeners
@@ -218,7 +234,7 @@ export class HiPSLayer {
         blendingSelector.off("change");
         blendingSelector.change(function () {
             let mode = blendingSelector.val()
-            self.survey.setBlendingConfig( mode === "additive" );
+            self.layer.setBlendingConfig( mode === "additive" );
         });
         
         // image format
@@ -229,16 +245,16 @@ export class HiPSLayer {
         format4ImgLayer.on("change", function () {
             const imgFormat = format4ImgLayer.val();
 
-            self.survey.setImageFormat(imgFormat);
+            self.layer.setImageFormat(imgFormat);
 
             let minCut = 0;
             let maxCut = 1;
             if (imgFormat === "fits") {
                 // FITS format
-                minCut = self.survey.properties.minCutout;
-                maxCut = self.survey.properties.maxCutout;
+                minCut = self.layer.properties.minCutout;
+                maxCut = self.layer.properties.maxCutout;
             }
-            self.survey.setCuts(minCut, maxCut);
+            self.layer.setCuts(minCut, maxCut);
 
             // update the cuts only
             minCut4ImgLayer.val(parseFloat(minCut.toFixed(5)));
@@ -254,7 +270,7 @@ export class HiPSLayer {
             if (isNaN(minCutValue) || isNaN(maxCutValue)) {
                 return;
             }
-            self.survey.setCuts(minCutValue, maxCutValue);
+            self.layer.setCuts(minCutValue, maxCutValue);
         });
 
         // colormap
@@ -271,7 +287,7 @@ export class HiPSLayer {
 
             // Color map case
             const cmap = colorMapSelect4ImgLayer.val();
-            self.survey.setColormap(cmap, { reversed: reverse, stretch: stretch });
+            self.layer.setColormap(cmap, { reversed: reverse, stretch: stretch });
         });
 
         // opacity
@@ -279,7 +295,7 @@ export class HiPSLayer {
         opacity4ImgLayer.off("input");
         opacity4ImgLayer.on('input', function () {
             const opacity = +opacity4ImgLayer.val();
-            self.survey.setOpacity(opacity);
+            self.layer.setOpacity(opacity);
         });
 
         // gamma
@@ -288,9 +304,9 @@ export class HiPSLayer {
         gamma4ImgLayer.on('change blur', function () {
             const gamma = parseFloat(gamma4ImgLayer.val()) || 1.0;
 
-            self.survey.setGamma(gamma);
+            self.layer.setGamma(gamma);
 
-            const trueGamma = self.survey.getColorCfg().getGamma();
+            const trueGamma = self.layer.getColorCfg().getGamma();
             if (gamma !== trueGamma) {
                 gamma4ImgLayer.val(trueGamma);
             }
@@ -302,9 +318,9 @@ export class HiPSLayer {
         sat4ImgLayer.on('input', function (e) {
             const saturation = parseFloat(sat4ImgLayer.val()) || 0.0;
 
-            self.survey.setSaturation(saturation);
+            self.layer.setSaturation(saturation);
 
-            const trueSaturation = self.survey.getColorCfg().getSaturation();
+            const trueSaturation = self.layer.getColorCfg().getSaturation();
             if (saturation !== trueSaturation) {
                 sat4ImgLayer.val(trueSaturation);
             }
@@ -316,9 +332,9 @@ export class HiPSLayer {
         contrast4ImgLayer.on('input', function (e) {
             const contrast = parseFloat(contrast4ImgLayer.val()) || 0.0;
 
-            self.survey.setContrast(contrast);
+            self.layer.setContrast(contrast);
 
-            const trueContrast = self.survey.getColorCfg().getContrast();
+            const trueContrast = self.layer.getColorCfg().getContrast();
             if (contrast !== trueContrast) {
                 contrast4ImgLayer.val(trueContrast);
             }
@@ -330,9 +346,9 @@ export class HiPSLayer {
         brightness4ImgLayer.on('input', function (e) {
             const brightness = parseFloat(brightness4ImgLayer.val()) || 0.0;
 
-            self.survey.setBrightness(brightness);
+            self.layer.setBrightness(brightness);
 
-            const trueBrightness = self.survey.getColorCfg().getBrightness();
+            const trueBrightness = self.layer.getColorCfg().getBrightness();
             if (brightness !== trueBrightness) {
                 brightness4ImgLayer.val(trueBrightness);
             }
@@ -363,20 +379,20 @@ export class HiPSLayer {
 
         formatSelect4ImgLayer.empty();
         
-        this.survey.formats.forEach(fmt => {
+        this.layer.properties.formats.forEach(fmt => {
             formatSelect4ImgLayer.append($('<option>', {
                 value: fmt,
                 text: fmt
             }));
         });
 
-        const colorCfg = this.survey.getColorCfg();
+        const colorCfg = this.layer.getColorCfg();
         const cmap = colorCfg.colormap;
         const reverse = colorCfg.reversed;
         const stretch = colorCfg.stretch;
 
         // Update radio color/colormap selection
-        const imgFormat = this.survey.imgFormat;
+        const imgFormat = this.layer.imgFormat;
         formatSelect4ImgLayer.val(imgFormat);
 
         // Update radio color/colormap selection
@@ -432,35 +448,34 @@ export class HiPSLayer {
         stretchSelect4ImgLayer.val(stretch);
     }
 
-    _updateSurveysDropdownList() {
-        let surveySelectionDiv = this.headerDiv.find('.aladin-surveySelection');
+    _updateLayersDropdownList() {
+        let layerSelectDiv = this.headerDiv.find('.aladin-layerSelection');
 
-        let surveys = ImageSurvey.SURVEYS.sort(function (a, b) {
+        let layers = ImageLayer.LAYERS.sort(function (a, b) {
             if (!a.order) {
                 return a.name > b.name ? 1 : -1;
             }
             return a.maxOrder && a.maxOrder > b.maxOrder ? 1 : -1;
         });
-        surveySelectionDiv.empty();
+        layerSelectDiv.empty();
 
-        if (this.survey) {
-            let surveyFound = false;
-            surveys.forEach(s => {
-                const isCurSurvey = this.survey.id.endsWith(s.id);
-                surveySelectionDiv.append($("<option />").attr("selected", isCurSurvey).val(s.id).text(s.name));
-                surveyFound |= isCurSurvey;
+        if (this.layer) {
+            //let layerFound = false;
+            layers.forEach(l => {
+                const isCurLayer = this.layer.id.endsWith(l.id);
+                layerSelectDiv.append($("<option />").attr("selected", isCurLayer).val(l.id).text(l.name));
+                //layerFound |= isCurLayer;
             });
 
-            // The survey has not been found among the ones cached
-            if (!surveyFound) {
-                // Cache it
-                console.warn(this.survey, " has not been found in SURVEYS!")
+            /*// The survey has not been found among the ones cached
+            if (!layerFound) {
+                throw this.layer + " has not been found in the list of layers!"
             } else {
                 // Update the ImageSurvey
-                const idxSelectedHiPS = surveySelectionDiv[0].selectedIndex;
-                let surveyDef = ImageSurvey.SURVEYS[idxSelectedHiPS];
-                surveyDef.options = this.survey.metadata;
-            }
+                const idxSelectLayer = layerSelectDiv[0].selectedIndex;
+                let layer = ImageLayer.LAYERS[idxSelectLayer];
+                layer.options = this.layer.metadata;
+            }*/
         }
     }
 

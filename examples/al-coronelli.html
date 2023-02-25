@@ -232,8 +232,8 @@
     A.init.then(() => {
         var hipsDir="http://alasky.u-strasbg.fr/CDS_P_Coronelli";
         aladin = A.aladin("#aladin-lite-div", {showSimbadPointerControl: true, realFullscreen: true, fov: 100, allowFullZoomout: true, showReticle: false });
-        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false, minOrder: 3});
-        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true, minOrder: 3});
+        aladin.createImageSurvey('illenoroC', 'illenoroC', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: false});
+        aladin.createImageSurvey('Coronelli', 'Coronelli', hipsDir, 'equatorial', 4, {imgFormat: 'jpg', longitudeReversed: true});
         aladin.setImageSurvey('Coronelli');
 
         $('#layersControlLeft').show();

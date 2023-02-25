@@ -278,7 +278,7 @@ input[type=number], input[type=text], input[type=range] {
     width: 100%;
 }
 
-.aladin-surveySelection {
+.aladin-layerSelection {
     max-width: 150px;
 }
 

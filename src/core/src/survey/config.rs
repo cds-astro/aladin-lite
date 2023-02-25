@@ -171,6 +171,7 @@ pub struct HiPSConfig {
     pub frame: CooSystem,
     pub bitpix: Option<i32>,
     format: ImageFormatType,
+    dataproduct_subtype: Option<Vec<String>>,
     colored: bool,
 }
 
@@ -264,11 +265,16 @@ impl HiPSConfig {
             HiPSTileFormat::Jpeg => Ok(ImageFormatType::RGB8U),
         }?;
 
-        let colored = properties.is_colored()
-            // Colored flag has not been specified, thus we need to deduce it
-            // FITS files always correspond to grayscale textures
-            .unwrap_or(!tex_storing_fits);
-
+        let dataproduct_subtype = properties.get_dataproduct_subtype().clone();
+        let colored = if tex_storing_fits {
+            false
+        } else {
+            if let Some(subtypes) = &dataproduct_subtype {
+                subtypes.iter().any(|subtype| subtype == "color")
+            } else {
+                false
+            }
+        };
 
         let empty_image = EmptyTileImage::new(tile_size, format);
 
@@ -325,16 +331,12 @@ impl HiPSConfig {
             bitpix,
             format,
             tile_size,
+            dataproduct_subtype,
             colored
         };
 
         Ok(hips_config)
     }
-
-    /*#[inline]
-    pub fn is_opaque(&self) -> bool {
-        self.blank.is_nan()
-    }*/
 
     pub fn set_image_fmt(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
         let format = match fmt {
@@ -399,6 +401,17 @@ impl HiPSConfig {
 
         // Recompute the empty image
         self.empty_image = EmptyTileImage::new(self.tile_size, self.format);
+
+        // Recompute if the survey will be colored or not
+        self.colored = if self.tex_storing_fits {
+            false
+        } else {
+            if let Some(subtypes) = &self.dataproduct_subtype {
+                subtypes.iter().any(|subtype| subtype == "color")
+            } else {
+                false
+            }
+        };
 
         Ok(())
     }

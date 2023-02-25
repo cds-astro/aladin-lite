@@ -383,24 +383,7 @@ export let Aladin = (function () {
                     }
                     i++;
                 });
-            } else {
-                // Check if it is present in surveys
-                /*try {
-                    let url = new URL(options.survey);
-
-                } catch(e) {
-                    const survey = ImageSurvey.SURVEYS.some(s => {
-                        let res = options.survey.endsWith(s.id);
-                        return res;
-                    });
-    
-                    if (survey) {
-                        console.log()
-                        options.survey = this.createImageSurvey(survey.id, survey.id, survey.url, null, null, survey.options);
-                        
-                    }
-                }*/
-                
+            } else {                
                 this.setBaseImageLayer(options.survey);
             }
         } else {
@@ -1019,19 +1002,17 @@ export let Aladin = (function () {
         return new ImageSurvey(cfg.id, cfg.name, cfg.rootUrl, this.view, cfg.options);
     };
 
-    Aladin.prototype.createImageFITS = function(rootUrl, options = {}, successCallback = undefined, errorCallback = undefined) {
-        let url;
-
+    Aladin.prototype.createImageFITS = function(url, name, options = {}, successCallback = undefined, errorCallback = undefined) {
         try {
-            url = new URL(rootUrl);
+            url = new URL(url);
         } catch(e) {
             // The url could be created
-            url = Utils.getAbsoluteURL(rootUrl)
+            url = Utils.getAbsoluteURL(url)
             url = new URL(url);
         }
 
         // Check the protocol, for http ones, use a CORS compatible proxy
-        if ((url.protocol === "http:" || url.protocol === "https:") && url.hostname !== "localhost") {
+        if (Utils.requestCORSIfNotSameOrigin(url)) {
             // http(s) protocols and not in localhost
             let proxiedUrl = new URL(Aladin.JSONP_PROXY);
             proxiedUrl.searchParams.append("url", url);
@@ -1041,13 +1022,13 @@ export let Aladin = (function () {
 
         let cfg = this.cacheSurveys.get(url);
         if (!cfg) {
-            cfg = {url, options, successCallback, errorCallback}
+            cfg = {url, name, options, successCallback, errorCallback}
             this.cacheSurveys.set(url, cfg);
         } else {
             cfg = Utils.clone(cfg)
         }
 
-        return new ImageFITS(cfg.url, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
+        return new ImageFITS(cfg.url, cfg.name, this.view, cfg.options, cfg.successCallback, cfg.errorCallback);
     };
 
     Aladin.prototype.newImageSurvey = function(rootUrlOrId, options) {
@@ -1629,7 +1610,7 @@ Aladin.prototype.getEmbedCode = function () {
  * Creates remotely a HiPS from a FITS image URL and displays it
  */
 Aladin.prototype.displayFITS = function (url, options, successCallback, errorCallback, layer = "base") {
-    const imageFits = this.createImageFITS(url, options, successCallback, errorCallback);
+    const imageFits = this.createImageFITS(url, url, options, successCallback, errorCallback);
     this.setOverlayImageLayer(imageFits, layer)
 };
 

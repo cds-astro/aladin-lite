@@ -107,43 +107,42 @@ impl FitsImage {
             ),
         ];
 
-        let values: Vec<f32> = match data {
+        let texture = match data {
             DataBorrowed::U8(data) => {
-                data.into_iter().map(|v| {
-                    *v as f32
-                })
-                .collect()
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(data))?
             },
             DataBorrowed::I16(data) => {
-                data.into_iter().map(|v| {
+                let values: Vec<f32> = data.into_iter().map(|v| {
                     *v as f32
                 })
-                .collect()
+                .collect();
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
             DataBorrowed::I32(data) => {
-                data.into_iter().map(|v| {
-                    *v as f32
-                })
-                .collect()
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32I>(gl, w as i32, h as i32, tex_params, Some(data))?
             },
             DataBorrowed::I64(data) => {
-                data.into_iter().map(|v| {
+                let values: Vec<f32> = data.into_iter().map(|v| {
                     *v as f32
                 })
-                .collect()
+                .collect();
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
             DataBorrowed::F32(data) => {
-                data.into_iter().map(|v| *v).collect()
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(data))?
             },
             DataBorrowed::F64(data) => {
-                data.into_iter().map(|v| {
+                let values: Vec<f32> = data.into_iter().map(|v| {
                     *v as f32
                 })
-                .collect()
+                .collect();
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
         };
 
-        let texture = Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?;
         let bl = wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0)).ok_or(JsValue::from_str("(0, 0) px cannot be unprojected"))?;
         let br = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, 0.0)).ok_or(JsValue::from_str("(w - 1, 0) px cannot be unprojected"))?;
         let tr = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, height - 1.0)).ok_or(JsValue::from_str("(w - 1, h - 1) px cannot be unprojected"))?;
@@ -223,7 +222,7 @@ impl FitsImage {
         };
 
         // Automatic methods to compute the min and max cut values
-        let mut values = values.into_iter()
+        /*let mut values = values.into_iter()
             .filter(|x| !x.is_nan() && *x != blank)
             .collect::<Vec<_>>();
         
@@ -233,6 +232,8 @@ impl FitsImage {
 
         let min_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, first_pct_idx);
         let max_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, last_pct_idx);
+        */
+        //al_core::log(&format!("values: {} {}", min_val, max_val));
 
         let gl = gl.clone();
         let image = FitsImage {

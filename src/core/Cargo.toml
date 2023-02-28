@@ -34,6 +34,7 @@ fitsrs = "0.1.1"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
 wasm-streams = "0.3.0"
+async-channel = "1.8.0"
 al-core = { path = "./al-core" }
 al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }

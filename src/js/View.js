@@ -64,11 +64,12 @@ export let View = (function () {
         try {
             // Start our Rust application. You can find `WebClient` in `src/lib.rs`
             // The Rust part should also create a new WebGL2 or WebGL1 context depending on the WebGL2 brower support.
-            const webglCtx = new WebGLCtx(Aladin.wasmLibs.webgl, this.aladinDiv.id);
-            this.aladin.webglAPI = webglCtx.webclient;
+            const webglCtx = new WebGLCtx(Aladin.wasmLibs.core, this.aladinDiv.id);
+            this.aladin.wasm = webglCtx.webclient;
+            this.wasm = this.aladin.wasm;
 
             // Retrieve all the possible colormaps
-            ColorCfg.COLORMAPS = this.aladin.webglAPI.getAvailableColormapList();
+            ColorCfg.COLORMAPS = this.wasm.getAvailableColormapList();
         } catch (e) {
             // For browsers not supporting WebGL2:
             // 1. Print the original exception message in the console
@@ -82,7 +83,7 @@ export let View = (function () {
             const files = Utils.getDroppedFilesHandler(event);
 
             files.forEach((file) => {
-                const reader = new FileReader();
+                /*const reader = new FileReader();
                 reader.readAsArrayBuffer(file);
 
                 reader.addEventListener("load", () => {
@@ -100,7 +101,17 @@ export let View = (function () {
 
                 reader.addEventListener('error', (event) => {
                     console.error(event.target.error);
-                });
+                });*/
+
+                const url = URL.createObjectURL(file);
+
+                try {
+                    const imageFITS = self.aladin.createImageFITS(url, file.name, undefined, undefined, undefined);
+                    self.setOverlayImageLayer(imageFITS, Utils.uuidv4())
+                } catch(e) {
+                    console.error("Only valid fits files supported (i.e. containig a WCS)", e)
+                    throw e;
+                }
             })
         };
 
@@ -120,11 +131,8 @@ export let View = (function () {
         lon = lat = 0;
         this.projection = ProjectionEnum.SIN;
 
-        //this.zoomLevel = 0;
         // Prev time of the last frame
-        this.prev = 0;
-        //this.zoomFactor = this.computeZoomFactor(this.zoomLevel);
-        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
+        this.zoomFactor = this.wasm.getClipZoomFactor();
 
         this.viewCenter = { lon: lon, lat: lat }; // position of center of view
 
@@ -292,7 +300,7 @@ export let View = (function () {
         //this.aladinDiv.style.width = this.width + "px";
         //this.aladinDiv.style.height = this.height + "px";
 
-        this.aladin.webglAPI.resize(this.width, this.height);
+        this.wasm.resize(this.width, this.height);
 
         this.catalogCtx = this.catalogCanvas.getContext("2d");
 
@@ -372,7 +380,7 @@ export let View = (function () {
             .then((img) => {
                 imgType = imgType || "image/png";
                 
-                const canvas = this.aladin.webglAPI.canvas();
+                const canvas = this.wasm.canvas();
 
                 var c = document.createElement('canvas');
                 let dpi = window.devicePixelRatio;
@@ -411,8 +419,8 @@ export let View = (function () {
             var xymouse = view.imageCanvas.relMouseCoords(e);
 
             try {
-                const lonlat = view.aladin.webglAPI.screenToWorld(xymouse.x, xymouse.y);
-                var radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
+                const lonlat = view.wasm.screenToWorld(xymouse.x, xymouse.y);
+                var radec = view.wasm.viewToICRSJ2000CooSys(lonlat[0], lonlat[1]);
                 view.pointTo(radec[0], radec[1], { forceAnimation: true });
             }
             catch (err) {
@@ -467,11 +475,11 @@ export let View = (function () {
                 view.pinchZoomParameters.isPinching = true;
                 //var fov = view.aladin.getFov();
                 //view.pinchZoomParameters.initialFov = Math.max(fov[0], fov[1]);
-                var fov = view.aladin.webglAPI.getFieldOfView();
+                var fov = view.wasm.getFieldOfView();
                 view.pinchZoomParameters.initialFov = fov;
                 view.pinchZoomParameters.initialDistance = Math.sqrt(Math.pow(e.originalEvent.targetTouches[0].clientX - e.originalEvent.targetTouches[1].clientX, 2) + Math.pow(e.originalEvent.targetTouches[0].clientY - e.originalEvent.targetTouches[1].clientY, 2));
 
-                view.fingersRotationParameters.initialViewAngleFromCenter = view.aladin.webglAPI.getRotationAroundCenter();
+                view.fingersRotationParameters.initialViewAngleFromCenter = view.wasm.getRotationAroundCenter();
                 view.fingersRotationParameters.initialFingerAngle = Math.atan2(e.originalEvent.targetTouches[1].clientY - e.originalEvent.targetTouches[0].clientY, e.originalEvent.targetTouches[1].clientX - e.originalEvent.targetTouches[0].clientX) * 180.0 / Math.PI;
 
                 return;
@@ -488,7 +496,7 @@ export let View = (function () {
                 view.selectStartCoo = { x: view.dragx, y: view.dragy };
             }
 
-            view.aladin.webglAPI.pressLeftMouseButton(view.dragx, view.dragy);
+            view.wasm.pressLeftMouseButton(view.dragx, view.dragy);
             return false; // to disable text selection
         });
 
@@ -569,7 +577,7 @@ export let View = (function () {
                 let radec = view.aladin.pix2world(xymouse.x, xymouse.y);
 
                 // Convert from view to ICRSJ2000
-                radec = view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
+                radec = view.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
                 view.setMode(View.PAN);
                 view.setCursor('wait');
@@ -643,7 +651,7 @@ export let View = (function () {
             view.refreshProgressiveCats();
 
             //view.requestRedraw();
-            view.aladin.webglAPI.releaseLeftButtonMouse();
+            view.wasm.releaseLeftButtonMouse();
         });
         var lastHoveredObject; // save last object hovered by mouse
         var lastMouseMovePos = null;
@@ -685,14 +693,14 @@ export let View = (function () {
 
                 if (view.fingersRotationParameters.rotationInitiated) {
                     let rotation = view.fingersRotationParameters.initialViewAngleFromCenter;
-                    if (!view.aladin.webglAPI.getLongitudeReversed()) {
+                    if (!view.wasm.getLongitudeReversed()) {
                         // spatial survey case
                         rotation += fingerAngleDiff;
                     } else {
                         // planetary survey case
                         rotation -= fingerAngleDiff;
                     }
-                    view.aladin.webglAPI.setRotationAroundCenter(rotation);
+                    view.wasm.setRotationAroundCenter(rotation);
                 }
 
                 // zoom
@@ -770,10 +778,9 @@ export let View = (function () {
 
             view.realDragging = true;
 
-            //webglAPI.goFromTo(pos1[0], pos1[1], pos2[0], pos2[1]);
-            view.aladin.webglAPI.goFromTo(s1.x, s1.y, s2.x, s2.y);
-            //webglAPI.setCenter(pos2[0], pos2[1]);
-            const [ra, dec] = view.aladin.webglAPI.getCenter();
+            view.wasm.goFromTo(s1.x, s1.y, s2.x, s2.y);
+
+            const [ra, dec] = view.wasm.getCenter();
             view.viewCenter.lon = ra;
             view.viewCenter.lat = dec;
             if (view.viewCenter.lon < 0.0) {
@@ -921,10 +928,10 @@ export let View = (function () {
 
     View.prototype.updateLocation = function (mouseX, mouseY, isViewCenterPosition) {
         if (isViewCenterPosition) {
-            //const [ra, dec] = this.aladin.webglAPI.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
+            //const [ra, dec] = this.wasm.ICRSJ2000ToViewCooSys(this.viewCenter.lon, this.viewCenter.lat);
             this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
         } else {
-            let radec = this.aladin.webglAPI.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
+            let radec = this.wasm.screenToWorld(mouseX, mouseY); // This is given in the frame of the view
             if (radec) {
                 if (radec[0] < 0) {
                     radec = [radec[0] + 360.0, radec[1]];
@@ -969,21 +976,21 @@ export let View = (function () {
 
             // Drawing code
             try {
-                this.aladin.webglAPI.update(elapsedTime);
+                this.wasm.update(elapsedTime);
             } catch (e) {
                 console.warn(e)
             }
 
             // check whether a catalog has been parsed and
             // is ready to be plot
-            /*let catReady = this.aladin.webglAPI.isCatalogLoaded();
+            /*let catReady = this.wasm.isCatalogLoaded();
             if (catReady) {
                 var callbackFn = this.aladin.callbacksByEventName['catalogReady'];
                 (typeof callbackFn === 'function') && callbackFn();
             }*/
 
             ////// 2. Draw catalogues////////
-            const isViewRendering = this.aladin.webglAPI.isRendering();
+            const isViewRendering = this.wasm.isRendering();
             if (isViewRendering || this.needRedraw) {
                 this.drawAllOverlays();
             }
@@ -1156,11 +1163,11 @@ export let View = (function () {
 
     View.prototype.getVisiblePixList = function (norder) {
         var pixList = [];
-        let centerWorldPosition = this.aladin.webglAPI.screenToWorld(this.cx, this.cy);
-        const [lon, lat] = this.aladin.webglAPI.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
+        let centerWorldPosition = this.wasm.screenToWorld(this.cx, this.cy);
+        const [lon, lat] = this.wasm.viewToICRSJ2000CooSys(centerWorldPosition[0], centerWorldPosition[1]);
 
         var radius = this.fov * 0.5 * this.ratio;
-        this.aladin.webglAPI.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
+        this.wasm.queryDisc(norder, lon, lat, radius).forEach(x => pixList.push(Number(x)));
 
         return pixList;
     };
@@ -1185,12 +1192,12 @@ export let View = (function () {
             }
             var cornersXYView = [];
             //corners = HealpixCache.corners_nest(ipix, nside);
-            corners = this.aladin.webglAPI.hpxNestedVertices(Math.log2(nside), ipix);
+            corners = this.wasm.hpxNestedVertices(Math.log2(nside), ipix);
 
             for (var k=0; k<4; k++) {
                 const lon = corners[k*2];
                 const lat = corners[k*2 + 1];
-                cornersXY[k] = this.aladin.webglAPI.worldToScreen(lon, lat);
+                cornersXY[k] = this.wasm.worldToScreen(lon, lat);
             }
 
             if (cornersXY[0] == null ||  cornersXY[1] == null  ||  cornersXY[2] == null ||  cornersXY[3] == null ) {
@@ -1257,13 +1264,13 @@ export let View = (function () {
         }
         
         return cells;*/
-        return this.aladin.webglAPI.getVisibleCells(norder);
+        return this.wasm.getVisibleCells(norder);
     };
 
     // Called for touchmove events
     // initialAccDelta must be consistent with fovDegrees here
     View.prototype.setZoom = function (fovDegrees) {
-        this.aladin.webglAPI.setFieldOfView(fovDegrees);
+        this.wasm.setFieldOfView(fovDegrees);
         this.updateZoomState();
     };
 
@@ -1303,11 +1310,11 @@ export let View = (function () {
     }
 
     View.prototype.setRotation = function(rotation) {
-        this.aladin.webglAPI.setRotationAroundCenter(rotation);
+        this.wasm.setRotationAroundCenter(rotation);
     }
 
     View.prototype.setGridConfig = function (gridCfg) {
-        this.aladin.webglAPI.setGridConfig(gridCfg);
+        this.wasm.setGridConfig(gridCfg);
 
         // send events
         if (gridCfg) {
@@ -1331,8 +1338,8 @@ export let View = (function () {
 
     View.prototype.updateZoomState = function () {
         // Get the new zoom values from the backend
-        this.zoomFactor = this.aladin.webglAPI.getClipZoomFactor();
-        let fov = this.aladin.webglAPI.getFieldOfView();
+        this.zoomFactor = this.wasm.getClipZoomFactor();
+        let fov = this.wasm.getFieldOfView();
 
         // Update the pinch zoom parameters consequently
         const si = 500000.0;
@@ -1374,7 +1381,7 @@ export let View = (function () {
      * compute and set the norder corresponding to the current view resolution
      */
     View.prototype.computeNorder = function () {
-        var norder = this.aladin.webglAPI.getNOrder();
+        var norder = this.wasm.getNOrder();
 
         this.realNorder = norder;
         // here, we force norder to 3 (otherwise, the display is "blurry" for too long when zooming in)
@@ -1476,7 +1483,7 @@ export let View = (function () {
         }
 
         // Throw an exception if either the first or the second layers are not in the stack
-        this.aladin.webglAPI.renameLayer(layer, newLayer);
+        this.wasm.renameLayer(layer, newLayer);
 
         let imageLayer = this.imageLayers.get(layer);
         imageLayer.layer = newLayer;
@@ -1499,7 +1506,7 @@ export let View = (function () {
 
     View.prototype.swapLayers = function(firstLayer, secondLayer) {
         // Throw an exception if either the first or the second layers are not in the stack
-        this.aladin.webglAPI.swapLayers(firstLayer, secondLayer);
+        this.wasm.swapLayers(firstLayer, secondLayer);
     
         // Swap in overlaylayers
         const idxFirstLayer = this.overlayLayers.findIndex(overlayLayer => overlayLayer == firstLayer);
@@ -1514,22 +1521,21 @@ export let View = (function () {
     }
 
     View.prototype.removeImageLayer = function (layer) {
-        if (layer === "base") {
-            throw 'The base layer cannot be removed';
+        // Get the survey to remove to dissociate it from the view
+        let imageLayer = this.imageLayers.get(layer);
+        // Update the backend
+        if (imageLayer.added) {
+            this.wasm.removeLayer(layer);
         }
 
-        // Update the backend
-        this.aladin.webglAPI.removeLayer(layer);
+        // Get the survey to remove to dissociate it from the view
+        imageLayer.added = false;
 
         const idxOverlaidLayer = this.overlayLayers.findIndex(overlaidLayer => overlaidLayer == layer);
         if (idxOverlaidLayer == -1) {
             // layer not found
             return;
-        }
-
-        // Get the survey to remove to dissociate it from the view
-        let imageLayer = this.imageLayers.get(layer);
-        imageLayer.added = false;
+        }   
 
         // Delete it
         this.imageLayers.delete(layer);
@@ -1539,20 +1545,31 @@ export let View = (function () {
 
         if (this.overlayLayers.length === 0) {
             this.empty = true;
-        }
-
-        // find the toppest layer
-        if (this.selectedLayer === layer) {
-            const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
-            this.selectedLayer = toppestLayer;
+            this.selectedLayer = "base";
+        } else {
+            // find the toppest layer
+            if (this.selectedLayer === layer) {
+                const toppestLayer = this.overlayLayers[this.overlayLayers.length - 1];
+                this.selectedLayer = toppestLayer;
+            }
         }
 
         ALEvent.HIPS_LAYER_REMOVED.dispatchedTo(this.aladinDiv, { layer: layer });
+
+        // check if there are no more surveys
+        const noMoreLayersToWaitFor = this.promises.length === 0;
+        if (noMoreLayersToWaitFor && this.empty) {
+            // no promises to launch!
+            const idxServiceUrl = Math.round(Math.random());
+            const dssUrl = Aladin.DEFAULT_OPTIONS.surveyUrl[idxServiceUrl]
+    
+            this.aladin.setBaseImageLayer(dssUrl);
+        }
     };
 
     View.prototype.setHiPSUrl = function (pastUrl, newUrl) {
         try {
-            this.aladin.webglAPI.setHiPSUrl(pastUrl, newUrl);
+            this.wasm.setHiPSUrl(pastUrl, newUrl);
         } catch(e) {
             console.error(e)
         }
@@ -1666,7 +1683,7 @@ export let View = (function () {
                 break;  
         }
         // Change the projection here
-        this.aladin.webglAPI.setProjection(projectionName);
+        this.wasm.setProjection(projectionName);
         this.updateZoomState();
 
         this.requestRedraw();
@@ -1677,14 +1694,14 @@ export let View = (function () {
 
         // Set the new frame to the backend
         if (this.cooFrame.system == CooFrameEnum.SYSTEMS.GAL) {
-            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.GAL);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.GAL);
         }
         else if (this.cooFrame.system == CooFrameEnum.SYSTEMS.J2000) {
-            this.aladin.webglAPI.setCooSystem(Aladin.wasmLibs.webgl.CooSystem.ICRSJ2000);
+            this.wasm.setCooSystem(Aladin.wasmLibs.core.CooSystem.ICRSJ2000);
         }
 
         // Get the new view center position (given in icrsj2000)
-        let [ra, dec] = this.aladin.webglAPI.getCenter();
+        let [ra, dec] = this.wasm.getCenter();
         this.viewCenter.lon = ra;
         this.viewCenter.lat = dec;
         if (this.viewCenter.lon < 0.0) {
@@ -1755,7 +1772,7 @@ export let View = (function () {
         this.location.update(this.viewCenter.lon, this.viewCenter.lat, this.cooFrame, true);
 
         // Put a javascript code here to do some animation
-        this.aladin.webglAPI.setCenter(this.viewCenter.lon, this.viewCenter.lat);
+        this.wasm.setCenter(this.viewCenter.lon, this.viewCenter.lat);
 
         this.requestRedraw();
 

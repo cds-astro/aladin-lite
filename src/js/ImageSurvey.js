@@ -137,6 +137,7 @@ export let ImageSurvey = (function () {
     function ImageSurvey(id, name, url, view, options) {
         // A reference to the view
         this.view = view;
+        this.wasm = view.wasm;
         this.added = false;
         this.id = id;
         this.name = name;
@@ -325,13 +326,17 @@ export let ImageSurvey = (function () {
         })();
     };
 
+    ImageSurvey.prototype.isReady = function() {
+        return this.added;
+    }
+
     ImageSurvey.prototype.setUrl = function (url) {
         if (this.properties.url !== url) {
             console.info("Change url of ", this.id, " from ", this.properties.url, " to ", url)
 
             // If added to the backend, then we need to tell it the url has changed
             if (this.added) {
-                this.view.aladin.webglAPI.setHiPSUrl(this.properties.url, url);
+                this.wasm.setHiPSUrl(this.properties.url, url);
             }
 
             this.properties.url = url;
@@ -460,7 +465,7 @@ export let ImageSurvey = (function () {
         try {
             if (self.added) {
                 const metadata = self.metadata();
-                self.view.aladin.webglAPI.setImageMetadata(self.layer, metadata);
+                self.wasm.setImageMetadata(self.layer, metadata);
                 // once the meta have been well parsed, we can set the meta 
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
             }
@@ -477,7 +482,7 @@ export let ImageSurvey = (function () {
             properties: this.properties,
             meta: this.metadata(),
         })*/
-        this.view.aladin.webglAPI.addImageSurvey({
+        this.wasm.addImageSurvey({
             layer: this.layer,
             properties: this.properties,
             meta: this.metadata(),
@@ -518,7 +523,7 @@ export let ImageSurvey = (function () {
 
     // @api
     ImageSurvey.prototype.readPixel = function (x, y) {
-        return this.view.aladin.webglAPI.readPixel(x, y, this.layer);
+        return this.wasm.readPixel(x, y, this.layer);
     };
 
     ImageSurvey.DEFAULT_SURVEY_ID = "P/DSS2/color";

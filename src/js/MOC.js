@@ -71,13 +71,13 @@ export let MOC = (function() {
         let self = this;
 
         this.view = view;
-        this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
+        this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
 
         if (this.dataURL) {
             this.promiseFetchData
                 .then((arrayBuffer) => {
                     // Add the fetched moc to the rust backend
-                    self.view.aladin.webglAPI.addFITSMoc(self.mocParams, new Uint8Array(arrayBuffer));
+                    self.view.wasm.addFITSMoc(self.mocParams, new Uint8Array(arrayBuffer));
                     self.ready = true;
 
                     if (self.successCallback) {
@@ -85,7 +85,7 @@ export let MOC = (function() {
                     }
 
                     // Cache the sky fraction
-                    self.skyFrac = self.view.aladin.webglAPI.mocSkyFraction(this.mocParams);
+                    self.skyFrac = self.view.wasm.mocSkyFraction(this.mocParams);
 
                     // Add it to the view
                     self.view.mocs.push(self);
@@ -97,11 +97,11 @@ export let MOC = (function() {
                     self.view.requestRedraw();
                 })
         } else if (this.dataFromJSON) {
-            self.view.aladin.webglAPI.addJSONMoc(self.mocParams, self.dataJSON);
+            self.view.wasm.addJSONMoc(self.mocParams, self.dataJSON);
             self.ready = true;
 
             // Cache the sky fraction
-            self.skyFrac = self.view.aladin.webglAPI.mocSkyFraction(self.mocParams);
+            self.skyFrac = self.view.wasm.mocSkyFraction(self.mocParams);
 
             // Add it to the view
             self.view.mocs.push(self);
@@ -117,8 +117,8 @@ export let MOC = (function() {
     MOC.prototype.reportChange = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.mocParams = new Aladin.wasmLibs.webgl.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
-            this.view.aladin.webglAPI.setMocParams(this.mocParams);
+            this.mocParams = new Aladin.wasmLibs.core.MOC(this.uuid, this.opacity, this.lineWidth, this.isShowing, this.color, this.adaptativeDisplay);
+            this.view.wasm.setMocParams(this.mocParams);
             this.view.requestRedraw();
         }
     };
@@ -126,7 +126,7 @@ export let MOC = (function() {
     MOC.prototype.delete = function() {
         if (this.view) {
             // update the new moc params to the backend
-            this.view.aladin.webglAPI.removeMoc(this.mocParams);
+            this.view.wasm.removeMoc(this.mocParams);
             this.view.requestRedraw();
         }
     };
@@ -156,7 +156,7 @@ export let MOC = (function() {
         }
 
         // update the new moc params to the backend
-        return this.view.aladin.webglAPI.mocContains(this.mocParams, ra, dec);
+        return this.view.wasm.mocContains(this.mocParams, ra, dec);
     };
 
     return MOC;

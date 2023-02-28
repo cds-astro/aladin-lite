@@ -93,19 +93,7 @@ export let AladinUtils = (function() {
             return AladinUtils.xyToView(xy.X, xy.Y, width, height, largestDim, zoomFactor, false);
         },*/
         radecToViewXy: function(ra, dec, view) {
-            //var xy;
-            //if (currentFrame.system != CooFrameEnum.SYSTEMS.J2000) {
-            //    var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-            //    xy = view.aladin.webglAPI.worldToScreen(lonlat[0], lonlat[1]);
-            //}
-            //else {
-            //var lonlat = CooConversion.J2000ToGalactic([ra, dec]);
-            let xy = view.aladin.webglAPI.worldToScreen(ra, dec);
-            //}
-            //if (!xy) {
-            //    return null;
-            //}
-
+            let xy = view.wasm.worldToScreen(ra, dec);
             return xy;
         },
     	

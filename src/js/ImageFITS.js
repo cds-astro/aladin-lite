@@ -35,6 +35,8 @@ export let ImageFITS = (function () {
 
     function ImageFITS(url, name, view, options, successCallback = undefined, errorCallback = undefined) {
         this.view = view;
+        this.wasm = view.wasm;
+
         // Name of the layer
         this.layer = null;
         this.added = false;
@@ -59,23 +61,11 @@ export let ImageFITS = (function () {
         updateMetadata(self);
         ImageLayer.update(self);
 
-        // Return a promise that take the layer name as parameter
-        // and when resolved, will return the ImageFITS object
-        self.query = (async () => {
-            const init = {
-                method: "GET",
-                headers: {
-                    Accept: 'application/fits'
-                }
-            };
+        this.query = Promise.resolve(self);
+    }
 
-            return fetch(this.url, init)
-                .then((resp) => resp.arrayBuffer())
-                .then((arrayBuffer) => {
-                    self.arrayBuffer = new Uint8Array(arrayBuffer);
-                    return self;
-                });
-        })();
+    ImageFITS.prototype.isReady = function() {
+        return this.added;
     }
 
     // @api
@@ -151,8 +141,8 @@ export let ImageFITS = (function () {
         try {
             if (self.added) {
                 const metadata = self.metadata();
-                self.view.aladin.webglAPI.setImageMetadata(self.layer, metadata);
-                // once the meta have been well parsed, we can set the meta 
+                self.wasm.setImageMetadata(self.layer, metadata);
+
                 ALEvent.HIPS_LAYER_CHANGED.dispatchedTo(self.view.aladinDiv, { layer: self });
             }
         } catch (e) {
@@ -165,32 +155,28 @@ export let ImageFITS = (function () {
         this.layer = layer;
 
         let self = this;
-        try {
-            const { ra, dec, fov } = this.view.aladin.webglAPI.addImageFITS({
-                layer: self.layer,
-                url: self.url.toString(),
-                meta: self.metadata()
-            },
-                self.arrayBuffer,
-            );
+        self.wasm.addImageFITS({
+            layer: self.layer,
+            url: self.url.toString(),
+            meta: self.metadata()
+        }).then(({ra, dec, fov}) => {
+            console.log("success")
+            self.added = true;
 
-            this.ra = ra;
-            this.dec = dec;
-            this.fov = fov;
-
-            this.added = true;
-
-            // execute the callback if there are
-            if (this.successCallback) {
-                this.successCallback(self.ra, self.dec, self.fov, self);
+            if (self.successCallback) {
+                self.successCallback(ra, dec, fov, this);
             }
-        } catch (e) {
-            if (this.errorCallback) {
-                this.errorCallback();
+        }).catch((e) => {
+            console.error(e)
+            if (self.errorCallback) {
+                self.errorCallback()
             }
 
-            throw e;
-        }
+            // This error result from a promise
+            // If I throw it, it will not be catched because
+            // it is run async
+            self.view.removeImageLayer(layer)
+        });
     };
 
     // @api
@@ -225,7 +211,7 @@ export let ImageFITS = (function () {
 
     // @api
     ImageFITS.prototype.readPixel = function (x, y) {
-        return this.view.aladin.webglAPI.readPixel(x, y, this.layer);
+        return this.wasm.readPixel(x, y, this.layer);
     };
 
     return ImageFITS;

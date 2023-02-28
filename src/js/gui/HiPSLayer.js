@@ -68,7 +68,7 @@ export class HiPSLayer {
 
         // HiPS main options div
         let cmListStr = '';
-        for (const cm of this.aladin.webglAPI.getAvailableColormapList()) {
+        for (const cm of this.aladin.wasm.getAvailableColormapList()) {
             cmListStr += '<option>' + cm + '</option>';
         }
 

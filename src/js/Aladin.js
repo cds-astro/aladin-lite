@@ -56,12 +56,13 @@ import { CooGrid } from "./gui/CooGrid.js";
 import { ALEvent } from "./events/ALEvent.js";
 import { Color } from './Color.js';
 import { ColorCfg } from './ColorCfg.js';
+import { ImageFITS } from "./ImageFITS.js";
 
 import $ from 'jquery';
 
 // Import aladin css inside the project
 import './../css/aladin.css';
-import { ImageFITS } from "./ImageFITS.js";
+
 
 export let Aladin = (function () {
 
@@ -73,7 +74,7 @@ export let Aladin = (function () {
         if ($(aladinDiv).length == 0) {
             return;
         }
-        this.webglAPI = null;
+        this.wasm = null;
         var self = this;
 
         // if not options was set, try to retrieve them from the query string
@@ -679,7 +680,7 @@ export let Aladin = (function () {
 
             coo.parse(targetName);
             // Convert from view coo sys to icrsj2000
-            const [ra, dec] = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(coo.lon, coo.lat);
+            const [ra, dec] = this.wasm.viewToICRSJ2000CooSys(coo.lon, coo.lat);
             this.view.pointTo(ra, dec, options);
 
             (typeof successCallback === 'function') && successCallback(this.getRaDec());
@@ -910,9 +911,9 @@ export let Aladin = (function () {
             return radec;
 
         }*/
-        let radec = this.webglAPI.getCenter(); // This is given in the frame of the view
+        let radec = this.wasm.getCenter(); // This is given in the frame of the view
         // We must convert it to ICRSJ2000
-        const radec_j2000 = this.view.aladin.webglAPI.viewToICRSJ2000CooSys(radec[0], radec[1]);
+        const radec_j2000 = this.wasm.viewToICRSJ2000CooSys(radec[0], radec[1]);
 
         if (radec_j2000[0]<0) {
             return [radec_j2000[0] + 360.0, radec_j2000[1]];
@@ -1076,7 +1077,7 @@ export let Aladin = (function () {
         } else {
             color = rgb;
         }
-        this.webglAPI.setBackgroundColor(color);
+        this.wasm.setBackgroundColor(color);
     };
 
     // @api
@@ -1345,7 +1346,7 @@ export let Aladin = (function () {
         }
 
         try {
-            const [ra, dec] = this.view.aladin.webglAPI.screenToWorld(x, y);
+            const [ra, dec] = this.wasm.screenToWorld(x, y);
 
             if (ra < 0) {
                 return [ra + 360.0, dec];
@@ -1375,7 +1376,7 @@ export let Aladin = (function () {
         }
 
         try {
-            return this.view.aladin.webglAPI.worldToScreen(ra, dec);
+            return this.wasm.worldToScreen(ra, dec);
         } catch (e) {
             return undefined;
         }
@@ -1406,7 +1407,7 @@ export let Aladin = (function () {
             y2 = (k == 1 || k == 2) ? this.view.height - 1 : 0;
 
             for (var step = 0; step < nbSteps; step++) {
-                let radec = this.webglAPI.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
+                let radec = this.wasm.screenToWorld(x1 + step / nbSteps * (x2 - x1), y1 + step / nbSteps * (y2 - y1));
                 points.push(radec);
             }
         }
@@ -1456,6 +1457,8 @@ export let Aladin = (function () {
 /////// Aladin Lite API ///////
 ///////////////////////////////
 let A = {};
+console.log("jkjkjkj")
+
 //// New API ////
 // For developers using Aladin lite: all objects should be created through the API, 
 // rather than creating directly the corresponding JS objects
@@ -1678,7 +1681,7 @@ Aladin.prototype.displayJPG = Aladin.prototype.displayPNG = function (url, optio
                 executeDefaultSuccessAction = successCallback(meta.ra, meta.dec, meta.fov);
             }
             if (executeDefaultSuccessAction === true) {
-                self.webglAPI.setCenter(meta.ra, meta.dec);
+                self.wasm.setCenter(meta.ra, meta.dec);
                 self.setFoV(meta.fov);
             }
 
@@ -1812,7 +1815,7 @@ A.init = (async () => {
     // Check for webgl2 support
     if (isWebGL2Supported) {
         const module = await import('./../../pkg-webgl2');
-        Aladin.wasmLibs.webgl = module;
+        Aladin.wasmLibs.core = module;
     } else {
         // WebGL1 not supported
         // According to caniuse, https://caniuse.com/webgl2, webgl2 is supported by 89% of users

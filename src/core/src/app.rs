@@ -28,6 +28,7 @@ use al_api::{
     grid::GridCfg,
     hips::{ImageMetadata, HiPSCfg, FITSCfg}, fov::FoV,
 };
+use wasm_bindgen_futures::JsFuture;
 use crate::Abort;
 use super::coosys;
 use cgmath::Vector4;
@@ -87,10 +88,17 @@ pub struct App {
     colormaps: Colormaps,
 
     projection: ProjectionType,
+
+    // Async data receivers
+    fits_send: async_channel::Sender<FitsCfg>,
+    fits_recv: async_channel::Receiver<FitsCfg>,
+
+    ack_send: async_channel::Sender<()>,
+    ack_recv: async_channel::Receiver<()>,
 }
 
 use cgmath::{Vector2, Vector3};
-use futures::stream::StreamExt; // for `next`
+use futures::{stream::StreamExt, io::BufReader}; // for `next`
 
 /// State for inertia
 struct InertiaAnimation {
@@ -189,6 +197,9 @@ impl App {
 
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
+        let (fits_send, fits_recv) = async_channel::unbounded::<FitsCfg>();
+        let (ack_send, ack_recv) = async_channel::unbounded::<()>();
+
         Ok(App {
             gl,
             start_time_frame,
@@ -229,6 +240,11 @@ impl App {
 
             colormaps,
             projection,
+
+            fits_send,
+            fits_recv,
+            ack_send,
+            ack_recv
         })
     }
 
@@ -692,6 +708,20 @@ impl App {
             }
         }*/
 
+        // Check for async retrieval
+        if let Ok(fits) = self.fits_recv.try_recv() {
+            al_core::log("received");
+            self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
+            self.request_redraw = true;
+
+            // Send the ack to the js promise so that she finished
+            let ack_send = self.ack_send.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                ack_send.send(()).await
+                    .unwrap_throw();
+            })
+        }
+
         self.draw(false)?;
 
         Ok(())
@@ -853,29 +883,74 @@ impl App {
         Ok(())
     }
 
-    pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg, bytes: &[u8]) -> Result<FoV, JsValue> {
+    pub(crate) fn add_image_fits(&mut self, cfg: FITSCfg) -> Result<js_sys::Promise, JsValue> {
         let FITSCfg { layer, url, meta } = cfg;
+        al_core::log(&format!("url: {:?}", url));
+        let gl = self.gl.clone();
+
+        let fits_sender = self.fits_send.clone();
+        let ack_recv = self.ack_recv.clone();
+        let fut = async move {
+            use wasm_streams::ReadableStream;
+            use js_sys::Uint8Array;
+            use web_sys::Response;
+            use web_sys::window;
+            use wasm_bindgen_futures::JsFuture;
+            use futures::StreamExt;
+            use wasm_bindgen::JsCast;
+            use crate::renderable::image::FitsImage;
+            use futures::TryStreamExt;
+    
+            let window = window().unwrap();
+            let resp_value = JsFuture::from(window.fetch_with_str(&url))
+                .await?;
+            let resp: Response = resp_value.dyn_into()?;
         
-        let fits = FitsImage::new(&self.gl, bytes)?;
-        let center = fits.get_center();
-        let fov = FoV {
-            ra: center.lon().to_degrees(),
-            dec: center.lat().to_degrees(),
-            fov: 1.0
+            // Get the response's body as a JS ReadableStream
+            let raw_body = resp.body().unwrap();
+            let body = ReadableStream::from_raw(raw_body.dyn_into()?);
+
+            al_core::log("begin to parse fits!");
+            // Convert the JS ReadableStream to a Rust stream
+            let bytes_reader = body
+                .into_stream()
+                .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
+                .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
+                .into_async_read();
+
+            let fits = FitsImage::new_async(&gl, BufReader::new(bytes_reader)).await?;
+            al_core::log("fits parsed");
+
+            let center = fits.get_center();
+            let ra = center.lon().to_degrees();
+            let dec = center.lat().to_degrees();
+            let fov = 1.0;
+
+            let fits_cfg = FitsCfg {
+                fits: fits,
+                layer: layer,
+                url: url,
+                meta: meta
+            };
+
+            fits_sender.send(fits_cfg).await
+                .unwrap();
+
+            // Wait for the ack
+            if let Ok(_) = ack_recv.recv().await {
+                let fov = FoV {
+                    ra: ra,
+                    dec: dec,
+                    fov: fov,
+                };
+                Ok(serde_wasm_bindgen::to_value(&fov).unwrap())
+            } else {
+                Err(JsValue::from_str("Problem receving fits"))
+            }
         };
-
-        let cfg = FitsCfg {
-            layer,
-            url,
-            fits,
-            meta,
-        };
-        self.layers.add_image_fits(cfg, &mut self.camera, &self.projection)?;
-
-        // Once its added, request the tiles in the view (unless the viewer is at depth 0)
-        self.request_redraw = true;
-
-        Ok(fov)
+        
+        let promise = wasm_bindgen_futures::future_to_promise(fut);
+        Ok(promise)
     }
 
     pub(crate) fn get_layer_cfg(&self, layer: &str) -> Result<ImageMetadata, JsValue> {

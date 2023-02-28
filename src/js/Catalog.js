@@ -548,7 +548,7 @@ export let Catalog = (function() {
             return;
         }*/
         var sourceSize = catalogInstance.sourceSize;
-        //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
+        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
         //console.log(sources)
         let sourcesInView = [];
 
@@ -600,7 +600,7 @@ export let Catalog = (function() {
             return false;
         }
         var sourceSize = catalogInstance.sourceSize;
-        //console.log('COMPUTE', aladin.webglAPI.worldToScreen(s.ra, s.dec));
+        //console.log('COMPUTE', aladin.wasm.worldToScreen(s.ra, s.dec));
         var xy = AladinUtils.radecToViewXy(s.ra, s.dec, catalogInstance.view);
 
         if (xy) {

@@ -26,9 +26,9 @@
                 minCut: 5000,
                 maxCut: 17000,
             }, // no optional params
-            (ra, dec, fov, image) => { // ra, dec and fov are centered around the fits image 
+            (ra, dec, fov, image) => { // ra, dec and fov are centered around the fits image
+                console.log(image)
                 image.setColormap("magma", {stretch: "asinh"});                
-                
                 aladin.gotoRaDec(ra, dec);
                 aladin.setFoV(fov);
             }

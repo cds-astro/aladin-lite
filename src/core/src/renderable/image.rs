@@ -1,6 +1,7 @@
 use std::vec;
 
 use al_api::hips::ImageMetadata;
+use futures::StreamExt;
 use moclib::moc::range::RangeMOC;
 use moclib::qty::Hpx;
 use moclib::elem::cell::Cell;
@@ -13,7 +14,7 @@ use web_sys::WebGl2RenderingContext;
 use al_api::cell::HEALPixCellProjeted;
 use al_api::coo_system::CooSystem;
 
-use al_core::{VertexArrayObject, Texture2D};
+use al_core::{VertexArrayObject, Texture2D, pixel};
 use al_core::WebGlContext;
 use al_core::VecData;
 use al_core::webgl_ctx::GlWrapper;
@@ -26,16 +27,18 @@ use crate::ShaderManager;
 use crate::Colormaps;
 
 use fitsrs::{
-    fits::Fits,
+    fits::{AsyncFits, Fits},
     hdu::{
+        data_async::DataOwned,
         HDU,
+        AsyncHDU,
         data::DataBorrowed
     }
 };
 use wcs::ImgXY;
 use wcs::WCS;
 
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
 pub struct FitsImage {
     // The vertex array object of the screen in NDC
@@ -58,13 +61,221 @@ pub struct FitsImage {
     center: LonLat,
 }
 
+use crate::time::Time;
+use futures::io::BufReader;
+
 impl FitsImage {
-    pub fn new<'a>(
+    pub fn from_bytes(
         gl: &WebGlContext,
-        raw_bytes: &'a [u8],
+        bytes: &[u8]
     ) -> Result<Self, JsValue> {
         // Load the fits file
-        let Fits { hdu: HDU { header, data } } = Fits::from_reader(raw_bytes)
+        al_core::log("jdjdjdj start");
+
+        let Fits { hdu: HDU { header, data } } = Fits::from_reader(bytes)
+            .map_err(|_| JsValue::from_str("Fits cannot be parsed"))?;
+
+        al_core::log("jdjdjdj");
+        let scale = header
+            .get_parsed::<f64>(b"BSCALE  ")
+            .unwrap_or(Ok(1.0))
+            .unwrap() as f32;
+        let offset = header
+            .get_parsed::<f64>(b"BZERO   ")
+            .unwrap_or(Ok(0.0))
+            .unwrap() as f32;
+        let blank = header
+            .get_parsed::<f64>(b"BLANK   ")
+            .unwrap_or(Ok(std::f64::NAN))
+            .unwrap() as f32;
+        al_core::log("jdjdjdj2");
+
+        // Create a WCS from a specific header unit
+        let wcs = WCS::new(&header).map_err(|_| JsValue::from_str("Failed to parse the WCS"))?;
+
+        let (w, h) = wcs.img_dimensions();
+        let width = w as f64;
+        let height = h as f64;
+        let tex_params = &[
+            (
+                WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+                WebGl2RenderingContext::NEAREST,
+            ),
+            (
+                WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+                WebGl2RenderingContext::NEAREST,
+            ),
+            // Prevents s-coordinate wrapping (repeating)
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_S,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
+            // Prevents t-coordinate wrapping (repeating)
+            (
+                WebGl2RenderingContext::TEXTURE_WRAP_T,
+                WebGl2RenderingContext::CLAMP_TO_EDGE,
+            ),
+        ];
+        al_core::log("jdjdjdj3");
+
+        let texture = match data {
+            DataBorrowed::U8(data) => {
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(&data))?
+            },
+            DataBorrowed::I16(data) => {
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R16I>(gl, w as i32, h as i32, tex_params, Some(&data))?
+            },
+            DataBorrowed::I32(data) => {
+                al_core::log("jdjdjd4");
+                al_core::log("jdjdjdj5");
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32I>(gl, w as i32, h as i32, tex_params, Some(&data))?
+            },
+            DataBorrowed::I64(data) => {
+                let values: Vec<f32> = data.iter().map(|v| {
+                    *v as f32
+                })
+                .collect();
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+            },
+            DataBorrowed::F32(data) => {
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(data))?
+            },
+            DataBorrowed::F64(data) => {
+                let values: Vec<f32> = data.iter().map(|v| {
+                    *v as f32
+                })
+                .collect();
+
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+            },
+        };
+
+        let bl = wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0)).ok_or(JsValue::from_str("(0, 0) px cannot be unprojected"))?;
+        let br = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, 0.0)).ok_or(JsValue::from_str("(w - 1, 0) px cannot be unprojected"))?;
+        let tr = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, height - 1.0)).ok_or(JsValue::from_str("(w - 1, h - 1) px cannot be unprojected"))?;
+        let tl = wcs.unproj_lonlat(&ImgXY::new(0.0, height - 1.0)).ok_or(JsValue::from_str("(0, h - 1) px cannot be unprojected"))?;
+
+        let center = wcs.unproj_lonlat(&ImgXY::new(width / 2.0, height / 2.0)).ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
+        
+        let mut num_moc_cells = std::usize::MAX;
+        let mut depth = 11;
+        let mut moc = RangeMOC::new_empty(0);
+        while num_moc_cells > 5 && depth > 3 {
+            depth = depth - 1;
+            moc = RangeMOC::from_polygon_with_control_point(
+                &[
+                    (bl.lon(), bl.lat()),
+                    (br.lon(), br.lat()),
+                    (tr.lon(), tr.lat()),
+                    (tl.lon(), tl.lat()),
+                ],
+                (center.lon(), center.lat()),
+                depth
+            );
+
+            num_moc_cells = (&moc).into_range_moc_iter().cells().count();
+        }
+        
+        let pos = vec![];
+        let uv = vec![];
+        let indices = vec![];
+        // Define the buffers
+        let vao = {
+            let mut vao = VertexArrayObject::new(gl);
+            
+            #[cfg(feature = "webgl2")]
+            vao.bind_for_update()
+                // layout (location = 0) in vec2 ndc_pos;
+                .add_array_buffer_single(
+                    2,
+                    "ndc_pos",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&pos),
+                )
+                .add_array_buffer_single(
+                    2,
+                    "uv",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&uv),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<u32>(&indices),
+                )
+                .unbind();
+            #[cfg(feature = "webgl1")]
+            vao.bind_for_update()
+                .add_array_buffer_single(
+                    2,
+                    "ndc_pos",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&pos),
+                )
+                .add_array_buffer_single(
+                    2,
+                    "uv",
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<f32>(&uv),
+                )
+                // Set the element buffer
+                .add_element_buffer(
+                    WebGl2RenderingContext::DYNAMIC_DRAW,
+                    VecData::<u32>(&indices),
+                )
+                .unbind();
+
+            vao
+        };
+
+        // Automatic methods to compute the min and max cut values
+        /*let mut values = values.into_iter()
+            .filter(|x| !x.is_nan() && *x != blank)
+            .collect::<Vec<_>>();
+        
+        let n = values.len();
+        let first_pct_idx = (0.05 * (n as f32)) as usize;
+        let last_pct_idx = (0.95 * (n as f32)) as usize;
+
+        let min_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, first_pct_idx);
+        let max_val = crate::utils::select_kth_smallest(&mut values[..], 0, n - 1, last_pct_idx);
+        */
+        //al_core::log(&format!("values: {} {}", min_val, max_val));
+
+        let gl = gl.clone();
+        let image = FitsImage {
+            vao,
+            wcs,
+            moc,
+            gl,
+
+            pos,
+            uv,
+            indices,
+
+            texture,
+            scale,
+            offset,
+            blank,
+
+            center,
+        };
+
+        Ok(image)
+    }
+
+    pub async fn new_async<'a, R>(
+        gl: &WebGlContext,
+        reader: BufReader<R>,
+    ) -> Result<Self, JsValue>
+    where
+        R: futures::AsyncRead + std::marker::Unpin + std::fmt::Debug
+    {
+        // Load the fits file
+        let AsyncFits { hdu: AsyncHDU { header, data } } = AsyncFits::from_reader(reader)
+            .await
             .map_err(|_| JsValue::from_str("Fits cannot be parsed"))?;
 
         let scale = header
@@ -108,36 +319,70 @@ impl FitsImage {
         ];
 
         let texture = match data {
-            DataBorrowed::U8(data) => {
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(data))?
+            DataOwned::U8(data) => {
+                let data = data.collect::<Vec<u8>>().await;
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(&data))?
             },
-            DataBorrowed::I16(data) => {
-                let values: Vec<f32> = data.into_iter().map(|v| {
-                    *v as f32
+            DataOwned::I16(data) => {
+                let values: Vec<f32> = data.map(|v| {
+                    v as f32
                 })
-                .collect();
+                .collect().await;
 
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
-            DataBorrowed::I32(data) => {
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32I>(gl, w as i32, h as i32, tex_params, Some(data))?
+            DataOwned::I32(mut data) => {
+                let texture = Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, None)?;
+                let tex_bound = texture.bind();
+                let mut dy = 0;
+                let mut pixels_processed = 0;
+                let tot_pixels = w * h;
+                let mut bytes_chunk = Vec::new();
+
+                while pixels_processed < tot_pixels {
+                    let chunk_num_pixels = w; // todo adapt the size of the chunk
+
+                    bytes_chunk.clear();
+                    for _ in 0..chunk_num_pixels {
+                        let value = data.next().await.unwrap_throw() as f32;
+                        bytes_chunk.extend(value.to_le_bytes());
+                    }
+
+                    tex_bound.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
+                        0,
+                        dy,
+                        w as i32,
+                        1,
+                        Some(&bytes_chunk)
+                    );
+                    dy += 1;
+
+                    pixels_processed += chunk_num_pixels;
+                }
+
+                texture
             },
-            DataBorrowed::I64(data) => {
-                let values: Vec<f32> = data.into_iter().map(|v| {
-                    *v as f32
+            DataOwned::I64(data) => {
+                let values: Vec<f32> = data.map(|v| {
+                    v as f32
                 })
-                .collect();
+                .collect().await;
 
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
-            DataBorrowed::F32(data) => {
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(data))?
+            DataOwned::F32(data) => {
+                al_core::log("f32");
+
+                let values: Vec<f32> = data.collect().await;
+                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
-            DataBorrowed::F64(data) => {
-                let values: Vec<f32> = data.into_iter().map(|v| {
-                    *v as f32
+            DataOwned::F64(data) => {
+                al_core::log("f64");
+
+                let values: Vec<f32> = data.map(|v| {
+                    v as f32
                 })
-                .collect();
+                .collect().await;
 
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },

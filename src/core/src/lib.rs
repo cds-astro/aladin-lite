@@ -66,6 +66,7 @@ mod utils;
 
 use math::projection::*;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
 
 mod app;
 pub mod async_task;
@@ -98,6 +99,7 @@ use al_api::hips::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use al_api::color::{Color, ColorRGBA};
 use al_api::fov::FoV;
+use al_api::hips::FITSCfg;
 
 use al_core::Colormap;
 use al_core::{WebGlContext};
@@ -266,7 +268,7 @@ impl WebClient {
     /// # Examples
     ///
     /// ```javascript
-    /// let al = new Aladin.wasmLibs.webgl.WebClient(...);
+    /// let al = new Aladin.wasmLibs.core.WebClient(...);
     /// const panstarrs = {
     ///     properties: {
     ///         url: "http://alasky.u-strasbg.fr/Pan-STARRS/DR1/r",
@@ -309,10 +311,10 @@ impl WebClient {
     }
 
     #[wasm_bindgen(js_name = addImageFITS)]
-    pub fn add_image_fits(&mut self, fits_cfg: JsValue, bytes: &[u8]) -> Result<FoV, JsValue> {
-        let fits_cfg = serde_wasm_bindgen::from_value(fits_cfg)?;
+    pub fn add_image_fits(&mut self, fits_cfg: JsValue) -> Result<js_sys::Promise, JsValue> {
+        let fits_cfg: FITSCfg = serde_wasm_bindgen::from_value(fits_cfg)?;
 
-        self.app.add_image_fits(fits_cfg, bytes)
+        self.app.add_image_fits(fits_cfg)
     }
 
     #[wasm_bindgen(js_name = removeLayer)]

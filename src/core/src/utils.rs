@@ -45,6 +45,11 @@ pub unsafe fn transmute_boxed_slice<I, O>(s: Box<[I]>) -> Box<[O]> {
     Box::from_raw(out_slice_ptr)
 }
 
+pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
+    s.set_len(std::mem::size_of_val(&s[..]));
+    std::mem::transmute(s)
+}
+
 /// Select the kth smallest element in a slice
 /// 
 /// This is a basic implementation of quickselect algorithm: https://fr.wikipedia.org/wiki/Quickselect

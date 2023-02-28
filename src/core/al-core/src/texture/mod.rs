@@ -25,6 +25,7 @@ struct Texture2DMeta {
 }
 
 use web_sys::WebGlTexture;
+#[derive(Clone)]
 pub struct Texture2D {
     pub texture: Option<WebGlTexture>,
 

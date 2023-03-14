@@ -1,12 +1,10 @@
 use wcs::ImgXY;
-use std::ops::Range;
 use std::ops::RangeInclusive;
 
 use crate::camera::CameraViewPort;
 use crate::math::projection::ProjectionType;
 use wcs::WCS;
 use al_api::coo_system::CooSystem;
-use crate::coo_space::XYNDC;
 use crate::math::angle::ToAngle;
 use crate::Vector2;
 
@@ -42,7 +40,6 @@ pub fn get_grid_vertices(xy_min: &ImgXY, xy_max: &ImgXY, max_tex_size: u64, num_
                     let cross_tex_chunk = x2_t > x1_t && (x2 % max_tex_size > 0);
     
                     let uv1 = ((x1 % max_tex_size) as f32) / (max_tex_size as f32);
-                    let uv2 = ((x2 % max_tex_size) as f32) / (max_tex_size as f32);
     
                     if cross_tex_chunk {
                         let xt = x1 - (x1 % max_tex_size) + max_tex_size;
@@ -74,7 +71,6 @@ pub fn get_grid_vertices(xy_min: &ImgXY, xy_max: &ImgXY, max_tex_size: u64, num_
                 let cross_tex_chunk = y2_t > y1_t && (y2 % max_tex_size > 0);
 
                 let uv1 = ((y1 % max_tex_size) as f32) / (max_tex_size as f32);
-                let uv2 = ((y2 % max_tex_size) as f32) / (max_tex_size as f32);
 
                 if cross_tex_chunk {
                     let yt = y1 - (y1 % max_tex_size) + max_tex_size;

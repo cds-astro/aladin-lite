@@ -1,4 +1,3 @@
-use core::num;
 use std::vec;
 use std::marker::Unpin;
 use std::fmt::Debug;
@@ -12,11 +11,6 @@ use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
 use web_sys::WebGl2RenderingContext;
 
-use moclib::moc::range::RangeMOC;
-use moclib::qty::Hpx;
-use moclib::elem::cell::Cell;
-use moclib::moc::{RangeMOCIterator, RangeMOCIntoIterator};
-
 use fitsrs::{
     fits::AsyncFits,
     hdu::{
@@ -26,8 +20,6 @@ use fitsrs::{
 };
 use wcs::{ImgXY, WCS, LonLat};
 
-use al_api::cell::HEALPixCellProjeted;
-use al_api::coo_system::CooSystem;
 use al_api::hips::ImageMetadata;
 
 use al_core::{VertexArrayObject, Texture2D};
@@ -37,10 +29,8 @@ use al_core::webgl_ctx::GlWrapper;
 use al_core::image::format::*;
 use al_core::image::format::ImageFormatType;
 
-use crate::math::projection::coo_space::XYNDC;
 use crate::camera::CameraViewPort;
 use crate::ProjectionType;
-use crate::healpix::cell::HEALPixCell;
 use crate::ShaderManager;
 use crate::Colormaps;
 use super::subdivide_texture::build;
@@ -267,7 +257,6 @@ impl FitsImage {
             return Ok(());
         }
 
-        use crate::math::lonlat::LonLat;
         self.uv.clear();
         self.pos.clear();
 
@@ -276,7 +265,7 @@ impl FitsImage {
         let height = dim.1 as f64;
 
         // 1. TODO: Project the camera field of view inside the wcs
-        let (xy_min, xy_max, num_vertices) = if let Some(vertices) = camera.get_vertices() {
+        let (xy_min, xy_max, num_vertices) = if let Some(_vertices) = camera.get_vertices() {
             /*let (mut xy_min, mut xy_max) = vertices.iter()
                 .map(|vertex| {
                     let lonlat = vertex.lonlat();
@@ -366,7 +355,7 @@ impl FitsImage {
             ..
         } = cfg;
 
-        let mut shader = match self.format {
+        let shader = match self.format {
             ImageFormatType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
             #[cfg(feature = "webgl2")]
             ImageFormatType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,

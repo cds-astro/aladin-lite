@@ -60,8 +60,9 @@ HiPSProperties.fetch = async function(urlOrId) {
         } else {
             if (metadata.length > 1) {
                 let matching = metadata.find((m) => m.ID === ID);
-
-                if (!matching) {
+                if (matching) {
+                    result = matching;
+                } else {
                     result = metadata[0];
                     console.warn("Multiple surveys are matching, please choose one. The chosen one is: " + result);
                 }

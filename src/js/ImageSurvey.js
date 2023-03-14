@@ -153,6 +153,7 @@ export let ImageSurvey = (function () {
 
             try {
                 const properties = await HiPSProperties.fetch(url || id);
+
                 // Give a better name if we have the HiPS metadata
                 self.name = self.name || properties.obs_title;
                 // Set it to a default value
@@ -383,11 +384,7 @@ export let ImageSurvey = (function () {
                     }
         
                     // Check if it is a fits
-                    self.imgFormat = imgFormat;
-    
-    
-                    console.log("change image format", self.imgFormat)
-    
+                    self.imgFormat = imgFormat;    
                 });
             })
     };

@@ -1457,7 +1457,6 @@ export let Aladin = (function () {
 /////// Aladin Lite API ///////
 ///////////////////////////////
 let A = {};
-console.log("jkjkjkj")
 
 //// New API ////
 // For developers using Aladin lite: all objects should be created through the API, 

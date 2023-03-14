@@ -1,4 +1,35 @@
+use std::cmp::Ordering;
+use std::rc::Rc;
+use std::collections::BinaryHeap;
+use std::collections::HashMap;
+
+use cgmath::Vector3;
+
+use al_api::hips::HiPSTileFormat;
+
+use al_core::shader::{SendUniforms, ShaderBound};
+use al_core::Texture2DArray;
+use al_core::WebGlContext;
+use al_core::image::format::ImageFormat;
+use al_core::image::Image;
+use al_core::image::format::{ImageFormatType, R32F, R64F, RGB8U, RGBA8U};
+#[cfg(feature = "webgl2")]
+use al_core::image::format::{R16I, R32I, R8UI};
+use al_core::texture::{
+    TEX_PARAMS
+};
+
+
 use crate::healpix::cell::HEALPixCell;
+use super::texture::TextureUniforms;
+use super::texture::Texture;
+use super::config::HiPSConfig;
+use crate::time::Time;
+use crate::math::lonlat::LonLatT;
+use crate::JsValue;
+use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
+use crate::downloader::request::allsky::Allsky;
+use crate::Abort;
 
 #[derive(Clone, Debug)]
 pub struct TextureCellItem {
@@ -19,7 +50,6 @@ impl PartialEq for TextureCellItem {
 }
 impl Eq for TextureCellItem {}
 
-use std::cmp::Ordering;
 // Ordering based on the time the tile has been requested
 impl PartialOrd for TextureCellItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -32,7 +62,6 @@ impl Ord for TextureCellItem {
     }
 }
 
-use super::texture::Texture;
 impl From<Texture> for TextureCellItem {
     fn from(texture: Texture) -> Self {
         let time_request = texture.time_request();
@@ -58,13 +87,6 @@ impl From<&mut Texture> for TextureCellItem {
     }
 }
 
-use super::config::HiPSConfig;
-use al_api::hips::HiPSTileFormat;
-use al_core::Texture2DArray;
-use std::collections::HashMap;
-
-use crate::time::Time;
-use std::collections::BinaryHeap;
 struct HEALPixCellHeap(BinaryHeap<TextureCellItem>);
 
 impl HEALPixCellHeap {
@@ -103,7 +125,6 @@ impl HEALPixCellHeap {
     }
 }
 
-use std::rc::Rc;
 // Fixed sized binary heap
 pub struct ImageSurveyTextures {
     // Some information about the HiPS
@@ -130,13 +151,6 @@ pub struct ImageSurveyTextures {
     //exec: Rc<RefCell<TaskExecutor>>,
 }
 
-use crate::math::lonlat::LonLatT;
-use crate::JsValue;
-use al_core::WebGlContext;
-
-use al_core::image::format::ImageFormat;
-use al_core::image::Image;
-use web_sys::WebGl2RenderingContext;
 // Define a set of textures compatible with the HEALPix tile format and size
 fn create_texture_array<F: ImageFormat>(
     gl: &WebGlContext,
@@ -150,40 +164,10 @@ fn create_texture_array<F: ImageFormat>(
         texture_size * num_textures_by_side_slice,
         texture_size * num_textures_by_side_slice,
         num_slices,
-        &[
-            // The HiPS tiles sampling is NEAREST
-            (
-                WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                WebGl2RenderingContext::NEAREST,
-            ),
-            (
-                WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                WebGl2RenderingContext::NEAREST,
-            ),
-            // Prevents s-coordinate wrapping (repeating)
-            (
-                WebGl2RenderingContext::TEXTURE_WRAP_S,
-                WebGl2RenderingContext::CLAMP_TO_EDGE,
-            ),
-            // Prevents t-coordinate wrapping (repeating)
-            (
-                WebGl2RenderingContext::TEXTURE_WRAP_T,
-                WebGl2RenderingContext::CLAMP_TO_EDGE,
-            ),
-        ],
+        TEX_PARAMS,
     )
 }
 
-
-use al_core::image::format::{ImageFormatType, R32F, R64F, RGB8U, RGBA8U};
-
-#[cfg(feature = "webgl2")]
-use al_core::image::format::{R16I, R32I, R8UI};
-
-use crate::healpix::cell::NUM_HPX_TILES_DEPTH_ZERO;
-use crate::downloader::request::allsky::Allsky;
-use cgmath::Vector3;
-use crate::Abort;
 impl ImageSurveyTextures {
     pub fn new(
         gl: &WebGlContext,
@@ -677,9 +661,7 @@ fn send_to_gpu<I: Image>(
 
     image.tex_sub_image_3d(&texture_array, &offset)
 }
-use super::texture::TextureUniforms;
 
-use al_core::shader::{SendUniforms, ShaderBound};
 impl SendUniforms for ImageSurveyTextures {
     // Send only the allsky textures
     fn attach_uniforms<'a>(&self, shader: &'a ShaderBound<'a>) -> &'a ShaderBound<'a> {

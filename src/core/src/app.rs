@@ -11,7 +11,7 @@ use crate::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         moc::MOC,
-        image::FitsImage, FitsCfg,
+        FitsCfg,
     },
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
@@ -72,6 +72,7 @@ pub struct App {
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
     inertial_move_animation: Option<InertiaAnimation>,
+    disable_inertia: bool,
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
     out_of_fov: bool,
@@ -174,6 +175,8 @@ impl App {
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
+        let disable_inertia = false;
+
         //let tasks_finished = false;
         let request_redraw = false;
         let rendering = true;
@@ -230,6 +233,7 @@ impl App {
             _final_rendering_pass,
 
             inertial_move_animation,
+            disable_inertia,
             prev_cam_position,
             out_of_fov,
 
@@ -714,6 +718,9 @@ impl App {
             self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
             self.request_redraw = true;
 
+            // Enable inertia again
+            self.disable_inertia = false;
+
             // Send the ack to the js promise so that she finished
             let ack_send = self.ack_send.clone();
             wasm_bindgen_futures::spawn_local(async move {
@@ -890,15 +897,17 @@ impl App {
 
         let fits_sender = self.fits_send.clone();
         let ack_recv = self.ack_recv.clone();
+        // Stop the current inertia
+        self.inertial_move_animation = None;
+        // And disable it while the fits has not been loaded
+        self.disable_inertia = true;
+
         let fut = async move {
             use wasm_streams::ReadableStream;
             use js_sys::Uint8Array;
             use web_sys::Response;
             use web_sys::window;
-            use wasm_bindgen_futures::JsFuture;
-            use futures::StreamExt;
-            use wasm_bindgen::JsCast;
-            use crate::renderable::image::FitsImage;
+            use crate::renderable::image::fits_bis::FitsImage;
             use futures::TryStreamExt;
     
             let window = window().unwrap();
@@ -910,16 +919,15 @@ impl App {
             let raw_body = resp.body().unwrap();
             let body = ReadableStream::from_raw(raw_body.dyn_into()?);
 
-            al_core::log("begin to parse fits!");
             // Convert the JS ReadableStream to a Rust stream
             let bytes_reader = body
                 .into_stream()
                 .map_ok(|js_value| js_value.dyn_into::<Uint8Array>().unwrap_throw().to_vec())
                 .map_err(|_js_error| std::io::Error::new(std::io::ErrorKind::Other, "failed to read"))
                 .into_async_read();
+            let mut reader = BufReader::new(bytes_reader);
 
-            let fits = FitsImage::new_async(&gl, BufReader::new(bytes_reader)).await?;
-            al_core::log("fits parsed");
+            let fits = FitsImage::new_async(&gl, &mut reader).await?;
 
             let center = fits.get_center();
             let ra = center.lon().to_degrees();
@@ -1179,23 +1187,21 @@ impl App {
             return;
         }
 
-        /*if self.ui.lock().pos_over_ui() {
-            return;
-        }*/
         // Start inertia here
+        if !self.disable_inertia {
+            // Angular distance between the previous and current
+            // center position
+            let axis = self.prev_cam_position.cross(center).normalize();
 
-        // Angular distance between the previous and current
-        // center position
-        let axis = self.prev_cam_position.cross(center).normalize();
+            let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
+            let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
 
-        let delta_time = ((now - time_of_last_move).0 as f64).max(1.0);
-        let delta_angle = math::vector::angle3(&self.prev_cam_position, &center);
-
-        self.inertial_move_animation = Some(InertiaAnimation {
-            d0: delta_angle * 3.0 / delta_time,
-            axis,
-            time_start_anim: Time::now(),
-        });
+            self.inertial_move_animation = Some(InertiaAnimation {
+                d0: delta_angle * 3.0 / delta_time,
+                axis,
+                time_start_anim: Time::now(),
+            })
+        }
     }
 
     /*fn start_moving_to(&mut self, lonlat: &LonLatT<f64>) {

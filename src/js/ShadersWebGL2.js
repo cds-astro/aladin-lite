@@ -41,7 +41,9 @@ import PostFS from '../glsl/webgl2/passes/post_fragment_100es.glsl'
 
 // Shader fits image
 import FitsVS from '../glsl/webgl2/fits/vert.glsl'
-import FitsFS from '../glsl/webgl2/fits/frag.glsl'
+import FitsFS from '../glsl/webgl2/fits/frag_sampler.glsl'
+import FitsFSUnsigned from '../glsl/webgl2/fits/frag_usampler.glsl'
+import FitsFSInteger from '../glsl/webgl2/fits/frag_isampler.glsl'
 
 let shaders = [
     // Catalog shaders
@@ -167,6 +169,14 @@ let shaders = [
     {
         id: "FitsFS",
         content: FitsFS,
+    },
+    {
+        id: "FitsFSUnsigned",
+        content: FitsFSUnsigned,
+    },
+    {
+        id: "FitsFSInteger",
+        content: FitsFSInteger,
     },
 ];
 

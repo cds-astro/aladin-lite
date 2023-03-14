@@ -6,6 +6,8 @@ pub mod moc;
 pub mod image;
 pub mod hips;
 
+use crate::renderable::image::fits_bis::FitsImage;
+
 pub use hips::HiPS;
 
 pub use labels::TextRenderManager;
@@ -25,7 +27,6 @@ use al_core::colormap::Colormaps;
 
 use crate::Abort;
 use crate::ProjectionType;
-use crate::renderable::image::FitsImage;
 use crate::camera::CameraViewPort;
 use crate::shader::ShaderId;
 use crate::{shader::ShaderManager, survey::config::HiPSConfig};

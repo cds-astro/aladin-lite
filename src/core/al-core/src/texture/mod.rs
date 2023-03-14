@@ -11,6 +11,31 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlImageElement;
 
+/// Some GPU texture relative:
+// * The maximum size of a texture supported by most of platforms
+pub const MAX_TEX_SIZE: usize = 4096;
+// * Usual texture parameters when defining a texture
+pub const TEX_PARAMS: &'static [(u32, u32); 4] = &[
+    (
+        WebGlRenderingCtx::TEXTURE_MIN_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    (
+        WebGlRenderingCtx::TEXTURE_MAG_FILTER,
+        WebGlRenderingCtx::NEAREST,
+    ),
+    // Prevents s-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_S,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+    // Prevents t-coordinate wrapping (repeating)
+    (
+        WebGlRenderingCtx::TEXTURE_WRAP_T,
+        WebGlRenderingCtx::CLAMP_TO_EDGE,
+    ),
+];
+
 pub static mut CUR_IDX_TEX_UNIT: u8 = 0;
 
 #[derive(Clone)]
@@ -32,6 +57,12 @@ pub struct Texture2D {
     gl: WebGlContext,
 
     metadata: Option<Rc<RefCell<Texture2DMeta>>>,
+}
+
+pub enum SamplerType {
+    Float,
+    Integer,
+    Unsigned
 }
 
 use crate::image::format::ImageFormat;
@@ -594,5 +625,31 @@ impl<'a> Texture2DBoundMut<'a> {
             width: width as u32,
             height: height as u32,
         })));
+    }
+
+    pub fn tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+        &self,
+        dx: i32,
+        dy: i32,
+        width: i32,  // Width of the image
+        height: i32, // Height of the image
+        image: Option<&js_sys::Object>,
+    ) {
+        let metadata = self.texture_2d.metadata.as_ref().unwrap_abort().borrow();
+
+        self.texture_2d
+            .gl
+            .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_array_buffer_view(
+                WebGlRenderingCtx::TEXTURE_2D,
+                0,
+                dx,
+                dy,
+                width,
+                height,
+                metadata.format,
+                metadata.type_,
+                image,
+            )
+            .expect("Sub texture 2d");
     }
 }

@@ -77,10 +77,9 @@ import $ from 'jquery';
         $(input).on("change", function () {
             input.blur();
         });
-        
+
         // Query the mocserver
         MocServer.getAllHiPSes();
-
 
         autocomplete({
             input: input,

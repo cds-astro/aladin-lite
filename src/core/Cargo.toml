@@ -30,7 +30,7 @@ serde = { version = "^1.0.59", features = ["derive"] }
 serde_json = "1.0"
 serde-wasm-bindgen = "0.4"
 console_error_panic_hook = "0.1.7"
-fitsrs = "0.1.1"
+fitsrs = "0.2.3"
 enum_dispatch = "0.3.8"
 wasm-bindgen = "0.2.79"
 wasm-streams = "0.3.0"
@@ -39,7 +39,7 @@ al-core = { path = "./al-core" }
 al-task-exec = { path = "./al-task-exec" }
 al-api = { path = "./al-api" }
 mapproj = "0.3.0"
-wcs = "0.1.1"
+wcs = "0.2.0"
 colorgrad = "0.6.2"
 
 [features]

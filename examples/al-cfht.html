@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+
+<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
+</head>
+<body>
+
+<div id="aladin-lite-div" style="width: 1024px; height: 768px"></div>
+
+<div id='aladin-statsDiv'></div>
+<script type="text/javascript" src="./../aladin.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+  let aladin;
+  A.init.then(() => {
+      aladin = A.aladin('#aladin-lite-div', {survey: "P/PanSTARRS/DR1/color-z-zg-g", fov:1.5, target: "NGC 7318B"});
+      aladin.setProjection('AIT');
+      let cfht = aladin.createImageSurvey("CFHT", "CFHT MegaCam u+g+r", "https://cds.unistra.fr/~derriere/PR_HiPS/2022_Duc/", "equatorial", 10, {imgFormat: 'png'});
+      let jwst1 = aladin.createImageSurvey("JWST1", "JWST NIRCam+MIRI", "http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_NIRCam+MIRI", "equatorial", 14, {imgFormat: 'png'});
+      let jwst2 = aladin.createImageSurvey("JWST2", "JWST MIRI", "http://alasky.cds.unistra.fr/JWST/CDS_P_JWST_Stephans-Quintet_MIRI", "equatorial", 12, {imgFormat: 'png'});
+      aladin.setOverlayImageLayer('CFHT', 'overlay_CFHT');
+      aladin.setOverlayImageLayer('JWST1', 'overlay_JWST1');
+      aladin.setOverlayImageLayer('JWST2', 'overlay_JWST2');
+      aladin.getOverlayImageLayer('overlay_JWST1').setAlpha(0.0);
+      aladin.getOverlayImageLayer('overlay_JWST2').setAlpha(0.0);
+  });
+</script>
+
+</body>
+</html>

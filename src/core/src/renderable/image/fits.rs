@@ -1,23 +1,39 @@
 use std::vec;
+use std::marker::Unpin;
+use std::fmt::Debug;
+//use std::io::Cursor;
 
-use al_api::hips::ImageMetadata;
-use futures::StreamExt;
+use futures::stream::{TryStreamExt};
+use futures::AsyncRead;
+
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
+
+use web_sys::WebGl2RenderingContext;
+
 use moclib::moc::range::RangeMOC;
 use moclib::qty::Hpx;
 use moclib::elem::cell::Cell;
 use moclib::moc::{RangeMOCIterator, RangeMOCIntoIterator};
 
-use wcs::LonLat;
-
-use web_sys::WebGl2RenderingContext;
+use fitsrs::{
+    fits::AsyncFits,
+    hdu::{
+        data::stream,
+        header::extension::Xtension
+    }
+};
+use wcs::{ImgXY, WCS, LonLat};
 
 use al_api::cell::HEALPixCellProjeted;
 use al_api::coo_system::CooSystem;
+use al_api::hips::ImageMetadata;
 
-use al_core::{VertexArrayObject, Texture2D, pixel};
+use al_core::{VertexArrayObject, Texture2D};
 use al_core::WebGlContext;
 use al_core::VecData;
 use al_core::webgl_ctx::GlWrapper;
+use al_core::image::format::*;
+use al_core::image::format::ImageFormatType;
 
 use crate::math::projection::coo_space::XYNDC;
 use crate::camera::CameraViewPort;
@@ -25,20 +41,7 @@ use crate::ProjectionType;
 use crate::healpix::cell::HEALPixCell;
 use crate::ShaderManager;
 use crate::Colormaps;
-
-use fitsrs::{
-    fits::{AsyncFits, Fits},
-    hdu::{
-        data_async::DataOwned,
-        HDU,
-        AsyncHDU,
-        data::DataBorrowed
-    }
-};
-use wcs::ImgXY;
-use wcs::WCS;
-
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
+use super::subdivide_texture::build;
 
 pub struct FitsImage {
     // The vertex array object of the screen in NDC
@@ -52,30 +55,29 @@ pub struct FitsImage {
 
     gl: WebGlContext,
 
-    texture: Texture2D,
+    textures: Vec<Texture2D>,
 
     blank: f32,
     scale: f32,
     offset: f32,
 
     center: LonLat,
+
+    format: ImageFormatType,
 }
 
-use crate::time::Time;
 use futures::io::BufReader;
-
 impl FitsImage {
-    pub fn from_bytes(
+    /*pub fn from_bytes(
         gl: &WebGlContext,
         bytes: &[u8]
     ) -> Result<Self, JsValue> {
         // Load the fits file
-        al_core::log("jdjdjdj start");
-
-        let Fits { hdu: HDU { header, data } } = Fits::from_reader(bytes)
+        let mut reader = Cursor::new(bytes);
+        let Fits { hdu } = Fits::from_reader(&mut reader)
             .map_err(|_| JsValue::from_str("Fits cannot be parsed"))?;
 
-        al_core::log("jdjdjdj");
+        let header = hdu.get_header();
         let scale = header
             .get_parsed::<f64>(b"BSCALE  ")
             .unwrap_or(Ok(1.0))
@@ -116,22 +118,19 @@ impl FitsImage {
                 WebGl2RenderingContext::CLAMP_TO_EDGE,
             ),
         ];
-        al_core::log("jdjdjdj3");
 
-        let texture = match data {
-            DataBorrowed::U8(data) => {
+        let data = hdu.get_data();
+        let textures = vec![match data {
+            InMemData::U8(data) => {
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(&data))?
             },
-            DataBorrowed::I16(data) => {
+            InMemData::I16(data) => {
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R16I>(gl, w as i32, h as i32, tex_params, Some(&data))?
             },
-            DataBorrowed::I32(data) => {
-                al_core::log("jdjdjd4");
-                al_core::log("jdjdjdj5");
-
+            InMemData::I32(data) => {
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32I>(gl, w as i32, h as i32, tex_params, Some(&data))?
             },
-            DataBorrowed::I64(data) => {
+            InMemData::I64(data) => {
                 let values: Vec<f32> = data.iter().map(|v| {
                     *v as f32
                 })
@@ -139,10 +138,10 @@ impl FitsImage {
 
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
-            DataBorrowed::F32(data) => {
+            InMemData::F32(data) => {
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(data))?
             },
-            DataBorrowed::F64(data) => {
+            InMemData::F64(data) => {
                 let values: Vec<f32> = data.iter().map(|v| {
                     *v as f32
                 })
@@ -150,7 +149,7 @@ impl FitsImage {
 
                 Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
             },
-        };
+        }];
 
         let bl = wcs.unproj_lonlat(&ImgXY::new(0.0, 0.0)).ok_or(JsValue::from_str("(0, 0) px cannot be unprojected"))?;
         let br = wcs.unproj_lonlat(&ImgXY::new(width - 1.0, 0.0)).ok_or(JsValue::from_str("(w - 1, 0) px cannot be unprojected"))?;
@@ -255,7 +254,7 @@ impl FitsImage {
             uv,
             indices,
 
-            texture,
+            textures,
             scale,
             offset,
             blank,
@@ -264,19 +263,28 @@ impl FitsImage {
         };
 
         Ok(image)
-    }
+    }*/
 
     pub async fn new_async<'a, R>(
         gl: &WebGlContext,
-        reader: BufReader<R>,
+        reader: &'a mut BufReader<R>,
     ) -> Result<Self, JsValue>
     where
-        R: futures::AsyncRead + std::marker::Unpin + std::fmt::Debug
+        R: AsyncRead + Unpin + Debug
     {
         // Load the fits file
-        let AsyncFits { hdu: AsyncHDU { header, data } } = AsyncFits::from_reader(reader)
+        let AsyncFits { mut hdu } = AsyncFits::from_reader(reader)
             .await
-            .map_err(|_| JsValue::from_str("Fits cannot be parsed"))?;
+            .map_err(|_| JsValue::from_str("Error parsing the fits"))?;
+
+        let header = hdu.get_header();
+
+        let num_bytes_to_read = header.get_xtension().get_num_bytes_data_block();
+        let naxis1 = *header.get_xtension().get_naxisn(1).unwrap_throw();
+        let naxis2 = *header.get_xtension().get_naxisn(2).unwrap_throw();
+        let bitpix = header.get_xtension().get_bitpix() as i32;
+
+        al_core::log(&format!("size image {naxis1} {naxis2} {num_bytes_to_read} {bitpix}"));
 
         let scale = header
             .get_parsed::<f64>(b"BSCALE  ")
@@ -297,94 +305,71 @@ impl FitsImage {
         let (w, h) = wcs.img_dimensions();
         let width = w as f64;
         let height = h as f64;
-        let tex_params = &[
-            (
-                WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-                WebGl2RenderingContext::NEAREST,
-            ),
-            (
-                WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-                WebGl2RenderingContext::NEAREST,
-            ),
-            // Prevents s-coordinate wrapping (repeating)
-            (
-                WebGl2RenderingContext::TEXTURE_WRAP_S,
-                WebGl2RenderingContext::CLAMP_TO_EDGE,
-            ),
-            // Prevents t-coordinate wrapping (repeating)
-            (
-                WebGl2RenderingContext::TEXTURE_WRAP_T,
-                WebGl2RenderingContext::CLAMP_TO_EDGE,
-            ),
-        ];
 
-        let texture = match data {
-            DataOwned::U8(data) => {
-                let data = data.collect::<Vec<u8>>().await;
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R8UI>(gl, w as i32, h as i32, tex_params, Some(&data))?
+        let data = hdu.get_data_mut();
+        
+        let (textures, format) = match data {
+            stream::Data::U8(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        v[0].to_le_bytes()
+                    })
+                    .into_async_read();
+
+                let textures = build::<R8UI, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R8UI)
             },
-            DataOwned::I16(data) => {
-                let values: Vec<f32> = data.map(|v| {
-                    v as f32
-                })
-                .collect().await;
+            stream::Data::I16(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        v[0].to_le_bytes()
+                    })
+                    .into_async_read();
 
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+                let textures = build::<R16I, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R16I)
             },
-            DataOwned::I32(mut data) => {
-                let texture = Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, None)?;
-                let tex_bound = texture.bind();
-                let mut dy = 0;
-                let mut pixels_processed = 0;
-                let tot_pixels = w * h;
-                let mut bytes_chunk = Vec::new();
+            stream::Data::I32(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        v[0].to_le_bytes()
+                    })
+                    .into_async_read();
 
-                while pixels_processed < tot_pixels {
-                    let chunk_num_pixels = w; // todo adapt the size of the chunk
-
-                    bytes_chunk.clear();
-                    for _ in 0..chunk_num_pixels {
-                        let value = data.next().await.unwrap_throw() as f32;
-                        bytes_chunk.extend(value.to_le_bytes());
-                    }
-
-                    tex_bound.tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_opt_u8_array(
-                        0,
-                        dy,
-                        w as i32,
-                        1,
-                        Some(&bytes_chunk)
-                    );
-                    dy += 1;
-
-                    pixels_processed += chunk_num_pixels;
-                }
-
-                texture
+                let textures = build::<R32I, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R32I)
             },
-            DataOwned::I64(data) => {
-                let values: Vec<f32> = data.map(|v| {
-                    v as f32
-                })
-                .collect().await;
+            stream::Data::I64(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        let v = v[0] as i32;
+                        v.to_le_bytes()
+                    })
+                    .into_async_read();
 
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+                let textures = build::<R32I, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R32I)
             },
-            DataOwned::F32(data) => {
-                al_core::log("f32");
+            stream::Data::F32(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        v[0].to_le_bytes()
+                    })
+                    .into_async_read();
 
-                let values: Vec<f32> = data.collect().await;
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+                let textures = build::<R32F, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R32F)
             },
-            DataOwned::F64(data) => {
-                al_core::log("f64");
+            stream::Data::F64(data) => {
+                let reader = data
+                    .map_ok(|v| {
+                        let v = v[0] as f32;
+                        v.to_le_bytes()
+                    })
+                    .into_async_read();
 
-                let values: Vec<f32> = data.map(|v| {
-                    v as f32
-                })
-                .collect().await;
-
-                Texture2D::create_from_raw_pixels::<al_core::image::format::R32F>(gl, w as i32, h as i32, tex_params, Some(&values))?
+                let textures = build::<R32F, _>(gl, w, h, reader).await?;
+                (textures, ImageFormatType::R32F)
             },
         };
 
@@ -394,7 +379,7 @@ impl FitsImage {
         let tl = wcs.unproj_lonlat(&ImgXY::new(0.0, height - 1.0)).ok_or(JsValue::from_str("(0, h - 1) px cannot be unprojected"))?;
 
         let center = wcs.unproj_lonlat(&ImgXY::new(width / 2.0, height / 2.0)).ok_or(JsValue::from_str("(w / 2, h / 2) px cannot be unprojected"))?;
-        
+
         let mut num_moc_cells = std::usize::MAX;
         let mut depth = 11;
         let mut moc = RangeMOC::new_empty(0);
@@ -413,7 +398,7 @@ impl FitsImage {
 
             num_moc_cells = (&moc).into_range_moc_iter().cells().count();
         }
-        
+
         let pos = vec![];
         let uv = vec![];
         let indices = vec![];
@@ -491,12 +476,13 @@ impl FitsImage {
             uv,
             indices,
 
-            texture,
+            textures,
             scale,
             offset,
             blank,
 
             center,
+            format,
         };
 
         Ok(image)
@@ -593,14 +579,23 @@ impl FitsImage {
 
         // 2. Draw it if its opacity is not null
         blend_cfg.enable(&self.gl, || {
-            let shader = crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?;
+            let shader = match self.format {
+                ImageFormatType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
+                #[cfg(feature = "webgl2")]
+                ImageFormatType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+                #[cfg(feature = "webgl2")]
+                ImageFormatType::R16I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+                #[cfg(feature = "webgl2")]
+                ImageFormatType::R8UI => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?,
+                _ => return Err(JsValue::from_str("Image format type not supported"))
+            };
 
             shader
                 .bind(&self.gl)
                 .attach_uniforms_from(colormaps)
                 .attach_uniforms_with_params_from(color, colormaps)
                 .attach_uniform("opacity", opacity)
-                .attach_uniform("tex", &self.texture)
+                .attach_uniform("tex", &self.textures[0])
                 .attach_uniform("scale", &self.scale)
                 .attach_uniform("offset", &self.offset)
                 .attach_uniform("blank", &self.blank)

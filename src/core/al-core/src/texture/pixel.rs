@@ -249,34 +249,3 @@ impl Pixel for [i32; 1] {
         Ok([pixels.to_vec()[0]])
     }
 }
-
-/*impl From<T> for JsValue
-where
-    T: Pixel
-{
-    fn from(p: T) -> Self {
-        JsValue::from_serde(&p).unwrap_abort()
-    }
-}*/
-/*
-pub enum PixelType {
-    RU8([u8; 1]),
-    RI16([i16; 1]),
-    RI32([i32; 1]),
-    RF32([f32; 1]),
-    RGBU8([u8; 3]),
-    RGBAU8([u8; 4]),
-}
-
-impl From<PixelType> for JsValue {
-    fn from(p: PixelType) -> Self {
-        match p {
-            PixelType::RU8(v) => JsValue::from_serde(&v).unwrap_abort(),
-            PixelType::RI16(v) => JsValue::from_serde(&v).unwrap_abort(),
-            PixelType::RI32(v) => JsValue::from_serde(&v).unwrap_abort(),
-            PixelType::RF32(v) => JsValue::from_serde(&v).unwrap_abort(),
-            PixelType::RGBU8(v) => JsValue::from_serde(&v).unwrap_abort(),
-            PixelType::RGBAU8(v) => JsValue::from_serde(&v).unwrap_abort(),
-        }
-    }
-}*/

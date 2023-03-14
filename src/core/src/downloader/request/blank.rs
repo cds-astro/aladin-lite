@@ -1,9 +1,9 @@
 use al_core::image::format::ImageFormatType;
+use std::io::Cursor;
 
 use crate::downloader::{query};
 use fitsrs::{
     fits::Fits,
-    hdu::HDU
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -85,10 +85,14 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
                 let mut raw_bytes = Vec::with_capacity(num_bytes);
                 unsafe { raw_bytes.set_len(num_bytes); }
                 bytes_buffer.copy_to(&mut raw_bytes[..]);
-                let Fits { hdu: HDU { header, .. } } = Fits::from_reader(&raw_bytes[..])
+
+                let mut reader = Cursor::new(&raw_bytes[..]);
+                let Fits { hdu } = Fits::from_reader(&mut reader)
                     .map_err(|_| {
                         JsValue::from_str("Parsing fits error")
                     })?;
+
+                let header = hdu.get_header();
                 let scale = if let Some(fitsrs::card::Value::Float(bscale)) = header.get(b"BSCALE  ") {
                     *bscale as f32
                 } else {

@@ -66,7 +66,6 @@ mod utils;
 
 use math::projection::*;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
 mod app;
 pub mod async_task;
@@ -98,7 +97,6 @@ use std::io::Cursor;
 use al_api::hips::HiPSProperties;
 use al_api::coo_system::CooSystem;
 use al_api::color::{Color, ColorRGBA};
-use al_api::fov::FoV;
 use al_api::hips::FITSCfg;
 
 use al_core::Colormap;

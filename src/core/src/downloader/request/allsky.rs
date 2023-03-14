@@ -1,12 +1,13 @@
 
 use al_core::image::format::ImageFormatType;
+use std::io::Cursor;
 
 use crate::downloader::{query};
 use al_core::image::ImageType;
 
 use fitsrs::{
     fits::Fits,
-    hdu::HDU
+    hdu::data::InMemData
 };
 
 use super::{Request, RequestType};
@@ -147,47 +148,53 @@ impl From<query::Allsky> for AllskyRequest {
                     let mut raw_bytes = Vec::with_capacity(num_bytes);
                     unsafe { raw_bytes.set_len(num_bytes); }
                     bytes_buffer.copy_to(&mut raw_bytes[..]);
-                    let Fits { hdu: HDU { data, .. }} = Fits::from_reader(raw_bytes.as_slice())
+                    let mut reader = Cursor::new(&raw_bytes[..]);
+                    let Fits { hdu } = Fits::from_reader(&mut reader)
                         .map_err(|_| {
                             JsValue::from_str("Parsing fits error of allsky")
                         })?;
         
                     //let width_allsky_px = 27 * std::cmp::min(tile_size, 64) as i32;
                     //let height_allsky_px = 29 * std::cmp::min(tile_size, 64) as i32;
-        
+                    let data = hdu.get_data();
+
                     match data {
-                        fitsrs::hdu::data::DataBorrowed::U8(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
-                                .map(|image| ImageType::RawR8ui { image })
-                                .collect())
+                        InMemData::U8(data) => {
+                            Ok(
+                                handle_allsky_fits(&data, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR8ui { image })
+                                    .collect()
+                            )
                         }
-                        fitsrs::hdu::data::DataBorrowed::I16(data) => {
-                            Ok(handle_allsky_fits(&data, tile_size, texture_size)?
-                                .into_iter()
-                                .map(|image| ImageType::RawR16i { image })
-                                .collect())
+                        InMemData::I16(data) => {
+                            Ok(
+                                handle_allsky_fits(&data, tile_size, texture_size)?
+                                    .into_iter()
+                                    .map(|image| ImageType::RawR16i { image })
+                                    .collect()
+                            )
                         }
-                        fitsrs::hdu::data::DataBorrowed::I32(data) => {
+                        InMemData::I32(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         }
-                        fitsrs::hdu::data::DataBorrowed::F32(data) => {
+                        InMemData::F32(data) => {
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR32f { image })
                                 .collect())
                         }
-                        fitsrs::hdu::data::DataBorrowed::I64(data) => {
+                        InMemData::I64(data) => {
                             let data = data.iter().map(|v| *v as i32).collect::<Vec<_>>();
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()
                                 .map(|image| ImageType::RawR32i { image })
                                 .collect())
                         },
-                        fitsrs::hdu::data::DataBorrowed::F64(data) => {
+                        InMemData::F64(data) => {
                             let data = data.iter().map(|v| *v as f32).collect::<Vec<_>>();
                             Ok(handle_allsky_fits(&data, tile_size, texture_size)?
                                 .into_iter()

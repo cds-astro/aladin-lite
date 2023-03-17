@@ -919,7 +919,7 @@ impl HiPS {
         let w2v = c * (*camera.get_w2m()) * rl;
         let v2w = w2v.transpose();
 
-        let raytracing = raytracer.is_rendering(camera/* , depth_texture*/);
+        let raytracing = raytracer.is_rendering(camera);
         let longitude_reversed = camera.get_longitude_reversed();
         let config = self.get_config();
 

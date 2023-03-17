@@ -187,5 +187,5 @@ ImageLayer.LAYERS = [
 ];
 
 ImageLayer.getAvailableSurveys = function () {
-    return ImageLayer.SURVEYS;
+    return ImageLayer.LAYERS;
 };

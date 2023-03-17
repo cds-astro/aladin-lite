@@ -41,9 +41,9 @@ export let ImageFITS = (function () {
         this.layer = null;
         this.added = false;
         // Set it to a default value
-        this.url = url;
+        this.url = url.toString();
 
-        this.id = this.url.toString();
+        this.id = url.toString();
         this.name = "fits/" + name;
 
         this.imgFormat = "fits";
@@ -157,15 +157,54 @@ export let ImageFITS = (function () {
         let self = this;
         self.wasm.addImageFITS({
             layer: self.layer,
-            url: self.url.toString(),
+            url: self.url,
             meta: self.metadata()
-        }).then(({ra, dec, fov}) => {
-            console.log("success")
+        }).then((imagesParams) => {
+            // There is at least one entry in imageParams
             self.added = true;
 
-            if (self.successCallback) {
-                self.successCallback(ra, dec, fov, this);
-            }
+            self.imageFitsExt = [];
+
+            let hduIdx = 0;
+            imagesParams.forEach((imageParams) => {
+                // Execute the callback only on the first parsed HDU
+                if (hduIdx == 0) {
+                    self.ra = imageParams.centered_fov.ra;
+                    self.dec = imageParams.centered_fov.dec;
+                    self.fov = imageParams.centered_fov.fov;
+    
+                    console.log("radec", self.ra, self.dec, self.fov)
+
+                    if (self.successCallback) {
+                        self.successCallback(
+                            self.ra,
+                            self.dec,
+                            self.fov,
+                            self
+                        );
+                    }
+                } else {
+                    // This fits has HDU extensions
+                    let imageFitsExt = new ImageFITS(
+                        imageParams.url,
+                        self.name + "_ext_" + hduIdx.toString(),
+                        self.view,
+                        null,
+                        null,
+                        null
+                    );
+
+                    // Set the layer corresponding to the one
+                    // in the backend
+                    imageFitsExt.layer = imageParams.layer;
+                    imageFitsExt.added = true;
+                    imageFitsExt.colorCfg = self.colorCfg;
+
+                    self.imagesFitsExt.push(imageFitsExt)
+                }
+
+                hduIdx += 1;
+            });            
         }).catch((e) => {
             console.error(e)
             if (self.errorCallback) {
@@ -185,6 +224,15 @@ export let ImageFITS = (function () {
             this.colorCfg.setOpacity(0.0);
         } else {
             this.colorCfg.setOpacity(this.prevOpacity);
+        }
+    };
+
+    // @api
+    ImageFITS.prototype.focusOn = function () {
+        // ensure the fits have been parsed
+        if (this.added) {
+            this.view.aladin.gotoRaDec(this.ra, this.dec);
+            this.view.aladin.setFoV(this.fov);
         }
     };
 

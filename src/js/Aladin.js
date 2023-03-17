@@ -1252,7 +1252,7 @@ export let Aladin = (function () {
     };
 
     // TODO : integrate somehow into API ?
-    Aladin.prototype.exportAsPNG = function (imgFormat) {
+    Aladin.prototype.exportAsPNG = function () {
         (async () => {
             var w = window.open();
             w.document.write('<img src="' + await this.getViewDataURL() + '" width="' + this.view.width + 'px">');

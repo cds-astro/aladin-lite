@@ -44,6 +44,13 @@ where
     }
 }
 
+use crate::math::angle::ToAngle;
+impl From<wcs::LonLat> for LonLatT<f64> {
+    fn from(lonlat: wcs::LonLat) -> Self {
+        Self(lonlat.lon().to_angle(), lonlat.lat().to_angle())
+    }
+}
+
 impl<S> LonLat<S> for LonLatT<S>
 where
     S: BaseFloat,

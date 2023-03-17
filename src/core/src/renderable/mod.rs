@@ -6,7 +6,7 @@ pub mod moc;
 pub mod image;
 pub mod hips;
 
-use crate::renderable::image::fits_bis::FitsImage;
+use crate::renderable::image::Image;
 
 pub use hips::HiPS;
 
@@ -17,6 +17,7 @@ pub use grid::ProjetedGrid;
 use al_api::hips::ImageMetadata;
 use al_api::color::ColorRGB;
 use al_api::hips::HiPSCfg;
+use al_api::image::ImageParams;
 
 use al_core::VertexArrayObject;
 use al_core::SliceData;
@@ -46,7 +47,7 @@ type LayerId = String;
 pub struct Layers {
     // Surveys to query
     surveys: HashMap<Url, HiPS>,
-    images: HashMap<Url, FitsImage>,
+    images: HashMap<Url, Image>,
     // The meta data associated with a layer
     meta: HashMap<LayerId, ImageMetadata>,
     // Hashmap between urls and layers
@@ -76,13 +77,23 @@ fn get_backgroundcolor_shader<'a>(gl: &WebGlContext, shaders: &'a mut ShaderMana
     .unwrap_abort()
 }
 
-pub struct FitsCfg {
+pub struct ImageCfg {
     /// Layer name
     pub layer: String,
     pub url: String,
-    pub fits: FitsImage,
+    pub image: Image,
     /// Its color
     pub meta: ImageMetadata,
+}
+
+impl ImageCfg {
+    pub fn get_params(&self) -> ImageParams {
+        ImageParams {
+            layer: self.layer.clone(),
+            url: self.url.clone(),
+            centered_fov: self.image.get_centered_fov().clone(),
+        }
+    }
 }
 
 impl Layers {
@@ -466,16 +477,16 @@ impl Layers {
 
     pub fn add_image_fits(
         &mut self,
-        fits: FitsCfg,
+        image: ImageCfg,
         camera: &mut CameraViewPort,
         projection: &ProjectionType
-    ) -> Result<&FitsImage, JsValue> {
-        let FitsCfg {
+    ) -> Result<&Image, JsValue> {
+        let ImageCfg {
             layer,
             url,
-            fits,
+            image,
             meta,
-        } = fits;
+        } = image;
 
         // 1. Add the layer name
         let layer_already_found = self.layers.iter()
@@ -524,7 +535,7 @@ impl Layers {
                 camera.set_aperture::<P>(Angle((initial_fov).to_radians()));
             }*/
 
-            self.images.insert(url.clone(), fits);
+            self.images.insert(url.clone(), image);
         }
 
         self.urls.insert(layer.clone(), url.clone());
@@ -616,7 +627,7 @@ impl Layers {
     }
 
     // Fits images getters
-    pub fn get_mut_image_from_layer(&mut self, layer: &str) -> Option<&mut FitsImage> {
+    pub fn get_mut_image_from_layer(&mut self, layer: &str) -> Option<&mut Image> {
         if let Some(url) = self.urls.get(layer) {
             self.images.get_mut(url)
         } else {
@@ -624,7 +635,7 @@ impl Layers {
         }
     }
 
-    pub fn get_image_from_layer(&self, layer: &str) -> Option<&FitsImage> {
+    pub fn get_image_from_layer(&self, layer: &str) -> Option<&Image> {
         self.urls.get(layer)
             .map(|url| {
                 self.images.get(url)

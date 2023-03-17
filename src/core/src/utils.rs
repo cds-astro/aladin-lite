@@ -51,6 +51,15 @@ pub unsafe fn transmute_vec_to_u8<I>(mut s: Vec<I>) -> Vec<u8> {
     std::mem::transmute(s)
 }
 
+pub unsafe fn transmute_vec<I, O>(mut s: Vec<I>) -> Result<Vec<O>, &'static str> {
+    if std::mem::size_of::<I>() % std::mem::size_of::<O>() > 0 {
+        Err("The input type is not a multiple of the output type")
+    } else {
+        s.set_len(s.len() * (std::mem::size_of::<I>() / std::mem::size_of::<O>()));
+        Ok(std::mem::transmute(s))
+    }
+}
+
 /// Select the kth smallest element in a slice
 /// 
 /// This is a basic implementation of quickselect algorithm: https://fr.wikipedia.org/wiki/Quickselect

@@ -54,6 +54,12 @@ export class HiPSLayer {
             '</div>'
         );
 
+        // Add a centered on button for images
+        if (this.layer.name.startsWith('fits')) {
+            let layerSelector = this.headerDiv[0].getElementsByClassName("aladin-layerSelection")[0];
+            layerSelector.after($('<button class="aladin-btn-small aladin-layer-focuson" type="button" title="Focus on this layer">🎯</button>')[0]);
+        }
+
         if (this.layer.layer === "base") {
             let deleteLayerBtn = this.headerDiv[0].getElementsByClassName("aladin-delete-layer")[0];
             deleteLayerBtn.disabled = true;
@@ -151,12 +157,8 @@ export class HiPSLayer {
             let cfg = ImageLayer.LAYERS[layerSelector[0].selectedIndex];
             let layer;
             
-            console.log(cfg)
             if (cfg.name.startsWith("fits")) {
                 // FITS
-
-                console.log("jkjksdf fits")
-
                 layer = self.aladin.createImageFITS(
                     cfg.url,
                     cfg.name,
@@ -226,6 +228,18 @@ export class HiPSLayer {
 
             self.layer.setOpacity(newOpacity);
         });
+
+        // Hide HiPS button
+        const focusOnLayer = this.headerDiv.find('.aladin-layer-focuson');
+        if (focusOnLayer) {
+            console.log("jkjsdf");
+            focusOnLayer.off("click");
+            focusOnLayer.on("click", function () {
+                console.log("click on focus");
+
+                self.layer.focusOn();
+            });
+        }
 
         // MAIN DIV listeners
         // blending method

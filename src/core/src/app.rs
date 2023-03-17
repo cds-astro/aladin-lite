@@ -11,7 +11,7 @@ use crate::{
         catalog::{Manager, Source},
         grid::ProjetedGrid,
         moc::MOC,
-        FitsCfg,
+        ImageCfg,
     },
     healpix::coverage::HEALPixCoverage,
     shader::ShaderManager,
@@ -20,29 +20,33 @@ use crate::{
     time::DeltaTime,
 };
 
+use wasm_bindgen::prelude::*;
+
 use al_core::WebGlContext;
 use al_core::colormap::{Colormap, Colormaps};
 
 use al_api::{
     coo_system::CooSystem,
     grid::GridCfg,
-    hips::{ImageMetadata, HiPSCfg, FITSCfg}, fov::FoV,
+    hips::{ImageMetadata, HiPSCfg, FITSCfg},
 };
 use wasm_bindgen_futures::JsFuture;
+use fitsrs::{fits::AsyncFits, hdu::{extension::AsyncXtensionHDU}};
 use crate::Abort;
 use super::coosys;
 use cgmath::Vector4;
 
-use wasm_bindgen::prelude::*;
 use web_sys::WebGl2RenderingContext;
 
-use std::cell::RefCell;
+use std::{cell::RefCell};
 use std::rc::Rc;
 
 use std::collections::HashSet;
 
 use crate::renderable::final_pass::RenderPass;
 use al_core::FrameBufferObject;
+
+use al_api::image::ImageParams;
 
 pub struct App {
     pub gl: WebGlContext,
@@ -72,7 +76,7 @@ pub struct App {
     //move_animation: Option<MoveAnimation>,
     //zoom_animation: Option<ZoomAnimation>,
     inertial_move_animation: Option<InertiaAnimation>,
-    disable_inertia: bool,
+    disable_inertia: Rc<RefCell<bool>>,
     prev_cam_position: Vector3<f64>,
     prev_center: Vector3<f64>,
     out_of_fov: bool,
@@ -91,11 +95,11 @@ pub struct App {
     projection: ProjectionType,
 
     // Async data receivers
-    fits_send: async_channel::Sender<FitsCfg>,
-    fits_recv: async_channel::Receiver<FitsCfg>,
+    fits_send: async_channel::Sender<ImageCfg>,
+    fits_recv: async_channel::Receiver<ImageCfg>,
 
-    ack_send: async_channel::Sender<()>,
-    ack_recv: async_channel::Receiver<()>,
+    ack_send: async_channel::Sender<ImageParams>,
+    ack_recv: async_channel::Receiver<ImageParams>,
 }
 
 use cgmath::{Vector2, Vector3};
@@ -175,7 +179,7 @@ impl App {
 
         // Variable storing the location to move to
         let inertial_move_animation = None;
-        let disable_inertia = false;
+        let disable_inertia = Rc::new(RefCell::new(false));
 
         //let tasks_finished = false;
         let request_redraw = false;
@@ -200,8 +204,8 @@ impl App {
 
         gl.clear_color(0.15, 0.15, 0.15, 1.0);
 
-        let (fits_send, fits_recv) = async_channel::unbounded::<FitsCfg>();
-        let (ack_send, ack_recv) = async_channel::unbounded::<()>();
+        let (fits_send, fits_recv) = async_channel::unbounded::<ImageCfg>();
+        let (ack_send, ack_recv) = async_channel::unbounded::<ImageParams>();
 
         Ok(App {
             gl,
@@ -715,16 +719,14 @@ impl App {
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
             al_core::log("received");
+            let params = fits.get_params();
             self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
             self.request_redraw = true;
-
-            // Enable inertia again
-            self.disable_inertia = false;
 
             // Send the ack to the js promise so that she finished
             let ack_send = self.ack_send.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                ack_send.send(()).await
+                ack_send.send(params).await
                     .unwrap_throw();
             })
         }
@@ -900,21 +902,22 @@ impl App {
         // Stop the current inertia
         self.inertial_move_animation = None;
         // And disable it while the fits has not been loaded
-        self.disable_inertia = true;
+        let disable_inertia = self.disable_inertia.clone();
+        *(disable_inertia.borrow_mut()) = true;
 
         let fut = async move {
             use wasm_streams::ReadableStream;
             use js_sys::Uint8Array;
             use web_sys::Response;
             use web_sys::window;
-            use crate::renderable::image::fits_bis::FitsImage;
+            use crate::renderable::image::Image;
             use futures::TryStreamExt;
-    
+
             let window = window().unwrap();
             let resp_value = JsFuture::from(window.fetch_with_str(&url))
                 .await?;
             let resp: Response = resp_value.dyn_into()?;
-        
+
             // Get the response's body as a JS ReadableStream
             let raw_body = resp.body().unwrap();
             let body = ReadableStream::from_raw(raw_body.dyn_into()?);
@@ -927,37 +930,151 @@ impl App {
                 .into_async_read();
             let mut reader = BufReader::new(bytes_reader);
 
-            let fits = FitsImage::new_async(&gl, &mut reader).await?;
+            let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader).await
+                .map_err(|e| {
+                    match e {
+                        fitsrs::error::Error::StaticError(msg) => JsValue::from_str(msg),
+                        _ => JsValue::from_str("Failing to parse fits file"),
+                    }
+                })?;
 
-            let center = fits.get_center();
-            let ra = center.lon().to_degrees();
-            let dec = center.lat().to_degrees();
-            let fov = 1.0;
+            let mut hdu_ext_idx = 0;
+            let mut images_params = vec![];
 
-            let fits_cfg = FitsCfg {
-                fits: fits,
-                layer: layer,
-                url: url,
-                meta: meta
-            };
-
-            fits_sender.send(fits_cfg).await
-                .unwrap();
-
-            // Wait for the ack
-            if let Ok(_) = ack_recv.recv().await {
-                let fov = FoV {
-                    ra: ra,
-                    dec: dec,
-                    fov: fov,
+            if let Ok(image) = Image::from_fits_hdu_async(&gl, &mut hdu.0).await {    
+                let fits = ImageCfg {
+                    image: image,
+                    layer: layer.clone(),
+                    url: url.clone(),
+                    meta: meta.clone()
                 };
-                Ok(serde_wasm_bindgen::to_value(&fov).unwrap())
+    
+                fits_sender.send(fits).await
+                    .unwrap();
+
+                // Wait for the ack here
+                let image_params = ack_recv.recv().await
+                    .map_err(|_| JsValue::from_str("Problem receiving fits"))?;
+
+                images_params.push(image_params);
+
+                let mut hdu_ext = hdu.next().await;
+
+                // Continue parsing the file extensions here
+                while let Ok(Some(mut xhdu)) = hdu_ext {
+                    match &mut xhdu {
+                        AsyncXtensionHDU::Image(xhdu_img) => {
+                            match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                Ok(image) => {
+                                    let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                    let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+
+                                    let fits_ext = ImageCfg {
+                                        image: image,
+                                        layer: layer_ext,
+                                        url: url_ext,
+                                        meta: meta.clone()
+                                    };
+
+                                    fits_sender.send(fits_ext).await
+                                        .unwrap();
+    
+                                    let image_params = ack_recv.recv().await
+                                        .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+
+                                    images_params.push(image_params);
+                                },
+                                Err(error) => {
+                                    al_core::log::console_warn(&
+                                        format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                    );
+
+                                    al_core::log::console_warn(error);
+                                }
+                            }
+                        },
+                        _ => {
+                            al_core::log::console_warn(&
+                                format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                            );
+                        }
+                    }
+
+                    hdu_ext_idx += 1;
+
+                    hdu_ext = xhdu.next().await;
+                }
             } else {
-                Err(JsValue::from_str("Problem receving fits"))
+                let mut hdu_ext = hdu.next().await;
+
+                while let Ok(Some(mut xhdu)) = hdu_ext {
+                    match &mut xhdu {
+                        AsyncXtensionHDU::Image(xhdu_img) => {
+                            match Image::from_fits_hdu_async(&gl, xhdu_img).await {
+                                Ok(image) => {
+                                    let layer_ext = layer.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+                                    let url_ext = url.clone() + "_ext_" + &format!("{hdu_ext_idx}");
+        
+                                    let fits_ext = ImageCfg {
+                                        image: image,
+                                        layer: layer_ext,
+                                        url: url_ext,
+                                        meta: meta.clone()
+                                    };
+
+                                    fits_sender.send(fits_ext).await
+                                        .unwrap();
+
+                                    let image_params = ack_recv.recv().await
+                                        .map_err(|_| JsValue::from_str("Problem receving fits"))?;
+
+                                    images_params.push(image_params);
+                                },
+                                Err(error) => {
+                                    al_core::log::console_warn(&
+                                        format!("The extension {hdu_ext_idx} has not been parsed, reason:")
+                                    );
+
+                                    al_core::log::console_warn(error);
+                                }
+                            }
+                        },
+                        _ => {
+                            al_core::log::console_warn(&
+                                format!("The extension {hdu_ext_idx} is a BinTable/AsciiTable and is thus discarded")
+                            );
+                        }
+                    }
+
+                    hdu_ext_idx += 1;
+
+                    hdu_ext = xhdu.next().await;
+                }
+            }
+
+            if !images_params.is_empty() {
+                serde_wasm_bindgen::to_value(&images_params).map_err(|e| e.into())
+            } else {
+                Err(JsValue::from_str("The fits file has no extension that had been parsed"))
             }
         };
         
-        let promise = wasm_bindgen_futures::future_to_promise(fut);
+        let reenable_inertia = Closure::new(move || {
+            // renable inertia again
+            *(disable_inertia.borrow_mut()) = false;
+        });
+
+        let promise = wasm_bindgen_futures::future_to_promise(fut)
+            // Reenable inertia independantly from whether the
+            // fits has been correctly parsed or not
+            .finally(
+                &reenable_inertia
+            );
+
+        // forget the closure, it is not very proper to do this as
+        // it won't be deallocated
+        reenable_inertia.forget();
+
         Ok(promise)
     }
 
@@ -1187,8 +1304,9 @@ impl App {
             return;
         }
 
+        let disable_inertia: bool = *(self.disable_inertia.borrow_mut());
         // Start inertia here
-        if !self.disable_inertia {
+        if !disable_inertia {
             // Angular distance between the previous and current
             // center position
             let axis = self.prev_cam_position.cross(center).normalize();

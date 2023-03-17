@@ -296,8 +296,9 @@ export class Stack {
         // Events coming from the AL core
         ALEvent.HIPS_LAYER_ADDED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
-            
+
             const hipsLayer = new HiPSLayer(self.aladin, layer);
+
             self.imgLayers.set(layer.layer, hipsLayer);
 
             self._createComponent();

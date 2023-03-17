@@ -8,152 +8,185 @@ use al_api::coo_system::CooSystem;
 use crate::math::angle::ToAngle;
 use crate::Vector2;
 
-#[allow(dead_code)]
-pub fn get_grid_vertices(xy_min: &ImgXY, xy_max: &ImgXY, max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u32>, Vec<u32>) {
-    let x_range_len = (xy_max.x() - xy_min.x()) as u64;
-    let y_range_len = (xy_max.y() - xy_min.y()) as u64;
+pub fn get_grid_params(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64) -> (impl Iterator<Item=(u64, f32)> + Clone, impl Iterator<Item=(u64, f32)> + Clone) {
+    let x_range_len = (xy_max.0 - xy_min.0) as u64;
+    let y_range_len = (xy_max.1 - xy_min.1) as u64;
 
-    let xmin = xy_min.x() as u64;
-    let ymin = xy_min.y() as u64;
-    let xmax = xy_max.x() as u64;
-    let ymax = xy_max.y() as u64;
+    let xmin = xy_min.0 as u64;
+    let ymin = xy_min.1 as u64;
+    let xmax = xy_max.0 as u64;
+    let ymax = xy_max.1 as u64;
 
     let step_x = (x_range_len / num_tri_per_tex_patch) as usize;
     let step_y = (y_range_len / num_tri_per_tex_patch) as usize;
 
-    let step = step_x.max(step_y);
+    let step = (step_x.max(step_y)).max(1); // at least one pixel!
 
-    let it_x = (xmin..=xmax).step_by(step);
-    let it_y = (ymin..=ymax).step_by(step);
+    (get_coord_uv_it(xmin, xmax, step, max_tex_size), get_coord_uv_it(ymin, ymax, step, max_tex_size))
+}
 
-    let get_uv_in_tex_chunk = |x: u64| {
+#[derive(Clone)]
+struct StepCoordIterator {
+    start: u64,
+    end: u64,
+
+    step: u64,
+
+    cur: u64,
+}
+
+impl StepCoordIterator {
+    fn new(start: u64, end: u64, step: u64) -> Self {
+        let cur = start;
+
+        Self {
+            start,
+            step,
+            end,
+            cur
+        }
+    }
+}
+
+impl Iterator for StepCoordIterator {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+
+        if self.cur == self.start {
+            // starting case
+            self.cur = self.start - (self.start % self.step) + self.step;
+           
+            Some(self.start)
+        } else if self.cur < self.end {
+            // ongoing case
+            let cur = self.cur;
+
+            self.cur += self.step;
+            Some(cur)
+        } else {
+            None
+        }
+    }
+}
+
+fn get_coord_uv_it(xmin: u64, xmax: u64, step: usize, max_tex_size: u64) -> impl Iterator<Item=(u64, f32)> + Clone {
+    let get_uv_in_tex_chunk = move |x: u64| {
         ((x % max_tex_size) as f32) / (max_tex_size as f32)
     };
 
-    let x = std::iter::once((xmin, get_uv_in_tex_chunk(xmin)))
+    let tex_patch_x = StepCoordIterator::new(xmin, xmax, max_tex_size);
+
+    let x_it = std::iter::once((xmin, get_uv_in_tex_chunk(xmin)))
         .chain(
-            it_x.clone().skip(1).zip(it_x.skip(2))
-                .map(|(x1, x2)| { 
-                    let x1_t = x1 / max_tex_size;
-                    let x2_t = x2 / max_tex_size;
-        
-                    let cross_tex_chunk = x2_t > x1_t && (x2 % max_tex_size > 0);
-    
-                    let uv1 = ((x1 % max_tex_size) as f32) / (max_tex_size as f32);
-    
-                    if cross_tex_chunk {
-                        let xt = x1 - (x1 % max_tex_size) + max_tex_size;
-                        vec![(x1, uv1), (xt, 0.0)]
-                    } else {
-                        vec![(x1, uv1)]
-                    }
+            tex_patch_x.clone().skip(1)
+                .map(|x1| {
+                    vec![(x1, 1.0), (x1, 0.0)]
                 })
                 .flatten()
-                .map(|(x, uv)| {
-                    if x % max_tex_size == 0 {
-                        vec![(x, 1.0), (x, 0.0)]
-                    } else {
-                        vec![(x, uv)]
-                    }
-                })
-                .flatten()
-        ).chain(std::iter::once((xmax, get_uv_in_tex_chunk(xmax))));
+        )
+        .chain(
+            std::iter::once((
+                xmax,
+                if xmax % max_tex_size == 0 {
+                    1.0
+                } else {
+                    get_uv_in_tex_chunk(xmax)
+                }
+            ))
+        );
 
-    dbg!(x.clone().collect::<Vec<_>>());
+    let mut step_x = (xmin..xmax).step_by(step as usize);
 
-    let y = std::iter::once((ymin, get_uv_in_tex_chunk(ymin)))
-    .chain(
-        it_y.clone().skip(1).zip(it_y.skip(2))
-            .map(|(y1, y2)| { 
-                let y1_t = y1 / max_tex_size;
-                let y2_t = y2 / max_tex_size;
+
+    let mut cur_step = step_x.next().unwrap();
+
+    x_it.clone().zip(x_it.clone().skip(1))
+        .map(move |(x1, x2)| {
+            let mut xk = vec![x1];
+
+            while cur_step < x2.0 {
+                if cur_step > x1.0 {
+                    xk.push(
+                        (cur_step, get_uv_in_tex_chunk(cur_step))
+                    );
+                }
+
+                if let Some(step) = step_x.next() {
+                    cur_step = step;
+                } else {
+                    break;
+                }
+            }
+
+            xk
+        })
+        .flatten()
+        .chain(
+            std::iter::once((
+                xmax,
+                if xmax % max_tex_size == 0 {
+                    1.0
+                } else {
+                    get_uv_in_tex_chunk(xmax)
+                }
+            ))
+        )
+} 
+
+fn build_range_indices(it: impl Iterator<Item=(u64, f32)> + Clone) -> Vec<RangeInclusive<usize>> {
+    let mut idx_ranges = vec![];
+
+    let mut idx_start = 0;
+    let mut last_idx = 0;
+    for (idx_c, ((x_c, _), (x_n, _))) in it.clone().zip(it.skip(1)).enumerate() {
+        let idx_n = idx_c + 1;
+        if x_c == x_n {
+            // on a tex chunk frontier
+            idx_ranges.push(idx_start..=idx_c);
+
+            idx_start = idx_n;
+            last_idx = idx_n;
+        } else {
+            last_idx = idx_n;
+        }
+    }
+
+    if last_idx > idx_start {
+        idx_ranges.push(idx_start..=last_idx);
+    }
+
+    idx_ranges
+}
+
+#[allow(dead_code)]
+pub fn get_grid_vertices(xy_min: &(f64, f64), xy_max: &(f64, f64), max_tex_size: u64, num_tri_per_tex_patch: u64, camera: &CameraViewPort, wcs: &WCS, projection: &ProjectionType) -> (Vec<[f32; 2]>, Vec<[f32; 2]>, Vec<u32>, Vec<u32>) {    
+    let (x_it, y_it) = get_grid_params(xy_min, xy_max, max_tex_size, num_tri_per_tex_patch);
+
+    let idx_x_ranges = build_range_indices(x_it.clone());
+    let idx_y_ranges = build_range_indices(y_it.clone());
+
+    let num_x_vertices = idx_x_ranges.last().unwrap().end() + 1;
+
+    let (pos, uv): (Vec<_>, Vec<_>) = y_it.map(move |(y, uvy)|
+        x_it.clone().map(move |(x, uvx)| {
+            let ndc = if let Some(lonlat) = wcs.unproj(&ImgXY::new(x as f64, y as f64)) {
+                let lon = lonlat.lon();
+                let lat = lonlat.lat();
     
-                let cross_tex_chunk = y2_t > y1_t && (y2 % max_tex_size > 0);
-
-                let uv1 = ((y1 % max_tex_size) as f32) / (max_tex_size as f32);
-
-                if cross_tex_chunk {
-                    let yt = y1 - (y1 % max_tex_size) + max_tex_size;
-                    vec![(y1, uv1), (yt, 0.0)]
-                } else {
-                    vec![(y1, uv1)]
-                }
-            })
-            .flatten()
-            .map(|(y, uv)| {
-                if y % max_tex_size == 0 {
-                    vec![(y, 1.0), (y, 0.0)]
-                } else {
-                    vec![(y, uv)]
-                }
-            })
-            .flatten()
-    ).chain(std::iter::once((ymax, get_uv_in_tex_chunk(ymax))));
-
-    let x_bis = x.clone();
-    let (pos, uv): (Vec<_>, Vec<_>) = y.clone().map(move |(y, uvy)|
-        x_bis.clone().map(move |(x, uvx)| {
-            let lonlat = wcs.unproj(&ImgXY::new(x as f64, y as f64)).unwrap(); // vertex belong to the image space so I can unproject
-            let lon = lonlat.lon();
-            let lat = lonlat.lat();
-
-            let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
-            let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
-
-            let ndc = projection.model_to_normalized_device_space(&xyzw, camera)
-                .map(|v| [v.x as f32, v.y as f32]);
+                let xyzw = crate::math::lonlat::radec_to_xyzw(lon.to_angle(), lat.to_angle());
+                let xyzw = crate::coosys::apply_coo_system(&CooSystem::ICRSJ2000, camera.get_system(), &xyzw);
+    
+                projection.model_to_normalized_device_space(&xyzw, camera)
+                    .map(|v| [v.x as f32, v.y as f32])
+            } else {
+                None
+            };
 
             (ndc, [uvx, uvy])
         })
     ).flatten()
     .unzip();
-
-    let mut idx_y_ranges = vec![];
-    let mut idx_x_ranges = vec![];
-
-    let mut idx_start = 0;
-    let mut last_idx = 0;
-    for (idx_c, ((x_c, _), (x_n, _))) in x.clone().zip(x.skip(1)).enumerate() {
-        if x_c == x_n {
-            // on a tex chunk frontier
-            idx_x_ranges.push(idx_start..=idx_c);
-
-            idx_start = idx_c + 1;
-            last_idx = idx_c + 1;
-        } else {
-            last_idx = idx_c + 1;
-        }
-    }
-
-    if last_idx > idx_start {
-        idx_x_ranges.push(idx_start..=last_idx);
-    }
-
-    dbg!(&idx_x_ranges);
-
-    // Get the range of y pos patches
-    let mut idx_start = 0;
-    let mut last_idx = 0;
-    for (idx_c, ((y_c, _), (y_n, _))) in y.clone().zip(y.skip(1)).enumerate() {
-        if y_c == y_n {
-            // on a tex chunk frontier
-            idx_y_ranges.push(idx_start..=idx_c);
-
-            idx_start = idx_c + 1;
-            last_idx = idx_c + 1;
-        } else {
-            last_idx = idx_c + 1;
-        }
-    }
-
-    if last_idx > idx_start {
-        idx_y_ranges.push(idx_start..=last_idx);
-    }
-
-    dbg!(&idx_y_ranges);
-
-
-    let num_x_vertices = idx_x_ranges.last().unwrap().end() + 1;
 
     let mut indices = vec![];
     let mut num_indices = vec![];
@@ -276,40 +309,121 @@ impl<'a> Iterator for BuildPatchIndicesIter<'a> {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
     use wcs::ImgXY;
 
     #[test]
     fn test_grid_vertices() {
-        let (pos, uv, indices, num_indices) = super::get_grid_vertices(
-            &ImgXY::new(0.0, 0.0),
-            &ImgXY::new(40.0, 40.0),
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(40.0, 40.0),
             20,
             4
         );
 
-        assert_eq!(pos.len(), 36);
-        assert_eq!(uv.len(), 36);
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
 
-        let (pos, uv, indices, num_indices) = super::get_grid_vertices(
-            &ImgXY::new(0.0, 0.0),
-            &ImgXY::new(50.0, 40.0),
+        assert_eq!(x.len(), 6);
+        assert_eq!(y.len(), 6);
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(50.0, 40.0),
             20,
             5
         );
 
-        assert_eq!(pos.len(), 48);
-        assert_eq!(uv.len(), 48);
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
 
-        let (pos, uv, indices, num_indices) = super::get_grid_vertices(
-            &ImgXY::new(0.0, 0.0),
-            &ImgXY::new(7000.0, 7000.0),
+        assert_eq!(x.len(), 8);
+        assert_eq!(y.len(), 6);
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(7000.0, 7000.0),
             4096,
             2
         );
 
-        assert_eq!(pos.len(), 25);
-        assert_eq!(uv.len(), 25);
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x.len(), 5);
+        assert_eq!(y.len(), 5);
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(3000.0, 7000.0),
+            4096,
+            2
+        );
+
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x, &[(0, 0.0), (3000, 0.7324219)]);
+        assert_eq!(y, &[(0, 0.0), (3500, 0.8544922), (4096, 1.0), (4096, 0.0), (7000, 0.7089844)]);
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(4096.0, 4096.0),
+            4096,
+            1
+        );
+
+        let x_idx_rng = super::build_range_indices(x.clone());
+        let y_idx_rng = super::build_range_indices(y.clone());
+
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x, &[(0, 0.0), (4096, 1.0)]);
+        assert_eq!(y, &[(0, 0.0), (4096, 1.0)]);
+
+        assert_eq!(x_idx_rng, &[0..=1]);
+        assert_eq!(y_idx_rng, &[0..=1]);
+
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(11000.0, 7000.0),
+            4096,
+            1
+        );
+
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x, &[(0, 0.0), (4096, 1.0), (4096, 0.0), (8192, 1.0), (8192, 0.0), (11000, 0.6855469)]);
+        assert_eq!(y, &[(0, 0.0), (4096, 1.0), (4096, 0.0), (7000, 0.7089844)]);
+
+        let (x, y) = super::get_grid_params(
+            &(0.0, 0.0),
+            &(4096.0, 4096.0),
+            4096,
+            1
+        );
+
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x, &[(0, 0.0), (4096, 1.0)]);
+        assert_eq!(y, &[(0, 0.0), (4096, 1.0)]);
+
+        let (x, y) = super::get_grid_params(
+            &(3000.0, 4000.0),
+            &(4096.0, 7096.0),
+            4096,
+            1
+        );
+
+        let x = x.collect::<Vec<_>>();
+        let y = y.collect::<Vec<_>>();
+
+        assert_eq!(x, &[(3000, 0.7324219), (4096, 1.0)]);
+        assert_eq!(y, &[(4000, 0.9765625), (4096, 1.0), (4096, 0.0), (7096, 0.7324219)]);
     }
 }

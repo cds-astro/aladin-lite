@@ -106,8 +106,18 @@ export let View = (function () {
                 const url = URL.createObjectURL(file);
 
                 try {
-                    const imageFITS = self.aladin.createImageFITS(url, file.name, undefined, undefined, undefined);
-                    self.setOverlayImageLayer(imageFITS, Utils.uuidv4())
+                    const image = self.aladin.createImageFITS(
+                        url,
+                        file.name,
+                        undefined,
+                        (ra, dec, fov, _) => {
+                            // Center the view around the new fits object
+                            aladin.gotoRaDec(ra, dec);
+                            aladin.setFoV(fov * 1.1);
+                        },
+                        undefined
+                    );
+                    self.setOverlayImageLayer(image, Utils.uuidv4())
                 } catch(e) {
                     console.error("Only valid fits files supported (i.e. containig a WCS)", e)
                     throw e;

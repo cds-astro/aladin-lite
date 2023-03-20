@@ -932,10 +932,7 @@ impl App {
 
             let AsyncFits { mut hdu } = AsyncFits::from_reader(&mut reader).await
                 .map_err(|e| {
-                    match e {
-                        fitsrs::error::Error::StaticError(msg) => JsValue::from_str(msg),
-                        _ => JsValue::from_str("Failing to parse fits file"),
-                    }
+                    JsValue::from_str(&format!("Fits file parsing: reason: {}", e))
                 })?;
 
             let mut hdu_ext_idx = 0;

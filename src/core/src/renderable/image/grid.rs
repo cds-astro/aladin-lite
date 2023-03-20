@@ -97,8 +97,6 @@ fn get_coord_uv_it(xmin: u64, xmax: u64, step: usize, max_tex_size: u64) -> impl
         );
 
     let mut step_x = (xmin..xmax).step_by(step as usize);
-
-
     let mut cur_step = step_x.next().unwrap();
 
     x_it.clone().zip(x_it.clone().skip(1))

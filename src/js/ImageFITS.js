@@ -163,7 +163,7 @@ export let ImageFITS = (function () {
             // There is at least one entry in imageParams
             self.added = true;
 
-            self.imageFitsExt = [];
+            self.imagesFitsExt = [];
 
             let hduIdx = 0;
             imagesParams.forEach((imageParams) => {
@@ -185,7 +185,7 @@ export let ImageFITS = (function () {
                     }
                 } else {
                     // This fits has HDU extensions
-                    let imageFitsExt = new ImageFITS(
+                    let imageFits = new ImageFITS(
                         imageParams.url,
                         self.name + "_ext_" + hduIdx.toString(),
                         self.view,
@@ -196,11 +196,11 @@ export let ImageFITS = (function () {
 
                     // Set the layer corresponding to the one
                     // in the backend
-                    imageFitsExt.layer = imageParams.layer;
-                    imageFitsExt.added = true;
-                    imageFitsExt.colorCfg = self.colorCfg;
+                    imageFits.layer = imageParams.layer;
+                    imageFits.added = true;
+                    imageFits.colorCfg = self.colorCfg;
 
-                    self.imagesFitsExt.push(imageFitsExt)
+                    self.imagesFitsExt.push(imageFits)
                 }
 
                 hduIdx += 1;

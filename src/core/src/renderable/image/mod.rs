@@ -29,7 +29,6 @@ use al_core::WebGlContext;
 use al_core::VecData;
 use al_core::webgl_ctx::GlWrapper;
 use al_core::image::format::*;
-use al_core::image::format::ImageFormatType;
 
 use crate::camera::CameraViewPort;
 use crate::ProjectionType;
@@ -58,7 +57,7 @@ pub struct Image {
     centered_fov: CenteredFoV,
 
     //+ Texture format
-    format: ImageFormatType,
+    channel: ChannelType,
     /// Texture chunks objects
     textures: Vec<Texture2D>,
     /// Texture indices that must be drawn
@@ -112,7 +111,7 @@ impl Image {
 
         let data = hdu.get_data_mut();
         
-        let (textures, format) = match data {
+        let (textures, channel) = match data {
             stream::Data::U8(data) => {
                 let reader = data
                     .map_ok(|v| {
@@ -121,7 +120,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R8UI, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R8UI)
+                (textures, ChannelType::R8UI)
             },
             stream::Data::I16(data) => {
                 let reader = data
@@ -131,7 +130,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R16I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R16I)
+                (textures, ChannelType::R16I)
             },
             stream::Data::I32(data) => {
                 let reader = data
@@ -141,7 +140,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32I)
+                (textures, ChannelType::R32I)
             },
             stream::Data::I64(data) => {
                 let reader = data
@@ -152,7 +151,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32I, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32I)
+                (textures, ChannelType::R32I)
             },
             stream::Data::F32(data) => {
                 let reader = data
@@ -162,7 +161,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32F)
+                (textures, ChannelType::R32F)
             },
             stream::Data::F64(data) => {
                 let reader = data
@@ -173,7 +172,7 @@ impl Image {
                     .into_async_read();
 
                 let textures = subdivide_texture::build::<R32F, _>(gl, w, h, reader).await?;
-                (textures, ImageFormatType::R32F)
+                (textures, ChannelType::R32F)
             },
         };
 
@@ -293,7 +292,7 @@ impl Image {
             centered_fov,
 
             // Texture parameters
-            format,
+            channel,
             textures,
             // Indices of textures that must be drawn
             idx_tex,
@@ -431,14 +430,14 @@ impl Image {
             ..
         } = cfg;
 
-        let shader = match self.format {
-            ImageFormatType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
+        let shader = match self.channel {
+            ChannelType::R32F => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFS")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+            ChannelType::R32I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R16I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
+            ChannelType::R16I => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSInteger")?,
             #[cfg(feature = "webgl2")]
-            ImageFormatType::R8UI => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?,
+            ChannelType::R8UI => crate::shader::get_shader(&self.gl, shaders, "FitsVS", "FitsFSUnsigned")?,
             _ => return Err(JsValue::from_str("Image format type not supported"))
         };
 

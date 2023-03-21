@@ -1,4 +1,4 @@
-use al_core::image::format::ImageFormatType;
+use al_core::image::format::ChannelType;
 use std::io::Cursor;
 
 use crate::downloader::{query};
@@ -58,9 +58,11 @@ impl From<query::PixelMetadata> for PixelMetadataRequest {
 
         let url_clone = url.clone();
 
+        let channel = format.get_channel();
+
         let window = web_sys::window().unwrap_abort();
-        let request = match format {
-            ImageFormatType::R32F | ImageFormatType::R32I | ImageFormatType::R16I | ImageFormatType::R8UI => Request::new(async move {
+        let request = match channel {
+            ChannelType::R32F | ChannelType::R32I | ChannelType::R16I | ChannelType::R8UI => Request::new(async move {
                 let mut opts = RequestInit::new();
                 opts.method("GET");
                 opts.mode(RequestMode::Cors);

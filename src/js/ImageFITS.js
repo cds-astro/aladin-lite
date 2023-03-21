@@ -30,6 +30,7 @@
 import { ALEvent } from "./events/ALEvent.js";
 import { ColorCfg } from "./ColorCfg.js";
 import { ImageLayer } from "./ImageLayer.js";
+import { Utils } from "./Utils.js";
 
 export let ImageFITS = (function () {
 
@@ -40,11 +41,12 @@ export let ImageFITS = (function () {
         // Name of the layer
         this.layer = null;
         this.added = false;
+        this.subtype = "fits";
         // Set it to a default value
         this.url = url.toString();
 
         this.id = url.toString();
-        this.name = "fits/" + name;
+        this.name = name;
 
         this.imgFormat = "fits";
         this.properties = {
@@ -155,56 +157,56 @@ export let ImageFITS = (function () {
         this.layer = layer;
 
         let self = this;
-        self.wasm.addImageFITS({
+        const promise = self.wasm.addImageFITS({
             layer: self.layer,
             url: self.url,
             meta: self.metadata()
         }).then((imagesParams) => {
             // There is at least one entry in imageParams
             self.added = true;
-
-            self.imagesFitsExt = [];
-
+            self.children = [];
+            
             let hduIdx = 0;
             imagesParams.forEach((imageParams) => {
-                // Execute the callback only on the first parsed HDU
-                if (hduIdx == 0) {
-                    self.ra = imageParams.centered_fov.ra;
-                    self.dec = imageParams.centered_fov.dec;
-                    self.fov = imageParams.centered_fov.fov;
-    
-                    console.log("radec", self.ra, self.dec, self.fov)
+                // This fits has HDU extensions
+                let image = new ImageFITS(
+                    imageParams.url,
+                    self.name + "_ext_" + hduIdx.toString(),
+                    self.view,
+                    null,
+                    null,
+                    null
+                );
 
-                    if (self.successCallback) {
-                        self.successCallback(
-                            self.ra,
-                            self.dec,
-                            self.fov,
-                            self
-                        );
-                    }
-                } else {
-                    // This fits has HDU extensions
-                    let imageFits = new ImageFITS(
-                        imageParams.url,
-                        self.name + "_ext_" + hduIdx.toString(),
-                        self.view,
-                        null,
-                        null,
-                        null
-                    );
+                // Set the layer corresponding to the onein the backend
+                image.layer = imageParams.layer;
+                image.added = true;
+                // deep copy of the color object of self
+                image.colorCfg = Utils.deepCopy(self.colorCfg);
 
-                    // Set the layer corresponding to the one
-                    // in the backend
-                    imageFits.layer = imageParams.layer;
-                    imageFits.added = true;
-                    imageFits.colorCfg = self.colorCfg;
+                image.ra = imageParams.centered_fov.ra;
+                image.dec = imageParams.centered_fov.dec;
+                image.fov = imageParams.centered_fov.fov;
 
-                    self.imagesFitsExt.push(imageFits)
-                }
+                if (!self.ra) { self.ra = image.ra; }
+                if (!self.dec) { self.dec = image.dec; }
+                if (!self.fov) { self.fov = image.fov; }
+
+                self.children.push(image)
 
                 hduIdx += 1;
-            });            
+            });
+
+            if (self.successCallback) {
+                self.successCallback(
+                    self.ra,
+                    self.dec,
+                    self.fov,
+                    self
+                );
+            }
+
+            return self;
         }).catch((e) => {
             console.error(e)
             if (self.errorCallback) {
@@ -216,6 +218,8 @@ export let ImageFITS = (function () {
             // it is run async
             self.view.removeImageLayer(layer)
         });
+
+        return promise;
     };
 
     // @api

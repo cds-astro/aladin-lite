@@ -193,7 +193,7 @@ pub struct SurveyWidget {
 }
 
 use al_api::coo_system::CooSystem;
-use al_api::hips::HiPSTileFormat;
+use al_api::hips::ImageFormat;
 
 use cgmath::num_traits::Pow;
 
@@ -302,15 +302,15 @@ impl SurveyWidget {
         let mut formats = vec![];
 
         if self.properties.hips_tile_format.contains("fits") {
-            formats.push(HiPSTileFormat::FITS);
+            formats.push(ImageFormat::FITS);
         }
 
         if self.properties.hips_tile_format.contains("png") {
-            formats.push(HiPSTileFormat::PNG);
+            formats.push(ImageFormat::PNG);
         }
 
         if self.properties.hips_tile_format.contains("jpeg") {
-            formats.push(HiPSTileFormat::JPEG);
+            formats.push(ImageFormat::JPEG);
         }
 
         let opacity = if !self.visible { 0.0 } else { self.opacity };

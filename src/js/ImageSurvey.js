@@ -141,6 +141,7 @@ export let ImageSurvey = (function () {
         this.added = false;
         this.id = id;
         this.name = name;
+        this.subtype = "survey";
 
         // initialize the color meta data here
         this.colorCfg = new ColorCfg(options);
@@ -294,6 +295,10 @@ export let ImageSurvey = (function () {
                     throw self.name + " does not provide fits tiles";
                 }
 
+                if (imgFormat === "webp" && formats.indexOf('webp') < 0) {
+                    throw self.name + " does not provide webp tiles";
+                }
+
                 if (imgFormat === "png" && formats.indexOf('png') < 0) {
                     throw self.name + " does not provide png tiles";
                 }
@@ -305,6 +310,8 @@ export let ImageSurvey = (function () {
                 // user wants nothing then we choose one from the properties
                 if (formats.indexOf('png') >= 0) {
                     imgFormat = "png";
+                } else if (formats.indexOf('webp') >= 0) {
+                    imgFormat = "webp";
                 } else if (formats.indexOf('jpeg') >= 0) {
                     imgFormat = "jpeg";
                 } else if (formats.indexOf('fits') >= 0) {
@@ -353,8 +360,8 @@ export let ImageSurvey = (function () {
                 updateMetadata(self, () => {
                     let imgFormat = format.toLowerCase();
         
-                    if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg") {
-                        throw 'Formats must lie in ["fits", "png", "jpg"]';
+                    if (imgFormat !== "fits" && imgFormat !== "png" && imgFormat !== "jpg" && imgFormat !== "jpeg" && imgFormat !== "webp") {
+                        throw 'Formats must lie in ["fits", "png", "jpg", "webp"]';
                     }
         
                     if (imgFormat === "jpg") {
@@ -375,6 +382,10 @@ export let ImageSurvey = (function () {
                         throw self.id + " does not provide fits tiles";
                     }
         
+                    if (imgFormat === "webp" && availableFormats.indexOf('webp') < 0) {
+                        throw self.id + " does not provide webp tiles";
+                    }
+
                     if (imgFormat === "png" && availableFormats.indexOf('png') < 0) {
                         throw self.id + " does not provide png tiles";
                     }
@@ -474,11 +485,7 @@ export let ImageSurvey = (function () {
 
     ImageSurvey.prototype.add = function (layer) {
         this.layer = layer;
-        /*console.log({
-            layer: this.layer,
-            properties: this.properties,
-            meta: this.metadata(),
-        })*/
+
         this.wasm.addImageSurvey({
             layer: this.layer,
             properties: this.properties,
@@ -486,6 +493,8 @@ export let ImageSurvey = (function () {
         });
 
         this.added = true;
+
+        return Promise.resolve(this);
     }
 
     // @api

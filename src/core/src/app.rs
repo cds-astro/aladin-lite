@@ -718,7 +718,6 @@ impl App {
 
         // Check for async retrieval
         if let Ok(fits) = self.fits_recv.try_recv() {
-            al_core::log("received");
             let params = fits.get_params();
             self.layers.add_image_fits(fits, &mut self.camera, &self.projection)?;
             self.request_redraw = true;
@@ -938,11 +937,14 @@ impl App {
             let mut hdu_ext_idx = 0;
             let mut images_params = vec![];
 
-            if let Ok(image) = Image::from_fits_hdu_async(&gl, &mut hdu.0).await {    
+            if let Ok(image) = Image::from_fits_hdu_async(&gl, &mut hdu.0).await {   
+                let layer_ext = layer.clone();
+                let url_ext = url.clone();
+
                 let fits = ImageCfg {
                     image: image,
-                    layer: layer.clone(),
-                    url: url.clone(),
+                    layer: layer_ext,
+                    url: url_ext,
                     meta: meta.clone()
                 };
     

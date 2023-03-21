@@ -2,7 +2,7 @@ mod triangulation;
 pub mod uv;
 pub mod raytracing;
 
-use al_api::hips::HiPSTileFormat;
+use al_api::hips::ImageExt;
 use al_api::hips::ImageMetadata;
 
 use al_core::colormap::Colormap;
@@ -11,7 +11,7 @@ use al_core::VecData;
 use al_core::shader::Shader;
 use al_core::WebGlContext;
 use al_core::image::Image;
-use al_core::image::format::ImageFormatType;
+use al_core::image::format::ChannelType;
 use al_core::colormap::Colormaps;
 use al_core::webgl_ctx::GlWrapper;
 
@@ -541,8 +541,8 @@ impl HiPS {
         self.footprint_moc.as_ref()
     }
 
-    pub fn set_img_format(&mut self, fmt: HiPSTileFormat) -> Result<(), JsValue> {
-        self.textures.set_format(&self.gl, fmt)
+    pub fn set_img_format(&mut self, ext: ImageExt) -> Result<(), JsValue> {
+        self.textures.set_format(&self.gl, ext)
     }
 
     pub fn get_fading_factor(&self) -> f32 {
@@ -611,6 +611,7 @@ impl HiPS {
         let cfg = self.textures.config();
         // Get the coo system transformation matrix
         let selected_frame = camera.get_system();
+        let channel = cfg.get_format().get_channel();
         let hips_frame = cfg.get_frame();
         let c = selected_frame.to(&hips_frame);
 
@@ -625,7 +626,7 @@ impl HiPS {
                 if moc.contains(cell) {
                     Some(cell)
                 } else {
-                    if cfg.get_format() == ImageFormatType::RGB8U {
+                    if channel == ChannelType::RGB8U {
                         // Rasterizer does not render tiles that are not in the MOC
                         // This is not a problem for transparency rendered HiPses (FITS or PNG)
                         // but JPEG tiles do have black when no pixels data is found

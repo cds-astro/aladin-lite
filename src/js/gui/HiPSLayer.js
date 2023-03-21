@@ -55,7 +55,7 @@ export class HiPSLayer {
         );
 
         // Add a centered on button for images
-        if (this.layer.name.startsWith('fits')) {
+        if (this.layer.subtype === "fits") {
             let layerSelector = this.headerDiv[0].getElementsByClassName("aladin-layerSelection")[0];
             layerSelector.after($('<button class="aladin-btn-small aladin-layer-focuson" type="button" title="Focus on this layer">🎯</button>')[0]);
         }
@@ -157,7 +157,8 @@ export class HiPSLayer {
             let cfg = ImageLayer.LAYERS[layerSelector[0].selectedIndex];
             let layer;
             
-            if (cfg.name.startsWith("fits")) {
+            // Max order is specific for surveys
+            if (!cfg.maxOrder) {
                 // FITS
                 layer = self.aladin.createImageFITS(
                     cfg.url,
@@ -232,11 +233,8 @@ export class HiPSLayer {
         // Hide HiPS button
         const focusOnLayer = this.headerDiv.find('.aladin-layer-focuson');
         if (focusOnLayer) {
-            console.log("jkjsdf");
             focusOnLayer.off("click");
             focusOnLayer.on("click", function () {
-                console.log("click on focus");
-
                 self.layer.focusOn();
             });
         }

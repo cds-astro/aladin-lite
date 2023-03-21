@@ -218,7 +218,6 @@ export class Stack {
                     }
                     else if(type=='votable') {
                         let catalogLayer = A.catalogFromURL(params.url, {onClick: 'showTable'});
-                        console.log(catalogLayer)
                         self.aladin.addCatalog(catalogLayer);
                     }
                 };
@@ -298,7 +297,6 @@ export class Stack {
             const layer = e.detail.layer;
 
             const hipsLayer = new HiPSLayer(self.aladin, layer);
-
             self.imgLayers.set(layer.layer, hipsLayer);
 
             self._createComponent();
@@ -338,10 +336,19 @@ export class Stack {
         ALEvent.HIPS_LAYER_REMOVED.listenedBy(this.aladin.aladinDiv, function (e) {
             const layer = e.detail.layer;
             let hipsLayer = self.imgLayers.get(layer);
-            // unbind the events
-            hipsLayer.destroy();
-            self.imgLayers.delete(layer);
-    
+
+            if(hipsLayer.children) {
+                hipsLayer.children.forEach((child) => {
+                // unbind the events
+                    child.destroy();
+                    self.imgLayers.delete(child.layer);
+                });
+            } else {
+                // unbind the events
+                hipsLayer.destroy();
+                self.imgLayers.delete(layer);
+            }
+
             self._createComponent();
 
             self.updateSelectedLayer();

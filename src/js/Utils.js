@@ -401,3 +401,7 @@ Utils.dragOverHandler = function(ev) {
 Utils.requestCORSIfNotSameOrigin = function(url) {
     return (new URL(url, window.location.href)).origin !== window.location.origin;
 }
+
+Utils.deepCopy = function(orig) {
+    return Object.assign(Object.create(Object.getPrototypeOf(orig)), orig);
+}

@@ -21,14 +21,14 @@
 
 /******************************************************************************
  * Aladin Lite project
- * 
+ *
  * File SimbadPointer.js
  *
  * The SIMBAD pointer will query Simbad for a given position and radius and
- * return information on the object with 
- *  
+ * return information on the object with
+ *
  * Author: Thomas Boch [CDS]
- * 
+ *
  *****************************************************************************/
 import { Coo }            from "./libs/astro/coo.js";
 import { Utils }          from "./Utils.js";
@@ -36,9 +36,9 @@ import { Utils }          from "./Utils.js";
 export let SimbadPointer = (function() {
     const SimbadPointer = {};
 
-    SimbadPointer.MIRRORS = ['https://alasky.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py', 'https://alaskybis.u-strasbg.fr/cgi/simbad-flat/simbad-quick.py']; // list of base URL for Simbad pointer service
+    SimbadPointer.MIRRORS = ['https://alasky.cds.unistra.fr/cgi/simbad-flat/simbad-quick.py', 'https://alaskybis.cds.unistra.fr/cgi/simbad-flat/simbad-quick.py']; // list of base URL for Simbad pointer service
 
-    
+
     SimbadPointer.query = function(ra, dec, radiusDegrees, aladinInstance) {
         var coo = new Coo(ra, dec, 7);
         var params = {"Ident": coo.format('s/'), "SR": radiusDegrees}
@@ -47,14 +47,14 @@ export let SimbadPointer = (function() {
             .then((response) => response.text())
             .then((result) => {
                 aladinInstance.view.setCursor('pointer');
-    
+
                 var regexp = /(.*?)\/(.*?)\((.*?),(.*?)\)/g;
                 var match = regexp.exec(result);
                 if (match) {
                     var objCoo = new Coo();
                     objCoo.parse(match[1]);
                     var objName = match[2];
-                    var title = '<div class="aladin-sp-title"><a target="_blank" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
+                    var title = '<div class="aladin-sp-title"><a target="_blank" href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident=' + encodeURIComponent(objName) + '">' + objName + '</a></div>';
                     var content = '<div class="aladin-sp-content">';
                     content += '<em>Type: </em>' + match[4] + '<br>';
                     var magnitude = match[3];
@@ -77,4 +77,4 @@ export let SimbadPointer = (function() {
 
     return SimbadPointer;
 })();
-    
+
